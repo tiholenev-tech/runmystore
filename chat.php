@@ -68,7 +68,7 @@ $store_name = $store ? $store['name'] : 'Магазин';
       overflow: hidden;
       flex-shrink: 0;
       border: 1.5px solid rgba(99,102,241,0.4);
-      background: #fff;
+      background: transparent;
     }
     .chat-header-avatar img {
       width: 100%;
@@ -280,22 +280,7 @@ $store_name = $store ? $store['name'] : 'Магазин';
 
 <div class="chat-header">
   <div class="chat-header-avatar">
-    <svg viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" width="42" height="42">
-      <circle cx="21" cy="21" r="21" fill="#1e1b4b"/>
-      <rect x="11" y="26" width="20" height="12" rx="6" fill="#4f46e5"/>
-      <rect x="14" y="27" width="14" height="11" rx="3" fill="#3730a3"/>
-      <rect x="18" y="22" width="6" height="6" rx="2" fill="#fbbf24"/>
-      <ellipse cx="21" cy="18" rx="8" ry="8" fill="#fbbf24"/>
-      <ellipse cx="21" cy="11" rx="8" ry="4" fill="#92400e"/>
-      <rect x="13" y="11" width="16" height="6" rx="3" fill="#92400e"/>
-      <circle cx="18" cy="17" r="1.5" fill="#1e1b4b"/>
-      <circle cx="24" cy="17" r="1.5" fill="#1e1b4b"/>
-      <circle cx="18.5" cy="16.5" r=".5" fill="white"/>
-      <circle cx="24.5" cy="16.5" r=".5" fill="white"/>
-      <path d="M18 21 Q21 24 24 21" fill="none" stroke="#1e1b4b" stroke-width="1.2" stroke-linecap="round"/>
-      <rect x="24" y="28" width="6" height="8" rx="1.5" fill="#6366f1"/>
-      <rect x="25" y="29" width="4" height="5" rx=".5" fill="#a5b4fc"/>
-    </svg>
+    <img src="images/ai-assistant-avatar.png" alt="AI Асистент">
   </div>
   <div class="chat-header-info">
     <div class="chat-header-name">AI Асистент</div>
