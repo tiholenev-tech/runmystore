@@ -1,5 +1,5 @@
 <?php
-// chat.php — главен екран, изглежда като WhatsApp
+// chat.php
 session_start();
 require_once __DIR__ . '/config/database.php';
 
@@ -8,18 +8,16 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
-$tenant_id = $_SESSION['tenant_id'];
-$user_id   = $_SESSION['user_id'];
-$store_id  = $_SESSION['store_id'];
+$tenant_id  = $_SESSION['tenant_id'];
+$user_id    = $_SESSION['user_id'];
+$store_id   = $_SESSION['store_id'];
 
-// Зареждаме последните 50 съобщения
 $messages = DB::run(
     'SELECT role, content, created_at FROM chat_messages
      WHERE tenant_id = ? ORDER BY created_at ASC LIMIT 50',
     [$tenant_id]
 )->fetchAll();
 
-// Зареждаме името на магазина
 $store = DB::run('SELECT name FROM stores WHERE id = ? LIMIT 1', [$store_id])->fetch();
 $store_name = $store ? $store['name'] : 'Магазин';
 ?>
@@ -29,107 +27,142 @@ $store_name = $store ? $store['name'] : 'Магазин';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>RunMyStore.ai</title>
-  <link rel="stylesheet" href="style.css">
+  <link href="./css/vendors/aos.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: var(--bg-body, #0f172a);
-      color: #f1f5f9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       height: 100dvh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    /* ── HEADER ── */
     .chat-header {
       display: flex;
       align-items: center;
       gap: .75rem;
-      padding: .875rem 1rem;
-      background: var(--card-bg, #1e293b);
-      border-bottom: 1px solid var(--border, #334155);
+      padding: .75rem 1rem;
+      padding-top: calc(.75rem + env(safe-area-inset-top));
+      background: var(--color-gray-900);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
       flex-shrink: 0;
+      position: relative;
     }
-    .chat-header-avatar {
-      width: 38px; height: 38px;
-      background: var(--color-primary, #6366f1);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
+    .chat-header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-bottom: 1px solid transparent;
+      background: linear-gradient(to right, var(--color-gray-800), var(--color-gray-700), var(--color-gray-800)) border-box;
+      mask: linear-gradient(white 0 0) padding-box, linear-gradient(white 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
     }
-    .chat-header-info { flex: 1; min-width: 0; }
-    .chat-header-name { font-size: .9375rem; font-weight: 600; color: #f1f5f9; }
-    .chat-header-status { font-size: .75rem; color: #4ade80; }
-    .chat-header-btn {
-      background: none; border: none; color: #94a3b8;
-      cursor: pointer; padding: .375rem;
-      border-radius: .375rem;
-      transition: color .15s;
-    }
-    .chat-header-btn:hover { color: #f1f5f9; }
 
-    /* ── MESSAGES ── */
+    .chat-header-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(99,102,241,0.4);
+      background: var(--color-gray-800);
+    }
+    .chat-header-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      transform: scale(1.15) translateY(4px);
+    }
+
+    .chat-header-info { flex: 1; min-width: 0; }
+    .chat-header-name {
+      font-family: var(--font-nacelle, sans-serif);
+      font-size: .9375rem;
+      font-weight: 600;
+      color: var(--color-gray-200);
+    }
+    .chat-header-status {
+      font-size: .6875rem;
+      color: #4ade80;
+      font-weight: 500;
+    }
+
+    .chat-header-store {
+      font-size: .75rem;
+      color: rgba(165,180,252,.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100px;
+    }
+
+    .chat-header-btn {
+      background: none;
+      border: none;
+      color: var(--color-gray-500);
+      cursor: pointer;
+      padding: .375rem;
+      border-radius: .5rem;
+      transition: color .15s;
+      line-height: 0;
+    }
+    .chat-header-btn:hover { color: var(--color-gray-200); }
+
     .chat-messages {
       flex: 1;
       overflow-y: auto;
       padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: .5rem;
+      gap: .625rem;
       -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-gray-700) transparent;
     }
 
     .msg {
-      max-width: 80%;
-      padding: .625rem .875rem;
-      border-radius: 1rem;
+      max-width: 82%;
+      padding: .625rem .9375rem;
+      border-radius: 1.125rem;
       font-size: .9375rem;
-      line-height: 1.45;
+      line-height: 1.5;
       word-break: break-word;
     }
     .msg-user {
       align-self: flex-end;
-      background: var(--color-primary, #6366f1);
+      background: linear-gradient(to bottom, var(--color-indigo-500), var(--color-indigo-600));
       color: #fff;
-      border-bottom-right-radius: .25rem;
+      border-bottom-right-radius: .3rem;
+      box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,.16);
     }
     .msg-assistant {
       align-self: flex-start;
-      background: var(--card-bg, #1e293b);
-      color: #f1f5f9;
-      border: 1px solid var(--border, #334155);
-      border-bottom-left-radius: .25rem;
+      background: var(--color-gray-900);
+      color: var(--color-gray-200);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-bottom-left-radius: .3rem;
     }
-    .msg-time {
-      font-size: .6875rem;
-      color: #64748b;
-      margin-top: .25rem;
-      text-align: right;
-    }
-    .msg-user + .msg-time { text-align: right; align-self: flex-end; }
-    .msg-assistant + .msg-time { text-align: left; align-self: flex-start; }
 
-    /* Typing indicator */
     .typing {
       align-self: flex-start;
-      background: var(--card-bg, #1e293b);
-      border: 1px solid var(--border, #334155);
-      border-radius: 1rem;
-      border-bottom-left-radius: .25rem;
+      background: var(--color-gray-900);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1.125rem;
+      border-bottom-left-radius: .3rem;
       padding: .75rem 1rem;
       display: none;
     }
     .typing span {
       display: inline-block;
       width: 7px; height: 7px;
-      background: #94a3b8;
+      background: var(--color-indigo-400, #818cf8);
       border-radius: 50%;
       animation: bounce 1.2s infinite;
-      margin: 0 1px;
+      margin: 0 2px;
     }
     .typing span:nth-child(2) { animation-delay: .2s; }
     .typing span:nth-child(3) { animation-delay: .4s; }
@@ -138,22 +171,36 @@ $store_name = $store ? $store['name'] : 'Магазин';
       30% { transform: translateY(-6px); }
     }
 
-    /* Welcome message */
     .welcome {
       align-self: center;
       text-align: center;
-      color: #64748b;
+      color: var(--color-gray-600);
       font-size: .875rem;
-      padding: 2rem 1rem;
+      padding: 2.5rem 1rem;
     }
-    .welcome strong { display: block; font-size: 1.125rem; color: #94a3b8; margin-bottom: .5rem; }
+    .welcome strong {
+      display: block;
+      font-family: var(--font-nacelle, sans-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      background: linear-gradient(to right, var(--color-gray-200), var(--color-indigo-200), var(--color-gray-50), var(--color-indigo-300), var(--color-gray-200));
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient 6s linear infinite;
+      margin-bottom: .5rem;
+    }
+    @keyframes gradient {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
 
-    /* ── INPUT ── */
     .chat-input-wrap {
       padding: .75rem 1rem;
       padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
-      background: var(--card-bg, #1e293b);
-      border-top: 1px solid var(--border, #334155);
+      background: var(--color-gray-900);
+      border-top: 1px solid rgba(255,255,255,0.06);
       flex-shrink: 0;
     }
     .chat-input-row {
@@ -163,11 +210,11 @@ $store_name = $store ? $store['name'] : 'Магазин';
     }
     .chat-input {
       flex: 1;
-      background: var(--input-bg, #0f172a);
-      border: 1px solid var(--border, #334155);
+      background: var(--color-gray-950, #030712);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 1.25rem;
       padding: .625rem 1rem;
-      color: #f1f5f9;
+      color: var(--color-gray-200);
       font-size: .9375rem;
       outline: none;
       resize: none;
@@ -176,24 +223,24 @@ $store_name = $store ? $store['name'] : 'Магазин';
       font-family: inherit;
       transition: border-color .15s;
     }
-    .chat-input:focus { border-color: var(--color-primary, #6366f1); }
-    .chat-input::placeholder { color: #475569; }
+    .chat-input:focus { border-color: var(--color-indigo-500, #6366f1); }
+    .chat-input::placeholder { color: var(--color-gray-600); }
 
     .btn-send {
       width: 42px; height: 42px;
-      background: var(--color-primary, #6366f1);
+      background: linear-gradient(to bottom, var(--color-indigo-500), var(--color-indigo-600));
       border: none;
       border-radius: 50%;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
+      box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,.16);
       transition: opacity .15s, transform .1s;
     }
     .btn-send:active { opacity: .85; transform: scale(.95); }
     .btn-send:disabled { opacity: .4; cursor: default; }
     .btn-send svg { color: #fff; }
 
-    /* Quick suggestions */
     .suggestions {
       display: flex;
       gap: .5rem;
@@ -205,37 +252,50 @@ $store_name = $store ? $store['name'] : 'Магазин';
     .suggestions::-webkit-scrollbar { display: none; }
     .suggestion {
       flex-shrink: 0;
-      background: var(--input-bg, #0f172a);
-      border: 1px solid var(--border, #334155);
+      background: linear-gradient(to bottom, var(--color-gray-800), rgba(17,24,39,.6));
       border-radius: 1rem;
       padding: .375rem .875rem;
       font-size: .8125rem;
-      color: #94a3b8;
+      color: var(--color-gray-300);
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color .15s, color .15s;
+      position: relative;
+      border: none;
+      transition: color .15s;
     }
-    .suggestion:hover { border-color: var(--color-primary, #6366f1); color: #f1f5f9; }
+    .suggestion::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid transparent;
+      background: linear-gradient(to right, var(--color-gray-800), var(--color-gray-700), var(--color-gray-800)) border-box;
+      mask: linear-gradient(white 0 0) padding-box, linear-gradient(white 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .suggestion:hover { color: var(--color-indigo-400, #818cf8); }
   </style>
 </head>
-<body>
+<body class="bg-gray-950 font-inter text-base text-gray-200 antialiased">
 
-<!-- HEADER -->
 <div class="chat-header">
-  <div class="chat-header-avatar">🤖</div>
+  <div class="chat-header-avatar">
+    <img src="images/ai-assistant-avatar.png" alt="AI Асистент">
+  </div>
   <div class="chat-header-info">
     <div class="chat-header-name">AI Асистент</div>
     <div class="chat-header-status">● онлайн</div>
   </div>
+  <div class="chat-header-store"><?= htmlspecialchars($store_name) ?></div>
   <button class="chat-header-btn" onclick="location.href='dashboard.php'" title="Табло">
-    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
     </svg>
   </button>
 </div>
 
-<!-- MESSAGES -->
 <div class="chat-messages" id="chatMessages">
   <?php if (empty($messages)): ?>
     <div class="welcome">
@@ -255,7 +315,6 @@ $store_name = $store ? $store['name'] : 'Магазин';
   </div>
 </div>
 
-<!-- INPUT -->
 <div class="chat-input-wrap">
   <div class="suggestions" id="suggestions">
     <button class="suggestion" onclick="fillSuggestion(this)">Колко стока ми остана?</button>
@@ -264,12 +323,7 @@ $store_name = $store ? $store['name'] : 'Магазин';
     <button class="suggestion" onclick="fillSuggestion(this)">Какво трябва да поръчам?</button>
   </div>
   <div class="chat-input-row">
-    <textarea
-      class="chat-input"
-      id="chatInput"
-      placeholder="Напиши съобщение..."
-      rows="1"
-    ></textarea>
+    <textarea class="chat-input" id="chatInput" placeholder="Напиши съобщение..." rows="1"></textarea>
     <button class="btn-send" id="btnSend" onclick="sendMessage()">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <line x1="22" y1="2" x2="11" y2="13"/>
@@ -279,6 +333,9 @@ $store_name = $store ? $store['name'] : 'Магазин';
   </div>
 </div>
 
+<script src="./js/vendors/alpinejs-focus.min.js"></script>
+<script src="./js/vendors/alpinejs.min.js" defer></script>
+
 <script>
 const chatMessages = document.getElementById('chatMessages');
 const chatInput    = document.getElementById('chatInput');
@@ -286,13 +343,11 @@ const btnSend      = document.getElementById('btnSend');
 const typing       = document.getElementById('typing');
 const suggestions  = document.getElementById('suggestions');
 
-// Auto-resize textarea
 chatInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
 
-// Enter = изпрати, Shift+Enter = нов ред
 chatInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -338,7 +393,6 @@ async function sendMessage() {
       body: JSON.stringify({ message: text })
     });
 
-    // DEBUG: показваме суровия отговор ако не е валиден JSON
     const rawText = await res.text();
     let data;
     try {
@@ -366,7 +420,6 @@ async function sendMessage() {
   chatInput.focus();
 }
 
-// Scroll до дъното при зареждане
 scrollToBottom();
 </script>
 </body>
