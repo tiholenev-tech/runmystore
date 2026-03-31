@@ -68,14 +68,13 @@ $store_name = $store ? $store['name'] : 'Магазин';
       overflow: hidden;
       flex-shrink: 0;
       border: 1.5px solid rgba(99,102,241,0.4);
-      background: var(--color-gray-800);
+      background: #fff;
     }
     .chat-header-avatar img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
-      object-position: center top;
-      transform: scale(1.15) translateY(4px);
+      object-fit: contain;
+      object-position: center center;
     }
 
     .chat-header-info { flex: 1; min-width: 0; }
