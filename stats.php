@@ -53,9 +53,9 @@ if ($role === 'seller' && $store_id) {
 // ── ПРОДАЖБИ ──────────────────────────────────────────────
 // Оборот за периода
 $q = $pdo->prepare("
-    SELECT COALESCE(SUM(s.total_amount),0) AS revenue,
+    SELECT COALESCE(SUM(s.total),0) AS revenue,
            COUNT(s.id) AS transactions,
-           COALESCE(AVG(s.total_amount),0) AS avg_ticket
+           COALESCE(AVG(s.total),0) AS avg_ticket
     FROM sales s
     WHERE s.tenant_id=? AND DATE(s.created_at) BETWEEN ? AND ?
     {$store_filter_sql}
@@ -66,7 +66,7 @@ $sales_summary = $q->fetch(PDO::FETCH_ASSOC);
 
 // Оборот по обект
 $q2 = $pdo->prepare("
-    SELECT st.name AS store_name, COALESCE(SUM(s.total_amount),0) AS revenue
+    SELECT st.name AS store_name, COALESCE(SUM(s.total),0) AS revenue
     FROM sales s
     JOIN stores st ON st.id = s.store_id
     WHERE s.tenant_id=? AND DATE(s.created_at) BETWEEN ? AND ?
@@ -82,9 +82,10 @@ if ($role === 'owner') {
     $qp = $pdo->prepare("
         SELECT
             COALESCE(SUM(si.quantity * si.unit_price),0) AS revenue,
-            COALESCE(SUM(si.quantity * COALESCE(si.cost_price,0)),0) AS cost
+            COALESCE(SUM(si.quantity * COALESCE(p.cost_price,0)),0) AS cost
         FROM sale_items si
         JOIN sales s ON s.id = si.sale_id
+        JOIN products p ON p.id = si.product_id
         WHERE s.tenant_id=? AND DATE(s.created_at) BETWEEN ? AND ?
     ");
     $qp->execute([$tenant_id, $from, $to]);
@@ -145,18 +146,16 @@ $low_stock = $ql->fetchAll(PDO::FETCH_ASSOC);
 $unpaid_invoices = []; $unpaid_total = 0;
 if ($role !== 'seller') {
     $qi = $pdo->prepare("
-        SELECT i.invoice_number, i.due_date, i.total_amount,
-               s.name AS supplier_name,
+        SELECT i.number AS invoice_number, i.due_date, i.total,
                DATEDIFF(NOW(), i.due_date) AS overdue_days
         FROM invoices i
-        LEFT JOIN suppliers s ON s.id = i.supplier_id
         WHERE i.tenant_id=? AND i.status != 'paid'
         ORDER BY i.due_date ASC
         LIMIT 15
     ");
     $qi->execute([$tenant_id]);
     $unpaid_invoices = $qi->fetchAll(PDO::FETCH_ASSOC);
-    $unpaid_total    = array_sum(array_column($unpaid_invoices, 'total_amount'));
+    $unpaid_total    = array_sum(array_column($unpaid_invoices, 'total'));
 }
 
 // ── АНОМАЛИИ — ОТСТЪПКИ ──────────────────────────────────
@@ -585,14 +584,14 @@ $active_tab = $_GET['tab'] ?? 'overview';
       <?php if ($unpaid_invoices): foreach ($unpaid_invoices as $inv): ?>
       <div class="list-row">
         <div style="flex:1;">
-          <div class="name"><?= htmlspecialchars($inv['supplier_name'] ?? 'Неизвестен') ?></div>
+          <div class="name"><?= $inv['invoice_number'] ?? '—' ?></div>
           <div style="font-size:10px;color:#6b7280;">
-            <?= $inv['invoice_number'] ?? '—' ?> · пада <?= $inv['due_date'] ?>
+            пада <?= $inv['due_date'] ?>
           </div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:13px;font-weight:700;color:<?= $inv['overdue_days'] > 0 ? '#ef4444' : '#a5b4fc' ?>;">
-            <?= number_format($inv['total_amount'],2,',','.') ?> <?= $currency ?>
+            <?= number_format($inv['total'],2,',','.') ?> <?= $currency ?>
           </div>
           <?php if ($inv['overdue_days'] > 0): ?>
           <span class="badge badge-red">+<?= $inv['overdue_days'] ?> дни</span>
