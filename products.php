@@ -326,9 +326,9 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <input type="text" name="q" class="search-input" placeholder="Търси по ime, баркод, код..." value="<?= htmlspecialchars($search) ?>" autocomplete="off" id="searchInput">
       </form>
       <div class="search-icons">
-        <div class="icon-btn" onclick="openCamera('search')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><path d="M17 17h5v5M17 21h.01M21 17h.01M12 2v5M7 12h5M12 12v5M17 12h5M2 12h5"/></svg>
-        </div>
+        <button type="button" onclick="openCamera('search')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m11-4v3a1 1 0 01-1 1h-3m4-11V6a1 1 0 00-1-1h-3"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-width="1.5"/></svg>
+        </button>
         <div class="icon-btn" onclick="startVoiceSearch()" id="voiceSearchBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
         </div>
@@ -471,7 +471,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       </div>
       <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(this)">
       <div class="fg"><label class="fl">Наименование *</label><input type="text" id="f_name" class="fi" placeholder="напр. Nike Air Max" required></div>
-      <div class="fg"><label class="fl">Продажна цена *</label><input type="number" id="f_price" class="fi" placeholder="0.00" step="0.01" min="0" required></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Продажна цена *</label><input type="number" id="f_price" class="fi" placeholder="0.00" step="0.01" min="0" required></div>
+        <div class="fg"><label class="fl" style="font-size:10px">Цена едро</label><input type="number" id="f_wprice" class="fi" placeholder="0.00" step="0.01" min="0"></div>
+      </div>
       <div class="fg">
         <label class="fl">Баркод <span style="color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0">(празно = автогенериране)</span></label>
         <div style="display:flex;gap:8px">
@@ -487,10 +490,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 
     <!-- СТЪПКА 2 -->
     <div class="step-content" id="stepC2">
-      <button type="button" class="ai-gen-btn" onclick="generateAIDescription()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-        AI генерира описание
-      </button>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Избери варианти от списъка. Можеш да добавяш свои.</div>
+      <div id="variantsContainer"></div>
+      <button type="button" class="btn-next" onclick="goStep(3)">Напред →</button>
+      <button type="button" class="btn-back" onclick="goStep(1)">← Назад</button>
+    </div>
+
+    <!-- СТЪПКА 3 — по желание -->
+    <div class="step-content" id="stepC3">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Всичко тук е по желание — можеш да пропуснеш.</div>
       <div class="fg">
         <label class="fl">Категория</label>
         <select id="f_cat" class="fi" style="-webkit-appearance:none">
@@ -498,64 +506,21 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
           <?php foreach($categories as $c): ?><option value="<?= $c['id'] ?>" data-variant="<?= $c['variant_type'] ?>"><?= htmlspecialchars($c['name']) ?></option><?php endforeach; ?>
         </select>
       </div>
-      <div id="variantsContainer"></div>
-      <div class="fg">
-        <label class="fl">Описание</label>
-        <textarea id="f_desc" class="fi" rows="2" placeholder="AI ще генерира..."></textarea>
-      </div>
-      <button type="button" class="btn-next" onclick="goStep(3)">Напред →</button>
-      <button type="button" class="btn-back" onclick="goStep(1)">← Назад</button>
-    </div>
-
-    <!-- СТЪПКА 3 -->
-    <div class="step-content" id="stepC3">
-      <div class="frow">
-        <div class="fg"><label class="fl">Покупна цена</label><input type="number" id="f_cost" class="fi" placeholder="0.00" step="0.01" min="0"></div>
-        <div class="fg"><label class="fl">Цена едро</label><input type="number" id="f_wprice" class="fi" placeholder="0.00" step="0.01" min="0"></div>
-      </div>
-      <div class="frow">
-        <div class="fg">
-          <label class="fl">Доставчик</label>
-          <select id="f_sup" class="fi" style="-webkit-appearance:none">
-            <option value="">— Без —</option>
-            <?php foreach($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['name']) ?></option><?php endforeach; ?>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl">Мерна единица</label>
-          <select id="f_unit" class="fi" style="-webkit-appearance:none">
-            <?php foreach($onboarding_units as $u): ?><option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option><?php endforeach; ?>
-            <?php $extra=['бр','чифт','к-кт','кг','гр','л','мл','м','кутия','пакет']; foreach($extra as $u): if(!in_array($u,$onboarding_units)): ?><option value="<?= $u ?>"><?= $u ?></option><?php endif; endforeach; ?>
-          </select>
-        </div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Артикулен код</label><input type="text" id="f_code" class="fi" placeholder="автоген."></div>
-        <div class="fg"><label class="fl">Локация / Рафт</label><input type="text" id="f_loc" class="fi" placeholder="Рафт А-3"></div>
-      </div>
-      <button type="button" class="btn-next" onclick="onStep3Next()">Запази и продължи →</button>
+      <button type="button" class="ai-gen-btn" onclick="generateAIDescription()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        AI генерира описание
+      </button>
+      <div class="fg"><label class="fl">Описание</label><textarea id="f_desc" class="fi" rows="2" placeholder="AI ще генерира..."></textarea></div>
+      <button type="button" class="btn-next" onclick="onStep3Next()">Запази →</button>
       <button type="button" class="btn-back" onclick="goStep(2)">← Назад</button>
     </div>
 
-    <!-- СТЪПКА 4 — Serial Scanner -->
+    <!-- СТЪПКА 4 — Принт списък -->
     <div class="step-content" id="stepC4">
-      <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:4px">Сканирай баркодовете</div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:16px">За всяка вариация поотделно — или пропусни за автобаркод</div>
-      <div class="scanner-current" id="scannerCurrent">
-        <div class="scanner-variant-name" id="scannerVariantName">Зарежда...</div>
-        <div class="scanner-instruction">Сканирай баркода или въведи ръчно</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input type="text" class="fi" id="scannerInput" placeholder="Баркод" style="flex:1">
-        <div class="icon-btn" onclick="openCamera('scanner')" style="width:44px;height:44px;border-radius:12px;flex-shrink:0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><path d="M17 17h5v5"/></svg>
-        </div>
-      </div>
-      <div class="scanner-progress" id="scannerProgress"></div>
-      <div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:10px 14px;margin-bottom:12px;max-height:180px;overflow-y:auto" id="scannerResults"></div>
-      <button type="button" class="btn-next" id="btnConfirmScan" onclick="confirmCurrentScan()">Потвърди →</button>
-      <button type="button" class="btn-skip" onclick="skipCurrentScan()">Пропусни (автобаркод)</button>
-      <button type="button" class="btn-save" id="btnFinalSave" onclick="finalSave()" style="display:none">✓ Запази всичко</button>
+      <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:4px">Запазени! Печат на етикети</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Въведи брой етикети за всяка вариация и натисни 🖨️</div>
+      <div id="printList" style="margin-bottom:16px"></div>
+      <button type="button" class="btn-save" onclick="closeModal();location.reload()">✓ Готово</button>
     </div>
   </div>
 </div>
@@ -584,7 +549,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 const canSeeCost = <?= $can_see_cost?'true':'false' ?>;
 const canAdd     = <?= $can_add?'true':'false' ?>;
 const COLOR_PALETTE = <?= json_encode($COLOR_PALETTE, JSON_UNESCAPED_UNICODE) ?>;
-const stepLabels = ['Вид на артикула','Основна информация','Категория и варианти','Детайли','Сканиране на баркодове'];
+const stepLabels = ['Вид на артикула','Основна информация','Категория и варианти','Детайли','Печат на етикети'];
 
 let productType   = null;
 let currentStep   = 0;
@@ -638,8 +603,8 @@ async function renderVariantsStep() {
 function renderSizeSection(v,sizes){
   const all=[...new Set([...sizes,...(v.values||[])])];
   const key=v.name.replace(/\s/g,'_');
-  let chips=all.map(s=>`<div class="size-chip" data-size="${s}" data-varname="${v.name}" onclick="toggleSizeChip(this)">${s}<span class="size-price-badge" id="spb_${key}_${s}"></span><div class="size-price-popup" onclick="event.stopPropagation()"><label>Цена за ${s} (€)</label><input type="number" placeholder="0.00" step="0.01" min="0" onchange="setSizePrice('${key}','${s}',this.value)"></div></div>`).join('');
-  return`<div class="vsec"><div class="vsec-title">${v.name}</div><div class="size-grid" id="sg_${key}">${chips}</div><div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави размер..." id="csi_${key}"><button type="button" class="add-custom-btn" onclick="addCustomSize('${v.name}','${key}')">+ Добави</button></div><div style="font-size:11px;color:#6b7280;margin-top:5px">Натисни за избор · задръж за различна цена</div></div>`;
+  let chips=all.map(s=>`<div class="size-chip" data-size="${s}" data-varname="${v.name}" data-key="${key}">${s}<span class="size-price-badge" id="spb_${key}_${s}"></span><div class="size-price-popup"><label>Цена за ${s} (€)</label><input type="number" placeholder="0.00" step="0.01" min="0" data-size="${s}" data-key="${key}" class="size-price-input"></div></div>`).join('');
+  return`<div class="vsec"><div class="vsec-title">${v.name}</div><div class="size-grid" id="sg_${key}">${chips}</div><div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави размер..." id="csi_${key}"><button type="button" class="add-custom-btn" onclick="addCustomSize('${v.name}','${key}')">+ Добави</button></div><div style="font-size:11px;color:#6b7280;margin-top:5px">Натисни за избор · задръж за цена</div></div>`;
 }
 
 function toggleSizeChip(el){
@@ -648,9 +613,42 @@ function toggleSizeChip(el){
   else{el.classList.add('sel');selectedSizes[size]=null;}
 }
 
+// Event delegation за size chips — работи и за динамично добавени
+document.addEventListener('click',e=>{
+  // price popup input — не затваряме
+  if(e.target.closest('.size-price-popup')) return;
+  // size chip click → toggle
+  const chip=e.target.closest('.size-chip');
+  if(chip&&chip.closest('#variantsContainer')){
+    toggleSizeChip(chip);
+  }
+});
+
+// Event delegation за size-price-input
+document.addEventListener('change',e=>{
+  if(e.target.classList.contains('size-price-input')){
+    const key=e.target.dataset.key;
+    const size=e.target.dataset.size;
+    setSizePrice(key,size,e.target.value);
+  }
+});
+
 let lpTimer=null;
-document.addEventListener('touchstart',e=>{const c=e.target.closest('.size-chip.sel');if(!c)return;lpTimer=setTimeout(()=>c.classList.toggle('price-open'),500);},{passive:true});
+// Long press на size-chip (избран или не) → отваря price popup
+document.addEventListener('touchstart',e=>{
+  const c=e.target.closest('.size-chip');if(!c)return;
+  lpTimer=setTimeout(()=>{
+    if(!c.classList.contains('sel')){c.classList.add('sel');const size=c.dataset.size;selectedSizes[size]=null;}
+    c.classList.toggle('price-open');
+  },500);
+},{passive:true});
 document.addEventListener('touchend',()=>clearTimeout(lpTimer),{passive:true});
+// Затваряме price popup при клик извън него
+document.addEventListener('touchstart',e=>{
+  if(!e.target.closest('.size-price-popup')&&!e.target.closest('.size-chip')){
+    document.querySelectorAll('.size-chip.price-open').forEach(c=>c.classList.remove('price-open'));
+  }
+},{passive:true});
 
 function setSizePrice(key,size,val){
   selectedSizes[size]=val?parseFloat(val):null;
@@ -661,9 +659,9 @@ function setSizePrice(key,size,val){
 function addCustomSize(varName,key){
   const inp=document.getElementById('csi_'+key);const val=inp?.value.trim();if(!val)return;
   const grid=document.getElementById('sg_'+key);
-  const chip=document.createElement('div');chip.className='size-chip';chip.dataset.size=val;chip.dataset.varname=varName;
-  chip.innerHTML=val+`<span class="size-price-badge" id="spb_${key}_${val}"></span><div class="size-price-popup" onclick="event.stopPropagation()"><label>Цена (€)</label><input type="number" step="0.01" onchange="setSizePrice('${key}','${val}',this.value)"></div>`;
-  chip.onclick=function(){toggleSizeChip(this);};grid?.appendChild(chip);if(inp)inp.value='';
+  const chip=document.createElement('div');chip.className='size-chip';chip.dataset.size=val;chip.dataset.varname=varName;chip.dataset.key=key;
+  chip.innerHTML=val+`<span class="size-price-badge" id="spb_${key}_${val}"></span><div class="size-price-popup"><label>Цена (€)</label><input type="number" step="0.01" data-size="${val}" data-key="${key}" class="size-price-input"></div>`;
+  grid?.appendChild(chip);if(inp)inp.value='';
 }
 
 function renderColorSection(v){
@@ -706,12 +704,29 @@ function addCustomChip(varName,key){
 }
 
 function onStep3Next(){
-  if(productType==='single'){saveSingle();}
-  else{
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){showToast('Въведи наименование');goStep(1);return;}
+  const price=parseFloat(document.getElementById('f_price').value||'0');
+  if(!price){showToast('Въведи продажна цена');goStep(1);return;}
+  if(productType==='variant'){
     buildCombinations();
-    if(!variantCombs.length){showToast('Избери поне един вариант');return;}
-    initScanner();goStep(4);
+    if(!variantCombs.length){showToast('Избери поне един вариант (размер, цвят или разфасовка)');return;}
   }
+  saveAndShowPrint();
+}
+
+async function saveAndShowPrint(){
+  showToast('Запазвам...');
+  const fd=buildFD(productType==='variant');
+  try{
+    const r=await fetch('product-save.php',{method:'POST',body:fd});
+    const txt=await r.text();
+    let parentId=null;
+    try{const j=JSON.parse(txt);if(j.ok)parentId=j.parent_id;}catch(e){}
+    showToast('Запазено ✓');
+    renderPrintList();
+    goStep(4);
+  }catch(e){showToast('Грешка при запазване');}
 }
 
 function buildCombinations(){
@@ -732,48 +747,34 @@ function buildCombinations(){
   }
 }
 
-function initScanner(){scannerIdx=0;renderScannerProgress();showCurrentVariant();}
-
-function renderScannerProgress(){
-  document.getElementById('scannerProgress').innerHTML=variantCombs.map((v,i)=>{
-    const lbl=[v.size,v.color,v.label].filter(Boolean).join('/');
-    const cls=v.barcode?'done':(i===scannerIdx?'active':'');
-    return`<div class="scan-dot ${cls}" title="${lbl}">${i+1}</div>`;
+function renderPrintList(){
+  const items = productType==='variant' ? variantCombs : [{
+    size:null,color:null,label:document.getElementById('f_name').value,
+    barcode:document.getElementById('f_barcode').value||'автогенериран',price:null
+  }];
+  const code=document.getElementById('f_code').value||'ART-AUTO';
+  document.getElementById('printList').innerHTML=items.map((v,i)=>{
+    const lbl=[v.size,v.color,v.label].filter(Boolean).join(' / ')||('Вариант '+(i+1));
+    const bc=v.barcode||'автогенериран';
+    const artCode=code+(items.length>1?'-'+(i+1):'');
+    return`<div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#f1f5f9">${lbl}</div>
+        <div style="font-size:11px;color:#6b7280">${artCode} · ${bc}</div>
+      </div>
+      <input type="number" min="1" max="999" value="1" id="printQty_${i}"
+        style="width:56px;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.25);border-radius:8px;color:#e2e8f0;font-size:14px;font-weight:700;text-align:center;padding:6px 4px;font-family:Montserrat,sans-serif;outline:none">
+      <button onclick="printLabel(${i},'${lbl.replace(/'/g,"\'")}','${bc}','${artCode}')"
+        style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🖨️</button>
+    </div>`;
   }).join('');
 }
 
-function showCurrentVariant(){
-  if(scannerIdx>=variantCombs.length){
-    document.getElementById('scannerCurrent').style.display='none';
-    document.getElementById('btnFinalSave').style.display='block';
-    document.getElementById('btnConfirmScan').style.display='none';
-    document.querySelector('.btn-skip').style.display='none';
-    return;
-  }
-  const v=variantCombs[scannerIdx];
-  const lbl=[v.size,v.color,v.label].filter(Boolean).join(' / ');
-  document.getElementById('scannerVariantName').textContent=lbl||('Вариант '+(scannerIdx+1));
-  document.getElementById('scannerInput').value='';
-  document.getElementById('scannerInput').focus();
-  renderScannerResults();renderScannerProgress();
+function printLabel(idx,name,barcode,code){
+  const qty=parseInt(document.getElementById('printQty_'+idx).value)||1;
+  // Niimbot Bluetooth print — Фаза 2
+  showToast(`Печат: ${name} × ${qty} ет.`);
 }
-
-function renderScannerResults(){
-  const done=variantCombs.filter((_,i)=>i<scannerIdx);
-  document.getElementById('scannerResults').innerHTML=done.map(v=>{
-    const lbl=[v.size,v.color,v.label].filter(Boolean).join(' / ');
-    return`<div class="scan-result-row"><span style="color:#e2e8f0">${lbl}</span><span style="color:${v.barcode?'#22c55e':'#6b7280'}">${v.barcode||'автобаркод'}</span></div>`;
-  }).join('')||'<div style="font-size:12px;color:#4b5563;text-align:center;padding:8px">Сканирай първия баркод...</div>';
-}
-
-function confirmCurrentScan(){
-  const bc=document.getElementById('scannerInput').value.trim();
-  if(!bc){showToast('Въведи баркод или пропусни');return;}
-  variantCombs[scannerIdx].barcode=bc;scannerIdx++;
-  beepSound();showCurrentVariant();
-}
-
-function skipCurrentScan(){variantCombs[scannerIdx].barcode=null;scannerIdx++;showCurrentVariant();}
 
 function beepSound(){try{const a=new AudioContext();const o=a.createOscillator();const g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.3,a.currentTime);g.gain.exponentialRampToValueAtTime(.01,a.currentTime+.1);o.start(a.currentTime);o.stop(a.currentTime+.1);}catch(e){}}
 
@@ -801,12 +802,12 @@ function buildFD(isVariant){
   fd.append('barcode',document.getElementById('f_barcode').value);
   fd.append('category_id',document.getElementById('f_cat').value);
   fd.append('supplier_id',document.getElementById('f_sup').value);
-  fd.append('cost_price',document.getElementById('f_cost').value);
-  fd.append('wholesale_price',document.getElementById('f_wprice').value);
+  fd.append('wholesale_price',document.getElementById('f_wprice')?.value||'0');
+  fd.append('cost_price','0'); // идва от доставка
   fd.append('unit',document.getElementById('f_unit').value);
-  fd.append('location',document.getElementById('f_loc').value);
+  fd.append('location',document.getElementById('f_loc')?.value||'');
   fd.append('description',document.getElementById('f_desc').value);
-  fd.append('code',document.getElementById('f_code').value);
+  fd.append('code',document.getElementById('f_code')?.value||'');
   if(isVariant){fd.append('has_variants','1');fd.append('variants_batch',JSON.stringify(variantCombs));}
   else{
     fd.append('has_variants','0');
@@ -859,8 +860,7 @@ function openAI(p){
 function openFilterDrawer(){closeAll();document.getElementById('ovl').classList.add('open');document.getElementById('filterDrawer').classList.add('open');}
 function closeAll(){['pDrawer','aiDrawer','filterDrawer'].forEach(id=>document.getElementById(id)?.classList.remove('open'));document.getElementById('ovl').classList.remove('open');document.getElementById('plist').classList.remove('blurred');document.querySelectorAll('.pcard.focused').forEach(c=>c.classList.remove('focused'));}
 ['pDrawer','aiDrawer','filterDrawer'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('touchstart',e=>ts=e.touches[0].clientY,{passive:true});el.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-ts>70)closeAll();},{passive:true});});
-document.getElementById('addModal')?.addEventListener('touchstart',e=>ts=e.touches[0].clientY,{passive:true});
-document.getElementById('addModal')?.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-ts>120)closeModal();},{passive:true});
+// swipe-to-close на модала е изключен — потребителят затваря само с X
 
 async function openCamera(target){
   cameraTarget=target;
