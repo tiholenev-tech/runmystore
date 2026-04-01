@@ -1179,19 +1179,34 @@ function toggleVoice() {
   voiceRec.onend = () => { btn.classList.remove('recording'); voiceRec = null; };
   voiceRec.start();
 }
-
 async function generateAIDescription() {
   const name = document.getElementById('f_name').value;
   if (!name) { showToast('Първо въведи наименование'); return; }
   showToast('AI генерира...');
-  const r = await fetch('chat-send.php', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието.` })
-  });
-  const d = await r.json();
-  const txt = d.response || d.message || '';
-  if (txt) { document.getElementById('f_desc').value = txt; showToast('Описанието е генерирано ✓'); }
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': '<?= CLAUDE_API_KEY ?>',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието, без встъпление.`
+        }]
+      })
+    });
+    const d = await r.json();
+    const txt = d.content?.[0]?.text || '';
+    if (txt) { document.getElementById('f_desc').value = txt; showToast('Описанието е генерирано ✓'); }
+    else showToast('Грешка при генериране');
+  } catch(e) { showToast('Грешка при генериране'); }
 }
+
 
 // ─── EDIT PRODUCT ─────────────────────────────────────
 function editProduct(id) {
