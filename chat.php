@@ -30,9 +30,7 @@ $unread_count = $unread ? (int)$unread['cnt'] : 0;
 
 // Проактивни нотификации — последните 3 непрочетени
 $notifications = DB::run(
-    'SELECT type, title, message FROM notifications
-     WHERE tenant_id = ? AND is_read = 0 AND (expires_at IS NULL OR expires_at > NOW())
-     ORDER BY created_at DESC LIMIT 3',
+    'SELECT type, title, message FROM notifications WHERE tenant_id = ? AND is_read = 0 ORDER BY created_at DESC LIMIT 3',
     [$tenant_id]
 )->fetchAll();
 
