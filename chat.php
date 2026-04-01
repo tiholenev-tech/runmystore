@@ -1,5 +1,5 @@
 <?php
-// chat.php
+// chat.php — AI First команден център
 session_start();
 require_once __DIR__ . '/config/database.php';
 
@@ -22,436 +22,732 @@ $messages = DB::run(
 $store = DB::run('SELECT name FROM stores WHERE id = ? LIMIT 1', [$store_id])->fetch();
 $store_name = $store ? $store['name'] : 'Магазин';
 
-// Брой непрочетени съобщения между обекти
 $unread = DB::run(
     'SELECT COUNT(*) as cnt FROM store_messages WHERE tenant_id = ? AND to_store_id = ? AND is_read = 0',
     [$tenant_id, $store_id]
 )->fetch();
 $unread_count = $unread ? (int)$unread['cnt'] : 0;
+
+// Проактивни нотификации — последните 3 непрочетени
+$notifications = DB::run(
+    'SELECT type, title, message FROM notifications
+     WHERE tenant_id = ? AND is_read = 0 AND (expires_at IS NULL OR expires_at > NOW())
+     ORDER BY created_at DESC LIMIT 3',
+    [$tenant_id]
+)->fetchAll();
+
+// Бързи команди по роля
+$quick_cmds = [
+    ['icon' => '📦', 'label' => 'Склад', 'msg' => 'Покажи склада'],
+    ['icon' => '💰', 'label' => 'Продажби', 'msg' => 'Колко продадох днес?'],
+    ['icon' => '⚠️', 'label' => 'Ниска нал.', 'msg' => 'Кои артикули са под минимума?'],
+];
+if (in_array($role, ['owner', 'manager'])) {
+    $quick_cmds[] = ['icon' => '🚚', 'label' => 'Доставка', 'msg' => 'Нова доставка'];
+    $quick_cmds[] = ['icon' => '🔄', 'label' => 'Трансфер', 'msg' => 'Направи трансфер'];
+}
+if ($role === 'owner') {
+    $quick_cmds[] = ['icon' => '📊', 'label' => 'Печалба', 'msg' => 'Каква е печалбата ми днес?'];
+}
+$quick_cmds[] = ['icon' => '🎁', 'label' => 'Лоялна', 'msg' => 'Лоялна програма'];
+
+// Тип иконка по нотификация
+function notif_icon($type) {
+    $map = ['low_stock'=>'⚠️','out_stock'=>'🔴','delivery'=>'📦','transfer'=>'🔄','sale_spike'=>'🎉','debt'=>'💳'];
+    return $map[$type] ?? '🔔';
+}
+function notif_class($type) {
+    if (in_array($type, ['out_stock','debt'])) return 'danger';
+    if (in_array($type, ['low_stock','transfer'])) return 'warning';
+    return 'success';
+}
 ?>
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>RunMyStore.ai</title>
-  <link href="./css/vendors/aos.css" rel="stylesheet">
-  <link href="./style.css" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RunMyStore.ai — Чат</title>
+<link rel="stylesheet" href="./css/vendors/aos.css">
+<link rel="stylesheet" href="./style.css">
+<style>
+:root { --nav-h: 64px; }
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
-    body {
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding-bottom: 70px;
-    }
+body {
+  background: #030712;
+  color: #e2e8f0;
+  font-family: 'Montserrat', sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-    /* HEADER */
-    .chat-header {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      padding: .75rem 1rem;
-      padding-top: calc(.75rem + env(safe-area-inset-top));
-      background: var(--color-gray-900);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      flex-shrink: 0;
-    }
-    .chat-header-avatar {
-      width: 42px; height: 42px;
-      border-radius: 50%;
-      overflow: hidden;
-      flex-shrink: 0;
-      border: 1.5px solid rgba(99,102,241,0.4);
-    }
-    .chat-header-avatar img { width: 100%; height: 100%; object-fit: contain; }
-    .chat-header-info { flex: 1; min-width: 0; }
-    .chat-header-name {
-      font-family: var(--font-nacelle, sans-serif);
-      font-size: .9375rem; font-weight: 600;
-      color: var(--color-gray-200);
-    }
-    .chat-header-status { font-size: .6875rem; color: #4ade80; font-weight: 500; }
-    .chat-header-store {
-      font-size: .75rem;
-      color: rgba(165,180,252,.65);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 100px;
-    }
+/* ── GLOW ── */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  width: 700px; height: 500px;
+  background: radial-gradient(ellipse, rgba(99,102,241,.07) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
 
-    /* TABS */
-    .chat-tabs {
-      display: flex;
-      background: var(--color-gray-900);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      flex-shrink: 0;
-    }
-    .chat-tab {
-      flex: 1;
-      padding: .625rem 1rem;
-      font-size: .875rem;
-      font-weight: 500;
-      color: var(--color-gray-500);
-      text-align: center;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: color .15s, border-color .15s;
-      position: relative;
-      text-decoration: none;
-      display: block;
-    }
-    .chat-tab.active {
-      color: var(--color-indigo-400, #818cf8);
-      border-bottom-color: var(--color-indigo-500, #6366f1);
-    }
-    .unread-badge {
-      position: absolute;
-      top: 6px; right: calc(50% - 40px);
-      background: #ef4444;
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      border-radius: 10px;
-      padding: 1px 5px;
-      line-height: 1.4;
-    }
+/* ── HEADER ── */
+.hdr {
+  position: relative; z-index: 50;
+  background: rgba(3,7,18,.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(99,102,241,.12);
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+}
+.hdr-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+.brand {
+  font-size: 18px; font-weight: 800;
+  background: linear-gradient(to right, #f1f5f9, #a5b4fc, #f1f5f9);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gShift 6s linear infinite;
+  flex: 1;
+}
+.store-pill {
+  font-size: 11px; font-weight: 700;
+  color: rgba(165,180,252,.7);
+  background: rgba(99,102,241,.08);
+  border: 1px solid rgba(99,102,241,.15);
+  border-radius: 20px;
+  padding: 4px 10px;
+  max-width: 110px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hdr-icon {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #a5b4fc;
+  position: relative; flex-shrink: 0;
+}
+.hdr-badge {
+  position: absolute; top: -4px; right: -4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #ef4444; font-size: 9px; font-weight: 800;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+}
 
-    /* MESSAGES */
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: .625rem;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--color-gray-700) transparent;
-    }
-    .msg {
-      max-width: 82%;
-      padding: .625rem .9375rem;
-      border-radius: 1.125rem;
-      font-size: .9375rem;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-    .msg-user {
-      align-self: flex-end;
-      background: linear-gradient(to bottom, var(--color-indigo-500), var(--color-indigo-600));
-      color: #fff;
-      border-bottom-right-radius: .3rem;
-      box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,.16);
-    }
-    .msg-assistant {
-      align-self: flex-start;
-      background: var(--color-gray-900);
-      color: var(--color-gray-200);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-bottom-left-radius: .3rem;
-    }
-    .typing {
-      align-self: flex-start;
-      background: var(--color-gray-900);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 1.125rem;
-      border-bottom-left-radius: .3rem;
-      padding: .75rem 1rem;
-      display: none;
-    }
-    .typing span {
-      display: inline-block;
-      width: 7px; height: 7px;
-      background: var(--color-indigo-400, #818cf8);
-      border-radius: 50%;
-      animation: bounce 1.2s infinite;
-      margin: 0 2px;
-    }
-    .typing span:nth-child(2) { animation-delay: .2s; }
-    .typing span:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
-    }
-    .welcome {
-      align-self: center;
-      text-align: center;
-      color: var(--color-gray-600);
-      font-size: .875rem;
-      padding: 2.5rem 1rem;
-    }
-    .welcome strong {
-      display: block;
-      font-family: var(--font-nacelle, sans-serif);
-      font-size: 1.25rem; font-weight: 600;
-      background: linear-gradient(to right, var(--color-gray-200), var(--color-indigo-200), var(--color-gray-50), var(--color-indigo-300), var(--color-gray-200));
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: gradient 6s linear infinite;
-      margin-bottom: .5rem;
-    }
-    @keyframes gradient {
-      0% { background-position: 0% center; }
-      100% { background-position: 200% center; }
-    }
+/* ── TABS ── */
+.tabs { display: flex; gap: 4px; }
+.tab {
+  flex: 1; padding: 8px 4px;
+  font-size: 13px; font-weight: 700;
+  color: #4b5563; text-align: center;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; text-decoration: none;
+  transition: all .2s; display: block;
+  position: relative;
+}
+.tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; border-radius: 8px;
+  background: #ef4444; font-size: 9px; font-weight: 800;
+  color: #fff; margin-left: 5px; padding: 0 3px;
+}
 
-    /* INPUT */
-    .chat-input-wrap {
-      padding: .75rem 1rem .75rem;
-      background: var(--color-gray-900);
-      border-top: 1px solid rgba(255,255,255,0.06);
-      flex-shrink: 0;
-    }
-    .chat-input-row { display: flex; align-items: flex-end; gap: .5rem; }
-    .chat-input {
-      flex: 1;
-      background: var(--color-gray-950, #030712);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 1.25rem;
-      padding: .625rem 1rem;
-      color: var(--color-gray-200);
-      font-size: .9375rem;
-      outline: none; resize: none;
-      max-height: 120px; line-height: 1.4;
-      font-family: inherit;
-      transition: border-color .15s;
-    }
-    .chat-input:focus { border-color: var(--color-indigo-500, #6366f1); }
-    .chat-input::placeholder { color: var(--color-gray-600); }
-    .btn-send {
-      width: 42px; height: 42px;
-      background: linear-gradient(to bottom, var(--color-indigo-500), var(--color-indigo-600));
-      border: none; border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,.16);
-      transition: opacity .15s, transform .1s;
-    }
-    .btn-send:active { opacity: .85; transform: scale(.95); }
-    .btn-send:disabled { opacity: .4; cursor: default; }
-    .btn-send svg { color: #fff; }
+/* ── CHAT AREA ── */
+.chat-area {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 12px 12px 8px;
+  display: flex; flex-direction: column; gap: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: relative; z-index: 1;
+}
+.chat-area::-webkit-scrollbar { display: none; }
 
-    .suggestions {
-      display: flex; gap: .5rem;
-      overflow-x: auto; padding-bottom: .5rem;
-      scrollbar-width: none; margin-bottom: .5rem;
-    }
-    .suggestions::-webkit-scrollbar { display: none; }
-    .suggestion {
-      flex-shrink: 0;
-      background: linear-gradient(to bottom, var(--color-gray-800), rgba(17,24,39,.6));
-      border-radius: 1rem;
-      padding: .375rem .875rem;
-      font-size: .8125rem;
-      color: var(--color-gray-300);
-      cursor: pointer; white-space: nowrap;
-      border: 1px solid rgba(255,255,255,0.08);
-      transition: color .15s;
-    }
-    .suggestion:hover { color: var(--color-indigo-400, #818cf8); }
+/* ── PROACTIVE CARDS ── */
+.pro-wrap { margin-bottom: 14px; }
+.pro-label {
+  font-size: 10px; font-weight: 700;
+  color: #6366f1; text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 8px;
+}
+.pro-card {
+  border-radius: 14px; padding: 11px 13px;
+  margin-bottom: 7px;
+  display: flex; align-items: flex-start; gap: 10px;
+  animation: slideIn .35s ease both;
+  position: relative; overflow: hidden;
+}
+.pro-card::before {
+  content: ''; position: absolute;
+  left: 0; top: 0; bottom: 0; width: 3px;
+}
+.pro-card.danger { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.18); }
+.pro-card.danger::before { background: #ef4444; }
+.pro-card.warning { background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.18); }
+.pro-card.warning::before { background: #f59e0b; }
+.pro-card.success { background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.18); }
+.pro-card.success::before { background: #22c55e; }
+.pro-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.pro-body { flex: 1; min-width: 0; }
+.pro-title { font-size: 12px; font-weight: 700; color: #f1f5f9; margin-bottom: 2px; }
+.pro-sub { font-size: 11px; color: #9ca3af; line-height: 1.4; margin-bottom: 7px; }
+.pro-action {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 8px;
+  font-size: 11px; font-weight: 700;
+  background: rgba(99,102,241,.12);
+  border: 1px solid rgba(99,102,241,.25);
+  color: #a5b4fc; cursor: pointer; font-family: inherit;
+}
+.pro-close {
+  position: absolute; top: 7px; right: 8px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(255,255,255,.04); border: none;
+  color: #4b5563; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
 
-    /* BOTTOM NAV */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 70px;
-      background: #111118;
-      border-top: 1px solid rgba(255,255,255,0.07);
-      display: flex;
-      align-items: center;
-      padding-bottom: env(safe-area-inset-bottom);
-      z-index: 200;
-    }
-    .nav-item {
-      flex: 1;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 4px;
-      text-decoration: none;
-      color: #3f3f5a;
-      font-size: 10px;
-      font-weight: 500;
-      transition: color .15s;
-      padding: 6px 0;
-    }
-    .nav-item.active { color: #6366f1; }
-    .nav-item svg { display: block; }
-  </style>
+/* ── MESSAGES ── */
+.msg-group { margin-bottom: 12px; animation: fadeUp .3s ease both; }
+.msg-meta {
+  font-size: 10px; color: #4b5563;
+  margin-bottom: 4px;
+  display: flex; align-items: center; gap: 5px;
+}
+.msg-meta.right { justify-content: flex-end; }
+.ai-ava {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0;
+}
+.msg {
+  max-width: 85%; padding: 10px 13px;
+  font-size: 13px; line-height: 1.55;
+  word-break: break-word;
+}
+.msg.ai {
+  background: rgba(15,15,40,.9);
+  border: 1px solid rgba(99,102,241,.14);
+  color: #e2e8f0;
+  border-radius: 4px 16px 16px 16px;
+  align-self: flex-start;
+}
+.msg.user {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-radius: 16px 16px 4px 16px;
+  margin-left: auto;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+}
+.action-chips {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+}
+.action-chip {
+  padding: 5px 11px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.22);
+  color: #a5b4fc; cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+  font-family: inherit;
+}
+.action-chip:active { background: rgba(99,102,241,.25); transform: scale(.97); }
+
+/* ── TYPING ── */
+.typing-wrap {
+  display: none;
+  padding: 10px 13px;
+  background: rgba(15,15,40,.9);
+  border: 1px solid rgba(99,102,241,.14);
+  border-radius: 4px 16px 16px 16px;
+  width: fit-content; margin-bottom: 12px;
+}
+.typing-dots { display: flex; gap: 4px; align-items: center; }
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #6366f1; animation: bounce 1.2s infinite;
+}
+.dot:nth-child(2) { animation-delay: .2s; }
+.dot:nth-child(3) { animation-delay: .4s; }
+
+/* ── WELCOME ── */
+.welcome {
+  text-align: center; padding: 30px 20px 10px;
+  color: #4b5563; font-size: 13px;
+}
+.welcome-title {
+  font-size: 20px; font-weight: 800; margin-bottom: 6px;
+  background: linear-gradient(to right, #f1f5f9, #a5b4fc, #f1f5f9);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gShift 6s linear infinite;
+}
+
+/* ── QUICK COMMANDS ── */
+.quick-wrap {
+  padding: 0 12px 8px;
+  flex-shrink: 0; position: relative; z-index: 1;
+}
+.quick-row {
+  display: flex; gap: 6px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.quick-row::-webkit-scrollbar { display: none; }
+.quick-btn {
+  flex-shrink: 0;
+  padding: 7px 13px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+  border: 1px solid rgba(99,102,241,.2);
+  color: #6b7280; background: rgba(15,15,40,.8);
+  cursor: pointer; font-family: inherit;
+  transition: all .2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.quick-btn:active { background: rgba(99,102,241,.2); color: #a5b4fc; border-color: #6366f1; }
+
+/* ── INPUT AREA ── */
+.input-area {
+  background: rgba(3,7,18,.97);
+  border-top: 1px solid rgba(99,102,241,.12);
+  padding: 10px 12px;
+  flex-shrink: 0; position: relative; z-index: 1;
+}
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+.text-input {
+  flex: 1;
+  background: rgba(15,15,40,.8);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 20px; color: #e2e8f0;
+  font-size: 14px; padding: 10px 16px;
+  font-family: inherit; outline: none;
+  resize: none; max-height: 80px; line-height: 1.4;
+  transition: border-color .2s;
+}
+.text-input:focus { border-color: rgba(99,102,241,.5); }
+.text-input::placeholder { color: #374151; }
+
+.voice-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none; color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(99,102,241,.5);
+  flex-shrink: 0; transition: all .2s;
+  font-size: 18px;
+}
+.voice-btn:active { transform: scale(.92); }
+.voice-btn.recording {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 0 30px rgba(239,68,68,.6);
+  animation: pulse-rec 1s infinite;
+}
+.send-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(99,102,241,.15);
+  border: 1px solid rgba(99,102,241,.25);
+  color: #a5b4fc; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s;
+}
+.send-btn:active { background: rgba(99,102,241,.3); transform: scale(.92); }
+.send-btn:disabled { opacity: .35; cursor: default; }
+
+/* ── RECORDING OVERLAY ── */
+.rec-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.85); z-index: 400;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(12px);
+}
+.rec-overlay.show { display: flex; }
+.rec-circle {
+  width: 110px; height: 110px; border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44px;
+  animation: pulse-rec 1s infinite;
+  box-shadow: 0 0 60px rgba(239,68,68,.5);
+  margin-bottom: 24px;
+}
+.rec-title { font-size: 18px; font-weight: 800; color: #f1f5f9; margin-bottom: 6px; }
+.rec-sub { font-size: 13px; color: #6b7280; margin-bottom: 32px; }
+.rec-stop {
+  padding: 12px 32px;
+  background: rgba(239,68,68,.12);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 24px; color: #ef4444;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+
+/* ── BOTTOM NAV ── */
+.bnav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: rgba(3,7,18,.97);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(99,102,241,.1);
+  display: flex; align-items: center; z-index: 100;
+}
+.ni {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; text-decoration: none;
+  border: none; background: transparent; cursor: pointer;
+}
+.ni svg { width: 22px; height: 22px; color: #3f3f5a; }
+.ni span { font-size: 10px; font-weight: 600; color: #3f3f5a; }
+.ni.active svg, .ni.active span { color: #6366f1; }
+
+/* ── STORE CHAT TAB ── */
+.store-area {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: none; scrollbar-width: none;
+}
+.store-area.active { display: block; }
+.store-area::-webkit-scrollbar { display: none; }
+.store-card {
+  background: rgba(15,15,40,.8);
+  border: 1px solid rgba(99,102,241,.12);
+  border-radius: 14px; padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex; gap: 10px; align-items: flex-start;
+  cursor: pointer; transition: border-color .2s;
+}
+.store-card:active { border-color: rgba(99,102,241,.35); }
+.store-ava {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.store-info { flex: 1; min-width: 0; }
+.store-name { font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 2px; }
+.store-preview { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.store-time { font-size: 10px; color: #4b5563; flex-shrink: 0; }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #6366f1; margin-top: 4px; }
+
+/* ── ANIMATIONS ── */
+@keyframes gShift { 0% { background-position: 0% center } 100% { background-position: 200% center } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-8px) } to { opacity: 1; transform: translateX(0) } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0) } 30% { transform: translateY(-6px) } }
+@keyframes pulse-rec { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4) } 50% { box-shadow: 0 0 0 14px rgba(239,68,68,0) } }
+</style>
 </head>
-<body class="bg-gray-950 font-inter text-base text-gray-200 antialiased">
+<body>
 
-<div class="chat-header">
-  <div class="chat-header-avatar">
-    <img src="images/ai-assistant-avatar.png" alt="AI Асистент">
-  </div>
-  <div class="chat-header-info">
-    <div class="chat-header-name">AI Асистент</div>
-    <div class="chat-header-status">● онлайн</div>
-  </div>
-  <div class="chat-header-store"><?= htmlspecialchars($store_name) ?></div>
-</div>
-
-<div class="chat-tabs">
-  <a href="chat.php" class="chat-tab active">AI Асистент</a>
-  <a href="store-chat.php" class="chat-tab">
-    Чат Обекти
-    <?php if ($unread_count > 0): ?>
-      <span class="unread-badge"><?= $unread_count ?></span>
-    <?php endif; ?>
-  </a>
-</div>
-
-<div class="chat-messages" id="chatMessages">
-  <?php if (empty($messages)): ?>
-    <div class="welcome">
-      <strong>Здравей!</strong>
-      Аз съм твоят AI асистент за <?= htmlspecialchars($store_name) ?>.<br>
-      Кажи ми какво искаш да направя.
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="brand">RunMyStore.ai</div>
+    <div class="store-pill"><?= htmlspecialchars($store_name) ?></div>
+    <div class="hdr-icon" onclick="openNotifications()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+      </svg>
+      <?php if (!empty($notifications)): ?>
+      <div class="hdr-badge"><?= count($notifications) ?></div>
+      <?php endif; ?>
     </div>
-  <?php else: ?>
-    <?php foreach ($messages as $msg): ?>
-      <div class="msg msg-<?= $msg['role'] ?>">
-        <?= nl2br(htmlspecialchars($msg['content'])) ?>
-      </div>
-    <?php endforeach; ?>
-  <?php endif; ?>
-  <div class="typing" id="typing">
-    <span></span><span></span><span></span>
+  </div>
+  <div class="tabs">
+    <div class="tab active" id="tab-ai" onclick="switchTab('ai')">✦ AI Асистент</div>
+    <a class="tab" id="tab-store" href="store-chat.php">
+      Чат Обекти
+      <?php if ($unread_count > 0): ?>
+        <span class="tab-badge"><?= $unread_count ?></span>
+      <?php endif; ?>
+    </a>
   </div>
 </div>
 
-<div class="chat-input-wrap">
-  <?php
-  // Suggestions филтрирани по роля
-  $suggestions = ['Колко стока ми остана?', 'Стока без движение?', 'Какво се продава най-много?'];
-  if ($role === 'owner' || $role === 'manager') {
-      $suggestions[] = 'Какво трябва да поръчам?';
-  }
-  if ($role === 'owner') {
-      $suggestions[] = 'Каква е печалбата ми днес?';
-  }
-  ?>
-  <div class="suggestions" id="suggestions">
-    <?php foreach ($suggestions as $s): ?>
-      <button class="suggestion" onclick="fillSuggestion(this)"><?= htmlspecialchars($s) ?></button>
+<!-- AI CHAT AREA -->
+<div class="chat-area" id="chatArea">
+
+  <?php if (!empty($notifications)): ?>
+  <!-- PROACTIVE CARDS -->
+  <div class="pro-wrap">
+    <div class="pro-label">✦ Важно днес</div>
+    <?php foreach ($notifications as $i => $n): ?>
+    <div class="pro-card <?= notif_class($n['type']) ?>" id="pc<?= $i ?>">
+      <div class="pro-icon"><?= notif_icon($n['type']) ?></div>
+      <div class="pro-body">
+        <div class="pro-title"><?= htmlspecialchars($n['title']) ?></div>
+        <div class="pro-sub"><?= htmlspecialchars($n['message']) ?></div>
+        <button class="pro-action" onclick="fillAndSend(<?= htmlspecialchars(json_encode($n['title']), ENT_QUOTES) ?>)">Виж →</button>
+      </div>
+      <button class="pro-close" onclick="closeCard('pc<?= $i ?>', <?= $i ?>)">✕</button>
+    </div>
     <?php endforeach; ?>
   </div>
-  <div class="chat-input-row">
-    <textarea class="chat-input" id="chatInput" placeholder="Напиши съобщение..." rows="1"></textarea>
-    <button class="btn-send" id="btnSend" onclick="sendMessage()">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  <?php endif; ?>
+
+  <?php if (empty($messages)): ?>
+  <!-- WELCOME -->
+  <div class="welcome">
+    <div class="welcome-title">Здравей!</div>
+    Аз съм твоят AI асистент за <?= htmlspecialchars($store_name) ?>.<br>
+    Кажи ми какво да направя — с глас или текст.
+  </div>
+  <?php else: ?>
+  <!-- HISTORY -->
+  <?php foreach ($messages as $msg): ?>
+  <div class="msg-group">
+    <?php if ($msg['role'] === 'assistant'): ?>
+      <div class="msg-meta"><div class="ai-ava">✦</div> AI Асистент</div>
+      <div class="msg ai"><?= nl2br(htmlspecialchars($msg['content'])) ?></div>
+    <?php else: ?>
+      <div class="msg-meta right"><?= date('H:i', strtotime($msg['created_at'])) ?></div>
+      <div style="display:flex;justify-content:flex-end"><div class="msg user"><?= nl2br(htmlspecialchars($msg['content'])) ?></div></div>
+    <?php endif; ?>
+  </div>
+  <?php endforeach; ?>
+  <?php endif; ?>
+
+  <!-- TYPING -->
+  <div class="typing-wrap" id="typing">
+    <div class="typing-dots">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUICK COMMANDS -->
+<div class="quick-wrap" id="quickWrap">
+  <div class="quick-row">
+    <?php foreach ($quick_cmds as $cmd): ?>
+    <button class="quick-btn" onclick="fillAndSend(<?= htmlspecialchars(json_encode($cmd['msg']), ENT_QUOTES) ?>)">
+      <?= $cmd['icon'] ?> <?= htmlspecialchars($cmd['label']) ?>
+    </button>
+    <?php endforeach; ?>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-area">
+  <div class="input-row">
+    <textarea class="text-input" id="chatInput"
+      placeholder="Кажи или пиши..." rows="1"
+      oninput="autoResize(this)"
+      onkeydown="handleKey(event)"></textarea>
+    <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">🎤</button>
+    <button class="send-btn" id="btnSend" onclick="sendMessage()" disabled>
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
       </svg>
     </button>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <a href="chat.php" class="nav-item active">
-    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 48 48">
-      <rect x="2" y="2" width="44" height="34" rx="8"/>
-      <path d="M8 40 L16 36"/>
-      <line x1="12" y1="14" x2="36" y2="14"/>
-      <line x1="12" y1="22" x2="28" y2="22"/>
-    </svg>
-    Чат
+<nav class="bnav">
+  <a href="chat.php" class="ni active">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+    <span>Чат</span>
   </a>
-  <a href="warehouse.php" class="nav-item">
-    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 48 48">
-      <path d="M4 38 L4 16 L24 4 L44 16 L44 38 Z"/>
-      <rect x="16" y="24" width="16" height="14" rx="2"/>
-      <line x1="4" y1="38" x2="44" y2="38"/>
-    </svg>
-    Склад
+  <a href="warehouse.php" class="ni">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+    <span>Склад</span>
   </a>
-  <a href="stats.php" class="nav-item">
-    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 48 48">
-      <polyline points="4,36 16,20 28,26 44,8"/>
-      <circle cx="4" cy="36" r="2.5" fill="currentColor" stroke="none"/>
-      <circle cx="16" cy="20" r="2.5" fill="currentColor" stroke="none"/>
-      <circle cx="28" cy="26" r="2.5" fill="currentColor" stroke="none"/>
-      <circle cx="44" cy="8" r="2.5" fill="currentColor" stroke="none"/>
-      <line x1="0" y1="42" x2="48" y2="42"/>
-    </svg>
-    Статистики
+  <a href="stats.php" class="ni">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    <span>Статистики</span>
   </a>
-  <a href="actions.php" class="nav-item">
-    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 48 48">
-      <rect x="2" y="2" width="44" height="38" rx="4"/>
-      <line x1="24" y1="12" x2="24" y2="30"/>
-      <line x1="14" y1="21" x2="34" y2="21"/>
-    </svg>
-    Въвеждане
+  <a href="actions.php" class="ni">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    <span>Въвеждане</span>
   </a>
 </nav>
 
-<script src="./js/vendors/alpinejs-focus.min.js"></script>
-<script src="./js/vendors/alpinejs.min.js" defer></script>
+<!-- RECORDING OVERLAY -->
+<div class="rec-overlay" id="recOverlay">
+  <div class="rec-circle">🎤</div>
+  <div class="rec-title">Слушам...</div>
+  <div class="rec-sub">Говори свободно на български</div>
+  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
+</div>
+
 <script>
-const chatMessages = document.getElementById('chatMessages');
-const chatInput    = document.getElementById('chatInput');
-const btnSend      = document.getElementById('btnSend');
-const typing       = document.getElementById('typing');
-const suggestions  = document.getElementById('suggestions');
+const chatArea  = document.getElementById('chatArea');
+const chatInput = document.getElementById('chatInput');
+const btnSend   = document.getElementById('btnSend');
+const typing    = document.getElementById('typing');
+const voiceBtn  = document.getElementById('voiceBtn');
+const recOverlay= document.getElementById('recOverlay');
 
+let voiceRec = null;
+let isRecording = false;
+
+// ── SCROLL ──
+function scrollBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
+scrollBottom();
+
+// ── INPUT ──
 chatInput.addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  btnSend.disabled = !this.value.trim();
 });
-chatInput.addEventListener('keydown', function(e) {
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+}
+function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
-
-function fillSuggestion(btn) {
-  chatInput.value = btn.textContent;
-  chatInput.focus();
-  suggestions.style.display = 'none';
 }
-function addMessage(role, content) {
-  const div = document.createElement('div');
-  div.className = 'msg msg-' + role;
-  div.textContent = content;
-  chatMessages.insertBefore(div, typing);
-  scrollToBottom();
-}
-function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
 
+// ── FILL & SEND ──
+function fillAndSend(text) {
+  chatInput.value = text;
+  btnSend.disabled = false;
+  sendMessage();
+}
+
+// ── SEND ──
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
-  addMessage('user', text);
+
+  addUserMsg(text);
   chatInput.value = '';
-  chatInput.style.height = 'auto';
+  chatInput.style.height = '';
   btnSend.disabled = true;
-  suggestions.style.display = 'none';
+
   typing.style.display = 'block';
-  scrollToBottom();
+  scrollBottom();
+
   try {
-    const res  = await fetch('chat-send.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
-    const raw  = await res.text();
-    let data;
-    try { data = JSON.parse(raw); } catch(e) {
-      typing.style.display = 'none';
-      addMessage('assistant', 'PHP грешка: ' + raw.substring(0, 300));
-      btnSend.disabled = false; return;
-    }
+    const res  = await fetch('chat-send.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await res.json();
     typing.style.display = 'none';
-    addMessage('assistant', data.reply || data.error || 'Неизвестна грешка');
-  } catch(err) {
+    addAIMsg(data.reply || data.error || 'Грешка');
+  } catch(e) {
     typing.style.display = 'none';
-    addMessage('assistant', 'Грешка: ' + err.message);
+    addAIMsg('Грешка при свързване с AI.');
   }
-  btnSend.disabled = false;
-  chatInput.focus();
 }
-scrollToBottom();
+
+function addUserMsg(text) {
+  const g = document.createElement('div');
+  g.className = 'msg-group';
+  g.innerHTML = `
+    <div class="msg-meta right">${new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'})}</div>
+    <div style="display:flex;justify-content:flex-end"><div class="msg user">${escHtml(text)}</div></div>
+  `;
+  chatArea.insertBefore(g, typing);
+  scrollBottom();
+}
+
+function addAIMsg(text) {
+  // Deeplink detection — [текст →](url)
+  const formatted = escHtml(text).replace(/\n/g,'<br>');
+  const g = document.createElement('div');
+  g.className = 'msg-group';
+  g.innerHTML = `
+    <div class="msg-meta"><div class="ai-ava">✦</div> AI Асистент</div>
+    <div class="msg ai">${formatted}</div>
+  `;
+  chatArea.insertBefore(g, typing);
+  scrollBottom();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── VOICE ──
+function toggleVoice() {
+  if (isRecording) { stopVoice(); return; }
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    showToast('Гласовото въвеждане не се поддържа от браузъра');
+    return;
+  }
+  isRecording = true;
+  voiceBtn.classList.add('recording');
+  recOverlay.classList.add('show');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceRec = new SR();
+  voiceRec.lang = 'bg-BG';
+  voiceRec.interimResults = false;
+  voiceRec.maxAlternatives = 1;
+
+  voiceRec.onresult = e => {
+    const text = e.results[0][0].transcript;
+    stopVoice();
+    chatInput.value = text;
+    btnSend.disabled = false;
+    sendMessage();
+  };
+  voiceRec.onerror = () => stopVoice();
+  voiceRec.onend   = () => { if (isRecording) stopVoice(); };
+  voiceRec.start();
+}
+
+function stopVoice() {
+  isRecording = false;
+  voiceBtn.classList.remove('recording');
+  recOverlay.classList.remove('show');
+  if (voiceRec) { voiceRec.stop(); voiceRec = null; }
+}
+
+// ── PROACTIVE CARDS ──
+function closeCard(id, idx) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.transition = 'all .3s';
+  el.style.opacity = '0';
+  el.style.transform = 'translateX(-16px)';
+  el.style.maxHeight = el.offsetHeight + 'px';
+  setTimeout(() => { el.style.maxHeight = '0'; el.style.marginBottom = '0'; el.style.padding = '0'; }, 300);
+  setTimeout(() => el.remove(), 600);
+  // Mark as read
+  fetch('chat-send.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'mark_notif_read', idx: idx })
+  }).catch(()=>{});
+}
+
+// ── NOTIFICATIONS ──
+function openNotifications() {
+  fillAndSend('Покажи всички нотификации');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  let t = document.getElementById('__toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '__toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-family:Montserrat,sans-serif';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 2500);
+}
 </script>
 </body>
 </html>
