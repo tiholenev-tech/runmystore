@@ -1184,25 +1184,13 @@ async function generateAIDescription() {
   if (!name) { showToast('Първо въведи наименование'); return; }
   showToast('AI генерира...');
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('ai-helper.php', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': '<?= CLAUDE_API_KEY ?>',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието, без встъпление.`
-        }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието, без встъпление.` })
     });
     const d = await r.json();
-    const txt = d.content?.[0]?.text || '';
-    if (txt) { document.getElementById('f_desc').value = txt; showToast('Описанието е генерирано ✓'); }
+    if (d.text) { document.getElementById('f_desc').value = d.text; showToast('Описанието е генерирано ✓'); }
     else showToast('Грешка при генериране');
   } catch(e) { showToast('Грешка при генериране'); }
 }
