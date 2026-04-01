@@ -611,21 +611,80 @@ function prepareStep3() {
   renderVariants();
 }
 
+// Брой стойности в базата (симулирано — в продукция идва от БД)
+const DB_COUNTS = {
+  'Размер (буквен)': 50, 'Размер (EU)': 35, 'Цвят': 120, 'Сезон': 4,
+  'Материя': 28, 'Материал': 32, 'Капацитет': 18, 'Грамаж/Обем': 24,
+  'Разфасовка': 20, 'Дозировка': 15, 'Вискозитет': 12, 'Страна': 4,
+  'Размер (пръстен)': 12, 'Камък': 8, 'Повод': 10, 'Възраст': 6,
+};
+
 function renderVariants() {
-  document.getElementById('variantsList').innerHTML = variantsData.map((v, i) => `
-    <div class="variant-card ${v.active?'on':''}" onclick="toggleVariant(${i})" style="animation-delay:${i*0.05}s">
-      <div class="v-check">${v.active?'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg>':''}</div>
-      <div style="flex:1">
-        <div class="v-name">${v.name}</div>
-        <div class="v-ex">${v.type==='color'?'Галерия с цветове — винаги налична при добавяне на артикул':v.values.slice(0,5).join(' · ')+(v.values.length>5?'...':'')}</div>
-        ${v.values.length?`<div class="v-vals">${v.values.slice(0,6).map(x=>`<span class="v-val">${x}</span>`).join('')}${v.values.length>6?'<span class="v-val">+'+(v.values.length-6)+'</span>':''}</div>`:''}
+  document.getElementById('variantsList').innerHTML = variantsData.map((v, i) => {
+    const shown = v.values.slice(0, 5);
+    const dbCount = DB_COUNTS[v.name] || 0;
+    const extra = dbCount > v.values.length ? dbCount - v.values.length : 0;
+    const isCustom = v.is_custom;
+    const editId = `edit-${i}`;
+
+    return `
+    <div class="variant-card ${v.active?'on':''}" id="vcard-${i}" style="animation-delay:${i*0.05}s">
+      <div class="v-check" onclick="toggleVariant(${i})">${v.active?'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg>':''}</div>
+      <div style="flex:1" onclick="toggleVariant(${i})">
+        <div class="v-name">${v.name}${isCustom?'<span style="font-size:9px;color:#6366f1;margin-left:6px;font-weight:600">МОЯТ</span>':''}</div>
+        <div class="v-ex">${v.type==='color'?'Галерия с цветове — винаги налична':shown.join(' · ')+(extra>0?'':v.values.length>5?'...':'')}</div>
+        ${shown.length?`<div class="v-vals">
+          ${shown.map(x=>`<span class="v-val">${x}</span>`).join('')}
+          ${extra>0?`<span class="v-val" style="cursor:pointer;color:#6366f1;border-color:#6366f1" onclick="event.stopPropagation();expandVariant(${i})">+ още ${extra} в базата</span>`:''}
+        </div>`:''}
       </div>
-    </div>`).join('');
+      ${isCustom?`
+      <button onclick="event.stopPropagation();toggleEditVariant(${i})" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:4px 8px;color:#a5b4fc;font-size:11px;cursor:pointer;font-family:'Montserrat',sans-serif;flex-shrink:0">✏️</button>
+      `:''}
+    </div>
+    ${isCustom?`
+    <div id="${editId}" style="display:none;background:rgba(10,10,30,.9);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px 14px;margin-top:-4px;margin-bottom:8px;animation:fadeUp .2s ease">
+      <div style="font-size:11px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Вариации за "${v.name}"</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px">Въведи стойностите разделени със запетая:</div>
+      <textarea id="vals-${i}" style="width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:'Montserrat',sans-serif;outline:none;resize:none;line-height:1.6" rows="2" placeholder="напр. Малък, Среден, Голям, Извънгабаритен...">${v.values.join(', ')}</textarea>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button onclick="saveVariantValues(${i})" style="flex:1;padding:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif">Запази ✓</button>
+        <button onclick="toggleEditVariant(${i})" style="padding:8px 12px;background:transparent;border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#6b7280;font-size:12px;cursor:pointer;font-family:'Montserrat',sans-serif">Отказ</button>
+      </div>
+    </div>`:''}`;
+  }).join('');
 }
 
 function toggleVariant(i) {
   variantsData[i].active = !variantsData[i].active;
   renderVariants();
+}
+
+function toggleEditVariant(i) {
+  const el = document.getElementById(`edit-${i}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveVariantValues(i) {
+  const ta = document.getElementById(`vals-${i}`);
+  if (!ta) return;
+  variantsData[i].values = ta.value.split(',').map(v => v.trim()).filter(Boolean);
+  renderVariants();
+}
+
+function expandVariant(i) {
+  const v = variantsData[i];
+  // Показва всички known стойности от базата (симулирано)
+  const knownExtra = {
+    'Размер (буквен)': ['4XL','5XL','XXS','One Size','Free Size'],
+    'Размер (EU)': ['16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','47','48','49','50'],
+    'Материя': ['Вискоза','Бамбук','Вълна','Акрил','Нейлон','Спандекс','Дентел','Велвет'],
+  };
+  const extra = knownExtra[v.name] || [];
+  if (extra.length) {
+    variantsData[i].values = [...new Set([...v.values, ...extra])];
+    renderVariants();
+  }
 }
 
 function addCustomVariant() {
@@ -634,6 +693,11 @@ function addCustomVariant() {
   variantsData.push({name:v, type:'custom', values:[], active:true, is_custom:true});
   document.getElementById('customVariant').value = '';
   renderVariants();
+  // Scroll до новата карта
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.variant-card');
+    cards[cards.length-1]?.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 100);
 }
 
 async function generateAI() {
