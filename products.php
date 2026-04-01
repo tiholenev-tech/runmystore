@@ -819,17 +819,19 @@ function buildFD(isVariant){
 }
 
 function openModal(){
-  productType=null;selectedSizes={};selectedColors=[];customVarSel={};variantCombs=[];scannerIdx=0;onbVariants=[];
-  ['f_name','f_price','f_barcode','f_cost','f_wprice','f_code','f_loc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('f_cat').value='';document.getElementById('f_sup').value='';document.getElementById('f_desc').value='';
-  document.getElementById('photoPreview').style.backgroundImage='';
-  document.getElementById('typeCardSingle').classList.remove('sel');document.getElementById('typeCardVariant').classList.remove('sel');
-  document.getElementById('btn0Next').style.display='none';document.getElementById('btnFinalSave').style.display='none';
-  document.getElementById('variantsContainer').innerHTML='';
-  document.getElementById('btnConfirmScan').style.display='block';document.querySelector('.btn-skip').style.display='block';
-  document.getElementById('scannerCurrent').style.display='block';
+  productType=null;selectedSizes={};selectedColors=[];customVarSel={};variantCombs=[];onbVariants=[];
+  ['f_name','f_price','f_barcode','f_wprice','f_code','f_loc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f_cat','f_sup','f_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const pp=document.getElementById('photoPreview');if(pp)pp.style.backgroundImage='';
+  document.getElementById('typeCardSingle').classList.remove('sel');
+  document.getElementById('typeCardVariant').classList.remove('sel');
+  document.getElementById('btn0Next').style.display='none';
+  const bf=document.getElementById('btnFinalSave');if(bf)bf.style.display='none';
+  const vc=document.getElementById('variantsContainer');if(vc)vc.innerHTML='';
+  const pl=document.getElementById('printList');if(pl)pl.innerHTML='';
   goStep(0);
-  document.getElementById('modalOvl').classList.add('open');document.getElementById('addModal').classList.add('open');
+  document.getElementById('modalOvl').classList.add('open');
+  document.getElementById('addModal').classList.add('open');
 }
 
 function closeModal(){document.getElementById('modalOvl').classList.remove('open');document.getElementById('addModal').classList.remove('open');}
