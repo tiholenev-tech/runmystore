@@ -3,7 +3,8 @@ require_once 'config/database.php';
 session_start();
 
 if (isset($_SESSION['tenant_id'])) {
-    header('Location: chat.php');
+    $t = DB::run("SELECT onboarding_done FROM tenants WHERE id=?", [$_SESSION['tenant_id']])->fetch();
+    header('Location: ' . ($t && $t['onboarding_done'] ? 'chat.php' : 'onboarding.php'));
     exit;
 }
 
@@ -25,7 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['currency']    = $tenant['currency'] ?? 'EUR';
             $_SESSION['language']    = $tenant['language'] ?? 'bg';
             DB::run("UPDATE tenants SET updated_at = NOW() WHERE id = ?", [$tenant['id']]);
-            header('Location: chat.php');
+
+            // Onboarding check
+            $dest = $tenant['onboarding_done'] ? 'chat.php' : 'onboarding.php';
+            header('Location: ' . $dest);
             exit;
         }
     }
@@ -46,17 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         * { font-family: 'Montserrat', sans-serif !important; }
         .eye-btn {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #64748b;
-            padding: 0;
-            display: flex;
-            align-items: center;
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: #64748b;
+            padding: 0; display: flex; align-items: center;
         }
         .eye-btn:hover { color: #e2e8f0; }
     </style>
@@ -65,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="flex min-h-screen flex-col overflow-hidden">
 
-    <!-- Header -->
     <header class="z-30 mt-2 w-full md:mt-5">
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
             <div class="relative flex h-14 items-center justify-between gap-3 rounded-2xl bg-gray-900/90 px-4 before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:border before:border-transparent before:[background:linear-gradient(to_right,var(--color-gray-800),var(--color-gray-700),var(--color-gray-800))_border-box] before:[mask-composite:exclude_!important] before:[mask:linear-gradient(white_0_0)_padding-box,_linear-gradient(white_0_0)] after:absolute after:inset-0 after:-z-10 after:backdrop-blur-xs">
@@ -80,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </header>
 
     <main class="relative grow">
-
         <div class="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/4" aria-hidden="true">
             <img class="max-w-none" src="./images/page-illustration.svg" width="846" height="594" alt="" />
         </div>
@@ -124,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div>
                                 <div class="mb-1 flex items-center justify-between gap-3">
                                     <label class="block text-sm font-medium text-indigo-200/65" for="password">Парола</label>
-                                    <a class="text-sm text-gray-600 hover:underline" href="#">Забравена?</a>
+                                    <a class="text-sm text-gray-600 hover:underline" href="reset-password.php">Забравена?</a>
                                 </div>
                                 <div style="position:relative;">
                                     <input
@@ -133,11 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         placeholder="••••••••"
                                         required autocomplete="current-password"
                                     />
-                                    <button type="button" class="eye-btn" onclick="togglePass('password','eyeOpen1','eyeClosed1')">
-                                        <svg id="eyeOpen1" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <button type="button" class="eye-btn" onclick="togglePass()">
+                                        <svg id="eyeOpen" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                         </svg>
-                                        <svg id="eyeClosed1" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none">
+                                        <svg id="eyeClosed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none">
                                             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
                                             <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
                                             <line x1="1" y1="1" x2="23" y2="23"/>
@@ -152,7 +146,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 Влез
                             </button>
                         </div>
-
                     </form>
 
                     <div class="mt-6 text-center text-sm text-indigo-200/65">
@@ -170,10 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="./js/vendors/aos.js"></script>
 <script src="./js/main.js"></script>
 <script>
-function togglePass(fieldId, openId, closedId) {
-    const p = document.getElementById(fieldId);
-    const open = document.getElementById(openId);
-    const closed = document.getElementById(closedId);
+function togglePass() {
+    const p = document.getElementById('password');
+    const open = document.getElementById('eyeOpen');
+    const closed = document.getElementById('eyeClosed');
     if (p.type === 'password') {
         p.type = 'text';
         open.style.display = 'none';
