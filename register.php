@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['currency']    = 'EUR';
             $_SESSION['language']    = 'bg';
 
-            header('Location: chat.php');
+            header('Location: onboarding.php');
             exit;
         }
     }
