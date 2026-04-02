@@ -1,8 +1,21 @@
 <?php
+/**
+ * onboarding.php — AI Conversational Onboarding
+ * 
+ * ЛОГИКА: Потребителят минава през 6 стъпки чрез чат:
+ *   1. Име → 2. Тип бизнес → 3. Брой обекти → 4. WOW анализ на загуби →
+ *   5. Какво правим (4 суперсили) → 6. Лоялна програма (AI генерира 3 варианта)
+ * 
+ * ДИЗАЙН: Cruip Open Pro Dark (bg-gray-950, indigo градиенти)
+ * П0: AI First — микрофон екран при старт
+ * П8: Cruip Dark тема с page-illustration.svg + blurred-shape.svg
+ * П12: style.css + aos.css
+ */
 session_start();
 if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
+
 $tenant_id = $_SESSION['tenant_id'];
 $t = DB::run("SELECT onboarding_done FROM tenants WHERE id=?", [$tenant_id])->fetch();
 if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
@@ -12,326 +25,426 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Бизнес Профил — RunMyStore.ai</title>
+<title>Настройка — RunMyStore.ai</title>
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-body{background:#EDE8DC;color:#3f3b36;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(218,165,32,.05) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(197,160,89,.06) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(230,194,122,.07) 0%,transparent 40%);pointer-events:none;z-index:0}
-.hdr{position:relative;z-index:50;background:rgba(237,232,220,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(210,193,164,.7);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.brand{font-size:18px;font-weight:900;background:linear-gradient(to right,#A67C00,#E6C27A,#A67C00);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-.chat-area{background-color:#ffffff;border:1px solid #EAE0D0;box-shadow:0 8px 30px rgba(166,124,0,.04);border-radius:20px;margin:12px 12px 0 12px;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:20px 16px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
-.chat-area::-webkit-scrollbar{display:none}
-.msg-group{margin-bottom:16px;animation:fadeUp .3s ease both}
-.msg-meta{font-size:11px;color:#9ca3af;margin-bottom:6px;display:flex;align-items:center;gap:6px;font-weight:500}
-.ai-ava{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#D4AF37,#F3E5AB);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(212,175,55,.3)}
-.ai-ava-bars{display:flex;gap:2px;align-items:center;height:12px}
-.ai-ava-bar{width:2px;border-radius:1px;background:#fff;animation:barDance 1s ease-in-out infinite}
-.ai-ava-bar:nth-child(1){height:5px}.ai-ava-bar:nth-child(2){height:9px;animation-delay:.15s}.ai-ava-bar:nth-child(3){height:12px;animation-delay:.3s}.ai-ava-bar:nth-child(4){height:7px;animation-delay:.45s}
-.msg{max-width:88%;padding:13px 16px;font-size:14px;line-height:1.55;word-break:break-word}
-.msg.ai{background:#FAF7F0;border:1px solid #E6D5B8;color:#292524;border-radius:4px 18px 18px 18px}
-.msg.user{background:linear-gradient(135deg,#C5A059,#E6C27A);color:#fff;border-radius:18px 18px 4px 18px;margin-left:auto;box-shadow:0 4px 12px rgba(197,160,89,.2)}
-.msg.wow{border-color:#D4AF37;background:#FFFDF8;color:#574200;font-weight:500}
-.typing-wrap{display:none;padding:12px 16px;background:#FAF7F0;border:1px solid #E6D5B8;border-radius:4px 18px 18px 18px;width:fit-content;margin-bottom:14px}
-.typing-dots{display:flex;gap:5px;align-items:center}
-.dot{width:7px;height:7px;border-radius:50%;background:#D4AF37;animation:bounce 1.2s infinite}
+/* ── FULLSCREEN CHAT LAYOUT ── */
+html,body{height:100dvh;overflow:hidden}
+body{display:flex;flex-direction:column}
+.ob-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+
+/* ── HEADER ── */
+.ob-hdr{flex-shrink:0;padding:14px 16px;display:flex;align-items:center;justify-content:center;position:relative;z-index:50;
+  background:rgba(17,24,39,.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(99,102,241,.15)}
+.ob-brand{font-size:18px;font-weight:800;
+  background:linear-gradient(to right,var(--color-gray-200),var(--color-indigo-200),var(--color-gray-50),var(--color-indigo-300),var(--color-gray-200));
+  background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:gradient 6s linear infinite;font-family:var(--font-nacelle,ui-sans-serif,system-ui,sans-serif)}
+
+/* ── CHAT AREA ── */
+.ob-chat{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 16px 8px;display:flex;flex-direction:column;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
+.ob-chat::-webkit-scrollbar{display:none}
+
+/* ── MESSAGES ── */
+.msg-g{margin-bottom:14px;animation:fadeUp .3s ease both}
+.msg-meta{font-size:11px;color:rgba(165,180,252,.5);margin-bottom:5px;display:flex;align-items:center;gap:6px;font-weight:500}
+.msg-meta.right{justify-content:flex-end}
+.ai-ava{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--color-indigo-500),var(--color-indigo-400));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(99,102,241,.3)}
+.ai-bars{display:flex;gap:2px;align-items:center;height:11px}
+.ai-bar{width:2px;border-radius:1px;background:#fff;animation:barDance 1s ease-in-out infinite}
+.ai-bar:nth-child(1){height:4px}.ai-bar:nth-child(2){height:8px;animation-delay:.15s}
+.ai-bar:nth-child(3){height:11px;animation-delay:.3s}.ai-bar:nth-child(4){height:6px;animation-delay:.45s}
+
+.msg{max-width:88%;padding:12px 16px;font-size:14px;line-height:1.55;word-break:break-word}
+.msg.ai{background:rgba(30,27,75,.4);border:1px solid rgba(99,102,241,.2);color:var(--color-gray-200);border-radius:4px 16px 16px 16px}
+.msg.user{background:linear-gradient(135deg,var(--color-indigo-600),var(--color-indigo-500));
+  color:#fff;border-radius:16px 16px 4px 16px;margin-left:auto;box-shadow:0 4px 12px rgba(99,102,241,.25)}
+.msg.wow{border-color:rgba(99,102,241,.4);background:rgba(30,27,75,.6)}
+.msg b,.msg strong{color:var(--color-indigo-300);font-weight:700}
+
+/* ── TYPING ── */
+.typing-w{display:none;padding:10px 16px;background:rgba(30,27,75,.4);border:1px solid rgba(99,102,241,.15);
+  border-radius:4px 16px 16px 16px;width:fit-content;margin-bottom:12px}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--color-indigo-400);animation:bounce 1.2s infinite}
 .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
-.search-indicator{display:none;padding:10px 16px;margin-bottom:12px;background:#FAF7F0;border:1px solid #E6D5B8;border-radius:12px;font-size:12px;color:#A67C00;font-weight:600}
-.search-indicator.show{display:flex;align-items:center;gap:8px}
-.search-dot{width:7px;height:7px;border-radius:50%;background:#C5A059;animation:bounce 1s infinite}
-.action-wrap{padding:0 12px 12px;flex-shrink:0;position:relative;z-index:1}
-.action-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.action-btn{flex:1;min-width:120px;max-width:250px;padding:12px 14px;border-radius:16px;font-size:13px;font-weight:700;border:1px solid #E6D5B8;color:#574200;background:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;text-align:center}
-.action-btn.primary{background:linear-gradient(to bottom,#D4AF37,#C5A059);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(212,175,55,.3)}
-.loyalty-cards{display:flex;flex-direction:column;gap:10px;margin-top:4px;width:100%;max-width:88%}
-.loyalty-card{background:#fff;border:1.5px solid #E6D5B8;border-radius:16px;padding:14px 16px;cursor:pointer;transition:all .2s;text-align:left;font-family:'Montserrat',sans-serif;width:100%}
-.loyalty-card.selected{border-color:#D4AF37;background:#FFFDF8;box-shadow:0 4px 14px rgba(212,175,55,.2)}
-.loyalty-card-emoji{font-size:20px;margin-bottom:5px;display:block}
-.loyalty-card-title{font-size:13px;font-weight:800;color:#292524;margin-bottom:3px}
-.loyalty-card-desc{font-size:12px;color:#78716C;line-height:1.5}
-.loyalty-build-btn{margin-top:2px;padding:12px;border-radius:14px;font-size:13px;font-weight:700;border:1.5px dashed #C5A059;color:#A67C00;background:transparent;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;text-align:center}
-.input-area{background:rgba(237,232,220,.9);backdrop-filter:blur(20px);padding:12px 16px 20px;flex-shrink:0;position:relative;z-index:1}
-.input-row{display:flex;gap:10px;align-items:center}
-.text-input{flex:1;background:#FAF7F0;border:1px solid #E6D5B8;border-radius:24px;color:#292524;font-size:14px;padding:12px 18px;font-family:'Montserrat',sans-serif;outline:none;resize:none;max-height:80px;line-height:1.4;transition:all .2s}
-.text-input:focus{border-color:#C5A059;background:#fff;box-shadow:0 0 0 3px rgba(197,160,89,.1)}
-.text-input::placeholder{color:#A8A29E}
-.voice-wrap{position:relative;flex-shrink:0;width:52px;height:52px;cursor:pointer}
-.voice-ring{position:absolute;border-radius:50%;border:1px solid rgba(212,175,55,.3);animation:waveOut 2s ease-out infinite;pointer-events:none}
-.voice-ring:nth-child(1){inset:-4px}.voice-ring:nth-child(2){inset:-9px;animation-delay:.55s}.voice-ring:nth-child(3){inset:-14px;animation-delay:1.1s}
-.voice-inner{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#E6C27A);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;box-shadow:0 4px 14px rgba(212,175,55,.4)}
-.voice-bars{display:flex;gap:3px;align-items:center;height:20px}
-.voice-bar{width:3px;border-radius:2px;background:#fff;animation:barDance 1s ease-in-out infinite}
-.voice-bar:nth-child(1){height:8px}.voice-bar:nth-child(2){height:16px;animation-delay:.15s}.voice-bar:nth-child(3){height:20px;animation-delay:.3s}.voice-bar:nth-child(4){height:12px;animation-delay:.45s}.voice-bar:nth-child(5){height:8px;animation-delay:.6s}
-.voice-wrap.recording .voice-inner{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 18px rgba(239,68,68,.5)}
-.send-btn{width:46px;height:46px;border-radius:50%;background:#FAF7F0;border:1px solid #E6D5B8;color:#A67C00;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
-.send-btn:active{background:#F3E5AB;transform:scale(.92)}
-.send-btn:disabled{opacity:.4;cursor:default}
-.rec-overlay{position:fixed;inset:0;background:rgba(237,232,220,.92);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
-.rec-overlay.show{display:flex}
-.rec-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:recPulse 1s ease-out infinite;box-shadow:0 10px 30px rgba(239,68,68,.4)}
-.rec-wave-bars{display:flex;gap:5px;align-items:center;height:32px}
+
+/* ── SEARCH INDICATOR ── */
+.search-ind{display:none;padding:10px 16px;margin-bottom:10px;background:rgba(30,27,75,.5);
+  border:1px solid rgba(99,102,241,.2);border-radius:12px;font-size:12px;color:var(--color-indigo-300);font-weight:600}
+.search-ind.show{display:flex;align-items:center;gap:8px}
+.s-dot{width:6px;height:6px;border-radius:50%;background:var(--color-indigo-400);animation:bounce 1s infinite}
+
+/* ── ACTION BUTTONS ── */
+.act-wrap{padding:8px 12px 12px;flex-shrink:0;position:relative;z-index:1}
+.act-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.act-btn{flex:1;min-width:110px;max-width:250px;padding:11px 14px;border-radius:14px;font-size:13px;font-weight:700;
+  border:1px solid rgba(99,102,241,.25);color:var(--color-indigo-200);
+  background:rgba(30,27,75,.4);cursor:pointer;font-family:inherit;transition:all .2s;text-align:center}
+.act-btn:active{transform:scale(.96)}
+.act-btn.primary{background:linear-gradient(to top,var(--color-indigo-600),var(--color-indigo-500));
+  border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.35)}
+
+/* ── LOYALTY CARDS ── */
+.loy-cards{display:flex;flex-direction:column;gap:10px;margin-top:6px;width:100%;max-width:88%}
+.loy-card{background:rgba(30,27,75,.35);border:1.5px solid rgba(99,102,241,.2);border-radius:14px;
+  padding:13px 16px;cursor:pointer;transition:all .2s;text-align:left;font-family:inherit;width:100%;color:var(--color-gray-200)}
+.loy-card.selected{border-color:var(--color-indigo-400);background:rgba(30,27,75,.6);box-shadow:0 4px 14px rgba(99,102,241,.2)}
+.loy-emoji{font-size:20px;margin-bottom:4px;display:block}
+.loy-title{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px}
+.loy-desc{font-size:12px;color:rgba(165,180,252,.6);line-height:1.5}
+.loy-custom{margin-top:4px;padding:11px;border-radius:14px;font-size:13px;font-weight:700;
+  border:1.5px dashed rgba(99,102,241,.3);color:var(--color-indigo-300);
+  background:transparent;cursor:pointer;font-family:inherit;width:100%;text-align:center}
+
+/* ── INPUT AREA ── */
+.inp-area{background:rgba(17,24,39,.85);backdrop-filter:blur(16px);padding:12px 16px 20px;
+  flex-shrink:0;position:relative;z-index:1;border-top:1px solid rgba(99,102,241,.1)}
+.inp-row{display:flex;gap:10px;align-items:center}
+.txt-inp{flex:1;background:rgba(17,24,39,.6);border:1px solid rgba(99,102,241,.2);border-radius:24px;
+  color:var(--color-gray-200);font-size:14px;padding:12px 18px;font-family:inherit;outline:none;
+  resize:none;max-height:80px;line-height:1.4;transition:all .2s}
+.txt-inp:focus{border-color:var(--color-indigo-500);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.txt-inp::placeholder{color:rgba(165,180,252,.35)}
+
+/* ── VOICE BUTTON ── */
+.vc-wrap{position:relative;flex-shrink:0;width:48px;height:48px;cursor:pointer}
+.vc-ring{position:absolute;border-radius:50%;border:1px solid rgba(99,102,241,.2);
+  animation:waveOut 2s ease-out infinite;pointer-events:none}
+.vc-ring:nth-child(1){inset:-4px}.vc-ring:nth-child(2){inset:-9px;animation-delay:.55s}
+.vc-inner{width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--color-indigo-600),var(--color-indigo-500));
+  display:flex;align-items:center;justify-content:center;position:relative;z-index:1;
+  box-shadow:0 4px 14px rgba(99,102,241,.4)}
+.vc-vbars{display:flex;gap:3px;align-items:center;height:18px}
+.vc-vbar{width:3px;border-radius:2px;background:#fff;animation:barDance 1s ease-in-out infinite}
+.vc-vbar:nth-child(1){height:7px}.vc-vbar:nth-child(2){height:14px;animation-delay:.15s}
+.vc-vbar:nth-child(3){height:18px;animation-delay:.3s}.vc-vbar:nth-child(4){height:10px;animation-delay:.45s}
+.vc-wrap.rec .vc-inner{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 18px rgba(239,68,68,.5)}
+.send-b{width:44px;height:44px;border-radius:50%;background:rgba(30,27,75,.4);
+  border:1px solid rgba(99,102,241,.25);color:var(--color-indigo-300);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.send-b:active{background:var(--color-indigo-600);transform:scale(.92)}
+.send-b:disabled{opacity:.3;cursor:default}
+
+/* ── MIC SCREEN ── */
+.mic-scr{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;
+  padding:32px 24px;text-align:center;position:relative;z-index:1}
+.mic-scr.show{display:flex}
+.mic-ico{width:96px;height:96px;border-radius:50%;
+  background:linear-gradient(135deg,var(--color-indigo-600),var(--color-indigo-500));
+  display:flex;align-items:center;justify-content:center;margin-bottom:28px;
+  box-shadow:0 10px 30px rgba(99,102,241,.3);animation:recPulse 2s ease-out infinite}
+.mic-t{font-size:22px;font-weight:800;color:#fff;margin-bottom:12px;font-family:var(--font-nacelle,ui-sans-serif,system-ui,sans-serif)}
+.mic-s{font-size:15px;color:var(--color-indigo-200);line-height:1.65;margin-bottom:32px;max-width:300px;opacity:.7}
+.mic-go{padding:16px 36px;border:none;border-radius:20px;color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  background:linear-gradient(to top,var(--color-indigo-600),var(--color-indigo-500));
+  box-shadow:0 8px 24px rgba(99,102,241,.35)}
+.mic-skip{margin-top:20px;font-size:14px;color:rgba(165,180,252,.5);cursor:pointer;
+  text-decoration:underline;padding:8px 16px;display:inline-block}
+
+/* ── RECORD OVERLAY ── */
+.rec-ov{position:fixed;inset:0;background:rgba(3,7,18,.92);z-index:400;display:none;
+  flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
+.rec-ov.show{display:flex}
+.rec-circle{width:110px;height:110px;border-radius:50%;
+  background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;animation:recPulse 1s ease-out infinite;box-shadow:0 10px 30px rgba(239,68,68,.4)}
+.rec-bars{display:flex;gap:5px;align-items:center;height:32px}
 .rec-bar{width:5px;border-radius:3px;background:#fff;animation:barDance .7s ease-in-out infinite}
-.rec-bar:nth-child(1){height:12px}.rec-bar:nth-child(2){height:24px;animation-delay:.1s}.rec-bar:nth-child(3){height:32px;animation-delay:.2s}.rec-bar:nth-child(4){height:20px;animation-delay:.3s}.rec-bar:nth-child(5){height:12px;animation-delay:.4s}
-.rec-title{font-size:22px;font-weight:800;color:#292524;margin-bottom:6px}
-.rec-sub{font-size:15px;color:#78716C;margin-bottom:32px}
-.rec-stop{padding:14px 34px;background:#fee2e2;border:1px solid #fca5a5;border-radius:24px;color:#ef4444;font-size:15px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif}
-.mic-screen{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 24px;text-align:center;position:relative;z-index:1}
-.mic-screen.show{display:flex}
-.mic-icon-wrap{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#E6C27A);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 10px 30px rgba(212,175,55,.3);animation:recPulse 2s ease-out infinite}
-.mic-title{font-size:24px;font-weight:800;color:#292524;margin-bottom:12px}
-.mic-sub{font-size:15px;color:#574200;line-height:1.65;margin-bottom:32px;max-width:300px}
-.mic-btn{padding:16px 36px;background:linear-gradient(to bottom,#D4AF37,#C5A059);border:none;border-radius:20px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 8px 24px rgba(212,175,55,.35)}
-.mic-skip{margin-top:20px;font-size:14px;color:#78716C;cursor:pointer;text-decoration:underline;padding:8px 16px;display:inline-block}
-@keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
+.rec-bar:nth-child(1){height:12px}.rec-bar:nth-child(2){height:24px;animation-delay:.1s}
+.rec-bar:nth-child(3){height:32px;animation-delay:.2s}.rec-bar:nth-child(4){height:20px;animation-delay:.3s}
+.rec-bar:nth-child(5){height:12px;animation-delay:.4s}
+.rec-t{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}
+.rec-s{font-size:15px;color:rgba(165,180,252,.6);margin-bottom:32px}
+.rec-stop{padding:14px 34px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);
+  border-radius:24px;color:#ef4444;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* ── ANIMATIONS ── */
+@keyframes gradient{0%{background-position:0% center}100%{background-position:200% center}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes barDance{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.25)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 @keyframes waveOut{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.9);opacity:0}}
-@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(212,175,55,.3)}70%{box-shadow:0 0 0 20px rgba(212,175,55,0)}100%{box-shadow:0 0 0 0 rgba(212,175,55,0)}}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(99,102,241,.3)}70%{box-shadow:0 0 0 20px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
 </style>
 </head>
-<body>
-<div class="hdr"><div class="brand">RunMyStore.ai</div></div>
-<div class="mic-screen show" id="micScreen">
-  <div class="mic-icon-wrap">
-    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
-    </svg>
-  </div>
-  <div class="mic-title">Здравей! Аз съм твоят AI асистент 🙌</div>
-  <div class="mic-sub">Ще работим заедно всеки ден.<br>Разреши ми да те чувам, за да си говорим вместо да пишеш.</div>
-  <button class="mic-btn" id="micBtn">Разреши микрофона</button>
-  <div class="mic-skip" id="micSkip">Ще пиша засега</div>
+<body class="bg-gray-950 font-inter text-base text-gray-200 antialiased">
+
+<!-- Background decorations (Cruip pattern) -->
+<div class="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/4" aria-hidden="true">
+  <img class="max-w-none" src="./images/page-illustration.svg" width="846" height="594" alt="">
 </div>
-<div id="chatInterface" style="display:none;flex:1 1 0;min-height:0;flex-direction:column;overflow:hidden">
-  <div class="chat-area" id="chatArea">
-    <div class="typing-wrap" id="typing"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-  <div class="search-indicator" id="searchIndicator"><div class="search-dot"></div><span>Изчислявам оперативни метрики...</span></div>
-  <div class="action-wrap" id="actionWrap" style="display:none"><div class="action-row" id="actionRow"></div></div>
-  <div class="input-area">
-    <div class="input-row">
-      <textarea class="text-input" id="chatInput" placeholder="Пиши тук..." rows="1"
-        oninput="autoResize(this);document.getElementById('btnSend').disabled=!this.value.trim()"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"></textarea>
-      <div class="voice-wrap" id="voiceWrap" onclick="toggleVoice()">
-        <div class="voice-ring"></div><div class="voice-ring"></div><div class="voice-ring"></div>
-        <div class="voice-inner"><div class="voice-bars"><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div></div></div>
-      </div>
-      <button class="send-btn" id="btnSend" onclick="sendText()" disabled>
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-  </div>
+<div class="pointer-events-none absolute left-1/2 top-[400px] -z-10 -mt-20 -translate-x-full opacity-50" aria-hidden="true">
+  <img class="max-w-none" src="./images/blurred-shape-gray.svg" width="760" height="668" alt="">
 </div>
-<div class="rec-overlay" id="recOverlay">
-  <div class="rec-circle"><div class="rec-wave-bars"><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div></div></div>
-  <div class="rec-title">Слушам те...</div>
-  <div class="rec-sub">Говори свободно на български</div>
-  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
+<div class="pointer-events-none absolute left-1/2 top-[440px] -z-10 -translate-x-1/3" aria-hidden="true">
+  <img class="max-w-none" src="./images/blurred-shape.svg" width="760" height="668" alt="">
 </div>
+
+<div class="ob-wrap">
+  <!-- Header -->
+  <div class="ob-hdr">
+    <div class="ob-brand">RunMyStore.ai</div>
+  </div>
+
+  <!-- Mic Permission Screen -->
+  <div class="mic-scr show" id="micScreen">
+    <div class="mic-ico">
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+      </svg>
+    </div>
+    <div class="mic-t">Здравей! Аз съм AI асистентът ти</div>
+    <div class="mic-s">Ще работим заедно всеки ден.<br>Разреши ми да те чувам, за да си говорим вместо да пишеш.</div>
+    <button class="mic-go" id="micBtn">Разреши микрофона</button>
+    <div class="mic-skip" id="micSkip">Ще пиша засега</div>
+  </div>
+
+  <!-- Chat Interface (hidden until mic screen dismissed) -->
+  <div id="chatUI" style="display:none;flex:1 1 0;min-height:0;flex-direction:column;overflow:hidden">
+    <div class="ob-chat" id="chatArea">
+      <div class="typing-w" id="typing"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    </div>
+    <div class="search-ind" id="searchInd"><div class="s-dot"></div><span>Анализирам данните...</span></div>
+    <div class="act-wrap" id="actWrap" style="display:none"><div class="act-row" id="actRow"></div></div>
+    <div class="inp-area">
+      <div class="inp-row">
+        <textarea class="txt-inp" id="chatInput" placeholder="Пиши тук..." rows="1"
+          oninput="autoResize(this);document.getElementById('btnSend').disabled=!this.value.trim()"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"></textarea>
+        <div class="vc-wrap" id="voiceWrap" onclick="toggleVoice()">
+          <div class="vc-ring"></div><div class="vc-ring"></div>
+          <div class="vc-inner"><div class="vc-vbars">
+            <div class="vc-vbar"></div><div class="vc-vbar"></div><div class="vc-vbar"></div><div class="vc-vbar"></div>
+          </div></div>
+        </div>
+        <button class="send-b" id="btnSend" onclick="sendText()" disabled>
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recording Overlay -->
+<div class="rec-ov" id="recOverlay">
+  <div class="rec-circle"><div class="rec-bars">
+    <div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div>
+  </div></div>
+  <div class="rec-t">Слушам те...</div>
+  <div class="rec-s">Говори свободно</div>
+  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
+</div>
+
 <script>
-function wait(ms){return new Promise(function(r){setTimeout(r,ms);})}
+/* ── HELPERS ── */
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function autoResize(el){el.style.height='';el.style.height=Math.min(el.scrollHeight,80)+'px'}
-function capitalize(s){return s.split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).join(' ')}
-async function aiFetch(body){return fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+function capitalize(s){return s.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ')}
+function bold(s){return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}
 
-var state={step:'name',name:'',biz:'',segment:'',stores:'',products:'',employees:'',loyaltyChoice:'',micGranted:false, wowMessages: [], currentWowIndex: 0};
-var voiceRec=null,isRecording=false;
+/* ── STATE ── */
+var S={step:'name',name:'',biz:'',stores:'',micGranted:false};
+var voiceRec=null,isRec=false;
 var chatArea=document.getElementById('chatArea');
 var typing=document.getElementById('typing');
-var voiceWrap=document.getElementById('voiceWrap');
-var recOverlay=document.getElementById('recOverlay');
-var actionWrap=document.getElementById('actionWrap');
-var actionRow=document.getElementById('actionRow');
-var searchInd=document.getElementById('searchIndicator');
+var actWrap=document.getElementById('actWrap');
+var actRow=document.getElementById('actRow');
+var searchInd=document.getElementById('searchInd');
 
+/* ── MIC PERMISSION ── */
 document.getElementById('micBtn').addEventListener('click',function(){
-  var btn=this;btn.disabled=true;btn.textContent='Изчакай...';
-  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(s){s.getTracks().forEach(function(t){t.stop();});state.micGranted=true;startChat();})
-      .catch(function(){state.micGranted=false;startChat();});
-  }else{state.micGranted=false;startChat();}
+  var btn=this;btn.disabled=true;btn.textContent='Изчакай...';
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(s){s.getTracks().forEach(t=>t.stop());S.micGranted=true;startChat()})
+      .catch(function(){S.micGranted=false;startChat()});
+  }else{S.micGranted=false;startChat()}
 });
-document.getElementById('micSkip').addEventListener('click',function(){state.micGranted=false;startChat();});
+document.getElementById('micSkip').addEventListener('click',function(){S.micGranted=false;startChat()});
 
 function startChat(){
-  document.getElementById('micScreen').classList.remove('show');
-  var ci=document.getElementById('chatInterface');
-  ci.style.display='flex';ci.style.flex='1 1 0';ci.style.minHeight='0';
-  setTimeout(function(){aiSay('Привет! Аз съм твоят ПЕШО асистент 🙌\nЩе настроим всичко за под 3 минути. Как се казваш?');},400);
+  document.getElementById('micScreen').classList.remove('show');
+  document.getElementById('micScreen').style.display='none';
+  var ui=document.getElementById('chatUI');ui.style.display='flex';
+  setTimeout(function(){aiSay('Привет! Аз съм твоят AI бизнес асистент.\nЩе настроим всичко за под 3 минути. Как се казваш?')},400);
 }
 
-function scrollBottom(){chatArea.scrollTop=chatArea.scrollHeight}
-function showTyping(){typing.style.display='block';scrollBottom()}
-function hideTyping(){typing.style.none}
+/* ── CHAT FUNCTIONS ── */
+function scrollBot(){chatArea.scrollTop=chatArea.scrollHeight}
+function showTyping(){typing.style.display='block';scrollBot()}
+function hideTyping(){typing.style.display='none'}
 
 function aiSay(text,isWow){
-  hideActions();
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
-  chatArea.insertBefore(g,typing);scrollBottom();
+  hideActs();
+  var g=document.createElement('div');g.className='msg-g';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-bars"><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div></div></div>AI Асистент</div>'
+    +'<div class="msg ai'+(isWow?' wow':'')+'">'+bold(esc(text)).replace(/\n/g,'<br>')+'</div>';
+  chatArea.insertBefore(g,typing);scrollBot();
 }
 
-function aiSayWidget(html){
-  hideActions();
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div>'+html;
-  chatArea.insertBefore(g,typing);scrollBottom();
+function aiWidget(html){
+  hideActs();
+  var g=document.createElement('div');g.className='msg-g';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-bars"><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div></div></div>AI Асистент</div>'+html;
+  chatArea.insertBefore(g,typing);scrollBot();
 }
 
 function userSay(text){
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta" style="justify-content:flex-end">'+new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'})+'</div><div style="display:flex;justify-content:flex-end"><div class="msg user">'+esc(text)+'</div></div>';
-  chatArea.insertBefore(g,typing);scrollBottom();
+  var g=document.createElement('div');g.className='msg-g';
+  g.innerHTML='<div class="msg-meta right">'+new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'})+'</div>'
+    +'<div style="display:flex;justify-content:flex-end"><div class="msg user">'+esc(text)+'</div></div>';
+  chatArea.insertBefore(g,typing);scrollBot();
 }
 
-function showActions(buttons){
-  actionRow.innerHTML=buttons.map(function(b){
-    return '<button class="action-btn'+(b.primary?' primary':'')+'" onclick="handleAction(\''+b.val.replace(/'/g,"\\'")+'\')">'+b.label+'</button>';
-  }).join('');
-  actionWrap.style.display='block';scrollBottom();
+function showActs(btns){
+  actRow.innerHTML=btns.map(b=>
+    '<button class="act-btn'+(b.p?' primary':'')+'" onclick="handleAct(\''+b.v.replace(/'/g,"\\'")+'\')">'
+    +b.l+'</button>').join('');
+  actWrap.style.display='block';scrollBot();
 }
-function hideActions(){actionWrap.style.display='none';actionRow.innerHTML='';}
+function hideActs(){actWrap.style.display='none';actRow.innerHTML=''}
 
+/* ── VOICE ── */
 function toggleVoice(){
-  if(isRecording){stopVoice();return;}
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert('Браузърът не поддържа гласово въвеждане');return;}
-  isRecording=true;voiceWrap.classList.add('recording');recOverlay.classList.add('show');
-  voiceRec=new SR();voiceRec.lang='bg-BG';voiceRec.interimResults=false;voiceRec.maxAlternatives=1;
-  voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
-  voiceRec.onerror=function(){stopVoice();};
-  voiceRec.onend=function(){if(isRecording)stopVoice();};
-  try{voiceRec.start();}catch(e){stopVoice();}
+  if(isRec){stopVoice();return}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){return}
+  isRec=true;document.getElementById('voiceWrap').classList.add('rec');
+  document.getElementById('recOverlay').classList.add('show');
+  voiceRec=new SR();voiceRec.lang='bg-BG';voiceRec.interimResults=false;voiceRec.maxAlternatives=1;
+  voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t)};
+  voiceRec.onerror=function(){stopVoice()};
+  voiceRec.onend=function(){if(isRec)stopVoice()};
+  try{voiceRec.start()}catch(e){stopVoice()}
 }
 function stopVoice(){
-  isRecording=false;voiceWrap.classList.remove('recording');recOverlay.classList.remove('show');
-  if(voiceRec){try{voiceRec.stop();}catch(e){}voiceRec=null;}
+  isRec=false;document.getElementById('voiceWrap').classList.remove('rec');
+  document.getElementById('recOverlay').classList.remove('show');
+  if(voiceRec){try{voiceRec.stop()}catch(e){}voiceRec=null}
 }
+
 function sendText(){
-  var input=document.getElementById('chatInput');var text=input.value.trim();if(!text)return;
-  input.value='';input.style.height='';document.getElementById('btnSend').disabled=true;processInput(text);
+  var inp=document.getElementById('chatInput');var t=inp.value.trim();if(!t)return;
+  inp.value='';inp.style.height='';document.getElementById('btnSend').disabled=true;processInput(t);
 }
-function handleAction(val){processInput(val);}
+function handleAct(v){processInput(v)}
 
+/* ── MAIN FLOW ── */
 async function processInput(text){
-  if(text !== 'next_wow') userSay(text); 
-  hideActions(); showTyping(); await wait(600); hideTyping();
-  
-  try{
-    switch(state.step){
-      case 'name':
-        state.name=capitalize(text.trim());state.step='biz';
-        aiSay(state.name+', приятно ми е.\nКакъв точно е профилът на твоя обект?');
-        showActions([{label:'Дрехи/Обувки', val:'Дрехи'}, {label:'Хранителни стоки', val:'Храна'}, {label:'Друго', val:'Друго'}]);
-        break;
-      case 'biz':
-        state.biz=text.trim();state.step='stores';
-        aiSay('Ясно. Колко обекта управляваш в момента?');
-        showActions([{label:'1 обект', val:'1'}, {label:'2-5 обекта', val:'2-5'}, {label:'6+ верига', val:'верига'}]);
-        break;
-      case 'stores':
-        state.stores=text.trim();state.step='losses';
-        await showLossAnalysis();
-        break;
-      case 'losses':
-        state.step='annual';
-        await showAnnualSavings();
-        break;
-      case 'annual':
-        state.step='what_we_do';
-        await showWhatWeDo();
-        break;
-      case 'what_we_do':
-        state.step='loyalty';
-        await showLoyaltyOptions();
+  userSay(text);hideActs();showTyping();await wait(600);hideTyping();
+  try{
+    switch(S.step){
+      case 'name':
+        S.name=capitalize(text.trim());S.step='biz';
+        aiSay(S.name+', приятно ми е.\nКакъв е профилът на твоя обект?');
+        showActs([{l:'Дрехи / Обувки',v:'Дрехи и обувки'},{l:'Хранителни стоки',v:'Хранителни стоки'},{l:'Друго',v:'Друго'}]);
         break;
-      case 'loyalty_chosen':
-        state.loyaltyChoice=text; state.step='done';
-        aiSay(`Страхотно, ${state.name}! Активирах "${text}".\n\nДа започваме ли работа? 🚀`);
-        showActions([{label:'Старт! 🚀', val:'старт', primary:true}]);
+      case 'biz':
+        S.biz=text.trim();S.step='stores';
+        aiSay('Колко обекта управляваш в момента?');
+        showActs([{l:'1 обект',v:'1'},{l:'2–5 обекта',v:'2-5'},{l:'6+ верига',v:'6+'}]);
         break;
-      case 'done':
-        await finishOnboarding(); break;
-    }
-  }catch(err){console.error('processInput error:',err);}
+      case 'stores':
+        S.stores=text.trim();S.step='losses';
+        await showLossAnalysis();break;
+      case 'losses':
+        S.step='powers';await showPowers();break;
+      case 'powers':
+        S.step='loyalty';await showLoyalty();break;
+      case 'loyalty_chosen':
+        S.loyaltyChoice=text;S.step='done';
+        aiSay('Готово, '+S.name+'! Активирах "'+text+'".\n\nДа започваме ли работа?');
+        showActs([{l:'Старт!',v:'старт',p:true}]);break;
+      case 'done':
+        await finishOnboarding();break;
+    }
+  }catch(err){console.error(err)}
 }
 
+/* ── STEP: LOSS ANALYSIS ── */
 async function showLossAnalysis(){
-  showTyping(); searchInd.classList.add('show'); await wait(1200); searchInd.classList.remove('show'); hideTyping();
-  var lossText = `Внимание! В сектор "${state.biz}" губиш средно **€750 всеки месец** без AI контрол:\n\n` +
-                 `📉 **€250:** Пропуснати ползи от стока на нула (Out-of-stock)\n` +
-                 `📉 **€120:** Загуби от залежали крайни размери (XS/XXL)\n` +
-                 `📉 **€200:** Блокиран кеш в "мъртва" стока (>90 дни)\n` +
-                 `📉 **€100:** Касови грешки и неконтролирани отстъпки\n` +
-                 `📉 **€80:** Неотчетена инфлация от доставчиците`;
-  aiSay(lossText, true);
-  showActions([{label:'Уау, как да ги спася?', val:'спаси', primary:true}]);
+  showTyping();searchInd.classList.add('show');await wait(1400);searchInd.classList.remove('show');hideTyping();
+  var t='Внимание! В сектор "'+S.biz+'" бизнесите губят средно:\n\n'
+    +'**Стока на нула** — клиенти идват, стоката я няма, парите отиват при конкуренцията.\n'
+    +'**Залежали размери** — крайните размери стоят месеци и блокират капитал.\n'
+    +'**Мъртва стока** — артикули без движение 90+ дни = замразени пари.\n'
+    +'**Неконтролирани отстъпки** — продавачи дават отстъпки без контрол.\n\n'
+    +'RunMyStore.ai засича всичко това автоматично.';
+  aiSay(t,true);
+  showActs([{l:'Как точно работи?',v:'как',p:true}]);
 }
 
-async function showAnnualSavings(){
-  showTyping(); await wait(800); hideTyping();
-  var savingsText = `С RunMyStore спестяваш **€9,000 на година**! ✅\n\n` +
-                    `С тези пари можеш да отвориш **нов обект** или да отидеш на **2 седмици почивка на Малдивите**, докато AI работи вместо теб.`;
-  aiSay(savingsText, true);
-  showActions([{label:'Какво точно правим?', val:'как', primary:true}]);
+/* ── STEP: 4 SUPERPOWERS ── */
+async function showPowers(){
+  showTyping();await wait(800);hideTyping();
+  var t='Ето твоите 4 суперсили:\n\n'
+    +'**1. Скенер** — Снимаш разписка, складът се обновява за секунди.\n'
+    +'**2. AI Мозък** — Следи размерите, мъртвата стока и ти казва какво да купиш.\n'
+    +'**3. Глас** — Продаваш с говорене, AI смята рестото.\n'
+    +'**4. Контрол 24/7** — Push известия за аномалии, отстъпки, нулеви наличности.';
+  aiSay(t);
+  showActs([{l:'Към Лоялната програма',v:'напред',p:true}]);
 }
 
-async function showWhatWeDo(){
-  showTyping(); await wait(800); hideTyping();
-  var superPowers = `Ето твоите 4 суперсили в RunMyStore.ai:\n\n` +
-                    `1️⃣ **Скенер:** Снимаш разписка -> Склад за 10 сек.\n` +
-                    `2️⃣ **Мозък:** AI следи размерите и казва какво да купиш.\n` +
-                    `3️⃣ **Глас:** Продаваш с говорене, аз смятам рестото.\n` +
-                    `4️⃣ **Контрол:** Push известия за аномалии 24/7.`;
-  aiSay(superPowers);
-  showActions([{label:'Към Лоялната програма ➔', val:'напред', primary:true}]);
+/* ── STEP: LOYALTY (AI-POWERED) ── */
+async function showLoyalty(){
+  aiSay('Генерирам персонализирани варианти за твоята лоялна програма...');
+  showTyping();
+  var options=[];
+  try{
+    var resp=await fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'loyalty_options',biz_type:S.biz,stores:S.stores,name:S.name})});
+    var data=await resp.json();
+    if(data.options&&data.options.length)options=data.options;
+  }catch(e){console.error('AI loyalty error:',e)}
+  hideTyping();
+  if(!options.length){
+    options=[
+      {emoji:'⭐',title:'Точки за покупка',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = двойни точки.'},
+      {emoji:'🎯',title:'VIP нива',desc:'Бронз → Сребро → Злато с растящи отстъпки според оборота.'},
+      {emoji:'🤝',title:'Cashback',desc:'Фиксиран % връщане по клиентската сметка за всяка покупка.'}
+    ];
+  }
+  aiSay('Лоялната програма е **БЕЗПЛАТНА ЗАВИНАГИ** — дори без абонамент.\nЕто 3 варианта специално за теб:');
+  var html='<div class="loy-cards">';
+  options.forEach(function(o){
+    var safe=esc(o.title).replace(/'/g,"\\'");
+    html+='<button class="loy-card" onclick="chooseLoy(this,\''+safe+'\')">'
+      +'<span class="loy-emoji">'+(o.emoji||'⭐')+'</span>'
+      +'<div class="loy-title">'+esc(o.title)+'</div>'
+      +'<div class="loy-desc">'+esc(o.desc)+'</div></button>';
+  });
+  html+='<button class="loy-custom" onclick="chooseLoy(this,\'custom\')">Ще си я настроя сам по-късно</button>';
+  html+='</div>';
+  aiWidget(html);
+  S.step='loyalty_chosen';
+}
+function chooseLoy(el,title){
+  document.querySelectorAll('.loy-card').forEach(c=>c.classList.remove('selected'));
+  if(el.classList.contains('loy-card'))el.classList.add('selected');
+  setTimeout(()=>processInput(title==='custom'?'Ще настроя сам':title),400);
 }
 
-async function showLoyaltyOptions(){
-  await wait(400);
-  aiSay('Генерирах варианти за твоята лоялна програма "[Магазин] CLUB":');
-  showTyping(); await wait(1000); hideTyping();
-  var options=[
-    {emoji:'⭐',title:'Стандартни Точки',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = 2x точки.'},
-    {emoji:'🎯',title:'VIP нива',desc:'Стимул за по-голям оборот с растящи отстъпки според нивата.'},
-    {emoji:'🤝',title:'Cashback',desc:'Твърд процент връщане по клиентската сметка за всяка покупка.'}
-  ];
-  var html='<div class="loyalty-cards">';
-  options.forEach(function(opt){
-    var safeTitle=opt.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html+='<button class="loyalty-card" onclick="chooseLoyalty(this,\''+safeTitle+'\')">';
-    html+='<span class="loyalty-card-emoji">'+(opt.emoji||'⭐')+'</span>';
-    html+='<div class="loyalty-card-title">'+esc(opt.title)+'</div>';
-    html+='<div class="loyalty-card-desc">'+esc(opt.desc)+'</div>';
-    html+='</button>';
-  });
-  // Твоят нов бутон "Съгласен съм"
-  html+='<button class="action-btn primary" style="width:100%; margin-top:10px; max-width:100%;" onclick="handleAction(\'✅ Да, съгласен съм\')">✅ Да, съгласен съм</button>';
-  html+='<button class="loyalty-build-btn" onclick="chooseLoyalty(this,\'custom\')">⚙️ Ще си я сглобя сам от настройките</button>';
-  html+='</div>';
-  aiSayWidget(html);
-  state.step='loyalty_chosen';
-}
-
-function chooseLoyalty(el,title){
-  document.querySelectorAll('.loyalty-card').forEach(function(c){c.classList.remove('selected');});
-  if(el.classList.contains('loyalty-card'))el.classList.add('selected');
-  setTimeout(function(){processInput(title==='custom'?'Ще настройвам сам':title);},400);
-}
-
+/* ── FINISH ── */
 async function finishOnboarding(){
-  showTyping();
-  try{
-    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:state.name,biz:state.biz,stores:state.stores,loyalty:state.loyaltyChoice})});
-  }catch(e){}
-  hideTyping(); await wait(500); window.location.href='chat.php';
+  showTyping();
+  try{
+    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:S.name,biz:S.biz,stores:S.stores,loyalty:S.loyaltyChoice||''})});
+  }catch(e){}
+  hideTyping();await wait(400);window.location.href='chat.php';
 }
 </script>
 </body>
