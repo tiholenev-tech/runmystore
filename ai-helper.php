@@ -1,9 +1,7 @@
 <?php
 // ai-helper.php — PHP proxy за AI без запис в chat_messages
-// Използва се за: generateAIDescription, web_search, wow moment, onboarding, analyze_biz
-
 session_start();
-session_write_close(); // КРИТИЧНО ВАЖНО: Отключва сесията веднага, за да не замръзва чатът!
+session_write_close();
 
 if (!isset($_SESSION['tenant_id'])) { http_response_code(401); exit; }
 
@@ -14,7 +12,6 @@ header('Content-Type: application/json');
 $input  = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? 'generate';
 
-// Помощна функция за извличане на текст от Claude
 function extractClaudeText($result) {
     $text = '';
     if (isset($result['content'])) {
@@ -26,19 +23,19 @@ function extractClaudeText($result) {
 }
 
 // ═══════════════════════════════════════
-// ACTION: analyze_biz_segment — Разпознава бизнеса и поправя грешки
+// ACTION: analyze_biz_segment
 // ═══════════════════════════════════════
 if ($action === 'analyze_biz_segment') {
     $biz = trim($input['biz'] ?? '');
     if (!$biz) { echo json_encode(['question' => 'Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?']); exit; }
 
     $payload = [
-        'model'      => 'claude-3-5-sonnet-20241022',
-        'max_tokens' => 150,
-        'system'     => 'Ти си умен бизнес асистент. Разбираш разговорен български и автоматично разпознаваш правописни грешки (напр. "ехи" = дрехи, "офки" = обувки).',
+        'model'      => 'claude-sonnet-4-5',
+        'max_tokens' => 200,
+        'system'     => 'Ти си умен бизнес асистент. Разбираш разговорен български и АВТОМАТИЧНО разпознаваш правописни грешки. Примери: "дреги"="дрехи", "офки"="обувки", "ехи"="дрехи", "коозметика"="козметика". Никога не питаш "имаш ли предвид X?" — просто разпознаваш логически и продължаваш.',
         'messages'   => [[
             'role'    => 'user',
-            'content' => "Клиентът каза, че продава: '$biz'. 1. Поправи грешката логически. 2. Задай му ЕДИН кратък, приятелски въпрос на български, за да разбереш ценовия клас или спецификата на стоката му (напр. за дрехи: 'Ежедневна мода ли е или луксозен бутик?'). Върни САМО въпроса, без кавички и обяснения."
+            'content' => "Клиентът каза, че продава: '$biz'. Разпознай бизнеса (поправи грешките логически без да питаш за потвърждение). Задай МУ ЕДИН кратък, приятелски въпрос на български за ценовия клас или спецификата. Примери: за дрехи→'Ежедневна мода или по-луксозен бутик?', за обувки→'Спортни или официални обувки предимно?', за козметика→'Масова козметика или по-скъпи марки?'. Върни САМО въпроса, без кавички."
         ]]
     ];
 
@@ -51,14 +48,14 @@ if ($action === 'analyze_biz_segment') {
 }
 
 // ═══════════════════════════════════════
-// ACTION: web_search — търси в нета
+// ACTION: web_search
 // ═══════════════════════════════════════
 if ($action === 'web_search') {
     $query = trim($input['query'] ?? '');
     if (!$query) { echo json_encode(['result' => '']); exit; }
 
     $payload = [
-        'model'      => 'claude-3-5-sonnet-20241022', // Използваме стабилен модел
+        'model'      => 'claude-sonnet-4-5',
         'max_tokens' => 1024,
         'tools'      => [
             ['type' => 'web_search_20250305', 'name' => 'web_search']
@@ -82,7 +79,7 @@ if ($action === 'wow') {
     if (!$prompt) { echo json_encode(['messages' => []]); exit; }
 
     $payload = [
-        'model'      => 'claude-3-5-sonnet-20241022',
+        'model'      => 'claude-sonnet-4-5',
         'max_tokens' => 1024,
         'messages'   => [[
             'role'    => 'user',
@@ -93,9 +90,7 @@ if ($action === 'wow') {
     $result = callClaude($payload);
     $text = extractClaudeText($result);
 
-    // Парсваме JSON от отговора
     $messages = [];
-    $match = [];
     if (preg_match('/\{[\s\S]*\}/u', $text, $match)) {
         $parsed = json_decode($match[0], true);
         if (isset($parsed['messages']) && is_array($parsed['messages'])) {
@@ -103,18 +98,49 @@ if ($action === 'wow') {
         }
     }
 
-    // Fallback ако не успее (вече с "предупреждавам")
-    if (empty($messages)) {
-        $messages = [
-            "Залежала стока (Zombie Stock): Магазини като твоя губят средно €200-400 на месец.\n→ Аз засичам мъртвата стока и ти предлагам как да освободиш кеша веднага.",
-            "Грешна номерация (Size-Curve): Стока в грешен размер са замразени пари.\n→ Аз анализирам историята и ти казвам точно каква пропорция да заредиш.",
-            "Изпуснати продажби (Lost Revenue): Изчерпан топ артикул = загубени пари.\n→ Аз те предупреждавам преди стоката да е свършила напълно.",
-            "Изпуснати комбинации (Basket Analysis): Знаеш ли кое с кое се купува?\n→ Аз казвам на екипа ти какво да предложи (Upsell), за да вдигне касовия бон.",
-            "Само тези 4 проблема ти струват хиляди на година.\nRunMyStore.ai е €588 на година.\nРазликата остава изцяло в твоя джоб."
+    echo json_encode(['messages' => $messages]);
+    exit;
+}
+
+// ═══════════════════════════════════════
+// ACTION: loyalty_options — 3 персонализирани лоялни програми
+// ═══════════════════════════════════════
+if ($action === 'loyalty_options') {
+    $biz     = trim($input['biz'] ?? '');
+    $segment = trim($input['segment'] ?? '');
+    $name    = trim($input['name'] ?? '');
+
+    $payload = [
+        'model'      => 'claude-sonnet-4-5',
+        'max_tokens' => 1200,
+        'system'     => 'Ти си експерт по лоялни програми за малкия ритейл в България. Познаваш 50+ вида бизнеси. Говориш на разговорен, топъл български. Разбираш правописни грешки автоматично.',
+        'messages'   => [[
+            'role'    => 'user',
+            'content' => "Бизнес: $biz | Сегмент: $segment | Собственик: $name\n\nГенерирай ТОЧНО 3 различни лоялни програми, много подходящи за ТОЗИ конкретен тип бизнес.\n\nПравила:\n- Програма 1: класическа (точки/отстъпки)\n- Програма 2: креативна за тази индустрия (напр. за дрехи: Early Access за нови колекции; за кафе: 6-то кафе безплатно; за аптека: точки само за козметика/добавки; за мебели: VIP интериорна консултация)\n- Програма 3: комбо или referral\n\nВсяка програма: кратко заглавие (до 5 думи) + 2-3 изречения описание.\n\nВърни САМО JSON:\n{\"options\":[{\"title\":\"...\",\"desc\":\"...\",\"emoji\":\"...\"},{\"title\":\"...\",\"desc\":\"...\",\"emoji\":\"...\"},{\"title\":\"...\",\"desc\":\"...\",\"emoji\":\"...\"}]}"
+        ]]
+    ];
+
+    $result = callClaude($payload);
+    $text = extractClaudeText($result);
+
+    $options = [];
+    if (preg_match('/\{[\s\S]*\}/u', $text, $match)) {
+        $parsed = json_decode($match[0], true);
+        if (isset($parsed['options']) && is_array($parsed['options'])) {
+            $options = $parsed['options'];
+        }
+    }
+
+    // Fallback
+    if (empty($options)) {
+        $options = [
+            ['emoji'=>'⭐','title'=>'Точки за всяка покупка','desc'=>'€1 = 1 точка. На 100 точки получаваш €5 отстъпка. Рожден ден = двойни точки.'],
+            ['emoji'=>'🎯','title'=>'VIP нива Silver/Gold','desc'=>'При €300 похарчени ставаш Silver (-5%). При €700 — Gold (-10%) + ранен достъп до новото.'],
+            ['emoji'=>'🤝','title'=>'Доведи приятел','desc'=>'Доведеш приятел → ти вземаш €10 кредит, той вземаш €5 отстъпка на първата покупка.']
         ];
     }
 
-    echo json_encode(['messages' => $messages]);
+    echo json_encode(['options' => $options]);
     exit;
 }
 
@@ -126,7 +152,7 @@ if ($action === 'generate' || !$action) {
     if (!$message) { echo json_encode(['reply' => '']); exit; }
 
     $payload = [
-        'model'      => 'claude-3-5-sonnet-20241022',
+        'model'      => 'claude-sonnet-4-5',
         'max_tokens' => 512,
         'system'     => 'Ти генерираш кратки, продаващи описания на продукти за малки магазини в България. Отговаряй само на български. Максимум 2-3 изречения.',
         'messages'   => [[
@@ -155,11 +181,15 @@ function callClaude($payload) {
             'anthropic-version: 2023-06-01',
             'anthropic-beta: web-search-2025-03-05'
         ],
-        CURLOPT_TIMEOUT        => 30
+        CURLOPT_TIMEOUT        => 45
     ]);
     $response = curl_exec($ch);
+    $err = curl_error($ch);
     curl_close($ch);
-    return json_decode($response, true) ?? [];
+    if ($err) { error_log('Claude cURL error: ' . $err); return []; }
+    $decoded = json_decode($response, true);
+    if (!$decoded) { error_log('Claude invalid JSON: ' . substr($response, 0, 500)); return []; }
+    return $decoded;
 }
 
 echo json_encode(['error' => 'Unknown action']);
