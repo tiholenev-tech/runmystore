@@ -319,10 +319,6 @@ async function toggleVoice() {
   if (isRecording) { stopVoice(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { showToast('Браузърът не поддържа гласово въвеждане'); return; }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(t => t.stop());
-  } catch(e) { showToast('Разреши достъп до микрофона в браузъра'); return; }
   isRecording = true;
   voiceWrap.classList.add('recording');
   recOverlay.classList.add('show');
@@ -339,8 +335,8 @@ async function toggleVoice() {
   };
   voiceRec.onerror = (e) => {
     stopVoice();
-    if (e.error === 'no-speech')    showToast('Не чух нищо — опитай пак');
-    else if (e.error === 'not-allowed') showToast('Разреши достъп до микрофона');
+    if (e.error === 'no-speech')        showToast('Не чух нищо — опитай пак');
+    else if (e.error === 'not-allowed') showToast('Разреши достъп до микрофона в настройките');
     else showToast('Грешка: ' + e.error);
   };
   voiceRec.onend = () => { if (isRecording) stopVoice(); };
