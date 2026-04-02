@@ -12,7 +12,7 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Добре дошъл — RunMyStore.ai</title>
+<title>Бизнес Профил — RunMyStore.ai</title>
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
@@ -42,7 +42,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .search-dot{width:7px;height:7px;border-radius:50%;background:#C5A059;animation:bounce 1s infinite}
 .action-wrap{padding:0 12px 12px;flex-shrink:0;position:relative;z-index:1}
 .action-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.action-btn{flex:1;min-width:120px;max-width:200px;padding:12px 14px;border-radius:16px;font-size:13px;font-weight:700;border:1px solid #E6D5B8;color:#574200;background:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;text-align:center}
+.action-btn{flex:1;min-width:120px;max-width:250px;padding:12px 14px;border-radius:16px;font-size:13px;font-weight:700;border:1px solid #E6D5B8;color:#574200;background:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;text-align:center}
 .action-btn.primary{background:linear-gradient(to bottom,#D4AF37,#C5A059);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(212,175,55,.3)}
 .loyalty-cards{display:flex;flex-direction:column;gap:10px;margin-top:4px;width:100%;max-width:88%}
 .loyalty-card{background:#fff;border:1.5px solid #E6D5B8;border-radius:16px;padding:14px 16px;cursor:pointer;transition:all .2s;text-align:left;font-family:'Montserrat',sans-serif;width:100%}
@@ -109,7 +109,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
   <div class="chat-area" id="chatArea">
     <div class="typing-wrap" id="typing"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
   </div>
-  <div class="search-indicator" id="searchIndicator"><div class="search-dot"></div><span>Правя пазарен анализ за твоя тип бизнес...</span></div>
+  <div class="search-indicator" id="searchIndicator"><div class="search-dot"></div><span>Изчислявам оперативни метрики...</span></div>
   <div class="action-wrap" id="actionWrap" style="display:none"><div class="action-row" id="actionRow"></div></div>
   <div class="input-area">
     <div class="input-row">
@@ -139,8 +139,8 @@ function autoResize(el){el.style.height='';el.style.height=Math.min(el.scrollHei
 function capitalize(s){return s.split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).join(' ')}
 async function aiFetch(body){return fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 
-var state={step:'name',name:'',biz:'',segment:'',stores:'',products:'',employees:'',loyaltyChoice:'',micGranted:false};
-var voiceRec=null,isRecording=false,searchResult='',searchDone=false;
+var state={step:'name',name:'',biz:'',segment:'',stores:'',products:'',employees:'',loyaltyChoice:'',micGranted:false, wowMessages: [], currentWowIndex: 0};
+var voiceRec=null,isRecording=false;
 var chatArea=document.getElementById('chatArea');
 var typing=document.getElementById('typing');
 var voiceWrap=document.getElementById('voiceWrap');
@@ -163,7 +163,7 @@ function startChat(){
   document.getElementById('micScreen').classList.remove('show');
   var ci=document.getElementById('chatInterface');
   ci.style.display='flex';ci.style.flex='1 1 0';ci.style.minHeight='0';
-  setTimeout(function(){aiSay('Хей! Аз съм твоят нов бизнес асистент 🙌\nЩе работим заедно всеки ден.\nКак да те викам?');},400);
+  setTimeout(function(){aiSay('Привет! Аз съм твоят бизнес асистент.\nЩе работим заедно по оптимизацията.\nКак се казваш?');},400);
 }
 
 function scrollBottom(){chatArea.scrollTop=chatArea.scrollHeight}
@@ -173,14 +173,14 @@ function hideTyping(){typing.style.display='none'}
 function aiSay(text,isWow){
   hideActions();
   var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>RunMyStore.ai Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
   chatArea.insertBefore(g,typing);scrollBottom();
 }
 
 function aiSayWidget(html){
   hideActions();
   var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>RunMyStore.ai Асистент</div>'+html;
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div>'+html;
   chatArea.insertBefore(g,typing);scrollBottom();
 }
 
@@ -220,131 +220,126 @@ function sendText(){
 function handleAction(val){processInput(val);}
 
 async function processInput(text){
-  userSay(text);hideActions();showTyping();await wait(600);hideTyping();
+  if(text !== 'next_wow') userSay(text); // Скриваме системния инпут
+  hideActions(); showTyping(); await wait(600); hideTyping();
+  
   try{
     switch(state.step){
       case 'name':
         state.name=capitalize(text.trim());state.step='biz';
-        aiSay(state.name+', приятно ми е! 😄\nКажи ми — какво точно продаваш в твоя обект?');
+        aiSay(state.name+', приятно ми е.\nКакъв точно е профилът на твоя обект?');
         break;
       case 'biz':
         state.biz=text.trim();state.step='segment';showTyping();
         try{
           var r=await aiFetch({action:'analyze_biz_segment',biz:state.biz});
           var d=await r.json();hideTyping();
-          aiSay((d&&d.question&&d.question.trim())?d.question:'Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
-        }catch(e){hideTyping();aiSay('Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');}
+          aiSay((d&&d.question&&d.question.trim())?d.question:'В какъв ценови сегмент оперираш предимно?');
+        }catch(e){hideTyping();aiSay('В какъв ценови сегмент оперираш предимно?');}
         break;
       case 'segment':
         state.segment=text.trim();state.step='stores';
-        searchResult='';doWebSearch();
-        aiSay('Разбрах те. Колко физически обекта имаш в момента?');
+        aiSay('Ясно. Колко обекта управляваш в момента?');
         break;
       case 'stores':
         state.stores=text.trim();state.step='products';
-        aiSay('Колко артикула поддържаш — под 200, около 500, или хиляди?');
+        aiSay('Какъв обем артикули поддържаш грубо?');
         break;
       case 'products':
         state.products=text.trim();state.step='employees';
-        aiSay('Имаш ли служители, които работят на касата?');
+        aiSay('Имаш ли персонал или работиш сам?');
         break;
       case 'employees':
         state.employees=text.trim();
-        if(/да|имам|момич|момч|човек|души/i.test(text)){
-          aiSay('Те ще могат да питат мен вместо да ти звънят постоянно 😄');
-          await wait(2200);
-        }
-        state.step='wow';await showWowMoment();break;
+        state.step='wow'; await showWowMoment(); break;
+      case 'wow_step':
+        if(text === 'next_wow') displayNextWowMessage(); break;
       case 'wow_confirm':
-        state.step='loyalty';await showLoyaltyOptions();break;
+        state.step='loyalty'; await showLoyaltyOptions(); break;
       case 'loyalty_chosen':
-        state.loyaltyChoice=text;state.step='done';await showFinalMessage();break;
+        state.loyaltyChoice=text; state.step='done'; await showFinalMessage(); break;
       case 'done':
-        await finishOnboarding();break;
+        await finishOnboarding(); break;
     }
   }catch(err){console.error('processInput error:',err);}
 }
 
-function doWebSearch(){
-  searchDone=false;
-  aiFetch({action:'web_search',query:state.biz+' '+state.segment+' retail dead stock loss EU average'})
-    .then(function(r){return r.text();})
-    .then(function(t){try{var d=JSON.parse(t);searchResult=d.result||'';}catch(e){searchResult='';}searchDone=true;})
-    .catch(function(){searchResult='';searchDone=true;});
-}
-
 async function showWowMoment(){
-  showTyping();searchInd.classList.add('show');scrollBottom();
-  var checks=60;
-  while(!searchDone&&checks>0){await wait(350);checks--;}
-  searchInd.classList.remove('show');
+  showTyping(); searchInd.classList.add('show'); scrollBottom();
   var done=false;
-  var fallback=async function(){
-    if(done)return;done=true;hideTyping();searchInd.classList.remove('show');
-    var isExp=/скъп|марков|луксоз|злат|техник|мебел|бижу|оптик/i.test(state.biz+' '+state.segment);
-    var amt=isExp?'€1500–€4000':'€200–€600';
-    var msgs=[
-      '💀 Zombie Stock: Залежала стока = замразени пари в рафта.\nАз засичам мъртвите артикули и ти казвам точно как да освободиш кеша — преди да е станало проблем.',
-      '📐 Size-Curve Protector: Анализирам историята ти и казвам ТОЧНО каква пропорция размери/цветове да заредиш.\nНикога повече "10 бройки в S, но никой не ги купува".',
-      '🔔 Lost Revenue Alert: Засичам кога топ артикул ти свършва и те предупреждавам ПРЕДИ да е нула.\nИзпуснатата продажба е по-скъпа от всяка отстъпка.',
-      '🛒 Basket Analysis: Знам кое с кое се купува в твоя магазин.\nКазвам на продавачите какво да предложат → касовият бон расте автоматично.',
-      state.name+', само тези 4 проблема ти струват ~'+amt+' на година.\nRunMyStore.ai е €588/год.\nРазликата остава изцяло в твоя джоб. 💰'
+  
+  var fallback=function(){
+    if(done)return; done=true; hideTyping(); searchInd.classList.remove('show');
+    state.wowMessages=[
+      "📦 **Инвойс Скенер:** Ръчното въвеждане на фактури ти струва часове месечно. Скенерът заприходява всичко за 10 секунди. Това е върнато време.",
+      "💰 **Zombie Stock (Мъртва стока):** Блокираните пари в рафта ядат ликвидността ти. Засичам залежалата стока преди да стане проблем.",
+      "⭐ **Лоялна програма:** Твоят магнит за клиенти. При нас тя е вградена и остава БЕЗПЛАТНА ЗАВИНАГИ.",
+      "📊 "+state.name+", загубите от неефективност са стотици евро. RunMyStore.ai струва €588/год. Останалото е чиста печалба."
     ];
-    for(var i=0;i<msgs.length;i++){await wait(i===0?500:3200);aiSay(msgs[i],true);}
-    await wait(3000);state.step='wow_confirm';
-    aiSay('Искаш ли да видиш още какво правя за теб всеки ден? 🚀');
-    showActions([{label:'Да, покажи!',val:'да',primary:true}]);
+    state.currentWowIndex=0; displayNextWowMessage();
   };
-  var safetyTimer=setTimeout(fallback,35000);
+  
+  var safetyTimer=setTimeout(fallback, 15000); // 15 сек макс
+  
   try{
-    showTyping();
     var r=await aiFetch({action:'wow',prompt:buildWowPrompt()});
-    var txt=await r.text();if(done)return;
+    var txt=await r.text(); if(done)return;
     var d=JSON.parse(txt);
     if(d&&d.messages&&Array.isArray(d.messages)&&d.messages.length>0){
-      clearTimeout(safetyTimer);done=true;hideTyping();
-      for(var i=0;i<d.messages.length;i++){await wait(i===0?500:3200);aiSay(d.messages[i],true);}
-      await wait(3000);state.step='wow_confirm';
-      aiSay('Искаш ли да видиш още какво правя за теб всеки ден? 🚀');
-      showActions([{label:'Да, покажи!',val:'да',primary:true}]);
-    }else{throw new Error('no messages');}
+      clearTimeout(safetyTimer); done=true; hideTyping(); searchInd.classList.remove('show');
+      state.wowMessages=d.messages; state.currentWowIndex=0; displayNextWowMessage();
+    }else{throw new Error('no msgs');}
   }catch(e){fallback();}
 }
 
+function displayNextWowMessage(){
+  if(state.currentWowIndex < state.wowMessages.length){
+    aiSay(state.wowMessages[state.currentWowIndex], true);
+    state.currentWowIndex++;
+    
+    if(state.currentWowIndex < state.wowMessages.length){
+      state.step = 'wow_step';
+      showActions([{label:'Виж следващ анализ ➔', val:'next_wow', primary:true}]);
+    }else{
+      wait(1500).then(function(){
+        state.step='wow_confirm';
+        aiSay('Пешо, това са базовите оптимизации. Да преминем ли към лоялната програма? 🚀');
+        showActions([{label:'Продължи', val:'да', primary:true}]);
+      });
+    }
+  }
+}
+
 function buildWowPrompt(){
-  return 'Ти си AI асистент на RunMyStore.ai. Говориш като умен приятел търговец. Разбираш разговорен български и поправяш правописни грешки наум.\n'+
-    'ДАННИ: Име:'+state.name+' | Бизнес:'+state.biz+' | Сегмент:'+state.segment+' | Магазини:'+state.stores+' | Пазарни данни:'+(searchResult||'няма')+'\n\n'+
-    'ГЕНЕРИРАЙ ТОЧНО 5 СЪОБЩЕНИЯ {"messages":["..."]}:\n'+
-    '1. 💀 Zombie Stock — колко пари стои мъртва стока в ТОЗИ тип бизнес (реална EUR сума)\n'+
-    '2. 📐 Size-Curve Protector — проблемът с грешните размери/цветове в ТАЗИ индустрия\n'+
-    '3. 🔔 Lost Revenue — изпуснати продажби (казвай че ги ПРЕДУПРЕЖДАВАШ, никога "будя")\n'+
-    '4. 🛒 Basket Analysis — кое с кое се купува, конкретен upsell пример за ТОЗИ бизнес\n'+
-    '5. Обобщение: EUR сума загуби/год и "RunMyStore.ai е 588 EUR/год. Разликата в джоба ти."\n'+
-    'Кратко (макс 3 изречения). САМО JSON.';
+  return `Ти си главен оперативен директор. Правиш бизнес анализ за: ${state.biz} (${state.segment}).
+ГЕНЕРИРАЙ ТОЧНО 4 СЕРИОЗНИ БИЗНЕС СЪОБЩЕНИЯ {"messages":["..."]}:
+1. АВТОМАТИЗАЦИЯ: Инвойс Скенерът пести часове ръчно въвеждане.
+2. ЛИКВИДНОСТ: Как AI открива мъртва стока (Zombie Stock) и освобождава кеш.
+3. ЛОЯЛНОСТ: Програмата за клиенти остава БЕЗПЛАТНА ЗАВИНАГИ.
+4. ROI: Изчисли загубите от горе спрямо цената от 588 EUR/год.
+СТИЛ: Директен, бизнес език, без преувеличения ("уникално", "супер"). Макс 2 изречения на точка. САМО JSON.`;
 }
 
 async function showLoyaltyOptions(){
   await wait(400);
-  aiSay('Ето как ще ти помагам всеки ден:\n\n📦 Следя склада — кое върви, кое стои, кое свършва\n🔔 Предупреждавам те ПРЕДИ стоката да е свършила\n📊 Печалбата за деня — без да събираш хартийки\n🎤 Управляваш всичко с глас\n🔍 Smart Purchasing — кога и какво да поръчаш\n⚖️ Stock Balancer — балансирам наличностите между обектите\n\n30 дни напълно безплатно. После 49 EUR/месец.');
-  await wait(4000);
-  aiSay('А сега нещо специално — лоялна програма само за твоите клиенти.\nГенерирам 3 варианта специално за твоя бизнес...');
+  aiSay('Генерирам варианти за твоята лоялна програма...');
   showTyping();
   var options=[];
   try{
     var r=await aiFetch({action:'loyalty_options',biz:state.biz,segment:state.segment,name:state.name});
     var d=await r.json();
     if(d&&d.options&&d.options.length>0)options=d.options;
-  }catch(e){console.error('loyalty_options error:',e);}
+  }catch(e){}
   hideTyping();
   if(options.length===0){
     options=[
-      {emoji:'⭐',title:'Точки за всяка покупка',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = двойни точки.'},
-      {emoji:'🎯',title:'VIP нива Silver / Gold',desc:'При 300 EUR похарчени ставаш Silver (-5%). При 700 EUR — Gold (-10%) + ранен достъп до новото.'},
-      {emoji:'🤝',title:'Доведи приятел',desc:'Доведеш приятел → ти вземаш 10 EUR кредит, той получава 5 EUR отстъпка на първата покупка.'}
+      {emoji:'⭐',title:'Стандартни Точки',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка.'},
+      {emoji:'🎯',title:'VIP нива',desc:'Стимул за по-голям оборот с растящи отстъпки.'},
+      {emoji:'🤝',title:'Cashback',desc:'Твърд процент връщане по клиентската сметка.'}
     ];
   }
   var html='<div class="loyalty-cards">';
-  options.forEach(function(opt,i){
+  options.forEach(function(opt){
     var safeTitle=opt.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html+='<button class="loyalty-card" onclick="chooseLoyalty(this,\''+safeTitle+'\')">';
     html+='<span class="loyalty-card-emoji">'+(opt.emoji||'⭐')+'</span>';
@@ -352,7 +347,7 @@ async function showLoyaltyOptions(){
     html+='<div class="loyalty-card-desc">'+esc(opt.desc)+'</div>';
     html+='</button>';
   });
-  html+='<button class="loyalty-build-btn" onclick="chooseLoyalty(this,\'custom\')">🧩 Ще си я сглобя сам от настройките</button>';
+  html+='<button class="loyalty-build-btn" onclick="chooseLoyalty(this,\'custom\')">⚙️ Ще си я сглобя сам от настройките</button>';
   html+='</div>';
   aiSayWidget(html);
   state.step='loyalty_chosen';
@@ -365,14 +360,14 @@ function chooseLoyalty(el,title){
 }
 
 async function showFinalMessage(){
-  showTyping();await wait(1200);hideTyping();
+  showTyping(); await wait(1200); hideTyping();
   var isCustom=state.loyaltyChoice==='Ще настройвам сам';
-  var loyaltyLine=isCustom
-    ?'Лоялната програма ще я настроиш сам от настройките — пълна свобода.'
-    :'Активирах "'+state.loyaltyChoice+'" за твоите клиенти.';
-  aiSay('Готово, '+state.name+'! 🎉\n\n'+loyaltyLine+'\n\n⭐ Тази лоялна програма остава БЕЗПЛАТНА ЗАВИНАГИ —\nдори и да не ползваш AI асистента.\n\n30 дни пробваш всичко безплатно.\nСлед това е едва 49 EUR/месец.\n\nАз съм тук — питай ме каквото искаш 🚀');
+  var loyaltyLine=isCustom?'Програмата ще я настроиш сам.':'Активирах "'+state.loyaltyChoice+'".';
+  
+  aiSay(`Готово, ${state.name}! ✅\n\n${loyaltyLine}\n\n⭐ ВАЖНО: Твоята дигитална лоялна програма (CRM) остава БЕЗПЛАТНА ЗАВИНАГИ. Тя работи за теб дори без месечен AI абонамент.\n\nСега имаш 30 дни достъп до всички AI функции и скенера. След това пакетът е 49 EUR/мес.\n\nДа започваме ли работа? 🚀`);
+  
   state.step='done';
-  showActions([{label:'Да тръгваме! 🚀',val:'старт',primary:true}]);
+  showActions([{label:'Старт! 🚀',val:'старт',primary:true}]);
 }
 
 async function finishOnboarding(){
@@ -380,8 +375,8 @@ async function finishOnboarding(){
   try{
     await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty:state.loyaltyChoice})});
-  }catch(e){console.error('save error:',e);}
-  hideTyping();await wait(500);window.location.href='chat.php';
+  }catch(e){}
+  hideTyping(); await wait(500); window.location.href='chat.php';
 }
 </script>
 </body>
