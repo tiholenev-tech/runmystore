@@ -192,6 +192,16 @@ function showToast(msg) {
   t.textContent=msg; t.style.opacity='1'; setTimeout(function(){t.style.opacity='0';},4000);
 }
 
+// ═══ AI FETCH — без AbortController, с реален timeout ═══
+async function aiFetch(body) {
+  // PHP cURL таймаутът е 30сек — match-ваме го тук
+  return fetch('ai-helper.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
 // ═══ STATE ═══
 var state = { step:'name', name:'', biz:'', segment:'', stores:'', products:'', employees:'', loyaltyFreq:'', loyaltyReward:'', loyaltyCompetition:'', micGranted:false };
 var voiceRec=null, isRecording=false, searchResult='', searchDone=false;
@@ -283,21 +293,21 @@ async function processInput(text){
         break;
 
       case 'biz':
-        // AI-First сегментация
         state.biz=text.trim(); state.step='segment';
         showTyping();
         try {
-            var r = await fetch('ai-helper.php', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({action:'analyze_biz_segment', biz: state.biz})
-            });
-            var d = await r.json();
-            hideTyping();
-            aiSay(d.question || 'Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
+          // БЕЗ AbortController — чакаме колкото трябва (PHP timeout = 30сек)
+          var r = await aiFetch({action:'analyze_biz_segment', biz: state.biz});
+          var d = await r.json();
+          hideTyping();
+          var question = (d && d.question && d.question.trim()) 
+            ? d.question 
+            : 'Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?';
+          aiSay(question);
         } catch(e) {
-            hideTyping();
-            aiSay('Разбрах! Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
+          console.error('analyze_biz_segment error:', e);
+          hideTyping();
+          aiSay('Разбрах! Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
         }
         break;
 
@@ -348,71 +358,72 @@ async function processInput(text){
       case 'done':
         await finishOnboarding(); break;
     }
-  } catch(err) { console.error(err); }
+  } catch(err) { console.error('processInput error:', err); }
 }
 
 // ═══ WEB SEARCH ═══
 function doWebSearch(){
   searchDone = false;
-  try {
-    var controller = new AbortController();
-    setTimeout(function(){ controller.abort(); }, 4000); 
-    fetch('ai-helper.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' retail dead stock loss financial average EU'}),
-      signal: controller.signal
+  // Web search може да е бавно — без abort, просто изчакваме
+  aiFetch({action:'web_search', query: state.biz+' '+state.segment+' retail dead stock loss financial average EU'})
+    .then(function(r){ return r.text(); })
+    .then(function(t){ 
+      try { var d=JSON.parse(t); searchResult = d.result || ''; } catch(e){ searchResult=''; }
+      searchDone=true; 
     })
-    .then(function(r){return r.text();})
-    .then(function(t){ try{var d=JSON.parse(t); searchResult=d.result;}catch(e){} searchDone=true; })
     .catch(function(){ searchResult=''; searchDone=true; });
-  } catch(e){ searchResult=''; searchDone=true; }
 }
 
 // ═══ WOW MOMENT ═══
 async function showWowMoment(){
   showTyping(); searchInd.classList.add('show'); scrollBottom();
   
-  var checks = 12;
-  while(!searchDone && checks > 0){ await wait(300); checks--; }
-  searchInd.classList.remove('show'); hideTyping();
+  // Изчакваме web search — до 20 сек (web_search е бавен)
+  var checks = 60;
+  while(!searchDone && checks > 0){ await wait(350); checks--; }
+  searchInd.classList.remove('show');
 
   var fallbackExecuted = false;
   var executeFallback = async function() {
-      if(fallbackExecuted) return; fallbackExecuted = true; hideTyping(); searchInd.classList.remove('show');
-      var amt = /скъп|марков|костюм|злат|техник|мебел|луксоз/i.test(state.biz+' '+state.segment) ? '€1500 - €4000' : '€200 - €500';
-      aiSay(state.name+', в твоята сфера се губят средно '+amt+' на месец от залежала стока и липси.\nRunMyStore.ai следи всичко автоматично и те предупреждава преди да е станало.', true);
-      await wait(3500); state.step='wow_confirm';
-      aiSay('Искаш ли да ти покажа какво още правим? 🚀');
-      showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
+    if(fallbackExecuted) return; fallbackExecuted = true;
+    hideTyping(); searchInd.classList.remove('show');
+    var amt = /скъп|марков|костюм|злат|техник|мебел|луксоз/i.test(state.biz+' '+state.segment) ? '€1500 - €4000' : '€200 - €500';
+    aiSay(state.name+', в твоята сфера се губят средно '+amt+' на месец от залежала стока и липси.\nRunMyStore.ai следи всичко автоматично и те предупреждава преди да е станало.', true);
+    await wait(3500); state.step='wow_confirm';
+    aiSay('Искаш ли да ти покажа какво още правим? 🚀');
+    showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
   };
-  var safetyTimer = setTimeout(executeFallback, 7000);
+
+  // Safety timer — 35 сек (дава достатъчно време на Claude)
+  var safetyTimer = setTimeout(executeFallback, 35000);
 
   try {
     showTyping();
-    var controller = new AbortController(); setTimeout(function(){ controller.abort(); }, 6000);
-
-    var r = await fetch('ai-helper.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'wow',prompt:buildWowPrompt()}),
-      signal: controller.signal
-    });
-    
+    // БЕЗ AbortController — Claude отговаря за 5-15 сек
+    var r = await aiFetch({action:'wow', prompt: buildWowPrompt()});
     var txt = await r.text();
+
     if(fallbackExecuted) return;
-    var d = JSON.parse(txt);
-    if(d.messages && Array.isArray(d.messages)){
+    
+    var d;
+    try { d = JSON.parse(txt); } catch(e) { throw new Error('JSON parse failed: '+txt.substring(0,200)); }
+    
+    if(d && d.messages && Array.isArray(d.messages) && d.messages.length > 0){
       clearTimeout(safetyTimer); fallbackExecuted = true; hideTyping();
       for(var i=0;i<d.messages.length;i++){ 
-          await wait(i===0 ? 500 : 3500); 
-          aiSay(d.messages[i],true); 
+        await wait(i===0 ? 500 : 3500); 
+        aiSay(d.messages[i], true); 
       }
       await wait(3500); state.step='wow_confirm';
       aiSay('Искаш ли да ти покажа какво още правим? 🚀');
       showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
-    } else { throw new Error('No messages array'); }
-  } catch(e) { executeFallback(); }
+    } else {
+      throw new Error('No valid messages in response');
+    }
+  } catch(e) { 
+    console.error('wow error:', e);
+    executeFallback(); 
+  }
 }
 
 function buildWowPrompt(){
@@ -451,9 +462,12 @@ async function showLoyaltyResult(){
 async function finishOnboarding(){
   showTyping();
   try{
-    var controller = new AbortController(); setTimeout(function(){ controller.abort(); }, 4000);
-    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition}), signal: controller.signal});
-  }catch(e){}
+    await fetch('onboarding-save.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition})
+    });
+  }catch(e){ console.error('save error:', e); }
   hideTyping();
   aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно.\nЛоялната карта ти остава безплатна завинаги.\nСледващата стъпка е да качим ценовата ти листа.\n\nАз съм тук. Питай ме каквото искаш.');
   await wait(3500); window.location.href='chat.php';
