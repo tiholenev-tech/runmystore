@@ -241,20 +241,27 @@ let voiceRec = null, isRecording = false;
 // ═══════════════════════════════════════════
 async function requestMic() {
   try {
-    // Стъпка 1: getUserMedia
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     stream.getTracks().forEach(t => t.stop());
-
-    // Стъпка 2: SpeechRecognition — само за да се запомни разрешението
+    state.micGranted = true;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
-      const sr = new SR();
-      sr.lang = 'bg-BG';
-      sr.onresult = () => {};
-      sr.onerror = () => {};
-      sr.onend = () => {};
-      try { sr.start(); setTimeout(() => { try { sr.stop(); } catch(e){} }, 300); } catch(e) {}
+      await new Promise(resolve => {
+        const sr = new SR();
+        sr.lang = 'bg-BG';
+        sr.continuous = false;
+        sr.onstart  = () => setTimeout(() => { try { sr.abort(); } catch(e){} resolve(); }, 500);
+        sr.onresult = () => { try { sr.abort(); } catch(e){} resolve(); };
+        sr.onerror  = () => resolve();
+        sr.onend    = () => resolve();
+        try { sr.start(); } catch(e) { resolve(); }
+      });
     }
+  } catch(e) {
+    state.micGranted = false;
+  }
+  startChat();
+}
 
     state.micGranted = true;
   } catch(e) {
@@ -401,8 +408,10 @@ async function processInput(text) {
       state.segment = text.trim();
       state.step = 'stores';
       // Web search started in background
-      doWebSearch();
-      aiSay('Колко магазина имаш?');
+      searchResult = '';
+doWebSearch();
+await delay(200);
+aiSay('Колко магазина имаш?');
       break;
 
     case 'stores':
@@ -520,9 +529,13 @@ async function showWowMoment() {
   searchInd.classList.add('show');
 
   // Изчакваме search (макс 4 сек)
-  await delay(1000);
-  searchInd.classList.remove('show');
-  hideTyping();
+  let waited = 0;
+while (!searchResult && waited < 5000) {
+  await delay(300);
+  waited += 300;
+}
+searchInd.classList.remove('show');
+hideTyping();
 
   const prompt = buildWowPrompt();
 
