@@ -18,7 +18,7 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <style>
 /* ═══ PREMIUM CHAMPAGNE DESIGN ═══ */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-body{background:#FCF9F2;color:#3f3b36;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body{background:#EDE8DC;color:#3f3b36;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(218,165,32,.04) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(197,160,89,.05) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(230,194,122,.06) 0%,transparent 40%);pointer-events:none;z-index:0}
 
 .hdr{position:relative;z-index:50;background:rgba(252,249,242,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(230,213,184,.6);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
