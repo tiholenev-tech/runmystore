@@ -1,5 +1,5 @@
 <?php
-// chat-send.php — Мигриран към Gemini API
+// chat-send.php — ВЕРСИЯ: ДИНАМИЧЕН БИЗНЕС КОНСУЛТАНТ
 session_start();
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/config.php';
@@ -26,23 +26,27 @@ if (!$message) {
     exit;
 }
 
-// ── ДАННИ ОТ СКЛАДА (Grounding) ─────────────────────────────
+// ── СЪБИРАНЕ НА КОНТЕКСТ ────────────────────────────────────
 $store = DB::run('SELECT s.name FROM stores s WHERE s.id = ?', [$store_id])->fetch();
-$products = DB::run('SELECT p.name, i.quantity, p.retail_price FROM inventory i JOIN products p ON p.id = i.product_id WHERE i.store_id = ? LIMIT 10', [$store_id])->fetchAll();
+$store_name = $store['name'] ?? 'Твоят обект';
 
-// ── СИСТЕМЕН ПРОМПТ (Мозъкът на Gemini) ─────────────────────
-$movement_term = $supato_mode ? 'изходящо движение' : 'продажба';
+// ── ИНТЕЛИГЕНТНА СИСТЕМНА ИНСТРУКЦИЯ ────────────────────────
+$system_instruction = "Ти си елитен бизнес стратег и консултант за RunMyStore.ai. 
+Твоята мисия е да проведеш ОНБОРДИНГ разговор с Ники.
 
-$system_instruction = "Ти си умен бизнес асистент за магазин '{$store['name']}'. 
-ПРАВИЛА:
-1. Говори като умен приятел търговец.
-2. Никога не задавай 'гол' въпрос - свързвай го с бизнеса на клиента (ако е бельо -> размери).
-3. Използвай термин '{$movement_term}' вместо 'продажба'.
-4. Бъди супер кратък (1-2 изречения).
-5. Цел: Доведи Ники до 'УАУ' момента (колко пари губи от грешни наличности).";
+ПРАВИЛА ЗА ПОВЕДЕНИЕ:
+1. ЗАБРАВИ ЗА АНКЕТИТЕ: Не следвай фиксиран списък. Води жив, професионален разговор.
+2. АНАЛИЗИРАЙ ВИНАГИ: Преди да зададеш следващ въпрос, коментирай предишния отговор на Ники.
+3. БИЗНЕС ЛОГИКА: 
+   - Ако Ники продава 'Домашни потреби', говори за предизвикателството с хилядите дребни артикули.
+   - Ако стоките са СКЪПИ, фокусирай се върху ревизии, липси и сигурност.
+   - Ако са ЕВТИНИ, фокусирай се върху бързина на обслужване и голям оборот.
+4. КОНТЕКСТНИ ВЪПРОСИ: Не питай просто 'Колко магазина имаш?'. Кажи: 'Ники, при този тип стока контролът между обектите е най-труден. Колко магазина управляваш, за да ти покажа как да ги следиш от телефона?'
+5. УАУ МОМЕНТ: Целта ти е накрая да изчислиш 'Lost Revenue' (Загубен оборот) и да го впечатлиш.
+6. СТИЛ: Умен приятел търговец. Кратко, но съдържателно.";
 
-// ── ПОДГОТОВКА НА ИСТОРИЯТА (Gemini формат) ────────────────
-$history_rows = DB::run('SELECT role, content FROM chat_messages WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 10', [$tenant_id])->fetchAll();
+// ── ИСТОРИЯ НА РАЗГОВОРА ────────────────────────────────────
+$history_rows = DB::run('SELECT role, content FROM chat_messages WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 15', [$tenant_id])->fetchAll();
 $contents = [];
 foreach (array_reverse($history_rows) as $row) {
     $contents[] = [
@@ -58,7 +62,10 @@ $api_url = "https://generativelanguage.googleapis.com/v1beta/models/" . GEMINI_M
 $payload = [
     'contents' => $contents,
     'system_instruction' => ['parts' => [['text' => $system_instruction]]],
-    'generationConfig' => ['temperature' => 0, 'maxOutputTokens' => 800]
+    'generationConfig' => [
+        'temperature' => 0.7, // Малко по-висока за по-естествен разговор
+        'maxOutputTokens' => 1000
+    ]
 ];
 
 $ch = curl_init($api_url);
@@ -67,15 +74,14 @@ curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($payload),
     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-    CURLOPT_TIMEOUT => 15
+    CURLOPT_TIMEOUT => 20
 ]);
 
 $response = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 $result = json_decode($response, true);
-$reply = $result['candidates'][0]['content']['parts'][0]['text'] ?? 'Грешка в системата.';
+$reply = $result['candidates'][0]['content']['parts'][0]['text'] ?? 'Хюстън, имаме проблем. Опитай пак.';
 
 // ── ЗАПИС В БАЗАТА ──────────────────────────────────────────
 DB::run('INSERT INTO chat_messages (tenant_id, user_id, store_id, role, content) VALUES (?,?,?,?,?)', [$tenant_id, $user_id, $store_id, 'user', $message]);
