@@ -94,43 +94,43 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 <body>
 <div class="hdr"><div class="brand">RunMyStore.ai</div></div>
 <div class="mic-screen show" id="micScreen">
-  <div class="mic-icon-wrap">
-    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
-    </svg>
-  </div>
-  <div class="mic-title">Здравей! Аз съм твоят AI асистент 🙌</div>
-  <div class="mic-sub">Ще работим заедно всеки ден.<br>Разреши ми да те чувам, за да си говорим вместо да пишеш.</div>
-  <button class="mic-btn" id="micBtn">Разреши микрофона</button>
-  <div class="mic-skip" id="micSkip">Ще пиша засега</div>
+  <div class="mic-icon-wrap">
+    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+    </svg>
+  </div>
+  <div class="mic-title">Здравей! Аз съм твоят AI асистент 🙌</div>
+  <div class="mic-sub">Ще работим заедно всеки ден.<br>Разреши ми да те чувам, за да си говорим вместо да пишеш.</div>
+  <button class="mic-btn" id="micBtn">Разреши микрофона</button>
+  <div class="mic-skip" id="micSkip">Ще пиша засега</div>
 </div>
 <div id="chatInterface" style="display:none;flex:1 1 0;min-height:0;flex-direction:column;overflow:hidden">
-  <div class="chat-area" id="chatArea">
-    <div class="typing-wrap" id="typing"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-  <div class="search-indicator" id="searchIndicator"><div class="search-dot"></div><span>Изчислявам оперативни метрики...</span></div>
-  <div class="action-wrap" id="actionWrap" style="display:none"><div class="action-row" id="actionRow"></div></div>
-  <div class="input-area">
-    <div class="input-row">
-      <textarea class="text-input" id="chatInput" placeholder="Пиши тук..." rows="1"
-        oninput="autoResize(this);document.getElementById('btnSend').disabled=!this.value.trim()"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"></textarea>
-      <div class="voice-wrap" id="voiceWrap" onclick="toggleVoice()">
-        <div class="voice-ring"></div><div class="voice-ring"></div><div class="voice-ring"></div>
-        <div class="voice-inner"><div class="voice-bars"><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div></div></div>
-      </div>
-      <button class="send-btn" id="btnSend" onclick="sendText()" disabled>
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-  </div>
+  <div class="chat-area" id="chatArea">
+    <div class="typing-wrap" id="typing"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  </div>
+  <div class="search-indicator" id="searchIndicator"><div class="search-dot"></div><span>Изчислявам оперативни метрики...</span></div>
+  <div class="action-wrap" id="actionWrap" style="display:none"><div class="action-row" id="actionRow"></div></div>
+  <div class="input-area">
+    <div class="input-row">
+      <textarea class="text-input" id="chatInput" placeholder="Пиши тук..." rows="1"
+        oninput="autoResize(this);document.getElementById('btnSend').disabled=!this.value.trim()"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"></textarea>
+      <div class="voice-wrap" id="voiceWrap" onclick="toggleVoice()">
+        <div class="voice-ring"></div><div class="voice-ring"></div><div class="voice-ring"></div>
+        <div class="voice-inner"><div class="voice-bars"><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div></div></div>
+      </div>
+      <button class="send-btn" id="btnSend" onclick="sendText()" disabled>
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
 </div>
 <div class="rec-overlay" id="recOverlay">
-  <div class="rec-circle"><div class="rec-wave-bars"><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div></div></div>
-  <div class="rec-title">Слушам те...</div>
-  <div class="rec-sub">Говори свободно на български</div>
-  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
+  <div class="rec-circle"><div class="rec-wave-bars"><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div></div></div>
+  <div class="rec-title">Слушам те...</div>
+  <div class="rec-sub">Говори свободно на български</div>
+  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
 </div>
 <script>
 function wait(ms){return new Promise(function(r){setTimeout(r,ms);})}
@@ -150,233 +150,188 @@ var actionRow=document.getElementById('actionRow');
 var searchInd=document.getElementById('searchIndicator');
 
 document.getElementById('micBtn').addEventListener('click',function(){
-  var btn=this;btn.disabled=true;btn.textContent='Изчакай...';
-  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(s){s.getTracks().forEach(function(t){t.stop();});state.micGranted=true;startChat();})
-      .catch(function(){state.micGranted=false;startChat();});
-  }else{state.micGranted=false;startChat();}
+  var btn=this;btn.disabled=true;btn.textContent='Изчакай...';
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(s){s.getTracks().forEach(function(t){t.stop();});state.micGranted=true;startChat();})
+      .catch(function(){state.micGranted=false;startChat();});
+  }else{state.micGranted=false;startChat();}
 });
 document.getElementById('micSkip').addEventListener('click',function(){state.micGranted=false;startChat();});
 
 function startChat(){
-  document.getElementById('micScreen').classList.remove('show');
-  var ci=document.getElementById('chatInterface');
-  ci.style.display='flex';ci.style.flex='1 1 0';ci.style.minHeight='0';
-  setTimeout(function(){aiSay('Привет! Аз съм твоят ПЕШО асистент.\nЩе работим заедно по оптимизацията.\nКак се казваш?');},400);
+  document.getElementById('micScreen').classList.remove('show');
+  var ci=document.getElementById('chatInterface');
+  ci.style.display='flex';ci.style.flex='1 1 0';ci.style.minHeight='0';
+  setTimeout(function(){aiSay('Привет! Аз съм твоят ПЕШО асистент 🙌\nЩе настроим всичко за под 3 минути. Как се казваш?');},400);
 }
 
 function scrollBottom(){chatArea.scrollTop=chatArea.scrollHeight}
 function showTyping(){typing.style.display='block';scrollBottom()}
-function hideTyping(){typing.style.display='none'}
+function hideTyping(){typing.style.none}
 
 function aiSay(text,isWow){
-  hideActions();
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
-  chatArea.insertBefore(g,typing);scrollBottom();
+  hideActions();
+  var g=document.createElement('div');g.className='msg-group';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+  chatArea.insertBefore(g,typing);scrollBottom();
 }
 
 function aiSayWidget(html){
-  hideActions();
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div>'+html;
-  chatArea.insertBefore(g,typing);scrollBottom();
+  hideActions();
+  var g=document.createElement('div');g.className='msg-group';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>Асистент</div>'+html;
+  chatArea.insertBefore(g,typing);scrollBottom();
 }
 
 function userSay(text){
-  var g=document.createElement('div');g.className='msg-group';
-  g.innerHTML='<div class="msg-meta" style="justify-content:flex-end">'+new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'})+'</div><div style="display:flex;justify-content:flex-end"><div class="msg user">'+esc(text)+'</div></div>';
-  chatArea.insertBefore(g,typing);scrollBottom();
+  var g=document.createElement('div');g.className='msg-group';
+  g.innerHTML='<div class="msg-meta" style="justify-content:flex-end">'+new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'})+'</div><div style="display:flex;justify-content:flex-end"><div class="msg user">'+esc(text)+'</div></div>';
+  chatArea.insertBefore(g,typing);scrollBottom();
 }
 
 function showActions(buttons){
-  actionRow.innerHTML=buttons.map(function(b){
-    return '<button class="action-btn'+(b.primary?' primary':'')+'" onclick="handleAction(\''+b.val.replace(/'/g,"\\'")+'\')">'+b.label+'</button>';
-  }).join('');
-  actionWrap.style.display='block';scrollBottom();
+  actionRow.innerHTML=buttons.map(function(b){
+    return '<button class="action-btn'+(b.primary?' primary':'')+'" onclick="handleAction(\''+b.val.replace(/'/g,"\\'")+'\')">'+b.label+'</button>';
+  }).join('');
+  actionWrap.style.display='block';scrollBottom();
 }
 function hideActions(){actionWrap.style.display='none';actionRow.innerHTML='';}
 
 function toggleVoice(){
-  if(isRecording){stopVoice();return;}
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert('Браузърът не поддържа гласово въвеждане');return;}
-  isRecording=true;voiceWrap.classList.add('recording');recOverlay.classList.add('show');
-  voiceRec=new SR();voiceRec.lang='bg-BG';voiceRec.interimResults=false;voiceRec.maxAlternatives=1;
-  voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
-  voiceRec.onerror=function(){stopVoice();};
-  voiceRec.onend=function(){if(isRecording)stopVoice();};
-  try{voiceRec.start();}catch(e){stopVoice();}
+  if(isRecording){stopVoice();return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Браузърът не поддържа гласово въвеждане');return;}
+  isRecording=true;voiceWrap.classList.add('recording');recOverlay.classList.add('show');
+  voiceRec=new SR();voiceRec.lang='bg-BG';voiceRec.interimResults=false;voiceRec.maxAlternatives=1;
+  voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
+  voiceRec.onerror=function(){stopVoice();};
+  voiceRec.onend=function(){if(isRecording)stopVoice();};
+  try{voiceRec.start();}catch(e){stopVoice();}
 }
 function stopVoice(){
-  isRecording=false;voiceWrap.classList.remove('recording');recOverlay.classList.remove('show');
-  if(voiceRec){try{voiceRec.stop();}catch(e){}voiceRec=null;}
+  isRecording=false;voiceWrap.classList.remove('recording');recOverlay.classList.remove('show');
+  if(voiceRec){try{voiceRec.stop();}catch(e){}voiceRec=null;}
 }
 function sendText(){
-  var input=document.getElementById('chatInput');var text=input.value.trim();if(!text)return;
-  input.value='';input.style.height='';document.getElementById('btnSend').disabled=true;processInput(text);
+  var input=document.getElementById('chatInput');var text=input.value.trim();if(!text)return;
+  input.value='';input.style.height='';document.getElementById('btnSend').disabled=true;processInput(text);
 }
 function handleAction(val){processInput(val);}
 
 async function processInput(text){
-  if(text !== 'next_wow') userSay(text); // Скриваме системния инпут
-  hideActions(); showTyping(); await wait(600); hideTyping();
-  
-  try{
-    switch(state.step){
-      case 'name':
-        state.name=capitalize(text.trim());state.step='biz';
-        aiSay(state.name+', приятно ми е.\nКакъв точно е профилът на твоя обект?');
+  if(text !== 'next_wow') userSay(text); 
+  hideActions(); showTyping(); await wait(600); hideTyping();
+  
+  try{
+    switch(state.step){
+      case 'name':
+        state.name=capitalize(text.trim());state.step='biz';
+        aiSay(state.name+', приятно ми е.\nКакъв точно е профилът на твоя обект?');
+        showActions([{label:'Дрехи/Обувки', val:'Дрехи'}, {label:'Хранителни стоки', val:'Храна'}, {label:'Друго', val:'Друго'}]);
+        break;
+      case 'biz':
+        state.biz=text.trim();state.step='stores';
+        aiSay('Ясно. Колко обекта управляваш в момента?');
+        showActions([{label:'1 обект', val:'1'}, {label:'2-5 обекта', val:'2-5'}, {label:'6+ верига', val:'верига'}]);
+        break;
+      case 'stores':
+        state.stores=text.trim();state.step='losses';
+        await showLossAnalysis();
+        break;
+      case 'losses':
+        state.step='annual';
+        await showAnnualSavings();
+        break;
+      case 'annual':
+        state.step='what_we_do';
+        await showWhatWeDo();
+        break;
+      case 'what_we_do':
+        state.step='loyalty';
+        await showLoyaltyOptions();
         break;
-      case 'biz':
-        state.biz=text.trim();state.step='segment';showTyping();
-        try{
-          var r=await aiFetch({action:'analyze_biz_segment',biz:state.biz});
-          var d=await r.json();hideTyping();
-          aiSay((d&&d.question&&d.question.trim())?d.question:'В какъв ценови сегмент оперираш предимно?');
-        }catch(e){hideTyping();aiSay('В какъв ценови сегмент оперираш предимно?');}
+      case 'loyalty_chosen':
+        state.loyaltyChoice=text; state.step='done';
+        aiSay(`Страхотно, ${state.name}! Активирах "${text}".\n\nДа започваме ли работа? 🚀`);
+        showActions([{label:'Старт! 🚀', val:'старт', primary:true}]);
         break;
-      case 'segment':
-        state.segment=text.trim();state.step='stores';
-        aiSay('Ясно. Колко обекта управляваш в момента?');
-        break;
-      case 'stores':
-        state.stores=text.trim();state.step='products';
-        aiSay('Какъв обем артикули поддържаш грубо?');
-        break;
-      case 'products':
-        state.products=text.trim();state.step='employees';
-        aiSay('Имаш ли персонал или работиш сам?');
-        break;
-      case 'employees':
-        state.employees=text.trim();
-        state.step='wow'; await showWowMoment(); break;
-      case 'wow_step':
-        if(text === 'next_wow') displayNextWowMessage(); break;
-      case 'wow_confirm':
-        state.step='loyalty'; await showLoyaltyOptions(); break;
-      case 'loyalty_chosen':
-        state.loyaltyChoice=text; state.step='done'; await showFinalMessage(); break;
-      case 'done':
-        await finishOnboarding(); break;
-    }
-  }catch(err){console.error('processInput error:',err);}
+      case 'done':
+        await finishOnboarding(); break;
+    }
+  }catch(err){console.error('processInput error:',err);}
 }
 
-async function showWowMoment(){
-  showTyping(); searchInd.classList.add('show'); scrollBottom();
-  var done=false;
-  
-  var fallback=function(){
-    if(done)return; done=true; hideTyping(); searchInd.classList.remove('show');
-    state.wowMessages=[
-      "📦 **Инвойс Скенер:** Ръчното въвеждане на фактури ти струва часове месечно. Скенерът заприходява всичко за 10 секунди. Това е върнато време.",
-      "💰 **Zombie Stock (Мъртва стока):** Блокираните пари в рафта ядат ликвидността ти. Засичам залежалата стока преди да стане проблем.",
-      "⭐ **Лоялна програма:** Твоят магнит за клиенти. При нас тя е вградена и остава БЕЗПЛАТНА ЗАВИНАГИ.",
-      "📊 "+state.name+", загубите от неефективност са стотици евро. RunMyStore.ai струва €588/год. Останалото е чиста печалба."
-    ];
-    state.currentWowIndex=0; displayNextWowMessage();
-  };
-  
-  var safetyTimer=setTimeout(fallback, 15000); // 15 сек макс
-  
-  try{
-    var r=await aiFetch({action:'wow',prompt:buildWowPrompt()});
-    var txt=await r.text(); if(done)return;
-    var d=JSON.parse(txt);
-    if(d&&d.messages&&Array.isArray(d.messages)&&d.messages.length>0){
-      clearTimeout(safetyTimer); done=true; hideTyping(); searchInd.classList.remove('show');
-      state.wowMessages=d.messages; state.currentWowIndex=0; displayNextWowMessage();
-    }else{throw new Error('no msgs');}
-  }catch(e){fallback();}
+async function showLossAnalysis(){
+  showTyping(); searchInd.classList.add('show'); await wait(1200); searchInd.classList.remove('show'); hideTyping();
+  var lossText = `Внимание! В сектор "${state.biz}" губиш средно **€750 всеки месец** без AI контрол:\n\n` +
+                 `📉 **€250:** Пропуснати ползи от стока на нула (Out-of-stock)\n` +
+                 `📉 **€120:** Загуби от залежали крайни размери (XS/XXL)\n` +
+                 `📉 **€200:** Блокиран кеш в "мъртва" стока (>90 дни)\n` +
+                 `📉 **€100:** Касови грешки и неконтролирани отстъпки\n` +
+                 `📉 **€80:** Неотчетена инфлация от доставчиците`;
+  aiSay(lossText, true);
+  showActions([{label:'Уау, как да ги спася?', val:'спаси', primary:true}]);
 }
 
-function displayNextWowMessage(){
-  if(state.currentWowIndex < state.wowMessages.length){
-    aiSay(state.wowMessages[state.currentWowIndex], true);
-    state.currentWowIndex++;
-    
-    if(state.currentWowIndex < state.wowMessages.length){
-      state.step = 'wow_step';
-      showActions([{label:'Виж следващ анализ ➔', val:'next_wow', primary:true}]);
-    }else{
-      wait(1500).then(function(){
-        state.step='wow_confirm';
-        aiSay('Пешо, това са базовите оптимизации. Да преминем ли към лоялната програма? 🚀');
-        showActions([{label:'Продължи', val:'да', primary:true}]);
-      });
-    }
-  }
+async function showAnnualSavings(){
+  showTyping(); await wait(800); hideTyping();
+  var savingsText = `С RunMyStore спестяваш **€9,000 на година**! ✅\n\n` +
+                    `С тези пари можеш да отвориш **нов обект** или да отидеш на **2 седмици почивка на Малдивите**, докато AI работи вместо теб.`;
+  aiSay(savingsText, true);
+  showActions([{label:'Какво точно правим?', val:'как', primary:true}]);
 }
 
-function buildWowPrompt(){
-  return `Ти си главен оперативен директор. Правиш бизнес анализ за: ${state.biz} (${state.segment}).
-ГЕНЕРИРАЙ ТОЧНО 4 СЕРИОЗНИ БИЗНЕС СЪОБЩЕНИЯ {"messages":["..."]}:
-1. АВТОМАТИЗАЦИЯ: Инвойс Скенерът пести часове ръчно въвеждане.
-2. ЛИКВИДНОСТ: Как AI открива мъртва стока (Zombie Stock) и освобождава кеш.
-3. ЛОЯЛНОСТ: Програмата за клиенти остава БЕЗПЛАТНА ЗАВИНАГИ.
-4. ROI: Изчисли загубите от горе спрямо цената от 588 EUR/год.
-СТИЛ: Директен, бизнес език, без преувеличения ("уникално", "супер"). Макс 2 изречения на точка. САМО JSON.`;
+async function showWhatWeDo(){
+  showTyping(); await wait(800); hideTyping();
+  var superPowers = `Ето твоите 4 суперсили в RunMyStore.ai:\n\n` +
+                    `1️⃣ **Скенер:** Снимаш разписка -> Склад за 10 сек.\n` +
+                    `2️⃣ **Мозък:** AI следи размерите и казва какво да купиш.\n` +
+                    `3️⃣ **Глас:** Продаваш с говорене, аз смятам рестото.\n` +
+                    `4️⃣ **Контрол:** Push известия за аномалии 24/7.`;
+  aiSay(superPowers);
+  showActions([{label:'Към Лоялната програма ➔', val:'напред', primary:true}]);
 }
 
 async function showLoyaltyOptions(){
-  await wait(400);
-  aiSay('Генерирам варианти за твоята лоялна програма...');
-  showTyping();
-  var options=[];
-  try{
-    var r=await aiFetch({action:'loyalty_options',biz:state.biz,segment:state.segment,name:state.name});
-    var d=await r.json();
-    if(d&&d.options&&d.options.length>0)options=d.options;
-  }catch(e){}
-  hideTyping();
-  if(options.length===0){
-    options=[
-      {emoji:'⭐',title:'Стандартни Точки',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка.'},
-      {emoji:'🎯',title:'VIP нива',desc:'Стимул за по-голям оборот с растящи отстъпки.'},
-      {emoji:'🤝',title:'Cashback',desc:'Твърд процент връщане по клиентската сметка.'}
-    ];
-  }
-  var html='<div class="loyalty-cards">';
-  options.forEach(function(opt){
-    var safeTitle=opt.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html+='<button class="loyalty-card" onclick="chooseLoyalty(this,\''+safeTitle+'\')">';
-    html+='<span class="loyalty-card-emoji">'+(opt.emoji||'⭐')+'</span>';
-    html+='<div class="loyalty-card-title">'+esc(opt.title)+'</div>';
-    html+='<div class="loyalty-card-desc">'+esc(opt.desc)+'</div>';
-    html+='</button>';
-  });
-  html+='<button class="loyalty-build-btn" onclick="chooseLoyalty(this,\'custom\')">⚙️ Ще си я сглобя сам от настройките</button>';
-  html+='</div>';
-  aiSayWidget(html);
-  state.step='loyalty_chosen';
+  await wait(400);
+  aiSay('Генерирах варианти за твоята лоялна програма "[Магазин] CLUB":');
+  showTyping(); await wait(1000); hideTyping();
+  var options=[
+    {emoji:'⭐',title:'Стандартни Точки',desc:'1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = 2x точки.'},
+    {emoji:'🎯',title:'VIP нива',desc:'Стимул за по-голям оборот с растящи отстъпки според нивата.'},
+    {emoji:'🤝',title:'Cashback',desc:'Твърд процент връщане по клиентската сметка за всяка покупка.'}
+  ];
+  var html='<div class="loyalty-cards">';
+  options.forEach(function(opt){
+    var safeTitle=opt.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html+='<button class="loyalty-card" onclick="chooseLoyalty(this,\''+safeTitle+'\')">';
+    html+='<span class="loyalty-card-emoji">'+(opt.emoji||'⭐')+'</span>';
+    html+='<div class="loyalty-card-title">'+esc(opt.title)+'</div>';
+    html+='<div class="loyalty-card-desc">'+esc(opt.desc)+'</div>';
+    html+='</button>';
+  });
+  // Твоят нов бутон "Съгласен съм"
+  html+='<button class="action-btn primary" style="width:100%; margin-top:10px; max-width:100%;" onclick="handleAction(\'✅ Да, съгласен съм\')">✅ Да, съгласен съм</button>';
+  html+='<button class="loyalty-build-btn" onclick="chooseLoyalty(this,\'custom\')">⚙️ Ще си я сглобя сам от настройките</button>';
+  html+='</div>';
+  aiSayWidget(html);
+  state.step='loyalty_chosen';
 }
 
 function chooseLoyalty(el,title){
-  document.querySelectorAll('.loyalty-card').forEach(function(c){c.classList.remove('selected');});
-  if(el.classList.contains('loyalty-card'))el.classList.add('selected');
-  setTimeout(function(){processInput(title==='custom'?'Ще настройвам сам':title);},400);
-}
-
-async function showFinalMessage(){
-  showTyping(); await wait(1200); hideTyping();
-  var isCustom=state.loyaltyChoice==='Ще настройвам сам';
-  var loyaltyLine=isCustom?'Програмата ще я настроиш сам.':'Активирах "'+state.loyaltyChoice+'".';
-  
-  aiSay(`Готово, ${state.name}! ✅\n\n${loyaltyLine}\n\n⭐ ВАЖНО: Твоята дигитална лоялна програма (CRM) остава БЕЗПЛАТНА ЗАВИНАГИ. Тя работи за теб дори без месечен AI абонамент.\n\nСега имаш 30 дни достъп до всички AI функции и скенера. След това пакетът е 49 EUR/мес.\n\nДа започваме ли работа? 🚀`);
-  
-  state.step='done';
-  showActions([{label:'Старт! 🚀',val:'старт',primary:true}]);
+  document.querySelectorAll('.loyalty-card').forEach(function(c){c.classList.remove('selected');});
+  if(el.classList.contains('loyalty-card'))el.classList.add('selected');
+  setTimeout(function(){processInput(title==='custom'?'Ще настройвам сам':title);},400);
 }
 
 async function finishOnboarding(){
-  showTyping();
-  try{
-    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty:state.loyaltyChoice})});
-  }catch(e){}
-  hideTyping(); await wait(500); window.location.href='chat.php';
+  showTyping();
+  try{
+    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:state.name,biz:state.biz,stores:state.stores,loyalty:state.loyaltyChoice})});
+  }catch(e){}
+  hideTyping(); await wait(500); window.location.href='chat.php';
 }
 </script>
 </body>
