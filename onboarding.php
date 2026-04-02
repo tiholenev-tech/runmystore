@@ -244,18 +244,19 @@ async function requestMic() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     stream.getTracks().forEach(t => t.stop());
     state.micGranted = true;
+    // SR init — не чакаме, само стартираме
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
-      await new Promise(resolve => {
+      try {
         const sr = new SR();
         sr.lang = 'bg-BG';
-        sr.continuous = false;
-        sr.onstart  = () => setTimeout(() => { try { sr.abort(); } catch(e){} resolve(); }, 500);
-        sr.onresult = () => { try { sr.abort(); } catch(e){} resolve(); };
-        sr.onerror  = () => resolve();
-        sr.onend    = () => resolve();
-        try { sr.start(); } catch(e) { resolve(); }
-      });
+        sr.onresult = () => { try { sr.abort(); } catch(e){} };
+        sr.onerror  = () => {};
+        sr.onend    = () => {};
+        sr.start();
+        await delay(600);
+        try { sr.abort(); } catch(e) {}
+      } catch(e) {}
     }
   } catch(e) {
     state.micGranted = false;
