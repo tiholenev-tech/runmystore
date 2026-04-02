@@ -16,7 +16,7 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
-/* ═══ НОВ СВЕТЪЛ И ПРИВЕТЛИВ ДИЗАЙН ═══ */
+/* СВЕТЪЛ И ПРИВЕТЛИВ ДИЗАЙН (Запазен от предния път) */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 body{background:#f8fafc;color:#334155;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,.06) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.05) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(59,130,246,.06) 0%,transparent 40%);pointer-events:none;z-index:0}
@@ -278,23 +278,42 @@ async function processInput(text){
         state.name=capitalize(text.trim()); state.step='biz';
         aiSay(state.name+', приятно ми е! 😄\nКажи ми — какво точно продаваш в твоя обект?');
         break;
+
       case 'biz':
+        // НОВО: AI-First подход за сегментация!
         state.biz=text.trim(); state.step='segment';
-        aiSay(getSegmentQuestion(state.biz));
+        showTyping();
+        try {
+            var r = await fetch('ai-helper.php', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({action:'analyze_biz_segment', biz: state.biz})
+            });
+            var d = await r.json();
+            hideTyping();
+            aiSay(d.question || 'Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
+        } catch(e) {
+            hideTyping();
+            aiSay('Разбрах! Продаваш ли предимно масови артикули или залагаш на по-скъпи стоки?');
+        }
         break;
+
       case 'segment':
         state.segment=text.trim(); state.step='stores';
         searchResult=''; doWebSearch(); // Скрит старт на търсене
         aiSay('Разбрах те отлично. Колко физически обекта/магазина имаш в момента?');
         break;
+
       case 'stores':
         state.stores=text.trim(); state.step='products';
         aiSay('Колко артикула приблизително поддържаш —\nпод 200, около 500, или хиляди?');
         break;
+
       case 'products':
         state.products=text.trim(); state.step='employees';
         aiSay('Имаш ли служители, които работят на касата?');
         break;
+
       case 'employees':
         state.employees=text.trim();
         if(/да|имам|момич|момч|човек|души/i.test(text)){
@@ -304,77 +323,29 @@ async function processInput(text){
         state.step='wow';
         await showWowMoment();
         break;
+
       case 'wow_confirm':
         state.step='features'; await showFeatures(); break;
+
       case 'loyalty1':
         state.loyaltyFreq=text.trim(); state.step='loyalty2';
         await wait(300); aiSay('А какво би дал като бонус или отстъпка на най-верния си клиент?');
         break;
+
       case 'loyalty2':
         state.loyaltyReward=text.trim(); state.step='loyalty3';
         await wait(300); aiSay('Имаш ли силна конкуренция наблизо до обекта ти?');
         break;
+
       case 'loyalty3':
         state.loyaltyCompetition=text.trim(); state.step='done';
         await showLoyaltyResult();
         break;
+
       case 'done':
         await finishOnboarding(); break;
     }
   } catch(err) { console.error(err); }
-}
-
-// ═══ МАСИВНО РАЗШИРЕН РЕЧНИК ЗА БИЗНЕСИ ═══
-function getSegmentQuestion(biz){
-  // Мода & Обувки
-  if(/дрех|облекло|риз|блуз|панталон|рокля|костюм|бутик/i.test(biz)) return 'Casual и масова мода ли е, или по-луксозен бутик/официални дрехи (напр. маркови костюми)?';
-  if(/обувк|маратонк|чехъл|боти/i.test(biz)) return 'Ежедневни/спортни обувки ли предлагаш или по-скъпи — официални и кожени?';
-  if(/чант|куфар|портмоне|колан/i.test(biz)) return 'По-масови и достъпни аксесоари ли са, или скъпи кожени/дизайнерски изделия?';
-  if(/втор|употреб|second|секън/i.test(biz)) return 'Стандартен дрехи на килограм ли е, или селектирана маркова second-hand стока?';
-  
-  // Бижута & Аксесоари
-  if(/бижу|пръстен|гривн|обец|колие|злат|сребр/i.test(biz)) return 'Сребро, стомана и ръчна изработка ли са, или скъпа бижутерия (злато, диаманти)?';
-  if(/часовник/i.test(biz)) return 'Модни часовници от среден клас или скъпи луксозни марки?';
-  if(/оптик|очил|лещ/i.test(biz)) return 'Предимно слънчеви очила или изработка на диоптрични стъкла и скъпи рамки?';
-  
-  // Здраве & Красота
-  if(/козмет|парфюм|грим|крем/i.test(biz)) return 'Масов пазар (дрогерия) ли е, или по-скъпа селективна/професионална козметика?';
-  if(/аптек|лекарств|фарма/i.test(biz)) return 'Стандартни лекарства и добавки, или имате и много скъпа медицинска козметика?';
-  if(/добавк|протеин|фитнес/i.test(biz)) return 'Масови витамини или специализирани премиум фитнес добавки?';
-  
-  // Техника & Електроника
-  if(/телефон|GSM|калъф|аксесоар|кабел/i.test(biz)) return 'Само аксесоари, калъфчета и кабели ли са, или продаваш и самите скъпи устройства (телефони, таблети)?';
-  if(/техник|електрон|компют|лаптоп|телевиз/i.test(biz)) return 'Дребна периферия или скъпа черна/бяла техника и компютри?';
-  if(/вейп|цигар|тютюн|наргил/i.test(biz)) return 'Електронни цигари за масова употреба или скъпи пури, вейпове и наргилета?';
-  
-  // Храни & Напитки
-  if(/хран|бакал|хляб|месо|плод|зеленч/i.test(biz)) return 'Обикновен квартален магазин ли е или специализиран (bio, фермерски, premium продукти)?';
-  if(/алкохол|вин|пити/i.test(biz)) return 'Масов алкохол и бира или магазин за селектирани вина и скъп премиум алкохол?';
-  if(/каф|пекарн|закуск/i.test(biz)) return 'Обикновени закуски и кафе или занаятчийска пекарна / specialty coffee?';
-  
-  // Дом & Градина & Строителство
-  if(/строит|инструмент|бои|крепеж/i.test(biz)) return 'Дребен консуматив (крепежи) или скъпи професионални машини и едрогабаритни материали?';
-  if(/мебел|диван|стол|матрак/i.test(biz)) return 'По-достъпни масови мебели или дизайнерски, поръчкови и скъпи решения?';
-  if(/декор|килим|заве|дом/i.test(biz)) return 'Дребни декорации за дома или скъпи текстили, картини и килими?';
-  if(/цвет|букет|сакс/i.test(biz)) return 'Рязан цвят и стандартни букети, или сложни, скъпи аранжировки и саксийни растения?';
-  if(/сувенир|подар/i.test(biz)) return 'Дребни сувенири и картички или луксозни корпоративни и лични подаръци?';
-  
-  // Хоби & Свободно време
-  if(/спорт|колел|велосипед|фитнес уред/i.test(biz)) return 'Екипировка за любители или професионално и скъпо оборудване (напр. скъпи велосипеди)?';
-  if(/играч|детск/i.test(biz)) return 'По-евтини масови играчки или скъпи конструктори, бордови игри и лицензирани фигурки?';
-  if(/бебе|количк|креват/i.test(biz)) return 'Дрешки и дребни консумативи или скъпи бебешки колички и мебели за детска стая?';
-  if(/зоо|куче|коте|животн/i.test(biz)) return 'Масови храни за домашни любимци или премиум клас гранули и скъпи аксесоари?';
-  if(/книг|канцелар|тетрад/i.test(biz)) return 'Обикновена канцелария и учебници или луксозни издания, специализирана литература и химикалки?';
-  if(/музик|инструмент|китар/i.test(biz)) return 'Консумативи като струни/перца или скъпи професионални инструменти и техника?';
-  
-  // Авто
-  if(/авто|кола|гума|масло/i.test(biz)) return 'Обикновени консумативи (масла, филтри, крушки) или скъпи части, гуми и джанти?';
-  
-  // Специфични
-  if(/секс|adult/i.test(biz)) return 'Стандартни забавни артикули или луксозно бельо и премиум играчки?';
-  
-  // Fallback
-  return 'Продаваш ли предимно масови/по-евтини артикули, или залагаш на скъпи, висококачествени стоки?';
 }
 
 // ═══ WEB SEARCH ═══
@@ -395,7 +366,7 @@ function doWebSearch(){
   } catch(e){ searchResult=''; searchDone=true; }
 }
 
-// ═══ WOW MOMENT (УМЕН PROMPT ЗА СКЪПИ И ЕВТИНИ СТОКИ) ═══
+// ═══ WOW MOMENT (СЪС ЗАБАВЯНЕ И НОВИ СТРАТЕГИИ) ═══
 async function showWowMoment(){
   showTyping(); searchInd.classList.add('show'); scrollBottom();
   
@@ -407,8 +378,8 @@ async function showWowMoment(){
   var executeFallback = async function() {
       if(fallbackExecuted) return; fallbackExecuted = true; hideTyping(); searchInd.classList.remove('show');
       var amt = /скъп|марков|костюм|злат|техник|мебел|луксоз/i.test(state.biz+' '+state.segment) ? '€1500 - €4000' : '€200 - €500';
-      aiSay(state.name+', в твоята сфера се губят средно '+amt+' на месец от залежала стока и липси.\nRunMyStore.ai следи всичко автоматично и те спира преди да е станало.', true);
-      await wait(2400); state.step='wow_confirm';
+      aiSay(state.name+', в твоята сфера се губят средно '+amt+' на месец от залежала стока и липси.\nRunMyStore.ai следи всичко автоматично и те предупреждава преди да е станало.', true);
+      await wait(3500); state.step='wow_confirm';
       aiSay('Искаш ли да ти покажа какво още правим? 🚀');
       showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
   };
@@ -430,8 +401,12 @@ async function showWowMoment(){
     var d = JSON.parse(txt);
     if(d.messages && Array.isArray(d.messages)){
       clearTimeout(safetyTimer); fallbackExecuted = true; hideTyping();
-      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1500); aiSay(d.messages[i],true); }
-      await wait(2000); state.step='wow_confirm';
+      for(var i=0;i<d.messages.length;i++){ 
+          // НОВО: Увеличено време за четене!
+          await wait(i===0 ? 500 : 3500); 
+          aiSay(d.messages[i],true); 
+      }
+      await wait(3500); state.step='wow_confirm';
       aiSay('Искаш ли да ти покажа какво още правим? 🚀');
       showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
     } else { throw new Error('No messages array'); }
@@ -439,14 +414,23 @@ async function showWowMoment(){
 }
 
 function buildWowPrompt(){
-  return 'Ти си AI асистент на RunMyStore.ai.\nГовориш като топъл приятел търговец — професионално, но човешко.\nРазговорен български.\n\nДАННИ:\nИме: '+state.name+'\nБизнес: '+state.biz+'\nСегмент: '+state.segment+'\nМагазини: '+state.stores+'\nПазарни данни: '+(searchResult||'няма данни')+'\n\nСИЛНА ИНСТРУКЦИЯ АКО НЯМА ПАЗАРНИ ДАННИ:\nАнализирай типа бизнес! Ако продава скъпи неща (маркови костюми, злато, техника, мебели), сумите за загуби от залежала стока ТРЯБВА да са огромни (напр. €1000 - €5000+ на месец). Ако продава евтини неща (закуски, дреболии), сумите са малки (€100 - €400). Съобрази се с типа стока!\n\nГЕНЕРИРАЙ 5 СЪОБЩЕНИЯ като JSON: {"messages":["msg1","msg2","msg3","msg4","msg5"]}\n\n1-4: Как RunMyStore.ai решава 4 специфични проблема за този бизнес.\n5: "Само тези 4 проблема ти струват ~€X на година. Ние струваме €588 на година. Разликата остава в джоба ти."\nВЪРНИ САМО JSON.';
+  return 'Ти си AI асистент на RunMyStore.ai. Говориш като умен приятел търговец — конкретно, без технически термини. Разбираш разговорен български и поправяш правописни грешки наум.\n' +
+         'ДАННИ ЗА КЛИЕНТА:\nИме: '+state.name+'\nБизнес: '+state.biz+' (поправи грешките логически)\nСегмент: '+state.segment+'\nМагазини: '+state.stores+'\nПазарни данни: '+(searchResult||'няма данни')+'\n\n' +
+         'ИНСТРУКЦИЯ: ГЕНЕРИРАЙ ТОЧНО 5 СЪОБЩЕНИЯ (JSON формат: {"messages":["..."]}).\n' +
+         'ИЗПОЛЗВАЙ 4 МАРКЕТИНГ СТРАТЕГИИ с реалистични суми в евро (ако стоката е скъпа - хиляди, ако е евтина - стотици):\n' +
+         '1. Zombie Stock (блокирани пари в залежала стока).\n' +
+         '2. Size-Curve (загуби от грешно заредени размери/цветове).\n' +
+         '3. Lost Revenue (загуби от изчерпване на търсена стока - кажи, че ги ПРЕДУПРЕЖДАВАШ навреме, никога не използвай думата "будя").\n' +
+         '4. Basket Analysis (изпуснати ползи от непредлагане на свързани продукти - Upsell).\n' +
+         '5. Обобщение: "Само тези 4 проблема ти струват ~€[СУМА] на година. RunMyStore.ai е €588 на година. Разликата остава в джоба ти."\n' +
+         'Бъди кратък (макс 3 изречения на съобщение). ВЪРНИ САМО JSON.';
 }
 
 // ═══ FEATURES ═══
 async function showFeatures(){
   await wait(400);
-  aiSay('Ето как RunMyStore.ai ще ти помага всеки ден:\n\n📦 Следя склада — кое върви, кое стои, кое свършва\n\n🔔 Будя те навреме — преди стоката да се е изчерпала\n\n📊 Казвам ти печалбата за деня — без да събираш хартийки\n\n🎤 Управляваш всичко с глас — буквално си говориш с мен\n\n🎁 Получаваш дигитална лоялна карта за клиентите си\n\n30 дни пробваш всичко напълно безплатно.\nСлед това е едва €49 на месец.');
-  await wait(2400); state.step='loyalty1';
+  aiSay('Ето как RunMyStore.ai ще ти помага всеки ден:\n\n📦 Следя склада — кое върви, кое стои, кое свършва\n\n🔔 Предупреждавам те навреме — преди стоката да се е изчерпала\n\n📊 Казвам ти печалбата за деня — без да събираш хартийки\n\n🎤 Управляваш всичко с глас — буквално си говориш с мен\n\n🎁 Получаваш дигитална лоялна карта за клиентите си\n\n30 дни пробваш всичко напълно безплатно.\nСлед това е едва €49 на месец.');
+  await wait(4500); state.step='loyalty1'; // Дадохме повече време за четене
   aiSay('Споменах лоялна програма. Нека я настроим за 10 секунди.\n\nКолко често идват редовните ти клиенти при теб?');
 }
 
@@ -470,7 +454,7 @@ async function finishOnboarding(){
   }catch(e){}
   hideTyping();
   aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно.\nЛоялната карта ти остава безплатна завинаги.\nСледващата стъпка е да качим ценовата ти листа.\n\nАз съм тук. Питай ме каквото искаш.');
-  await wait(2600); window.location.href='chat.php';
+  await wait(3500); window.location.href='chat.php';
 }
 </script>
 </body>
