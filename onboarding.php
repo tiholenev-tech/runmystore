@@ -163,7 +163,7 @@ function startChat(){
   document.getElementById('micScreen').classList.remove('show');
   var ci=document.getElementById('chatInterface');
   ci.style.display='flex';ci.style.flex='1 1 0';ci.style.minHeight='0';
-  setTimeout(function(){aiSay('Привет! Аз съм твоят бизнес асистент.\nЩе работим заедно по оптимизацията.\nКак се казваш?');},400);
+  setTimeout(function(){aiSay('Привет! Аз съм твоят ПЕШО асистент.\nЩе работим заедно по оптимизацията.\nКак се казваш?');},400);
 }
 
 function scrollBottom(){chatArea.scrollTop=chatArea.scrollHeight}
