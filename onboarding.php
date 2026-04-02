@@ -179,7 +179,7 @@ function showToast(msg) {
 
 // ═══ STATE ═══
 var state = { step:'name', name:'', biz:'', segment:'', stores:'', products:'', employees:'', loyaltyFreq:'', loyaltyReward:'', loyaltyCompetition:'', micGranted:false };
-var voiceRec=null, isRecording=false, searchResult='';
+var voiceRec=null, isRecording=false, searchResult='', searchDone=false;
 
 // ═══ DOM ═══
 var chatArea=document.getElementById('chatArea');
@@ -257,19 +257,76 @@ function hideActions(){ actionWrap.style.display='none'; actionRow.innerHTML='';
 // ═══ VOICE ═══
 function toggleVoice(){
   if(isRecording){stopVoice();return;}
+  
+  // Проверяваме дали браузърът поддържа SpeechRecognition
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){showToast('Браузърът не поддържа гласово въвеждане');return;}
-  isRecording=true; voiceWrap.classList.add('recording'); recOverlay.classList.add('show');
-  voiceRec=new SR(); voiceRec.lang='bg-BG'; voiceRec.interimResults=false; voiceRec.maxAlternatives=1; voiceRec.continuous=false;
-  voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
-  voiceRec.onerror=function(e){stopVoice();if(e.error==='no-speech')showToast('Не чух нищо — опитай пак');else if(e.error==='not-allowed')showToast('Разреши микрофона от настройките');else showToast('Грешка: '+e.error);};
-  voiceRec.onend=function(){if(isRecording)stopVoice();};
-  try{voiceRec.start();}catch(e){stopVoice();}
+  
+  // Ако вече сме дали разрешение в началото, го използваме директно
+  // Ако не - пробваме да пуснем и ако получим not-allowed, показваме съобщение
+  
+  isRecording=true; 
+  voiceWrap.classList.add('recording'); 
+  recOverlay.classList.add('show');
+  
+  voiceRec=new SR(); 
+  voiceRec.lang='bg-BG'; 
+  voiceRec.interimResults=false; 
+  voiceRec.maxAlternatives=1; 
+  voiceRec.continuous=false;
+  
+  var permissionError = false;
+  
+  voiceRec.onresult=function(e){
+    var t=e.results[0][0].transcript;
+    stopVoice();
+    processInput(t);
+  };
+  
+  voiceRec.onerror=function(e){
+    if(e.error==='not-allowed'){
+      permissionError = true;
+      stopVoice();
+      showToast('Разреши микрофона от настройките на браузъра');
+    } else if(e.error==='no-speech'){
+      stopVoice();
+      showToast('Не чух нищо — опитай пак');
+    } else if(e.error==='aborted'){
+      // Потребителят е спрял ръчно, не показваме грешка
+      stopVoice();
+    } else {
+      stopVoice();
+      showToast('Грешка: '+e.error);
+    }
+  };
+  
+  voiceRec.onend=function(){
+    if(isRecording && !permissionError){
+      // Ако все още сме в режим на запис но onend е дошъл без резултат,
+      // значи не сме получили нищо - спираме нормално
+      stopVoice();
+    }
+  };
+  
+  try{
+    voiceRec.start();
+  }catch(e){
+    stopVoice();
+    showToast('Не може да се стартира микрофона');
+  }
 }
 
 function stopVoice(){
-  isRecording=false; voiceWrap.classList.remove('recording'); recOverlay.classList.remove('show');
-  if(voiceRec){try{voiceRec.stop();}catch(e){} voiceRec=null;}
+  isRecording=false; 
+  voiceWrap.classList.remove('recording'); 
+  recOverlay.classList.remove('show');
+  if(voiceRec){
+    try{
+      voiceRec.stop();
+      voiceRec.abort(); // Форсираме спиране
+    }catch(e){} 
+    voiceRec=null;
+  }
 }
 
 function sendText(){
@@ -299,7 +356,8 @@ async function processInput(text){
 
     case 'segment':
       state.segment=text.trim(); state.step='stores';
-      searchResult=''; doWebSearch();
+      // Стартираме търсенето във фонов режим, но не чакаме
+      doWebSearch();
       aiSay('Колко магазина имаш?');
       break;
 
@@ -366,25 +424,67 @@ function getSegmentQuestion(biz){
 
 // ═══ WEB SEARCH ═══
 function doWebSearch(){
-  fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' small retailer dead stock loss monthly EU average'})})
-    .then(function(r){return r.json();})
-    .then(function(d){searchResult=d.result||'';})
-    .catch(function(){searchResult='';});
+  searchDone = false;
+  searchResult = '';
+  
+  fetch('ai-helper.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      action:'web_search',
+      query:state.biz+' '+state.segment+' small retailer dead stock loss monthly EU average'
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    searchResult = d.result || '';
+    searchDone = true;
+  })
+  .catch(function(e){
+    console.error('Search error:', e);
+    searchResult = '';
+    searchDone = true;
+  });
+  
+  // Fallback - ако след 8 секунди няма отговор, продължаваме с празен резултат
+  setTimeout(function(){
+    if(!searchDone){
+      searchDone = true;
+      searchResult = '';
+    }
+  }, 8000);
 }
 
 // ═══ WOW MOMENT ═══
 async function showWowMoment(){
-  showTyping(); searchInd.classList.add('show');
-  var waited=0;
-  while(!searchResult && waited<5000){ await wait(300); waited+=300; }
-  searchInd.classList.remove('show'); hideTyping();
+  showTyping(); 
+  searchInd.classList.add('show');
+  
+  // Чакаме максимум 6 секунди за търсенето
+  var waited = 0;
+  while(!searchDone && waited < 6000){ 
+    await wait(200); 
+    waited += 200; 
+  }
+  
+  searchInd.classList.remove('show'); 
+  hideTyping();
 
   try{
     showTyping();
-    var r=await fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'wow',prompt:buildWowPrompt()})});
-    var d=await r.json(); hideTyping();
+    var r=await fetch('ai-helper.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'wow',prompt:buildWowPrompt()})
+    });
+    var d=await r.json(); 
+    hideTyping();
     if(d.messages && Array.isArray(d.messages)){
-      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1400); aiSay(d.messages[i],true); scrollBottom(); }
+      for(var i=0;i<d.messages.length;i++){ 
+        await wait(i===0?300:1400); 
+        aiSay(d.messages[i],true); 
+        scrollBottom(); 
+      }
     } else {
       aiSay('Магазини като твоя губят средно €200-500 на месец.\nАз следя и те спирам навреме.',true);
     }
@@ -393,7 +493,8 @@ async function showWowMoment(){
     aiSay(state.name+', магазини като твоя губят средно €200-500 на месец.\nАз следя всичко и те спирам преди да е станало.',true);
   }
 
-  await wait(1600); state.step='wow_confirm';
+  await wait(1600); 
+  state.step='wow_confirm';
   aiSay('Продължаваме? 🚀');
   showActions([{label:'Да, напред!',val:'да',primary:true}]);
 }
@@ -425,7 +526,21 @@ async function showLoyaltyResult(){
 async function finishOnboarding(){
   showTyping();
   try{
-    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition})});
+    await fetch('onboarding-save.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        name:state.name,
+        biz:state.biz,
+        segment:state.segment,
+        stores:state.stores,
+        products:state.products,
+        employees:state.employees,
+        loyalty_freq:state.loyaltyFreq,
+        loyalty_reward:state.loyaltyReward,
+        loyalty_competition:state.loyaltyCompetition
+      })
+    });
   }catch(e){}
   hideTyping();
   aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно — без карта.\nЛоялната карта остава безплатна завинаги.\nСлед това — €49 на месец.\n\nАз съм тук всеки ден.\nПитай каквото искаш, по всяко време.');
