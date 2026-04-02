@@ -16,52 +16,57 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
+/* ═══ НОВ СВЕТЪЛ И ПРИВЕТЛИВ ДИЗАЙН ═══ */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-/* ПОПРАВКА: Твърдо ограничаване на височината до екрана */
-body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,.09) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.07) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(59,130,246,.05) 0%,transparent 40%);pointer-events:none;z-index:0}
-.hdr{position:relative;z-index:50;background:rgba(3,7,18,.92);backdrop-filter:blur(24px);border-bottom:1px solid rgba(99,102,241,.12);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.brand{font-size:18px;font-weight:900;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-/* ПОПРАВКА: Добавено flex: 1 1 0; min-height: 0; */
-.chat-area{background-color:rgba(30,41,59,0.6);border-radius:16px;margin:8px 8px 0 8px;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 14px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
+body{background:#f8fafc;color:#334155;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,.06) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.05) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(59,130,246,.06) 0%,transparent 40%);pointer-events:none;z-index:0}
+.hdr{position:relative;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(226,232,240,.8);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.brand{font-size:18px;font-weight:900;background:linear-gradient(to right,#4f46e5,#9333ea,#4f46e5);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
+
+.chat-area{background-color:#ffffff;border:1px solid #f1f5f9;box-shadow:0 8px 30px rgba(0,0,0,.04);border-radius:20px;margin:12px 12px 0 12px;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:20px 16px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
 .chat-area::-webkit-scrollbar{display:none}
-.msg-group{margin-bottom:14px;animation:fadeUp .3s ease both}
-.msg-meta{font-size:10px;color:#4b5563;margin-bottom:4px;display:flex;align-items:center;gap:6px}
-.ai-ava{width:26px;height:26px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(99,102,241,.5)}
-.ai-ava-bars{display:flex;gap:2px;align-items:center;height:11px}
+.msg-group{margin-bottom:16px;animation:fadeUp .3s ease both}
+.msg-meta{font-size:11px;color:#94a3b8;margin-bottom:6px;display:flex;align-items:center;gap:6px;font-weight:500}
+.ai-ava{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(99,102,241,.3)}
+.ai-ava-bars{display:flex;gap:2px;align-items:center;height:12px}
 .ai-ava-bar{width:2px;border-radius:1px;background:#fff;animation:barDance 1s ease-in-out infinite}
-.ai-ava-bar:nth-child(1){height:4px;animation-delay:0s}
-.ai-ava-bar:nth-child(2){height:8px;animation-delay:.15s}
-.ai-ava-bar:nth-child(3){height:11px;animation-delay:.3s}
-.ai-ava-bar:nth-child(4){height:6px;animation-delay:.45s}
-.msg{max-width:88%;padding:11px 14px;font-size:13px;line-height:1.6;word-break:break-word}
-.msg.ai{background:rgba(12,12,30,.88);border:1px solid rgba(99,102,241,.14);color:#e2e8f0;border-radius:4px 16px 16px 16px;backdrop-filter:blur(8px)}
-.msg.user{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:16px 16px 4px 16px;margin-left:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
-.msg.wow{border-color:rgba(99,102,241,.4);background:rgba(6,6,20,.97)}
-.typing-wrap{display:none;padding:10px 14px;background:rgba(12,12,30,.88);border:1px solid rgba(99,102,241,.14);border-radius:4px 16px 16px 16px;width:fit-content;margin-bottom:14px;backdrop-filter:blur(8px)}
-.typing-dots{display:flex;gap:4px;align-items:center}
-.dot{width:7px;height:7px;border-radius:50%;background:#6366f1;animation:bounce 1.2s infinite}
+.ai-ava-bar:nth-child(1){height:5px;animation-delay:0s}
+.ai-ava-bar:nth-child(2){height:9px;animation-delay:.15s}
+.ai-ava-bar:nth-child(3){height:12px;animation-delay:.3s}
+.ai-ava-bar:nth-child(4){height:7px;animation-delay:.45s}
+.msg{max-width:88%;padding:13px 16px;font-size:14px;line-height:1.55;word-break:break-word}
+.msg.ai{background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;border-radius:4px 18px 18px 18px}
+.msg.user{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;border-radius:18px 18px 4px 18px;margin-left:auto;box-shadow:0 4px 12px rgba(99,102,241,.2)}
+.msg.wow{border-color:#c7d2fe;background:#eff6ff;color:#1e3a8a;font-weight:500}
+
+.typing-wrap{display:none;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px 18px 18px 18px;width:fit-content;margin-bottom:14px}
+.typing-dots{display:flex;gap:5px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#818cf8;animation:bounce 1.2s infinite}
 .dot:nth-child(2){animation-delay:.2s}
 .dot:nth-child(3){animation-delay:.4s}
-.search-indicator{display:none;padding:8px 14px;margin-bottom:10px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;font-size:11px;color:#6366f1;font-weight:600}
+
+.search-indicator{display:none;padding:10px 16px;margin-bottom:12px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;font-size:12px;color:#4f46e5;font-weight:600}
 .search-indicator.show{display:flex;align-items:center;gap:8px}
-.search-dot{width:6px;height:6px;border-radius:50%;background:#6366f1;animation:bounce 1s infinite}
-.action-wrap{padding:0 14px 8px;flex-shrink:0;position:relative;z-index:1}
-.action-row{display:flex;gap:8px;justify-content:center}
-.action-btn{flex:1;max-width:180px;padding:11px 14px;border-radius:14px;font-size:13px;font-weight:700;border:1px solid rgba(99,102,241,.25);color:#a5b4fc;background:rgba(12,12,30,.7);backdrop-filter:blur(8px);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;text-align:center}
-.action-btn:active{background:rgba(99,102,241,.2);border-color:#6366f1;transform:scale(.97)}
-.action-btn.primary{background:linear-gradient(to bottom,#6366f1,#5558e8);border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.4)}
-.input-area{background:rgba(3,7,18,.94);backdrop-filter:blur(24px);border-top:1px solid rgba(99,102,241,.12);padding:10px 14px 16px;flex-shrink:0;position:relative;z-index:1}
-.input-row{display:flex;gap:8px;align-items:center}
-.text-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(99,102,241,.18);border-radius:22px;color:#e2e8f0;font-size:14px;padding:11px 16px;font-family:'Montserrat',sans-serif;outline:none;resize:none;max-height:80px;line-height:1.4;transition:border-color .2s}
-.text-input:focus{border-color:rgba(99,102,241,.45)}
-.text-input::placeholder{color:#2d3748}
-.voice-wrap{position:relative;flex-shrink:0;width:56px;height:56px;cursor:pointer}
-.voice-ring{position:absolute;border-radius:50%;border:1px solid rgba(99,102,241,.45);animation:waveOut 2s ease-out infinite;pointer-events:none}
-.voice-ring:nth-child(1){inset:-5px;animation-delay:0s}
-.voice-ring:nth-child(2){inset:-11px;animation-delay:.55s}
-.voice-ring:nth-child(3){inset:-17px;animation-delay:1.1s}
-.voice-inner{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;box-shadow:0 0 22px rgba(99,102,241,.55),0 0 44px rgba(99,102,241,.2);transition:all .2s}
+.search-dot{width:7px;height:7px;border-radius:50%;background:#4f46e5;animation:bounce 1s infinite}
+
+.action-wrap{padding:0 12px 12px;flex-shrink:0;position:relative;z-index:1}
+.action-row{display:flex;gap:10px;justify-content:center}
+.action-btn{flex:1;max-width:180px;padding:12px 16px;border-radius:16px;font-size:13px;font-weight:700;border:1px solid #cbd5e1;color:#475569;background:#ffffff;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.03)}
+.action-btn:active{background:#f1f5f9;transform:scale(.97)}
+.action-btn.primary{background:linear-gradient(to bottom,#6366f1,#4f46e5);border-color:transparent;color:#ffffff;box-shadow:0 6px 16px rgba(99,102,241,.3)}
+
+.input-area{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);padding:12px 16px 20px;flex-shrink:0;position:relative;z-index:1}
+.input-row{display:flex;gap:10px;align-items:center}
+.text-input{flex:1;background:#f8fafc;border:1px solid #cbd5e1;border-radius:24px;color:#1e293b;font-size:14px;padding:12px 18px;font-family:'Montserrat',sans-serif;outline:none;resize:none;max-height:80px;line-height:1.4;transition:all .2s;box-shadow:inset 0 2px 4px rgba(0,0,0,.02)}
+.text-input:focus{border-color:#818cf8;background:#ffffff;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.text-input::placeholder{color:#94a3b8}
+
+.voice-wrap{position:relative;flex-shrink:0;width:52px;height:52px;cursor:pointer}
+.voice-ring{position:absolute;border-radius:50%;border:1px solid rgba(99,102,241,.3);animation:waveOut 2s ease-out infinite;pointer-events:none}
+.voice-ring:nth-child(1){inset:-4px;animation-delay:0s}
+.voice-ring:nth-child(2){inset:-9px;animation-delay:.55s}
+.voice-ring:nth-child(3){inset:-14px;animation-delay:1.1s}
+.voice-inner{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;box-shadow:0 4px 14px rgba(99,102,241,.4);transition:all .2s}
 .voice-bars{display:flex;gap:3px;align-items:center;height:20px}
 .voice-bar{width:3px;border-radius:2px;background:#fff;animation:barDance 1s ease-in-out infinite}
 .voice-bar:nth-child(1){height:8px;animation-delay:0s}
@@ -69,14 +74,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .voice-bar:nth-child(3){height:20px;animation-delay:.3s}
 .voice-bar:nth-child(4){height:12px;animation-delay:.45s}
 .voice-bar:nth-child(5){height:8px;animation-delay:.6s}
-.voice-wrap.recording .voice-inner{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 0 28px rgba(239,68,68,.7)}
-.voice-wrap.recording .voice-ring{border-color:rgba(239,68,68,.45)}
-.send-btn{width:42px;height:42px;border-radius:50%;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.22);color:#a5b4fc;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
-.send-btn:active{background:rgba(99,102,241,.28);transform:scale(.92)}
-.send-btn:disabled{opacity:.3;cursor:default}
-.rec-overlay{position:fixed;inset:0;background:rgba(0,0,0,.87);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
+.voice-wrap.recording .voice-inner{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 18px rgba(239,68,68,.5)}
+.voice-wrap.recording .voice-ring{border-color:rgba(239,68,68,.3)}
+
+.send-btn{width:46px;height:46px;border-radius:50%;background:#e0e7ff;border:none;color:#4f46e5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.send-btn:active{background:#c7d2fe;transform:scale(.92)}
+.send-btn:disabled{opacity:.4;cursor:default;background:#f1f5f9;color:#94a3b8}
+
+.rec-overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
 .rec-overlay.show{display:flex}
-.rec-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:recPulse 1s ease-out infinite}
+.rec-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:recPulse 1s ease-out infinite;box-shadow:0 10px 30px rgba(239,68,68,.4)}
 .rec-wave-bars{display:flex;gap:5px;align-items:center;height:32px}
 .rec-bar{width:5px;border-radius:3px;background:#fff;animation:barDance .7s ease-in-out infinite}
 .rec-bar:nth-child(1){height:12px;animation-delay:0s}
@@ -84,22 +91,25 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .rec-bar:nth-child(3){height:32px;animation-delay:.2s}
 .rec-bar:nth-child(4){height:20px;animation-delay:.3s}
 .rec-bar:nth-child(5){height:12px;animation-delay:.4s}
-.rec-title{font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:6px}
-.rec-sub{font-size:13px;color:#6b7280;margin-bottom:28px}
-.rec-stop{padding:11px 30px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:24px;color:#ef4444;font-size:14px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif}
+.rec-title{font-size:22px;font-weight:800;color:#0f172a;margin-bottom:6px}
+.rec-sub{font-size:15px;color:#64748b;margin-bottom:32px}
+.rec-stop{padding:14px 34px;background:#fee2e2;border:1px solid #fca5a5;border-radius:24px;color:#ef4444;font-size:15px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 12px rgba(239,68,68,.15)}
+
 .mic-screen{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 24px;text-align:center;position:relative;z-index:1}
 .mic-screen.show{display:flex}
-.mic-icon-wrap{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 40px rgba(99,102,241,.5);animation:recPulse 2s ease-out infinite}
-.mic-title{font-size:22px;font-weight:800;color:#f1f5f9;margin-bottom:10px;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-.mic-sub{font-size:14px;color:#6b7280;line-height:1.65;margin-bottom:28px;max-width:280px}
-.mic-btn{padding:14px 32px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:16px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,.4)}
-.mic-skip{margin-top:16px;font-size:13px;color:#4b5563;cursor:pointer;text-decoration:underline;padding:8px 16px;display:inline-block}
+.mic-icon-wrap{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 10px 30px rgba(99,102,241,.3);animation:recPulse 2s ease-out infinite}
+.mic-title{font-size:24px;font-weight:800;color:#0f172a;margin-bottom:12px}
+.mic-sub{font-size:15px;color:#475569;line-height:1.65;margin-bottom:32px;max-width:300px}
+.mic-btn{padding:16px 36px;background:linear-gradient(to bottom,#6366f1,#4f46e5);border:none;border-radius:20px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 8px 24px rgba(99,102,241,.35);transition:transform .2s}
+.mic-btn:active{transform:scale(0.96)}
+.mic-skip{margin-top:20px;font-size:14px;color:#64748b;cursor:pointer;text-decoration:underline;padding:8px 16px;display:inline-block;font-weight:500}
+
 @keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes barDance{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.25)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-@keyframes waveOut{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.9);opacity:0}}
-@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(99,102,241,.5)}70%{box-shadow:0 0 0 20px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
+@keyframes waveOut{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(99,102,241,.3)}70%{box-shadow:0 0 0 20px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
 </style>
 </head>
 <body>
@@ -108,13 +118,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 
 <div class="mic-screen show" id="micScreen">
   <div class="mic-icon-wrap">
-    <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
       <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
     </svg>
   </div>
-  <div class="mic-title">Хей! Аз съм твоят AI асистент 🙌</div>
-  <div class="mic-sub">Ще работим заедно всеки ден.<br>Разреши ми да те чувам — за да говориш с мен вместо да пишеш.</div>
+  <div class="mic-title">Здравей! Аз съм твоят AI асистент 🙌</div>
+  <div class="mic-sub">Ще работим заедно всеки ден.<br>Разреши ми да те чувам, за да си говорим вместо да пишеш.</div>
   <button class="mic-btn" id="micBtn">Разреши микрофона</button>
   <div class="mic-skip" id="micSkip">Ще пиша засега</div>
 </div>
@@ -127,14 +137,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
   </div>
   <div class="search-indicator" id="searchIndicator">
     <div class="search-dot"></div>
-    <span>Проучвам данни за твоя бизнес...</span>
+    <span>Правя пазарен анализ за твоя тип бизнес...</span>
   </div>
   <div class="action-wrap" id="actionWrap" style="display:none">
     <div class="action-row" id="actionRow"></div>
   </div>
   <div class="input-area">
     <div class="input-row">
-      <textarea class="text-input" id="chatInput" placeholder="Кажи или пиши..." rows="1"
+      <textarea class="text-input" id="chatInput" placeholder="Пиши тук..." rows="1"
         oninput="autoResize(this);document.getElementById('btnSend').disabled=!this.value.trim()"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"></textarea>
       <div class="voice-wrap" id="voiceWrap" onclick="toggleVoice()">
@@ -147,7 +157,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
         </div>
       </div>
       <button class="send-btn" id="btnSend" onclick="sendText()" disabled>
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </button>
@@ -162,7 +172,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
       <div class="rec-bar"></div><div class="rec-bar"></div>
     </div>
   </div>
-  <div class="rec-title">Слушам...</div>
+  <div class="rec-title">Слушам те...</div>
   <div class="rec-sub">Говори свободно на български</div>
   <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
 </div>
@@ -175,7 +185,7 @@ function autoResize(el) { el.style.height=''; el.style.height=Math.min(el.scroll
 function capitalize(s) { return s.split(' ').map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase(); }).join(' '); }
 function showToast(msg) {
   var t=document.getElementById('_toast');
-  if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-family:Montserrat,sans-serif';document.body.appendChild(t);}
+  if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-family:Montserrat,sans-serif;box-shadow:0 10px 25px rgba(0,0,0,0.1)';document.body.appendChild(t);}
   t.textContent=msg; t.style.opacity='1'; setTimeout(function(){t.style.opacity='0';},4000);
 }
 
@@ -194,39 +204,19 @@ var searchInd=document.getElementById('searchIndicator');
 
 // ═══ MIC BUTTONS ═══
 document.getElementById('micBtn').addEventListener('click', function(){
-  var btn = this;
-  btn.disabled = true;
-  btn.textContent = 'Изчакай...';
-  
+  var btn = this; btn.disabled = true; btn.textContent = 'Изчакай...';
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(stream){
-        stream.getTracks().forEach(function(t){t.stop();});
-        state.micGranted = true;
-        startChat();
-      })
-      .catch(function(err){
-        state.micGranted = false;
-        startChat();
-      });
-  } else {
-    state.micGranted = false;
-    startChat();
-  }
+      .then(function(stream){ stream.getTracks().forEach(function(t){t.stop();}); state.micGranted = true; startChat(); })
+      .catch(function(err){ state.micGranted = false; startChat(); });
+  } else { state.micGranted = false; startChat(); }
 });
+document.getElementById('micSkip').addEventListener('click', function(){ state.micGranted = false; startChat(); });
 
-document.getElementById('micSkip').addEventListener('click', function(){
-  state.micGranted = false;
-  startChat();
-});
-
-// ПОПРАВКА: Гарантираме, че JavaScript също не счупва височините
 function startChat() {
   document.getElementById('micScreen').classList.remove('show');
   var ci = document.getElementById('chatInterface');
-  ci.style.display = 'flex';
-  ci.style.flex = '1 1 0';
-  ci.style.minHeight = '0';
+  ci.style.display = 'flex'; ci.style.flex = '1 1 0'; ci.style.minHeight = '0';
   setTimeout(function(){ aiSay('Хей! Аз съм твоят нов бизнес асистент 🙌\nЩе работим заедно всеки ден.\nКак да те викам?'); }, 400);
 }
 
@@ -236,7 +226,7 @@ function scrollBottom(){ chatArea.scrollTop=chatArea.scrollHeight; }
 function aiSay(text, isWow){
   hideActions();
   var g=document.createElement('div'); g.className='msg-group';
-  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>AI Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+  g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div>RunMyStore.ai Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+esc(text).replace(/\n/g,'<br>')+'</div>';
   chatArea.insertBefore(g,typing); scrollBottom();
 }
 
@@ -260,15 +250,9 @@ function toggleVoice(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){showToast('Браузърът не поддържа гласово въвеждане');return;}
   isRecording=true; voiceWrap.classList.add('recording'); recOverlay.classList.add('show');
-  
   voiceRec=new SR(); voiceRec.lang='bg-BG'; voiceRec.interimResults=false; voiceRec.maxAlternatives=1; voiceRec.continuous=false;
   voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
-  voiceRec.onerror=function(e){
-    stopVoice();
-    if(e.error==='no-speech') showToast('Не чух нищо — опитай пак');
-    else if(e.error==='not-allowed') showToast('Временно блокиран! Ще работи перфектно, когато имаме HTTPS домейн.');
-    else showToast('Грешка: '+e.error);
-  };
+  voiceRec.onerror=function(e){ stopVoice(); if(e.error==='no-speech') showToast('Не чух нищо — опитай пак'); else if(e.error==='not-allowed') showToast('Временно блокиран! Ще работи перфектно, когато имаме HTTPS.'); else showToast('Грешка: '+e.error); };
   voiceRec.onend=function(){if(isRecording)stopVoice();};
   try{voiceRec.start();}catch(e){stopVoice();}
 }
@@ -279,99 +263,118 @@ function stopVoice(){
 }
 
 function sendText(){
-  var input=document.getElementById('chatInput');
-  var text=input.value.trim(); if(!text)return;
-  input.value=''; input.style.height=''; document.getElementById('btnSend').disabled=true;
-  processInput(text);
+  var input=document.getElementById('chatInput'); var text=input.value.trim(); if(!text)return;
+  input.value=''; input.style.height=''; document.getElementById('btnSend').disabled=true; processInput(text);
 }
-
 function handleAction(val){ processInput(val); }
 
 // ═══ BULLETPROOF FLOW ═══
 async function processInput(text){
-  userSay(text); hideActions(); showTyping();
-  await wait(600); hideTyping();
+  userSay(text); hideActions(); showTyping(); await wait(600); hideTyping();
 
   try {
     switch(state.step){
       case 'name':
         state.name=capitalize(text.trim()); state.step='biz';
-        aiSay(state.name+'! Хубаво 😄\nКажи ми — какво продаваш?');
+        aiSay(state.name+', приятно ми е! 😄\nКажи ми — какво точно продаваш в твоя обект?');
         break;
-
       case 'biz':
         state.biz=text.trim(); state.step='segment';
         aiSay(getSegmentQuestion(state.biz));
         break;
-
       case 'segment':
         state.segment=text.trim(); state.step='stores';
         searchResult=''; doWebSearch(); // Скрит старт на търсене
-        aiSay('Колко магазина имаш?');
+        aiSay('Разбрах те отлично. Колко физически обекта/магазина имаш в момента?');
         break;
-
       case 'stores':
         state.stores=text.trim(); state.step='products';
-        aiSay('Колко артикула приблизително —\nпод 200, около 500, или повече?');
+        aiSay('Колко артикула приблизително поддържаш —\nпод 200, около 500, или хиляди?');
         break;
-
       case 'products':
         state.products=text.trim(); state.step='employees';
-        aiSay('Имаш ли служители?');
+        aiSay('Имаш ли служители, които работят на касата?');
         break;
-
       case 'employees':
         state.employees=text.trim();
         if(/да|имам|момич|момч|човек|души/i.test(text)){
-          aiSay('Те ще могат да питат мен\nвместо да те звънят на теб 😄');
-          await wait(1800);
+          aiSay('Те ще могат да питат мен за складови наличности\nвместо да ти звънят на теб постоянно 😄');
+          await wait(2200);
         }
         state.step='wow';
         await showWowMoment();
         break;
-
       case 'wow_confirm':
-        state.step='features';
-        await showFeatures();
-        break;
-
+        state.step='features'; await showFeatures(); break;
       case 'loyalty1':
         state.loyaltyFreq=text.trim(); state.step='loyalty2';
-        await wait(300); aiSay('Какво би дал на най-верния си клиент?');
+        await wait(300); aiSay('А какво би дал като бонус или отстъпка на най-верния си клиент?');
         break;
-
       case 'loyalty2':
         state.loyaltyReward=text.trim(); state.step='loyalty3';
-        await wait(300); aiSay('Имаш ли конкуренция наблизо?');
+        await wait(300); aiSay('Имаш ли силна конкуренция наблизо до обекта ти?');
         break;
-
       case 'loyalty3':
         state.loyaltyCompetition=text.trim(); state.step='done';
         await showLoyaltyResult();
         break;
-
       case 'done':
-        await finishOnboarding();
-        break;
+        await finishOnboarding(); break;
     }
-  } catch(err) {
-    console.error(err);
-  }
+  } catch(err) { console.error(err); }
 }
 
-// ═══ SEGMENT QUESTION ═══
+// ═══ МАСИВНО РАЗШИРЕН РЕЧНИК ЗА БИЗНЕСИ ═══
 function getSegmentQuestion(biz){
-  if(/дрех|облекло|риз|блуз|панталон|рокл/i.test(biz)) return 'Casual ли е — тениски, дънки, или по-официално — костюми?';
-  if(/обувк|маратонк|чехъл|боти/i.test(biz))           return 'Ежедневни обувки или по-скъпи — кожени, официални?';
-  if(/бижу|пръстен|гривн|обец|колие/i.test(biz))        return 'Сребро и стомана, или злато и скъпоценни камъни?';
-  if(/козмет|парфюм|грим|крем/i.test(biz))              return 'Масов пазар или по-скъпи марки — Chanel, Dior?';
-  if(/телефон|електрон|аксесоар|кабел|калъф/i.test(biz)) return 'Аксесоари и кабели, или и телефони, лаптопи?';
-  if(/хран|бакал|хлябъ|месо|плод/i.test(biz))           return 'Обикновен хранителен или bio, premium продукти?';
-  if(/строит|инструмент|бои|крепеж/i.test(biz))         return 'Дребен консуматив или и едро, строителни материали?';
-  if(/играч|детск/i.test(biz))                           return 'По-евтини играчки или и по-скъпи — конструктори?';
-  if(/цвет|букет|сакс/i.test(biz))                      return 'Рязан цвят и букети, или и саксийни композиции?';
-  if(/авто|кола|гума|масло/i.test(biz))                 return 'Консумативи — масла, филтри, или и по-скъпи части?';
-  return 'Продаваш ли по-евтини артикули или по-скъпи, качествени стоки?';
+  // Мода & Обувки
+  if(/дрех|облекло|риз|блуз|панталон|рокля|костюм|бутик/i.test(biz)) return 'Casual и масова мода ли е, или по-луксозен бутик/официални дрехи (напр. маркови костюми)?';
+  if(/обувк|маратонк|чехъл|боти/i.test(biz)) return 'Ежедневни/спортни обувки ли предлагаш или по-скъпи — официални и кожени?';
+  if(/чант|куфар|портмоне|колан/i.test(biz)) return 'По-масови и достъпни аксесоари ли са, или скъпи кожени/дизайнерски изделия?';
+  if(/втор|употреб|second|секън/i.test(biz)) return 'Стандартен дрехи на килограм ли е, или селектирана маркова second-hand стока?';
+  
+  // Бижута & Аксесоари
+  if(/бижу|пръстен|гривн|обец|колие|злат|сребр/i.test(biz)) return 'Сребро, стомана и ръчна изработка ли са, или скъпа бижутерия (злато, диаманти)?';
+  if(/часовник/i.test(biz)) return 'Модни часовници от среден клас или скъпи луксозни марки?';
+  if(/оптик|очил|лещ/i.test(biz)) return 'Предимно слънчеви очила или изработка на диоптрични стъкла и скъпи рамки?';
+  
+  // Здраве & Красота
+  if(/козмет|парфюм|грим|крем/i.test(biz)) return 'Масов пазар (дрогерия) ли е, или по-скъпа селективна/професионална козметика?';
+  if(/аптек|лекарств|фарма/i.test(biz)) return 'Стандартни лекарства и добавки, или имате и много скъпа медицинска козметика?';
+  if(/добавк|протеин|фитнес/i.test(biz)) return 'Масови витамини или специализирани премиум фитнес добавки?';
+  
+  // Техника & Електроника
+  if(/телефон|GSM|калъф|аксесоар|кабел/i.test(biz)) return 'Само аксесоари, калъфчета и кабели ли са, или продаваш и самите скъпи устройства (телефони, таблети)?';
+  if(/техник|електрон|компют|лаптоп|телевиз/i.test(biz)) return 'Дребна периферия или скъпа черна/бяла техника и компютри?';
+  if(/вейп|цигар|тютюн|наргил/i.test(biz)) return 'Електронни цигари за масова употреба или скъпи пури, вейпове и наргилета?';
+  
+  // Храни & Напитки
+  if(/хран|бакал|хляб|месо|плод|зеленч/i.test(biz)) return 'Обикновен квартален магазин ли е или специализиран (bio, фермерски, premium продукти)?';
+  if(/алкохол|вин|пити/i.test(biz)) return 'Масов алкохол и бира или магазин за селектирани вина и скъп премиум алкохол?';
+  if(/каф|пекарн|закуск/i.test(biz)) return 'Обикновени закуски и кафе или занаятчийска пекарна / specialty coffee?';
+  
+  // Дом & Градина & Строителство
+  if(/строит|инструмент|бои|крепеж/i.test(biz)) return 'Дребен консуматив (крепежи) или скъпи професионални машини и едрогабаритни материали?';
+  if(/мебел|диван|стол|матрак/i.test(biz)) return 'По-достъпни масови мебели или дизайнерски, поръчкови и скъпи решения?';
+  if(/декор|килим|заве|дом/i.test(biz)) return 'Дребни декорации за дома или скъпи текстили, картини и килими?';
+  if(/цвет|букет|сакс/i.test(biz)) return 'Рязан цвят и стандартни букети, или сложни, скъпи аранжировки и саксийни растения?';
+  if(/сувенир|подар/i.test(biz)) return 'Дребни сувенири и картички или луксозни корпоративни и лични подаръци?';
+  
+  // Хоби & Свободно време
+  if(/спорт|колел|велосипед|фитнес уред/i.test(biz)) return 'Екипировка за любители или професионално и скъпо оборудване (напр. скъпи велосипеди)?';
+  if(/играч|детск/i.test(biz)) return 'По-евтини масови играчки или скъпи конструктори, бордови игри и лицензирани фигурки?';
+  if(/бебе|количк|креват/i.test(biz)) return 'Дрешки и дребни консумативи или скъпи бебешки колички и мебели за детска стая?';
+  if(/зоо|куче|коте|животн/i.test(biz)) return 'Масови храни за домашни любимци или премиум клас гранули и скъпи аксесоари?';
+  if(/книг|канцелар|тетрад/i.test(biz)) return 'Обикновена канцелария и учебници или луксозни издания, специализирана литература и химикалки?';
+  if(/музик|инструмент|китар/i.test(biz)) return 'Консумативи като струни/перца или скъпи професионални инструменти и техника?';
+  
+  // Авто
+  if(/авто|кола|гума|масло/i.test(biz)) return 'Обикновени консумативи (масла, филтри, крушки) или скъпи части, гуми и джанти?';
+  
+  // Специфични
+  if(/секс|adult/i.test(biz)) return 'Стандартни забавни артикули или луксозно бельо и премиум играчки?';
+  
+  // Fallback
+  return 'Продаваш ли предимно масови/по-евтини артикули, или залагаш на скъпи, висококачествени стоки?';
 }
 
 // ═══ WEB SEARCH ═══
@@ -380,11 +383,10 @@ function doWebSearch(){
   try {
     var controller = new AbortController();
     setTimeout(function(){ controller.abort(); }, 4000); // 4 секунди макс
-    
     fetch('ai-helper.php',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' dead stock loss'}),
+      body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' retail dead stock loss financial average EU'}),
       signal: controller.signal
     })
     .then(function(r){return r.text();})
@@ -393,32 +395,28 @@ function doWebSearch(){
   } catch(e){ searchResult=''; searchDone=true; }
 }
 
-// ═══ WOW MOMENT (АБСОЛЮТНО НЕРАЗРУШИМ) ═══
+// ═══ WOW MOMENT (УМЕН PROMPT ЗА СКЪПИ И ЕВТИНИ СТОКИ) ═══
 async function showWowMoment(){
   showTyping(); searchInd.classList.add('show'); scrollBottom();
   
-  // Чакаме макс 3.5 секунди
   var checks = 12;
   while(!searchDone && checks > 0){ await wait(300); checks--; }
   searchInd.classList.remove('show'); hideTyping();
 
-  // ГАРАНЦИЯ: Дори всички мрежи да паднат, след 7 секунди този код се изпълнява
   var fallbackExecuted = false;
   var executeFallback = async function() {
-      if(fallbackExecuted) return;
-      fallbackExecuted = true;
-      hideTyping(); searchInd.classList.remove('show');
-      aiSay(state.name+', магазини като твоя губят средно €200-500 на месец.\nАз следя всичко и те спирам преди да е станало.', true);
-      await wait(1600); state.step='wow_confirm';
-      aiSay('Продължаваме? 🚀');
-      showActions([{label:'Да, напред!',val:'да',primary:true}]);
+      if(fallbackExecuted) return; fallbackExecuted = true; hideTyping(); searchInd.classList.remove('show');
+      var amt = /скъп|марков|костюм|злат|техник|мебел|луксоз/i.test(state.biz+' '+state.segment) ? '€1500 - €4000' : '€200 - €500';
+      aiSay(state.name+', в твоята сфера се губят средно '+amt+' на месец от залежала стока и липси.\nRunMyStore.ai следи всичко автоматично и те спира преди да е станало.', true);
+      await wait(2400); state.step='wow_confirm';
+      aiSay('Искаш ли да ти покажа какво още правим? 🚀');
+      showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
   };
   var safetyTimer = setTimeout(executeFallback, 7000);
 
   try {
     showTyping();
-    var controller = new AbortController();
-    setTimeout(function(){ controller.abort(); }, 6000); // убиваме заявката след 6 сек
+    var controller = new AbortController(); setTimeout(function(){ controller.abort(); }, 6000);
 
     var r = await fetch('ai-helper.php',{
       method:'POST',
@@ -428,33 +426,28 @@ async function showWowMoment(){
     });
     
     var txt = await r.text();
-    if(fallbackExecuted) return; // Ако резервният план вече се е задействал
-
+    if(fallbackExecuted) return;
     var d = JSON.parse(txt);
     if(d.messages && Array.isArray(d.messages)){
       clearTimeout(safetyTimer); fallbackExecuted = true; hideTyping();
-      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1400); aiSay(d.messages[i],true); }
-      await wait(1600); state.step='wow_confirm';
-      aiSay('Продължаваме? 🚀');
-      showActions([{label:'Да, напред!',val:'да',primary:true}]);
-    } else {
-      throw new Error('No messages array');
-    }
-  } catch(e) {
-    executeFallback();
-  }
+      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1500); aiSay(d.messages[i],true); }
+      await wait(2000); state.step='wow_confirm';
+      aiSay('Искаш ли да ти покажа какво още правим? 🚀');
+      showActions([{label:'Да, покажи ми!',val:'да',primary:true}]);
+    } else { throw new Error('No messages array'); }
+  } catch(e) { executeFallback(); }
 }
 
 function buildWowPrompt(){
-  return 'Ти си AI асистент на RunMyStore.ai провеждащ онбординг.\nГовориш като топъл приятел търговец — не като робот.\nРазговорен български.\n\nДАННИ:\n- Име: '+state.name+'\n- Бизнес: '+state.biz+'\n- Сегмент: '+state.segment+'\n- Магазини: '+state.stores+'\n- Артикули: '+state.products+'\n- Служители: '+state.employees+'\n- Пазарни данни: '+(searchResult||'няма — използвай консервативни диапазони')+'\n\nГЕНЕРИРАЙ ТОЧНО 5 СЪОБЩЕНИЯ като JSON:\n{"messages":["msg1","msg2","msg3","msg4","msg5"]}\n\nСТРУКТУРА 1-4:\n[Проблем за ТОЗИ бизнес и сегмент]\n→ [Как RunMyStore.ai го решава]\nЗагуба: €X-Y на период\n\nСЪОБЩЕНИЕ 5:\n"'+state.name+', само тези 4 проблема ти струват ~€X на година. RunMyStore.ai е €588 на година. Разликата — €X — остава в джоба ти."\n\nПРАВИЛА:\n- Цифри реалистични за ТОЗИ сегмент\n- Скъп бизнес→по-големи суми\n- Макс 4 реда на съобщение\n- Никога Shopify, Facebook, Еконт\nВЪРНИ САМО JSON.';
+  return 'Ти си AI асистент на RunMyStore.ai.\nГовориш като топъл приятел търговец — професионално, но човешко.\nРазговорен български.\n\nДАННИ:\nИме: '+state.name+'\nБизнес: '+state.biz+'\nСегмент: '+state.segment+'\nМагазини: '+state.stores+'\nПазарни данни: '+(searchResult||'няма данни')+'\n\nСИЛНА ИНСТРУКЦИЯ АКО НЯМА ПАЗАРНИ ДАННИ:\nАнализирай типа бизнес! Ако продава скъпи неща (маркови костюми, злато, техника, мебели), сумите за загуби от залежала стока ТРЯБВА да са огромни (напр. €1000 - €5000+ на месец). Ако продава евтини неща (закуски, дреболии), сумите са малки (€100 - €400). Съобрази се с типа стока!\n\nГЕНЕРИРАЙ 5 СЪОБЩЕНИЯ като JSON: {"messages":["msg1","msg2","msg3","msg4","msg5"]}\n\n1-4: Как RunMyStore.ai решава 4 специфични проблема за този бизнес.\n5: "Само тези 4 проблема ти струват ~€X на година. Ние струваме €588 на година. Разликата остава в джоба ти."\nВЪРНИ САМО JSON.';
 }
 
 // ═══ FEATURES ═══
 async function showFeatures(){
   await wait(400);
-  aiSay('Ето с какво ще работим заедно:\n\n📦 Следя склада — кое върви, кое стои, кое свършва\n\n🔔 Будя те навреме — преди да е свършила стоката\n\n📊 Казвам ти печалбата за деня — без да броиш нищо\n\n🎤 Управляваш всичко с глас — питаш мен, не търсиш в менюта\n\n👥 Служителите питат мен вместо да те звънят\n\n🎁 Лоялна карта за клиентите — безплатна завинаги\n\n30 дни пробваш всичко — безплатно, без карта.\nСлед това — €49 на месец.');
-  await wait(1800); state.step='loyalty1';
-  aiSay('Сега правим лоялната програма.\nТри бързи въпроса.\n\nКолко често идват редовните ти клиенти?');
+  aiSay('Ето как RunMyStore.ai ще ти помага всеки ден:\n\n📦 Следя склада — кое върви, кое стои, кое свършва\n\n🔔 Будя те навреме — преди стоката да се е изчерпала\n\n📊 Казвам ти печалбата за деня — без да събираш хартийки\n\n🎤 Управляваш всичко с глас — буквално си говориш с мен\n\n🎁 Получаваш дигитална лоялна карта за клиентите си\n\n30 дни пробваш всичко напълно безплатно.\nСлед това е едва €49 на месец.');
+  await wait(2400); state.step='loyalty1';
+  aiSay('Споменах лоялна програма. Нека я настроим за 10 секунди.\n\nКолко често идват редовните ти клиенти при теб?');
 }
 
 // ═══ LOYALTY ═══
@@ -463,23 +456,21 @@ async function showLoyaltyResult(){
   var isFrequent=/всеки|ден|седм|редовно/i.test(state.loyaltyFreq);
   var hasComp=/да|има|конкурент|наблизо/i.test(state.loyaltyCompetition);
   var pts=isFrequent?50:100, eur=isFrequent?3:5;
-  var compLine=hasComp?'\nСрещу конкуренцията — лоялността е оръжието ти 💪':'';
-  aiSay('Готово! Правя ти \''+state.name+' CLUB\':\n\n• €1 похарчен = 1 точка\n• '+pts+' точки = €'+eur+' отстъпка\n• Рожден ден = специален подарък\n• Лоялната карта е безплатна завинаги'+compLine+'\n\nХаресва ли ти?');
-  showActions([{label:'Да, страхотно!',val:'готово',primary:true},{label:'Промени нещо',val:'промени'}]);
+  var compLine=hasComp?'\nСрещу конкуренцията около теб — това е най-силното ти оръжие 💪':'';
+  aiSay('Готово! Току-що ти създадох \''+state.name+' CLUB\':\n\n• €1 похарчен = 1 точка\n• '+pts+' точки = €'+eur+' постоянна отстъпка\n• Персонален подарък за всеки рожден ден\n• Този модул е безплатен завинаги'+compLine+'\n\nДобре ли звучи?');
+  showActions([{label:'Да, супер е!',val:'готово',primary:true},{label:'Искам друга',val:'промени'}]);
 }
 
 // ═══ FINISH ═══
 async function finishOnboarding(){
   showTyping();
   try{
-    var controller = new AbortController();
-    setTimeout(function(){ controller.abort(); }, 4000);
+    var controller = new AbortController(); setTimeout(function(){ controller.abort(); }, 4000);
     await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition}), signal: controller.signal});
   }catch(e){}
   hideTyping();
-  aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно — без карта.\nЛоялната карта остава безплатна завинаги.\nСлед това — свързваме складовия модул към твоя бизнес.\n\nАз съм тук всеки ден.\nПитай каквото искаш, по всяко време.');
-  await wait(2000);
-  window.location.href='chat.php';
+  aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно.\nЛоялната карта ти остава безплатна завинаги.\nСледващата стъпка е да качим ценовата ти листа.\n\nАз съм тук. Питай ме каквото искаш.');
+  await wait(2600); window.location.href='chat.php';
 }
 </script>
 </body>
