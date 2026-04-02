@@ -241,17 +241,25 @@ let voiceRec = null, isRecording = false;
 // ═══════════════════════════════════════════
 async function requestMic() {
   try {
+    // Стъпка 1: getUserMedia
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     stream.getTracks().forEach(t => t.stop());
+
+    // Стъпка 2: SpeechRecognition — само за да се запомни разрешението
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      const sr = new SR();
+      sr.lang = 'bg-BG';
+      sr.onresult = () => {};
+      sr.onerror = () => {};
+      sr.onend = () => {};
+      try { sr.start(); setTimeout(() => { try { sr.stop(); } catch(e){} }, 300); } catch(e) {}
+    }
+
     state.micGranted = true;
   } catch(e) {
     state.micGranted = false;
   }
-  startChat();
-}
-
-function skipMic() {
-  state.micGranted = false;
   startChat();
 }
 
