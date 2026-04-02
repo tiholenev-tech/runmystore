@@ -21,7 +21,8 @@ body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;min-he
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,.09) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.07) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(59,130,246,.05) 0%,transparent 40%);pointer-events:none;z-index:0}
 .hdr{position:relative;z-index:50;background:rgba(3,7,18,.92);backdrop-filter:blur(24px);border-bottom:1px solid rgba(99,102,241,.12);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .brand{font-size:18px;font-weight:900;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-.chat-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 14px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
+/* ТУК Е ПРОМЯНАТА НА ДИЗАЙНА ЗА ЧАТА */
+.chat-area{background-color:rgba(15,23,42,0.4);border-radius:16px;margin:8px 8px 0 8px;flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 14px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
 .chat-area::-webkit-scrollbar{display:none}
 .msg-group{margin-bottom:14px;animation:fadeUp .3s ease both}
 .msg-meta{font-size:10px;color:#4b5563;margin-bottom:4px;display:flex;align-items:center;gap:6px}
@@ -458,7 +459,7 @@ async function finishOnboarding(){
     await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition})});
   }catch(e){}
   hideTyping();
-  aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно — без карта.\nЛоялната карта остава безплатна завинаги.\nСлед това — €49 на месец.\n\nАз съм тук всеки ден.\nПитай каквото искаш, по всяко време.');
+  aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно — без карта.\nЛоялната карта остава безплатна завинаги.\nСлед това — свързваме складовия модул към твоя бизнес.\n\nАз съм тук всеки ден.\nПитай каквото искаш, по всяко време.');
   await wait(2000);
   window.location.href='chat.php';
 }
