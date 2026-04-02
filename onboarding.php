@@ -17,12 +17,13 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <link rel="stylesheet" href="./style.css">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;min-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+/* ПОПРАВКА: Твърдо ограничаване на височината до екрана */
+body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,.09) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.07) 0%,transparent 45%),radial-gradient(circle at 50% 85%,rgba(59,130,246,.05) 0%,transparent 40%);pointer-events:none;z-index:0}
 .hdr{position:relative;z-index:50;background:rgba(3,7,18,.92);backdrop-filter:blur(24px);border-bottom:1px solid rgba(99,102,241,.12);padding:14px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .brand{font-size:18px;font-weight:900;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-/* ТУК Е ПРОМЯНАТА НА ДИЗАЙНА ЗА ЧАТА */
-.chat-area{background-color:rgba(15,23,42,0.4);border-radius:16px;margin:8px 8px 0 8px;flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 14px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
+/* ПОПРАВКА: Добавено flex: 1 1 0; min-height: 0; */
+.chat-area{background-color:rgba(30,41,59,0.6);border-radius:16px;margin:8px 8px 0 8px;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 14px 8px;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:1}
 .chat-area::-webkit-scrollbar{display:none}
 .msg-group{margin-bottom:14px;animation:fadeUp .3s ease both}
 .msg-meta{font-size:10px;color:#4b5563;margin-bottom:4px;display:flex;align-items:center;gap:6px}
@@ -118,7 +119,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
   <div class="mic-skip" id="micSkip">Ще пиша засега</div>
 </div>
 
-<div id="chatInterface" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+<div id="chatInterface" style="display:none;flex:1 1 0;min-height:0;flex-direction:column;overflow:hidden">
   <div class="chat-area" id="chatArea">
     <div class="typing-wrap" id="typing">
       <div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -167,7 +168,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 </div>
 
 <script>
-// ═══ UTILS — ПЪРВИ В КОДА ═══
+// ═══ UTILS ═══
 function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function autoResize(el) { el.style.height=''; el.style.height=Math.min(el.scrollHeight,80)+'px'; }
@@ -175,7 +176,7 @@ function capitalize(s) { return s.split(' ').map(function(w){ return w.charAt(0)
 function showToast(msg) {
   var t=document.getElementById('_toast');
   if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;font-family:Montserrat,sans-serif';document.body.appendChild(t);}
-  t.textContent=msg; t.style.opacity='1'; setTimeout(function(){t.style.opacity='0';},2800);
+  t.textContent=msg; t.style.opacity='1'; setTimeout(function(){t.style.opacity='0';},4000);
 }
 
 // ═══ STATE ═══
@@ -197,32 +198,14 @@ document.getElementById('micBtn').addEventListener('click', function(){
   btn.disabled = true;
   btn.textContent = 'Изчакай...';
   
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    try {
-      var dummy = new SR();
-      dummy.onstart = function() { 
-        dummy.stop(); 
-        state.micGranted = true; 
-        startChat(); 
-      };
-      dummy.onerror = function() { 
-        state.micGranted = false; 
-        startChat(); 
-      };
-      dummy.start();
-    } catch(e) {
-      state.micGranted = false;
-      startChat();
-    }
-  } else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({audio:true})
       .then(function(stream){
         stream.getTracks().forEach(function(t){t.stop();});
         state.micGranted = true;
         startChat();
       })
-      .catch(function(){
+      .catch(function(err){
         state.micGranted = false;
         startChat();
       });
@@ -237,17 +220,14 @@ document.getElementById('micSkip').addEventListener('click', function(){
   startChat();
 });
 
-// ═══ START CHAT ═══
+// ПОПРАВКА: Гарантираме, че JavaScript също не счупва височините
 function startChat() {
   document.getElementById('micScreen').classList.remove('show');
   var ci = document.getElementById('chatInterface');
   ci.style.display = 'flex';
-  ci.style.flex = '1';
-  ci.style.flexDirection = 'column';
-  ci.style.overflow = 'hidden';
-  setTimeout(function(){
-    aiSay('Хей! Аз съм твоят нов бизнес асистент 🙌\nЩе работим заедно всеки ден.\nКак да те викам?');
-  }, 400);
+  ci.style.flex = '1 1 0';
+  ci.style.minHeight = '0';
+  setTimeout(function(){ aiSay('Хей! Аз съм твоят нов бизнес асистент 🙌\nЩе работим заедно всеки ден.\nКак да те викам?'); }, 400);
 }
 
 // ═══ CHAT HELPERS ═══
@@ -270,7 +250,7 @@ function showTyping(){ typing.style.display='block'; scrollBottom(); }
 function hideTyping(){ typing.style.display='none'; }
 function showActions(buttons){
   actionRow.innerHTML=buttons.map(function(b){ return '<button class="action-btn'+(b.primary?' primary':'')+'" onclick="handleAction(\''+esc(b.val)+'\')">'+b.label+'</button>'; }).join('');
-  actionWrap.style.display='block';
+  actionWrap.style.display='block'; scrollBottom();
 }
 function hideActions(){ actionWrap.style.display='none'; actionRow.innerHTML=''; }
 
@@ -280,9 +260,15 @@ function toggleVoice(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){showToast('Браузърът не поддържа гласово въвеждане');return;}
   isRecording=true; voiceWrap.classList.add('recording'); recOverlay.classList.add('show');
+  
   voiceRec=new SR(); voiceRec.lang='bg-BG'; voiceRec.interimResults=false; voiceRec.maxAlternatives=1; voiceRec.continuous=false;
   voiceRec.onresult=function(e){var t=e.results[0][0].transcript;stopVoice();processInput(t);};
-  voiceRec.onerror=function(e){stopVoice();if(e.error==='no-speech')showToast('Не чух нищо — опитай пак');else if(e.error==='not-allowed')showToast('Разреши микрофона от настройките или презареди');else showToast('Грешка: '+e.error);};
+  voiceRec.onerror=function(e){
+    stopVoice();
+    if(e.error==='no-speech') showToast('Не чух нищо — опитай пак');
+    else if(e.error==='not-allowed') showToast('Временно блокиран! Ще работи перфектно, когато имаме HTTPS домейн.');
+    else showToast('Грешка: '+e.error);
+  };
   voiceRec.onend=function(){if(isRecording)stopVoice();};
   try{voiceRec.start();}catch(e){stopVoice();}
 }
@@ -301,71 +287,75 @@ function sendText(){
 
 function handleAction(val){ processInput(val); }
 
-// ═══ FLOW ═══
+// ═══ BULLETPROOF FLOW ═══
 async function processInput(text){
   userSay(text); hideActions(); showTyping();
   await wait(600); hideTyping();
 
-  switch(state.step){
-    case 'name':
-      state.name=capitalize(text.trim()); state.step='biz';
-      aiSay(state.name+'! Хубаво 😄\nКажи ми — какво продаваш?');
-      break;
+  try {
+    switch(state.step){
+      case 'name':
+        state.name=capitalize(text.trim()); state.step='biz';
+        aiSay(state.name+'! Хубаво 😄\nКажи ми — какво продаваш?');
+        break;
 
-    case 'biz':
-      state.biz=text.trim(); state.step='segment';
-      aiSay(getSegmentQuestion(state.biz));
-      break;
+      case 'biz':
+        state.biz=text.trim(); state.step='segment';
+        aiSay(getSegmentQuestion(state.biz));
+        break;
 
-    case 'segment':
-      state.segment=text.trim(); state.step='stores';
-      searchResult=''; doWebSearch();
-      aiSay('Колко магазина имаш?');
-      break;
+      case 'segment':
+        state.segment=text.trim(); state.step='stores';
+        searchResult=''; doWebSearch(); // Скрит старт на търсене
+        aiSay('Колко магазина имаш?');
+        break;
 
-    case 'stores':
-      state.stores=text.trim(); state.step='products';
-      aiSay('Колко артикула приблизително —\nпод 200, около 500, или повече?');
-      break;
+      case 'stores':
+        state.stores=text.trim(); state.step='products';
+        aiSay('Колко артикула приблизително —\nпод 200, около 500, или повече?');
+        break;
 
-    case 'products':
-      state.products=text.trim(); state.step='employees';
-      aiSay('Имаш ли служители?');
-      break;
+      case 'products':
+        state.products=text.trim(); state.step='employees';
+        aiSay('Имаш ли служители?');
+        break;
 
-    case 'employees':
-      state.employees=text.trim();
-      if(/да|имам|момич|момч|човек|души/i.test(text)){
-        aiSay('Те ще могат да питат мен\nвместо да те звънят на теб 😄');
-        await wait(1800);
-      }
-      state.step='wow';
-      await showWowMoment();
-      break;
+      case 'employees':
+        state.employees=text.trim();
+        if(/да|имам|момич|момч|човек|души/i.test(text)){
+          aiSay('Те ще могат да питат мен\nвместо да те звънят на теб 😄');
+          await wait(1800);
+        }
+        state.step='wow';
+        await showWowMoment();
+        break;
 
-    case 'wow_confirm':
-      state.step='features';
-      await showFeatures();
-      break;
+      case 'wow_confirm':
+        state.step='features';
+        await showFeatures();
+        break;
 
-    case 'loyalty1':
-      state.loyaltyFreq=text.trim(); state.step='loyalty2';
-      await wait(300); aiSay('Какво би дал на най-верния си клиент?');
-      break;
+      case 'loyalty1':
+        state.loyaltyFreq=text.trim(); state.step='loyalty2';
+        await wait(300); aiSay('Какво би дал на най-верния си клиент?');
+        break;
 
-    case 'loyalty2':
-      state.loyaltyReward=text.trim(); state.step='loyalty3';
-      await wait(300); aiSay('Имаш ли конкуренция наблизо?');
-      break;
+      case 'loyalty2':
+        state.loyaltyReward=text.trim(); state.step='loyalty3';
+        await wait(300); aiSay('Имаш ли конкуренция наблизо?');
+        break;
 
-    case 'loyalty3':
-      state.loyaltyCompetition=text.trim(); state.step='done';
-      await showLoyaltyResult();
-      break;
+      case 'loyalty3':
+        state.loyaltyCompetition=text.trim(); state.step='done';
+        await showLoyaltyResult();
+        break;
 
-    case 'done':
-      await finishOnboarding();
-      break;
+      case 'done':
+        await finishOnboarding();
+        break;
+    }
+  } catch(err) {
+    console.error(err);
   }
 }
 
@@ -387,46 +377,72 @@ function getSegmentQuestion(biz){
 // ═══ WEB SEARCH ═══
 function doWebSearch(){
   searchDone = false;
-  fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' small retailer dead stock loss monthly EU average'})})
-    .then(function(r){return r.json();})
-    .then(function(d){searchResult=d.result||'няма данни'; searchDone=true;})
-    .catch(function(){searchResult=''; searchDone=true;});
+  try {
+    var controller = new AbortController();
+    setTimeout(function(){ controller.abort(); }, 4000); // 4 секунди макс
+    
+    fetch('ai-helper.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'web_search',query:state.biz+' '+state.segment+' dead stock loss'}),
+      signal: controller.signal
+    })
+    .then(function(r){return r.text();})
+    .then(function(t){ try{var d=JSON.parse(t); searchResult=d.result;}catch(e){} searchDone=true; })
+    .catch(function(){ searchResult=''; searchDone=true; });
+  } catch(e){ searchResult=''; searchDone=true; }
 }
 
-// ═══ WOW MOMENT ═══
+// ═══ WOW MOMENT (АБСОЛЮТНО НЕРАЗРУШИМ) ═══
 async function showWowMoment(){
-  showTyping(); searchInd.classList.add('show');
-  var waited=0;
-  while(!searchDone && waited<6000){ await wait(300); waited+=300; }
+  showTyping(); searchInd.classList.add('show'); scrollBottom();
+  
+  // Чакаме макс 3.5 секунди
+  var checks = 12;
+  while(!searchDone && checks > 0){ await wait(300); checks--; }
   searchInd.classList.remove('show'); hideTyping();
 
-  try{
+  // ГАРАНЦИЯ: Дори всички мрежи да паднат, след 7 секунди този код се изпълнява
+  var fallbackExecuted = false;
+  var executeFallback = async function() {
+      if(fallbackExecuted) return;
+      fallbackExecuted = true;
+      hideTyping(); searchInd.classList.remove('show');
+      aiSay(state.name+', магазини като твоя губят средно €200-500 на месец.\nАз следя всичко и те спирам преди да е станало.', true);
+      await wait(1600); state.step='wow_confirm';
+      aiSay('Продължаваме? 🚀');
+      showActions([{label:'Да, напред!',val:'да',primary:true}]);
+  };
+  var safetyTimer = setTimeout(executeFallback, 7000);
+
+  try {
     showTyping();
     var controller = new AbortController();
-    var timeoutId = setTimeout(function(){ controller.abort(); }, 12000);
+    setTimeout(function(){ controller.abort(); }, 6000); // убиваме заявката след 6 сек
 
-    var r=await fetch('ai-helper.php',{
+    var r = await fetch('ai-helper.php',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'wow',prompt:buildWowPrompt()}),
       signal: controller.signal
     });
-    clearTimeout(timeoutId);
+    
+    var txt = await r.text();
+    if(fallbackExecuted) return; // Ако резервният план вече се е задействал
 
-    var d=await r.json(); hideTyping();
+    var d = JSON.parse(txt);
     if(d.messages && Array.isArray(d.messages)){
-      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1400); aiSay(d.messages[i],true); scrollBottom(); }
+      clearTimeout(safetyTimer); fallbackExecuted = true; hideTyping();
+      for(var i=0;i<d.messages.length;i++){ await wait(i===0?300:1400); aiSay(d.messages[i],true); }
+      await wait(1600); state.step='wow_confirm';
+      aiSay('Продължаваме? 🚀');
+      showActions([{label:'Да, напред!',val:'да',primary:true}]);
     } else {
-      aiSay('Магазини като твоя губят средно €200-500 на месец.\nАз следя и те спирам навреме.',true);
+      throw new Error('No messages array');
     }
-  }catch(e){
-    hideTyping();
-    aiSay(state.name+', магазини като твоя губят средно €200-500 на месец.\nАз следя всичко и те спирам преди да е станало.',true);
+  } catch(e) {
+    executeFallback();
   }
-
-  await wait(1600); state.step='wow_confirm';
-  aiSay('Продължаваме? 🚀');
-  showActions([{label:'Да, напред!',val:'да',primary:true}]);
 }
 
 function buildWowPrompt(){
@@ -456,7 +472,9 @@ async function showLoyaltyResult(){
 async function finishOnboarding(){
   showTyping();
   try{
-    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition})});
+    var controller = new AbortController();
+    setTimeout(function(){ controller.abort(); }, 4000);
+    await fetch('onboarding-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,biz:state.biz,segment:state.segment,stores:state.stores,products:state.products,employees:state.employees,loyalty_freq:state.loyaltyFreq,loyalty_reward:state.loyaltyReward,loyalty_competition:state.loyaltyCompetition}), signal: controller.signal});
   }catch(e){}
   hideTyping();
   aiSay(state.name+', всичко е готово! 🚀\n\n30 дни пробваш безплатно — без карта.\nЛоялната карта остава безплатна завинаги.\nСлед това — свързваме складовия модул към твоя бизнес.\n\nАз съм тук всеки ден.\nПитай каквото искаш, по всяко време.');
