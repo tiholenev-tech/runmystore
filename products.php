@@ -1190,7 +1190,7 @@ async function generateAIDescription() {
       body: JSON.stringify({ prompt: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието, без встъпление.` })
     });
     const d = await r.json();
-    if (d.text) { document.getElementById('f_desc').value = d.text; showToast('Описанието е генерирано ✓'); }
+    if (d.reply) { document.getElementById('f_desc').value = d.reply; showToast('Описанието е генерирано ✓'); }
     else showToast('Грешка при генериране');
   } catch(e) { showToast('Грешка при генериране'); }
 }
