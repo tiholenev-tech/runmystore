@@ -1,891 +1,2593 @@
 <?php
-// products.php — Артикули — Сесия 16 FULL REWRITE
-// 4 екрана: Начало | Доставчици | Категории | Артикули
-// Sticky навигация, AI-first добавяне, Fal.ai AI Image Studio
-require_once 'config/database.php';
+/**
+ * products.php — RunMyStore.ai
+ * 4-екранен модул: Начало | Доставчици | Категории | Артикули
+ * Cruip Open Pro Dark тема, AI-first, voice-first
+ * Сесия 17 — 04.04.2026
+ */
 session_start();
+require_once 'config/database.php';
+require_once 'config/config.php';
 
-if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
-$tenant_id    = $_SESSION['tenant_id'];
-$role         = $_SESSION['role'] ?? 'seller';
-$user_store   = $_SESSION['store_id'] ?? 0;
-$can_add      = in_array($role, ['owner','manager']);
-$can_see_cost = ($role === 'owner');
-$can_ai_image = in_array($role, ['owner','manager']);
+$user_id    = $_SESSION['user_id'];
+$tenant_id  = $_SESSION['tenant_id'];
+$store_id   = $_SESSION['store_id'] ?? null;
+$user_role  = $_SESSION['role'] ?? 'seller';
+$user_name  = $_SESSION['name'] ?? 'Потребител';
 
-// ── GET params ──
-$screen   = $_GET['screen'] ?? 'home';   // home|suppliers|categories|products
-$sup_id   = (int)($_GET['sup'] ?? 0);
-$cat_id   = (int)($_GET['cat'] ?? 0);
-$search   = trim($_GET['q'] ?? '');
-$filter   = $_GET['filter'] ?? 'all';
-$f_store  = ($role === 'seller') ? $user_store : (int)($_GET['store'] ?? 0);
+// Ролеви достъп
+$is_owner   = ($user_role === 'owner');
+$is_manager = ($user_role === 'manager');
+$can_add    = ($is_owner || $is_manager);
+$can_see_cost = $is_owner;
+$can_see_margin = $is_owner;
 
-// ── ДАННИ: Доставчици със статистики ──
-$suppliers_sql = "
-    SELECT s.id, s.name, 
-           COUNT(DISTINCT p.id) AS product_count,
-           COALESCE(SUM(i.quantity * p.cost_price),0) AS capital,
-           SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) = 0 THEN 1 ELSE 0 END) AS out_count,
-           SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) > 0 AND COALESCE(inv_sum.total_qty,0) <= COALESCE(inv_sum.min_qty,0) AND COALESCE(inv_sum.min_qty,0) > 0 THEN 1 ELSE 0 END) AS low_count
-    FROM suppliers s
-    LEFT JOIN products p ON p.supplier_id=s.id AND p.tenant_id=s.tenant_id AND p.parent_id IS NULL AND p.is_active=1
-    LEFT JOIN (
-        SELECT product_id, SUM(quantity) AS total_qty, MAX(min_quantity) AS min_qty 
-        FROM inventory WHERE tenant_id=? GROUP BY product_id
-    ) inv_sum ON inv_sum.product_id=p.id
-    LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-    WHERE s.tenant_id=? AND s.is_active=1
-    GROUP BY s.id ORDER BY s.name
-";
-$suppliers = DB::run($suppliers_sql, [$tenant_id, $tenant_id])->fetchAll();
+// Текущ екран
+$screen = $_GET['screen'] ?? 'home';
+$sup_id = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
+$cat_id = isset($_GET['cat']) ? (int)$_GET['cat'] : null;
+$filter = $_GET['filter'] ?? null;
 
-// ── ДАННИ: Категории глобални ──
-$categories_sql = "
-    SELECT c.id, c.name, c.variant_type, c.parent_id,
-           COUNT(DISTINCT p.id) AS product_count,
-           COUNT(DISTINCT p.supplier_id) AS supplier_count
-    FROM categories c
-    LEFT JOIN products p ON p.category_id=c.id AND p.tenant_id=c.tenant_id AND p.parent_id IS NULL AND p.is_active=1
-    WHERE c.tenant_id=?
-    GROUP BY c.id ORDER BY c.name
-";
-$categories = DB::run($categories_sql, [$tenant_id])->fetchAll();
+// ============================================================
+// AJAX ENDPOINTS
+// ============================================================
+if (isset($_GET['ajax'])) {
+    header('Content-Type: application/json; charset=utf-8');
 
-// ── ДАННИ: Категории на конкретен доставчик ──
-$sup_categories = [];
-$sup_name = '';
-$sup_capital = 0;
-$sup_product_count = 0;
+    // --- Търсене на артикули ---
+    if ($_GET['ajax'] === 'search') {
+        $q = trim($_GET['q'] ?? '');
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        if (strlen($q) < 1) { echo json_encode([]); exit; }
+        $like = "%{$q}%";
+        $rows = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image, p.supplier_id,
+                   s.name AS supplier_name, c.name AS category_name,
+                   COALESCE(SUM(i.quantity), 0) AS total_stock
+            FROM products p
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1
+              AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
+            GROUP BY p.id
+            ORDER BY p.name
+            LIMIT 30
+        ", [$sid, $tenant_id, $like, $like, $like])->fetchAll(PDO::FETCH_ASSOC);
+        if (!$can_see_cost) {
+            foreach ($rows as &$r) { unset($r['cost_price']); }
+        }
+        echo json_encode($rows);
+        exit;
+    }
+
+    // --- Баркод търсене ---
+    if ($_GET['ajax'] === 'barcode') {
+        $code = trim($_GET['code'] ?? '');
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        $row = DB::run("
+            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image,
+                   p.supplier_id, p.category_id, p.parent_id, p.description, p.unit,
+                   p.discount_pct, p.discount_ends_at, p.min_quantity,
+                   s.name AS supplier_name, c.name AS category_name,
+                   COALESCE(inv.quantity, 0) AS store_stock
+            FROM products p
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN inventory inv ON inv.product_id = p.id AND inv.store_id = ?
+            WHERE p.tenant_id = ? AND (p.barcode = ? OR p.code = ?)
+            LIMIT 1
+        ", [$sid, $tenant_id, $code, $code])->fetch(PDO::FETCH_ASSOC);
+        if ($row && !$can_see_cost) { unset($row['cost_price']); }
+        echo json_encode($row ?: ['error' => 'not_found']);
+        exit;
+    }
+
+    // --- Детайли на артикул + наличност по обекти ---
+    if ($_GET['ajax'] === 'product_detail') {
+        $pid = (int)($_GET['id'] ?? 0);
+        $product = DB::run("
+            SELECT p.*, s.name AS supplier_name, c.name AS category_name
+            FROM products p
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE p.id = ? AND p.tenant_id = ?
+        ", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$product) { echo json_encode(['error' => 'not_found']); exit; }
+        if (!$can_see_cost) { unset($product['cost_price']); }
+
+        // Наличност по обекти
+        $stocks = DB::run("
+            SELECT st.id AS store_id, st.name AS store_name, COALESCE(i.quantity, 0) AS qty
+            FROM stores st
+            LEFT JOIN inventory i ON i.store_id = st.id AND i.product_id = ?
+            WHERE st.company_id = (SELECT company_id FROM stores WHERE id = ?)
+            ORDER BY st.name
+        ", [$pid, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Вариации (ако parent)
+        $variations = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.barcode,
+                   COALESCE(SUM(i.quantity), 0) AS total_stock
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id
+            WHERE p.parent_id = ? AND p.tenant_id = ?
+            GROUP BY p.id
+            ORDER BY p.name
+        ", [$pid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Ценова история
+        $price_history = DB::run("
+            SELECT old_price, new_price, changed_at, changed_by
+            FROM price_history
+            WHERE product_id = ? ORDER BY changed_at DESC LIMIT 10
+        ", [$pid])->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'product' => $product,
+            'stocks' => $stocks,
+            'variations' => $variations,
+            'price_history' => $price_history
+        ]);
+        exit;
+    }
+
+    // --- Статистики за начален екран ---
+    if ($_GET['ajax'] === 'home_stats') {
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+
+        // Капитал (retail стойност на наличната стока)
+        $capital = DB::run("
+            SELECT COALESCE(SUM(i.quantity * p.retail_price), 0) AS retail_value,
+                   COALESCE(SUM(i.quantity * p.cost_price), 0) AS cost_value
+            FROM inventory i
+            JOIN products p ON p.id = i.product_id
+            WHERE p.tenant_id = ? AND i.store_id = ? AND i.quantity > 0
+        ", [$tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
+
+        // Среден марж
+        $avg_margin = 0;
+        if ($can_see_margin && $capital['cost_value'] > 0) {
+            $avg_margin = round((($capital['retail_value'] - $capital['cost_value']) / $capital['retail_value']) * 100, 1);
+        }
+
+        // Zombie stock (>45 дни без продажба)
+        $zombies = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.image,
+                   COALESCE(i.quantity, 0) AS qty,
+                   DATEDIFF(NOW(), COALESCE(
+                       (SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id),
+                       p.created_at
+                   )) AS days_stale
+            FROM products p
+            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND i.quantity > 0
+            HAVING days_stale > 45
+            ORDER BY days_stale DESC
+            LIMIT 10
+        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Ниска наличност (под минимума)
+        $low_stock = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.image, p.min_quantity,
+                   COALESCE(i.quantity, 0) AS qty
+            FROM products p
+            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.min_quantity > 0 AND i.quantity <= p.min_quantity AND i.quantity > 0
+            ORDER BY (i.quantity / p.min_quantity) ASC
+            LIMIT 10
+        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Изчерпани
+        $out_of_stock = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.image
+            FROM products p
+            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND i.quantity = 0
+            ORDER BY p.name
+            LIMIT 20
+        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Топ 5 хитове (последните 30 дни)
+        $top_sellers = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.image,
+                   SUM(si.quantity) AS sold_qty,
+                   SUM(si.quantity * si.unit_price) AS revenue
+            FROM sale_items si
+            JOIN sales s ON s.id = si.sale_id
+            JOIN products p ON p.id = si.product_id
+            WHERE p.tenant_id = ? AND s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY p.id
+            ORDER BY sold_qty DESC
+            LIMIT 5
+        ", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Бавно движещи се (25-45 дни)
+        $slow_movers = DB::run("
+            SELECT p.id, p.name, p.code, p.retail_price, p.image,
+                   COALESCE(i.quantity, 0) AS qty,
+                   DATEDIFF(NOW(), COALESCE(
+                       (SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id),
+                       p.created_at
+                   )) AS days_stale
+            FROM products p
+            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND i.quantity > 0
+            HAVING days_stale BETWEEN 25 AND 45
+            ORDER BY days_stale DESC
+            LIMIT 10
+        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+        // Общи бройки
+        $counts = DB::run("
+            SELECT
+                COUNT(DISTINCT p.id) AS total_products,
+                COALESCE(SUM(i.quantity), 0) AS total_units,
+                COUNT(DISTINCT p.supplier_id) AS total_suppliers,
+                COUNT(DISTINCT p.category_id) AS total_categories
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1
+        ", [$sid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'capital' => $can_see_margin ? round($capital['retail_value'], 2) : null,
+            'cost_value' => $can_see_cost ? round($capital['cost_value'], 2) : null,
+            'avg_margin' => $can_see_margin ? $avg_margin : null,
+            'zombies' => $zombies,
+            'low_stock' => $low_stock,
+            'out_of_stock' => $out_of_stock,
+            'top_sellers' => $top_sellers,
+            'slow_movers' => $slow_movers,
+            'counts' => $counts
+        ]);
+        exit;
+    }
+
+    // --- Доставчици списък ---
+    if ($_GET['ajax'] === 'suppliers') {
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        $suppliers = DB::run("
+            SELECT s.id, s.name, s.phone, s.email,
+                   COUNT(DISTINCT p.id) AS product_count,
+                   COALESCE(SUM(i.quantity), 0) AS total_stock,
+                   SUM(CASE WHEN i.quantity = 0 THEN 1 ELSE 0 END) AS out_count,
+                   SUM(CASE WHEN i.quantity > 0 AND i.quantity <= p.min_quantity THEN 1 ELSE 0 END) AS low_count
+            FROM suppliers s
+            JOIN products p ON p.supplier_id = s.id AND p.tenant_id = ?
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE s.tenant_id = ?
+            GROUP BY s.id
+            ORDER BY s.name
+        ", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($suppliers);
+        exit;
+    }
+
+    // --- Категории (глобални или на доставчик) ---
+    if ($_GET['ajax'] === 'categories') {
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
+
+        if ($sup) {
+            $categories = DB::run("
+                SELECT c.id, c.name, c.parent_id,
+                       COUNT(DISTINCT p.id) AS product_count,
+                       COALESCE(SUM(i.quantity), 0) AS total_stock
+                FROM categories c
+                JOIN products p ON p.category_id = c.id AND p.supplier_id = ? AND p.tenant_id = ?
+                LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+                WHERE c.tenant_id = ?
+                GROUP BY c.id
+                ORDER BY c.name
+            ", [$sup, $tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $categories = DB::run("
+                SELECT c.id, c.name, c.parent_id,
+                       COUNT(DISTINCT p.id) AS product_count,
+                       COUNT(DISTINCT p.supplier_id) AS supplier_count,
+                       COALESCE(SUM(i.quantity), 0) AS total_stock
+                FROM categories c
+                JOIN products p ON p.category_id = c.id AND p.tenant_id = ?
+                LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+                WHERE c.tenant_id = ?
+                GROUP BY c.id
+                ORDER BY c.name
+            ", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        }
+        echo json_encode($categories);
+        exit;
+    }
+
+    // --- Артикули списък (филтрирани) ---
+    if ($_GET['ajax'] === 'products') {
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
+        $cat = isset($_GET['cat']) ? (int)$_GET['cat'] : null;
+        $flt = $_GET['filter'] ?? 'all';
+        $sort = $_GET['sort'] ?? 'name';
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $per_page = 30;
+        $offset = ($page - 1) * $per_page;
+
+        $where = ["p.tenant_id = ?", "p.is_active = 1"];
+        $params = [$tenant_id];
+
+        if ($sup) { $where[] = "p.supplier_id = ?"; $params[] = $sup; }
+        if ($cat) { $where[] = "p.category_id = ?"; $params[] = $cat; }
+
+        // Филтри
+        if ($flt === 'low') {
+            $where[] = "i.quantity > 0 AND i.quantity <= p.min_quantity AND p.min_quantity > 0";
+        } elseif ($flt === 'out') {
+            $where[] = "(i.quantity = 0 OR i.quantity IS NULL)";
+        } elseif ($flt === 'zombie') {
+            $where[] = "i.quantity > 0";
+        }
+
+        $where_sql = implode(' AND ', $where);
+
+        // Сортиране
+        $order = match($sort) {
+            'price_asc' => 'p.retail_price ASC',
+            'price_desc' => 'p.retail_price DESC',
+            'stock_asc' => 'store_stock ASC',
+            'stock_desc' => 'store_stock DESC',
+            'margin_desc' => $can_see_margin ? '((p.retail_price - p.cost_price) / NULLIF(p.retail_price, 0)) DESC' : 'p.name ASC',
+            'newest' => 'p.created_at DESC',
+            default => 'p.name ASC'
+        };
+
+        $products = DB::run("
+            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price,
+                   p.image, p.supplier_id, p.category_id, p.parent_id,
+                   p.discount_pct, p.discount_ends_at, p.min_quantity, p.unit,
+                   s.name AS supplier_name, c.name AS category_name,
+                   COALESCE(i.quantity, 0) AS store_stock,
+                   (SELECT COALESCE(SUM(i2.quantity), 0) FROM inventory i2 WHERE i2.product_id = p.id) AS total_stock
+            FROM products p
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE {$where_sql}
+            ORDER BY {$order}
+            LIMIT ? OFFSET ?
+        ", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+
+        // Общ брой за pagination
+        $total = DB::run("
+            SELECT COUNT(DISTINCT p.id) AS cnt
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE {$where_sql}
+        ", array_merge([$sid], $params))->fetchColumn();
+
+        if (!$can_see_cost) {
+            foreach ($products as &$pr) { unset($pr['cost_price']); }
+        }
+
+        echo json_encode([
+            'products' => $products,
+            'total' => (int)$total,
+            'page' => $page,
+            'pages' => ceil($total / $per_page)
+        ]);
+        exit;
+    }
+
+    // --- AI анализ на артикул ---
+    if ($_GET['ajax'] === 'ai_analyze') {
+        $pid = (int)($_GET['id'] ?? 0);
+        $product = DB::run("SELECT * FROM products WHERE id = ? AND tenant_id = ?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$product) { echo json_encode(['error' => 'not_found']); exit; }
+
+        $sales_30d = DB::run("
+            SELECT COALESCE(SUM(si.quantity), 0) AS qty, COALESCE(SUM(si.quantity * si.unit_price), 0) AS revenue
+            FROM sale_items si JOIN sales s ON s.id = si.sale_id
+            WHERE si.product_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ", [$pid])->fetch(PDO::FETCH_ASSOC);
+
+        $stock = DB::run("SELECT COALESCE(SUM(quantity), 0) AS total FROM inventory WHERE product_id = ?", [$pid])->fetchColumn();
+
+        $days_supply = ($sales_30d['qty'] > 0) ? round(($stock / ($sales_30d['qty'] / 30)), 0) : 999;
+
+        $analysis = [];
+        if ($days_supply > 90 && $stock > 0) {
+            $analysis[] = ['type' => 'zombie', 'icon' => '💀', 'text' => "Стока за {$days_supply} дни. Намали с 30% или пакет.", 'severity' => 'high'];
+        } elseif ($days_supply > 45 && $stock > 0) {
+            $analysis[] = ['type' => 'slow', 'icon' => '🐌', 'text' => "Бавно движеща се — {$days_supply} дни запас. Промоция -20%?", 'severity' => 'medium'];
+        }
+
+        if ($stock <= $product['min_quantity'] && $stock > 0 && $product['min_quantity'] > 0) {
+            $analysis[] = ['type' => 'low', 'icon' => '⚠️', 'text' => "Остават {$stock} бр. (мин. {$product['min_quantity']}). Поръчай!", 'severity' => 'high'];
+        } elseif ($stock == 0) {
+            $analysis[] = ['type' => 'out', 'icon' => '🔴', 'text' => "ИЗЧЕРПАН! Губиш продажби.", 'severity' => 'critical'];
+        }
+
+        if ($can_see_margin && $product['cost_price'] > 0) {
+            $margin = round((($product['retail_price'] - $product['cost_price']) / $product['retail_price']) * 100, 1);
+            if ($margin < 20) {
+                $analysis[] = ['type' => 'margin', 'icon' => '💰', 'text' => "Марж само {$margin}%. Увеличи цената?", 'severity' => 'medium'];
+            }
+        }
+
+        if ($sales_30d['qty'] > 0) {
+            $analysis[] = ['type' => 'sales', 'icon' => '📊', 'text' => "Продажби 30 дни: {$sales_30d['qty']} бр. / " . number_format($sales_30d['revenue'], 2, ',', '.') . " €", 'severity' => 'info'];
+        }
+
+        echo json_encode(['analysis' => $analysis, 'days_supply' => $days_supply, 'sales_30d' => $sales_30d]);
+        exit;
+    }
+
+    // --- AI Image Studio статус ---
+    if ($_GET['ajax'] === 'ai_credits') {
+        $credits = DB::run("SELECT ai_credits_bg, ai_credits_tryon FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+        echo json_encode($credits);
+        exit;
+    }
+
+    // --- Gemini AI за добавяне (камера → предпопълване) ---
+    if ($_GET['ajax'] === 'ai_scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $image_data = $input['image'] ?? '';
+        if (!$image_data) { echo json_encode(['error' => 'no_image']); exit; }
+
+        // Tenant AI памет
+        $memories = DB::run("SELECT memory_text FROM tenant_ai_memory WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 20", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $memory_ctx = implode("\n", $memories);
+
+        // Категории и доставчици за контекст
+        $cats = DB::run("SELECT name FROM categories WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+
+        $prompt = "Ти си AI асистент за магазин за дрехи/обувки в България. Анализирай тази снимка на продукт и върни JSON:\n";
+        $prompt .= "{\"name\": \"...\", \"category\": \"...\", \"supplier\": \"...\", \"sizes\": [...], \"colors\": [...], \"retail_price\": 0, \"description\": \"...\"}\n";
+        $prompt .= "Категории в системата: " . implode(', ', $cats) . "\n";
+        $prompt .= "Доставчици: " . implode(', ', $sups) . "\n";
+        if ($memory_ctx) { $prompt .= "AI памет (научено от собственика): {$memory_ctx}\n"; }
+        $prompt .= "Отговори САМО с JSON, без markdown.";
+
+        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GEMINI_API_KEY;
+        $payload = [
+            'contents' => [[
+                'parts' => [
+                    ['inlineData' => ['mimeType' => 'image/jpeg', 'data' => $image_data]],
+                    ['text' => $prompt]
+                ]
+            ]],
+            'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 500]
+        ];
+
+        $ch = curl_init($api_url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15
+        ]);
+        $resp = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) { echo json_encode(['error' => $err]); exit; }
+        $data = json_decode($resp, true);
+        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $text = preg_replace('/```json\s*|\s*```/', '', $text);
+        $parsed = json_decode($text, true);
+        echo json_encode($parsed ?: ['error' => 'parse_failed', 'raw' => $text]);
+        exit;
+    }
+
+    // --- Voice → AI попълване ---
+    if ($_GET['ajax'] === 'ai_voice_fill' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $voice_text = $input['text'] ?? '';
+        if (!$voice_text) { echo json_encode(['error' => 'no_text']); exit; }
+
+        $cats = DB::run("SELECT name FROM categories WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+
+        $prompt = "Ти си AI за магазин. Потребителят описа продукт с глас: \"{$voice_text}\"\n";
+        $prompt .= "Върни JSON: {\"name\": \"...\", \"category\": \"...\", \"supplier\": \"...\", \"sizes\": [...], \"colors\": [...], \"retail_price\": 0, \"description\": \"...\"}\n";
+        $prompt .= "Категории: " . implode(', ', $cats) . "\nДоставчици: " . implode(', ', $sups) . "\n";
+        $prompt .= "Разбирай мекенето/диалекта: дреги=дрехи, офки=обувки, якита=якета. САМО JSON.";
+
+        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GEMINI_API_KEY;
+        $payload = [
+            'contents' => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 500]
+        ];
+        $ch = curl_init($api_url);
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($payload), CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($resp, true);
+        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $text = preg_replace('/```json\s*|\s*```/', '', $text);
+        echo json_encode(json_decode($text, true) ?: ['error' => 'parse_failed']);
+        exit;
+    }
+
+    echo json_encode(['error' => 'unknown_action']);
+    exit;
+}
+
+// ============================================================
+// Зареждане на обекти (за selector)
+// ============================================================
+$stores = DB::run("
+    SELECT s.id, s.name FROM stores s
+    WHERE s.company_id = (SELECT company_id FROM stores WHERE id = ?)
+    ORDER BY s.name
+", [$store_id])->fetchAll(PDO::FETCH_ASSOC);
+
+$current_store = null;
+foreach ($stores as $st) {
+    if ($st['id'] == $store_id) { $current_store = $st; break; }
+}
+
+// Доставчици и категории за dropdown-и
+$all_suppliers = DB::run("SELECT id, name FROM suppliers WHERE tenant_id = ? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+$all_categories = DB::run("SELECT id, name, parent_id FROM categories WHERE tenant_id = ? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+// Breadcrumb данни
+$supplier_name = '';
+$category_name = '';
 if ($sup_id) {
-    $sup_info = DB::run("SELECT name FROM suppliers WHERE id=? AND tenant_id=?", [$sup_id, $tenant_id])->fetch();
-    $sup_name = $sup_info['name'] ?? '';
-    
-    $sup_categories_sql = "
-        SELECT c.id, c.name,
-               COUNT(DISTINCT p.id) AS product_count,
-               SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) = 0 THEN 1 ELSE 0 END) AS out_count,
-               SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) > 0 AND COALESCE(inv_sum.total_qty,0) <= COALESCE(inv_sum.min_qty,0) AND COALESCE(inv_sum.min_qty,0) > 0 THEN 1 ELSE 0 END) AS low_count
-        FROM products p
-        JOIN categories c ON c.id=p.category_id
-        LEFT JOIN (
-            SELECT product_id, SUM(quantity) AS total_qty, MAX(min_quantity) AS min_qty 
-            FROM inventory WHERE tenant_id=? GROUP BY product_id
-        ) inv_sum ON inv_sum.product_id=p.id
-        WHERE p.supplier_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-        GROUP BY c.id ORDER BY c.name
-    ";
-    $sup_categories = DB::run($sup_categories_sql, [$tenant_id, $sup_id, $tenant_id])->fetchAll();
-    
-    $sup_stats = DB::run("
-        SELECT COUNT(DISTINCT p.id) AS cnt, COALESCE(SUM(i.quantity * p.cost_price),0) AS capital
-        FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-        WHERE p.supplier_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-    ", [$sup_id, $tenant_id])->fetch();
-    $sup_product_count = $sup_stats['cnt'] ?? 0;
-    $sup_capital = $sup_stats['capital'] ?? 0;
+    $supplier_name = DB::run("SELECT name FROM suppliers WHERE id = ? AND tenant_id = ?", [$sup_id, $tenant_id])->fetchColumn() ?: '';
 }
-
-// ── ДАННИ: Артикули (филтрирани) ──
-$where  = ["p.tenant_id=?", "p.parent_id IS NULL", "p.is_active=1"];
-$params = [$tenant_id];
-
-if ($sup_id && $cat_id) {
-    $where[] = "p.supplier_id=?"; $params[] = $sup_id;
-    $where[] = "p.category_id=?"; $params[] = $cat_id;
-} elseif ($sup_id) {
-    $where[] = "p.supplier_id=?"; $params[] = $sup_id;
-} elseif ($cat_id) {
-    $where[] = "p.category_id=?"; $params[] = $cat_id;
-}
-
-if ($search !== '') {
-    $where[] = "(p.name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.alt_codes LIKE ?)";
-    $like = "%$search%";
-    array_push($params, $like, $like, $like, $like);
-}
-
-$inv_join = $f_store
-    ? "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id AND i.store_id=$f_store"
-    : "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id";
-
-$products_sql = "
-    SELECT p.*, c.name AS category_name, c.variant_type, s.name AS supplier_name,
-           COALESCE(SUM(i.quantity),0) AS total_stock,
-           COALESCE(MAX(i.min_quantity),0) AS min_qty,
-           (SELECT COUNT(*) FROM products ch WHERE ch.parent_id=p.id AND ch.tenant_id=p.tenant_id AND ch.is_active=1) AS variant_count,
-           (SELECT COALESCE(SUM(si.quantity),0) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS sold_30d,
-           (SELECT DATEDIFF(NOW(), MAX(sa2.created_at)) FROM sale_items si2 JOIN sales sa2 ON sa2.id=si2.sale_id WHERE si2.product_id=p.id) AS days_no_sale
-    FROM products p
-    LEFT JOIN categories c ON c.id=p.category_id
-    LEFT JOIN suppliers s ON s.id=p.supplier_id
-    $inv_join
-    WHERE " . implode(' AND ', $where) . "
-    GROUP BY p.id ORDER BY p.name ASC LIMIT 200
-";
-$all_products = DB::run($products_sql, $params)->fetchAll();
-
-// ── Броячи за табове ──
-$cnt_low = 0; $cnt_out = 0;
-foreach ($all_products as $p) {
-    if ($p['total_stock'] == 0) $cnt_out++;
-    elseif ($p['min_qty'] > 0 && $p['total_stock'] <= $p['min_qty']) $cnt_low++;
-}
-
-if ($filter === 'low') $products = array_values(array_filter($all_products, fn($p) => $p['total_stock'] > 0 && $p['min_qty'] > 0 && $p['total_stock'] <= $p['min_qty']));
-elseif ($filter === 'out') $products = array_values(array_filter($all_products, fn($p) => $p['total_stock'] == 0));
-else $products = $all_products;
-
-// ── HOME статистики ──
-$home_stats = DB::run("
-    SELECT 
-        COALESCE(SUM(i.quantity * p.cost_price),0) AS total_capital,
-        CASE WHEN SUM(i.quantity * p.retail_price) > 0 
-             THEN ROUND((SUM(i.quantity * p.retail_price) - SUM(i.quantity * p.cost_price)) / SUM(i.quantity * p.retail_price) * 100, 1)
-             ELSE 0 END AS avg_margin
-    FROM products p 
-    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-", [$tenant_id])->fetch();
-
-// ── Zombie стока (>45 дни без продажба, има наличност) ──
-$zombies = DB::run("
-    SELECT p.id, p.name, COALESCE(SUM(i.quantity),0) AS qty,
-           COALESCE(SUM(i.quantity * p.cost_price),0) AS frozen_capital,
-           DATEDIFF(NOW(), COALESCE(
-               (SELECT MAX(sa.created_at) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id),
-               p.created_at
-           )) AS days_stuck
-    FROM products p
-    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-    GROUP BY p.id
-    HAVING qty > 0 AND days_stuck > 45
-    ORDER BY days_stuck DESC LIMIT 10
-", [$tenant_id])->fetchAll();
-
-$zombie_total = array_sum(array_column($zombies, 'frozen_capital'));
-
-// ── Свършващи (под минимума) ──
-$running_low = DB::run("
-    SELECT p.id, p.name, COALESCE(SUM(i.quantity),0) AS qty, MAX(i.min_quantity) AS min_qty
-    FROM products p
-    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-    GROUP BY p.id
-    HAVING qty > 0 AND min_qty > 0 AND qty <= min_qty
-    ORDER BY qty ASC LIMIT 10
-", [$tenant_id])->fetchAll();
-
-// ── Топ 5 хитове ──
-$top_sellers = DB::run("
-    SELECT p.id, p.name, COALESCE(SUM(si.quantity),0) AS sold
-    FROM sale_items si
-    JOIN sales sa ON sa.id=si.sale_id
-    JOIN products p ON p.id=si.product_id
-    WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
-    GROUP BY p.id ORDER BY sold DESC LIMIT 5
-", [$tenant_id])->fetchAll();
-
-// ── Бавно движещи се ──
-$slow_movers = DB::run("
-    SELECT p.id, p.name,
-           DATEDIFF(NOW(), COALESCE(
-               (SELECT MAX(sa.created_at) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id),
-               p.created_at
-           )) AS days_no_sale
-    FROM products p
-    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-    GROUP BY p.id
-    HAVING SUM(i.quantity) > 0 AND days_no_sale BETWEEN 25 AND 45
-    ORDER BY days_no_sale DESC LIMIT 5
-", [$tenant_id])->fetchAll();
-
-// ── Доставчик статистики (за екран 2) ──
-$sup_top_sold = DB::run("
-    SELECT s.name, COALESCE(SUM(si.quantity),0) AS sold
-    FROM sale_items si JOIN sales sa ON sa.id=si.sale_id
-    JOIN products p ON p.id=si.product_id
-    JOIN suppliers s ON s.id=p.supplier_id
-    WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
-    GROUP BY s.id ORDER BY sold DESC LIMIT 3
-", [$tenant_id])->fetchAll();
-
-$sup_top_profit = [];
-if ($can_see_cost) {
-    $sup_top_profit = DB::run("
-        SELECT s.name, COALESCE(SUM(si.quantity * (si.price - COALESCE(si.cost_price,0))),0) AS profit
-        FROM sale_items si JOIN sales sa ON sa.id=si.sale_id
-        JOIN products p ON p.id=si.product_id
-        JOIN suppliers s ON s.id=p.supplier_id
-        WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
-        GROUP BY s.id ORDER BY profit DESC LIMIT 3
-    ", [$tenant_id])->fetchAll();
-}
-
-// ── Stores за филтър ──
-$stores = DB::run("SELECT id, name FROM stores WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
-
-// ── Onboarding units ──
-$tenant_cfg = DB::run("SELECT units_config, ai_credits_bg, ai_credits_tryon FROM tenants WHERE id=?", [$tenant_id])->fetch();
-$onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
-$ai_credits_bg = (int)($tenant_cfg['ai_credits_bg'] ?? 0);
-$ai_credits_tryon = (int)($tenant_cfg['ai_credits_tryon'] ?? 0);
-
-// ── Breadcrumb ──
-$cat_name = '';
 if ($cat_id) {
-    $cat_info = DB::run("SELECT name FROM categories WHERE id=? AND tenant_id=?", [$cat_id, $tenant_id])->fetch();
-    $cat_name = $cat_info['name'] ?? '';
+    $category_name = DB::run("SELECT name FROM categories WHERE id = ? AND tenant_id = ?", [$cat_id, $tenant_id])->fetchColumn() ?: '';
 }
 
-// ── Cross-link: колко доставчика имат тази категория ──
-$cross_sup_count = 0;
-$cross_total = 0;
-if ($cat_id && $sup_id) {
-    $cross = DB::run("
-        SELECT COUNT(DISTINCT p.supplier_id) AS sup_cnt, COUNT(DISTINCT p.id) AS total
-        FROM products p WHERE p.category_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
-    ", [$cat_id, $tenant_id])->fetch();
-    $cross_sup_count = $cross['sup_cnt'] ?? 0;
-    $cross_total = $cross['total'] ?? 0;
+// Cross-link данни (когато drill-down от доставчик+категория)
+$cross_link = null;
+if ($sup_id && $cat_id && $screen === 'products') {
+    $cl = DB::run("
+        SELECT COUNT(DISTINCT p.id) AS cnt, COUNT(DISTINCT p.supplier_id) AS sup_cnt
+        FROM products p WHERE p.category_id = ? AND p.tenant_id = ? AND p.is_active = 1
+    ", [$cat_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+    if ($cl['sup_cnt'] > 1) {
+        $cross_link = ['count' => $cl['cnt'], 'suppliers' => $cl['sup_cnt'], 'cat_name' => $category_name];
+    }
 }
-
-// ── Формат валута ──
-function fmtEur($v) { return number_format((float)$v, 2, ',', '.') . ' €'; }
-function fmtInt($v) { return number_format((float)$v, 0, ',', '.'); }
 ?>
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Артикули — RunMyStore.ai</title>
-<link rel="stylesheet" href="./css/vendors/aos.css">
-<link rel="stylesheet" href="./style.css">
-<style>
-:root{--nav-h:64px;--sticky-h:62px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:#030712;color:#e2e8f0;font-family:'Montserrat',system-ui,sans-serif;margin:0;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + var(--sticky-h) + 12px)}
+    <meta charset="utf-8">
+    <title>Артикули — RunMyStore.ai</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="./css/vendors/aos.css" rel="stylesheet">
+    <link href="./style.css" rel="stylesheet">
+    <style>
+        /* ====== CRUIP DARK OVERRIDES + CUSTOM ====== */
+        :root {
+            --bg-main: #0b0f1a;
+            --bg-card: rgba(17, 24, 44, 0.85);
+            --bg-card-hover: rgba(23, 32, 58, 0.95);
+            --border-subtle: rgba(99, 102, 241, 0.15);
+            --border-glow: rgba(99, 102, 241, 0.4);
+            --indigo-500: #6366f1;
+            --indigo-400: #818cf8;
+            --indigo-300: #a5b4fc;
+            --indigo-200: #c7d2fe;
+            --text-primary: #e5e7eb;
+            --text-secondary: rgba(165, 180, 252, 0.65);
+            --green-glow: rgba(34, 197, 94, 0.6);
+            --yellow-glow: rgba(234, 179, 8, 0.6);
+            --red-glow: rgba(239, 68, 68, 0.6);
+        }
 
-/* ── SVG фонове (Cruip) ── */
-body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:846px;height:594px;background:url('./images/page-illustration.svg') no-repeat center;pointer-events:none;z-index:0;opacity:.5}
-body::after{content:'';position:fixed;top:400px;left:20%;width:760px;height:668px;background:url('./images/blurred-shape.svg') no-repeat center;pointer-events:none;z-index:0;opacity:.3}
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-main); color: var(--text-primary); font-family: Inter, system-ui, sans-serif; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; }
 
-/* ── Хедър ── */
-.hdr{position:sticky;top:0;z-index:50;background:rgba(3,7,18,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(99,102,241,.12);padding:12px 16px 0}
-.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.page-title{font-size:20px;font-weight:800;font-family:'Nacelle',sans-serif;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-@keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
+        /* SVG Background decorations */
+        .bg-decoration { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .bg-decoration::before { content: ''; position: absolute; top: -10%; left: 50%; transform: translateX(-50%); width: 1200px; height: 800px; background: url('./images/page-illustration.svg') no-repeat center; background-size: contain; opacity: 0.15; }
+        .bg-decoration::after { content: ''; position: absolute; top: 20%; right: -20%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%); border-radius: 50%; }
+        .bg-blur-shape { position: fixed; width: 400px; height: 400px; border-radius: 50%; filter: blur(100px); opacity: 0.06; pointer-events: none; z-index: 0; }
+        .bg-blur-1 { top: 10%; left: -10%; background: var(--indigo-500); }
+        .bg-blur-2 { bottom: 20%; right: -10%; background: #4f46e5; }
 
-.btn-add{display:flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 20px rgba(99,102,241,.4),inset 0 1px 0 rgba(255,255,255,.16)}
-.btn-add:active{transform:scale(.96)}
+        /* Main container */
+        .main-wrap { position: relative; z-index: 1; padding-bottom: 140px; padding-top: 8px; }
 
-/* ── Търсене ── */
-.search-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-.search-wrap{position:relative;flex:1}
-.search-input{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#e2e8f0;font-size:13px;padding:10px 74px 10px 14px;font-family:inherit;outline:none;transition:border-color .2s}
-.search-input::placeholder{color:#4b5563}
-.search-input:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-.search-icons{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:5px}
-.icon-btn{width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc}
-.icon-btn:active{background:rgba(99,102,241,.3)}
-.filter-btn{width:38px;height:38px;border-radius:12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0}
+        /* Header */
+        .top-header { position: sticky; top: 0; z-index: 50; padding: 8px 16px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(11, 15, 26, 0.8); border-bottom: 1px solid var(--border-subtle); }
+        .top-header h1 { font-family: Nacelle, Inter, sans-serif; font-size: 1.25rem; font-weight: 700; margin: 0; background: linear-gradient(to right, var(--text-primary), var(--indigo-200), #f9fafb, var(--indigo-300), var(--text-primary)); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradient 6s linear infinite; }
+        @keyframes gradient { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        .header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .store-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.15); color: var(--indigo-300); border: 1px solid var(--border-subtle); white-space: nowrap; }
 
-/* ── Табове ── */
-.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
-.ftabs::-webkit-scrollbar{display:none}
-.ftab{flex-shrink:0;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:inherit;white-space:nowrap}
-.ftab.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(99,102,241,.35)}
-.badge{display:inline-flex;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;padding:0 4px;align-items:center;justify-content:center;margin-left:4px}
-.badge-w{background:rgba(245,158,11,.15);color:#f59e0b}
-.badge-d{background:rgba(239,68,68,.15);color:#ef4444}
-.badge-n{background:rgba(255,255,255,.15);color:#fff}
+        /* Search bar */
+        .search-wrap { margin: 8px 16px 0; position: relative; }
+        .search-input { width: 100%; padding: 10px 96px 10px 40px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; outline: none; transition: all 0.3s; }
+        .search-input:focus { border-color: var(--border-glow); box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+        .search-input::placeholder { color: var(--text-secondary); }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+        .search-actions { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; }
+        .search-btn { width: 36px; height: 36px; border-radius: 8px; border: none; background: transparent; color: var(--indigo-300); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .search-btn:active { background: rgba(99,102,241,0.2); transform: scale(0.9); }
+        .search-btn.active { background: rgba(99,102,241,0.25); color: #fff; }
 
-/* ── Бърз поглед карти ── */
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.stat-card{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:10px 12px}
-.stat-label{font-size:10px;color:#6b7280;font-weight:600}
-.stat-val{font-size:18px;font-weight:900;color:#f1f5f9}
+        /* Tabs */
+        .tabs-row { display: flex; gap: 6px; padding: 10px 16px 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+        .tabs-row::-webkit-scrollbar { display: none; }
+        .tab-btn { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font-size: 0.8rem; white-space: nowrap; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+        .tab-btn.active { background: linear-gradient(135deg, var(--indigo-500), #4f46e5); color: #fff; border-color: transparent; box-shadow: 0 0 12px rgba(99,102,241,0.3); }
+        .tab-btn .count { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 9px; background: rgba(255,255,255,0.15); font-size: 0.65rem; margin-left: 4px; padding: 0 4px; }
+        .tab-btn.active .count { background: rgba(255,255,255,0.25); }
 
-/* ── Collapse секции ── */
-.collapse-box{border-radius:14px;margin-bottom:10px;overflow:hidden}
-.collapse-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
-.collapse-header:active{opacity:.8}
-.collapse-icon{display:flex;align-items:center;gap:8px}
-.collapse-emoji{font-size:15px}
-.collapse-title{font-size:12px;font-weight:700}
-.collapse-sub{font-size:11px;color:#6b7280}
-.collapse-arrow{transition:transform .2s}
-.collapse-body{display:none;padding:0 14px 12px}
-.collapse-body.open{display:block}
-.collapse-row{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(255,255,255,.04);font-size:12px}
-.collapse-action{padding:8px;border-radius:10px;font-size:11px;font-weight:700;text-align:center;margin-top:6px;cursor:pointer}
+        /* Quick stats cards */
+        .quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 0; }
+        .stat-card { position: relative; padding: 14px; border-radius: 12px; background: var(--bg-card); overflow: hidden; border: 1px solid var(--border-subtle); }
+        .stat-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; border: 1px solid transparent; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(79,70,229,0.05)) border-box; mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask-composite: exclude; -webkit-mask-composite: xor; pointer-events: none; }
+        .stat-card .stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .stat-value { font-size: 1.3rem; font-weight: 700; font-family: Nacelle, Inter, sans-serif; margin-top: 4px; }
+        .stat-card .stat-icon { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 8px; background: rgba(99,102,241,0.12); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 
-.cb-red{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15)}
-.cb-red .collapse-title{color:#ef4444}
-.cb-red .collapse-arrow{color:#ef4444}
-.cb-red .collapse-row span:last-child{color:#ef4444;font-weight:700}
-.cb-red .collapse-action{background:rgba(239,68,68,.1);color:#ef4444}
+        /* Collapse sections */
+        .collapse-section { margin: 10px 16px 0; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); overflow: hidden; }
+        .collapse-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .collapse-header:active { background: rgba(99,102,241,0.08); }
+        .collapse-header .ch-left { display: flex; align-items: center; gap: 8px; }
+        .collapse-header .ch-icon { font-size: 1.1rem; }
+        .collapse-header .ch-title { font-size: 0.85rem; font-weight: 600; }
+        .collapse-header .ch-count { font-size: 0.7rem; color: var(--text-secondary); background: rgba(99,102,241,0.1); padding: 2px 8px; border-radius: 999px; }
+        .collapse-header .ch-arrow { transition: transform 0.3s; color: var(--text-secondary); }
+        .collapse-header.open .ch-arrow { transform: rotate(180deg); }
+        .collapse-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .collapse-body.open { max-height: 2000px; }
+        .collapse-body-inner { padding: 0 14px 14px; }
 
-.cb-yellow{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15)}
-.cb-yellow .collapse-title{color:#f59e0b}
-.cb-yellow .collapse-arrow{color:#f59e0b}
-.cb-yellow .collapse-row span:last-child{color:#f59e0b;font-weight:700}
-.cb-yellow .collapse-action{background:rgba(245,158,11,.1);color:#f59e0b}
+        /* Product cards */
+        .product-card { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: rgba(17, 24, 44, 0.5); border: 1px solid var(--border-subtle); margin-bottom: 8px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
+        .product-card:active { transform: scale(0.98); background: var(--bg-card-hover); }
+        .product-card .stock-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; }
+        .stock-bar.green { background: #22c55e; box-shadow: 0 0 8px var(--green-glow); }
+        .stock-bar.yellow { background: #eab308; box-shadow: 0 0 8px var(--yellow-glow); }
+        .stock-bar.red { background: #ef4444; box-shadow: 0 0 8px var(--red-glow); }
+        .product-card .pc-thumb { width: 48px; height: 48px; border-radius: 8px; background: rgba(99,102,241,0.08); flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-left: 6px; }
+        .product-card .pc-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .product-card .pc-info { flex: 1; min-width: 0; }
+        .product-card .pc-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-card .pc-meta { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .product-card .pc-right { text-align: right; flex-shrink: 0; }
+        .product-card .pc-price { font-size: 0.9rem; font-weight: 700; color: var(--indigo-300); }
+        .product-card .pc-stock { font-size: 0.7rem; margin-top: 2px; }
+        .pc-stock.ok { color: #22c55e; }
+        .pc-stock.low { color: #eab308; }
+        .pc-stock.out { color: #ef4444; }
+        .pc-discount { position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 6px; border-radius: 4px; background: #ef4444; color: #fff; font-weight: 600; }
 
-.cb-green{background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15)}
-.cb-green .collapse-title{color:#22c55e}
-.cb-green .collapse-arrow{color:#22c55e}
-.cb-green .collapse-row span:last-child{color:#22c55e;font-weight:700}
+        /* Supplier swipe cards */
+        .swipe-container { padding: 12px 16px; overflow-x: auto; display: flex; gap: 12px; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
+        .swipe-container::-webkit-scrollbar { display: none; }
+        .supplier-card { min-width: 260px; max-width: 300px; flex-shrink: 0; scroll-snap-align: start; border-radius: 14px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border-subtle); position: relative; overflow: hidden; cursor: pointer; transition: all 0.3s; }
+        .supplier-card:active { transform: scale(0.97); }
+        .supplier-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; border: 1px solid transparent; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.05)) border-box; mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask-composite: exclude; -webkit-mask-composite: xor; pointer-events: none; }
+        .supplier-card .sc-name { font-size: 1rem; font-weight: 700; font-family: Nacelle, Inter, sans-serif; }
+        .supplier-card .sc-count { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+        .supplier-card .sc-badges { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .sc-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+        .sc-badge.ok { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .sc-badge.low { background: rgba(234,179,8,0.15); color: #eab308; }
+        .sc-badge.out { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .supplier-card .sc-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); opacity: 0.5; }
 
-.cb-purple{background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15)}
-.cb-purple .collapse-title{color:#8b5cf6}
-.cb-purple .collapse-arrow{color:#8b5cf6}
-.cb-purple .collapse-row span:last-child{color:#8b5cf6;font-weight:700}
-.cb-purple .collapse-action{background:rgba(139,92,246,.1);color:#8b5cf6}
+        /* Category cards (global mode: swipe, supplier mode: list) */
+        .cat-list-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.2s; }
+        .cat-list-item:active { background: rgba(99,102,241,0.08); }
+        .cat-list-item:last-child { border-bottom: none; }
+        .cat-list-item .cli-left { display: flex; align-items: center; gap: 10px; }
+        .cat-list-item .cli-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(99,102,241,0.12); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .cat-list-item .cli-name { font-size: 0.9rem; font-weight: 600; }
+        .cat-list-item .cli-count { font-size: 0.7rem; color: var(--text-secondary); }
 
-/* ── Доставчик / Категория карти (swipe) ── */
-.swipe-section{margin-bottom:18px}
-.swipe-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.swipe-label-text{font-size:11px;font-weight:700;letter-spacing:1px}
-.swipe-hint{font-size:11px;color:#4b5563}
-.swipe-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none}
-.swipe-row::-webkit-scrollbar{display:none}
-.swipe-card{min-width:150px;flex-shrink:0;scroll-snap-align:start;border-radius:14px;padding:12px;cursor:pointer;transition:transform .15s}
-.swipe-card:active{transform:scale(.97)}
-.sc-indigo{background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18)}
-.sc-purple{background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.18)}
-.sc-name{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:2px}
-.sc-info{font-size:11px;color:#6b7280;margin-bottom:6px}
-.sc-badges{display:flex;gap:3px;flex-wrap:wrap}
-.sc-badge{font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700}
-.scb-ok{background:rgba(34,197,94,.12);color:#22c55e}
-.scb-low{background:rgba(245,158,11,.12);color:#f59e0b}
-.scb-out{background:rgba(239,68,68,.12);color:#ef4444}
+        .category-card { min-width: 180px; flex-shrink: 0; scroll-snap-align: start; border-radius: 12px; padding: 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+        .category-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; border: 1px solid transparent; background: linear-gradient(135deg, rgba(99,102,241,0.12), transparent) border-box; mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask-composite: exclude; -webkit-mask-composite: xor; pointer-events: none; }
+        .category-card:active { transform: scale(0.97); }
+        .category-card .cc-name { font-size: 0.85rem; font-weight: 600; }
+        .category-card .cc-info { font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px; }
 
-/* ── Drill-down хедър ── */
-.dd-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.dd-back{width:32px;height:32px;border-radius:10px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0}
-.dd-back:active{background:rgba(99,102,241,.25)}
-.dd-breadcrumb{font-size:11px;color:#6b7280}
-.dd-breadcrumb a{color:#6b7280;text-decoration:none}
-.dd-breadcrumb a:hover{color:#a5b4fc}
-.dd-title{font-size:16px;font-weight:800;color:#f1f5f9}
-.dd-subtitle{font-size:11px;color:#6b7280}
+        /* Breadcrumb */
+        .breadcrumb { display: flex; align-items: center; gap: 4px; padding: 8px 16px 0; font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap; }
+        .breadcrumb a { color: var(--indigo-400); text-decoration: none; }
+        .breadcrumb a:active { color: var(--indigo-300); }
+        .breadcrumb .sep { margin: 0 2px; }
+        .cross-link { margin: 6px 16px 0; padding: 8px 12px; border-radius: 8px; background: rgba(99,102,241,0.08); border: 1px dashed var(--border-glow); font-size: 0.75rem; color: var(--indigo-300); cursor: pointer; }
+        .cross-link:active { background: rgba(99,102,241,0.15); }
 
-/* ── Cross-link ── */
-.cross-link{padding:8px 12px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.15);border-radius:10px;font-size:11px;color:#c4b5fd;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px}
-.cross-link:active{background:rgba(139,92,246,.15)}
+        /* ====== STICKY NAV BUTTONS (4) ====== */
+        .screen-nav { position: fixed; bottom: 68px; left: 0; right: 0; z-index: 40; display: flex; justify-content: center; padding: 0 12px; }
+        .screen-nav-inner { display: flex; gap: 4px; background: rgba(11, 15, 26, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 14px; padding: 4px; border: 1px solid var(--border-subtle); box-shadow: 0 -4px 24px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
+        .snav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.6rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .snav-btn .snav-icon { font-size: 1.1rem; }
+        .snav-btn.active { background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(79,70,229,0.15)); color: #fff; box-shadow: 0 0 12px rgba(99,102,241,0.2); }
+        .snav-btn:active { transform: scale(0.95); }
 
-/* ── Категория ред (в drill-down) ── */
-.cat-row{border-radius:14px;margin-bottom:8px;background:rgba(15,15,35,.85);border:1px solid rgba(99,102,241,.12);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .15s}
-.cat-row:active{transform:scale(.98)}
-.cat-row-name{font-size:15px;font-weight:700;color:#f1f5f9}
-.cat-row-info{font-size:12px;color:#6b7280}
-.cat-row-badges{display:flex;align-items:center;gap:6px}
+        /* ====== BOTTOM NAV (4 tabs) ====== */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 45; background: rgba(11, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border-subtle); display: flex; height: 56px; }
+        .bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+        .bnav-tab.active { color: var(--indigo-400); }
+        .bnav-tab .bnav-icon { font-size: 1.2rem; }
 
-/* ── Артикул карта ── */
-.pcard{position:relative;border-radius:16px;margin-bottom:8px;overflow:hidden;background:rgba(15,15,35,.85);border:1px solid rgba(99,102,241,.12);cursor:pointer;transition:transform .15s;animation:cIn .35s ease both}
-.pcard:active{transform:scale(.98)}
-.pcard-inner{display:flex;align-items:center;padding:10px 14px 10px 18px;position:relative}
-.stripe{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:16px 0 0 16px}
-.sg{background:linear-gradient(to bottom,#22c55e,#16a34a)}
-.sy{background:linear-gradient(to bottom,#f59e0b,#d97706)}
-.sr{background:linear-gradient(to bottom,#ef4444,#dc2626)}
-.pcard-thumb{width:44px;height:44px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;overflow:hidden}
-.pcard-thumb img{width:100%;height:100%;object-fit:cover}
-.pcard-info{flex:1;min-width:0}
-.pcard-name{font-size:14px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pcard-meta{font-size:11px;color:#6b7280}
-.pcard-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-.ptag{font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px}
-.ptag-price{color:#a5b4fc;background:rgba(99,102,241,.1)}
-.ptag-ok{color:#22c55e;background:rgba(34,197,94,.1)}
-.ptag-low{color:#f59e0b;background:rgba(245,158,11,.1)}
-.ptag-out{color:#ef4444;background:rgba(239,68,68,.1)}
-.ptag-var{color:#8b5cf6;background:rgba(139,92,246,.1)}
-.pcard-qty{text-align:right;flex-shrink:0;margin-left:8px}
-.pcard-num{font-size:20px;font-weight:900;line-height:1}
-.pcard-unit{font-size:10px;color:#6b7280;font-weight:600}
+        /* ====== ADD BUTTON (floating) ====== */
+        .fab-add { position: fixed; bottom: 134px; right: 16px; z-index: 42; width: 52px; height: 52px; border-radius: 14px; border: none; background: linear-gradient(135deg, var(--indigo-500), #4f46e5); color: #fff; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 24px rgba(99,102,241,0.4); transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .fab-add:active { transform: scale(0.9); }
+        .fab-add::after { content: ''; position: absolute; inset: -3px; border-radius: 17px; background: linear-gradient(135deg, var(--indigo-400), var(--indigo-500)); z-index: -1; opacity: 0.4; animation: pulse-glow 2s ease-in-out infinite; }
+        @keyframes pulse-glow { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.05); } }
 
-/* ── Supplier stats (екран 2 отдолу) ── */
-.stats-section{margin-top:18px}
-.stats-title{font-size:11px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:8px}
-.stats-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(99,102,241,.06);font-size:12px}
-.stats-row:last-child{border-bottom:none}
-.stats-row-name{color:#e2e8f0}
-.stats-row-val{font-weight:700}
+        /* ====== DRAWERS ====== */
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 101; background: var(--bg-main); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); max-height: 90vh; display: flex; flex-direction: column; }
+        .drawer.open { transform: translateY(0); }
+        .drawer-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); margin: 10px auto 0; flex-shrink: 0; }
+        .drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+        .drawer-header h3 { font-family: Nacelle, Inter, sans-serif; font-size: 1.05rem; font-weight: 700; margin: 0; }
+        .drawer-close { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .drawer-body { flex: 1; overflow-y: auto; padding: 14px 16px 24px; -webkit-overflow-scrolling: touch; }
 
-/* ── Sticky навигация (4 бутона) ── */
-.sticky-nav{position:fixed;bottom:var(--nav-h);left:0;right:0;z-index:90;background:linear-gradient(to top,rgba(3,7,18,.98) 80%,rgba(3,7,18,0));padding:10px 12px 8px}
-.sticky-btns{display:flex;gap:6px}
-.sticky-btn{flex:1;padding:8px 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:1px solid rgba(99,102,241,.15);background:rgba(15,15,40,.6);transition:all .15s}
-.sticky-btn:active{transform:scale(.95)}
-.sticky-btn.active{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4);box-shadow:0 0 12px rgba(99,102,241,.2)}
-.sticky-btn svg{width:18px;height:18px;color:#6b7280}
-.sticky-btn.active svg{color:#a5b4fc}
-.sticky-btn-label{font-size:10px;font-weight:700;color:#6b7280}
-.sticky-btn.active .sticky-btn-label{color:#a5b4fc}
+        /* ====== MODAL (Add/Edit) ====== */
+        .modal-overlay { position: fixed; inset: 0; background: var(--bg-main); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+        .modal-header h2 { font-family: Nacelle, Inter, sans-serif; font-size: 1.1rem; font-weight: 700; margin: 0; }
+        .modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
 
-/* ── Bottom nav ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(3,7,18,.97);backdrop-filter:blur(20px);border-top:1px solid rgba(99,102,241,.1);display:flex;align-items:center;z-index:100}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;text-decoration:none;border:none;background:transparent;cursor:pointer}
-.ni svg{width:22px;height:22px;color:#3f3f5a}
-.ni span{font-size:10px;font-weight:600;color:#3f3f5a}
-.ni.active svg,.ni.active span{color:#6366f1}
+        /* Wizard steps */
+        .wizard-steps { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px 16px; }
+        .wiz-step { width: 8px; height: 8px; border-radius: 50%; background: var(--border-subtle); transition: all 0.3s; }
+        .wiz-step.active { width: 24px; border-radius: 4px; background: var(--indigo-500); }
+        .wiz-step.done { background: var(--indigo-400); }
+        .wizard-page { display: none; padding: 16px; }
+        .wizard-page.active { display: block; }
 
-/* ── Empty state ── */
-.empty{text-align:center;padding:40px 20px;color:#4b5563}
-.empty h3{font-size:16px;font-weight:700;color:#374151;margin:0 0 6px}
-.empty p{font-size:13px;margin:0}
+        /* Form elements */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .form-control { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; outline: none; transition: all 0.3s; }
+        .form-control:focus { border-color: var(--border-glow); box-shadow: 0 0 16px rgba(99,102,241,0.12); }
+        .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23818cf8'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-.toast.show{opacity:1}
+        /* Size chips */
+        .size-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .size-chip { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .size-chip.selected { background: var(--indigo-500); color: #fff; border-color: var(--indigo-500); box-shadow: 0 0 8px rgba(99,102,241,0.3); }
+        .size-chip:active { transform: scale(0.95); }
 
-/* ── AI плаващ бутон ── */
-.ai-fab{position:fixed;bottom:160px;right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 20px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:80;animation:fabPulse 3s ease-in-out infinite;transition:all .3s}
-.ai-fab:active{transform:scale(.9)}
-.ai-fab svg{width:24px;height:24px;color:#fff}
-@keyframes fabPulse{0%,100%{box-shadow:0 4px 20px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)}50%{box-shadow:0 4px 30px rgba(99,102,241,.7),0 0 60px rgba(99,102,241,.35)}}
+        /* Color dots */
+        .color-dots { display: flex; flex-wrap: wrap; gap: 8px; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; position: relative; }
+        .color-dot.selected { border-color: var(--indigo-400); box-shadow: 0 0 8px rgba(99,102,241,0.4); }
+        .color-dot.selected::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
-/* ── Анимации ── */
-@keyframes cIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.pcard:nth-child(1){animation-delay:.03s}.pcard:nth-child(2){animation-delay:.06s}.pcard:nth-child(3){animation-delay:.09s}.pcard:nth-child(n+4){animation-delay:.12s}
+        /* AI Pulse button */
+        .ai-pulse-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; margin: 16px; border-radius: 16px; border: 2px dashed var(--border-glow); background: rgba(99,102,241,0.05); cursor: pointer; transition: all 0.3s; }
+        .ai-pulse-btn:active { background: rgba(99,102,241,0.12); transform: scale(0.98); }
+        .ai-pulse-icon { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--indigo-500), #4f46e5); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #fff; position: relative; }
+        .ai-pulse-icon::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--indigo-500); animation: ai-ring 2s ease-in-out infinite; opacity: 0; }
+        .ai-pulse-icon::after { content: ''; position: absolute; inset: -14px; border-radius: 50%; border: 1px solid var(--indigo-400); animation: ai-ring 2s ease-in-out infinite 0.5s; opacity: 0; }
+        @keyframes ai-ring { 0% { opacity: 0.6; transform: scale(0.85); } 100% { opacity: 0; transform: scale(1.2); } }
+        .ai-pulse-text { font-size: 0.85rem; font-weight: 600; color: var(--indigo-300); }
+        .ai-pulse-sub { font-size: 0.7rem; color: var(--text-secondary); }
 
-/* ── Content area ── */
-.content{padding:12px 16px;position:relative;z-index:1}
-</style>
+        /* AI Image Studio */
+        .ai-studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .ai-studio-btn { padding: 12px; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; }
+        .ai-studio-btn:active { background: var(--bg-card-hover); transform: scale(0.97); }
+        .ai-studio-btn .asb-icon { font-size: 1.5rem; margin-bottom: 4px; }
+        .ai-studio-btn .asb-name { font-size: 0.75rem; font-weight: 600; }
+        .ai-studio-btn .asb-price { font-size: 0.65rem; color: var(--text-secondary); }
+        .ai-studio-btn.wide { grid-column: 1 / -1; }
+        .ai-studio-btn.disabled { opacity: 0.4; pointer-events: none; }
+        .credits-info { font-size: 0.7rem; color: var(--text-secondary); text-align: center; margin-top: 8px; padding: 6px; background: rgba(99,102,241,0.05); border-radius: 8px; }
+
+        /* Camera overlay */
+        .camera-overlay { position: fixed; inset: 0; z-index: 300; background: #000; display: none; flex-direction: column; }
+        .camera-overlay.open { display: flex; }
+        .camera-video { flex: 1; object-fit: cover; }
+        .camera-controls { padding: 16px; display: flex; justify-content: center; gap: 16px; background: rgba(0,0,0,0.8); }
+        .camera-btn { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #fff; background: transparent; color: #fff; font-size: 1.2rem; cursor: pointer; }
+        .camera-btn.capture { background: #fff; color: #000; }
+        .camera-btn.close-cam { border-color: #ef4444; color: #ef4444; }
+        .scan-line { position: absolute; left: 10%; right: 10%; height: 2px; background: var(--indigo-500); box-shadow: 0 0 12px var(--indigo-500); top: 50%; animation: scan-anim 2s ease-in-out infinite; }
+        @keyframes scan-anim { 0%, 100% { transform: translateY(-40px); } 50% { transform: translateY(40px); } }
+        .green-flash { position: fixed; inset: 0; background: rgba(34,197,94,0.3); z-index: 301; pointer-events: none; animation: flash-out 0.5s ease-out forwards; }
+        @keyframes flash-out { to { opacity: 0; } }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 16px; left: 16px; right: 16px; z-index: 500; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { padding: 12px 16px; border-radius: 10px; background: rgba(17, 24, 44, 0.95); border: 1px solid var(--border-subtle); backdrop-filter: blur(8px); color: var(--text-primary); font-size: 0.8rem; transform: translateY(-20px); opacity: 0; transition: all 0.3s; pointer-events: auto; display: flex; align-items: center; gap: 8px; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-color: rgba(34,197,94,0.4); }
+        .toast.error { border-color: rgba(239,68,68,0.4); }
+        .toast.info { border-color: rgba(99,102,241,0.4); }
+
+        /* Indigo line decorations */
+        .indigo-line { height: 1px; background: linear-gradient(to right, transparent, var(--border-glow), transparent); margin: 12px 16px; }
+
+        /* Supplier stats section */
+        .stats-section { padding: 14px 16px; }
+        .stats-section h4 { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .stats-section h4::before { content: ''; width: 24px; height: 1px; background: linear-gradient(to right, transparent, var(--indigo-400)); }
+
+        /* Product detail drawer extras */
+        .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(99,102,241,0.08); }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-size: 0.75rem; color: var(--text-secondary); }
+        .detail-value { font-size: 0.85rem; font-weight: 600; }
+        .store-stock-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; background: rgba(17,24,44,0.5); }
+        .store-stock-row .ssr-name { font-size: 0.8rem; }
+        .store-stock-row .ssr-qty { font-size: 0.85rem; font-weight: 700; }
+
+        /* Action buttons in drawer */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .action-btn { padding: 10px; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-primary); font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+        .action-btn:active { background: var(--bg-card-hover); transform: scale(0.97); }
+        .action-btn.primary { background: linear-gradient(135deg, var(--indigo-500), #4f46e5); border-color: transparent; color: #fff; }
+        .action-btn.danger { border-color: rgba(239,68,68,0.3); color: #ef4444; }
+        .action-btn.wide { grid-column: 1 / -1; }
+
+        /* Voice recording indicator */
+        .voice-indicator { display: none; align-items: center; gap: 8px; padding: 8px 16px; }
+        .voice-indicator.active { display: flex; }
+        .voice-dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: voice-pulse 1s ease-in-out infinite; }
+        @keyframes voice-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+        .voice-text { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* Sort dropdown */
+        .sort-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 4px; min-width: 180px; z-index: 60; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .sort-dropdown.open { display: block; }
+        .sort-option { padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; }
+        .sort-option:active, .sort-option.active { background: rgba(99,102,241,0.12); color: var(--indigo-300); }
+
+        /* Filter drawer specific */
+        .filter-section { margin-bottom: 16px; }
+        .filter-section .fs-title { font-size: 0.8rem; font-weight: 600; margin-bottom: 8px; color: var(--indigo-300); }
+        .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .filter-chip { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .filter-chip.selected { background: rgba(99,102,241,0.2); color: var(--indigo-300); border-color: var(--border-glow); }
+        .price-range { display: flex; align-items: center; gap: 8px; }
+        .price-range input { width: 100px; }
+
+        /* Loading skeleton */
+        .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, rgba(99,102,241,0.08) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Beep audio */
+        .beep-audio { display: none; }
+
+        /* Pagination */
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px; }
+        .page-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .page-btn.active { background: var(--indigo-500); color: #fff; border-color: transparent; }
+        .page-btn:active { transform: scale(0.95); }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 40px 20px; }
+        .empty-state .es-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+        .empty-state .es-text { font-size: 0.9rem; color: var(--text-secondary); }
+
+        /* Section titles */
+        .section-title { padding: 14px 16px 6px; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; display: inline-block; width: 24px; height: 1px; background: linear-gradient(to right, transparent, var(--indigo-500)); }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to left, transparent, var(--border-subtle)); }
+
+        /* Variation display in product card */
+        .var-sizes { display: flex; gap: 3px; margin-top: 3px; }
+        .var-size { font-size: 0.55rem; padding: 1px 4px; border-radius: 3px; background: rgba(99,102,241,0.1); color: var(--indigo-300); }
+
+        /* AI drawer */
+        .ai-insight { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+        .ai-insight.critical { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+        .ai-insight.high { background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); }
+        .ai-insight.medium { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); }
+        .ai-insight.info { background: rgba(99,102,241,0.05); border: 1px solid var(--border-subtle); }
+        .ai-insight .ai-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+        .ai-insight .ai-text { font-size: 0.8rem; line-height: 1.4; }
+        .ai-deeplink { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(99,102,241,0.12); color: var(--indigo-300); font-size: 0.7rem; text-decoration: none; }
+    </style>
 </head>
 <body>
+    <!-- Background decorations -->
+    <div class="bg-decoration"></div>
+    <div class="bg-blur-shape bg-blur-1"></div>
+    <div class="bg-blur-shape bg-blur-2"></div>
 
-<!-- ═══════════ ХЕДЪР ═══════════ -->
-<div class="hdr">
-  <div class="hdr-top">
-    <?php if ($screen === 'home'): ?>
-      <h1 class="page-title">Артикули</h1>
-    <?php else: ?>
-      <div class="dd-header" style="margin-bottom:0">
-        <a href="<?php
-          if ($screen === 'products' && $sup_id && $cat_id) echo "products.php?screen=categories&sup=$sup_id";
-          elseif ($screen === 'products' && $cat_id) echo "products.php?screen=home";
-          elseif ($screen === 'categories' && $sup_id) echo "products.php?screen=suppliers";
-          else echo "products.php?screen=home";
-        ?>" class="dd-back">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
-        </a>
-        <div>
-          <?php if ($screen === 'suppliers'): ?>
-            <div class="dd-title">Доставчици</div>
-          <?php elseif ($screen === 'categories'): ?>
-            <?php if ($sup_id): ?>
-              <div class="dd-breadcrumb"><a href="products.php?screen=suppliers">Доставчици</a> ></div>
-              <div class="dd-title"><?= htmlspecialchars($sup_name) ?></div>
-              <div class="dd-subtitle"><?= $sup_product_count ?> артикула · <?= fmtEur($sup_capital) ?></div>
-            <?php else: ?>
-              <div class="dd-title">Категории</div>
-            <?php endif; ?>
-          <?php elseif ($screen === 'products'): ?>
-            <?php if ($sup_id && $cat_id): ?>
-              <div class="dd-breadcrumb">
-                <a href="products.php?screen=suppliers">Дост.</a> > 
-                <a href="products.php?screen=categories&sup=<?= $sup_id ?>"><?= htmlspecialchars($sup_name) ?></a> > <?= htmlspecialchars($cat_name) ?>
-              </div>
-            <?php elseif ($cat_id): ?>
-              <div class="dd-breadcrumb"><a href="products.php?screen=home">Кат.</a> > <?= htmlspecialchars($cat_name) ?></div>
-            <?php endif; ?>
-            <div class="dd-title">Артикули</div>
-          <?php endif; ?>
+    <!-- Toast container -->
+    <div class="toast-container" id="toasts"></div>
+
+    <!-- Main wrapper -->
+    <div class="main-wrap">
+
+        <!-- ====== HEADER ====== -->
+        <div class="top-header">
+            <div class="header-row">
+                <h1>Артикули</h1>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <select id="storeSelector" class="store-badge" onchange="switchStore(this.value)" style="background:rgba(99,102,241,0.15);border:1px solid var(--border-subtle);color:var(--indigo-300);padding:4px 8px;border-radius:999px;font-size:0.7rem;">
+                        <?php foreach ($stores as $st): ?>
+                            <option value="<?= $st['id'] ?>" <?= $st['id'] == $store_id ? 'selected' : '' ?>><?= htmlspecialchars($st['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($can_add): ?>
+                        <button onclick="openAddModal()" style="background:linear-gradient(135deg,var(--indigo-500),#4f46e5);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                            <span>+</span> Добави
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
-      </div>
-    <?php endif; ?>
+
+        <!-- ====== SEARCH BAR ====== -->
+        <div class="search-wrap">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" class="search-input" id="searchInput" placeholder="Търси артикул, код, баркод..." autocomplete="off">
+            <div class="search-actions">
+                <button class="search-btn" onclick="openCamera('scan')" title="Скенер">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+                </button>
+                <button class="search-btn" id="voiceBtn" onclick="toggleVoice()" title="Глас">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                </button>
+                <button class="search-btn" id="filterBtn" onclick="openFilterDrawer()" title="Филтри">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                </button>
+            </div>
+            <div class="voice-indicator" id="voiceIndicator">
+                <div class="voice-dot"></div>
+                <span class="voice-text">Слушам...</span>
+            </div>
+        </div>
+
+        <!-- ====== SCREEN: HOME ====== -->
+        <section id="screenHome" class="screen-section" style="display:<?= $screen === 'home' ? 'block' : 'none' ?>;">
+            <!-- Tabs: All / Low / Out -->
+            <div class="tabs-row">
+                <button class="tab-btn active" data-tab="all" onclick="setHomeTab('all', this)">Всички <span class="count" id="countAll">-</span></button>
+                <button class="tab-btn" data-tab="low" onclick="setHomeTab('low', this)">Ниска нал. <span class="count" id="countLow">-</span></button>
+                <button class="tab-btn" data-tab="out" onclick="setHomeTab('out', this)">Изчерпани <span class="count" id="countOut">-</span></button>
+            </div>
+
+            <!-- Quick stats -->
+            <div class="quick-stats" id="quickStats">
+                <?php if ($can_see_margin): ?>
+                <div class="stat-card">
+                    <div class="stat-label">Капитал</div>
+                    <div class="stat-value" id="statCapital">—</div>
+                    <div class="stat-icon">💰</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Ср. марж</div>
+                    <div class="stat-value" id="statMargin">—</div>
+                    <div class="stat-icon">📊</div>
+                </div>
+                <?php else: ?>
+                <div class="stat-card">
+                    <div class="stat-label">Артикули</div>
+                    <div class="stat-value" id="statProducts">—</div>
+                    <div class="stat-icon">📦</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Общо бройки</div>
+                    <div class="stat-value" id="statUnits">—</div>
+                    <div class="stat-icon">📋</div>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Collapse: Zombie stock -->
+            <div class="collapse-section" id="collapseZombie" style="display:none;">
+                <div class="collapse-header" onclick="toggleCollapse('zombie')">
+                    <div class="ch-left">
+                        <span class="ch-icon">💀</span>
+                        <span class="ch-title">Zombie стока</span>
+                        <span class="ch-count" id="zombieCount">0</span>
+                    </div>
+                    <svg class="ch-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="collapse-body" id="collapseZombieBody">
+                    <div class="collapse-body-inner" id="zombieList"></div>
+                </div>
+            </div>
+
+            <!-- Collapse: Low stock -->
+            <div class="collapse-section" id="collapseLow" style="display:none;">
+                <div class="collapse-header" onclick="toggleCollapse('low')">
+                    <div class="ch-left">
+                        <span class="ch-icon">⚠️</span>
+                        <span class="ch-title">Свършват скоро</span>
+                        <span class="ch-count" id="lowCount">0</span>
+                    </div>
+                    <svg class="ch-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="collapse-body" id="collapseLowBody">
+                    <div class="collapse-body-inner" id="lowList"></div>
+                </div>
+            </div>
+
+            <!-- Collapse: Top sellers -->
+            <div class="collapse-section" id="collapseTop" style="display:none;">
+                <div class="collapse-header" onclick="toggleCollapse('top')">
+                    <div class="ch-left">
+                        <span class="ch-icon">🔥</span>
+                        <span class="ch-title">Топ 5 хитове</span>
+                        <span class="ch-count" id="topCount">0</span>
+                    </div>
+                    <svg class="ch-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="collapse-body" id="collapseTopBody">
+                    <div class="collapse-body-inner" id="topList"></div>
+                </div>
+            </div>
+
+            <!-- Collapse: Slow movers -->
+            <div class="collapse-section" id="collapseSlow" style="display:none;">
+                <div class="collapse-header" onclick="toggleCollapse('slow')">
+                    <div class="ch-left">
+                        <span class="ch-icon">🐌</span>
+                        <span class="ch-title">Бавно движещи се</span>
+                        <span class="ch-count" id="slowCount">0</span>
+                    </div>
+                    <svg class="ch-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="collapse-body" id="collapseSlowBody">
+                    <div class="collapse-body-inner" id="slowList"></div>
+                </div>
+            </div>
+
+            <!-- All products list (home tab = all) -->
+            <div id="homeProductsList" style="padding:0 16px;margin-top:8px;"></div>
+            <div id="homePagination" class="pagination"></div>
+        </section>
+
+        <!-- ====== SCREEN: SUPPLIERS ====== -->
+        <section id="screenSuppliers" class="screen-section" style="display:<?= $screen === 'suppliers' ? 'block' : 'none' ?>;">
+            <div class="section-title">Доставчици</div>
+            <div class="swipe-container" id="supplierCards"></div>
+            <div class="indigo-line"></div>
+            <div class="stats-section">
+                <h4>Статистики доставчици</h4>
+                <div id="supplierStats"></div>
+            </div>
+        </section>
+
+        <!-- ====== SCREEN: CATEGORIES ====== -->
+        <section id="screenCategories" class="screen-section" style="display:<?= $screen === 'categories' ? 'block' : 'none' ?>;">
+            <?php if ($sup_id): ?>
+                <div class="breadcrumb">
+                    <a href="products.php?screen=suppliers">Доставчици</a>
+                    <span class="sep">›</span>
+                    <span><?= htmlspecialchars($supplier_name) ?></span>
+                </div>
+                <div class="section-title">Категории на <?= htmlspecialchars($supplier_name) ?></div>
+                <div id="categoryList" style="background:var(--bg-card);margin:0 16px;border-radius:12px;border:1px solid var(--border-subtle);overflow:hidden;"></div>
+            <?php else: ?>
+                <div class="section-title">Всички категории</div>
+                <div class="swipe-container" id="categoryCards"></div>
+            <?php endif; ?>
+        </section>
+
+        <!-- ====== SCREEN: PRODUCTS ====== -->
+        <section id="screenProducts" class="screen-section" style="display:<?= $screen === 'products' ? 'block' : 'none' ?>;">
+            <?php if ($sup_id || $cat_id): ?>
+                <div class="breadcrumb">
+                    <?php if ($sup_id): ?>
+                        <a href="products.php?screen=suppliers">Дост.</a>
+                        <span class="sep">›</span>
+                        <a href="products.php?screen=categories&sup=<?= $sup_id ?>"><?= htmlspecialchars($supplier_name) ?></a>
+                    <?php endif; ?>
+                    <?php if ($cat_id): ?>
+                        <?php if ($sup_id): ?><span class="sep">›</span><?php else: ?>
+                            <a href="products.php?screen=categories">Категории</a><span class="sep">›</span>
+                        <?php endif; ?>
+                        <span><?= htmlspecialchars($category_name) ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php if ($cross_link): ?>
+                    <div class="cross-link" onclick="window.location='products.php?screen=products&cat=<?= $cat_id ?>'">
+                        📂 Виж всички <?= htmlspecialchars($cross_link['cat_name']) ?> (<?= $cross_link['suppliers'] ?> дост. · <?= $cross_link['count'] ?> арт.)
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px 0;position:relative;">
+                <div class="section-title" style="padding:0;">Артикули</div>
+                <button onclick="toggleSort()" style="background:transparent;border:1px solid var(--border-subtle);color:var(--text-secondary);padding:4px 10px;border-radius:8px;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/></svg>
+                    Сортирай
+                </button>
+                <div class="sort-dropdown" id="sortDropdown">
+                    <div class="sort-option active" data-sort="name" onclick="setSort('name')">Име А→Я</div>
+                    <div class="sort-option" data-sort="price_asc" onclick="setSort('price_asc')">Цена ↑</div>
+                    <div class="sort-option" data-sort="price_desc" onclick="setSort('price_desc')">Цена ↓</div>
+                    <div class="sort-option" data-sort="stock_asc" onclick="setSort('stock_asc')">Наличност ↑</div>
+                    <div class="sort-option" data-sort="stock_desc" onclick="setSort('stock_desc')">Наличност ↓</div>
+                    <?php if ($can_see_margin): ?>
+                    <div class="sort-option" data-sort="margin_desc" onclick="setSort('margin_desc')">Марж ↓</div>
+                    <?php endif; ?>
+                    <div class="sort-option" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
+                </div>
+            </div>
+            <div id="productsList" style="padding:0 16px;margin-top:8px;"></div>
+            <div id="productsPagination" class="pagination"></div>
+        </section>
+
+    </div><!-- /main-wrap -->
+
+    <!-- ====== SCREEN NAV (4 sticky buttons) ====== -->
+    <div class="screen-nav">
+        <div class="screen-nav-inner">
+            <button class="snav-btn <?= $screen === 'home' ? 'active' : '' ?>" onclick="goScreen('home')">
+                <span class="snav-icon">🏠</span>
+                <span>Начало</span>
+            </button>
+            <button class="snav-btn <?= $screen === 'suppliers' ? 'active' : '' ?>" onclick="goScreen('suppliers')">
+                <span class="snav-icon">📦</span>
+                <span>Доставчици</span>
+            </button>
+            <button class="snav-btn <?= ($screen === 'categories') ? 'active' : '' ?>" onclick="goScreen('categories')">
+                <span class="snav-icon">🏷</span>
+                <span>Категории</span>
+            </button>
+            <button class="snav-btn <?= $screen === 'products' ? 'active' : '' ?>" onclick="goScreen('products')">
+                <span class="snav-icon">📋</span>
+                <span>Артикули</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- FAB Add button -->
     <?php if ($can_add): ?>
-    <button class="btn-add" onclick="openAddModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      Добави
-    </button>
+    <button class="fab-add" onclick="openAddModal()" title="Добави артикул">+</button>
     <?php endif; ?>
-  </div>
 
-  <?php if (in_array($screen, ['home','products'])): ?>
-  <div class="search-row">
-    <div class="search-wrap">
-      <form method="GET" id="searchForm">
-        <input type="hidden" name="screen" value="<?= htmlspecialchars($screen) ?>">
-        <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
-        <?php if ($sup_id): ?><input type="hidden" name="sup" value="<?= $sup_id ?>"><?php endif; ?>
-        <?php if ($cat_id): ?><input type="hidden" name="cat" value="<?= $cat_id ?>"><?php endif; ?>
-        <input type="text" name="q" class="search-input" placeholder="Търси по име, баркод, код..." value="<?= htmlspecialchars($search) ?>" autocomplete="off">
-      </form>
-      <div class="search-icons">
-        <button type="button" class="icon-btn" onclick="openCamera('search')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7m-3.5-3.5v7"/></svg>
-        </button>
-        <button type="button" class="icon-btn" onclick="startVoiceSearch()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        </button>
-      </div>
+    <!-- ====== BOTTOM NAV ====== -->
+    <nav class="bottom-nav">
+        <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
+        <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
+        <a href="stats.php" class="bnav-tab"><span class="bnav-icon">📊</span>Справки</a>
+        <a href="actions.php" class="bnav-tab"><span class="bnav-icon">⚡</span>Въвеждане</a>
+    </nav>
+
+    <!-- ====== PRODUCT DETAIL DRAWER ====== -->
+    <div class="drawer-overlay" id="detailOverlay" onclick="closeDrawer('detail')"></div>
+    <div class="drawer" id="detailDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <h3 id="detailTitle">Артикул</h3>
+            <button class="drawer-close" onclick="closeDrawer('detail')">✕</button>
+        </div>
+        <div class="drawer-body" id="detailBody">
+            <!-- Populated by JS -->
+        </div>
     </div>
-    <div class="filter-btn" onclick="openFilterDrawer()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 12h10M11 20h2"/></svg>
+
+    <!-- ====== AI ANALYSIS DRAWER ====== -->
+    <div class="drawer-overlay" id="aiOverlay" onclick="closeDrawer('ai')"></div>
+    <div class="drawer" id="aiDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <h3>✦ AI Анализ</h3>
+            <button class="drawer-close" onclick="closeDrawer('ai')">✕</button>
+        </div>
+        <div class="drawer-body" id="aiBody">
+            <div style="text-align:center;padding:20px;color:var(--text-secondary);">Зареждам...</div>
+        </div>
     </div>
-  </div>
-  <div class="ftabs">
-    <button class="ftab <?= $filter==='all'?'active':'' ?>" onclick="setFilter('all')">Всички <span class="badge badge-n"><?= count($all_products) ?></span></button>
-    <button class="ftab <?= $filter==='low'?'active':'' ?>" onclick="setFilter('low')">Ниска нал. <span class="badge <?= $cnt_low>0?'badge-w':'' ?>"><?= $cnt_low ?></span></button>
-    <button class="ftab <?= $filter==='out'?'active':'' ?>" onclick="setFilter('out')">Изчерпани <span class="badge <?= $cnt_out>0?'badge-d':'' ?>"><?= $cnt_out ?></span></button>
-  </div>
-  <?php endif; ?>
-</div>
 
-<!-- ═══════════ СЪДЪРЖАНИЕ ═══════════ -->
-<div class="content">
-
-<?php if ($screen === 'home'): ?>
-<!-- ══════ ЕКРАН 1: НАЧАЛО ══════ -->
-
-<!-- Бърз поглед -->
-<div class="stat-grid">
-  <div class="stat-card">
-    <div class="stat-label">Капитал</div>
-    <div class="stat-val"><?= fmtEur($home_stats['total_capital'] ?? 0) ?></div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val" style="color:#a5b4fc"><?= $home_stats['avg_margin'] ?? 0 ?>%</div>
-    <div class="stat-label">Среден марж</div>
-  </div>
-</div>
-
-<!-- Zombie -->
-<?php if (!empty($zombies)): ?>
-<div class="collapse-box cb-red" onclick="toggleCollapse(this)">
-  <div class="collapse-header">
-    <div class="collapse-icon"><span class="collapse-emoji">💀</span><div><div class="collapse-title">Zombie стока</div><div class="collapse-sub"><?= count($zombies) ?> артикула · <?= fmtEur($zombie_total) ?> замразени</div></div></div>
-    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="collapse-body">
-    <?php foreach($zombies as $z): ?>
-    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($z['name']) ?></span><span><?= $z['days_stuck'] ?>д · <?= fmtEur($z['frozen_capital']) ?></span></div>
-    <?php endforeach; ?>
-    <div class="collapse-action">💀 Намали с -30% или направи пакет</div>
-  </div>
-</div>
-<?php endif; ?>
-
-<!-- Свършващи -->
-<?php if (!empty($running_low)): ?>
-<div class="collapse-box cb-yellow" onclick="toggleCollapse(this)">
-  <div class="collapse-header">
-    <div class="collapse-icon"><span class="collapse-emoji">⚠</span><div><div class="collapse-title">Свършват скоро</div><div class="collapse-sub"><?= count($running_low) ?> артикула под минимума</div></div></div>
-    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="collapse-body">
-    <?php foreach($running_low as $r): ?>
-    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($r['name']) ?></span><span><?= fmtInt($r['qty']) ?> от <?= fmtInt($r['min_qty']) ?></span></div>
-    <?php endforeach; ?>
-    <div class="collapse-action">⚠ Поръчай всички наведнъж</div>
-  </div>
-</div>
-<?php endif; ?>
-
-<!-- Топ 5 хитове -->
-<?php if (!empty($top_sellers)): ?>
-<div class="collapse-box cb-green" onclick="toggleCollapse(this)">
-  <div class="collapse-header">
-    <div class="collapse-icon"><span class="collapse-emoji">🔥</span><div><div class="collapse-title">Топ 5 хитове</div><div class="collapse-sub">последни 30 дни</div></div></div>
-    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="collapse-body">
-    <?php foreach($top_sellers as $i => $t): ?>
-    <div class="collapse-row"><span style="color:#e2e8f0"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($t['name']) ?></span><span><?= fmtInt($t['sold']) ?> бр</span></div>
-    <?php endforeach; ?>
-  </div>
-</div>
-<?php endif; ?>
-
-<!-- Бавно движещи се -->
-<?php if (!empty($slow_movers)): ?>
-<div class="collapse-box cb-purple" onclick="toggleCollapse(this)">
-  <div class="collapse-header">
-    <div class="collapse-icon"><span class="collapse-emoji">🐌</span><div><div class="collapse-title">Бавно движещи се</div><div class="collapse-sub"><?= count($slow_movers) ?> артикула без продажба 25+ дни</div></div></div>
-    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="collapse-body">
-    <?php foreach($slow_movers as $sm): ?>
-    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($sm['name']) ?></span><span><?= $sm['days_no_sale'] ?>д</span></div>
-    <?php endforeach; ?>
-    <div class="collapse-action">🐌 Промоция -20% за 2 седмици</div>
-  </div>
-</div>
-<?php endif; ?>
-
-<?php elseif ($screen === 'suppliers'): ?>
-<!-- ══════ ЕКРАН 2: ДОСТАВЧИЦИ ══════ -->
-
-<div class="swipe-section">
-  <div class="swipe-label">
-    <div class="swipe-label-text" style="color:#6366f1">ДОСТАВЧИЦИ</div>
-    <div class="swipe-hint">← swipe →</div>
-  </div>
-  <div class="swipe-row">
-    <?php foreach($suppliers as $s): ?>
-    <a href="products.php?screen=categories&sup=<?= $s['id'] ?>" class="swipe-card sc-indigo" style="text-decoration:none">
-      <div class="sc-name"><?= htmlspecialchars($s['name']) ?></div>
-      <div class="sc-info"><?= $s['product_count'] ?> артикула</div>
-      <div class="sc-badges">
-        <?php $ok = $s['product_count'] - $s['low_count'] - $s['out_count']; if($ok > 0): ?><span class="sc-badge scb-ok"><?= $ok ?></span><?php endif; ?>
-        <?php if($s['low_count'] > 0): ?><span class="sc-badge scb-low"><?= $s['low_count'] ?></span><?php endif; ?>
-        <?php if($s['out_count'] > 0): ?><span class="sc-badge scb-out"><?= $s['out_count'] ?></span><?php endif; ?>
-      </div>
-    </a>
-    <?php endforeach; ?>
-  </div>
-</div>
-
-<!-- Статистики за доставчици -->
-<?php if (!empty($sup_top_sold)): ?>
-<div class="stats-section">
-  <div class="stats-title">🔥 НАЙ-МНОГО ПРОДАЖБИ (30 ДНИ)</div>
-  <?php foreach($sup_top_sold as $i => $ss): ?>
-  <div class="stats-row">
-    <span class="stats-row-name"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($ss['name']) ?></span>
-    <span class="stats-row-val" style="color:#22c55e"><?= fmtInt($ss['sold']) ?> бр</span>
-  </div>
-  <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
-<?php if ($can_see_cost && !empty($sup_top_profit)): ?>
-<div class="stats-section" style="margin-top:14px">
-  <div class="stats-title">💰 НАЙ-МНОГО ПЕЧАЛБА (30 ДНИ)</div>
-  <?php foreach($sup_top_profit as $i => $sp): ?>
-  <div class="stats-row">
-    <span class="stats-row-name"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($sp['name']) ?></span>
-    <span class="stats-row-val" style="color:#a5b4fc"><?= fmtEur($sp['profit']) ?></span>
-  </div>
-  <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
-<?php elseif ($screen === 'categories'): ?>
-<!-- ══════ ЕКРАН 3: КАТЕГОРИИ ══════ -->
-
-<?php if ($sup_id): ?>
-  <!-- Категории на конкретен доставчик -->
-  <?php if (empty($sup_categories)): ?>
-    <div class="empty"><h3>Няма категории</h3><p>Този доставчик няма артикули</p></div>
-  <?php else: ?>
-    <?php foreach($sup_categories as $sc): ?>
-    <a href="products.php?screen=products&sup=<?= $sup_id ?>&cat=<?= $sc['id'] ?>" class="cat-row" style="text-decoration:none">
-      <div>
-        <div class="cat-row-name"><?= htmlspecialchars($sc['name']) ?></div>
-        <div class="cat-row-info"><?= $sc['product_count'] ?> артикула</div>
-      </div>
-      <div class="cat-row-badges">
-        <?php if($sc['low_count'] > 0): ?><span class="sc-badge scb-low" style="font-size:10px"><?= $sc['low_count'] ?></span><?php endif; ?>
-        <?php if($sc['out_count'] > 0): ?><span class="sc-badge scb-out" style="font-size:10px"><?= $sc['out_count'] ?></span><?php endif; ?>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
-    </a>
-    <?php endforeach; ?>
-  <?php endif; ?>
-<?php else: ?>
-  <!-- Глобални категории -->
-  <div class="swipe-section">
-    <div class="swipe-label">
-      <div class="swipe-label-text" style="color:#8b5cf6">КАТЕГОРИИ (ВСИЧКИ ДОСТАВЧИЦИ)</div>
-      <div class="swipe-hint">← swipe →</div>
+    <!-- ====== FILTER DRAWER ====== -->
+    <div class="drawer-overlay" id="filterOverlay" onclick="closeDrawer('filter')"></div>
+    <div class="drawer" id="filterDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <h3>Филтри</h3>
+            <button class="drawer-close" onclick="closeDrawer('filter')">✕</button>
+        </div>
+        <div class="drawer-body">
+            <div class="filter-section">
+                <div class="fs-title">Категория</div>
+                <div class="filter-chips" id="filterCats">
+                    <?php foreach ($all_categories as $cat): ?>
+                        <button class="filter-chip" data-cat="<?= $cat['id'] ?>" onclick="toggleFilterChip(this, 'cat')"><?= htmlspecialchars($cat['name']) ?></button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="fs-title">Доставчик</div>
+                <div class="filter-chips" id="filterSups">
+                    <?php foreach ($all_suppliers as $sup): ?>
+                        <button class="filter-chip" data-sup="<?= $sup['id'] ?>" onclick="toggleFilterChip(this, 'sup')"><?= htmlspecialchars($sup['name']) ?></button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="fs-title">Наличност</div>
+                <div class="filter-chips">
+                    <button class="filter-chip" data-stock="all" onclick="toggleFilterChip(this, 'stock')">Всички</button>
+                    <button class="filter-chip" data-stock="in" onclick="toggleFilterChip(this, 'stock')">В наличност</button>
+                    <button class="filter-chip" data-stock="low" onclick="toggleFilterChip(this, 'stock')">Ниска</button>
+                    <button class="filter-chip" data-stock="out" onclick="toggleFilterChip(this, 'stock')">Изчерпани</button>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="fs-title">Ценови диапазон</div>
+                <div class="price-range">
+                    <input type="number" class="form-control" id="priceFrom" placeholder="От" style="width:48%;">
+                    <span style="color:var(--text-secondary);">—</span>
+                    <input type="number" class="form-control" id="priceTo" placeholder="До" style="width:48%;">
+                </div>
+            </div>
+            <button class="action-btn primary wide" onclick="applyFilters()" style="margin-top:12px;">Приложи филтри</button>
+            <button class="action-btn wide" onclick="clearFilters()" style="margin-top:6px;">Изчисти</button>
+        </div>
     </div>
-    <div class="swipe-row">
-      <?php foreach($categories as $c): ?>
-      <a href="products.php?screen=products&cat=<?= $c['id'] ?>" class="swipe-card sc-purple" style="text-decoration:none">
-        <div class="sc-name"><?= htmlspecialchars($c['name']) ?></div>
-        <div class="sc-info"><?= $c['product_count'] ?> арт. · <?= $c['supplier_count'] ?> дост.</div>
-      </a>
-      <?php endforeach; ?>
+
+    <!-- ====== ADD/EDIT MODAL ====== -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-header">
+            <button onclick="closeAddModal()" style="background:transparent;border:none;color:var(--text-secondary);font-size:1.1rem;cursor:pointer;padding:4px;">✕</button>
+            <h2 id="modalTitle">Нов артикул</h2>
+            <div style="width:28px;"></div>
+        </div>
+        <div class="wizard-steps" id="wizardSteps">
+            <div class="wiz-step active" data-step="0"></div>
+            <div class="wiz-step" data-step="1"></div>
+            <div class="wiz-step" data-step="2"></div>
+            <div class="wiz-step" data-step="3"></div>
+        </div>
+        <div class="modal-body">
+            <!-- Step 0: How to add? -->
+            <div class="wizard-page active" data-page="0">
+                <div class="ai-pulse-btn" onclick="openCamera('ai')">
+                    <div class="ai-pulse-icon">✦</div>
+                    <div class="ai-pulse-text">Снимай и AI попълва</div>
+                    <div class="ai-pulse-sub">Камерата разпознава продукта автоматично</div>
+                </div>
+                <div style="text-align:center;color:var(--text-secondary);font-size:0.75rem;margin:8px 0;">или</div>
+                <button class="action-btn wide" onclick="wizardVoice()" style="margin:0 16px;width:calc(100% - 32px);">
+                    🎤 Продиктувай с глас
+                </button>
+                <div style="height:12px;"></div>
+                <button class="action-btn wide" onclick="goWizardStep(1)" style="margin:0 16px;width:calc(100% - 32px);">
+                    ⌨️ Попълни ръчно
+                </button>
+            </div>
+
+            <!-- Step 1: Basic info -->
+            <div class="wizard-page" data-page="1">
+                <div style="padding:0 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Име на артикула</label>
+                        <input type="text" class="form-control" id="addName" placeholder="напр. Nike Air Max 90">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Баркод</label>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" class="form-control" id="addBarcode" placeholder="Сканирай или напиши" style="flex:1;">
+                            <button class="action-btn" onclick="openCamera('barcode_add')" style="flex-shrink:0;width:44px;">📷</button>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label class="form-label">Цена дребно (€)</label>
+                            <input type="number" step="0.01" class="form-control" id="addRetailPrice" placeholder="0.00">
+                        </div>
+                        <?php if ($can_see_cost): ?>
+                        <div class="form-group">
+                            <label class="form-label">Доставна цена (€)</label>
+                            <input type="number" step="0.01" class="form-control" id="addCostPrice" placeholder="0.00">
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Доставчик</label>
+                        <select class="form-control form-select" id="addSupplier">
+                            <option value="">— Избери —</option>
+                            <?php foreach ($all_suppliers as $sup): ?>
+                                <option value="<?= $sup['id'] ?>"><?= htmlspecialchars($sup['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория</label>
+                        <select class="form-control form-select" id="addCategory">
+                            <option value="">— Избери —</option>
+                            <?php foreach ($all_categories as $cat): ?>
+                                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+                        <button class="action-btn" onclick="goWizardStep(0)">← Назад</button>
+                        <button class="action-btn primary" onclick="goWizardStep(2)">Напред →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Variations -->
+            <div class="wizard-page" data-page="2">
+                <div style="padding:0 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Тип артикул</label>
+                        <div style="display:flex;gap:8px;">
+                            <button class="action-btn" id="typeSimple" onclick="setProductType('simple')" style="flex:1;">Единичен</button>
+                            <button class="action-btn" id="typeVariant" onclick="setProductType('variant')" style="flex:1;">С вариации</button>
+                        </div>
+                    </div>
+                    <div id="variantSection" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Размери</label>
+                            <div class="size-chips" id="sizeChips">
+                                <?php foreach (['XS','S','M','L','XL','XXL','3XL','36','37','38','39','40','41','42','43','44','45','46'] as $sz): ?>
+                                    <button class="size-chip" onclick="toggleSize(this)" data-size="<?= $sz ?>"><?= $sz ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:8px;">
+                                <input type="text" class="form-control" id="customSize" placeholder="Друг размер" style="flex:1;">
+                                <button class="action-btn" onclick="addCustomSize()">+</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Цветове</label>
+                            <div class="color-dots" id="colorDots">
+                                <?php
+                                $colors = ['#000000','#FFFFFF','#1E3A5F','#8B0000','#2E4A2E','#4A3728','#808080','#FFD700','#FF69B4','#FF4500','#4169E1','#800080'];
+                                $color_names = ['Черен','Бял','Тъмно син','Бордо','Тъмно зелен','Кафяв','Сив','Златен','Розов','Оранжев','Кралско син','Лилав'];
+                                foreach ($colors as $idx => $clr): ?>
+                                    <div class="color-dot" style="background:<?= $clr ?>;<?= $clr === '#FFFFFF' ? 'border:1px solid rgba(255,255,255,0.3);' : '' ?>" onclick="toggleColor(this)" data-color="<?= $clr ?>" data-name="<?= $color_names[$idx] ?>" title="<?= $color_names[$idx] ?>"></div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                        <button class="action-btn" onclick="goWizardStep(1)">← Назад</button>
+                        <button class="action-btn primary" onclick="goWizardStep(3)">Напред →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Details + Save -->
+            <div class="wizard-page" data-page="3">
+                <div style="padding:0 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Код</label>
+                        <input type="text" class="form-control" id="addCode" placeholder="Вътрешен код (незадължително)">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label class="form-label">Мерна единица</label>
+                            <select class="form-control form-select" id="addUnit">
+                                <option value="бр">бр</option>
+                                <option value="кг">кг</option>
+                                <option value="м">м</option>
+                                <option value="чифт">чифт</option>
+                                <option value="кутия">кутия</option>
+                                <option value="пакет">пакет</option>
+                                <option value="комплект">комплект</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Мин. наличност</label>
+                            <input type="number" class="form-control" id="addMinQty" placeholder="0" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Локация (рафт/ред)</label>
+                        <input type="text" class="form-control" id="addLocation" placeholder="напр. R3-P5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание (AI генерира)</label>
+                        <textarea class="form-control" id="addDescription" rows="3" placeholder="AI ще генерира описание автоматично"></textarea>
+                        <button class="action-btn" onclick="aiGenerateDescription()" style="margin-top:6px;width:100%;">✦ AI описание</button>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                        <button class="action-btn" onclick="goWizardStep(2)">← Назад</button>
+                        <button class="action-btn primary" onclick="saveProduct()" id="saveProductBtn" style="min-width:120px;">💾 Запази</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-<?php endif; ?>
 
-<?php elseif ($screen === 'products'): ?>
-<!-- ══════ ЕКРАН 4: АРТИКУЛИ ══════ -->
-
-<?php if ($sup_id && $cat_id && $cross_sup_count > 1): ?>
-<a href="products.php?screen=products&cat=<?= $cat_id ?>" class="cross-link">
-  <span>Виж <strong>всички <?= htmlspecialchars($cat_name) ?></strong> (<?= $cross_sup_count ?> доставчика · <?= $cross_total ?> арт.)</span>
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-</a>
-<?php endif; ?>
-
-<?php if (empty($products)): ?>
-<div class="empty">
-  <h3><?= $search ? 'Няма резултати' : 'Нямаш артикули' ?></h3>
-  <p><?= $search ? "Нищо не отговаря на \"".htmlspecialchars($search)."\"" : ($can_add ? 'Натисни + Добави' : '') ?></p>
-</div>
-<?php else: foreach($products as $p):
-  $qty = (float)$p['total_stock']; $min = (float)$p['min_qty'];
-  $iz = $qty == 0; $lo = !$iz && $min > 0 && $qty <= $min;
-  if ($iz) { $sc='sr'; $tt='Изчерпан'; $tc='ptag-out'; $qc='#ef4444'; }
-  elseif ($lo) { $sc='sy'; $tt='Ниска нал.'; $tc='ptag-low'; $qc='#f59e0b'; }
-  else { $sc='sg'; $tt='OK'; $tc='ptag-ok'; $qc='#22c55e'; }
-?>
-<div class="pcard" onclick="openProductDetail(<?= $p['id'] ?>)">
-  <div class="pcard-inner">
-    <div class="stripe <?= $sc ?>"></div>
-    <div class="pcard-thumb">
-      <?php if (!empty($p['image'])): ?>
-        <img src="<?= htmlspecialchars($p['image']) ?>" alt="">
-      <?php else: ?>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#4b5563" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-      <?php endif; ?>
+    <!-- ====== CAMERA OVERLAY ====== -->
+    <div class="camera-overlay" id="cameraOverlay">
+        <video class="camera-video" id="cameraVideo" playsinline autoplay></video>
+        <div class="scan-line" id="scanLine" style="display:none;"></div>
+        <canvas id="cameraCanvas" style="display:none;"></canvas>
+        <div class="camera-controls">
+            <button class="camera-btn close-cam" onclick="closeCamera()">✕</button>
+            <button class="camera-btn capture" id="captureBtn" onclick="capturePhoto()">📷</button>
+        </div>
     </div>
-    <div class="pcard-info">
-      <div class="pcard-name"><?= htmlspecialchars($p['name']) ?></div>
-      <div class="pcard-meta"><?= htmlspecialchars($p['supplier_name'] ?? '') ?><?= $p['supplier_name'] && $p['category_name'] ? ' · ' : '' ?><?= htmlspecialchars($p['category_name'] ?? '') ?><?= $p['variant_count'] > 0 ? ' · '.$p['variant_count'].' вар.' : '' ?></div>
-      <div class="pcard-tags">
-        <span class="ptag ptag-price"><?= fmtEur($p['retail_price'] ?? 0) ?></span>
-        <span class="ptag <?= $tc ?>"><?= $tt ?></span>
-        <?php if ($p['variant_count'] > 0): ?><span class="ptag ptag-var"><?= $p['variant_count'] ?> вар.</span><?php endif; ?>
-      </div>
+
+    <!-- ====== AI IMAGE STUDIO DRAWER ====== -->
+    <div class="drawer-overlay" id="studioOverlay" onclick="closeDrawer('studio')"></div>
+    <div class="drawer" id="studioDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <h3>📸 AI Image Studio</h3>
+            <button class="drawer-close" onclick="closeDrawer('studio')">✕</button>
+        </div>
+        <div class="drawer-body" id="studioBody">
+            <div id="studioProductImg" style="text-align:center;margin-bottom:12px;"></div>
+            <div class="ai-studio-grid">
+                <div class="ai-studio-btn wide" onclick="aiImageProcess('bg_removal')">
+                    <div class="asb-icon">🖼</div>
+                    <div class="asb-name">Бял фон</div>
+                    <div class="asb-price">€0,05 / снимка</div>
+                </div>
+                <div class="ai-studio-btn" id="studioTryonMan" onclick="aiImageProcess('tryon_man')">
+                    <div class="asb-icon">👨</div>
+                    <div class="asb-name">Модел мъж</div>
+                    <div class="asb-price">€0,50</div>
+                </div>
+                <div class="ai-studio-btn" id="studioTryonWoman" onclick="aiImageProcess('tryon_woman')">
+                    <div class="asb-icon">👩</div>
+                    <div class="asb-name">Модел жена</div>
+                    <div class="asb-price">€0,50</div>
+                </div>
+                <div class="ai-studio-btn" id="studioTryonChild" onclick="aiImageProcess('tryon_child')">
+                    <div class="asb-icon">👦</div>
+                    <div class="asb-name">Модел дете</div>
+                    <div class="asb-price">€0,50</div>
+                </div>
+                <div class="ai-studio-btn" id="studioTryonTeenM" onclick="aiImageProcess('tryon_teen_m')">
+                    <div class="asb-icon">🧑</div>
+                    <div class="asb-name">Тийнейджър</div>
+                    <div class="asb-price">€0,50</div>
+                </div>
+                <div class="ai-studio-btn" id="studioTryonTeenF" onclick="aiImageProcess('tryon_teen_f')">
+                    <div class="asb-icon">👧</div>
+                    <div class="asb-name">Тийнейджърка</div>
+                    <div class="asb-price">€0,50</div>
+                </div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-align:center;margin-top:10px;font-style:italic;">AI модел е достъпен само за дрехи</div>
+            <div class="credits-info" id="studioCredits">Зареждам кредити...</div>
+        </div>
     </div>
-    <div class="pcard-qty">
-      <div class="pcard-num" style="color:<?= $qc ?>"><?= fmtInt($qty) ?></div>
-      <div class="pcard-unit"><?= htmlspecialchars($p['unit'] ?? 'бр') ?></div>
-    </div>
-  </div>
-</div>
-<?php endforeach; endif; ?>
 
-<?php endif; ?>
+    <!-- ====== JAVASCRIPT ====== -->
+    <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    const STATE = {
+        storeId: <?= (int)$store_id ?>,
+        screen: '<?= $screen ?>',
+        supId: <?= $sup_id ? $sup_id : 'null' ?>,
+        catId: <?= $cat_id ? $cat_id : 'null' ?>,
+        canAdd: <?= $can_add ? 'true' : 'false' ?>,
+        canSeeCost: <?= $can_see_cost ? 'true' : 'false' ?>,
+        canSeeMargin: <?= $can_see_margin ? 'true' : 'false' ?>,
+        currentSort: 'name',
+        currentFilter: 'all',
+        currentPage: 1,
+        editProductId: null,
+        productType: 'simple',
+        selectedSizes: [],
+        selectedColors: [],
+        filterCat: null,
+        filterSup: null,
+        filterStock: 'all',
+        filterPriceFrom: null,
+        filterPriceTo: null,
+        cameraMode: null, // 'scan' | 'ai' | 'barcode_add'
+        cameraStream: null,
+        barcodeDetector: null,
+        barcodeInterval: null,
+        recognition: null,
+        isListening: false,
+        studioProductId: null
+    };
 
-</div><!-- /content -->
-
-<!-- ═══════════ AI FAB ═══════════ -->
-<div class="ai-fab" onclick="openAIChat()">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-</div>
-
-<!-- ═══════════ STICKY 4 БУТОНА ═══════════ -->
-<div class="sticky-nav">
-  <div class="sticky-btns">
-    <a href="products.php?screen=home" class="sticky-btn <?= $screen==='home'?'active':'' ?>">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-      <span class="sticky-btn-label">Начало</span>
-    </a>
-    <a href="products.php?screen=suppliers" class="sticky-btn <?= $screen==='suppliers'?'active':'' ?>">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-      <span class="sticky-btn-label">Доставчици</span>
-    </a>
-    <a href="products.php?screen=categories" class="sticky-btn <?= $screen==='categories' && !$sup_id ?'active':'' ?>">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-      <span class="sticky-btn-label">Категории</span>
-    </a>
-    <a href="products.php?screen=products" class="sticky-btn <?= $screen==='products'?'active':'' ?>">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-      <span class="sticky-btn-label">Артикули</span>
-    </a>
-  </div>
-</div>
-
-<!-- ═══════════ BOTTOM NAV ═══════════ -->
-<nav class="bnav">
-  <a href="chat.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg><span>Чат</span></a>
-  <a href="warehouse.php" class="ni active"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg><span>Склад</span></a>
-  <a href="stats.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>Статистики</span></a>
-  <a href="actions.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg><span>Въвеждане</span></a>
-</nav>
-
-<div class="toast" id="toast"></div>
-
-<script>
-// ── Collapse toggle ──
-function toggleCollapse(box) {
-  const body = box.querySelector('.collapse-body');
-  const arrow = box.querySelector('.collapse-arrow');
-  const isOpen = body.classList.contains('open');
-  body.classList.toggle('open');
-  arrow.style.transform = isOpen ? 'rotate(0)' : 'rotate(180deg)';
-}
-
-// ── Filter tab ──
-function setFilter(f) {
-  const u = new URL(window.location);
-  u.searchParams.set('filter', f);
-  window.location = u;
-}
-
-// ── Product detail ──
-function openProductDetail(id) {
-  // TODO: drawer с детайли + вариации + AI снимка
-  window.location = 'products.php?screen=products&detail=' + id;
-}
-
-// ── Voice search ──
-function startVoiceSearch() {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Гласът не се поддържа'); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const r = new SR(); r.lang = 'bg-BG'; r.start();
-  r.onresult = e => {
-    document.querySelector('.search-input').value = e.results[0][0].transcript;
-    document.getElementById('searchForm').submit();
-  };
-}
-
-// ── Camera (barcode scanner) ──
-async function openCamera(target) {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    // TODO: fullscreen camera overlay with BarcodeDetector
-    showToast('Камера отворена');
-    if ('BarcodeDetector' in window) {
-      const video = document.createElement('video');
-      video.srcObject = stream; video.play();
-      const bd = new BarcodeDetector();
-      const iv = setInterval(async () => {
-        try {
-          const codes = await bd.detect(video);
-          if (codes.length) {
-            clearInterval(iv);
-            stream.getTracks().forEach(t => t.stop());
-            if (target === 'search') {
-              document.querySelector('.search-input').value = codes[0].rawValue;
-              document.getElementById('searchForm').submit();
-            }
-          }
-        } catch(e) {}
-      }, 300);
+    // ============================================================
+    // UTILITIES
+    // ============================================================
+    function fmtPrice(val) {
+        if (val === null || val === undefined) return '—';
+        return parseFloat(val).toLocaleString('de-DE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
     }
-  } catch(e) { showToast('Камерата не е достъпна'); }
-}
 
-// ── AI Chat popup ──
-function openAIChat() {
-  // TODO: малък popup с текстово поле + микрофон
-  window.location = 'chat.php?context=products';
-}
+    function fmtNum(val) {
+        if (val === null || val === undefined) return '—';
+        return parseInt(val).toLocaleString('de-DE');
+    }
 
-// ── Add modal ──
-function openAddModal() {
-  // TODO: AI-first add flow с голям пулсиращ бутон
-  showToast('Добави артикул — скоро');
-}
+    function stockClass(qty, min) {
+        if (qty <= 0) return 'out';
+        if (min > 0 && qty <= min) return 'low';
+        return 'ok';
+    }
 
-// ── Filter drawer ──
-function openFilterDrawer() {
-  // TODO: drawer с филтри
-  showToast('Филтри — скоро');
-}
+    function stockBarColor(qty, min) {
+        if (qty <= 0) return 'red';
+        if (min > 0 && qty <= min) return 'yellow';
+        return 'green';
+    }
 
-// ── Toast ──
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-</script>
+    function showToast(msg, type = 'info') {
+        const c = document.getElementById('toasts');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span> ${msg}`;
+        c.appendChild(t);
+        requestAnimationFrame(() => { t.classList.add('show'); });
+        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    async function fetchJSON(url, opts = {}) {
+        try {
+            const r = await fetch(url, opts);
+            return await r.json();
+        } catch (e) {
+            console.error('Fetch error:', e);
+            showToast('Грешка при зареждане', 'error');
+            return null;
+        }
+    }
+
+    function productCardHTML(p) {
+        const sc = stockClass(p.store_stock || p.qty || 0, p.min_quantity || 0);
+        const bc = stockBarColor(p.store_stock || p.qty || 0, p.min_quantity || 0);
+        const qty = p.store_stock || p.qty || 0;
+        const thumb = p.image ? `<img src="${p.image}" alt="">` : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+        const discount = (p.discount_pct && p.discount_pct > 0) ? `<div class="pc-discount">-${p.discount_pct}%</div>` : '';
+        return `
+            <div class="product-card" onclick="openProductDetail(${p.id})">
+                <div class="stock-bar ${bc}"></div>
+                <div class="pc-thumb">${thumb}</div>
+                <div class="pc-info">
+                    <div class="pc-name">${escHTML(p.name)}</div>
+                    <div class="pc-meta">
+                        ${p.code ? `<span>${escHTML(p.code)}</span>` : ''}
+                        ${p.supplier_name ? `<span>${escHTML(p.supplier_name)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="pc-right">
+                    <div class="pc-price">${fmtPrice(p.retail_price)}</div>
+                    <div class="pc-stock ${sc}">${qty} ${p.unit || 'бр.'}</div>
+                </div>
+                ${discount}
+            </div>
+        `;
+    }
+
+    function escHTML(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // ============================================================
+    // SCREEN NAVIGATION
+    // ============================================================
+    function goScreen(screen, params = {}) {
+        let url = `products.php?screen=${screen}`;
+        if (params.sup) url += `&sup=${params.sup}`;
+        if (params.cat) url += `&cat=${params.cat}`;
+        window.location.href = url;
+    }
+
+    function switchStore(sid) {
+        STATE.storeId = parseInt(sid);
+        loadCurrentScreen();
+    }
+
+    // ============================================================
+    // HOME SCREEN
+    // ============================================================
+    let homeTab = 'all';
+    let homePageNum = 1;
+
+    async function loadHomeScreen() {
+        const data = await fetchJSON(`products.php?ajax=home_stats&store_id=${STATE.storeId}`);
+        if (!data) return;
+
+        // Stats
+        if (STATE.canSeeMargin) {
+            document.getElementById('statCapital').textContent = fmtPrice(data.capital);
+            document.getElementById('statMargin').textContent = data.avg_margin !== null ? data.avg_margin + '%' : '—';
+        } else {
+            const sp = document.getElementById('statProducts');
+            const su = document.getElementById('statUnits');
+            if (sp) sp.textContent = fmtNum(data.counts?.total_products);
+            if (su) su.textContent = fmtNum(data.counts?.total_units);
+        }
+
+        // Counts in tabs
+        document.getElementById('countAll').textContent = data.counts?.total_products || 0;
+        document.getElementById('countLow').textContent = data.low_stock?.length || 0;
+        document.getElementById('countOut').textContent = data.out_of_stock?.length || 0;
+
+        // Zombie section
+        if (data.zombies && data.zombies.length > 0) {
+            document.getElementById('collapseZombie').style.display = 'block';
+            document.getElementById('zombieCount').textContent = data.zombies.length;
+            document.getElementById('zombieList').innerHTML = data.zombies.map(p => {
+                return `<div class="product-card" onclick="openProductDetail(${p.id})" style="margin-bottom:6px;">
+                    <div class="stock-bar red"></div>
+                    <div class="pc-thumb">${p.image ? `<img src="${p.image}">` : '💀'}</div>
+                    <div class="pc-info">
+                        <div class="pc-name">${escHTML(p.name)}</div>
+                        <div class="pc-meta"><span>${p.days_stale} дни без продажба</span></div>
+                    </div>
+                    <div class="pc-right">
+                        <div class="pc-price">${fmtPrice(p.retail_price)}</div>
+                        <div class="pc-stock out">${p.qty} бр.</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Low stock section
+        if (data.low_stock && data.low_stock.length > 0) {
+            document.getElementById('collapseLow').style.display = 'block';
+            document.getElementById('lowCount').textContent = data.low_stock.length;
+            document.getElementById('lowList').innerHTML = data.low_stock.map(p => {
+                return `<div class="product-card" onclick="openProductDetail(${p.id})" style="margin-bottom:6px;">
+                    <div class="stock-bar yellow"></div>
+                    <div class="pc-thumb">${p.image ? `<img src="${p.image}">` : '⚠️'}</div>
+                    <div class="pc-info">
+                        <div class="pc-name">${escHTML(p.name)}</div>
+                        <div class="pc-meta"><span>Минимум: ${p.min_quantity}</span></div>
+                    </div>
+                    <div class="pc-right">
+                        <div class="pc-price">${fmtPrice(p.retail_price)}</div>
+                        <div class="pc-stock low">${p.qty} бр.</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Top sellers
+        if (data.top_sellers && data.top_sellers.length > 0) {
+            document.getElementById('collapseTop').style.display = 'block';
+            document.getElementById('topCount').textContent = data.top_sellers.length;
+            document.getElementById('topList').innerHTML = data.top_sellers.map((p, i) => {
+                return `<div class="product-card" onclick="openProductDetail(${p.id})" style="margin-bottom:6px;">
+                    <div class="stock-bar green"></div>
+                    <div class="pc-thumb" style="font-size:1.2rem;font-weight:700;color:var(--indigo-300);">#${i+1}</div>
+                    <div class="pc-info">
+                        <div class="pc-name">${escHTML(p.name)}</div>
+                        <div class="pc-meta"><span>${p.sold_qty} продадени</span></div>
+                    </div>
+                    <div class="pc-right">
+                        <div class="pc-price">${fmtPrice(p.revenue)}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Slow movers
+        if (data.slow_movers && data.slow_movers.length > 0) {
+            document.getElementById('collapseSlow').style.display = 'block';
+            document.getElementById('slowCount').textContent = data.slow_movers.length;
+            document.getElementById('slowList').innerHTML = data.slow_movers.map(p => {
+                return `<div class="product-card" onclick="openProductDetail(${p.id})" style="margin-bottom:6px;">
+                    <div class="stock-bar yellow"></div>
+                    <div class="pc-thumb">${p.image ? `<img src="${p.image}">` : '🐌'}</div>
+                    <div class="pc-info">
+                        <div class="pc-name">${escHTML(p.name)}</div>
+                        <div class="pc-meta"><span>${p.days_stale} дни без продажба</span></div>
+                    </div>
+                    <div class="pc-right">
+                        <div class="pc-price">${fmtPrice(p.retail_price)}</div>
+                        <div class="pc-stock low">${p.qty} бр.</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Load products list
+        loadHomeProducts();
+    }
+
+    async function loadHomeProducts() {
+        const flt = homeTab === 'all' ? '' : `&filter=${homeTab}`;
+        const data = await fetchJSON(`products.php?ajax=products&store_id=${STATE.storeId}${flt}&page=${homePageNum}&sort=${STATE.currentSort}`);
+        if (!data) return;
+        const el = document.getElementById('homeProductsList');
+        if (data.products.length === 0) {
+            el.innerHTML = `<div class="empty-state"><div class="es-icon">📦</div><div class="es-text">Няма артикули</div></div>`;
+        } else {
+            el.innerHTML = data.products.map(productCardHTML).join('');
+        }
+        renderPagination('homePagination', data.page, data.pages, (p) => { homePageNum = p; loadHomeProducts(); });
+    }
+
+    function setHomeTab(tab, btn) {
+        homeTab = tab;
+        homePageNum = 1;
+        document.querySelectorAll('.tabs-row .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadHomeProducts();
+    }
+
+    // ============================================================
+    // SUPPLIERS SCREEN
+    // ============================================================
+    async function loadSuppliers() {
+        const data = await fetchJSON(`products.php?ajax=suppliers&store_id=${STATE.storeId}`);
+        if (!data) return;
+        const el = document.getElementById('supplierCards');
+        if (data.length === 0) {
+            el.innerHTML = `<div class="empty-state" style="width:100%;"><div class="es-icon">📦</div><div class="es-text">Няма доставчици</div></div>`;
+            return;
+        }
+        el.innerHTML = data.map(s => {
+            const ok = s.product_count - s.low_count - s.out_count;
+            return `<div class="supplier-card" onclick="goScreen('categories', {sup: ${s.id}})">
+                <div class="sc-name">${escHTML(s.name)}</div>
+                <div class="sc-count">${s.product_count} артикула · ${fmtNum(s.total_stock)} бр.</div>
+                <div class="sc-badges">
+                    ${ok > 0 ? `<span class="sc-badge ok">✓ ${ok}</span>` : ''}
+                    ${s.low_count > 0 ? `<span class="sc-badge low">↓ ${s.low_count}</span>` : ''}
+                    ${s.out_count > 0 ? `<span class="sc-badge out">✕ ${s.out_count}</span>` : ''}
+                </div>
+                <div class="sc-arrow">›</div>
+            </div>`;
+        }).join('');
+
+        // Stats
+        const statsEl = document.getElementById('supplierStats');
+        const sorted = [...data].sort((a, b) => b.total_stock - a.total_stock);
+        statsEl.innerHTML = sorted.slice(0, 5).map((s, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(99,102,241,0.08);">
+                <span style="font-size:0.8rem;"><span style="color:var(--indigo-400);font-weight:700;">#${i+1}</span> ${escHTML(s.name)}</span>
+                <span style="font-size:0.8rem;font-weight:600;">${fmtNum(s.total_stock)} бр.</span>
+            </div>
+        `).join('');
+    }
+
+    // ============================================================
+    // CATEGORIES SCREEN
+    // ============================================================
+    async function loadCategories() {
+        const supParam = STATE.supId ? `&sup=${STATE.supId}` : '';
+        const data = await fetchJSON(`products.php?ajax=categories&store_id=${STATE.storeId}${supParam}`);
+        if (!data) return;
+
+        if (STATE.supId) {
+            // List mode (supplier's categories)
+            const el = document.getElementById('categoryList');
+            if (data.length === 0) {
+                el.innerHTML = `<div class="empty-state" style="padding:20px;"><div class="es-icon">🏷</div><div class="es-text">Няма категории</div></div>`;
+                return;
+            }
+            el.innerHTML = data.map(c => `
+                <div class="cat-list-item" onclick="goScreen('products', {sup: ${STATE.supId}, cat: ${c.id}})">
+                    <div class="cli-left">
+                        <div class="cli-icon">🏷</div>
+                        <div>
+                            <div class="cli-name">${escHTML(c.name)}</div>
+                            <div class="cli-count">${c.product_count} артикула · ${fmtNum(c.total_stock)} бр.</div>
+                        </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            `).join('');
+        } else {
+            // Swipe cards (global)
+            const el = document.getElementById('categoryCards');
+            if (data.length === 0) {
+                el.innerHTML = `<div class="empty-state" style="width:100%;"><div class="es-icon">🏷</div><div class="es-text">Няма категории</div></div>`;
+                return;
+            }
+            el.innerHTML = data.map(c => `
+                <div class="category-card" onclick="goScreen('products', {cat: ${c.id}})">
+                    <div class="cc-name">${escHTML(c.name)}</div>
+                    <div class="cc-info">${c.product_count} артикула${c.supplier_count ? ` · ${c.supplier_count} дост.` : ''}</div>
+                    <div class="cc-info">${fmtNum(c.total_stock)} бр.</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // ============================================================
+    // PRODUCTS LIST SCREEN
+    // ============================================================
+    async function loadProductsList() {
+        let params = `store_id=${STATE.storeId}&sort=${STATE.currentSort}&page=${STATE.currentPage}`;
+        if (STATE.supId) params += `&sup=${STATE.supId}`;
+        if (STATE.catId) params += `&cat=${STATE.catId}`;
+        if (STATE.currentFilter !== 'all') params += `&filter=${STATE.currentFilter}`;
+
+        const data = await fetchJSON(`products.php?ajax=products&${params}`);
+        if (!data) return;
+        const el = document.getElementById('productsList');
+        if (data.products.length === 0) {
+            el.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><div class="es-text">Няма артикули с тези филтри</div></div>`;
+        } else {
+            el.innerHTML = data.products.map(productCardHTML).join('');
+        }
+        renderPagination('productsPagination', data.page, data.pages, (p) => { STATE.currentPage = p; loadProductsList(); });
+    }
+
+    // ============================================================
+    // PAGINATION
+    // ============================================================
+    function renderPagination(containerId, current, total, onPageClick) {
+        const el = document.getElementById(containerId);
+        if (total <= 1) { el.innerHTML = ''; return; }
+        let html = '';
+        if (current > 1) html += `<button class="page-btn" onclick="arguments[0].stopPropagation();" data-p="${current-1}">‹</button>`;
+        const start = Math.max(1, current - 2);
+        const end = Math.min(total, current + 2);
+        for (let i = start; i <= end; i++) {
+            html += `<button class="page-btn ${i === current ? 'active' : ''}" data-p="${i}">${i}</button>`;
+        }
+        if (current < total) html += `<button class="page-btn" data-p="${current+1}">›</button>`;
+        el.innerHTML = html;
+        el.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', () => onPageClick(parseInt(btn.dataset.p)));
+        });
+    }
+
+    // ============================================================
+    // COLLAPSE SECTIONS
+    // ============================================================
+    function toggleCollapse(id) {
+        const map = { zombie: 'collapseZombie', low: 'collapseLow', top: 'collapseTop', slow: 'collapseSlow' };
+        const section = document.getElementById(map[id]);
+        const header = section.querySelector('.collapse-header');
+        const body = section.querySelector('.collapse-body');
+        header.classList.toggle('open');
+        body.classList.toggle('open');
+    }
+
+    // ============================================================
+    // SORT
+    // ============================================================
+    function toggleSort() {
+        document.getElementById('sortDropdown').classList.toggle('open');
+    }
+
+    function setSort(sort) {
+        STATE.currentSort = sort;
+        document.querySelectorAll('.sort-option').forEach(o => o.classList.toggle('active', o.dataset.sort === sort));
+        document.getElementById('sortDropdown').classList.remove('open');
+        if (STATE.screen === 'products') loadProductsList();
+        else loadHomeProducts();
+    }
+
+    // ============================================================
+    // SEARCH
+    // ============================================================
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const q = this.value.trim();
+        if (q.length < 1) { loadCurrentScreen(); return; }
+        searchTimeout = setTimeout(async () => {
+            const data = await fetchJSON(`products.php?ajax=search&q=${encodeURIComponent(q)}&store_id=${STATE.storeId}`);
+            if (!data) return;
+            const el = document.getElementById(STATE.screen === 'products' ? 'productsList' : 'homeProductsList');
+            if (data.length === 0) {
+                el.innerHTML = `<div class="empty-state"><div class="es-icon">🔍</div><div class="es-text">Нищо не е намерено за "${escHTML(q)}"</div></div>`;
+            } else {
+                el.innerHTML = data.map(p => productCardHTML({...p, store_stock: p.total_stock})).join('');
+            }
+        }, 300);
+    });
+
+    // ============================================================
+    // PRODUCT DETAIL DRAWER
+    // ============================================================
+    async function openProductDetail(id) {
+        openDrawer('detail');
+        document.getElementById('detailBody').innerHTML = '<div style="text-align:center;padding:20px;"><div class="skeleton" style="width:60%;height:20px;margin:0 auto 12px;"></div><div class="skeleton" style="width:80%;height:14px;margin:0 auto 8px;"></div><div class="skeleton" style="width:40%;height:14px;margin:0 auto;"></div></div>';
+
+        const data = await fetchJSON(`products.php?ajax=product_detail&id=${id}`);
+        if (!data || data.error) { showToast('Грешка при зареждане', 'error'); closeDrawer('detail'); return; }
+
+        const p = data.product;
+        document.getElementById('detailTitle').textContent = p.name;
+
+        let html = '';
+
+        // Image
+        if (p.image) {
+            html += `<div style="text-align:center;margin-bottom:12px;"><img src="${p.image}" style="max-width:200px;border-radius:12px;border:1px solid var(--border-subtle);"></div>`;
+        }
+
+        // Details
+        html += `<div class="detail-row"><span class="detail-label">Код</span><span class="detail-value">${escHTML(p.code) || '—'}</span></div>`;
+        html += `<div class="detail-row"><span class="detail-label">Баркод</span><span class="detail-value">${escHTML(p.barcode) || '—'}</span></div>`;
+        html += `<div class="detail-row"><span class="detail-label">Цена дребно</span><span class="detail-value">${fmtPrice(p.retail_price)}</span></div>`;
+        if (STATE.canSeeCost) {
+            html += `<div class="detail-row"><span class="detail-label">Доставна цена</span><span class="detail-value">${fmtPrice(p.cost_price)}</span></div>`;
+            if (p.cost_price > 0) {
+                const margin = (((p.retail_price - p.cost_price) / p.retail_price) * 100).toFixed(1);
+                html += `<div class="detail-row"><span class="detail-label">Марж</span><span class="detail-value" style="color:${margin > 30 ? '#22c55e' : margin > 15 ? '#eab308' : '#ef4444'};">${margin}%</span></div>`;
+            }
+        }
+        if (p.discount_pct > 0) {
+            html += `<div class="detail-row"><span class="detail-label">Отстъпка</span><span class="detail-value" style="color:#ef4444;">-${p.discount_pct}%${p.discount_ends_at ? ` до ${p.discount_ends_at}` : ''}</span></div>`;
+        }
+        html += `<div class="detail-row"><span class="detail-label">Доставчик</span><span class="detail-value">${escHTML(p.supplier_name) || '—'}</span></div>`;
+        html += `<div class="detail-row"><span class="detail-label">Категория</span><span class="detail-value">${escHTML(p.category_name) || '—'}</span></div>`;
+        html += `<div class="detail-row"><span class="detail-label">Мин. наличност</span><span class="detail-value">${p.min_quantity || 0}</span></div>`;
+
+        // Stock per store
+        html += `<div style="margin-top:14px;"><div class="section-title" style="padding:0 0 8px;">Наличност по обекти</div>`;
+        data.stocks.forEach(s => {
+            const sc = s.qty > 0 ? 'ok' : 'out';
+            html += `<div class="store-stock-row"><span class="ssr-name">${escHTML(s.store_name)}</span><span class="ssr-qty pc-stock ${sc}">${s.qty} бр.</span></div>`;
+        });
+        html += `</div>`;
+
+        // Variations
+        if (data.variations && data.variations.length > 0) {
+            html += `<div style="margin-top:14px;"><div class="section-title" style="padding:0 0 8px;">Вариации</div>`;
+            data.variations.forEach(v => {
+                html += `<div class="product-card" onclick="openProductDetail(${v.id})" style="margin-bottom:4px;">
+                    <div class="stock-bar ${stockBarColor(v.total_stock, 0)}"></div>
+                    <div class="pc-info" style="margin-left:10px;">
+                        <div class="pc-name" style="font-size:0.8rem;">${escHTML(v.name)}</div>
+                        <div class="pc-meta"><span>${escHTML(v.code)}</span></div>
+                    </div>
+                    <div class="pc-right">
+                        <div class="pc-price">${fmtPrice(v.retail_price)}</div>
+                        <div class="pc-stock ${stockClass(v.total_stock, 0)}">${v.total_stock} бр.</div>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // Price history
+        if (data.price_history && data.price_history.length > 0) {
+            html += `<div style="margin-top:14px;"><div class="section-title" style="padding:0 0 8px;">История на цените</div>`;
+            data.price_history.forEach(h => {
+                html += `<div style="display:flex;justify-content:space-between;font-size:0.75rem;padding:4px 0;border-bottom:1px solid rgba(99,102,241,0.06);">
+                    <span style="color:var(--text-secondary);">${h.changed_at}</span>
+                    <span><span style="text-decoration:line-through;color:var(--text-secondary);">${fmtPrice(h.old_price)}</span> → ${fmtPrice(h.new_price)}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // Action buttons
+        html += `<div class="action-grid">`;
+        if (STATE.canAdd) {
+            html += `<button class="action-btn" onclick="editProduct(${p.id})">✏️ Редактирай</button>`;
+        }
+        html += `<button class="action-btn" onclick="openAIDrawer(${p.id})">✦ AI Съвет</button>`;
+        html += `<button class="action-btn" onclick="openStudio(${p.id})">📸 AI Снимка</button>`;
+        html += `<button class="action-btn primary" onclick="window.location='sale.php?product=${p.id}'">💰 Продажба</button>`;
+        if (STATE.canAdd) {
+            html += `<button class="action-btn danger wide" onclick="if(confirm('Деактивирай артикул?')) deactivateProduct(${p.id})">🗑 Деактивирай</button>`;
+        }
+        html += `</div>`;
+
+        document.getElementById('detailBody').innerHTML = html;
+    }
+
+    // ============================================================
+    // AI ANALYSIS DRAWER
+    // ============================================================
+    async function openAIDrawer(id) {
+        closeDrawer('detail');
+        setTimeout(() => openDrawer('ai'), 350);
+        document.getElementById('aiBody').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">✦ Анализирам...</div>';
+
+        const data = await fetchJSON(`products.php?ajax=ai_analyze&id=${id}`);
+        if (!data || data.error) { document.getElementById('aiBody').innerHTML = '<div style="padding:20px;color:#ef4444;">Грешка при анализ</div>'; return; }
+
+        let html = '';
+        if (data.analysis.length === 0) {
+            html = `<div class="ai-insight info"><span class="ai-icon">✓</span><span class="ai-text">Всичко е наред с този артикул. Без предупреждения.</span></div>`;
+        } else {
+            data.analysis.forEach(a => {
+                html += `<div class="ai-insight ${a.severity}"><span class="ai-icon">${a.icon}</span><span class="ai-text">${a.text}</span></div>`;
+            });
+        }
+
+        // Deeplinks
+        html += `<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;">`;
+        html += `<a class="ai-deeplink" href="chat.php?ctx=product&id=${id}">💬 Попитай AI</a>`;
+        html += `<a class="ai-deeplink" href="stats.php?product=${id}">📊 Статистики</a>`;
+        html += `</div>`;
+
+        document.getElementById('aiBody').innerHTML = html;
+    }
+
+    // ============================================================
+    // DRAWER MANAGEMENT
+    // ============================================================
+    function openDrawer(name) {
+        document.getElementById(name + 'Overlay').classList.add('open');
+        document.getElementById(name + 'Drawer').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer(name) {
+        document.getElementById(name + 'Overlay').classList.remove('open');
+        document.getElementById(name + 'Drawer').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    // Swipe-to-close drawers
+    ['detail', 'ai', 'filter', 'studio'].forEach(name => {
+        const drawer = document.getElementById(name + 'Drawer');
+        let startY = 0, currentY = 0, isDragging = false;
+        drawer.addEventListener('touchstart', e => {
+            if (e.target.closest('.drawer-body')?.scrollTop > 0) return;
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        }, { passive: true });
+        drawer.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY - startY;
+            if (currentY > 0) { drawer.style.transform = `translateY(${currentY}px)`; }
+        }, { passive: true });
+        drawer.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (currentY > 100) { closeDrawer(name); }
+            drawer.style.transform = '';
+            currentY = 0;
+        });
+    });
+
+    // ============================================================
+    // FILTER DRAWER
+    // ============================================================
+    function openFilterDrawer() { openDrawer('filter'); }
+
+    function toggleFilterChip(el, type) {
+        if (type === 'stock') {
+            el.parentElement.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            STATE.filterStock = el.dataset.stock;
+        } else {
+            el.classList.toggle('selected');
+        }
+    }
+
+    function applyFilters() {
+        const selectedCat = document.querySelector('#filterCats .filter-chip.selected');
+        const selectedSup = document.querySelector('#filterSups .filter-chip.selected');
+        STATE.filterCat = selectedCat ? selectedCat.dataset.cat : null;
+        STATE.filterSup = selectedSup ? selectedSup.dataset.sup : null;
+        STATE.filterPriceFrom = document.getElementById('priceFrom').value || null;
+        STATE.filterPriceTo = document.getElementById('priceTo').value || null;
+
+        closeDrawer('filter');
+
+        let url = `products.php?screen=products`;
+        if (STATE.filterSup) url += `&sup=${STATE.filterSup}`;
+        if (STATE.filterCat) url += `&cat=${STATE.filterCat}`;
+        if (STATE.filterStock !== 'all') url += `&filter=${STATE.filterStock}`;
+        window.location.href = url;
+    }
+
+    function clearFilters() {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('selected'));
+        document.getElementById('priceFrom').value = '';
+        document.getElementById('priceTo').value = '';
+        STATE.filterCat = null;
+        STATE.filterSup = null;
+        STATE.filterStock = 'all';
+    }
+
+    // ============================================================
+    // ADD/EDIT MODAL
+    // ============================================================
+    function openAddModal() {
+        STATE.editProductId = null;
+        document.getElementById('modalTitle').textContent = 'Нов артикул';
+        clearAddForm();
+        goWizardStep(0);
+        document.getElementById('addModal').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function clearAddForm() {
+        ['addName','addBarcode','addRetailPrice','addCode','addMinQty','addLocation','addDescription'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const cp = document.getElementById('addCostPrice');
+        if (cp) cp.value = '';
+        document.getElementById('addSupplier').value = '';
+        document.getElementById('addCategory').value = '';
+        document.getElementById('addUnit').value = 'бр';
+        STATE.selectedSizes = [];
+        STATE.selectedColors = [];
+        STATE.productType = 'simple';
+        document.querySelectorAll('.size-chip').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.color-dot').forEach(c => c.classList.remove('selected'));
+        setProductType('simple');
+    }
+
+    function goWizardStep(step) {
+        document.querySelectorAll('.wizard-page').forEach(p => p.classList.remove('active'));
+        document.querySelector(`.wizard-page[data-page="${step}"]`).classList.add('active');
+        document.querySelectorAll('.wiz-step').forEach((s, i) => {
+            s.classList.toggle('active', i === step);
+            s.classList.toggle('done', i < step);
+        });
+    }
+
+    function setProductType(type) {
+        STATE.productType = type;
+        document.getElementById('typeSimple').classList.toggle('primary', type === 'simple');
+        document.getElementById('typeVariant').classList.toggle('primary', type === 'variant');
+        document.getElementById('typeSimple').style.borderColor = type === 'simple' ? 'var(--indigo-500)' : '';
+        document.getElementById('typeVariant').style.borderColor = type === 'variant' ? 'var(--indigo-500)' : '';
+        document.getElementById('variantSection').style.display = type === 'variant' ? 'block' : 'none';
+    }
+
+    function toggleSize(el) {
+        el.classList.toggle('selected');
+        const sz = el.dataset.size;
+        const idx = STATE.selectedSizes.indexOf(sz);
+        if (idx > -1) STATE.selectedSizes.splice(idx, 1);
+        else STATE.selectedSizes.push(sz);
+    }
+
+    function addCustomSize() {
+        const input = document.getElementById('customSize');
+        const val = input.value.trim();
+        if (!val) return;
+        if (STATE.selectedSizes.includes(val)) { input.value = ''; return; }
+        STATE.selectedSizes.push(val);
+        const chip = document.createElement('button');
+        chip.className = 'size-chip selected';
+        chip.dataset.size = val;
+        chip.textContent = val;
+        chip.onclick = function() { toggleSize(this); };
+        document.getElementById('sizeChips').appendChild(chip);
+        input.value = '';
+    }
+
+    function toggleColor(el) {
+        el.classList.toggle('selected');
+        const clr = el.dataset.color;
+        const idx = STATE.selectedColors.indexOf(clr);
+        if (idx > -1) STATE.selectedColors.splice(idx, 1);
+        else STATE.selectedColors.push(clr);
+    }
+
+    async function editProduct(id) {
+        closeDrawer('detail');
+        const data = await fetchJSON(`products.php?ajax=product_detail&id=${id}`);
+        if (!data || data.error) { showToast('Грешка', 'error'); return; }
+        const p = data.product;
+        STATE.editProductId = id;
+        document.getElementById('modalTitle').textContent = 'Редактирай';
+        document.getElementById('addName').value = p.name || '';
+        document.getElementById('addBarcode').value = p.barcode || '';
+        document.getElementById('addRetailPrice').value = p.retail_price || '';
+        const cp = document.getElementById('addCostPrice');
+        if (cp) cp.value = p.cost_price || '';
+        document.getElementById('addSupplier').value = p.supplier_id || '';
+        document.getElementById('addCategory').value = p.category_id || '';
+        document.getElementById('addCode').value = p.code || '';
+        document.getElementById('addUnit').value = p.unit || 'бр';
+        document.getElementById('addMinQty').value = p.min_quantity || 0;
+        document.getElementById('addDescription').value = p.description || '';
+        goWizardStep(1);
+        document.getElementById('addModal').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function saveProduct() {
+        const btn = document.getElementById('saveProductBtn');
+        btn.disabled = true;
+        btn.textContent = 'Запазвам...';
+
+        const payload = {
+            id: STATE.editProductId,
+            name: document.getElementById('addName').value.trim(),
+            barcode: document.getElementById('addBarcode').value.trim(),
+            retail_price: parseFloat(document.getElementById('addRetailPrice').value) || 0,
+            cost_price: document.getElementById('addCostPrice')?.value ? parseFloat(document.getElementById('addCostPrice').value) : null,
+            supplier_id: document.getElementById('addSupplier').value || null,
+            category_id: document.getElementById('addCategory').value || null,
+            code: document.getElementById('addCode').value.trim(),
+            unit: document.getElementById('addUnit').value,
+            min_quantity: parseInt(document.getElementById('addMinQty').value) || 0,
+            description: document.getElementById('addDescription').value.trim(),
+            location: document.getElementById('addLocation').value.trim(),
+            product_type: STATE.productType,
+            sizes: STATE.selectedSizes,
+            colors: STATE.selectedColors
+        };
+
+        if (!payload.name) { showToast('Въведи име', 'error'); btn.disabled = false; btn.textContent = '💾 Запази'; return; }
+
+        try {
+            const r = await fetch('product-save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await r.json();
+            if (result.success) {
+                showToast(STATE.editProductId ? 'Артикулът е обновен' : 'Артикулът е добавен', 'success');
+                closeAddModal();
+                loadCurrentScreen();
+            } else {
+                showToast(result.error || 'Грешка при запазване', 'error');
+            }
+        } catch (e) {
+            showToast('Мрежова грешка', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = '💾 Запази';
+    }
+
+    async function deactivateProduct(id) {
+        const r = await fetch('product-save.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, deactivate: true })
+        });
+        const result = await r.json();
+        if (result.success) {
+            showToast('Артикулът е деактивиран', 'success');
+            closeDrawer('detail');
+            loadCurrentScreen();
+        } else {
+            showToast('Грешка', 'error');
+        }
+    }
+
+    // ============================================================
+    // AI DESCRIPTION GENERATION
+    // ============================================================
+    async function aiGenerateDescription() {
+        const name = document.getElementById('addName').value.trim();
+        if (!name) { showToast('Първо въведи име', 'error'); return; }
+        const cat = document.getElementById('addCategory').selectedOptions[0]?.text || '';
+        const sup = document.getElementById('addSupplier').selectedOptions[0]?.text || '';
+
+        document.getElementById('addDescription').value = 'AI генерира описание...';
+
+        const data = await fetchJSON(`products.php?ajax=ai_voice_fill`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: `Генерирай кратко описание за ${name}, категория ${cat}, доставчик ${sup}. Само описанието, 1-2 изречения.` })
+        });
+
+        if (data && data.description) {
+            document.getElementById('addDescription').value = data.description;
+        } else {
+            document.getElementById('addDescription').value = '';
+            showToast('AI не успя да генерира описание', 'error');
+        }
+    }
+
+    // ============================================================
+    // CAMERA & BARCODE SCANNER
+    // ============================================================
+    async function openCamera(mode) {
+        STATE.cameraMode = mode;
+        const overlay = document.getElementById('cameraOverlay');
+        const video = document.getElementById('cameraVideo');
+        overlay.classList.add('open');
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+            STATE.cameraStream = stream;
+            video.srcObject = stream;
+
+            if (mode === 'scan' || mode === 'barcode_add') {
+                document.getElementById('scanLine').style.display = 'block';
+                document.getElementById('captureBtn').style.display = 'none';
+                startBarcodeScanning(video);
+            } else {
+                document.getElementById('scanLine').style.display = 'none';
+                document.getElementById('captureBtn').style.display = '';
+            }
+        } catch (e) {
+            showToast('Камерата не е достъпна', 'error');
+            closeCamera();
+        }
+    }
+
+    function closeCamera() {
+        const overlay = document.getElementById('cameraOverlay');
+        overlay.classList.remove('open');
+        if (STATE.cameraStream) {
+            STATE.cameraStream.getTracks().forEach(t => t.stop());
+            STATE.cameraStream = null;
+        }
+        if (STATE.barcodeInterval) { clearInterval(STATE.barcodeInterval); STATE.barcodeInterval = null; }
+        document.getElementById('scanLine').style.display = 'none';
+        document.getElementById('captureBtn').style.display = '';
+    }
+
+    function startBarcodeScanning(video) {
+        if ('BarcodeDetector' in window) {
+            STATE.barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
+            STATE.barcodeInterval = setInterval(async () => {
+                try {
+                    const barcodes = await STATE.barcodeDetector.detect(video);
+                    if (barcodes.length > 0) {
+                        const code = barcodes[0].rawValue;
+                        clearInterval(STATE.barcodeInterval);
+                        playBeep();
+                        showGreenFlash();
+
+                        if (STATE.cameraMode === 'barcode_add') {
+                            document.getElementById('addBarcode').value = code;
+                            closeCamera();
+                        } else {
+                            // Search by barcode
+                            const data = await fetchJSON(`products.php?ajax=barcode&code=${encodeURIComponent(code)}&store_id=${STATE.storeId}`);
+                            closeCamera();
+                            if (data && !data.error) {
+                                openProductDetail(data.id);
+                            } else {
+                                showToast(`Баркод ${code} не е намерен`, 'info');
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }, 300);
+        } else {
+            showToast('Баркод скенерът не е поддържан в този браузър', 'error');
+            closeCamera();
+        }
+    }
+
+    async function capturePhoto() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        closeCamera();
+
+        showToast('✦ AI анализира снимката...', 'info');
+
+        const data = await fetchJSON(`products.php?ajax=ai_scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData })
+        });
+
+        if (data && !data.error) {
+            // AI pre-fill the form
+            if (data.name) document.getElementById('addName').value = data.name;
+            if (data.retail_price) document.getElementById('addRetailPrice').value = data.retail_price;
+            if (data.description) document.getElementById('addDescription').value = data.description;
+
+            // Match supplier
+            if (data.supplier) {
+                const opts = document.getElementById('addSupplier').options;
+                for (let i = 0; i < opts.length; i++) {
+                    if (opts[i].text.toLowerCase().includes(data.supplier.toLowerCase())) { opts[i].selected = true; break; }
+                }
+            }
+
+            // Match category
+            if (data.category) {
+                const opts = document.getElementById('addCategory').options;
+                for (let i = 0; i < opts.length; i++) {
+                    if (opts[i].text.toLowerCase().includes(data.category.toLowerCase())) { opts[i].selected = true; break; }
+                }
+            }
+
+            // Sizes
+            if (data.sizes && data.sizes.length > 0) {
+                setProductType('variant');
+                data.sizes.forEach(sz => {
+                    const chip = document.querySelector(`.size-chip[data-size="${sz}"]`);
+                    if (chip && !chip.classList.contains('selected')) { chip.classList.add('selected'); STATE.selectedSizes.push(sz); }
+                });
+            }
+
+            showToast('✦ AI попълни формата', 'success');
+            goWizardStep(1);
+        } else {
+            showToast('AI не успя да разпознае — попълни ръчно', 'error');
+            goWizardStep(1);
+        }
+    }
+
+    function playBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 1200;
+            gain.gain.value = 0.3;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
+    function showGreenFlash() {
+        const flash = document.createElement('div');
+        flash.className = 'green-flash';
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 500);
+    }
+
+    // ============================================================
+    // VOICE INPUT
+    // ============================================================
+    function toggleVoice() {
+        if (STATE.isListening) { stopVoice(); return; }
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            showToast('Гласовото въвеждане не е поддържано', 'error');
+            return;
+        }
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        STATE.recognition = new SpeechRec();
+        STATE.recognition.lang = 'bg-BG';
+        STATE.recognition.continuous = false;
+        STATE.recognition.interimResults = false;
+
+        STATE.recognition.onresult = function(e) {
+            const text = e.results[0][0].transcript;
+            document.getElementById('searchInput').value = text;
+            document.getElementById('searchInput').dispatchEvent(new Event('input'));
+            stopVoice();
+        };
+
+        STATE.recognition.onerror = function() { stopVoice(); };
+        STATE.recognition.onend = function() { stopVoice(); };
+
+        STATE.recognition.start();
+        STATE.isListening = true;
+        document.getElementById('voiceBtn').classList.add('active');
+        document.getElementById('voiceIndicator').classList.add('active');
+    }
+
+    function stopVoice() {
+        if (STATE.recognition) { try { STATE.recognition.stop(); } catch(e) {} }
+        STATE.isListening = false;
+        document.getElementById('voiceBtn').classList.remove('active');
+        document.getElementById('voiceIndicator').classList.remove('active');
+    }
+
+    // Voice for wizard
+    function wizardVoice() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            showToast('Гласовото въвеждане не е поддържано', 'error');
+            return;
+        }
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SpeechRec();
+        rec.lang = 'bg-BG';
+        rec.continuous = false;
+        rec.interimResults = false;
+
+        showToast('🎤 Говори — опиши артикула', 'info');
+
+        rec.onresult = async function(e) {
+            const text = e.results[0][0].transcript;
+            showToast(`✦ AI обработва: "${text}"`, 'info');
+
+            const data = await fetchJSON(`products.php?ajax=ai_voice_fill`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+
+            if (data && !data.error) {
+                if (data.name) document.getElementById('addName').value = data.name;
+                if (data.retail_price) document.getElementById('addRetailPrice').value = data.retail_price;
+                if (data.description) document.getElementById('addDescription').value = data.description;
+                if (data.supplier) {
+                    const opts = document.getElementById('addSupplier').options;
+                    for (let i = 0; i < opts.length; i++) {
+                        if (opts[i].text.toLowerCase().includes(data.supplier.toLowerCase())) { opts[i].selected = true; break; }
+                    }
+                }
+                if (data.category) {
+                    const opts = document.getElementById('addCategory').options;
+                    for (let i = 0; i < opts.length; i++) {
+                        if (opts[i].text.toLowerCase().includes(data.category.toLowerCase())) { opts[i].selected = true; break; }
+                    }
+                }
+                if (data.sizes && data.sizes.length > 0) {
+                    setProductType('variant');
+                    data.sizes.forEach(sz => {
+                        const chip = document.querySelector(`.size-chip[data-size="${sz}"]`);
+                        if (chip && !chip.classList.contains('selected')) { chip.classList.add('selected'); STATE.selectedSizes.push(sz); }
+                    });
+                }
+                showToast('✦ AI попълни формата', 'success');
+                goWizardStep(1);
+            } else {
+                showToast('AI не разпозна — попълни ръчно', 'error');
+                goWizardStep(1);
+            }
+        };
+
+        rec.onerror = function() { showToast('Грешка при запис', 'error'); };
+        rec.start();
+    }
+
+    // ============================================================
+    // AI IMAGE STUDIO
+    // ============================================================
+    async function openStudio(productId) {
+        STATE.studioProductId = productId;
+        closeDrawer('detail');
+        setTimeout(() => openDrawer('studio'), 350);
+
+        const credits = await fetchJSON(`products.php?ajax=ai_credits`);
+        if (credits) {
+            document.getElementById('studioCredits').innerHTML =
+                `Бял фон: <strong>${credits.ai_credits_bg}</strong> безплатни · AI Модел: <strong>${credits.ai_credits_tryon}</strong> безплатни`;
+        }
+    }
+
+    async function aiImageProcess(jobType) {
+        showToast('📸 Обработвам изображение...', 'info');
+        closeDrawer('studio');
+        // This would call ai-image-processor.php
+        try {
+            const r = await fetch('ai-image-processor.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: STATE.studioProductId, job_type: jobType })
+            });
+            const result = await r.json();
+            if (result.success) {
+                showToast('✓ Изображението е обработено', 'success');
+                if (result.image_url) {
+                    // Refresh product detail
+                    openProductDetail(STATE.studioProductId);
+                }
+            } else {
+                showToast(result.error || 'Грешка при обработка', 'error');
+            }
+        } catch (e) {
+            showToast('Грешка при свързване', 'error');
+        }
+    }
+
+    // ============================================================
+    // LOAD CURRENT SCREEN
+    // ============================================================
+    function loadCurrentScreen() {
+        switch (STATE.screen) {
+            case 'home': loadHomeScreen(); break;
+            case 'suppliers': loadSuppliers(); break;
+            case 'categories': loadCategories(); break;
+            case 'products': loadProductsList(); break;
+        }
+    }
+
+    // ============================================================
+    // CLOSE SORT DROPDOWN ON OUTSIDE CLICK
+    // ============================================================
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('[onclick*="toggleSort"]') && !e.target.closest('.sort-dropdown')) {
+            document.getElementById('sortDropdown')?.classList.remove('open');
+        }
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', loadCurrentScreen);
+    </script>
 </body>
 </html>
