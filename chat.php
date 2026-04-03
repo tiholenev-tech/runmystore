@@ -2,6 +2,7 @@
 /**
  * chat.php — AI First Dashboard
  * Cruip Dark тема. Proactive Briefing. Пулс бутон. Deeplinks. Voice.
+ * С17 — уеднаквен bottom nav
  */
 session_start();
 require_once __DIR__ . '/config/database.php';
@@ -50,9 +51,9 @@ $quick_cmds[] = ['icon' => '🎁', 'label' => 'Лоялна', 'msg' => 'Лоял
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
-:root { --nav-h: 64px; }
+:root { --nav-h: 56px; }
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: var(--nav-h); }
+body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: var(--nav-h); }
 
 /* ── SVG BACKGROUNDS ── */
 .bg-illus { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
@@ -62,10 +63,10 @@ body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .bg-illus .ill3 { left: 50%; top: 440px; transform: translateX(-33%); width: 760px; height: 668px; }
 
 /* ── HEADER ── */
-.hdr { position: relative; z-index: 50; background: rgba(3,7,18,.92); backdrop-filter: blur(24px); flex-shrink: 0; }
-.hdr::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, var(--color-gray-800, #1f2937), var(--color-gray-700, #374151), var(--color-gray-800, #1f2937)); }
+.hdr { position: relative; z-index: 50; background: rgba(11,15,26,.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); flex-shrink: 0; }
+.hdr::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, transparent, rgba(99,102,241,.25), transparent); }
 .hdr-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0; gap: 8px; }
-.brand { font-size: 18px; font-weight: 800; flex: 1; background: linear-gradient(to right, #f1f5f9, #a5b4fc, #f8fafc, #a5b4fc, #f1f5f9); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gShift 6s linear infinite; font-family: 'Nacelle', Inter, sans-serif; }
+.brand { font-size: 18px; font-weight: 800; flex: 1; background: linear-gradient(to right, #e5e7eb, #c7d2fe, #f9fafb, #a5b4fc, #e5e7eb); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gShift 6s linear infinite; font-family: 'Nacelle', Inter, sans-serif; }
 .store-pill { font-size: 11px; font-weight: 600; color: rgba(165,180,252,.7); background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.15); border-radius: 20px; padding: 4px 10px; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hdr-btn { width: 34px; height: 34px; border-radius: 10px; background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #a5b4fc; position: relative; flex-shrink: 0; }
 .hdr-btn:active { background: rgba(99,102,241,.25); }
@@ -113,7 +114,7 @@ body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .dot:nth-child(2) { animation-delay: .2s; }
 .dot:nth-child(3) { animation-delay: .4s; }
 .welcome { text-align: center; padding: 30px 20px 10px; color: #4b5563; font-size: 13px; }
-.welcome-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(to right, #f1f5f9, #a5b4fc, #f1f5f9); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gShift 6s linear infinite; }
+.welcome-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; background: linear-gradient(to right, #e5e7eb, #c7d2fe, #f9fafb, #a5b4fc, #e5e7eb); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gShift 6s linear infinite; }
 
 /* ── QUICK COMMANDS ── */
 .quick-wrap { padding: 6px 12px; flex-shrink: 0; position: relative; z-index: 1; }
@@ -122,7 +123,7 @@ body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .quick-btn:active { background: rgba(99,102,241,.22); border-color: rgba(99,102,241,.4); }
 
 /* ── INPUT AREA ── */
-.input-area { background: rgba(3,7,18,.94); backdrop-filter: blur(24px); border-top: 1px solid rgba(99,102,241,.12); padding: 10px 12px 14px; flex-shrink: 0; position: relative; z-index: 1; }
+.input-area { background: rgba(11,15,26,.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-top: 1px solid rgba(99,102,241,.12); padding: 10px 12px 14px; flex-shrink: 0; position: relative; z-index: 1; }
 .input-row { display: flex; gap: 8px; align-items: center; }
 .text-input { flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(99,102,241,.18); border-radius: 22px; color: #e2e8f0; font-size: 14px; padding: 11px 16px; font-family: inherit; outline: none; resize: none; max-height: 80px; line-height: 1.4; transition: border-color .2s; }
 .text-input:focus { border-color: rgba(99,102,241,.45); }
@@ -173,22 +174,14 @@ body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .act-yes { flex: 1; padding: 13px; border: none; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .act-no { flex: 1; padding: 13px; border: 1px solid rgba(99,102,241,.2); border-radius: 14px; background: transparent; color: #6b7280; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
-/* ── BOTTOM NAV ── */
-.bnav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h); background: rgba(3,7,18,.96); backdrop-filter: blur(24px); border-top: 1px solid rgba(99,102,241,.1); display: flex; align-items: center; z-index: 100; }
-.ni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; }
-.ni svg { width: 22px; height: 22px; color: #3f3f5a; }
-.ni span { font-size: 10px; font-weight: 600; color: #3f3f5a; }
-.ni.active svg, .ni.active span { color: #6366f1; }
-.chat-nav-icon { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(99,102,241,.5); }
-.chat-nav-bars { display: flex; gap: 2px; align-items: center; height: 10px; }
-.chat-nav-bar { width: 2px; border-radius: 1px; background: #fff; animation: barDance 1s ease-in-out infinite; }
-.chat-nav-bar:nth-child(1) { height: 4px; }
-.chat-nav-bar:nth-child(2) { height: 7px; animation-delay: .15s; }
-.chat-nav-bar:nth-child(3) { height: 10px; animation-delay: .3s; }
-.chat-nav-bar:nth-child(4) { height: 6px; animation-delay: .45s; }
+/* ── BOTTOM NAV (унифициран С17) ── */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(11,15,26,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(99,102,241,0.15); display: flex; height: 56px; }
+.bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; color: rgba(165,180,252,0.65); text-decoration: none; transition: color 0.2s; }
+.bnav-tab.active { color: #818cf8; }
+.bnav-tab .bnav-icon { font-size: 1.2rem; }
 
 /* ── TOAST ── */
-.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 500; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+.toast { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 500; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 
 /* ── ANIMATIONS ── */
@@ -299,21 +292,17 @@ body { background: #030712; color: #e2e8f0; font-family: Inter, sans-serif; heig
   <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
 </div>
 
-<!-- BOTTOM NAV -->
-<nav class="bnav">
-  <a href="chat.php" class="ni active">
-    <div class="chat-nav-icon"><div class="chat-nav-bars"><div class="chat-nav-bar"></div><div class="chat-nav-bar"></div><div class="chat-nav-bar"></div><div class="chat-nav-bar"></div></div></div>
-    <span>Чат</span>
-  </a>
-  <a href="warehouse.php" class="ni"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg><span>Склад</span></a>
-  <a href="stats.php" class="ni"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>Статистики</span></a>
-  <a href="actions.php" class="ni"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg><span>Въвеждане</span></a>
+<!-- BOTTOM NAV (унифициран С17) -->
+<nav class="bottom-nav">
+    <a href="chat.php" class="bnav-tab active"><span class="bnav-icon">✦</span>AI</a>
+    <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
+    <a href="stats.php" class="bnav-tab"><span class="bnav-icon">📊</span>Справки</a>
+    <a href="actions.php" class="bnav-tab"><span class="bnav-icon">⚡</span>Въвеждане</a>
 </nav>
 
 <div class="toast" id="toast"></div>
 
 <?php
-// PHP helper за deeplinks в историята
 function parseDeeplinks($html) {
     $map = [
         '📦' => 'products.php?filter=low',
@@ -342,7 +331,6 @@ const voiceWrap = document.getElementById('voiceWrap');
 const recOverlay= document.getElementById('recOverlay');
 let voiceRec = null, isRecording = false, pendingAction = null;
 
-// ── DEEPLINKS MAP (за JS-генерирани съобщения) ──
 const dlMap = {'📦':'products.php?filter=low','⚠️':'purchase-orders.php','📊':'stats.php','💰':'sale.php','🔄':'transfers.php'};
 
 function parseDeeplinksJS(text) {
@@ -355,17 +343,14 @@ function parseDeeplinksJS(text) {
   });
 }
 
-// ── SCROLL ──
 function scrollBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
 scrollBottom();
 
-// ── INPUT ──
 chatInput.addEventListener('input', function() { btnSend.disabled = !this.value.trim(); });
 function autoResize(el) { el.style.height = ''; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
 function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 function fillAndSend(text) { chatInput.value = text; btnSend.disabled = false; sendMessage(); }
 
-// ── SEND ──
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
@@ -378,7 +363,6 @@ async function sendMessage() {
     typing.style.display = 'none';
     const reply = data.reply || data.error || 'Грешка';
     addAIMsg(reply);
-    // Action Layer
     if (data.action) {
       pendingAction = data.action;
       document.getElementById('actDesc').textContent = data.action.details || JSON.stringify(data.action);
@@ -405,7 +389,6 @@ function addAIMsg(text) {
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── ACTION CONFIRM ──
 function confirmAction() {
   document.getElementById('actOvl').classList.remove('show');
   showToast('Ще бъде изпълнено');
@@ -416,7 +399,6 @@ function cancelAction() {
   pendingAction = null;
 }
 
-// ── PULSE ──
 async function doPulse() {
   showToast('Проверявам...');
   try {
@@ -426,10 +408,8 @@ async function doPulse() {
   } catch(e) { showToast('Грешка'); }
 }
 
-// ── BRIEFING ──
 async function loadBriefing() {
   const area = document.getElementById('briefArea');
-  const loading = document.getElementById('briefLoading');
   try {
     const r = await fetch('ai-helper.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'briefing'}) });
     const d = await r.json();
@@ -460,7 +440,6 @@ function closeBrief(id) {
   setTimeout(() => el.remove(), 350);
 }
 
-// ── VOICE ──
 async function toggleVoice() {
   if (isRecording) { stopVoice(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -496,14 +475,12 @@ function stopVoice() {
   if (voiceRec) { try { voiceRec.stop(); } catch(e){} voiceRec = null; }
 }
 
-// ── TOAST ──
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ── INIT ──
 loadBriefing();
 </script>
 </body>
