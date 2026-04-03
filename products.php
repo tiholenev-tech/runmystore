@@ -1,5 +1,7 @@
 <?php
-// products.php — Артикули
+// products.php — Артикули — Сесия 16 FULL REWRITE
+// 4 екрана: Начало | Доставчици | Категории | Артикули
+// Sticky навигация, AI-first добавяне, Fal.ai AI Image Studio
 require_once 'config/database.php';
 session_start();
 
@@ -7,45 +9,114 @@ if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
 
 $tenant_id    = $_SESSION['tenant_id'];
 $role         = $_SESSION['role'] ?? 'seller';
-$user_store   = $_SESSION['store_id'];
-$currency     = $_SESSION['currency'] ?? 'EUR';
-$can_add      = in_array($role, ['owner', 'manager']);
+$user_store   = $_SESSION['store_id'] ?? 0;
+$can_add      = in_array($role, ['owner','manager']);
 $can_see_cost = ($role === 'owner');
+$can_ai_image = in_array($role, ['owner','manager']);
 
+// ── GET params ──
+$screen   = $_GET['screen'] ?? 'home';   // home|suppliers|categories|products
+$sup_id   = (int)($_GET['sup'] ?? 0);
+$cat_id   = (int)($_GET['cat'] ?? 0);
 $search   = trim($_GET['q'] ?? '');
 $filter   = $_GET['filter'] ?? 'all';
-$f_cat    = (int)($_GET['cat'] ?? 0);
-$f_sup    = (int)($_GET['sup'] ?? 0);
-$f_size   = trim($_GET['size'] ?? '');
-$f_color  = trim($_GET['color'] ?? '');
-$f_min    = $_GET['pmin'] ?? '';
-$f_max    = $_GET['pmax'] ?? '';
 $f_store  = ($role === 'seller') ? $user_store : (int)($_GET['store'] ?? 0);
 
+// ── ДАННИ: Доставчици със статистики ──
+$suppliers_sql = "
+    SELECT s.id, s.name, 
+           COUNT(DISTINCT p.id) AS product_count,
+           COALESCE(SUM(i.quantity * p.cost_price),0) AS capital,
+           SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) = 0 THEN 1 ELSE 0 END) AS out_count,
+           SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) > 0 AND COALESCE(inv_sum.total_qty,0) <= COALESCE(inv_sum.min_qty,0) AND COALESCE(inv_sum.min_qty,0) > 0 THEN 1 ELSE 0 END) AS low_count
+    FROM suppliers s
+    LEFT JOIN products p ON p.supplier_id=s.id AND p.tenant_id=s.tenant_id AND p.parent_id IS NULL AND p.is_active=1
+    LEFT JOIN (
+        SELECT product_id, SUM(quantity) AS total_qty, MAX(min_quantity) AS min_qty 
+        FROM inventory WHERE tenant_id=? GROUP BY product_id
+    ) inv_sum ON inv_sum.product_id=p.id
+    LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+    WHERE s.tenant_id=? AND s.is_active=1
+    GROUP BY s.id ORDER BY s.name
+";
+$suppliers = DB::run($suppliers_sql, [$tenant_id, $tenant_id])->fetchAll();
+
+// ── ДАННИ: Категории глобални ──
+$categories_sql = "
+    SELECT c.id, c.name, c.variant_type, c.parent_id,
+           COUNT(DISTINCT p.id) AS product_count,
+           COUNT(DISTINCT p.supplier_id) AS supplier_count
+    FROM categories c
+    LEFT JOIN products p ON p.category_id=c.id AND p.tenant_id=c.tenant_id AND p.parent_id IS NULL AND p.is_active=1
+    WHERE c.tenant_id=?
+    GROUP BY c.id ORDER BY c.name
+";
+$categories = DB::run($categories_sql, [$tenant_id])->fetchAll();
+
+// ── ДАННИ: Категории на конкретен доставчик ──
+$sup_categories = [];
+$sup_name = '';
+$sup_capital = 0;
+$sup_product_count = 0;
+if ($sup_id) {
+    $sup_info = DB::run("SELECT name FROM suppliers WHERE id=? AND tenant_id=?", [$sup_id, $tenant_id])->fetch();
+    $sup_name = $sup_info['name'] ?? '';
+    
+    $sup_categories_sql = "
+        SELECT c.id, c.name,
+               COUNT(DISTINCT p.id) AS product_count,
+               SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) = 0 THEN 1 ELSE 0 END) AS out_count,
+               SUM(CASE WHEN COALESCE(inv_sum.total_qty,0) > 0 AND COALESCE(inv_sum.total_qty,0) <= COALESCE(inv_sum.min_qty,0) AND COALESCE(inv_sum.min_qty,0) > 0 THEN 1 ELSE 0 END) AS low_count
+        FROM products p
+        JOIN categories c ON c.id=p.category_id
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity) AS total_qty, MAX(min_quantity) AS min_qty 
+            FROM inventory WHERE tenant_id=? GROUP BY product_id
+        ) inv_sum ON inv_sum.product_id=p.id
+        WHERE p.supplier_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+        GROUP BY c.id ORDER BY c.name
+    ";
+    $sup_categories = DB::run($sup_categories_sql, [$tenant_id, $sup_id, $tenant_id])->fetchAll();
+    
+    $sup_stats = DB::run("
+        SELECT COUNT(DISTINCT p.id) AS cnt, COALESCE(SUM(i.quantity * p.cost_price),0) AS capital
+        FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+        WHERE p.supplier_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+    ", [$sup_id, $tenant_id])->fetch();
+    $sup_product_count = $sup_stats['cnt'] ?? 0;
+    $sup_capital = $sup_stats['capital'] ?? 0;
+}
+
+// ── ДАННИ: Артикули (филтрирани) ──
 $where  = ["p.tenant_id=?", "p.parent_id IS NULL", "p.is_active=1"];
 $params = [$tenant_id];
 
-if ($search !== '') {
-    $where[] = "(p.name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.alt_codes LIKE ? OR p.description LIKE ?)";
-    $like = "%$search%";
-    array_push($params, $like, $like, $like, $like, $like);
+if ($sup_id && $cat_id) {
+    $where[] = "p.supplier_id=?"; $params[] = $sup_id;
+    $where[] = "p.category_id=?"; $params[] = $cat_id;
+} elseif ($sup_id) {
+    $where[] = "p.supplier_id=?"; $params[] = $sup_id;
+} elseif ($cat_id) {
+    $where[] = "p.category_id=?"; $params[] = $cat_id;
 }
-if ($f_cat)   { $where[] = "p.category_id=?"; $params[] = $f_cat; }
-if ($f_sup)   { $where[] = "p.supplier_id=?"; $params[] = $f_sup; }
-if ($f_size)  { $where[] = "(p.size LIKE ? OR EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.size LIKE ?))"; array_push($params, "%$f_size%", "%$f_size%"); }
-if ($f_color) { $where[] = "(p.color LIKE ? OR EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.color LIKE ?))"; array_push($params, "%$f_color%", "%$f_color%"); }
-if ($f_min !== '') { $where[] = "p.retail_price >= ?"; $params[] = (float)$f_min; }
-if ($f_max !== '') { $where[] = "p.retail_price <= ?"; $params[] = (float)$f_max; }
+
+if ($search !== '') {
+    $where[] = "(p.name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.alt_codes LIKE ?)";
+    $like = "%$search%";
+    array_push($params, $like, $like, $like, $like);
+}
 
 $inv_join = $f_store
     ? "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id AND i.store_id=$f_store"
     : "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id";
 
-$sql = "
+$products_sql = "
     SELECT p.*, c.name AS category_name, c.variant_type, s.name AS supplier_name,
            COALESCE(SUM(i.quantity),0) AS total_stock,
            COALESCE(MAX(i.min_quantity),0) AS min_qty,
-           (SELECT COUNT(*) FROM products ch WHERE ch.parent_id=p.id AND ch.tenant_id=p.tenant_id AND ch.is_active=1) AS variant_count
+           (SELECT COUNT(*) FROM products ch WHERE ch.parent_id=p.id AND ch.tenant_id=p.tenant_id AND ch.is_active=1) AS variant_count,
+           (SELECT COALESCE(SUM(si.quantity),0) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS sold_30d,
+           (SELECT DATEDIFF(NOW(), MAX(sa2.created_at)) FROM sale_items si2 JOIN sales sa2 ON sa2.id=si2.sale_id WHERE si2.product_id=p.id) AS days_no_sale
     FROM products p
     LEFT JOIN categories c ON c.id=p.category_id
     LEFT JOIN suppliers s ON s.id=p.supplier_id
@@ -53,8 +124,9 @@ $sql = "
     WHERE " . implode(' AND ', $where) . "
     GROUP BY p.id ORDER BY p.name ASC LIMIT 200
 ";
-$all_products = DB::run($sql, $params)->fetchAll();
+$all_products = DB::run($products_sql, $params)->fetchAll();
 
+// ── Броячи за табове ──
 $cnt_low = 0; $cnt_out = 0;
 foreach ($all_products as $p) {
     if ($p['total_stock'] == 0) $cnt_out++;
@@ -65,33 +137,125 @@ if ($filter === 'low') $products = array_values(array_filter($all_products, fn($
 elseif ($filter === 'out') $products = array_values(array_filter($all_products, fn($p) => $p['total_stock'] == 0));
 else $products = $all_products;
 
-$categories  = DB::run("SELECT id, name, variant_type FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll();
-$suppliers   = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
-$stores      = DB::run("SELECT id, name FROM stores WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
-$sizes_used  = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
-$colors_used = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+// ── HOME статистики ──
+$home_stats = DB::run("
+    SELECT 
+        COALESCE(SUM(i.quantity * p.cost_price),0) AS total_capital,
+        CASE WHEN SUM(i.quantity * p.retail_price) > 0 
+             THEN ROUND((SUM(i.quantity * p.retail_price) - SUM(i.quantity * p.cost_price)) / SUM(i.quantity * p.retail_price) * 100, 1)
+             ELSE 0 END AS avg_margin
+    FROM products p 
+    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+", [$tenant_id])->fetch();
 
-$tenant_cfg      = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+// ── Zombie стока (>45 дни без продажба, има наличност) ──
+$zombies = DB::run("
+    SELECT p.id, p.name, COALESCE(SUM(i.quantity),0) AS qty,
+           COALESCE(SUM(i.quantity * p.cost_price),0) AS frozen_capital,
+           DATEDIFF(NOW(), COALESCE(
+               (SELECT MAX(sa.created_at) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id),
+               p.created_at
+           )) AS days_stuck
+    FROM products p
+    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+    GROUP BY p.id
+    HAVING qty > 0 AND days_stuck > 45
+    ORDER BY days_stuck DESC LIMIT 10
+", [$tenant_id])->fetchAll();
+
+$zombie_total = array_sum(array_column($zombies, 'frozen_capital'));
+
+// ── Свършващи (под минимума) ──
+$running_low = DB::run("
+    SELECT p.id, p.name, COALESCE(SUM(i.quantity),0) AS qty, MAX(i.min_quantity) AS min_qty
+    FROM products p
+    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+    GROUP BY p.id
+    HAVING qty > 0 AND min_qty > 0 AND qty <= min_qty
+    ORDER BY qty ASC LIMIT 10
+", [$tenant_id])->fetchAll();
+
+// ── Топ 5 хитове ──
+$top_sellers = DB::run("
+    SELECT p.id, p.name, COALESCE(SUM(si.quantity),0) AS sold
+    FROM sale_items si
+    JOIN sales sa ON sa.id=si.sale_id
+    JOIN products p ON p.id=si.product_id
+    WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
+    GROUP BY p.id ORDER BY sold DESC LIMIT 5
+", [$tenant_id])->fetchAll();
+
+// ── Бавно движещи се ──
+$slow_movers = DB::run("
+    SELECT p.id, p.name,
+           DATEDIFF(NOW(), COALESCE(
+               (SELECT MAX(sa.created_at) FROM sale_items si JOIN sales sa ON sa.id=si.sale_id WHERE si.product_id=p.id),
+               p.created_at
+           )) AS days_no_sale
+    FROM products p
+    JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id
+    WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+    GROUP BY p.id
+    HAVING SUM(i.quantity) > 0 AND days_no_sale BETWEEN 25 AND 45
+    ORDER BY days_no_sale DESC LIMIT 5
+", [$tenant_id])->fetchAll();
+
+// ── Доставчик статистики (за екран 2) ──
+$sup_top_sold = DB::run("
+    SELECT s.name, COALESCE(SUM(si.quantity),0) AS sold
+    FROM sale_items si JOIN sales sa ON sa.id=si.sale_id
+    JOIN products p ON p.id=si.product_id
+    JOIN suppliers s ON s.id=p.supplier_id
+    WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
+    GROUP BY s.id ORDER BY sold DESC LIMIT 3
+", [$tenant_id])->fetchAll();
+
+$sup_top_profit = [];
+if ($can_see_cost) {
+    $sup_top_profit = DB::run("
+        SELECT s.name, COALESCE(SUM(si.quantity * (si.price - COALESCE(si.cost_price,0))),0) AS profit
+        FROM sale_items si JOIN sales sa ON sa.id=si.sale_id
+        JOIN products p ON p.id=si.product_id
+        JOIN suppliers s ON s.id=p.supplier_id
+        WHERE sa.tenant_id=? AND sa.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.parent_id IS NULL
+        GROUP BY s.id ORDER BY profit DESC LIMIT 3
+    ", [$tenant_id])->fetchAll();
+}
+
+// ── Stores за филтър ──
+$stores = DB::run("SELECT id, name FROM stores WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
+
+// ── Onboarding units ──
+$tenant_cfg = DB::run("SELECT units_config, ai_credits_bg, ai_credits_tryon FROM tenants WHERE id=?", [$tenant_id])->fetch();
 $onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
+$ai_credits_bg = (int)($tenant_cfg['ai_credits_bg'] ?? 0);
+$ai_credits_tryon = (int)($tenant_cfg['ai_credits_tryon'] ?? 0);
 
-$has_filters = $f_cat || $f_sup || $f_size || $f_color || $f_min !== '' || $f_max !== '' || ($role !== 'seller' && $f_store);
+// ── Breadcrumb ──
+$cat_name = '';
+if ($cat_id) {
+    $cat_info = DB::run("SELECT name FROM categories WHERE id=? AND tenant_id=?", [$cat_id, $tenant_id])->fetch();
+    $cat_name = $cat_info['name'] ?? '';
+}
 
-$COLOR_PALETTE = [
-    ['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],
-    ['name'=>'Сив','hex'=>'#6b7280'],['name'=>'Тъмносив','hex'=>'#374151'],
-    ['name'=>'Червен','hex'=>'#ef4444'],['name'=>'Бордо','hex'=>'#7f1d1d'],
-    ['name'=>'Розов','hex'=>'#ec4899'],['name'=>'Корал','hex'=>'#f87171'],
-    ['name'=>'Оранжев','hex'=>'#f97316'],['name'=>'Жълт','hex'=>'#eab308'],
-    ['name'=>'Горчица','hex'=>'#ca8a04'],['name'=>'Зелен','hex'=>'#22c55e'],
-    ['name'=>'Маслина','hex'=>'#65a30d'],['name'=>'Каки','hex'=>'#6b7c3d'],
-    ['name'=>'Тюркоаз','hex'=>'#14b8a6'],['name'=>'Син','hex'=>'#3b82f6'],
-    ['name'=>'Тъмносин','hex'=>'#1e3a8a'],['name'=>'Navy','hex'=>'#1e40af'],
-    ['name'=>'Лилав','hex'=>'#8b5cf6'],['name'=>'Кафяв','hex'=>'#92400e'],
-    ['name'=>'Бежов','hex'=>'#d4b896'],['name'=>'Крем','hex'=>'#fef3c7'],
-    ['name'=>'Графит','hex'=>'#374151'],['name'=>'Деним','hex'=>'#1d4ed8'],
-    ['name'=>'Камуфлаж','hex'=>'#4a5d23'],['name'=>'Пъстър','hex'=>'#a855f7'],
-    ['name'=>'Златист','hex'=>'#d97706'],['name'=>'Сребрист','hex'=>'#9ca3af'],
-];
+// ── Cross-link: колко доставчика имат тази категория ──
+$cross_sup_count = 0;
+$cross_total = 0;
+if ($cat_id && $sup_id) {
+    $cross = DB::run("
+        SELECT COUNT(DISTINCT p.supplier_id) AS sup_cnt, COUNT(DISTINCT p.id) AS total
+        FROM products p WHERE p.category_id=? AND p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+    ", [$cat_id, $tenant_id])->fetch();
+    $cross_sup_count = $cross['sup_cnt'] ?? 0;
+    $cross_total = $cross['total'] ?? 0;
+}
+
+// ── Формат валута ──
+function fmtEur($v) { return number_format((float)$v, 2, ',', '.') . ' €'; }
+function fmtInt($v) { return number_format((float)$v, 0, ',', '.'); }
 ?>
 <!DOCTYPE html>
 <html lang="bg">
@@ -102,1141 +266,626 @@ $COLOR_PALETTE = [
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
-:root{--nav-h:64px}
+:root{--nav-h:64px;--sticky-h:62px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;margin:0;overflow-x:hidden;padding-bottom:80px}
-body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,rgba(99,102,241,.08) 0%,transparent 70%);pointer-events:none;z-index:0}
-.hdr{position:sticky;top:0;z-index:50;background:rgba(3,7,18,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(99,102,241,.12);padding:14px 16px 0}
-.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.page-title{font-size:20px;font-weight:800;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
-.btn-add{display:flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 0 20px rgba(99,102,241,.4),inset 0 1px 0 rgba(255,255,255,.16)}
+body{background:#030712;color:#e2e8f0;font-family:'Montserrat',system-ui,sans-serif;margin:0;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + var(--sticky-h) + 12px)}
+
+/* ── SVG фонове (Cruip) ── */
+body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:846px;height:594px;background:url('./images/page-illustration.svg') no-repeat center;pointer-events:none;z-index:0;opacity:.5}
+body::after{content:'';position:fixed;top:400px;left:20%;width:760px;height:668px;background:url('./images/blurred-shape.svg') no-repeat center;pointer-events:none;z-index:0;opacity:.3}
+
+/* ── Хедър ── */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(3,7,18,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(99,102,241,.12);padding:12px 16px 0}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.page-title{font-size:20px;font-weight:800;font-family:'Nacelle',sans-serif;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
+@keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
+
+.btn-add{display:flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 20px rgba(99,102,241,.4),inset 0 1px 0 rgba(255,255,255,.16)}
 .btn-add:active{transform:scale(.96)}
-.search-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+
+/* ── Търсене ── */
+.search-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .search-wrap{position:relative;flex:1}
-.search-input{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#e2e8f0;font-size:14px;padding:11px 80px 11px 16px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s}
+.search-input{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#e2e8f0;font-size:13px;padding:10px 74px 10px 14px;font-family:inherit;outline:none;transition:border-color .2s}
 .search-input::placeholder{color:#4b5563}
 .search-input:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-.search-icons{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center}
+.search-icons{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:5px}
 .icon-btn{width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc}
 .icon-btn:active{background:rgba(99,102,241,.3)}
-.filter-btn{width:40px;height:40px;border-radius:12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0;position:relative}
-.filter-btn.active{background:rgba(99,102,241,.25);border-color:rgba(99,102,241,.5)}
-.filter-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#6366f1;box-shadow:0 0 6px rgba(99,102,241,.8)}
-.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
+.filter-btn{width:38px;height:38px;border-radius:12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0}
+
+/* ── Табове ── */
+.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
 .ftabs::-webkit-scrollbar{display:none}
-.ftab{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;white-space:nowrap}
+.ftab{flex-shrink:0;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:inherit;white-space:nowrap}
 .ftab.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(99,102,241,.35)}
-.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;margin-left:4px;padding:0 3px;background:rgba(255,255,255,.15)}
-.ftab:not(.active) .cnt{background:rgba(99,102,241,.15);color:#6366f1}
-.ftab:not(.active) .cnt.w{background:rgba(245,158,11,.15);color:#f59e0b}
-.ftab:not(.active) .cnt.d{background:rgba(239,68,68,.15);color:#ef4444}
-.plist{padding:12px 12px 20px;position:relative;z-index:1}
-.pcard{position:relative;border-radius:18px;margin-bottom:10px;overflow:hidden;background:rgba(15,15,35,.85);cursor:pointer;transition:transform .2s;animation:cIn .35s ease both}
-.pcard::before{content:'';position:absolute;left:var(--mx,-9999px);top:var(--my,-9999px);width:260px;height:260px;border-radius:50%;background:rgba(99,102,241,.18);transform:translate(-50%,-50%);filter:blur(45px);opacity:0;transition:opacity .3s;pointer-events:none;z-index:0}
-.pcard:hover::before{opacity:1}
-.pcard::after{content:'';position:absolute;inset:0;border-radius:inherit;border:1px solid transparent;background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(99,102,241,.04),rgba(99,102,241,.12)) border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:destination-out;mask-composite:exclude;pointer-events:none}
+.badge{display:inline-flex;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;padding:0 4px;align-items:center;justify-content:center;margin-left:4px}
+.badge-w{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-d{background:rgba(239,68,68,.15);color:#ef4444}
+.badge-n{background:rgba(255,255,255,.15);color:#fff}
+
+/* ── Бърз поглед карти ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:10px 12px}
+.stat-label{font-size:10px;color:#6b7280;font-weight:600}
+.stat-val{font-size:18px;font-weight:900;color:#f1f5f9}
+
+/* ── Collapse секции ── */
+.collapse-box{border-radius:14px;margin-bottom:10px;overflow:hidden}
+.collapse-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.collapse-header:active{opacity:.8}
+.collapse-icon{display:flex;align-items:center;gap:8px}
+.collapse-emoji{font-size:15px}
+.collapse-title{font-size:12px;font-weight:700}
+.collapse-sub{font-size:11px;color:#6b7280}
+.collapse-arrow{transition:transform .2s}
+.collapse-body{display:none;padding:0 14px 12px}
+.collapse-body.open{display:block}
+.collapse-row{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(255,255,255,.04);font-size:12px}
+.collapse-action{padding:8px;border-radius:10px;font-size:11px;font-weight:700;text-align:center;margin-top:6px;cursor:pointer}
+
+.cb-red{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15)}
+.cb-red .collapse-title{color:#ef4444}
+.cb-red .collapse-arrow{color:#ef4444}
+.cb-red .collapse-row span:last-child{color:#ef4444;font-weight:700}
+.cb-red .collapse-action{background:rgba(239,68,68,.1);color:#ef4444}
+
+.cb-yellow{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15)}
+.cb-yellow .collapse-title{color:#f59e0b}
+.cb-yellow .collapse-arrow{color:#f59e0b}
+.cb-yellow .collapse-row span:last-child{color:#f59e0b;font-weight:700}
+.cb-yellow .collapse-action{background:rgba(245,158,11,.1);color:#f59e0b}
+
+.cb-green{background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15)}
+.cb-green .collapse-title{color:#22c55e}
+.cb-green .collapse-arrow{color:#22c55e}
+.cb-green .collapse-row span:last-child{color:#22c55e;font-weight:700}
+
+.cb-purple{background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15)}
+.cb-purple .collapse-title{color:#8b5cf6}
+.cb-purple .collapse-arrow{color:#8b5cf6}
+.cb-purple .collapse-row span:last-child{color:#8b5cf6;font-weight:700}
+.cb-purple .collapse-action{background:rgba(139,92,246,.1);color:#8b5cf6}
+
+/* ── Доставчик / Категория карти (swipe) ── */
+.swipe-section{margin-bottom:18px}
+.swipe-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.swipe-label-text{font-size:11px;font-weight:700;letter-spacing:1px}
+.swipe-hint{font-size:11px;color:#4b5563}
+.swipe-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none}
+.swipe-row::-webkit-scrollbar{display:none}
+.swipe-card{min-width:150px;flex-shrink:0;scroll-snap-align:start;border-radius:14px;padding:12px;cursor:pointer;transition:transform .15s}
+.swipe-card:active{transform:scale(.97)}
+.sc-indigo{background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18)}
+.sc-purple{background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.18)}
+.sc-name{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:2px}
+.sc-info{font-size:11px;color:#6b7280;margin-bottom:6px}
+.sc-badges{display:flex;gap:3px;flex-wrap:wrap}
+.sc-badge{font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700}
+.scb-ok{background:rgba(34,197,94,.12);color:#22c55e}
+.scb-low{background:rgba(245,158,11,.12);color:#f59e0b}
+.scb-out{background:rgba(239,68,68,.12);color:#ef4444}
+
+/* ── Drill-down хедър ── */
+.dd-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.dd-back{width:32px;height:32px;border-radius:10px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0}
+.dd-back:active{background:rgba(99,102,241,.25)}
+.dd-breadcrumb{font-size:11px;color:#6b7280}
+.dd-breadcrumb a{color:#6b7280;text-decoration:none}
+.dd-breadcrumb a:hover{color:#a5b4fc}
+.dd-title{font-size:16px;font-weight:800;color:#f1f5f9}
+.dd-subtitle{font-size:11px;color:#6b7280}
+
+/* ── Cross-link ── */
+.cross-link{padding:8px 12px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.15);border-radius:10px;font-size:11px;color:#c4b5fd;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px}
+.cross-link:active{background:rgba(139,92,246,.15)}
+
+/* ── Категория ред (в drill-down) ── */
+.cat-row{border-radius:14px;margin-bottom:8px;background:rgba(15,15,35,.85);border:1px solid rgba(99,102,241,.12);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .15s}
+.cat-row:active{transform:scale(.98)}
+.cat-row-name{font-size:15px;font-weight:700;color:#f1f5f9}
+.cat-row-info{font-size:12px;color:#6b7280}
+.cat-row-badges{display:flex;align-items:center;gap:6px}
+
+/* ── Артикул карта ── */
+.pcard{position:relative;border-radius:16px;margin-bottom:8px;overflow:hidden;background:rgba(15,15,35,.85);border:1px solid rgba(99,102,241,.12);cursor:pointer;transition:transform .15s;animation:cIn .35s ease both}
 .pcard:active{transform:scale(.98)}
-.stripe{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:18px 0 0 18px;z-index:2}
-.sg{background:linear-gradient(to bottom,#22c55e,#16a34a);box-shadow:2px 0 14px rgba(34,197,94,.5)}
-.sy{background:linear-gradient(to bottom,#f59e0b,#d97706);box-shadow:2px 0 14px rgba(245,158,11,.5)}
-.sr{background:linear-gradient(to bottom,#ef4444,#dc2626);box-shadow:2px 0 14px rgba(239,68,68,.5)}
-.ci{position:relative;z-index:1;padding:14px 14px 14px 18px}
-.ctop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
-.cname{font-size:14px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.csub{font-size:11px;color:#6b7280}
-.qnum{font-size:24px;font-weight:900;line-height:1;text-align:right}
-.qunit{font-size:10px;color:#6b7280;font-weight:600;text-align:right}
-.ctags{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-.tag{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;border:1px solid transparent}
-.tp{color:#a5b4fc;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.2)}
-.tc{color:#fbbf24;background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.15)}
-.tok{color:#22c55e;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.2)}
-.tlo{color:#f59e0b;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);animation:bp 2.5s infinite}
-.tout{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);animation:bp 2s infinite}
-.tv{color:#8b5cf6;background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.2)}
-.ts{color:#6b7280;background:rgba(107,114,128,.08);border-color:rgba(107,114,128,.12)}
-.ai-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#a5b4fc;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:3px 8px;cursor:pointer;font-family:'Montserrat',sans-serif}
-.plist.blurred .pcard:not(.focused){filter:blur(1.5px);opacity:.4;pointer-events:none}
-.pcard.focused{z-index:10;box-shadow:0 8px 40px rgba(99,102,241,.25)}
-.empty{text-align:center;padding:60px 20px;color:#4b5563}
-.empty svg{width:48px;height:48px;margin-bottom:12px;color:#1f2937}
-.empty h3{font-size:16px;font-weight:700;color:#374151;margin:0 0 6px}
-.empty p{font-size:13px;margin:0}
-.ovl{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(8px)}
-.ovl.open{opacity:1;pointer-events:all}
-.drw{position:fixed;bottom:0;left:0;right:0;z-index:201;background:linear-gradient(to bottom,#0d0d25,#080818);border-top:1px solid rgba(99,102,241,.2);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,0,.67,0);max-height:88vh;overflow-y:auto;box-shadow:0 -30px 80px rgba(99,102,241,.2)}
-.drw.open{transform:translateY(0)}
-.drw-h{width:40px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:14px auto 20px}
-.drw-b{padding:0 20px 40px}
-.d-name{font-size:21px;font-weight:800;color:#f1f5f9;margin-bottom:3px}
-.d-meta{font-size:12px;color:#6b7280;margin-bottom:18px}
-.sg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.si{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:10px 12px}
-.sil{font-size:10px;color:#6b7280;font-weight:600;margin-bottom:2px}
-.siv{font-size:17px;font-weight:800;color:#f1f5f9}
-.store-stock-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(99,102,241,.07)}
-.store-stock-row:last-child{border-bottom:none}
-.dab-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.dab{padding:13px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
-.dab-p{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.3)}
-.dab-s{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#a5b4fc}
-.ai-rec{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;margin-bottom:16px}
-.ai-rl{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.ai-rt{font-size:13px;color:#e2e8f0;line-height:1.65}
-.fl-section{margin-bottom:18px}
-.fl-title{font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.fl-chips{display:flex;gap:6px;flex-wrap:wrap}
-.fl-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s}
-.fl-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc}
-.fl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.fl-input{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:'Montserrat',sans-serif;outline:none;width:100%}
-.fl-apply{width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:4px}
-.fl-clear{width:100%;padding:11px;background:transparent;border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#6b7280;font-size:13px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:8px}
-.modal-ovl{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(10px)}
-.modal-ovl.open{opacity:1;pointer-events:all}
-.modal{position:fixed;bottom:0;left:0;right:0;z-index:301;background:linear-gradient(to bottom,#0c0c22,#070714);border-top:1px solid rgba(99,102,241,.25);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .38s cubic-bezier(.32,0,.67,0);max-height:94vh;overflow-y:auto}
-.modal.open{transform:translateY(0)}
-.m-handle{width:40px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:14px auto 0}
-.m-head{padding:12px 20px;border-bottom:1px solid rgba(99,102,241,.1);display:flex;justify-content:space-between;align-items:center}
-.m-title{font-size:16px;font-weight:800;color:#f1f5f9}
-.m-close{width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.15);color:#6b7280;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.m-body{padding:18px 20px 24px}
-.steps-bar{display:flex;gap:4px;margin-bottom:12px}
-.sbar-item{flex:1;height:3px;border-radius:2px;background:rgba(99,102,241,.15);transition:background .3s}
-.sbar-item.done{background:#6366f1}
-.sbar-item.active{background:linear-gradient(to right,#6366f1,#8b5cf6);box-shadow:0 0 8px rgba(99,102,241,.4)}
-.step-label-row{font-size:11px;color:#6b7280;margin-bottom:16px}
-.step-label-row span{font-weight:700;color:#a5b4fc}
-.step-content{display:none}
-.step-content.active{display:block;animation:fadeIn .25s ease}
-.fg{margin-bottom:14px}
-.fl{display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.fi{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#e2e8f0;font-size:14px;padding:11px 14px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none}
-.fi:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-.fi::placeholder{color:#4b5563}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.type-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.type-card{background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.15);border-radius:18px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .2s}
-.type-card:active{transform:scale(.97)}
-.type-card.sel{border-color:#6366f1;background:rgba(99,102,241,.14);box-shadow:0 0 24px rgba(99,102,241,.25)}
-.type-card-icon{font-size:38px;margin-bottom:10px}
-.type-card-name{font-size:14px;font-weight:800;color:#f1f5f9;margin-bottom:4px}
-.type-card-sub{font-size:11px;color:#6b7280;line-height:1.4}
-/* PHOTO — камера по подразбиране */
-.photo-upload-wrap{margin-bottom:14px}
-.photo-upload{position:relative;width:100%;height:110px;background:rgba(15,15,40,.8);border:2px dashed rgba(99,102,241,.3);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden}
-.photo-upload:active{border-color:#6366f1}
-.photo-upload span{font-size:12px;color:#6b7280}
-.photo-preview{position:absolute;inset:0;background-size:cover;background-position:center}
-.photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
-.photo-btn{padding:8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
-.photo-btn:active{background:rgba(99,102,241,.25)}
-.voice-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;justify-content:center;margin-bottom:14px}
-.voice-btn.recording{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#ef4444;animation:pulse-rec 1s infinite}
-.ai-gen-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;justify-content:center;margin-bottom:14px}
-.vsec{margin-bottom:20px}
-.vsec-title{font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.vsec-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(99,102,241,.3),transparent)}
-.size-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
-.size-chip{position:relative;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:rgba(15,15,40,.5);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;user-select:none}
-.size-chip:active{transform:scale(.95)}
-.size-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc;box-shadow:0 0 10px rgba(99,102,241,.2)}
-.size-price-badge{position:absolute;top:-6px;right:-4px;background:#6366f1;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 4px;display:none}
-.size-chip.sel.has-price .size-price-badge{display:block}
-.size-price-popup{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:10;background:#0a0a1e;border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:8px 10px;width:130px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-.size-chip.price-open .size-price-popup{display:block}
-.size-price-popup input{width:100%;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.3);border-radius:8px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:'Montserrat',sans-serif;outline:none}
-.size-price-popup label{font-size:10px;color:#6b7280;display:block;margin-bottom:4px}
-.add-custom-row{display:flex;gap:6px;margin-top:8px}
-.add-custom-input{flex:1;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.18);border-radius:10px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:'Montserrat',sans-serif;outline:none}
-.add-custom-input::placeholder{color:#4b5563}
-.add-custom-btn{padding:8px 14px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap}
-.color-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.color-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.color-dot{width:32px;height:32px;border-radius:50%;border:2px solid transparent;transition:all .2s}
-.color-dot-wrap.sel .color-dot{border-color:#fff;box-shadow:0 0 0 2px #6366f1}
-.color-dot-name{font-size:9px;color:#6b7280;text-align:center;max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.color-dot-wrap.sel .color-dot-name{color:#a5b4fc}
-.chips-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.var-chip{padding:7px 14px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid rgba(99,102,241,.18);color:#6b7280;background:rgba(15,15,40,.5);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s}
-.var-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc}
-.scanner-current{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.1));border:1px solid rgba(99,102,241,.3);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
-.scanner-variant-name{font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:4px}
-.scanner-instruction{font-size:12px;color:#6b7280}
-.scanner-progress{display:flex;gap:6px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
-.scan-dot{width:28px;height:28px;border-radius:50%;border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#6b7280;background:rgba(15,15,40,.5);flex-shrink:0}
-.scan-dot.done{background:#22c55e;border-color:#22c55e;color:#fff}
-.scan-dot.active{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc;box-shadow:0 0 10px rgba(99,102,241,.3)}
-.scan-result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(99,102,241,.07);font-size:13px}
-.scan-result-row:last-child{border-bottom:none}
-.btn-next{width:100%;padding:14px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,.35),inset 0 1px 0 rgba(255,255,255,.16);margin-top:8px}
-.btn-next:active{transform:scale(.98)}
-.btn-back{width:100%;padding:12px;background:transparent;border:1px solid rgba(99,102,241,.15);border-radius:14px;color:#6b7280;font-size:13px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:8px}
-.btn-save{width:100%;padding:14px;background:linear-gradient(to bottom,#22c55e,#16a34a);border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 20px rgba(34,197,94,.35);margin-top:4px}
-.btn-skip{width:100%;padding:11px;background:transparent;border:1px solid rgba(99,102,241,.15);border-radius:14px;color:#6b7280;font-size:12px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:6px}
-.camera-wrap{position:fixed;inset:0;z-index:400;background:#000;display:none;flex-direction:column}
-.camera-wrap.open{display:flex}
-#cameraVideo{width:100%;flex:1;object-fit:cover}
-.camera-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.scan-frame{width:220px;height:140px;border:2px solid rgba(99,102,241,.8);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
-.scan-line{position:absolute;width:200px;height:2px;background:linear-gradient(to right,transparent,#6366f1,transparent);animation:scanAnim 2s linear infinite}
-.camera-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;z-index:1}
-.camera-label{position:absolute;top:60px;left:0;right:0;text-align:center;pointer-events:none}
-.camera-label-text{background:rgba(0,0,0,.7);color:#fff;font-size:14px;font-weight:700;padding:8px 20px;border-radius:20px;display:inline-block;font-family:'Montserrat',sans-serif}
-.camera-beep{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,.9);color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:700;display:none;font-family:'Montserrat',sans-serif;pointer-events:none}
-.camera-beep.show{display:block}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-.toast.show{opacity:1}
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(3,7,18,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(99,102,241,.1);display:flex;align-items:center;z-index:100}
+.pcard-inner{display:flex;align-items:center;padding:10px 14px 10px 18px;position:relative}
+.stripe{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:16px 0 0 16px}
+.sg{background:linear-gradient(to bottom,#22c55e,#16a34a)}
+.sy{background:linear-gradient(to bottom,#f59e0b,#d97706)}
+.sr{background:linear-gradient(to bottom,#ef4444,#dc2626)}
+.pcard-thumb{width:44px;height:44px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;overflow:hidden}
+.pcard-thumb img{width:100%;height:100%;object-fit:cover}
+.pcard-info{flex:1;min-width:0}
+.pcard-name{font-size:14px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard-meta{font-size:11px;color:#6b7280}
+.pcard-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px}
+.ptag-price{color:#a5b4fc;background:rgba(99,102,241,.1)}
+.ptag-ok{color:#22c55e;background:rgba(34,197,94,.1)}
+.ptag-low{color:#f59e0b;background:rgba(245,158,11,.1)}
+.ptag-out{color:#ef4444;background:rgba(239,68,68,.1)}
+.ptag-var{color:#8b5cf6;background:rgba(139,92,246,.1)}
+.pcard-qty{text-align:right;flex-shrink:0;margin-left:8px}
+.pcard-num{font-size:20px;font-weight:900;line-height:1}
+.pcard-unit{font-size:10px;color:#6b7280;font-weight:600}
+
+/* ── Supplier stats (екран 2 отдолу) ── */
+.stats-section{margin-top:18px}
+.stats-title{font-size:11px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:8px}
+.stats-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(99,102,241,.06);font-size:12px}
+.stats-row:last-child{border-bottom:none}
+.stats-row-name{color:#e2e8f0}
+.stats-row-val{font-weight:700}
+
+/* ── Sticky навигация (4 бутона) ── */
+.sticky-nav{position:fixed;bottom:var(--nav-h);left:0;right:0;z-index:90;background:linear-gradient(to top,rgba(3,7,18,.98) 80%,rgba(3,7,18,0));padding:10px 12px 8px}
+.sticky-btns{display:flex;gap:6px}
+.sticky-btn{flex:1;padding:8px 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:1px solid rgba(99,102,241,.15);background:rgba(15,15,40,.6);transition:all .15s}
+.sticky-btn:active{transform:scale(.95)}
+.sticky-btn.active{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4);box-shadow:0 0 12px rgba(99,102,241,.2)}
+.sticky-btn svg{width:18px;height:18px;color:#6b7280}
+.sticky-btn.active svg{color:#a5b4fc}
+.sticky-btn-label{font-size:10px;font-weight:700;color:#6b7280}
+.sticky-btn.active .sticky-btn-label{color:#a5b4fc}
+
+/* ── Bottom nav ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(3,7,18,.97);backdrop-filter:blur(20px);border-top:1px solid rgba(99,102,241,.1);display:flex;align-items:center;z-index:100}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;text-decoration:none;border:none;background:transparent;cursor:pointer}
 .ni svg{width:22px;height:22px;color:#3f3f5a}
 .ni span{font-size:10px;font-weight:600;color:#3f3f5a}
 .ni.active svg,.ni.active span{color:#6366f1}
-@keyframes cIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes bp{0%,100%{opacity:1}50%{opacity:.55}}
-@keyframes scanAnim{0%{top:10%}50%{top:80%}100%{top:10%}}
-@keyframes pulse-rec{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
-.pcard:nth-child(1){animation-delay:.04s}.pcard:nth-child(2){animation-delay:.08s}.pcard:nth-child(3){animation-delay:.12s}.pcard:nth-child(n+4){animation-delay:.16s}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:40px 20px;color:#4b5563}
+.empty h3{font-size:16px;font-weight:700;color:#374151;margin:0 0 6px}
+.empty p{font-size:13px;margin:0}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* ── AI плаващ бутон ── */
+.ai-fab{position:fixed;bottom:160px;right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 20px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:80;animation:fabPulse 3s ease-in-out infinite;transition:all .3s}
+.ai-fab:active{transform:scale(.9)}
+.ai-fab svg{width:24px;height:24px;color:#fff}
+@keyframes fabPulse{0%,100%{box-shadow:0 4px 20px rgba(99,102,241,.5),0 0 40px rgba(99,102,241,.2)}50%{box-shadow:0 4px 30px rgba(99,102,241,.7),0 0 60px rgba(99,102,241,.35)}}
+
+/* ── Анимации ── */
+@keyframes cIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.pcard:nth-child(1){animation-delay:.03s}.pcard:nth-child(2){animation-delay:.06s}.pcard:nth-child(3){animation-delay:.09s}.pcard:nth-child(n+4){animation-delay:.12s}
+
+/* ── Content area ── */
+.content{padding:12px 16px;position:relative;z-index:1}
 </style>
 </head>
 <body>
 
+<!-- ═══════════ ХЕДЪР ═══════════ -->
 <div class="hdr">
   <div class="hdr-top">
-    <h1 class="page-title">Артикули</h1>
+    <?php if ($screen === 'home'): ?>
+      <h1 class="page-title">Артикули</h1>
+    <?php else: ?>
+      <div class="dd-header" style="margin-bottom:0">
+        <a href="<?php
+          if ($screen === 'products' && $sup_id && $cat_id) echo "products.php?screen=categories&sup=$sup_id";
+          elseif ($screen === 'products' && $cat_id) echo "products.php?screen=home";
+          elseif ($screen === 'categories' && $sup_id) echo "products.php?screen=suppliers";
+          else echo "products.php?screen=home";
+        ?>" class="dd-back">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+        </a>
+        <div>
+          <?php if ($screen === 'suppliers'): ?>
+            <div class="dd-title">Доставчици</div>
+          <?php elseif ($screen === 'categories'): ?>
+            <?php if ($sup_id): ?>
+              <div class="dd-breadcrumb"><a href="products.php?screen=suppliers">Доставчици</a> ></div>
+              <div class="dd-title"><?= htmlspecialchars($sup_name) ?></div>
+              <div class="dd-subtitle"><?= $sup_product_count ?> артикула · <?= fmtEur($sup_capital) ?></div>
+            <?php else: ?>
+              <div class="dd-title">Категории</div>
+            <?php endif; ?>
+          <?php elseif ($screen === 'products'): ?>
+            <?php if ($sup_id && $cat_id): ?>
+              <div class="dd-breadcrumb">
+                <a href="products.php?screen=suppliers">Дост.</a> > 
+                <a href="products.php?screen=categories&sup=<?= $sup_id ?>"><?= htmlspecialchars($sup_name) ?></a> > <?= htmlspecialchars($cat_name) ?>
+              </div>
+            <?php elseif ($cat_id): ?>
+              <div class="dd-breadcrumb"><a href="products.php?screen=home">Кат.</a> > <?= htmlspecialchars($cat_name) ?></div>
+            <?php endif; ?>
+            <div class="dd-title">Артикули</div>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php endif; ?>
     <?php if ($can_add): ?>
-    <button class="btn-add" onclick="openModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    <button class="btn-add" onclick="openAddModal()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
       Добави
     </button>
     <?php endif; ?>
   </div>
+
+  <?php if (in_array($screen, ['home','products'])): ?>
   <div class="search-row">
     <div class="search-wrap">
       <form method="GET" id="searchForm">
+        <input type="hidden" name="screen" value="<?= htmlspecialchars($screen) ?>">
         <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
-        <?php if ($f_cat): ?><input type="hidden" name="cat" value="<?= $f_cat ?>"><?php endif; ?>
-        <?php if ($f_sup): ?><input type="hidden" name="sup" value="<?= $f_sup ?>"><?php endif; ?>
-        <?php if ($f_size): ?><input type="hidden" name="size" value="<?= htmlspecialchars($f_size) ?>"><?php endif; ?>
-        <?php if ($f_color): ?><input type="hidden" name="color" value="<?= htmlspecialchars($f_color) ?>"><?php endif; ?>
-        <?php if ($f_store): ?><input type="hidden" name="store" value="<?= $f_store ?>"><?php endif; ?>
-        <input type="text" name="q" class="search-input" placeholder="Търси по ime, баркод, код..." value="<?= htmlspecialchars($search) ?>" autocomplete="off" id="searchInput">
+        <?php if ($sup_id): ?><input type="hidden" name="sup" value="<?= $sup_id ?>"><?php endif; ?>
+        <?php if ($cat_id): ?><input type="hidden" name="cat" value="<?= $cat_id ?>"><?php endif; ?>
+        <input type="text" name="q" class="search-input" placeholder="Търси по име, баркод, код..." value="<?= htmlspecialchars($search) ?>" autocomplete="off">
       </form>
       <div class="search-icons">
-        <button type="button" onclick="openCamera('search')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m11-4v3a1 1 0 01-1 1h-3m4-11V6a1 1 0 00-1-1h-3"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-width="1.5"/></svg>
+        <button type="button" class="icon-btn" onclick="openCamera('search')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7m-3.5-3.5v7"/></svg>
         </button>
-        <div class="icon-btn" onclick="startVoiceSearch()" id="voiceSearchBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
-        </div>
+        <button type="button" class="icon-btn" onclick="startVoiceSearch()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        </button>
       </div>
     </div>
-    <div class="filter-btn <?= $has_filters?'active':'' ?>" onclick="openFilterDrawer()">
-      <?php if ($has_filters): ?><div class="filter-dot"></div><?php endif; ?>
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 12h10M11 20h2"/></svg>
+    <div class="filter-btn" onclick="openFilterDrawer()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 12h10M11 20h2"/></svg>
     </div>
   </div>
   <div class="ftabs">
-    <button class="ftab <?= $filter==='all'?'active':'' ?>" onclick="setFilter('all')">Артикули <span class="cnt"><?= count($all_products) ?></span></button>
-    <button class="ftab <?= $filter==='low'?'active':'' ?>" onclick="setFilter('low')">Ниска нал. <span class="cnt <?= $cnt_low>0?'w':'' ?>"><?= $cnt_low ?></span></button>
-    <button class="ftab <?= $filter==='out'?'active':'' ?>" onclick="setFilter('out')">Изчерпани <span class="cnt <?= $cnt_out>0?'d':'' ?>"><?= $cnt_out ?></span></button>
+    <button class="ftab <?= $filter==='all'?'active':'' ?>" onclick="setFilter('all')">Всички <span class="badge badge-n"><?= count($all_products) ?></span></button>
+    <button class="ftab <?= $filter==='low'?'active':'' ?>" onclick="setFilter('low')">Ниска нал. <span class="badge <?= $cnt_low>0?'badge-w':'' ?>"><?= $cnt_low ?></span></button>
+    <button class="ftab <?= $filter==='out'?'active':'' ?>" onclick="setFilter('out')">Изчерпани <span class="badge <?= $cnt_out>0?'badge-d':'' ?>"><?= $cnt_out ?></span></button>
+  </div>
+  <?php endif; ?>
+</div>
+
+<!-- ═══════════ СЪДЪРЖАНИЕ ═══════════ -->
+<div class="content">
+
+<?php if ($screen === 'home'): ?>
+<!-- ══════ ЕКРАН 1: НАЧАЛО ══════ -->
+
+<!-- Бърз поглед -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Капитал</div>
+    <div class="stat-val"><?= fmtEur($home_stats['total_capital'] ?? 0) ?></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" style="color:#a5b4fc"><?= $home_stats['avg_margin'] ?? 0 ?>%</div>
+    <div class="stat-label">Среден марж</div>
   </div>
 </div>
 
-<div class="plist" id="plist">
-<?php if (empty($products)): ?>
-<div class="empty">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-  <h3><?= $search?'Няма резултати':'Нямаш артикули' ?></h3>
-  <p><?= $search?"Нищо не отговаря на \"".htmlspecialchars($search)."\"":($can_add?'Натисни + Добави':'') ?></p>
-</div>
-<?php else: foreach($products as $p):
-  $qty=(float)$p['total_stock']; $min=(float)$p['min_qty'];
-  $iz=$qty==0; $lo=!$iz&&$min>0&&$qty<=$min;
-  if($iz){$sc='sr';$tc='tout';$tt='Изчерпан';$qc='#ef4444';}
-  elseif($lo){$sc='sy';$tc='tlo';$tt='Ниска нал.';$qc='#f59e0b';}
-  else{$sc='sg';$tc='tok';$tt='В наличност';$qc='#22c55e';}
-  $pd=json_encode(['id'=>$p['id'],'name'=>$p['name'],'code'=>$p['code']??'','barcode'=>$p['barcode']??'','qty'=>$qty,'min'=>$min,'price'=>(float)($p['retail_price']??0),'cost'=>(float)($p['cost_price']??0),'wprice'=>(float)($p['wholesale_price']??0),'unit'=>$p['unit']??'бр','cat'=>$p['category_name']??'','sup'=>$p['supplier_name']??'','variants'=>(int)$p['variant_count'],'loc'=>$p['location']??'','size'=>$p['size']??'','color'=>$p['color']??'','tag'=>$tt,'sc'=>$sc],JSON_UNESCAPED_UNICODE);
-?>
-<div class="pcard" onclick="openDrawer(<?= htmlspecialchars($pd,ENT_QUOTES) ?>)" data-id="<?= $p['id'] ?>">
-  <div class="stripe <?= $sc ?>"></div>
-  <div class="ci">
-    <div class="ctop">
-      <div style="flex:1;min-width:0">
-        <div class="cname"><?= htmlspecialchars($p['name']) ?></div>
-        <div class="csub"><?= $p['code']?'Код: '.htmlspecialchars($p['code']):'' ?><?= $p['code']&&$p['category_name']?' · ':'' ?><?= htmlspecialchars($p['category_name']??'') ?><?= ($p['size']||$p['color'])?' · ':'' ?><?= htmlspecialchars(implode(' ',array_filter([$p['size']??'',$p['color']??'']))) ?></div>
-      </div>
-      <div><div class="qnum" style="color:<?= $qc ?>"><?= number_format($qty,0) ?></div><div class="qunit"><?= htmlspecialchars($p['unit']??'бр') ?></div></div>
-    </div>
-    <div class="ctags">
-      <span class="tag tp">€<?= number_format((float)($p['retail_price']??0),2,',','.') ?></span>
-      <?php if($can_see_cost&&$p['cost_price']>0): ?><span class="tag tc">Дост: €<?= number_format((float)$p['cost_price'],2,',','.') ?></span><?php endif; ?>
-      <span class="tag <?= $tc ?>"><?= $tt ?></span>
-      <?php if($p['variant_count']>0): ?><span class="tag tv"><?= $p['variant_count'] ?> варианта</span><?php endif; ?>
-      <?php if($p['supplier_name']): ?><span class="tag ts"><?= htmlspecialchars($p['supplier_name']) ?></span><?php endif; ?>
-      <button class="ai-btn" onclick="event.stopPropagation();openAI(<?= htmlspecialchars($pd,ENT_QUOTES) ?>)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>AI
-      </button>
-    </div>
+<!-- Zombie -->
+<?php if (!empty($zombies)): ?>
+<div class="collapse-box cb-red" onclick="toggleCollapse(this)">
+  <div class="collapse-header">
+    <div class="collapse-icon"><span class="collapse-emoji">💀</span><div><div class="collapse-title">Zombie стока</div><div class="collapse-sub"><?= count($zombies) ?> артикула · <?= fmtEur($zombie_total) ?> замразени</div></div></div>
+    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
   </div>
-</div>
-<?php endforeach; endif; ?>
-</div>
-
-<div class="ovl" id="ovl" onclick="closeAll()"></div>
-
-<!-- PRODUCT DRAWER -->
-<div class="drw" id="pDrawer">
-  <div class="drw-h"></div>
-  <div class="drw-b" id="pDrawerBody"></div>
-</div>
-
-<!-- AI DRAWER -->
-<div class="drw" id="aiDrawer" style="z-index:202">
-  <div class="drw-h"></div>
-  <div class="drw-b" id="aiBody"></div>
-</div>
-
-<!-- FILTER DRAWER -->
-<div class="drw" id="filterDrawer" style="z-index:202">
-  <div class="drw-h"></div>
-  <div class="drw-b">
-    <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:18px">Филтри</div>
-    <form method="GET" id="filterForm">
-      <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
-      <input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>">
-      <?php if($categories): ?><div class="fl-section"><div class="fl-title">Категория</div><div class="fl-chips"><?php foreach($categories as $c): ?><label class="fl-chip <?= $f_cat==$c['id']?'sel':'' ?>"><input type="radio" name="cat" value="<?= $c['id'] ?>" style="display:none" <?= $f_cat==$c['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($c['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
-      <?php if($suppliers): ?><div class="fl-section"><div class="fl-title">Доставчик</div><div class="fl-chips"><?php foreach($suppliers as $s): ?><label class="fl-chip <?= $f_sup==$s['id']?'sel':'' ?>"><input type="radio" name="sup" value="<?= $s['id'] ?>" style="display:none" <?= $f_sup==$s['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($s['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
-      <?php if($sizes_used): ?><div class="fl-section"><div class="fl-title">Размер</div><div class="fl-chips"><?php foreach($sizes_used as $sz): ?><label class="fl-chip <?= $f_size===$sz?'sel':'' ?>"><input type="radio" name="size" value="<?= htmlspecialchars($sz) ?>" style="display:none" <?= $f_size===$sz?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($sz) ?></label><?php endforeach; ?></div></div><?php endif; ?>
-      <?php if($colors_used): ?><div class="fl-section"><div class="fl-title">Цвят</div><div class="fl-chips"><?php foreach($colors_used as $cl): ?><label class="fl-chip <?= $f_color===$cl?'sel':'' ?>"><input type="radio" name="color" value="<?= htmlspecialchars($cl) ?>" style="display:none" <?= $f_color===$cl?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($cl) ?></label><?php endforeach; ?></div></div><?php endif; ?>
-      <div class="fl-section"><div class="fl-title">Цена (€)</div><div class="fl-row"><input type="number" name="pmin" class="fl-input" placeholder="От" value="<?= htmlspecialchars($f_min) ?>" step="0.01"><input type="number" name="pmax" class="fl-input" placeholder="До" value="<?= htmlspecialchars($f_max) ?>" step="0.01"></div></div>
-      <?php if($role!=='seller'&&count($stores)>1): ?><div class="fl-section"><div class="fl-title">Обект</div><div class="fl-chips"><?php foreach($stores as $s): ?><label class="fl-chip <?= $f_store==$s['id']?'sel':'' ?>"><input type="radio" name="store" value="<?= $s['id'] ?>" style="display:none" <?= $f_store==$s['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($s['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
-      <button type="submit" class="fl-apply">Приложи филтри</button>
-      <a href="products.php" class="fl-clear" style="display:block;text-align:center;text-decoration:none;padding:11px">Изчисти всички</a>
-    </form>
-  </div>
-</div>
-
-<!-- ADD MODAL -->
-<div class="modal-ovl" id="modalOvl" onclick="if(event.target===this)closeModal()"></div>
-<?php if($can_add): ?>
-<div class="modal" id="addModal">
-  <div class="m-handle"></div>
-  <div class="m-head">
-    <span class="m-title" id="modalTitle">Нов артикул</span>
-    <button class="m-close" onclick="closeModal()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
-  </div>
-  <div class="m-body">
-    <div class="steps-bar" id="stepsBar">
-      <div class="sbar-item active" id="sb0"></div>
-      <div class="sbar-item" id="sb1"></div>
-      <div class="sbar-item" id="sb2"></div>
-      <div class="sbar-item" id="sb3"></div>
-      <div class="sbar-item" id="sb4"></div>
-    </div>
-    <div class="step-label-row"><span id="stepLabelText">Стъпка 1: Вид на артикула</span></div>
-
-    <!-- СТЪПКА 0 -->
-    <div class="step-content active" id="stepC0">
-      <div style="font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:6px">Какъв е артикулът?</div>
-      <div style="font-size:13px;color:#6b7280;margin-bottom:20px">Изборът определя следващите стъпки</div>
-      <div class="type-cards">
-        <div class="type-card" id="typeCardSingle" onclick="selectType('single')">
-          <div class="type-card-icon">📦</div>
-          <div class="type-card-name">Единичен</div>
-          <div class="type-card-sub">Един баркод, един размер, един цвят</div>
-        </div>
-        <div class="type-card" id="typeCardVariant" onclick="selectType('variant')">
-          <div class="type-card-icon">🎨</div>
-          <div class="type-card-name">С варианти</div>
-          <div class="type-card-sub">Размери, цветове, разфасовки и др.</div>
-        </div>
-      </div>
-      <button type="button" class="btn-next" id="btn0Next" onclick="goStep(1)" style="display:none">Напред →</button>
-    </div>
-
-    <!-- СТЪПКА 1 -->
-    <div class="step-content" id="stepC1">
-      <button type="button" class="voice-btn" id="voiceBtn" onclick="toggleVoice()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
-        Диктувай на AI
-      </button>
-
-      <!-- СНИМКА — камера по подразбиране, галерия като втора опция -->
-      <div class="photo-upload-wrap">
-        <div class="photo-upload" id="photoUpload" onclick="document.getElementById('photoInputCamera').click()">
-          <div class="photo-preview" id="photoPreview"></div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Снимай артикула</span>
-        </div>
-        <div class="photo-btns">
-          <button type="button" class="photo-btn" onclick="document.getElementById('photoInputCamera').click()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
-            Камера
-          </button>
-          <button type="button" class="photo-btn" onclick="document.getElementById('photoInputGallery').click()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            Галерия
-          </button>
-        </div>
-      </div>
-      <!-- Камера input (capture=environment) -->
-      <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)">
-      <!-- Галерия input (без capture) -->
-      <input type="file" id="photoInputGallery" accept="image/*" style="display:none" onchange="previewPhoto(this)">
-
-      <div class="fg"><label class="fl">Наименование *</label><input type="text" id="f_name" class="fi" placeholder="напр. Nike Air Max" required></div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Продажна цена *</label><input type="number" id="f_price" class="fi" placeholder="0.00" step="0.01" min="0" required></div>
-        <div class="fg"><label class="fl" style="font-size:10px">Цена едро</label><input type="number" id="f_wprice" class="fi" placeholder="0.00" step="0.01" min="0"></div>
-      </div>
-      <div class="fg">
-        <label class="fl">Баркод <span style="color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0">(празно = автогенериране)</span></label>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="f_barcode" class="fi" placeholder="Сканирай или въведи">
-          <div class="icon-btn" onclick="openCamera('barcode')" style="flex-shrink:0;width:44px;height:44px;border-radius:12px">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><path d="M17 17h5v5"/></svg>
-          </div>
-        </div>
-      </div>
-      <!-- Скрити полета за buildFD — не показват се, попълват се на Стъпка 3 -->
-      <input type="hidden" id="f_code" value="">
-      <input type="hidden" id="f_loc" value="">
-      <input type="hidden" id="f_unit" value="бр">
-      <input type="hidden" id="f_sup" value="">
-      <button type="button" class="btn-next" onclick="goStep(2)">Напред →</button>
-      <button type="button" class="btn-back" onclick="goStep(0)">← Назад</button>
-    </div>
-
-    <!-- СТЪПКА 2 -->
-    <div class="step-content" id="stepC2">
-      <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Избери варианти от списъка. Можеш да добавяш свои.</div>
-      <div id="variantsContainer"></div>
-      <button type="button" class="btn-next" onclick="goStep(3)">Напред →</button>
-      <button type="button" class="btn-back" onclick="goStep(1)">← Назад</button>
-    </div>
-
-    <!-- СТЪПКА 3 — по желание -->
-    <div class="step-content" id="stepC3">
-      <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Всичко тук е по желание — можеш да пропуснеш.</div>
-      <div class="fg">
-        <label class="fl">Категория</label>
-        <select id="f_cat" class="fi" style="-webkit-appearance:none">
-          <option value="">— Без категория —</option>
-          <?php foreach($categories as $c): ?><option value="<?= $c['id'] ?>" data-variant="<?= $c['variant_type'] ?>"><?= htmlspecialchars($c['name']) ?></option><?php endforeach; ?>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Артикулен код</label>
-        <input type="text" id="f_code_vis" class="fi" placeholder="ART-001" oninput="document.getElementById('f_code').value=this.value">
-      </div>
-      <div class="fg">
-        <label class="fl">Мерна единица</label>
-        <select id="f_unit_vis" class="fi" style="-webkit-appearance:none" onchange="document.getElementById('f_unit').value=this.value">
-          <?php foreach($onboarding_units as $u): ?><option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option><?php endforeach; ?>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Локация</label>
-        <input type="text" id="f_loc_vis" class="fi" placeholder="напр. Рафт А3" oninput="document.getElementById('f_loc').value=this.value">
-      </div>
-      <button type="button" class="ai-gen-btn" onclick="generateAIDescription()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-        AI генерира описание
-      </button>
-      <div class="fg"><label class="fl">Описание</label><textarea id="f_desc" class="fi" rows="2" placeholder="AI ще генерира..."></textarea></div>
-      <button type="button" class="btn-next" onclick="onStep3Next()">Запази →</button>
-      <button type="button" class="btn-back" onclick="goStep(2)">← Назад</button>
-    </div>
-
-    <!-- СТЪПКА 4 — Принт списък -->
-    <div class="step-content" id="stepC4">
-      <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:4px">Запазени! Печат на етикети</div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Въведи брой етикети за всяка вариация и натисни 🖨️</div>
-      <div id="printList" style="margin-bottom:16px"></div>
-      <button type="button" class="btn-save" onclick="closeModal();location.reload()">✓ Готово</button>
-    </div>
+  <div class="collapse-body">
+    <?php foreach($zombies as $z): ?>
+    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($z['name']) ?></span><span><?= $z['days_stuck'] ?>д · <?= fmtEur($z['frozen_capital']) ?></span></div>
+    <?php endforeach; ?>
+    <div class="collapse-action">💀 Намали с -30% или направи пакет</div>
   </div>
 </div>
 <?php endif; ?>
 
-<!-- CAMERA -->
-<div class="camera-wrap" id="cameraWrap">
-  <video id="cameraVideo" autoplay playsinline muted></video>
-  <div class="camera-overlay">
-    <div class="scan-frame"><div class="scan-line"></div></div>
-    <div class="camera-label"><span class="camera-label-text" id="cameraLabelText">Насочи към баркода</span></div>
+<!-- Свършващи -->
+<?php if (!empty($running_low)): ?>
+<div class="collapse-box cb-yellow" onclick="toggleCollapse(this)">
+  <div class="collapse-header">
+    <div class="collapse-icon"><span class="collapse-emoji">⚠</span><div><div class="collapse-title">Свършват скоро</div><div class="collapse-sub"><?= count($running_low) ?> артикула под минимума</div></div></div>
+    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
   </div>
-  <div class="camera-close" onclick="closeCamera()"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></div>
-  <div class="camera-beep" id="cameraBeep">✓ Сканирано!</div>
+  <div class="collapse-body">
+    <?php foreach($running_low as $r): ?>
+    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($r['name']) ?></span><span><?= fmtInt($r['qty']) ?> от <?= fmtInt($r['min_qty']) ?></span></div>
+    <?php endforeach; ?>
+    <div class="collapse-action">⚠ Поръчай всички наведнъж</div>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Топ 5 хитове -->
+<?php if (!empty($top_sellers)): ?>
+<div class="collapse-box cb-green" onclick="toggleCollapse(this)">
+  <div class="collapse-header">
+    <div class="collapse-icon"><span class="collapse-emoji">🔥</span><div><div class="collapse-title">Топ 5 хитове</div><div class="collapse-sub">последни 30 дни</div></div></div>
+    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="collapse-body">
+    <?php foreach($top_sellers as $i => $t): ?>
+    <div class="collapse-row"><span style="color:#e2e8f0"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($t['name']) ?></span><span><?= fmtInt($t['sold']) ?> бр</span></div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Бавно движещи се -->
+<?php if (!empty($slow_movers)): ?>
+<div class="collapse-box cb-purple" onclick="toggleCollapse(this)">
+  <div class="collapse-header">
+    <div class="collapse-icon"><span class="collapse-emoji">🐌</span><div><div class="collapse-title">Бавно движещи се</div><div class="collapse-sub"><?= count($slow_movers) ?> артикула без продажба 25+ дни</div></div></div>
+    <svg class="collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="collapse-body">
+    <?php foreach($slow_movers as $sm): ?>
+    <div class="collapse-row"><span style="color:#e2e8f0"><?= htmlspecialchars($sm['name']) ?></span><span><?= $sm['days_no_sale'] ?>д</span></div>
+    <?php endforeach; ?>
+    <div class="collapse-action">🐌 Промоция -20% за 2 седмици</div>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php elseif ($screen === 'suppliers'): ?>
+<!-- ══════ ЕКРАН 2: ДОСТАВЧИЦИ ══════ -->
+
+<div class="swipe-section">
+  <div class="swipe-label">
+    <div class="swipe-label-text" style="color:#6366f1">ДОСТАВЧИЦИ</div>
+    <div class="swipe-hint">← swipe →</div>
+  </div>
+  <div class="swipe-row">
+    <?php foreach($suppliers as $s): ?>
+    <a href="products.php?screen=categories&sup=<?= $s['id'] ?>" class="swipe-card sc-indigo" style="text-decoration:none">
+      <div class="sc-name"><?= htmlspecialchars($s['name']) ?></div>
+      <div class="sc-info"><?= $s['product_count'] ?> артикула</div>
+      <div class="sc-badges">
+        <?php $ok = $s['product_count'] - $s['low_count'] - $s['out_count']; if($ok > 0): ?><span class="sc-badge scb-ok"><?= $ok ?></span><?php endif; ?>
+        <?php if($s['low_count'] > 0): ?><span class="sc-badge scb-low"><?= $s['low_count'] ?></span><?php endif; ?>
+        <?php if($s['out_count'] > 0): ?><span class="sc-badge scb-out"><?= $s['out_count'] ?></span><?php endif; ?>
+      </div>
+    </a>
+    <?php endforeach; ?>
+  </div>
 </div>
 
+<!-- Статистики за доставчици -->
+<?php if (!empty($sup_top_sold)): ?>
+<div class="stats-section">
+  <div class="stats-title">🔥 НАЙ-МНОГО ПРОДАЖБИ (30 ДНИ)</div>
+  <?php foreach($sup_top_sold as $i => $ss): ?>
+  <div class="stats-row">
+    <span class="stats-row-name"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($ss['name']) ?></span>
+    <span class="stats-row-val" style="color:#22c55e"><?= fmtInt($ss['sold']) ?> бр</span>
+  </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($can_see_cost && !empty($sup_top_profit)): ?>
+<div class="stats-section" style="margin-top:14px">
+  <div class="stats-title">💰 НАЙ-МНОГО ПЕЧАЛБА (30 ДНИ)</div>
+  <?php foreach($sup_top_profit as $i => $sp): ?>
+  <div class="stats-row">
+    <span class="stats-row-name"><span style="color:#6b7280"><?= $i+1 ?>.</span> <?= htmlspecialchars($sp['name']) ?></span>
+    <span class="stats-row-val" style="color:#a5b4fc"><?= fmtEur($sp['profit']) ?></span>
+  </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php elseif ($screen === 'categories'): ?>
+<!-- ══════ ЕКРАН 3: КАТЕГОРИИ ══════ -->
+
+<?php if ($sup_id): ?>
+  <!-- Категории на конкретен доставчик -->
+  <?php if (empty($sup_categories)): ?>
+    <div class="empty"><h3>Няма категории</h3><p>Този доставчик няма артикули</p></div>
+  <?php else: ?>
+    <?php foreach($sup_categories as $sc): ?>
+    <a href="products.php?screen=products&sup=<?= $sup_id ?>&cat=<?= $sc['id'] ?>" class="cat-row" style="text-decoration:none">
+      <div>
+        <div class="cat-row-name"><?= htmlspecialchars($sc['name']) ?></div>
+        <div class="cat-row-info"><?= $sc['product_count'] ?> артикула</div>
+      </div>
+      <div class="cat-row-badges">
+        <?php if($sc['low_count'] > 0): ?><span class="sc-badge scb-low" style="font-size:10px"><?= $sc['low_count'] ?></span><?php endif; ?>
+        <?php if($sc['out_count'] > 0): ?><span class="sc-badge scb-out" style="font-size:10px"><?= $sc['out_count'] ?></span><?php endif; ?>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </a>
+    <?php endforeach; ?>
+  <?php endif; ?>
+<?php else: ?>
+  <!-- Глобални категории -->
+  <div class="swipe-section">
+    <div class="swipe-label">
+      <div class="swipe-label-text" style="color:#8b5cf6">КАТЕГОРИИ (ВСИЧКИ ДОСТАВЧИЦИ)</div>
+      <div class="swipe-hint">← swipe →</div>
+    </div>
+    <div class="swipe-row">
+      <?php foreach($categories as $c): ?>
+      <a href="products.php?screen=products&cat=<?= $c['id'] ?>" class="swipe-card sc-purple" style="text-decoration:none">
+        <div class="sc-name"><?= htmlspecialchars($c['name']) ?></div>
+        <div class="sc-info"><?= $c['product_count'] ?> арт. · <?= $c['supplier_count'] ?> дост.</div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
+
+<?php elseif ($screen === 'products'): ?>
+<!-- ══════ ЕКРАН 4: АРТИКУЛИ ══════ -->
+
+<?php if ($sup_id && $cat_id && $cross_sup_count > 1): ?>
+<a href="products.php?screen=products&cat=<?= $cat_id ?>" class="cross-link">
+  <span>Виж <strong>всички <?= htmlspecialchars($cat_name) ?></strong> (<?= $cross_sup_count ?> доставчика · <?= $cross_total ?> арт.)</span>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+</a>
+<?php endif; ?>
+
+<?php if (empty($products)): ?>
+<div class="empty">
+  <h3><?= $search ? 'Няма резултати' : 'Нямаш артикули' ?></h3>
+  <p><?= $search ? "Нищо не отговаря на \"".htmlspecialchars($search)."\"" : ($can_add ? 'Натисни + Добави' : '') ?></p>
+</div>
+<?php else: foreach($products as $p):
+  $qty = (float)$p['total_stock']; $min = (float)$p['min_qty'];
+  $iz = $qty == 0; $lo = !$iz && $min > 0 && $qty <= $min;
+  if ($iz) { $sc='sr'; $tt='Изчерпан'; $tc='ptag-out'; $qc='#ef4444'; }
+  elseif ($lo) { $sc='sy'; $tt='Ниска нал.'; $tc='ptag-low'; $qc='#f59e0b'; }
+  else { $sc='sg'; $tt='OK'; $tc='ptag-ok'; $qc='#22c55e'; }
+?>
+<div class="pcard" onclick="openProductDetail(<?= $p['id'] ?>)">
+  <div class="pcard-inner">
+    <div class="stripe <?= $sc ?>"></div>
+    <div class="pcard-thumb">
+      <?php if (!empty($p['image'])): ?>
+        <img src="<?= htmlspecialchars($p['image']) ?>" alt="">
+      <?php else: ?>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#4b5563" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <?php endif; ?>
+    </div>
+    <div class="pcard-info">
+      <div class="pcard-name"><?= htmlspecialchars($p['name']) ?></div>
+      <div class="pcard-meta"><?= htmlspecialchars($p['supplier_name'] ?? '') ?><?= $p['supplier_name'] && $p['category_name'] ? ' · ' : '' ?><?= htmlspecialchars($p['category_name'] ?? '') ?><?= $p['variant_count'] > 0 ? ' · '.$p['variant_count'].' вар.' : '' ?></div>
+      <div class="pcard-tags">
+        <span class="ptag ptag-price"><?= fmtEur($p['retail_price'] ?? 0) ?></span>
+        <span class="ptag <?= $tc ?>"><?= $tt ?></span>
+        <?php if ($p['variant_count'] > 0): ?><span class="ptag ptag-var"><?= $p['variant_count'] ?> вар.</span><?php endif; ?>
+      </div>
+    </div>
+    <div class="pcard-qty">
+      <div class="pcard-num" style="color:<?= $qc ?>"><?= fmtInt($qty) ?></div>
+      <div class="pcard-unit"><?= htmlspecialchars($p['unit'] ?? 'бр') ?></div>
+    </div>
+  </div>
+</div>
+<?php endforeach; endif; ?>
+
+<?php endif; ?>
+
+</div><!-- /content -->
+
+<!-- ═══════════ AI FAB ═══════════ -->
+<div class="ai-fab" onclick="openAIChat()">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+</div>
+
+<!-- ═══════════ STICKY 4 БУТОНА ═══════════ -->
+<div class="sticky-nav">
+  <div class="sticky-btns">
+    <a href="products.php?screen=home" class="sticky-btn <?= $screen==='home'?'active':'' ?>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="sticky-btn-label">Начало</span>
+    </a>
+    <a href="products.php?screen=suppliers" class="sticky-btn <?= $screen==='suppliers'?'active':'' ?>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <span class="sticky-btn-label">Доставчици</span>
+    </a>
+    <a href="products.php?screen=categories" class="sticky-btn <?= $screen==='categories' && !$sup_id ?'active':'' ?>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      <span class="sticky-btn-label">Категории</span>
+    </a>
+    <a href="products.php?screen=products" class="sticky-btn <?= $screen==='products'?'active':'' ?>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <span class="sticky-btn-label">Артикули</span>
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
 <nav class="bnav">
   <a href="chat.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg><span>Чат</span></a>
   <a href="warehouse.php" class="ni active"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg><span>Склад</span></a>
   <a href="stats.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>Статистики</span></a>
-  <a href="sale.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg><span>Въвеждане</span></a>
+  <a href="actions.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg><span>Въвеждане</span></a>
 </nav>
+
 <div class="toast" id="toast"></div>
 
 <script>
-const canSeeCost = <?= $can_see_cost?'true':'false' ?>;
-const canAdd     = <?= $can_add?'true':'false' ?>;
-const COLOR_PALETTE = <?= json_encode($COLOR_PALETTE, JSON_UNESCAPED_UNICODE) ?>;
-const stepLabels = ['Вид на артикула','Основна информация','Категория и варианти','Детайли','Печат на етикети'];
-
-let productType   = null;
-let currentStep   = 0;
-let onbVariants   = [];
-let selectedSizes = {};   // { 'M': null|price, 'L': null|price }
-let selectedColors= [];   // ['Черен','Червен']
-let customVarSel  = {};   // { 'Разфасовка': ['250мл'] }
-let variantCombs  = [];
-let cameraStream  = null;
-let cameraTarget  = 'search';
-let voiceRec      = null;
-let ts            = 0;
-let lpTimer       = null;
-
-// ─── СТЪПКИ ───────────────────────────────────────────
-function goStep(n) {
-  for (let i = 0; i <= 4; i++) {
-    document.getElementById('stepC'+i)?.classList.toggle('active', i === n);
-    const b = document.getElementById('sb'+i);
-    if (b) {
-      b.classList.remove('active','done');
-      if (i < n) b.classList.add('done');
-      else if (i === n) b.classList.add('active');
-    }
-  }
-  document.getElementById('stepLabelText').textContent = 'Стъпка '+(n+1)+': '+stepLabels[n];
-  currentStep = n;
-  document.getElementById('addModal').scrollTop = 0;
-  if (n === 2) renderVariantsStep();
+// ── Collapse toggle ──
+function toggleCollapse(box) {
+  const body = box.querySelector('.collapse-body');
+  const arrow = box.querySelector('.collapse-arrow');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open');
+  arrow.style.transform = isOpen ? 'rotate(0)' : 'rotate(180deg)';
 }
 
-function selectType(t) {
-  productType = t;
-  document.getElementById('typeCardSingle').classList.toggle('sel', t === 'single');
-  document.getElementById('typeCardVariant').classList.toggle('sel', t === 'variant');
-  document.getElementById('btn0Next').style.display = 'block';
+// ── Filter tab ──
+function setFilter(f) {
+  const u = new URL(window.location);
+  u.searchParams.set('filter', f);
+  window.location = u;
 }
 
-// ─── СНИМКА ───────────────────────────────────────────
-function previewPhoto(input) {
-  if (input.files?.[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('photoPreview').style.backgroundImage = `url(${e.target.result})`;
-      document.getElementById('photoPreview').style.display = 'block';
-    };
-    reader.readAsDataURL(input.files[0]);
-    // Копираме файла в двата input-а за buildFD
-    const dt = new DataTransfer();
-    dt.items.add(input.files[0]);
-    document.getElementById('photoInputCamera').files = dt.files;
-    document.getElementById('photoInputGallery').files = dt.files;
-  }
+// ── Product detail ──
+function openProductDetail(id) {
+  // TODO: drawer с детайли + вариации + AI снимка
+  window.location = 'products.php?screen=products&detail=' + id;
 }
 
-// ─── ВАРИАНТИ ─────────────────────────────────────────
-async function renderVariantsStep() {
-  const cont = document.getElementById('variantsContainer');
-  if (productType === 'single') { cont.innerHTML = ''; return; }
-
-  if (!onbVariants.length) {
-    try {
-      const r = await fetch('product-save.php?variants');
-      onbVariants = await r.json();
-    } catch(e) { onbVariants = []; }
-  }
-
-  if (!onbVariants.length) {
-    cont.innerHTML = '<div style="font-size:13px;color:#6b7280;padding:10px 0">Нямаш активни варианти. Настрой ги в <a href="settings.php" style="color:#6366f1">Настройки</a>.</div>';
-    return;
-  }
-
-  let html = '';
-  for (const v of onbVariants) {
-    if (v.type === 'size_letter')  html += renderSizeSection(v, ['XXS','XS','S','M','L','XL','XXL','3XL','4XL','5XL']);
-    else if (v.type === 'size_numeric') html += renderSizeSection(v, ['16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50']);
-    else if (v.type === 'color')   html += renderColorSection(v);
-    else                           html += renderChipsSection(v);
-  }
-  cont.innerHTML = html;
-
-  // ── Attach listeners след рендиране ──
-  attachVariantListeners(cont);
+// ── Voice search ──
+function startVoiceSearch() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Гласът не се поддържа'); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR(); r.lang = 'bg-BG'; r.start();
+  r.onresult = e => {
+    document.querySelector('.search-input').value = e.results[0][0].transcript;
+    document.getElementById('searchForm').submit();
+  };
 }
 
-function attachVariantListeners(cont) {
-  // Size chips — клик за селект/деселект
-  cont.querySelectorAll('.size-chip').forEach(chip => {
-    chip.addEventListener('click', e => {
-      if (e.target.closest('.size-price-popup')) return;
-      toggleSizeChip(chip);
-    });
-    // Long press за price popup
-    chip.addEventListener('touchstart', () => {
-      lpTimer = setTimeout(() => {
-        if (!chip.classList.contains('sel')) {
-          chip.classList.add('sel');
-          selectedSizes[chip.dataset.size] = null;
-        }
-        chip.classList.toggle('price-open');
-      }, 500);
-    }, { passive: true });
-    chip.addEventListener('touchend', () => clearTimeout(lpTimer), { passive: true });
-  });
-
-  // Size price inputs
-  cont.querySelectorAll('.size-price-input').forEach(inp => {
-    inp.addEventListener('change', () => setSizePrice(inp.dataset.key, inp.dataset.size, inp.value));
-  });
-
-  // Color dots
-  cont.querySelectorAll('.color-dot-wrap').forEach(dot => {
-    dot.addEventListener('click', () => toggleColor(dot, dot.dataset.color));
-  });
-
-  // Var chips
-  cont.querySelectorAll('.var-chip').forEach(chip => {
-    chip.addEventListener('click', () => toggleVarChip(chip, chip.dataset.varname, chip.textContent.trim()));
-  });
-
-  // Затваряне на price popup при клик извън
-  document.addEventListener('touchstart', e => {
-    if (!e.target.closest('.size-price-popup') && !e.target.closest('.size-chip')) {
-      cont.querySelectorAll('.size-chip.price-open').forEach(c => c.classList.remove('price-open'));
-    }
-  }, { passive: true });
-}
-
-function renderSizeSection(v, sizes) {
-  const all = [...new Set([...sizes, ...(v.values || [])])];
-  const key = v.name.replace(/\s/g, '_');
-  const chips = all.map(s =>
-    `<div class="size-chip" data-size="${s}" data-varname="${v.name}" data-key="${key}">${s}` +
-    `<span class="size-price-badge" id="spb_${key}_${s}"></span>` +
-    `<div class="size-price-popup"><label>Цена за ${s} (€)</label>` +
-    `<input type="number" placeholder="0.00" step="0.01" min="0" data-size="${s}" data-key="${key}" class="size-price-input"></div></div>`
-  ).join('');
-  return `<div class="vsec"><div class="vsec-title">${v.name}</div>` +
-    `<div class="size-grid" id="sg_${key}">${chips}</div>` +
-    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави размер..." id="csi_${key}">` +
-    `<button type="button" class="add-custom-btn" data-varname="${v.name}" data-key="${key}" onclick="addCustomSize('${v.name}','${key}')">+ Добави</button></div>` +
-    `<div style="font-size:11px;color:#6b7280;margin-top:5px">Натисни за избор · задръж за цена</div></div>`;
-}
-
-function toggleSizeChip(el) {
-  const size = el.dataset.size;
-  if (el.classList.contains('sel')) {
-    el.classList.remove('sel','price-open');
-    delete selectedSizes[size];
-  } else {
-    el.classList.add('sel');
-    selectedSizes[size] = null;
-  }
-}
-
-function setSizePrice(key, size, val) {
-  selectedSizes[size] = val ? parseFloat(val) : null;
-  const b = document.getElementById('spb_'+key+'_'+size);
-  if (b) {
-    b.textContent = val ? '€'+parseFloat(val).toFixed(0) : '';
-    b.closest('.size-chip')?.classList.toggle('has-price', !!val);
-  }
-}
-
-function addCustomSize(varName, key) {
-  const inp = document.getElementById('csi_'+key);
-  const val = inp?.value.trim();
-  if (!val) return;
-
-  // ── Проверка за дубликат ──
-  const grid = document.getElementById('sg_'+key);
-  const exists = [...grid.querySelectorAll('.size-chip')].some(c => c.dataset.size === val);
-  if (exists) { showToast('Размерът вече съществува!'); return; }
-
-  const chip = document.createElement('div');
-  chip.className = 'size-chip';
-  chip.dataset.size = val;
-  chip.dataset.varname = varName;
-  chip.dataset.key = key;
-  chip.innerHTML = val +
-    `<span class="size-price-badge" id="spb_${key}_${val}"></span>` +
-    `<div class="size-price-popup"><label>Цена (€)</label>` +
-    `<input type="number" step="0.01" data-size="${val}" data-key="${key}" class="size-price-input"></div>`;
-
-  // Attach listeners на новия chip
-  chip.addEventListener('click', e => {
-    if (e.target.closest('.size-price-popup')) return;
-    toggleSizeChip(chip);
-  });
-  chip.addEventListener('touchstart', () => {
-    lpTimer = setTimeout(() => {
-      if (!chip.classList.contains('sel')) { chip.classList.add('sel'); selectedSizes[val] = null; }
-      chip.classList.toggle('price-open');
-    }, 500);
-  }, { passive: true });
-  chip.addEventListener('touchend', () => clearTimeout(lpTimer), { passive: true });
-  chip.querySelector('.size-price-input').addEventListener('change', e => setSizePrice(key, val, e.target.value));
-
-  grid?.appendChild(chip);
-  if (inp) inp.value = '';
-}
-
-function renderColorSection(v) {
-  const dots = COLOR_PALETTE.map(c =>
-    `<div class="color-dot-wrap" data-color="${c.name}">` +
-    `<div class="color-dot" style="background:${c.hex}"></div>` +
-    `<div class="color-dot-name">${c.name}</div></div>`
-  ).join('');
-  return `<div class="vsec"><div class="vsec-title">Цвят</div>` +
-    `<div class="color-grid" id="colorGrid">${dots}</div>` +
-    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави цвят..." id="customColorIn">` +
-    `<button type="button" class="add-custom-btn" onclick="addCustomColor()">+ Добави</button></div></div>`;
-}
-
-function toggleColor(el, name) {
-  el.classList.toggle('sel');
-  if (el.classList.contains('sel')) {
-    if (!selectedColors.includes(name)) selectedColors.push(name);
-  } else {
-    selectedColors = selectedColors.filter(c => c !== name);
-  }
-}
-
-function addCustomColor() {
-  const inp = document.getElementById('customColorIn');
-  const val = inp?.value.trim();
-  if (!val) return;
-
-  const grid = document.getElementById('colorGrid');
-  // ── Проверка за дубликат ──
-  const exists = [...grid.querySelectorAll('.color-dot-wrap')].some(c => c.dataset.color === val);
-  if (exists) { showToast('Цветът вече съществува!'); return; }
-
-  const wrap = document.createElement('div');
-  wrap.className = 'color-dot-wrap';
-  wrap.dataset.color = val;
-  wrap.innerHTML = `<div class="color-dot" style="background:#9ca3af"></div><div class="color-dot-name">${val}</div>`;
-  wrap.addEventListener('click', () => toggleColor(wrap, val));
-  grid?.appendChild(wrap);
-  if (inp) inp.value = '';
-}
-
-function renderChipsSection(v) {
-  const key = v.name.replace(/\s/g, '_');
-  const chips = (v.values || []).map(val =>
-    `<div class="var-chip" data-varname="${v.name}">${val}</div>`
-  ).join('');
-  return `<div class="vsec"><div class="vsec-title">${v.name}</div>` +
-    `<div class="chips-grid" id="cg_${key}">${chips}</div>` +
-    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави ${v.name.toLowerCase()}..." id="cci_${key}">` +
-    `<button type="button" class="add-custom-btn" onclick="addCustomChip('${v.name}','${key}')">+ Добави</button></div></div>`;
-}
-
-function toggleVarChip(el, varName, val) {
-  el.classList.toggle('sel');
-  if (!customVarSel[varName]) customVarSel[varName] = [];
-  if (el.classList.contains('sel')) {
-    customVarSel[varName].push(val);
-  } else {
-    customVarSel[varName] = customVarSel[varName].filter(v => v !== val);
-  }
-}
-
-function addCustomChip(varName, key) {
-  const inp = document.getElementById('cci_'+key);
-  const val = inp?.value.trim();
-  if (!val) return;
-
-  const grid = document.getElementById('cg_'+key);
-  // ── Проверка за дубликат ──
-  const exists = [...grid.querySelectorAll('.var-chip')].some(c => c.textContent.trim() === val);
-  if (exists) { showToast('Вече съществува!'); return; }
-
-  const chip = document.createElement('div');
-  chip.className = 'var-chip';
-  chip.dataset.varname = varName;
-  chip.textContent = val;
-  chip.addEventListener('click', () => toggleVarChip(chip, varName, val));
-  grid?.appendChild(chip);
-  if (inp) inp.value = '';
-}
-
-// ─── ЗАПАЗВАНЕ ────────────────────────────────────────
-function onStep3Next() {
-  const name = document.getElementById('f_name').value.trim();
-  if (!name) { showToast('Въведи наименование'); goStep(1); return; }
-  const price = parseFloat(document.getElementById('f_price').value || '0');
-  if (!price) { showToast('Въведи продажна цена'); goStep(1); return; }
-
-  if (productType === 'variant') {
-    buildCombinations();
-    if (!variantCombs.length) {
-      showToast('Избери поне един вариант');
-      return;
-    }
-  }
-  saveAndShowPrint();
-}
-
-async function saveAndShowPrint() {
-  showToast('Запазвам...');
-  try {
-    const fd = buildFD(productType === 'variant');
-    const r = await fetch('product-save.php', { method: 'POST', body: fd });
-    const txt = await r.text();
-    try {
-      const j = JSON.parse(txt);
-      if (!j.ok && !j.parent_id) { showToast('Грешка: ' + (j.error || 'неизвестна')); return; }
-    } catch(e) { /* non-JSON response — продължаваме */ }
-    showToast('Запазено ✓');
-    renderPrintList();
-    goStep(4);
-  } catch(e) {
-    showToast('Грешка при запазване');
-    console.error(e);
-  }
-}
-
-function buildCombinations() {
-  const sizes  = Object.keys(selectedSizes);
-  const colors = selectedColors;
-
-  if (sizes.length && colors.length) {
-    variantCombs = [];
-    for (const sz of sizes)
-      for (const cl of colors)
-        variantCombs.push({ size: sz, color: cl, price: selectedSizes[sz] || null, barcode: null });
-  } else if (sizes.length) {
-    variantCombs = sizes.map(sz => ({ size: sz, color: null, price: selectedSizes[sz] || null, barcode: null }));
-  } else if (colors.length) {
-    variantCombs = colors.map(cl => ({ size: null, color: cl, price: null, barcode: null }));
-  } else {
-    variantCombs = [];
-    for (const [vn, vals] of Object.entries(customVarSel)) {
-      vals.forEach(v => variantCombs.push({ label: vn+': '+v, size: null, color: null, price: null, barcode: null }));
-    }
-  }
-}
-
-function buildFD(isVariant) {
-  const fd = new FormData();
-  fd.append('action', 'create');
-  fd.append('name',           document.getElementById('f_name').value);
-  fd.append('retail_price',   document.getElementById('f_price').value || '0');
-  fd.append('wholesale_price',document.getElementById('f_wprice')?.value || '0');
-  fd.append('cost_price',     '0');
-  fd.append('barcode',        document.getElementById('f_barcode').value || '');
-  fd.append('category_id',    document.getElementById('f_cat')?.value || '');
-  fd.append('supplier_id',    document.getElementById('f_sup')?.value || '');
-  fd.append('unit',           document.getElementById('f_unit')?.value || 'бр');
-  fd.append('location',       document.getElementById('f_loc')?.value || '');
-  fd.append('description',    document.getElementById('f_desc')?.value || '');
-  fd.append('code',           document.getElementById('f_code')?.value || '');
-
-  if (isVariant) {
-    fd.append('has_variants', '1');
-    fd.append('variants_batch', JSON.stringify(variantCombs));
-  } else {
-    fd.append('has_variants', '0');
-    const sc = document.querySelector('.color-dot-wrap.sel');
-    if (sc) fd.append('color', sc.dataset.color);
-    const ss = document.querySelector('.size-chip.sel');
-    if (ss) fd.append('size', ss.dataset.size);
-  }
-
-  // Снимка — вземаме от whichever input има файл
-  const ph1 = document.getElementById('photoInputCamera');
-  const ph2 = document.getElementById('photoInputGallery');
-  const photo = ph1?.files[0] || ph2?.files[0];
-  if (photo) fd.append('image', photo);
-
-  return fd;
-}
-
-function renderPrintList() {
-  const items = productType === 'variant' ? variantCombs : [{
-    size: null, color: null, label: document.getElementById('f_name').value,
-    barcode: document.getElementById('f_barcode').value || 'автогенериран', price: null
-  }];
-  const code = document.getElementById('f_code')?.value || 'ART';
-  document.getElementById('printList').innerHTML = items.map((v, i) => {
-    const lbl = [v.size, v.color, v.label].filter(Boolean).join(' / ') || ('Вариант '+(i+1));
-    const bc  = v.barcode || 'автогенериран';
-    const artCode = code + (items.length > 1 ? '-'+(i+1) : '');
-    return `<div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:#f1f5f9">${lbl}</div>
-        <div style="font-size:11px;color:#6b7280">${artCode} · ${bc}</div>
-      </div>
-      <input type="number" min="1" max="999" value="1" id="printQty_${i}"
-        style="width:56px;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.25);border-radius:8px;color:#e2e8f0;font-size:14px;font-weight:700;text-align:center;padding:6px 4px;font-family:Montserrat,sans-serif;outline:none">
-      <button onclick="printLabel(${i},'${lbl.replace(/'/g,"\\'")}','${bc}','${artCode}')"
-        style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🖨️</button>
-    </div>`;
-  }).join('');
-}
-
-function printLabel(idx, name, barcode, code) {
-  const qty = parseInt(document.getElementById('printQty_'+idx).value) || 1;
-  showToast(`Печат: ${name} × ${qty} ет.`);
-}
-
-// ─── MODAL ────────────────────────────────────────────
-function openModal() {
-  productType = null; selectedSizes = {}; selectedColors = []; customVarSel = {}; variantCombs = []; onbVariants = [];
-  ['f_name','f_price','f_barcode','f_wprice','f_code','f_loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  ['f_cat','f_desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  const pp = document.getElementById('photoPreview'); if (pp) pp.style.backgroundImage = '';
-  document.getElementById('typeCardSingle').classList.remove('sel');
-  document.getElementById('typeCardVariant').classList.remove('sel');
-  document.getElementById('btn0Next').style.display = 'none';
-  const vc = document.getElementById('variantsContainer'); if (vc) vc.innerHTML = '';
-  const pl = document.getElementById('printList'); if (pl) pl.innerHTML = '';
-  // Reset photo inputs
-  document.getElementById('photoInputCamera').value = '';
-  document.getElementById('photoInputGallery').value = '';
-  goStep(0);
-  document.getElementById('modalOvl').classList.add('open');
-  document.getElementById('addModal').classList.add('open');
-}
-
-function closeModal() {
-  document.getElementById('modalOvl').classList.remove('open');
-  document.getElementById('addModal').classList.remove('open');
-}
-
-// ─── PRODUCT DRAWER ───────────────────────────────────
-function openDrawer(p) {
-  document.getElementById('plist').classList.add('blurred');
-  document.querySelector(`.pcard[data-id="${p.id}"]`)?.classList.add('focused');
-  const sc = p.sc==='sg'?'#22c55e':p.sc==='sy'?'#f59e0b':'#ef4444';
-  const margin = p.cost > 0 ? ((p.price - p.cost) / p.price * 100).toFixed(1) : '—';
-  fetch(`product-save.php?stock=${p.id}`).then(r => r.json()).then(stores => {
-    const storeHtml = stores.length > 1
-      ? `<div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Наличност по обекти</div>
-         <div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;overflow:hidden;margin-bottom:14px">
-           ${stores.map(s => `<div class="store-stock-row"><span style="font-size:13px;color:#e2e8f0">${s.name}</span><span style="font-size:14px;font-weight:700;color:${s.qty==0?'#ef4444':s.qty<=s.min_qty&&s.min_qty>0?'#f59e0b':'#22c55e'}">${s.qty} ${p.unit}</span></div>`).join('')}
-         </div>` : '';
-    document.getElementById('pDrawerBody').innerHTML =
-      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-         <div style="width:5px;height:50px;border-radius:3px;background:${sc};box-shadow:0 0 14px ${sc}88;flex-shrink:0"></div>
-         <div style="flex:1;min-width:0"><div class="d-name">${p.name}</div>
-         <div class="d-meta">${p.code?'Код: '+p.code+' · ':''}${p.cat||''}${p.sup?' · '+p.sup:''}${p.size?' · '+p.size:''}${p.color?' · '+p.color:''}</div></div></div>
-       <div class="sg2">
-         <div class="si"><div class="sil">Наличност</div><div class="siv" style="color:${sc}">${p.qty} ${p.unit}</div></div>
-         <div class="si"><div class="sil">Минимум</div><div class="siv">${p.min||'—'}</div></div>
-         <div class="si"><div class="sil">Продажна</div><div class="siv">€${parseFloat(p.price).toFixed(2)}</div></div>
-         <div class="si"><div class="sil">Марж</div><div class="siv" style="color:#a5b4fc">${margin}%</div></div>
-       </div>
-       ${storeHtml}
-       ${p.loc?`<div style="font-size:12px;color:#6b7280;margin-bottom:14px">📍 ${p.loc}</div>`:''}
-       ${p.variants>0?`<div style="font-size:12px;color:#8b5cf6;margin-bottom:14px">🎨 ${p.variants} варианта</div>`:''}
-       <div class="dab-grid">
-         ${canAdd?`<button class="dab dab-p" onclick="editProduct(${p.id})">✏️ Редактирай</button>`:'<div></div>'}
-         <button class="dab dab-s" onclick="openAI(${JSON.stringify(p).replace(/'/g,"\\'")})" >✦ AI съвет</button>
-       </div>
-       <div class="dab-grid">
-         <a href="sale.php?product=${p.id}" class="dab dab-s">🛒 Продажба</a>
-         <a href="product-detail.php?id=${p.id}" class="dab dab-s">🔍 Детайли</a>
-       </div>`;
-  }).catch(() => {
-    document.getElementById('pDrawerBody').innerHTML = `<div class="d-name">${p.name}</div><div class="d-meta">${p.tag}</div>`;
-  });
-  document.getElementById('ovl').classList.add('open');
-  document.getElementById('pDrawer').classList.add('open');
-}
-
-function openAI(p) {
-  document.getElementById('pDrawer').classList.remove('open');
-  let rec = '';
-  if (p.qty == 0) rec = `<strong>${p.name}</strong> е изчерпан. Зареди незабавно.`;
-  else if (p.min > 0 && p.qty <= p.min) rec = `Наличността е под минимума (${p.qty} от ${p.min}). Презареди скоро.`;
-  else if (p.cost > 0) {
-    const m = ((p.price - p.cost) / p.price * 100).toFixed(1);
-    rec = m < 20 ? `Маржът е само ${m}%. Провери доставната цена.` : `Всичко е наред. Марж ${m}%.`;
-  } else rec = `${p.name} е в наличност. Добави доставна цена за анализ.`;
-
-  document.getElementById('aiBody').innerHTML =
-    `<div style="font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">✦ AI Анализ</div>
-     <div style="font-size:20px;font-weight:800;color:#f1f5f9;margin-bottom:18px">${p.name}</div>
-     <div class="ai-rec"><div class="ai-rl">Препоръка</div><div class="ai-rt">${rec}</div></div>
-     <a href="chat.php?q=${encodeURIComponent('Анализирай '+p.name)}" class="dab dab-p" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:4px">Попитай AI →</a>`;
-  document.getElementById('ovl').classList.add('open');
-  document.getElementById('aiDrawer').classList.add('open');
-}
-
-function openFilterDrawer() {
-  closeAll();
-  document.getElementById('ovl').classList.add('open');
-  document.getElementById('filterDrawer').classList.add('open');
-}
-
-function closeAll() {
-  ['pDrawer','aiDrawer','filterDrawer'].forEach(id => document.getElementById(id)?.classList.remove('open'));
-  document.getElementById('ovl').classList.remove('open');
-  document.getElementById('plist').classList.remove('blurred');
-  document.querySelectorAll('.pcard.focused').forEach(c => c.classList.remove('focused'));
-}
-
-['pDrawer','aiDrawer','filterDrawer'].forEach(id => {
-  const el = document.getElementById(id); if (!el) return;
-  el.addEventListener('touchstart', e => ts = e.touches[0].clientY, { passive: true });
-  el.addEventListener('touchend',   e => { if (e.changedTouches[0].clientY - ts > 70) closeAll(); }, { passive: true });
-});
-
-// ─── КАМЕРА (баркод скенер) ───────────────────────────
+// ── Camera (barcode scanner) ──
 async function openCamera(target) {
-  cameraTarget = target;
-  const labels = { search: 'Търси по баркод', barcode: 'Сканирай баркода на артикула', scanner: 'Сканирай баркода' };
-  document.getElementById('cameraLabelText').textContent = labels[target] || 'Насочи към баркода';
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    document.getElementById('cameraVideo').srcObject = cameraStream;
-    document.getElementById('cameraWrap').classList.add('open');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    // TODO: fullscreen camera overlay with BarcodeDetector
+    showToast('Камера отворена');
     if ('BarcodeDetector' in window) {
+      const video = document.createElement('video');
+      video.srcObject = stream; video.play();
       const bd = new BarcodeDetector();
       const iv = setInterval(async () => {
         try {
-          const codes = await bd.detect(document.getElementById('cameraVideo'));
-          if (codes.length) { clearInterval(iv); useScannedBarcode(codes[0].rawValue); }
+          const codes = await bd.detect(video);
+          if (codes.length) {
+            clearInterval(iv);
+            stream.getTracks().forEach(t => t.stop());
+            if (target === 'search') {
+              document.querySelector('.search-input').value = codes[0].rawValue;
+              document.getElementById('searchForm').submit();
+            }
+          }
         } catch(e) {}
       }, 300);
     }
   } catch(e) { showToast('Камерата не е достъпна'); }
 }
 
-function useScannedBarcode(code) {
-  const b = document.getElementById('cameraBeep');
-  b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 800);
-  beepSound();
-  if (cameraTarget === 'search') {
-    document.getElementById('searchInput').value = code;
-    closeCamera();
-    document.getElementById('searchForm').submit();
-  } else if (cameraTarget === 'barcode') {
-    document.getElementById('f_barcode').value = code;
-    closeCamera();
-  }
+// ── AI Chat popup ──
+function openAIChat() {
+  // TODO: малък popup с текстово поле + микрофон
+  window.location = 'chat.php?context=products';
 }
 
-function closeCamera() {
-  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
-  document.getElementById('cameraWrap').classList.remove('open');
+// ── Add modal ──
+function openAddModal() {
+  // TODO: AI-first add flow с голям пулсиращ бутон
+  showToast('Добави артикул — скоро');
 }
 
-function beepSound() {
-  try {
-    const a = new AudioContext(); const o = a.createOscillator(); const g = a.createGain();
-    o.connect(g); g.connect(a.destination); o.frequency.value = 880;
-    g.gain.setValueAtTime(.3, a.currentTime); g.gain.exponentialRampToValueAtTime(.01, a.currentTime+.1);
-    o.start(a.currentTime); o.stop(a.currentTime+.1);
-  } catch(e) {}
+// ── Filter drawer ──
+function openFilterDrawer() {
+  // TODO: drawer с филтри
+  showToast('Филтри — скоро');
 }
 
-// ─── VOICE ───────────────────────────────────────────
-function startVoiceSearch() {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Не се поддържа'); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const r = new SR(); r.lang = 'bg-BG'; r.start();
-  document.getElementById('voiceSearchBtn').style.color = '#ef4444';
-  r.onresult = e => { document.getElementById('searchInput').value = e.results[0][0].transcript; document.getElementById('searchForm').submit(); };
-  r.onend = () => { document.getElementById('voiceSearchBtn').style.color = ''; };
-}
-
-function toggleVoice() {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Не се поддържа'); return; }
-  const btn = document.getElementById('voiceBtn');
-  if (voiceRec) { voiceRec.stop(); voiceRec = null; btn.classList.remove('recording'); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  voiceRec = new SR(); voiceRec.lang = 'bg-BG'; voiceRec.continuous = true;
-  btn.classList.add('recording');
-  voiceRec.onresult = e => {
-    const text = e.results[e.results.length-1][0].transcript;
-    showToast('Обработвам...');
-    fetch('chat-send.php', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `Извлечи данни за артикул: "${text}". JSON с name, retail_price, cost_price, barcode, size, color, location. Само JSON.` })
-    }).then(r => r.json()).then(d => {
-      try {
-        const m = (d.response || d.message || '').match(/\{[\s\S]*\}/);
-        if (m) {
-          const o = JSON.parse(m[0]);
-          if (o.name)         document.getElementById('f_name').value = o.name;
-          if (o.retail_price) document.getElementById('f_price').value = o.retail_price;
-          if (o.location)     { document.getElementById('f_loc').value = o.location; document.getElementById('f_loc_vis').value = o.location; }
-          showToast('AI попълни ✓');
-        }
-      } catch(e) {}
-    });
-  };
-  voiceRec.onend = () => { btn.classList.remove('recording'); voiceRec = null; };
-  voiceRec.start();
-}
-
-async function generateAIDescription() {
-  const name = document.getElementById('f_name').value;
-  if (!name) { showToast('Първо въведи наименование'); return; }
-  showToast('AI генерира...');
-  const r = await fetch('chat-send.php', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието.` })
-  });
-  const d = await r.json();
-  const txt = d.response || d.message || '';
-  if (txt) { document.getElementById('f_desc').value = txt; showToast('Описанието е генерирано ✓'); }
-}
-
-// ─── EDIT PRODUCT ─────────────────────────────────────
-function editProduct(id) {
-  closeAll();
-  fetch(`product-save.php?get=${id}`).then(r => r.json()).then(p => {
-    document.getElementById('modalTitle').textContent = 'Редактирай';
-    document.getElementById('f_name').value    = p.name || '';
-    document.getElementById('f_price').value   = p.retail_price || '';
-    document.getElementById('f_wprice').value  = p.wholesale_price || '';
-    document.getElementById('f_barcode').value = p.barcode || '';
-    document.getElementById('f_cat').value     = p.category_id || '';
-    document.getElementById('f_unit').value    = p.unit || 'бр';
-    document.getElementById('f_code').value    = p.code || '';
-    document.getElementById('f_loc').value     = p.location || '';
-    document.getElementById('f_desc').value    = p.description || '';
-    if (document.getElementById('f_code_vis'))  document.getElementById('f_code_vis').value  = p.code || '';
-    if (document.getElementById('f_loc_vis'))   document.getElementById('f_loc_vis').value   = p.location || '';
-    if (document.getElementById('f_unit_vis'))  document.getElementById('f_unit_vis').value  = p.unit || 'бр';
-    productType = 'single';
-    goStep(1);
-    document.getElementById('modalOvl').classList.add('open');
-    document.getElementById('addModal').classList.add('open');
-  });
-}
-
-// ─── HELPERS ──────────────────────────────────────────
-function setFilter(f) {
-  const u = new URL(window.location); u.searchParams.set('filter', f); window.location = u;
-}
-
-document.querySelectorAll('.pcard').forEach(c => {
-  c.addEventListener('mousemove', e => {
-    const r = c.getBoundingClientRect();
-    c.style.setProperty('--mx', (e.clientX - r.left)+'px');
-    c.style.setProperty('--my', (e.clientY - r.top)+'px');
-  });
-});
-
+// ── Toast ──
 function showToast(msg) {
-  const t = document.getElementById('toast'); t.textContent = msg;
-  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
-
-<?php if(isset($_GET['saved'])): ?>showToast('Артикулът е запазен ✓');<?php endif; ?>
-<?php if(isset($_GET['error'])): ?>showToast('Грешка при запазване');<?php endif; ?>
 </script>
 </body>
 </html>
