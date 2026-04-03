@@ -3,18 +3,38 @@
  * ai-helper.php — AI proxy без запис в chat_messages
  *
  * Gemini = основен, Claude = резервен (fallback при 429/5xx/timeout)
+ *
+ * Actions:
+ *   - briefing        — Proactive Briefing при зареждане на chat.php
+ *   - pulse           — Пулс бутон: "ОК" или "2 проблема"
+ *   - onboarding      — AI води онбординг интервю
+ *   - onboarding_wow  — 5 WOW сценария
+ *   - analyze_biz_segment
+ *   - wow
+ *   - loyalty_options
+ *   - generate
+ *   - scan_product
+ *   - web_search
  */
 session_start();
 session_write_close();
 
 if (!isset($_SESSION['tenant_id'])) { http_response_code(401); exit; }
 
-require_once 'config/config.php';
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/database.php';
 
 header('Content-Type: application/json');
 
 $input  = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? 'generate';
+
+$tenant_id = $_SESSION['tenant_id'];
+$store_id  = $_SESSION['store_id'] ?? null;
+$role      = $_SESSION['role'] ?? 'owner';
+$user_name = $_SESSION['user_name'] ?? '';
+$currency  = $_SESSION['currency'] ?? 'EUR';
+$supato_mode = (int)($_SESSION['supato_mode'] ?? 0);
 
 // ═══════════════════════════════════════
 // CLAUDE API CALL (резервен)
@@ -204,6 +224,266 @@ function callGeminiVision($system, $userPrompt, $imageBase64, $mimeType = 'image
 }
 
 // ═══════════════════════════════════════
+// HELPER: Събиране на бизнес контекст от БД
+// ═══════════════════════════════════════
+function gatherBusinessContext($tenant_id, $store_id, $role, $currency) {
+    $data = [];
+
+    // Продажби днес
+    $today = DB::run(
+        'SELECT COUNT(*) as cnt, COALESCE(SUM(total), 0) as total_sum
+         FROM sales WHERE tenant_id = ? AND store_id = ? AND DATE(created_at) = CURDATE() AND status = "completed"',
+        [$tenant_id, $store_id]
+    )->fetch();
+    $data['sales_today'] = "Продажби днес: {$today['cnt']} бр. за {$today['total_sum']} {$currency}";
+
+    // Печалба днес (owner)
+    if ($role === 'owner') {
+        $profit = DB::run(
+            'SELECT COALESCE(SUM(si.total - (si.cost_price * si.quantity)), 0) as profit
+             FROM sale_items si JOIN sales s ON s.id = si.sale_id
+             WHERE s.tenant_id = ? AND s.store_id = ? AND DATE(s.created_at) = CURDATE() AND s.status = "completed"',
+            [$tenant_id, $store_id]
+        )->fetch();
+        $data['profit_today'] = "Печалба днес: {$profit['profit']} {$currency}";
+    }
+
+    // Ниски наличности
+    $low = DB::run(
+        'SELECT p.name, p.size, p.color, i.quantity, i.min_quantity
+         FROM inventory i JOIN products p ON p.id = i.product_id
+         WHERE i.tenant_id = ? AND i.store_id = ? AND i.quantity > 0 AND i.min_quantity > 0 AND i.quantity <= i.min_quantity AND p.is_active = 1
+         ORDER BY i.quantity ASC LIMIT 10',
+        [$tenant_id, $store_id]
+    )->fetchAll();
+    if ($low) {
+        $items = [];
+        foreach ($low as $r) {
+            $l = $r['name'] . ($r['size'] ? ' '.$r['size'] : '') . ($r['color'] ? ' '.$r['color'] : '');
+            $items[] = "{$l}: {$r['quantity']} бр. (мин. {$r['min_quantity']})";
+        }
+        $data['low_stock'] = $items;
+        $data['low_stock_text'] = "Ниски наличности (" . count($low) . "): " . implode('; ', $items);
+    }
+
+    // Нулеви наличности с продажби последните 30 дни
+    $zero = DB::run(
+        'SELECT p.name, p.size, p.color
+         FROM inventory i JOIN products p ON p.id = i.product_id
+         WHERE i.tenant_id = ? AND i.store_id = ? AND i.quantity = 0 AND p.is_active = 1
+           AND p.id IN (
+             SELECT si.product_id FROM sale_items si JOIN sales s ON s.id = si.sale_id
+             WHERE s.tenant_id = ? AND s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND s.status = "completed"
+           ) LIMIT 10',
+        [$tenant_id, $store_id, $tenant_id, $store_id]
+    )->fetchAll();
+    if ($zero) {
+        $items = [];
+        foreach ($zero as $r) {
+            $items[] = $r['name'] . ($r['size'] ? ' '.$r['size'] : '') . ($r['color'] ? ' '.$r['color'] : '');
+        }
+        $data['zero_stock'] = $items;
+        $data['zero_stock_text'] = "НУЛА наличност (имали продажби): " . implode(', ', $items);
+    }
+
+    // Дългове доставчици (owner)
+    if ($role === 'owner') {
+        $debts = DB::run(
+            'SELECT s.name, SUM(d.total) as debt, MIN(d.payment_due_date) as due
+             FROM deliveries d JOIN suppliers s ON s.id = d.supplier_id
+             WHERE d.tenant_id = ? AND d.payment_status != "paid"
+             GROUP BY d.supplier_id, s.name ORDER BY due ASC LIMIT 5',
+            [$tenant_id]
+        )->fetchAll();
+        if ($debts) {
+            $items = [];
+            foreach ($debts as $r) {
+                $due = $r['due'] ? " (падеж: {$r['due']})" : '';
+                $items[] = "{$r['name']}: {$r['debt']} {$currency}{$due}";
+            }
+            $data['debts'] = $items;
+            $data['debts_text'] = "Дългове доставчици: " . implode('; ', $items);
+        }
+    }
+
+    // Активни трансфери (owner + manager)
+    if (in_array($role, ['owner', 'manager'])) {
+        $transfers = DB::run(
+            'SELECT t.status, fs.name as f, ts.name as t_name
+             FROM transfers t JOIN stores fs ON fs.id = t.from_store_id JOIN stores ts ON ts.id = t.to_store_id
+             WHERE t.tenant_id = ? AND t.status IN ("pending","in_transit") ORDER BY t.created_at DESC LIMIT 5',
+            [$tenant_id]
+        )->fetchAll();
+        if ($transfers) {
+            $items = [];
+            foreach ($transfers as $r) {
+                $st = $r['status'] === 'pending' ? 'чакащ' : 'в транзит';
+                $items[] = "{$r['f']}→{$r['t_name']} ({$st})";
+            }
+            $data['transfers_text'] = "Активни трансфери: " . implode('; ', $items);
+        }
+    }
+
+    // Чакащи поръчки (owner)
+    if ($role === 'owner') {
+        $orders = DB::run(
+            'SELECT po.status, s.name FROM purchase_orders po
+             LEFT JOIN suppliers s ON s.id = po.supplier_id
+             WHERE po.tenant_id = ? AND po.status IN ("draft","sent","partial") LIMIT 5',
+            [$tenant_id]
+        )->fetchAll();
+        if ($orders) {
+            $items = [];
+            foreach ($orders as $r) {
+                $st_map = ['draft'=>'чернова','sent'=>'изпратена','partial'=>'частична'];
+                $items[] = "{$r['name']}: " . ($st_map[$r['status']] ?? $r['status']);
+            }
+            $data['orders_text'] = "Чакащи поръчки: " . implode('; ', $items);
+        }
+    }
+
+    return $data;
+}
+
+// ═══════════════════════════════════════
+// ACTION: briefing — Proactive Briefing
+// ═══════════════════════════════════════
+if ($action === 'briefing') {
+    $ctx = gatherBusinessContext($tenant_id, $store_id, $role, $currency);
+
+    $store = DB::run('SELECT name FROM stores WHERE id = ?', [$store_id])->fetch();
+    $store_name = $store['name'] ?? 'Обект';
+
+    // Ако няма данни — празен briefing
+    $has_issues = !empty($ctx['low_stock']) || !empty($ctx['zero_stock']) || !empty($ctx['debts']) || !empty($ctx['transfers_text']) || !empty($ctx['orders_text']);
+
+    if (!$has_issues && (int)($ctx['sales_today'] ?? 0) === 0) {
+        // Няма нищо за показване
+        echo json_encode(['items' => [], 'greeting' => "Добро утро! Всичко е наред в {$store_name}."]);
+        exit;
+    }
+
+    // Събираме текстов контекст
+    $context_lines = array_filter([
+        $ctx['sales_today'] ?? '',
+        $ctx['profit_today'] ?? '',
+        $ctx['low_stock_text'] ?? '',
+        $ctx['zero_stock_text'] ?? '',
+        $ctx['debts_text'] ?? '',
+        $ctx['transfers_text'] ?? '',
+        $ctx['orders_text'] ?? ''
+    ]);
+    $context_block = implode("\n", $context_lines);
+
+    $role_filter = match($role) {
+        'seller'  => 'Покажи САМО проблеми със стока (ниска/нулева наличност). БЕЗ финанси.',
+        'manager' => 'Покажи стока + трансфери + поръчки. БЕЗ печалби, марж, дългове.',
+        default   => 'Покажи всичко.'
+    };
+
+    $system = "Генерирай кратък сутрешен briefing за магазин \"{$store_name}\". Потребител: {$user_name} ({$role}).
+{$role_filter}
+
+ПРАВИЛА:
+- Max 5 items
+- Приоритет: 🔴 критични (нулева наличност, падеж днес) > 🟠 важни (ниска наличност, трансфери) > 🟡 препоръки
+- Ако > 5 проблема от един тип → групирай: '8 артикула свършват' с deeplink
+- Всеки item: emoji + кратък текст (1 изречение) + deeplink ако е уместен
+- Deeplinks: [📦 Виж артикулите →], [⚠️ Поръчай сега →], [📊 Статистика →], [💳 Дългове →]
+- Тон: умен приятел търговец, конкретно, кратко
+- САМО валиден JSON
+
+ДАННИ:
+{$context_block}";
+
+    $prompt = "Генерирай briefing. САМО JSON:
+{\"greeting\":\"Добро утро, {$user_name}!\",\"items\":[{\"priority\":\"red\",\"text\":\"...\",\"deeplink\":\"products.php?filter=zero\"},{\"priority\":\"orange\",\"text\":\"...\"}]}
+
+priority: red/orange/yellow/green. Deeplink е незадължителен.";
+
+    $text = callGemini($system, $prompt, 600);
+
+    // Парсваме JSON
+    $result = null;
+    if (preg_match('/\{[\s\S]*\}/u', $text, $match)) {
+        $result = json_decode($match[0], true);
+    }
+
+    if ($result && isset($result['items'])) {
+        // Ограничаваме до 5
+        $result['items'] = array_slice($result['items'], 0, 5);
+        echo json_encode($result);
+    } else {
+        // Fallback — ръчно генериран briefing без AI
+        $items = [];
+
+        if (!empty($ctx['zero_stock'])) {
+            $count = count($ctx['zero_stock']);
+            if ($count <= 2) {
+                foreach ($ctx['zero_stock'] as $name) {
+                    $items[] = ['priority' => 'red', 'text' => "🔴 {$name} — НУЛА! Губиш продажби.", 'deeplink' => 'products.php?filter=zero'];
+                }
+            } else {
+                $items[] = ['priority' => 'red', 'text' => "🔴 {$count} артикула са на нула!", 'deeplink' => 'products.php?filter=zero'];
+            }
+        }
+
+        if (!empty($ctx['low_stock'])) {
+            $count = count($ctx['low_stock']);
+            if ($count <= 2) {
+                foreach ($ctx['low_stock'] as $info) {
+                    $items[] = ['priority' => 'orange', 'text' => "🟠 {$info}", 'deeplink' => 'products.php?filter=low'];
+                }
+            } else {
+                $items[] = ['priority' => 'orange', 'text' => "🟠 {$count} артикула с ниска наличност", 'deeplink' => 'products.php?filter=low'];
+            }
+        }
+
+        if (!empty($ctx['debts']) && $role === 'owner') {
+            $items[] = ['priority' => 'orange', 'text' => "💳 " . ($ctx['debts_text'] ?? 'Имаш неплатени доставки'), 'deeplink' => 'stats.php?tab=finance'];
+        }
+
+        $items = array_slice($items, 0, 5);
+
+        echo json_encode([
+            'greeting' => "Добро утро" . ($user_name ? ", {$user_name}" : "") . "!",
+            'items' => $items
+        ]);
+    }
+    exit;
+}
+
+// ═══════════════════════════════════════
+// ACTION: pulse — Пулс бутон
+// ═══════════════════════════════════════
+if ($action === 'pulse') {
+    $ctx = gatherBusinessContext($tenant_id, $store_id, $role, $currency);
+
+    $problems = [];
+
+    if (!empty($ctx['zero_stock'])) {
+        $c = count($ctx['zero_stock']);
+        $problems[] = "{$c} артикул" . ($c > 1 ? 'а' : '') . " на нула";
+    }
+    if (!empty($ctx['low_stock'])) {
+        $c = count($ctx['low_stock']);
+        $problems[] = "{$c} с ниска наличност";
+    }
+    if (!empty($ctx['debts']) && $role === 'owner') {
+        $problems[] = "неплатени доставки";
+    }
+
+    if (empty($problems)) {
+        echo json_encode(['status' => 'ok', 'message' => '✅ Всичко е наред!', 'problems' => 0]);
+    } else {
+        $count = count($problems);
+        $msg = "⚠️ {$count} проблем" . ($count > 1 ? 'а' : '') . ": " . implode(', ', $problems) . ".";
+        echo json_encode(['status' => 'issues', 'message' => $msg, 'problems' => $count]);
+    }
+    exit;
+}
+
+// ═══════════════════════════════════════
 // ACTION: onboarding — AI води интервюто
 // ═══════════════════════════════════════
 if ($action === 'onboarding') {
@@ -250,7 +530,7 @@ if ($action === 'onboarding') {
 }
 
 // ═══════════════════════════════════════
-// ACTION: onboarding_wow — 5 WOW сценария с ИЗЧИСЛЕНИ числа
+// ACTION: onboarding_wow — 5 WOW сценария
 // ═══════════════════════════════════════
 if ($action === 'onboarding_wow') {
     require_once __DIR__ . '/biz-coefficients.php';
@@ -260,7 +540,6 @@ if ($action === 'onboarding_wow') {
     $stores  = trim($input['stores'] ?? '1');
     $n = max(1, intval($stores));
 
-    // Намери коефициент за бизнеса
     $bizInfo = findBizCoefficient($biz . ' ' . $segment);
     $losses  = calculateLosses($bizInfo['coeff'], $n);
 
@@ -291,7 +570,6 @@ if ($action === 'onboarding_wow') {
         }
     }
 
-    // Fallback ако AI не върне — ползваме директно числата
     if (empty($scenarios)) {
         $scenarios = [
             "💀 **Zombie Stock:** Имаш стока която стои 90+ дни без движение. Това са ~€{$losses['zombie']} замразени пари всеки месец.",
@@ -302,7 +580,6 @@ if ($action === 'onboarding_wow') {
         ];
     }
 
-    // Добавяме losses данните за frontend обобщението
     echo json_encode(['scenarios' => $scenarios, 'losses' => $losses, 'biz_match' => $bizInfo['match']]);
     exit;
 }
