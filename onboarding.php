@@ -275,12 +275,15 @@ async function processInput(text){
 /* ══════════════════════════════════════════════════
    ФАЗА 4: WOW ГЕНЕРИРАНЕ
    ══════════════════════════════════════════════════ */
+var serverLosses=null;// от backend
+
 async function generateWow(){
   aiSay('Изчислявам загубите за твоя тип бизнес...');
   showTyping();hideInput();
   try{
     var r=await aiFetch({action:'onboarding_wow',biz:S.biz,segment:S.segment,stores:S.stores});
     var d=await r.json();hideTyping();
+    if(d.losses) serverLosses=d.losses;
     if(d.scenarios&&d.scenarios.length>=5) wowItems=d.scenarios;
     else throw new Error('bad');
   }catch(e){hideTyping();wowItems=buildFallbackWow()}
@@ -290,23 +293,22 @@ async function generateWow(){
 }
 
 function buildFallbackWow(){
-  var n=parseInt(S.stores)||1;
-  var isExp=/скъп|марков|луксоз|злат|бижу|оптик|електрон/i.test(S.biz+' '+S.segment);
-  var base=(isExp?500:250)*n;
+  var L=serverLosses||{zombie:250,sizes:170,outofstock:210,upsell:85,discounts:125,monthly:500,yearly:6000};
   return[
-    '💀 **Zombie Stock:** Имаш стока която стои 90+ дни без движение. Това са ~€'+base+' замразени пари всеки месец.',
-    '📐 **Грешни размери:** Всеки сезон остават крайни размери. Загуба ~€'+Math.round(base*0.5)+'/мес от блокиран капитал.',
-    '🔔 **Изпуснати продажби:** Клиент идва, стоката я няма. Губиш ~€'+Math.round(base*0.8)+'/мес от празни рафтове.',
-    '🛒 **Пропуснат upsell:** Клиент купува едно, никой не му предлага допълнение. ~€'+Math.round(base*0.35)+'/мес.',
-    '💸 **Неконтролирани отстъпки:** Продавач дава 20% без причина. ~€'+Math.round(base*0.3)+'/мес изтичат.'
+    '💀 **Zombie Stock:** Имаш стока която стои 90+ дни без движение. Това са ~€'+L.zombie+' замразени пари всеки месец.',
+    '📐 **Грешни размери:** Всеки сезон остават артикули които никой не купува. Загуба ~€'+L.sizes+'/мес от блокиран капитал.',
+    '🔔 **Изпуснати продажби:** Клиент идва, стоката я няма. Губиш ~€'+L.outofstock+'/мес от празни рафтове.',
+    '🛒 **Пропуснат upsell:** Клиент купува едно, никой не му предлага допълнение. ~€'+L.upsell+'/мес.',
+    '💸 **Неконтролирани отстъпки:** Продавач дава 20% без причина. ~€'+L.discounts+'/мес изтичат.'
   ];
 }
 
 function showWowSummary(){
   var n=parseInt(S.stores)||1;
-  var isExp=/скъп|марков|луксоз|злат|бижу|оптик|електрон/i.test(S.biz+' '+S.segment);
-  var base=(isExp?500:250)*n;
-  var monthly=Math.round(base*2.95);var yearly=monthly*12;
+  var L=serverLosses;
+  var monthly,yearly;
+  if(L){monthly=L.monthly;yearly=L.yearly}
+  else{monthly=500*n;yearly=monthly*12}
   var cost=Math.round(588+(n>1?(n-1)*119.88:0));
   var saved=yearly-cost;
   var example=saved>5000?'ремонт на обект или нова колекция':(saved>2000?'нова витрина или рекламна кампания':'ново оборудване или 2 месеца наем');
