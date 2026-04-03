@@ -148,7 +148,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         /* ── BOTTOM NAV (С17 унифициран) ── */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(11,15,26,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(99,102,241,0.15); display: flex; height: 56px; }
         .bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; color: rgba(165,180,252,0.65); text-decoration: none; transition: color 0.2s; }
-        .bnav-tab.active { color: #818cf8; }
+        .bnav-tab.active { color: #818cf8; text-shadow: 0 0 12px rgba(99,102,241,0.8); }
         .bnav-tab .bnav-icon { font-size: 1.2rem; }
     </style>
 </head>
