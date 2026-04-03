@@ -1,647 +1,1242 @@
 <?php
+// products.php — Артикули
+require_once 'config/database.php';
 session_start();
+
 if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
 
-require_once 'config/database.php';
-require_once 'config/config.php';
+$tenant_id    = $_SESSION['tenant_id'];
+$role         = $_SESSION['role'] ?? 'seller';
+$user_store   = $_SESSION['store_id'];
+$currency     = $_SESSION['currency'] ?? 'EUR';
+$can_add      = in_array($role, ['owner', 'manager']);
+$can_see_cost = ($role === 'owner');
 
-$tenant_id = $_SESSION['tenant_id'];
-$user_role = $_SESSION['role'] ?? 'owner';
+$search   = trim($_GET['q'] ?? '');
+$filter   = $_GET['filter'] ?? 'all';
+$f_cat    = (int)($_GET['cat'] ?? 0);
+$f_sup    = (int)($_GET['sup'] ?? 0);
+$f_size   = trim($_GET['size'] ?? '');
+$f_color  = trim($_GET['color'] ?? '');
+$f_min    = $_GET['pmin'] ?? '';
+$f_max    = $_GET['pmax'] ?? '';
+$f_store  = ($role === 'seller') ? $user_store : (int)($_GET['store'] ?? 0);
 
-$tenant = DB::run("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch();
-$currency = $tenant['currency'] ?? 'EUR';
-$cs = $currency === 'EUR' ? '€' : $currency;
+$where  = ["p.tenant_id=?", "p.parent_id IS NULL", "p.is_active=1"];
+$params = [$tenant_id];
 
-$filter_supplier = intval($_GET['supplier'] ?? 0);
-$filter_category = intval($_GET['category'] ?? 0);
-$filter_tab      = $_GET['tab'] ?? 'all';
-$search          = trim($_GET['q'] ?? '');
+if ($search !== '') {
+    $where[] = "(p.name LIKE ? OR p.barcode LIKE ? OR p.code LIKE ? OR p.alt_codes LIKE ? OR p.description LIKE ?)";
+    $like = "%$search%";
+    array_push($params, $like, $like, $like, $like, $like);
+}
+if ($f_cat)   { $where[] = "p.category_id=?"; $params[] = $f_cat; }
+if ($f_sup)   { $where[] = "p.supplier_id=?"; $params[] = $f_sup; }
+if ($f_size)  { $where[] = "(p.size LIKE ? OR EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.size LIKE ?))"; array_push($params, "%$f_size%", "%$f_size%"); }
+if ($f_color) { $where[] = "(p.color LIKE ? OR EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.color LIKE ?))"; array_push($params, "%$f_color%", "%$f_color%"); }
+if ($f_min !== '') { $where[] = "p.retail_price >= ?"; $params[] = (float)$f_min; }
+if ($f_max !== '') { $where[] = "p.retail_price <= ?"; $params[] = (float)$f_max; }
 
-// Suppliers
-$suppliers = DB::run("
-    SELECT s.id, s.name, COUNT(DISTINCT p.id) as cnt
-    FROM suppliers s
-    JOIN products p ON p.supplier_id = s.id AND p.tenant_id = ?
-    WHERE s.tenant_id = ?
-    GROUP BY s.id ORDER BY cnt DESC
-", [$tenant_id, $tenant_id])->fetchAll();
+$inv_join = $f_store
+    ? "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id AND i.store_id=$f_store"
+    : "LEFT JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id";
 
-// Categories
-$cp = [$tenant_id];
-$cq = "SELECT c.id, c.name, COUNT(p.id) as cnt FROM categories c
-       JOIN products p ON p.category_id = c.id AND p.tenant_id = ?";
-if ($filter_supplier) { $cq .= " AND p.supplier_id = ?"; $cp[] = $filter_supplier; }
-$cq .= " WHERE c.tenant_id = ? GROUP BY c.id ORDER BY cnt DESC";
-$cp[] = $tenant_id;
-$categories = DB::run($cq, $cp)->fetchAll();
-
-// Products
-$w = ["p.tenant_id = ?", "p.parent_id IS NULL"];
-$pp = [$tenant_id, $tenant_id, $tenant_id];
-if ($filter_supplier) { $w[] = "p.supplier_id = ?"; $pp[] = $filter_supplier; }
-if ($filter_category) { $w[] = "p.category_id = ?"; $pp[] = $filter_category; }
-if ($search) { $w[] = "(p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)"; $pp[] = "%$search%"; $pp[] = "%$search%"; $pp[] = "%$search%"; }
-
-$wstr = implode(' AND ', $w);
-$products = DB::run("
-    SELECT p.*,
-        c.name as cat_name, s.name as sup_name,
-        COALESCE((SELECT SUM(i.quantity) FROM inventory i JOIN stores st ON st.id=i.store_id WHERE i.product_id=p.id AND st.tenant_id=?),0) as total_qty,
-        (SELECT COUNT(*) FROM products ch WHERE ch.parent_id=p.id) as var_count,
-        COALESCE((SELECT SUM(si.quantity) FROM sale_items si JOIN sales sl ON sl.id=si.sale_id WHERE si.product_id=p.id AND sl.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND sl.tenant_id=?),0) as sold_30d,
-        DATEDIFF(NOW(),COALESCE((SELECT MAX(sl.created_at) FROM sale_items si JOIN sales sl ON sl.id=si.sale_id WHERE si.product_id=p.id AND sl.tenant_id=?),p.created_at)) as days_no_sale
+$sql = "
+    SELECT p.*, c.name AS category_name, c.variant_type, s.name AS supplier_name,
+           COALESCE(SUM(i.quantity),0) AS total_stock,
+           COALESCE(MAX(i.min_quantity),0) AS min_qty,
+           (SELECT COUNT(*) FROM products ch WHERE ch.parent_id=p.id AND ch.tenant_id=p.tenant_id AND ch.is_active=1) AS variant_count
     FROM products p
     LEFT JOIN categories c ON c.id=p.category_id
     LEFT JOIN suppliers s ON s.id=p.supplier_id
-    WHERE $wstr ORDER BY p.name ASC LIMIT 200
-", $pp)->fetchAll();
+    $inv_join
+    WHERE " . implode(' AND ', $where) . "
+    GROUP BY p.id ORDER BY p.name ASC LIMIT 200
+";
+$all_products = DB::run($sql, $params)->fetchAll();
 
-$capital = DB::run("SELECT COALESCE(SUM(i.quantity*p.cost_price),0) FROM inventory i JOIN products p ON p.id=i.product_id JOIN stores st ON st.id=i.store_id WHERE st.tenant_id=?", [$tenant_id])->fetchColumn();
-
-$cnt_all    = count($products);
-$cnt_hot    = count(array_filter($products, fn($p) => $p['sold_30d'] > 10));
-$cnt_zombie = count(array_filter($products, fn($p) => $p['days_no_sale'] > 30 && $p['total_qty'] > 0));
-$cnt_low    = count(array_filter($products, fn($p) => $p['total_qty'] > 0 && $p['total_qty'] <= ($p['min_quantity'] ?? 5)));
-$cnt_out    = count(array_filter($products, fn($p) => $p['total_qty'] == 0));
-
-$vdata = [];
-foreach ($products as $pr) {
-    if ($pr['var_count'] > 0) {
-        $vdata[$pr['id']] = DB::run("SELECT name FROM products WHERE parent_id=? LIMIT 6", [$pr['id']])->fetchAll(PDO::FETCH_COLUMN);
-    }
+$cnt_low = 0; $cnt_out = 0;
+foreach ($all_products as $p) {
+    if ($p['total_stock'] == 0) $cnt_out++;
+    elseif ($p['min_qty'] > 0 && $p['total_stock'] <= $p['min_qty']) $cnt_low++;
 }
 
-function sc($qty, $min) {
-    if ($qty == 0) return '#ef4444';
-    if ($qty <= ($min ?? 5)) return '#f59e0b';
-    return '#22c55e';
-}
-$sup_colors = ['#D4AF37','#6366f1','#22c55e','#f59e0b','#ec4899','#14b8a6','#f97316','#a855f7'];
-$cat_colors = ['#D4AF37','#6366f1','#22c55e','#f59e0b','#ec4899','#14b8a6'];
+if ($filter === 'low') $products = array_values(array_filter($all_products, fn($p) => $p['total_stock'] > 0 && $p['min_qty'] > 0 && $p['total_stock'] <= $p['min_qty']));
+elseif ($filter === 'out') $products = array_values(array_filter($all_products, fn($p) => $p['total_stock'] == 0));
+else $products = $all_products;
+
+$categories  = DB::run("SELECT id, name, variant_type FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll();
+$suppliers   = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
+$stores      = DB::run("SELECT id, name FROM stores WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
+$sizes_used  = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+$colors_used = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+
+$tenant_cfg      = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+$onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
+
+$has_filters = $f_cat || $f_sup || $f_size || $f_color || $f_min !== '' || $f_max !== '' || ($role !== 'seller' && $f_store);
+
+$COLOR_PALETTE = [
+    ['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],
+    ['name'=>'Сив','hex'=>'#6b7280'],['name'=>'Тъмносив','hex'=>'#374151'],
+    ['name'=>'Червен','hex'=>'#ef4444'],['name'=>'Бордо','hex'=>'#7f1d1d'],
+    ['name'=>'Розов','hex'=>'#ec4899'],['name'=>'Корал','hex'=>'#f87171'],
+    ['name'=>'Оранжев','hex'=>'#f97316'],['name'=>'Жълт','hex'=>'#eab308'],
+    ['name'=>'Горчица','hex'=>'#ca8a04'],['name'=>'Зелен','hex'=>'#22c55e'],
+    ['name'=>'Маслина','hex'=>'#65a30d'],['name'=>'Каки','hex'=>'#6b7c3d'],
+    ['name'=>'Тюркоаз','hex'=>'#14b8a6'],['name'=>'Син','hex'=>'#3b82f6'],
+    ['name'=>'Тъмносин','hex'=>'#1e3a8a'],['name'=>'Navy','hex'=>'#1e40af'],
+    ['name'=>'Лилав','hex'=>'#8b5cf6'],['name'=>'Кафяв','hex'=>'#92400e'],
+    ['name'=>'Бежов','hex'=>'#d4b896'],['name'=>'Крем','hex'=>'#fef3c7'],
+    ['name'=>'Графит','hex'=>'#374151'],['name'=>'Деним','hex'=>'#1d4ed8'],
+    ['name'=>'Камуфлаж','hex'=>'#4a5d23'],['name'=>'Пъстър','hex'=>'#a855f7'],
+    ['name'=>'Златист','hex'=>'#d97706'],['name'=>'Сребрист','hex'=>'#9ca3af'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Артикули — RunMyStore.ai</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/vendors/aos.css">
+<link rel="stylesheet" href="./style.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Montserrat',sans-serif;background:#EDE8DC;color:#292524;min-height:100vh;overflow-x:hidden;}
-/* HEADER */
-.hdr{background:rgba(237,232,220,.97);padding:12px 14px 0;border-bottom:1px solid rgba(210,193,164,.7);position:sticky;top:0;z-index:100;}
-.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.hdr-title{font-size:19px;font-weight:900;}
-.cap-badge{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:#A67C00;}
-.sup-lbl{font-size:10px;font-weight:700;color:#A8A29E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.sup-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;}
-.sup-row::-webkit-scrollbar{display:none;}
-.sup-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
-.sup-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;border:2px solid transparent;transition:border-color .2s;}
-.sup-av.active{border-color:#D4AF37;box-shadow:0 0 0 2px rgba(212,175,55,.3);}
-.sup-nm{font-size:9px;font-weight:700;color:#78716C;text-align:center;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sup-cnt{font-size:8px;color:#A8A29E;}
-.sup-all{width:44px;height:44px;border-radius:50%;background:#FAF7F0;border:1.5px dashed #E6D5B8;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#A8A29E;text-align:center;line-height:1.3;cursor:pointer;}
-.sup-all.active{border-color:#D4AF37;color:#A67C00;}
-/* BREADCRUMB */
-.bc{display:flex;align-items:center;gap:4px;padding:6px 14px;background:rgba(212,175,55,.06);border-bottom:1px solid rgba(212,175,55,.12);}
-.bc a{font-size:11px;font-weight:700;color:#A67C00;text-decoration:none;}
-.bc-sep{font-size:10px;color:#C4B89A;}
-.bc-cur{font-size:11px;font-weight:700;color:#292524;}
-/* TABS */
-.tabs{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;background:#EDE8DC;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid #E6D5B8;color:#A8A29E;background:transparent;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
-.tab.active{background:linear-gradient(135deg,#D4AF37,#C5A059);border-color:transparent;color:#fff;}
-.tab.hot{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#dc2626;}
-.tab.zombie{background:rgba(107,114,128,.08);border-color:rgba(107,114,128,.2);color:#6b7280;}
-.tab.low{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);color:#d97706;}
-.tcnt{background:rgba(0,0,0,.1);border-radius:8px;padding:1px 5px;font-size:9px;}
-.tab.active .tcnt{background:rgba(255,255,255,.25);}
-/* CATS */
-.cat-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 14px 8px;}
-.cat-row::-webkit-scrollbar{display:none;}
-.cat-chip{flex-shrink:0;padding:4px 11px;border-radius:10px;font-size:11px;font-weight:700;background:#fff;border:1px solid #E6D5B8;color:#574200;display:flex;align-items:center;gap:5px;cursor:pointer;text-decoration:none;}
-.cat-chip.active{background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(197,160,89,.15));border-color:#D4AF37;color:#A67C00;}
-.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-/* PRODUCT LIST */
-.plist{padding:6px 12px 185px;display:flex;flex-direction:column;gap:7px;}
-.pcard{background:#fff;border:1px solid #EAE0D0;border-radius:14px;overflow:hidden;display:flex;cursor:pointer;transition:transform .1s;}
-.pcard:active{transform:scale(.98);}
-.pst{width:4px;flex-shrink:0;}
-.pb{flex:1;padding:9px 11px;min-width:0;}
-.pt{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
-.pn{font-size:12px;font-weight:700;color:#292524;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
-.psk{font-size:9px;color:#A8A29E;}
-.pqb{text-align:right;flex-shrink:0;margin-left:8px;}
-.pq{font-size:20px;font-weight:900;line-height:1;}
-.pu{font-size:9px;color:#A8A29E;font-weight:600;}
-.ptags{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
-.tg{font-size:9px;font-weight:700;border-radius:5px;padding:2px 6px;border:1px solid transparent;}
-.tp{color:#A67C00;background:rgba(212,175,55,.1);border-color:rgba(212,175,55,.2);}
-.thot{color:#A67C00;background:rgba(212,175,55,.12);border-color:rgba(212,175,55,.25);}
-.tzom{color:#6b7280;background:rgba(107,114,128,.08);border-color:rgba(107,114,128,.15);}
-.tlow{color:#d97706;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.15);}
-.tout{color:#dc2626;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.15);}
-.tok{color:#16a34a;background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.15);}
-.tai{color:#A67C00;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.2);border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;}
-.vrow{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;}
-.vchip{padding:2px 7px;border-radius:6px;font-size:9px;font-weight:700;border:1px solid #E6D5B8;color:#574200;background:#FAF7F0;}
-.vmore{padding:2px 7px;border-radius:6px;font-size:9px;font-weight:700;border:1px dashed #E6D5B8;color:#A8A29E;}
-/* EMPTY */
-.empty{text-align:center;padding:60px 20px;}
-.ei{font-size:48px;margin-bottom:12px;}
-.et{font-size:16px;font-weight:700;color:#78716C;margin-bottom:6px;}
-.es{font-size:13px;color:#A8A29E;}
-/* BOTTOM */
-.bact{position:fixed;bottom:64px;left:0;right:0;background:rgba(237,232,220,.97);border-top:1px solid rgba(210,193,164,.5);z-index:90;}
-.tools{display:flex;gap:6px;padding:8px 12px 6px;}
-.tbtn{flex:1;padding:7px 4px;border-radius:10px;font-size:10px;font-weight:700;border:1px solid #E6D5B8;color:#78716C;background:#fff;text-align:center;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;}
-.tbtn.gld{background:rgba(212,175,55,.1);border-color:rgba(212,175,55,.3);color:#A67C00;}
-.mbtns{display:flex;padding:6px 16px 14px;align-items:center;justify-content:space-between;gap:10px;}
-.bwrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;}
-.blbl{font-size:9px;font-weight:700;color:#A67C00;white-space:nowrap;}
-.bcir{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.bcam{background:#fff;border:2px solid #D4AF37;box-shadow:0 3px 12px rgba(212,175,55,.2);}
-.bscn{background:#fff;border:2px solid #D4AF37;box-shadow:0 3px 12px rgba(212,175,55,.2);}
-.badd{background:linear-gradient(135deg,#C5A059,#A67C00);box-shadow:0 3px 12px rgba(166,124,0,.3);}
-.bdiv{width:1px;height:50px;background:rgba(210,193,164,.5);flex:0;}
-/* AI btn */
-.airel{position:relative;display:flex;align-items:center;justify-content:center;width:58px;height:58px;}
-.airng{position:absolute;border-radius:50%;border:1.5px solid rgba(212,175,55,.4);animation:wo 2s ease-out infinite;}
-.airng-1{width:58px;height:58px;animation-delay:0s;}
-.airng-2{width:74px;height:74px;animation-delay:.55s;}
-.airng-3{width:90px;height:90px;animation-delay:1.1s;}
-.aicir{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#C5A059);box-shadow:0 5px 18px rgba(212,175,55,.5);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;cursor:pointer;}
-.aibars{display:flex;gap:3px;align-items:center;height:22px;}
-.aibar{width:3px;border-radius:2px;background:#fff;animation:bd 1s ease-in-out infinite;}
-.aibar:nth-child(1){height:7px;}.aibar:nth-child(2){height:14px;animation-delay:.15s;}.aibar:nth-child(3){height:22px;animation-delay:.3s;}.aibar:nth-child(4){height:14px;animation-delay:.45s;}.aibar:nth-child(5){height:7px;animation-delay:.6s;}
-/* NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(237,232,220,.97);border-top:1px solid rgba(210,193,164,.7);display:flex;align-items:center;z-index:100;}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;}
-.nilbl{font-size:10px;font-weight:600;color:#C4B89A;}
-.niico{width:20px;height:20px;color:#C4B89A;}
-.ni.active .nilbl,.ni.active .niico{color:#A67C00;}
-.nichat{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#E6C27A);display:flex;align-items:center;justify-content:center;}
-.ncb{display:flex;gap:2px;align-items:center;height:10px;}
-.ncb div{width:2px;border-radius:1px;background:#fff;animation:bd 1s ease-in-out infinite;}
-.ncb div:nth-child(1){height:4px;}.ncb div:nth-child(2){height:7px;animation-delay:.15s;}.ncb div:nth-child(3){height:10px;animation-delay:.3s;}.ncb div:nth-child(4){height:6px;animation-delay:.45s;}
-/* DRAWER */
-.dovl{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);z-index:200;display:none;}
-.dovl.open{display:block;}
-.drw{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:201;transform:translateY(100%);transition:transform .3s ease;max-height:85vh;overflow-y:auto;}
-.drw.open{transform:translateY(0);}
-.dhdl{width:40px;height:4px;background:#E6D5B8;border-radius:2px;margin:14px auto 0;}
-.dbody{padding:16px 20px 32px;}
-.dsr{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.dstripe{width:5px;height:54px;border-radius:3px;flex-shrink:0;}
-.dnm{font-size:19px;font-weight:900;color:#292524;margin-bottom:2px;}
-.dmeta{font-size:11px;color:#A8A29E;}
-.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.si{background:#FAF7F0;border:1px solid #EAE0D0;border-radius:12px;padding:10px 12px;}
-.slbl{font-size:10px;color:#A8A29E;font-weight:600;margin-bottom:2px;}
-.sval{font-size:17px;font-weight:900;color:#292524;}
-.dacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
-.dab{padding:12px 6px;border:none;border-radius:12px;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
-.dico{font-size:18px;}.dlbl{font-size:10px;font-weight:700;}
-.dedit{background:linear-gradient(135deg,#D4AF37,#C5A059);color:#fff;box-shadow:0 3px 10px rgba(212,175,55,.3);}
-.dcopy{background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.25)!important;color:#A67C00;}
-.ddel{background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.2)!important;color:#dc2626;}
-.daibtn{width:100%;padding:12px;border:1px solid rgba(212,175,55,.25);border-radius:12px;background:rgba(212,175,55,.1);color:#A67C00;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
-.daires{margin-top:12px;padding:12px;background:#FAF7F0;border:1px solid #EAE0D0;border-radius:12px;font-size:13px;color:#574200;line-height:1.5;display:none;}
-/* CONFIRM */
-.covl{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-end;justify-content:center;}
-.covl.open{display:flex;}
-.cbox{background:#fff;border-radius:24px 24px 0 0;width:100%;padding:24px 20px 40px;max-width:480px;}
-.cico{width:52px;height:52px;border-radius:50%;background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
-.ctit{font-size:18px;font-weight:900;color:#292524;text-align:center;margin-bottom:6px;}
-.csub{font-size:13px;color:#78716C;text-align:center;line-height:1.5;margin-bottom:22px;}
-.cbld{font-weight:700;color:#292524;}
-.cdelbtn{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(to bottom,#ef4444,#dc2626);color:#fff;font-size:15px;font-weight:800;margin-bottom:10px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,.3);}
-.ccnl{width:100%;padding:13px;border:1.5px solid #E6D5B8;border-radius:14px;background:#FAF7F0;color:#78716C;font-size:14px;font-weight:700;cursor:pointer;}
-/* AI MODAL */
-.aimod{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-end;justify-content:center;}
-.aimod.open{display:flex;}
-.aibox{background:#fff;border-radius:24px 24px 0 0;width:100%;padding:20px;max-width:480px;max-height:80vh;overflow-y:auto;}
-.aihdl{width:40px;height:4px;background:#E6D5B8;border-radius:2px;margin:0 auto 16px;}
-.aiqcmds{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
-.aiqc{padding:5px 11px;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.25);border-radius:20px;font-size:11px;font-weight:700;color:#A67C00;cursor:pointer;}
-.aiwrap{display:flex;gap:8px;margin-bottom:12px;}
-.aiinp{flex:1;padding:12px 14px;background:#FAF7F0;border:1px solid #E6D5B8;border-radius:12px;font-size:14px;font-family:'Montserrat',sans-serif;outline:none;}
-.aiinp:focus{border-color:#D4AF37;}
-.aisndbtn{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#D4AF37,#C5A059);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-.airesp{padding:12px;background:#FAF7F0;border-radius:12px;font-size:13px;color:#574200;line-height:1.6;min-height:60px;}
-/* CAMERA */
-.cammod{position:fixed;inset:0;background:#000;z-index:400;display:none;flex-direction:column;}
-.cammod.open{display:flex;}
-.camhdr{padding:16px;display:flex;align-items:center;justify-content:space-between;}
-.camttl{color:#fff;font-size:16px;font-weight:700;}
-.camcls{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-#camvid{width:100%;flex:1;object-fit:cover;}
-.camctrls{padding:16px;display:flex;justify-content:center;}
-.camsnap{width:64px;height:64px;border-radius:50%;background:#fff;border:none;font-size:24px;cursor:pointer;}
-.camres{padding:16px;background:rgba(255,255,255,.1);margin:0 16px;border-radius:12px;display:none;}
-.camres p{color:#fff;font-size:13px;margin-bottom:8px;}
-.camusebtn{width:100%;padding:12px;border:none;border-radius:10px;background:#D4AF37;color:#fff;font-weight:700;cursor:pointer;}
-/* ADD MODAL */
-.addmod{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-end;justify-content:center;}
-.addmod.open{display:flex;}
-.addbox{background:#EDE8DC;border-radius:24px 24px 0 0;width:100%;padding:20px;max-width:480px;max-height:90vh;overflow-y:auto;}
-.addhdl{width:40px;height:4px;background:#C4B89A;border-radius:2px;margin:0 auto 16px;}
-.frow{margin-bottom:12px;}
-.flbl{font-size:11px;font-weight:700;color:#78716C;margin-bottom:4px;display:block;}
-.finp{width:100%;padding:12px 14px;background:#FAF7F0;border:1px solid #E6D5B8;border-radius:12px;font-size:14px;font-family:'Montserrat',sans-serif;outline:none;color:#292524;}
-.finp:focus{border-color:#D4AF37;}
-.frow2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.svbtn{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#D4AF37,#C5A059);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(212,175,55,.3);}
-/* TOAST */
-.toast{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:#292524;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
-.toast.show{opacity:1;}
-/* ANIMS */
-@keyframes wo{0%{transform:scale(1);opacity:.55;}100%{transform:scale(1.65);opacity:0;}}
-@keyframes bd{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.25);}}
+:root{--nav-h:64px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#030712;color:#e2e8f0;font-family:'Montserrat',sans-serif;margin:0;overflow-x:hidden;padding-bottom:80px}
+body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,rgba(99,102,241,.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+.hdr{position:sticky;top:0;z-index:50;background:rgba(3,7,18,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(99,102,241,.12);padding:14px 16px 0}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.page-title{font-size:20px;font-weight:800;background:linear-gradient(to right,#f1f5f9,#a5b4fc,#f1f5f9);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gShift 6s linear infinite}
+.btn-add{display:flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 0 20px rgba(99,102,241,.4),inset 0 1px 0 rgba(255,255,255,.16)}
+.btn-add:active{transform:scale(.96)}
+.search-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.search-wrap{position:relative;flex:1}
+.search-input{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#e2e8f0;font-size:14px;padding:11px 80px 11px 16px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s}
+.search-input::placeholder{color:#4b5563}
+.search-input:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.search-icons{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center}
+.icon-btn{width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc}
+.icon-btn:active{background:rgba(99,102,241,.3)}
+.filter-btn{width:40px;height:40px;border-radius:12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc;flex-shrink:0;position:relative}
+.filter-btn.active{background:rgba(99,102,241,.25);border-color:rgba(99,102,241,.5)}
+.filter-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#6366f1;box-shadow:0 0 6px rgba(99,102,241,.8)}
+.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
+.ftabs::-webkit-scrollbar{display:none}
+.ftab{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;white-space:nowrap}
+.ftab.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(99,102,241,.35)}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;margin-left:4px;padding:0 3px;background:rgba(255,255,255,.15)}
+.ftab:not(.active) .cnt{background:rgba(99,102,241,.15);color:#6366f1}
+.ftab:not(.active) .cnt.w{background:rgba(245,158,11,.15);color:#f59e0b}
+.ftab:not(.active) .cnt.d{background:rgba(239,68,68,.15);color:#ef4444}
+.plist{padding:12px 12px 20px;position:relative;z-index:1}
+.pcard{position:relative;border-radius:18px;margin-bottom:10px;overflow:hidden;background:rgba(15,15,35,.85);cursor:pointer;transition:transform .2s;animation:cIn .35s ease both}
+.pcard::before{content:'';position:absolute;left:var(--mx,-9999px);top:var(--my,-9999px);width:260px;height:260px;border-radius:50%;background:rgba(99,102,241,.18);transform:translate(-50%,-50%);filter:blur(45px);opacity:0;transition:opacity .3s;pointer-events:none;z-index:0}
+.pcard:hover::before{opacity:1}
+.pcard::after{content:'';position:absolute;inset:0;border-radius:inherit;border:1px solid transparent;background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(99,102,241,.04),rgba(99,102,241,.12)) border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:destination-out;mask-composite:exclude;pointer-events:none}
+.pcard:active{transform:scale(.98)}
+.stripe{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:18px 0 0 18px;z-index:2}
+.sg{background:linear-gradient(to bottom,#22c55e,#16a34a);box-shadow:2px 0 14px rgba(34,197,94,.5)}
+.sy{background:linear-gradient(to bottom,#f59e0b,#d97706);box-shadow:2px 0 14px rgba(245,158,11,.5)}
+.sr{background:linear-gradient(to bottom,#ef4444,#dc2626);box-shadow:2px 0 14px rgba(239,68,68,.5)}
+.ci{position:relative;z-index:1;padding:14px 14px 14px 18px}
+.ctop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.cname{font-size:14px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.csub{font-size:11px;color:#6b7280}
+.qnum{font-size:24px;font-weight:900;line-height:1;text-align:right}
+.qunit{font-size:10px;color:#6b7280;font-weight:600;text-align:right}
+.ctags{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;border:1px solid transparent}
+.tp{color:#a5b4fc;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.2)}
+.tc{color:#fbbf24;background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.15)}
+.tok{color:#22c55e;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.2)}
+.tlo{color:#f59e0b;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);animation:bp 2.5s infinite}
+.tout{color:#ef4444;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);animation:bp 2s infinite}
+.tv{color:#8b5cf6;background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.2)}
+.ts{color:#6b7280;background:rgba(107,114,128,.08);border-color:rgba(107,114,128,.12)}
+.ai-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#a5b4fc;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:3px 8px;cursor:pointer;font-family:'Montserrat',sans-serif}
+.plist.blurred .pcard:not(.focused){filter:blur(1.5px);opacity:.4;pointer-events:none}
+.pcard.focused{z-index:10;box-shadow:0 8px 40px rgba(99,102,241,.25)}
+.empty{text-align:center;padding:60px 20px;color:#4b5563}
+.empty svg{width:48px;height:48px;margin-bottom:12px;color:#1f2937}
+.empty h3{font-size:16px;font-weight:700;color:#374151;margin:0 0 6px}
+.empty p{font-size:13px;margin:0}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(8px)}
+.ovl.open{opacity:1;pointer-events:all}
+.drw{position:fixed;bottom:0;left:0;right:0;z-index:201;background:linear-gradient(to bottom,#0d0d25,#080818);border-top:1px solid rgba(99,102,241,.2);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,0,.67,0);max-height:88vh;overflow-y:auto;box-shadow:0 -30px 80px rgba(99,102,241,.2)}
+.drw.open{transform:translateY(0)}
+.drw-h{width:40px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:14px auto 20px}
+.drw-b{padding:0 20px 40px}
+.d-name{font-size:21px;font-weight:800;color:#f1f5f9;margin-bottom:3px}
+.d-meta{font-size:12px;color:#6b7280;margin-bottom:18px}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.si{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:10px 12px}
+.sil{font-size:10px;color:#6b7280;font-weight:600;margin-bottom:2px}
+.siv{font-size:17px;font-weight:800;color:#f1f5f9}
+.store-stock-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(99,102,241,.07)}
+.store-stock-row:last-child{border-bottom:none}
+.dab-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.dab{padding:13px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.dab-p{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.3)}
+.dab-s{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#a5b4fc}
+.ai-rec{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px;margin-bottom:16px}
+.ai-rl{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ai-rt{font-size:13px;color:#e2e8f0;line-height:1.65}
+.fl-section{margin-bottom:18px}
+.fl-title{font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.fl-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fl-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:transparent;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s}
+.fl-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc}
+.fl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fl-input{background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:'Montserrat',sans-serif;outline:none;width:100%}
+.fl-apply{width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:4px}
+.fl-clear{width:100%;padding:11px;background:transparent;border:1px solid rgba(99,102,241,.2);border-radius:14px;color:#6b7280;font-size:13px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:8px}
+.modal-ovl{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(10px)}
+.modal-ovl.open{opacity:1;pointer-events:all}
+.modal{position:fixed;bottom:0;left:0;right:0;z-index:301;background:linear-gradient(to bottom,#0c0c22,#070714);border-top:1px solid rgba(99,102,241,.25);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .38s cubic-bezier(.32,0,.67,0);max-height:94vh;overflow-y:auto}
+.modal.open{transform:translateY(0)}
+.m-handle{width:40px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:14px auto 0}
+.m-head{padding:12px 20px;border-bottom:1px solid rgba(99,102,241,.1);display:flex;justify-content:space-between;align-items:center}
+.m-title{font-size:16px;font-weight:800;color:#f1f5f9}
+.m-close{width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.15);color:#6b7280;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.m-body{padding:18px 20px 24px}
+.steps-bar{display:flex;gap:4px;margin-bottom:12px}
+.sbar-item{flex:1;height:3px;border-radius:2px;background:rgba(99,102,241,.15);transition:background .3s}
+.sbar-item.done{background:#6366f1}
+.sbar-item.active{background:linear-gradient(to right,#6366f1,#8b5cf6);box-shadow:0 0 8px rgba(99,102,241,.4)}
+.step-label-row{font-size:11px;color:#6b7280;margin-bottom:16px}
+.step-label-row span{font-weight:700;color:#a5b4fc}
+.step-content{display:none}
+.step-content.active{display:block;animation:fadeIn .25s ease}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fi{width:100%;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#e2e8f0;font-size:14px;padding:11px 14px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.fi:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.fi::placeholder{color:#4b5563}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.type-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.type-card{background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.15);border-radius:18px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.type-card:active{transform:scale(.97)}
+.type-card.sel{border-color:#6366f1;background:rgba(99,102,241,.14);box-shadow:0 0 24px rgba(99,102,241,.25)}
+.type-card-icon{font-size:38px;margin-bottom:10px}
+.type-card-name{font-size:14px;font-weight:800;color:#f1f5f9;margin-bottom:4px}
+.type-card-sub{font-size:11px;color:#6b7280;line-height:1.4}
+/* PHOTO — камера по подразбиране */
+.photo-upload-wrap{margin-bottom:14px}
+.photo-upload{position:relative;width:100%;height:110px;background:rgba(15,15,40,.8);border:2px dashed rgba(99,102,241,.3);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden}
+.photo-upload:active{border-color:#6366f1}
+.photo-upload span{font-size:12px;color:#6b7280}
+.photo-preview{position:absolute;inset:0;background-size:cover;background-position:center}
+.photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.photo-btn{padding:8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
+.photo-btn:active{background:rgba(99,102,241,.25)}
+.voice-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;justify-content:center;margin-bottom:14px}
+.voice-btn.recording{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#ef4444;animation:pulse-rec 1s infinite}
+.ai-gen-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));border:1px solid rgba(99,102,241,.2);border-radius:12px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;justify-content:center;margin-bottom:14px}
+.vsec{margin-bottom:20px}
+.vsec-title{font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.vsec-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(99,102,241,.3),transparent)}
+.size-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.size-chip{position:relative;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;border:1px solid rgba(99,102,241,.2);color:#6b7280;background:rgba(15,15,40,.5);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;user-select:none}
+.size-chip:active{transform:scale(.95)}
+.size-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc;box-shadow:0 0 10px rgba(99,102,241,.2)}
+.size-price-badge{position:absolute;top:-6px;right:-4px;background:#6366f1;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 4px;display:none}
+.size-chip.sel.has-price .size-price-badge{display:block}
+.size-price-popup{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:10;background:#0a0a1e;border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:8px 10px;width:130px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.size-chip.price-open .size-price-popup{display:block}
+.size-price-popup input{width:100%;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.3);border-radius:8px;color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:'Montserrat',sans-serif;outline:none}
+.size-price-popup label{font-size:10px;color:#6b7280;display:block;margin-bottom:4px}
+.add-custom-row{display:flex;gap:6px;margin-top:8px}
+.add-custom-input{flex:1;background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.18);border-radius:10px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:'Montserrat',sans-serif;outline:none}
+.add-custom-input::placeholder{color:#4b5563}
+.add-custom-btn{padding:8px 14px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:#a5b4fc;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap}
+.color-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.color-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.color-dot{width:32px;height:32px;border-radius:50%;border:2px solid transparent;transition:all .2s}
+.color-dot-wrap.sel .color-dot{border-color:#fff;box-shadow:0 0 0 2px #6366f1}
+.color-dot-name{font-size:9px;color:#6b7280;text-align:center;max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.color-dot-wrap.sel .color-dot-name{color:#a5b4fc}
+.chips-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.var-chip{padding:7px 14px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid rgba(99,102,241,.18);color:#6b7280;background:rgba(15,15,40,.5);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s}
+.var-chip.sel{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc}
+.scanner-current{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.1));border:1px solid rgba(99,102,241,.3);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
+.scanner-variant-name{font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:4px}
+.scanner-instruction{font-size:12px;color:#6b7280}
+.scanner-progress{display:flex;gap:6px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.scan-dot{width:28px;height:28px;border-radius:50%;border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#6b7280;background:rgba(15,15,40,.5);flex-shrink:0}
+.scan-dot.done{background:#22c55e;border-color:#22c55e;color:#fff}
+.scan-dot.active{background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc;box-shadow:0 0 10px rgba(99,102,241,.3)}
+.scan-result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(99,102,241,.07);font-size:13px}
+.scan-result-row:last-child{border-bottom:none}
+.btn-next{width:100%;padding:14px;background:linear-gradient(to bottom,#6366f1,#5558e8);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,.35),inset 0 1px 0 rgba(255,255,255,.16);margin-top:8px}
+.btn-next:active{transform:scale(.98)}
+.btn-back{width:100%;padding:12px;background:transparent;border:1px solid rgba(99,102,241,.15);border-radius:14px;color:#6b7280;font-size:13px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:8px}
+.btn-save{width:100%;padding:14px;background:linear-gradient(to bottom,#22c55e,#16a34a);border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;box-shadow:0 4px 20px rgba(34,197,94,.35);margin-top:4px}
+.btn-skip{width:100%;padding:11px;background:transparent;border:1px solid rgba(99,102,241,.15);border-radius:14px;color:#6b7280;font-size:12px;cursor:pointer;font-family:'Montserrat',sans-serif;margin-top:6px}
+.camera-wrap{position:fixed;inset:0;z-index:400;background:#000;display:none;flex-direction:column}
+.camera-wrap.open{display:flex}
+#cameraVideo{width:100%;flex:1;object-fit:cover}
+.camera-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:220px;height:140px;border:2px solid rgba(99,102,241,.8);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
+.scan-line{position:absolute;width:200px;height:2px;background:linear-gradient(to right,transparent,#6366f1,transparent);animation:scanAnim 2s linear infinite}
+.camera-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;z-index:1}
+.camera-label{position:absolute;top:60px;left:0;right:0;text-align:center;pointer-events:none}
+.camera-label-text{background:rgba(0,0,0,.7);color:#fff;font-size:14px;font-weight:700;padding:8px 20px;border-radius:20px;display:inline-block;font-family:'Montserrat',sans-serif}
+.camera-beep{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,.9);color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:700;display:none;font-family:'Montserrat',sans-serif;pointer-events:none}
+.camera-beep.show{display:block}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(3,7,18,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(99,102,241,.1);display:flex;align-items:center;z-index:100}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;text-decoration:none;border:none;background:transparent;cursor:pointer}
+.ni svg{width:22px;height:22px;color:#3f3f5a}
+.ni span{font-size:10px;font-weight:600;color:#3f3f5a}
+.ni.active svg,.ni.active span{color:#6366f1}
+@keyframes cIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gShift{0%{background-position:0% center}100%{background-position:200% center}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes scanAnim{0%{top:10%}50%{top:80%}100%{top:10%}}
+@keyframes pulse-rec{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.pcard:nth-child(1){animation-delay:.04s}.pcard:nth-child(2){animation-delay:.08s}.pcard:nth-child(3){animation-delay:.12s}.pcard:nth-child(n+4){animation-delay:.16s}
 </style>
 </head>
 <body>
 
-<div class="toast" id="toast"></div>
-
-<!-- HEADER -->
 <div class="hdr">
   <div class="hdr-top">
-    <span class="hdr-title">Артикули</span>
-    <span class="cap-badge">💰 <?= $cs.number_format($capital,0,',',' ') ?> в склад</span>
+    <h1 class="page-title">Артикули</h1>
+    <?php if ($can_add): ?>
+    <button class="btn-add" onclick="openModal()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Добави
+    </button>
+    <?php endif; ?>
   </div>
-  <div class="sup-lbl">Доставчици</div>
-  <div class="sup-row">
-    <div class="sup-chip" onclick="goSupplier(0)">
-      <div class="sup-all <?= !$filter_supplier?'active':'' ?>">Всички</div>
-      <div class="sup-nm">Всички</div>
-    </div>
-    <?php foreach($suppliers as $i=>$s):
-      $ini=mb_strtoupper(implode('',array_map(fn($w)=>mb_substr($w,0,1),array_slice(explode(' ',$s['name']),0,2))));
-      $clr=$sup_colors[$i%count($sup_colors)];
-    ?>
-    <div class="sup-chip" onclick="goSupplier(<?=$s['id']?>)">
-      <div class="sup-av <?=$filter_supplier==$s['id']?'active':''?>" style="background:<?=$clr?>"><?=htmlspecialchars($ini)?></div>
-      <div class="sup-nm"><?=htmlspecialchars($s['name'])?></div>
-      <div class="sup-cnt"><?=$s['cnt']?> бр.</div>
-    </div>
-    <?php endforeach;?>
-  </div>
-</div>
-
-<!-- BREADCRUMB -->
-<?php if($filter_supplier||$filter_category):
-  $cs_name=''; foreach($suppliers as $s) if($s['id']==$filter_supplier) $cs_name=$s['name'];
-  $cc_name=''; foreach($categories as $c) if($c['id']==$filter_category) $cc_name=$c['name'];
-?>
-<div class="bc">
-  <a href="products.php">Всички</a>
-  <?php if($filter_supplier): ?>
-  <span class="bc-sep">›</span>
-  <a href="?supplier=<?=$filter_supplier?>"><?=htmlspecialchars($cs_name)?></a>
-  <?php endif;?>
-  <?php if($filter_category): ?>
-  <span class="bc-sep">›</span>
-  <span class="bc-cur"><?=htmlspecialchars($cc_name)?></span>
-  <?php endif;?>
-</div>
-<?php endif;?>
-
-<!-- TABS -->
-<div class="tabs">
-  <?php
-  $tabs=[['all','Всички',$cnt_all,''],['hot','🔥 Хит',$cnt_hot,'hot'],['zombie','❄️ Застояли',$cnt_zombie,'zombie'],['low','⚠️ Ниска нал.',$cnt_low,'low']];
-  foreach($tabs as [$k,$lbl,$cnt,$cls]):
-    $p2=array_merge($_GET,['tab'=>$k]);
-    $active=$filter_tab===$k?'active':'';
-  ?>
-  <a href="?<?=http_build_query($p2)?>" class="tab <?=$cls?> <?=$active?>"><?=$lbl?> <span class="tcnt"><?=$cnt?></span></a>
-  <?php endforeach;?>
-</div>
-
-<!-- CATEGORIES -->
-<?php if($categories):?>
-<div class="cat-row">
-  <?php foreach($categories as $ci=>$cat):
-    $p2=array_merge($_GET,['category'=>$cat['id']]);
-    $active=$filter_category==$cat['id']?'active':'';
-  ?>
-  <a href="?<?=http_build_query($p2)?>" class="cat-chip <?=$active?>">
-    <div class="cdot" style="background:<?=$cat_colors[$ci%count($cat_colors)]?>"></div>
-    <?=htmlspecialchars($cat['name'])?>
-  </a>
-  <?php endforeach;?>
-</div>
-<?php endif;?>
-
-<!-- PRODUCTS -->
-<div class="plist">
-<?php if(empty($products)):?>
-  <div class="empty"><div class="ei">📦</div><div class="et">Няма артикули</div><div class="es">Добави с бутона отдолу или чрез AI</div></div>
-<?php else: foreach($products as $p):
-  $qty=$p['total_qty']; $min=$p['min_quantity']??5;
-  $clr=sc($qty,$min);
-  $is_hot=$p['sold_30d']>10;
-  $is_zombie=$p['days_no_sale']>30&&$qty>0;
-  $is_low=$qty>0&&$qty<=$min;
-  $is_out=$qty==0;
-  $mrg=($p['sell_price']>0&&$p['cost_price']>0)?round((($p['sell_price']-$p['cost_price'])/$p['sell_price'])*100):null;
-  $vars=$vdata[$p['id']]??[];
-  $ddata=htmlspecialchars(json_encode(['id'=>$p['id'],'name'=>$p['name'],'sku'=>$p['sku']??'','supplier'=>$p['sup_name']??'','category'=>$p['cat_name']??'','qty'=>(int)$qty,'min'=>(int)$min,'sell_price'=>$p['sell_price'],'cost_price'=>$p['cost_price'],'margin'=>$mrg,'color'=>$clr,'days'=>$p['days_no_sale'],'sold30'=>$p['sold_30d']]),ENT_QUOTES);
-?>
-  <div class="pcard" onclick="openDrw(<?=$ddata?>)">
-    <div class="pst" style="background:<?=$clr?>"></div>
-    <div class="pb">
-      <div class="pt">
-        <div>
-          <div class="pn"><?=htmlspecialchars($p['name'])?></div>
-          <div class="psk"><?=htmlspecialchars(implode(' · ',array_filter([$p['sku']??'',$p['cat_name']??''])))?></div>
+  <div class="search-row">
+    <div class="search-wrap">
+      <form method="GET" id="searchForm">
+        <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
+        <?php if ($f_cat): ?><input type="hidden" name="cat" value="<?= $f_cat ?>"><?php endif; ?>
+        <?php if ($f_sup): ?><input type="hidden" name="sup" value="<?= $f_sup ?>"><?php endif; ?>
+        <?php if ($f_size): ?><input type="hidden" name="size" value="<?= htmlspecialchars($f_size) ?>"><?php endif; ?>
+        <?php if ($f_color): ?><input type="hidden" name="color" value="<?= htmlspecialchars($f_color) ?>"><?php endif; ?>
+        <?php if ($f_store): ?><input type="hidden" name="store" value="<?= $f_store ?>"><?php endif; ?>
+        <input type="text" name="q" class="search-input" placeholder="Търси по ime, баркод, код..." value="<?= htmlspecialchars($search) ?>" autocomplete="off" id="searchInput">
+      </form>
+      <div class="search-icons">
+        <button type="button" onclick="openCamera('search')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a5b4fc">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m11-4v3a1 1 0 01-1 1h-3m4-11V6a1 1 0 00-1-1h-3"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-width="1.5"/></svg>
+        </button>
+        <div class="icon-btn" onclick="startVoiceSearch()" id="voiceSearchBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
         </div>
-        <div class="pqb"><div class="pq" style="color:<?=$clr?>"><?=$qty?></div><div class="pu">бр</div></div>
       </div>
-      <div class="ptags">
-        <?php if($p['sell_price']>0):?><span class="tg tp"><?=$cs.number_format($p['sell_price'],2)?></span><?php endif;?>
-        <?php if($is_hot):?><span class="tg thot">🔥 Хит</span><?php endif;?>
-        <?php if($is_zombie):?><span class="tg tzom">❄️ <?=$p['days_no_sale']?>д</span><?php endif;?>
-        <?php if($is_out):?><span class="tg tout">🔴 Изчерпан</span>
-        <?php elseif($is_low):?><span class="tg tlow">⚠️ Ниска нал.</span>
-        <?php else:?><span class="tg tok">В наличност</span><?php endif;?>
-        <span class="tai" onclick="event.stopPropagation();aiCardAdvice(<?=$p['id']?>,<?=htmlspecialchars(json_encode($p['name']),ENT_QUOTES)?>)">✦ AI</span>
-      </div>
-      <?php if($vars):?>
-      <div class="vrow">
-        <?php $sh=0; foreach($vars as $v): if($sh>=4) break;?><span class="vchip"><?=htmlspecialchars($v)?></span><?php $sh++;endforeach;?>
-        <?php if(count($vars)>4):?><span class="vmore">+<?=count($vars)-4?></span><?php endif;?>
-      </div>
-      <?php endif;?>
+    </div>
+    <div class="filter-btn <?= $has_filters?'active':'' ?>" onclick="openFilterDrawer()">
+      <?php if ($has_filters): ?><div class="filter-dot"></div><?php endif; ?>
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 12h10M11 20h2"/></svg>
     </div>
   </div>
-<?php endforeach; endif;?>
-</div>
-
-<!-- BOTTOM ACTIONS -->
-<div class="bact">
-  <div class="tools">
-    <div class="tbtn gld" onclick="document.getElementById('csvIn').click()">📥 Импорт</div>
-    <div class="tbtn gld" onclick="window.location='product-save.php?export=1'">📤 Експорт</div>
-    <div class="tbtn" onclick="window.location='product-save.php?print=1'">🖨️ Принтирай</div>
-  </div>
-  <div class="mbtns">
-    <!-- КАМЕРА -->
-    <div class="bwrap">
-      <div class="bcir bcam" onclick="openCam('photo')">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#A67C00" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
-      </div>
-      <span class="blbl">Камера</span>
-    </div>
-    <div class="bdiv"></div>
-    <!-- AI -->
-    <div class="bwrap">
-      <div class="airel" onclick="document.getElementById('aimod').classList.add('open')">
-        <div class="airng airng-1"></div><div class="airng airng-2"></div><div class="airng airng-3"></div>
-        <div class="aicir"><div class="aibars"><div class="aibar"></div><div class="aibar"></div><div class="aibar"></div><div class="aibar"></div><div class="aibar"></div></div></div>
-      </div>
-      <span class="blbl">✦ AI Асистент</span>
-    </div>
-    <div class="bdiv"></div>
-    <!-- СКЕНЕР -->
-    <div class="bwrap">
-      <div class="bcir bscn" onclick="openCam('scan')">
-        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#A67C00" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><path d="M17 17h5v5"/><path d="M7 12H2m5 0v5M12 2v5m0 0h5"/></svg>
-      </div>
-      <span class="blbl">Скенер</span>
-    </div>
-    <div class="bdiv"></div>
-    <!-- ДОБАВИ -->
-    <div class="bwrap">
-      <div class="bcir badd" onclick="document.getElementById('addmod').classList.add('open')">
-        <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      </div>
-      <span class="blbl">Добави</span>
-    </div>
+  <div class="ftabs">
+    <button class="ftab <?= $filter==='all'?'active':'' ?>" onclick="setFilter('all')">Артикули <span class="cnt"><?= count($all_products) ?></span></button>
+    <button class="ftab <?= $filter==='low'?'active':'' ?>" onclick="setFilter('low')">Ниска нал. <span class="cnt <?= $cnt_low>0?'w':'' ?>"><?= $cnt_low ?></span></button>
+    <button class="ftab <?= $filter==='out'?'active':'' ?>" onclick="setFilter('out')">Изчерпани <span class="cnt <?= $cnt_out>0?'d':'' ?>"><?= $cnt_out ?></span></button>
   </div>
 </div>
 
-<!-- NAV -->
-<nav class="bnav">
-  <a href="chat.php" class="ni"><div class="nichat"><div class="ncb"><div></div><div></div><div></div><div></div></div></div><span class="nilbl">Чат</span></a>
-  <a href="warehouse.php" class="ni">
-    <svg class="niico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-    <span class="nilbl">Склад</span>
-  </a>
-  <a href="products.php" class="ni active">
-    <svg class="niico" fill="none" viewBox="0 0 24 24" stroke="#A67C00" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-    <span class="nilbl" style="color:#A67C00;">Артикули</span>
-  </a>
-  <a href="stats.php" class="ni">
-    <svg class="niico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-    <span class="nilbl">Статистики</span>
-  </a>
-</nav>
-
-<!-- DRAWER -->
-<div class="dovl" id="dovl" onclick="closeDrw()"></div>
-<div class="drw" id="drw">
-  <div class="dhdl"></div>
-  <div class="dbody">
-    <div class="dsr">
-      <div class="dstripe" id="dstripe"></div>
-      <div><div class="dnm" id="dnm"></div><div class="dmeta" id="dmeta"></div></div>
+<div class="plist" id="plist">
+<?php if (empty($products)): ?>
+<div class="empty">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+  <h3><?= $search?'Няма резултати':'Нямаш артикули' ?></h3>
+  <p><?= $search?"Нищо не отговаря на \"".htmlspecialchars($search)."\"":($can_add?'Натисни + Добави':'') ?></p>
+</div>
+<?php else: foreach($products as $p):
+  $qty=(float)$p['total_stock']; $min=(float)$p['min_qty'];
+  $iz=$qty==0; $lo=!$iz&&$min>0&&$qty<=$min;
+  if($iz){$sc='sr';$tc='tout';$tt='Изчерпан';$qc='#ef4444';}
+  elseif($lo){$sc='sy';$tc='tlo';$tt='Ниска нал.';$qc='#f59e0b';}
+  else{$sc='sg';$tc='tok';$tt='В наличност';$qc='#22c55e';}
+  $pd=json_encode(['id'=>$p['id'],'name'=>$p['name'],'code'=>$p['code']??'','barcode'=>$p['barcode']??'','qty'=>$qty,'min'=>$min,'price'=>(float)($p['retail_price']??0),'cost'=>(float)($p['cost_price']??0),'wprice'=>(float)($p['wholesale_price']??0),'unit'=>$p['unit']??'бр','cat'=>$p['category_name']??'','sup'=>$p['supplier_name']??'','variants'=>(int)$p['variant_count'],'loc'=>$p['location']??'','size'=>$p['size']??'','color'=>$p['color']??'','tag'=>$tt,'sc'=>$sc],JSON_UNESCAPED_UNICODE);
+?>
+<div class="pcard" onclick="openDrawer(<?= htmlspecialchars($pd,ENT_QUOTES) ?>)" data-id="<?= $p['id'] ?>">
+  <div class="stripe <?= $sc ?>"></div>
+  <div class="ci">
+    <div class="ctop">
+      <div style="flex:1;min-width:0">
+        <div class="cname"><?= htmlspecialchars($p['name']) ?></div>
+        <div class="csub"><?= $p['code']?'Код: '.htmlspecialchars($p['code']):'' ?><?= $p['code']&&$p['category_name']?' · ':'' ?><?= htmlspecialchars($p['category_name']??'') ?><?= ($p['size']||$p['color'])?' · ':'' ?><?= htmlspecialchars(implode(' ',array_filter([$p['size']??'',$p['color']??'']))) ?></div>
+      </div>
+      <div><div class="qnum" style="color:<?= $qc ?>"><?= number_format($qty,0) ?></div><div class="qunit"><?= htmlspecialchars($p['unit']??'бр') ?></div></div>
     </div>
-    <div class="sgrid">
-      <div class="si"><div class="slbl">Наличност</div><div class="sval" id="dqty"></div></div>
-      <div class="si"><div class="slbl">Минимум</div><div class="sval" id="dmin"></div></div>
-      <div class="si"><div class="slbl">Продажна</div><div class="sval" id="dprice"></div></div>
-      <div class="si"><div class="slbl">Марж</div><div class="sval" id="dmargin" style="color:#A67C00;"></div></div>
+    <div class="ctags">
+      <span class="tag tp">€<?= number_format((float)($p['retail_price']??0),2,',','.') ?></span>
+      <?php if($can_see_cost&&$p['cost_price']>0): ?><span class="tag tc">Дост: €<?= number_format((float)$p['cost_price'],2,',','.') ?></span><?php endif; ?>
+      <span class="tag <?= $tc ?>"><?= $tt ?></span>
+      <?php if($p['variant_count']>0): ?><span class="tag tv"><?= $p['variant_count'] ?> варианта</span><?php endif; ?>
+      <?php if($p['supplier_name']): ?><span class="tag ts"><?= htmlspecialchars($p['supplier_name']) ?></span><?php endif; ?>
+      <button class="ai-btn" onclick="event.stopPropagation();openAI(<?= htmlspecialchars($pd,ENT_QUOTES) ?>)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>AI
+      </button>
     </div>
-    <div class="dacts">
-      <button class="dab dedit" id="deditbtn"><span class="dico">✏️</span><span class="dlbl">Редактирай</span></button>
-      <button class="dab dcopy" onclick="doCopy()" style="border:1px solid rgba(212,175,55,.25);"><span class="dico">📋</span><span class="dlbl">Копирай</span></button>
-      <button class="dab ddel" onclick="showConfirm()" style="border:1.5px solid rgba(239,68,68,.2);"><span class="dico">🗑️</span><span class="dlbl">Изтрий</span></button>
-    </div>
-    <button class="daibtn" id="daibtn" onclick="loadDrwAI()">✦ AI съвет за този артикул</button>
-    <div class="daires" id="daires"></div>
   </div>
 </div>
-
-<!-- CONFIRM DELETE -->
-<div class="covl" id="covl">
-  <div class="cbox">
-    <div class="cico"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
-    <div class="ctit">Сигурен ли си?</div>
-    <div class="csub">Ще изтриеш <span class="cbld" id="cpname"></span> и всичките му варианти.<br>Това действие е необратимо.</div>
-    <button class="cdelbtn" onclick="doDelete()">🗑️ Да, изтрий</button>
-    <button class="ccnl" onclick="document.getElementById('covl').classList.remove('open')">Отказ</button>
-  </div>
+<?php endforeach; endif; ?>
 </div>
 
-<!-- AI MODAL -->
-<div class="aimod" id="aimod">
-  <div class="aibox">
-    <div class="aihdl"></div>
-    <div style="font-size:16px;font-weight:900;color:#292524;margin-bottom:14px;">✦ AI Асистент</div>
-    <div class="aiqcmds">
-      <div class="aiqc" onclick="aiSend('Застояла стока')">❄️ Застояла стока</div>
-      <div class="aiqc" onclick="aiSend('Хит движения')">🔥 Хит</div>
-      <div class="aiqc" onclick="aiSend('Ниска наличност')">⚠️ Ниска нал.</div>
-      <div class="aiqc" onclick="aiSend('Намери артикул')">🔍 Намери</div>
-      <div class="aiqc" onclick="aiSend('Добави нов артикул')">➕ Добави</div>
-    </div>
-    <div class="aiwrap">
-      <input type="text" class="aiinp" id="aiinp" placeholder="Питай AI или търси артикул..." onkeydown="if(event.key==='Enter')aiSend()">
-      <button class="aisndbtn" onclick="aiSend()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></button>
-    </div>
-    <div class="airesp" id="airesp">Питай ме за артикули, наличности, движения...</div>
-    <button onclick="document.getElementById('aimod').classList.remove('open')" style="width:100%;padding:12px;border:1.5px solid #E6D5B8;border-radius:12px;background:transparent;font-size:14px;font-weight:700;color:#78716C;margin-top:12px;cursor:pointer;">Затвори</button>
-  </div>
+<div class="ovl" id="ovl" onclick="closeAll()"></div>
+
+<!-- PRODUCT DRAWER -->
+<div class="drw" id="pDrawer">
+  <div class="drw-h"></div>
+  <div class="drw-b" id="pDrawerBody"></div>
 </div>
 
-<!-- CAMERA -->
-<div class="cammod" id="cammod">
-  <div class="camhdr">
-    <span class="camttl" id="camttl">📷 Камера</span>
-    <button class="camcls" onclick="closeCam()">✕</button>
-  </div>
-  <video id="camvid" autoplay playsinline></video>
-  <canvas id="camcvs" style="display:none;"></canvas>
-  <div class="camres" id="camres">
-    <p id="camtxt"></p>
-    <button class="camusebtn" onclick="useCamResult()">Използвай резултата</button>
-  </div>
-  <div class="camctrls">
-    <button class="camsnap" id="camsnap" onclick="snapCam()">📸</button>
+<!-- AI DRAWER -->
+<div class="drw" id="aiDrawer" style="z-index:202">
+  <div class="drw-h"></div>
+  <div class="drw-b" id="aiBody"></div>
+</div>
+
+<!-- FILTER DRAWER -->
+<div class="drw" id="filterDrawer" style="z-index:202">
+  <div class="drw-h"></div>
+  <div class="drw-b">
+    <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:18px">Филтри</div>
+    <form method="GET" id="filterForm">
+      <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
+      <input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>">
+      <?php if($categories): ?><div class="fl-section"><div class="fl-title">Категория</div><div class="fl-chips"><?php foreach($categories as $c): ?><label class="fl-chip <?= $f_cat==$c['id']?'sel':'' ?>"><input type="radio" name="cat" value="<?= $c['id'] ?>" style="display:none" <?= $f_cat==$c['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($c['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
+      <?php if($suppliers): ?><div class="fl-section"><div class="fl-title">Доставчик</div><div class="fl-chips"><?php foreach($suppliers as $s): ?><label class="fl-chip <?= $f_sup==$s['id']?'sel':'' ?>"><input type="radio" name="sup" value="<?= $s['id'] ?>" style="display:none" <?= $f_sup==$s['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($s['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
+      <?php if($sizes_used): ?><div class="fl-section"><div class="fl-title">Размер</div><div class="fl-chips"><?php foreach($sizes_used as $sz): ?><label class="fl-chip <?= $f_size===$sz?'sel':'' ?>"><input type="radio" name="size" value="<?= htmlspecialchars($sz) ?>" style="display:none" <?= $f_size===$sz?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($sz) ?></label><?php endforeach; ?></div></div><?php endif; ?>
+      <?php if($colors_used): ?><div class="fl-section"><div class="fl-title">Цвят</div><div class="fl-chips"><?php foreach($colors_used as $cl): ?><label class="fl-chip <?= $f_color===$cl?'sel':'' ?>"><input type="radio" name="color" value="<?= htmlspecialchars($cl) ?>" style="display:none" <?= $f_color===$cl?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($cl) ?></label><?php endforeach; ?></div></div><?php endif; ?>
+      <div class="fl-section"><div class="fl-title">Цена (€)</div><div class="fl-row"><input type="number" name="pmin" class="fl-input" placeholder="От" value="<?= htmlspecialchars($f_min) ?>" step="0.01"><input type="number" name="pmax" class="fl-input" placeholder="До" value="<?= htmlspecialchars($f_max) ?>" step="0.01"></div></div>
+      <?php if($role!=='seller'&&count($stores)>1): ?><div class="fl-section"><div class="fl-title">Обект</div><div class="fl-chips"><?php foreach($stores as $s): ?><label class="fl-chip <?= $f_store==$s['id']?'sel':'' ?>"><input type="radio" name="store" value="<?= $s['id'] ?>" style="display:none" <?= $f_store==$s['id']?'checked':'' ?> onchange="this.closest('form').submit()"><?= htmlspecialchars($s['name']) ?></label><?php endforeach; ?></div></div><?php endif; ?>
+      <button type="submit" class="fl-apply">Приложи филтри</button>
+      <a href="products.php" class="fl-clear" style="display:block;text-align:center;text-decoration:none;padding:11px">Изчисти всички</a>
+    </form>
   </div>
 </div>
 
 <!-- ADD MODAL -->
-<div class="addmod" id="addmod">
-  <div class="addbox">
-    <div class="addhdl"></div>
-    <div style="font-size:17px;font-weight:900;color:#292524;margin-bottom:16px;">➕ Нов артикул</div>
-    <div class="frow"><label class="flbl">Наименование *</label><input type="text" class="finp" id="aname" placeholder="Напр. Зимно яке HM Slim"></div>
-    <div class="frow2">
-      <div><label class="flbl">Продажна цена</label><input type="number" class="finp" id="aprice" placeholder="0.00" step="0.01"></div>
-      <div><label class="flbl">Доставна цена</label><input type="number" class="finp" id="acost" placeholder="0.00" step="0.01"></div>
+<div class="modal-ovl" id="modalOvl" onclick="if(event.target===this)closeModal()"></div>
+<?php if($can_add): ?>
+<div class="modal" id="addModal">
+  <div class="m-handle"></div>
+  <div class="m-head">
+    <span class="m-title" id="modalTitle">Нов артикул</span>
+    <button class="m-close" onclick="closeModal()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+  </div>
+  <div class="m-body">
+    <div class="steps-bar" id="stepsBar">
+      <div class="sbar-item active" id="sb0"></div>
+      <div class="sbar-item" id="sb1"></div>
+      <div class="sbar-item" id="sb2"></div>
+      <div class="sbar-item" id="sb3"></div>
+      <div class="sbar-item" id="sb4"></div>
     </div>
-    <div class="frow2">
-      <div><label class="flbl">Баркод</label><input type="text" class="finp" id="abcode" placeholder="EAN13"></div>
-      <div><label class="flbl">Начална нал.</label><input type="number" class="finp" id="aqty" placeholder="0"></div>
+    <div class="step-label-row"><span id="stepLabelText">Стъпка 1: Вид на артикула</span></div>
+
+    <!-- СТЪПКА 0 -->
+    <div class="step-content active" id="stepC0">
+      <div style="font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:6px">Какъв е артикулът?</div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:20px">Изборът определя следващите стъпки</div>
+      <div class="type-cards">
+        <div class="type-card" id="typeCardSingle" onclick="selectType('single')">
+          <div class="type-card-icon">📦</div>
+          <div class="type-card-name">Единичен</div>
+          <div class="type-card-sub">Един баркод, един размер, един цвят</div>
+        </div>
+        <div class="type-card" id="typeCardVariant" onclick="selectType('variant')">
+          <div class="type-card-icon">🎨</div>
+          <div class="type-card-name">С варианти</div>
+          <div class="type-card-sub">Размери, цветове, разфасовки и др.</div>
+        </div>
+      </div>
+      <button type="button" class="btn-next" id="btn0Next" onclick="goStep(1)" style="display:none">Напред →</button>
     </div>
-    <div class="frow"><label class="flbl">Описание</label><input type="text" class="finp" id="adesc" placeholder="Кратко описание"></div>
-    <button class="svbtn" onclick="saveAdd()">Запази артикула</button>
-    <button onclick="document.getElementById('addmod').classList.remove('open')" style="width:100%;padding:12px;border:none;background:transparent;font-size:13px;color:#A8A29E;margin-top:8px;cursor:pointer;">Отказ</button>
+
+    <!-- СТЪПКА 1 -->
+    <div class="step-content" id="stepC1">
+      <button type="button" class="voice-btn" id="voiceBtn" onclick="toggleVoice()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+        Диктувай на AI
+      </button>
+
+      <!-- СНИМКА — камера по подразбиране, галерия като втора опция -->
+      <div class="photo-upload-wrap">
+        <div class="photo-upload" id="photoUpload" onclick="document.getElementById('photoInputCamera').click()">
+          <div class="photo-preview" id="photoPreview"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Снимай артикула</span>
+        </div>
+        <div class="photo-btns">
+          <button type="button" class="photo-btn" onclick="document.getElementById('photoInputCamera').click()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+            Камера
+          </button>
+          <button type="button" class="photo-btn" onclick="document.getElementById('photoInputGallery').click()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Галерия
+          </button>
+        </div>
+      </div>
+      <!-- Камера input (capture=environment) -->
+      <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none" onchange="previewPhoto(this)">
+      <!-- Галерия input (без capture) -->
+      <input type="file" id="photoInputGallery" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+
+      <div class="fg"><label class="fl">Наименование *</label><input type="text" id="f_name" class="fi" placeholder="напр. Nike Air Max" required></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Продажна цена *</label><input type="number" id="f_price" class="fi" placeholder="0.00" step="0.01" min="0" required></div>
+        <div class="fg"><label class="fl" style="font-size:10px">Цена едро</label><input type="number" id="f_wprice" class="fi" placeholder="0.00" step="0.01" min="0"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Баркод <span style="color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0">(празно = автогенериране)</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="f_barcode" class="fi" placeholder="Сканирай или въведи">
+          <div class="icon-btn" onclick="openCamera('barcode')" style="flex-shrink:0;width:44px;height:44px;border-radius:12px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="17" y="2" width="5" height="5" rx="1"/><rect x="2" y="17" width="5" height="5" rx="1"/><path d="M17 17h5v5"/></svg>
+          </div>
+        </div>
+      </div>
+      <!-- Скрити полета за buildFD — не показват се, попълват се на Стъпка 3 -->
+      <input type="hidden" id="f_code" value="">
+      <input type="hidden" id="f_loc" value="">
+      <input type="hidden" id="f_unit" value="бр">
+      <input type="hidden" id="f_sup" value="">
+      <button type="button" class="btn-next" onclick="goStep(2)">Напред →</button>
+      <button type="button" class="btn-back" onclick="goStep(0)">← Назад</button>
+    </div>
+
+    <!-- СТЪПКА 2 -->
+    <div class="step-content" id="stepC2">
+      <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Избери варианти от списъка. Можеш да добавяш свои.</div>
+      <div id="variantsContainer"></div>
+      <button type="button" class="btn-next" onclick="goStep(3)">Напред →</button>
+      <button type="button" class="btn-back" onclick="goStep(1)">← Назад</button>
+    </div>
+
+    <!-- СТЪПКА 3 — по желание -->
+    <div class="step-content" id="stepC3">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Всичко тук е по желание — можеш да пропуснеш.</div>
+      <div class="fg">
+        <label class="fl">Категория</label>
+        <select id="f_cat" class="fi" style="-webkit-appearance:none">
+          <option value="">— Без категория —</option>
+          <?php foreach($categories as $c): ?><option value="<?= $c['id'] ?>" data-variant="<?= $c['variant_type'] ?>"><?= htmlspecialchars($c['name']) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Артикулен код</label>
+        <input type="text" id="f_code_vis" class="fi" placeholder="ART-001" oninput="document.getElementById('f_code').value=this.value">
+      </div>
+      <div class="fg">
+        <label class="fl">Мерна единица</label>
+        <select id="f_unit_vis" class="fi" style="-webkit-appearance:none" onchange="document.getElementById('f_unit').value=this.value">
+          <?php foreach($onboarding_units as $u): ?><option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Локация</label>
+        <input type="text" id="f_loc_vis" class="fi" placeholder="напр. Рафт А3" oninput="document.getElementById('f_loc').value=this.value">
+      </div>
+      <button type="button" class="ai-gen-btn" onclick="generateAIDescription()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        AI генерира описание
+      </button>
+      <div class="fg"><label class="fl">Описание</label><textarea id="f_desc" class="fi" rows="2" placeholder="AI ще генерира..."></textarea></div>
+      <button type="button" class="btn-next" onclick="onStep3Next()">Запази →</button>
+      <button type="button" class="btn-back" onclick="goStep(2)">← Назад</button>
+    </div>
+
+    <!-- СТЪПКА 4 — Принт списък -->
+    <div class="step-content" id="stepC4">
+      <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:4px">Запазени! Печат на етикети</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Въведи брой етикети за всяка вариация и натисни 🖨️</div>
+      <div id="printList" style="margin-bottom:16px"></div>
+      <button type="button" class="btn-save" onclick="closeModal();location.reload()">✓ Готово</button>
+    </div>
   </div>
 </div>
+<?php endif; ?>
 
-<input type="file" id="csvIn" accept=".csv" style="display:none;" onchange="handleCSV(this)">
+<!-- CAMERA -->
+<div class="camera-wrap" id="cameraWrap">
+  <video id="cameraVideo" autoplay playsinline muted></video>
+  <div class="camera-overlay">
+    <div class="scan-frame"><div class="scan-line"></div></div>
+    <div class="camera-label"><span class="camera-label-text" id="cameraLabelText">Насочи към баркода</span></div>
+  </div>
+  <div class="camera-close" onclick="closeCamera()"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></div>
+  <div class="camera-beep" id="cameraBeep">✓ Сканирано!</div>
+</div>
+
+<nav class="bnav">
+  <a href="chat.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg><span>Чат</span></a>
+  <a href="warehouse.php" class="ni active"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg><span>Склад</span></a>
+  <a href="stats.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>Статистики</span></a>
+  <a href="sale.php" class="ni"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg><span>Въвеждане</span></a>
+</nav>
+<div class="toast" id="toast"></div>
 
 <script>
-let cur=null, camStream=null, camMode='photo';
+const canSeeCost = <?= $can_see_cost?'true':'false' ?>;
+const canAdd     = <?= $can_add?'true':'false' ?>;
+const COLOR_PALETTE = <?= json_encode($COLOR_PALETTE, JSON_UNESCAPED_UNICODE) ?>;
+const stepLabels = ['Вид на артикула','Основна информация','Категория и варианти','Детайли','Печат на етикети'];
 
-function goSupplier(id) {
-  const p=new URLSearchParams(window.location.search);
-  p.set('supplier',id); p.delete('category');
-  location.href='products.php?'+p;
+let productType   = null;
+let currentStep   = 0;
+let onbVariants   = [];
+let selectedSizes = {};   // { 'M': null|price, 'L': null|price }
+let selectedColors= [];   // ['Черен','Червен']
+let customVarSel  = {};   // { 'Разфасовка': ['250мл'] }
+let variantCombs  = [];
+let cameraStream  = null;
+let cameraTarget  = 'search';
+let voiceRec      = null;
+let ts            = 0;
+let lpTimer       = null;
+
+// ─── СТЪПКИ ───────────────────────────────────────────
+function goStep(n) {
+  for (let i = 0; i <= 4; i++) {
+    document.getElementById('stepC'+i)?.classList.toggle('active', i === n);
+    const b = document.getElementById('sb'+i);
+    if (b) {
+      b.classList.remove('active','done');
+      if (i < n) b.classList.add('done');
+      else if (i === n) b.classList.add('active');
+    }
+  }
+  document.getElementById('stepLabelText').textContent = 'Стъпка '+(n+1)+': '+stepLabels[n];
+  currentStep = n;
+  document.getElementById('addModal').scrollTop = 0;
+  if (n === 2) renderVariantsStep();
 }
-function openDrw(d) {
-  cur=d;
-  document.getElementById('dstripe').style.background=d.color;
-  document.getElementById('dnm').textContent=d.name;
-  document.getElementById('dmeta').textContent=[d.sku,d.category,d.supplier].filter(Boolean).join(' · ');
-  const qel=document.getElementById('dqty');
-  qel.textContent=d.qty+' бр'; qel.style.color=d.color;
-  document.getElementById('dmin').textContent=d.min;
-  document.getElementById('dprice').textContent=d.sell_price>0?'€'+parseFloat(d.sell_price).toFixed(2):'—';
-  document.getElementById('dmargin').textContent=d.margin!==null?d.margin+'%':'—';
-  document.getElementById('deditbtn').onclick=()=>{location.href='product-save.php?id='+d.id;};
-  document.getElementById('cpname').textContent='"'+d.name+'"';
-  document.getElementById('daires').style.display='none';
-  document.getElementById('daibtn').textContent='✦ AI съвет за този артикул';
-  document.getElementById('daibtn').disabled=false;
-  document.getElementById('dovl').classList.add('open');
-  document.getElementById('drw').classList.add('open');
+
+function selectType(t) {
+  productType = t;
+  document.getElementById('typeCardSingle').classList.toggle('sel', t === 'single');
+  document.getElementById('typeCardVariant').classList.toggle('sel', t === 'variant');
+  document.getElementById('btn0Next').style.display = 'block';
 }
-function closeDrw() {
-  document.getElementById('dovl').classList.remove('open');
-  document.getElementById('drw').classList.remove('open');
+
+// ─── СНИМКА ───────────────────────────────────────────
+function previewPhoto(input) {
+  if (input.files?.[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('photoPreview').style.backgroundImage = `url(${e.target.result})`;
+      document.getElementById('photoPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+    // Копираме файла в двата input-а за buildFD
+    const dt = new DataTransfer();
+    dt.items.add(input.files[0]);
+    document.getElementById('photoInputCamera').files = dt.files;
+    document.getElementById('photoInputGallery').files = dt.files;
+  }
 }
-function doCopy() {
-  if(!cur) return;
-  fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'copy',id:cur.id})})
-    .then(r=>r.json()).then(d=>{closeDrw();toast('📋 Артикулът е копиран');setTimeout(()=>location.reload(),800);});
+
+// ─── ВАРИАНТИ ─────────────────────────────────────────
+async function renderVariantsStep() {
+  const cont = document.getElementById('variantsContainer');
+  if (productType === 'single') { cont.innerHTML = ''; return; }
+
+  if (!onbVariants.length) {
+    try {
+      const r = await fetch('product-save.php?variants');
+      onbVariants = await r.json();
+    } catch(e) { onbVariants = []; }
+  }
+
+  if (!onbVariants.length) {
+    cont.innerHTML = '<div style="font-size:13px;color:#6b7280;padding:10px 0">Нямаш активни варианти. Настрой ги в <a href="settings.php" style="color:#6366f1">Настройки</a>.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const v of onbVariants) {
+    if (v.type === 'size_letter')  html += renderSizeSection(v, ['XXS','XS','S','M','L','XL','XXL','3XL','4XL','5XL']);
+    else if (v.type === 'size_numeric') html += renderSizeSection(v, ['16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50']);
+    else if (v.type === 'color')   html += renderColorSection(v);
+    else                           html += renderChipsSection(v);
+  }
+  cont.innerHTML = html;
+
+  // ── Attach listeners след рендиране ──
+  attachVariantListeners(cont);
 }
-function showConfirm() { document.getElementById('covl').classList.add('open'); }
-function doDelete() {
-  if(!cur) return;
-  fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:cur.id})})
-    .then(r=>r.json()).then(()=>{document.getElementById('covl').classList.remove('open');closeDrw();toast('🗑️ Изтрит');setTimeout(()=>location.reload(),800);});
+
+function attachVariantListeners(cont) {
+  // Size chips — клик за селект/деселект
+  cont.querySelectorAll('.size-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      if (e.target.closest('.size-price-popup')) return;
+      toggleSizeChip(chip);
+    });
+    // Long press за price popup
+    chip.addEventListener('touchstart', () => {
+      lpTimer = setTimeout(() => {
+        if (!chip.classList.contains('sel')) {
+          chip.classList.add('sel');
+          selectedSizes[chip.dataset.size] = null;
+        }
+        chip.classList.toggle('price-open');
+      }, 500);
+    }, { passive: true });
+    chip.addEventListener('touchend', () => clearTimeout(lpTimer), { passive: true });
+  });
+
+  // Size price inputs
+  cont.querySelectorAll('.size-price-input').forEach(inp => {
+    inp.addEventListener('change', () => setSizePrice(inp.dataset.key, inp.dataset.size, inp.value));
+  });
+
+  // Color dots
+  cont.querySelectorAll('.color-dot-wrap').forEach(dot => {
+    dot.addEventListener('click', () => toggleColor(dot, dot.dataset.color));
+  });
+
+  // Var chips
+  cont.querySelectorAll('.var-chip').forEach(chip => {
+    chip.addEventListener('click', () => toggleVarChip(chip, chip.dataset.varname, chip.textContent.trim()));
+  });
+
+  // Затваряне на price popup при клик извън
+  document.addEventListener('touchstart', e => {
+    if (!e.target.closest('.size-price-popup') && !e.target.closest('.size-chip')) {
+      cont.querySelectorAll('.size-chip.price-open').forEach(c => c.classList.remove('price-open'));
+    }
+  }, { passive: true });
 }
-function loadDrwAI() {
-  if(!cur) return;
-  const btn=document.getElementById('daibtn'), res=document.getElementById('daires');
-  btn.textContent='⏳ AI анализира...'; btn.disabled=true; res.style.display='block'; res.textContent='';
-  fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'product_advice',product_id:cur.id,product_name:cur.name})})
-    .then(r=>r.json()).then(d=>{res.textContent=d.result||d.error||'Няма съвет';btn.textContent='✦ AI съвет';btn.disabled=false;})
-    .catch(()=>{res.textContent='Грешка';btn.textContent='✦ AI съвет';btn.disabled=false;});
+
+function renderSizeSection(v, sizes) {
+  const all = [...new Set([...sizes, ...(v.values || [])])];
+  const key = v.name.replace(/\s/g, '_');
+  const chips = all.map(s =>
+    `<div class="size-chip" data-size="${s}" data-varname="${v.name}" data-key="${key}">${s}` +
+    `<span class="size-price-badge" id="spb_${key}_${s}"></span>` +
+    `<div class="size-price-popup"><label>Цена за ${s} (€)</label>` +
+    `<input type="number" placeholder="0.00" step="0.01" min="0" data-size="${s}" data-key="${key}" class="size-price-input"></div></div>`
+  ).join('');
+  return `<div class="vsec"><div class="vsec-title">${v.name}</div>` +
+    `<div class="size-grid" id="sg_${key}">${chips}</div>` +
+    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави размер..." id="csi_${key}">` +
+    `<button type="button" class="add-custom-btn" data-varname="${v.name}" data-key="${key}" onclick="addCustomSize('${v.name}','${key}')">+ Добави</button></div>` +
+    `<div style="font-size:11px;color:#6b7280;margin-top:5px">Натисни за избор · задръж за цена</div></div>`;
 }
-function aiCardAdvice(id,name) {
-  openDrw({id,name,qty:0,min:0,sell_price:0,cost_price:0,margin:null,color:'#22c55e',sku:'',supplier:'',category:'',days:0,sold30:0});
-  loadDrwAI();
+
+function toggleSizeChip(el) {
+  const size = el.dataset.size;
+  if (el.classList.contains('sel')) {
+    el.classList.remove('sel','price-open');
+    delete selectedSizes[size];
+  } else {
+    el.classList.add('sel');
+    selectedSizes[size] = null;
+  }
 }
-function aiSend(cmd) {
-  const inp=document.getElementById('aiinp');
-  const q=cmd||inp.value.trim(); if(!q) return;
-  document.getElementById('airesp').textContent='⏳ AI мисли...'; inp.value='';
-  fetch('chat-send.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:q,context:'products'})})
-    .then(r=>r.json()).then(d=>{document.getElementById('airesp').textContent=d.response||d.message||'Няма отговор';})
-    .catch(()=>{document.getElementById('airesp').textContent='Грешка';});
+
+function setSizePrice(key, size, val) {
+  selectedSizes[size] = val ? parseFloat(val) : null;
+  const b = document.getElementById('spb_'+key+'_'+size);
+  if (b) {
+    b.textContent = val ? '€'+parseFloat(val).toFixed(0) : '';
+    b.closest('.size-chip')?.classList.toggle('has-price', !!val);
+  }
 }
-function openCam(mode) {
-  camMode=mode;
-  document.getElementById('camttl').textContent=mode==='photo'?'📷 Камера — Снимай артикул':'⬛ Скенер — Сканирай баркод';
-  document.getElementById('cammod').classList.add('open');
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-    .then(s=>{camStream=s;document.getElementById('camvid').srcObject=s;})
-    .catch(()=>{closeCam();toast('Камерата не е достъпна');});
+
+function addCustomSize(varName, key) {
+  const inp = document.getElementById('csi_'+key);
+  const val = inp?.value.trim();
+  if (!val) return;
+
+  // ── Проверка за дубликат ──
+  const grid = document.getElementById('sg_'+key);
+  const exists = [...grid.querySelectorAll('.size-chip')].some(c => c.dataset.size === val);
+  if (exists) { showToast('Размерът вече съществува!'); return; }
+
+  const chip = document.createElement('div');
+  chip.className = 'size-chip';
+  chip.dataset.size = val;
+  chip.dataset.varname = varName;
+  chip.dataset.key = key;
+  chip.innerHTML = val +
+    `<span class="size-price-badge" id="spb_${key}_${val}"></span>` +
+    `<div class="size-price-popup"><label>Цена (€)</label>` +
+    `<input type="number" step="0.01" data-size="${val}" data-key="${key}" class="size-price-input"></div>`;
+
+  // Attach listeners на новия chip
+  chip.addEventListener('click', e => {
+    if (e.target.closest('.size-price-popup')) return;
+    toggleSizeChip(chip);
+  });
+  chip.addEventListener('touchstart', () => {
+    lpTimer = setTimeout(() => {
+      if (!chip.classList.contains('sel')) { chip.classList.add('sel'); selectedSizes[val] = null; }
+      chip.classList.toggle('price-open');
+    }, 500);
+  }, { passive: true });
+  chip.addEventListener('touchend', () => clearTimeout(lpTimer), { passive: true });
+  chip.querySelector('.size-price-input').addEventListener('change', e => setSizePrice(key, val, e.target.value));
+
+  grid?.appendChild(chip);
+  if (inp) inp.value = '';
 }
-function closeCam() {
-  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
-  document.getElementById('cammod').classList.remove('open');
-  document.getElementById('camres').style.display='none';
+
+function renderColorSection(v) {
+  const dots = COLOR_PALETTE.map(c =>
+    `<div class="color-dot-wrap" data-color="${c.name}">` +
+    `<div class="color-dot" style="background:${c.hex}"></div>` +
+    `<div class="color-dot-name">${c.name}</div></div>`
+  ).join('');
+  return `<div class="vsec"><div class="vsec-title">Цвят</div>` +
+    `<div class="color-grid" id="colorGrid">${dots}</div>` +
+    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави цвят..." id="customColorIn">` +
+    `<button type="button" class="add-custom-btn" onclick="addCustomColor()">+ Добави</button></div></div>`;
 }
-function snapCam() {
-  const v=document.getElementById('camvid'),c=document.getElementById('camcvs');
-  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
-  const img=c.toDataURL('image/jpeg',.8).split(',')[1];
-  document.getElementById('camsnap').textContent='⏳';
-  fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'scan_product',image:img,mode:camMode})})
-    .then(r=>r.json()).then(d=>{document.getElementById('camsnap').textContent='📸';document.getElementById('camtxt').textContent=d.result||'Не е разпознато';document.getElementById('camres').style.display='block';})
-    .catch(()=>{document.getElementById('camsnap').textContent='📸';});
+
+function toggleColor(el, name) {
+  el.classList.toggle('sel');
+  if (el.classList.contains('sel')) {
+    if (!selectedColors.includes(name)) selectedColors.push(name);
+  } else {
+    selectedColors = selectedColors.filter(c => c !== name);
+  }
 }
-function useCamResult() { closeCam(); document.getElementById('addmod').classList.add('open'); }
-function saveAdd() {
-  const name=document.getElementById('aname').value.trim();
-  if(!name){toast('Въведи наименование');return;}
-  fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',name,price:document.getElementById('aprice').value,cost:document.getElementById('acost').value,barcode:document.getElementById('abcode').value,qty:document.getElementById('aqty').value,description:document.getElementById('adesc').value})})
-    .then(r=>r.json()).then(d=>{if(d.success){document.getElementById('addmod').classList.remove('open');toast('✅ Запазен');setTimeout(()=>location.reload(),800);}else toast(d.error||'Грешка');});
+
+function addCustomColor() {
+  const inp = document.getElementById('customColorIn');
+  const val = inp?.value.trim();
+  if (!val) return;
+
+  const grid = document.getElementById('colorGrid');
+  // ── Проверка за дубликат ──
+  const exists = [...grid.querySelectorAll('.color-dot-wrap')].some(c => c.dataset.color === val);
+  if (exists) { showToast('Цветът вече съществува!'); return; }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'color-dot-wrap';
+  wrap.dataset.color = val;
+  wrap.innerHTML = `<div class="color-dot" style="background:#9ca3af"></div><div class="color-dot-name">${val}</div>`;
+  wrap.addEventListener('click', () => toggleColor(wrap, val));
+  grid?.appendChild(wrap);
+  if (inp) inp.value = '';
 }
-function handleCSV(inp) {
-  const f=inp.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=e=>{
-    fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'csv_import',csv:e.target.result})})
-      .then(r=>r.json()).then(d=>{toast(d.imported?'✅ Импортирани '+d.imported+' артикула':(d.error||'Грешка'));if(d.imported)setTimeout(()=>location.reload(),1000);});
+
+function renderChipsSection(v) {
+  const key = v.name.replace(/\s/g, '_');
+  const chips = (v.values || []).map(val =>
+    `<div class="var-chip" data-varname="${v.name}">${val}</div>`
+  ).join('');
+  return `<div class="vsec"><div class="vsec-title">${v.name}</div>` +
+    `<div class="chips-grid" id="cg_${key}">${chips}</div>` +
+    `<div class="add-custom-row"><input type="text" class="add-custom-input" placeholder="Добави ${v.name.toLowerCase()}..." id="cci_${key}">` +
+    `<button type="button" class="add-custom-btn" onclick="addCustomChip('${v.name}','${key}')">+ Добави</button></div></div>`;
+}
+
+function toggleVarChip(el, varName, val) {
+  el.classList.toggle('sel');
+  if (!customVarSel[varName]) customVarSel[varName] = [];
+  if (el.classList.contains('sel')) {
+    customVarSel[varName].push(val);
+  } else {
+    customVarSel[varName] = customVarSel[varName].filter(v => v !== val);
+  }
+}
+
+function addCustomChip(varName, key) {
+  const inp = document.getElementById('cci_'+key);
+  const val = inp?.value.trim();
+  if (!val) return;
+
+  const grid = document.getElementById('cg_'+key);
+  // ── Проверка за дубликат ──
+  const exists = [...grid.querySelectorAll('.var-chip')].some(c => c.textContent.trim() === val);
+  if (exists) { showToast('Вече съществува!'); return; }
+
+  const chip = document.createElement('div');
+  chip.className = 'var-chip';
+  chip.dataset.varname = varName;
+  chip.textContent = val;
+  chip.addEventListener('click', () => toggleVarChip(chip, varName, val));
+  grid?.appendChild(chip);
+  if (inp) inp.value = '';
+}
+
+// ─── ЗАПАЗВАНЕ ────────────────────────────────────────
+function onStep3Next() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { showToast('Въведи наименование'); goStep(1); return; }
+  const price = parseFloat(document.getElementById('f_price').value || '0');
+  if (!price) { showToast('Въведи продажна цена'); goStep(1); return; }
+
+  if (productType === 'variant') {
+    buildCombinations();
+    if (!variantCombs.length) {
+      showToast('Избери поне един вариант');
+      return;
+    }
+  }
+  saveAndShowPrint();
+}
+
+async function saveAndShowPrint() {
+  showToast('Запазвам...');
+  try {
+    const fd = buildFD(productType === 'variant');
+    const r = await fetch('product-save.php', { method: 'POST', body: fd });
+    const txt = await r.text();
+    try {
+      const j = JSON.parse(txt);
+      if (!j.ok && !j.parent_id) { showToast('Грешка: ' + (j.error || 'неизвестна')); return; }
+    } catch(e) { /* non-JSON response — продължаваме */ }
+    showToast('Запазено ✓');
+    renderPrintList();
+    goStep(4);
+  } catch(e) {
+    showToast('Грешка при запазване');
+    console.error(e);
+  }
+}
+
+function buildCombinations() {
+  const sizes  = Object.keys(selectedSizes);
+  const colors = selectedColors;
+
+  if (sizes.length && colors.length) {
+    variantCombs = [];
+    for (const sz of sizes)
+      for (const cl of colors)
+        variantCombs.push({ size: sz, color: cl, price: selectedSizes[sz] || null, barcode: null });
+  } else if (sizes.length) {
+    variantCombs = sizes.map(sz => ({ size: sz, color: null, price: selectedSizes[sz] || null, barcode: null }));
+  } else if (colors.length) {
+    variantCombs = colors.map(cl => ({ size: null, color: cl, price: null, barcode: null }));
+  } else {
+    variantCombs = [];
+    for (const [vn, vals] of Object.entries(customVarSel)) {
+      vals.forEach(v => variantCombs.push({ label: vn+': '+v, size: null, color: null, price: null, barcode: null }));
+    }
+  }
+}
+
+function buildFD(isVariant) {
+  const fd = new FormData();
+  fd.append('action', 'create');
+  fd.append('name',           document.getElementById('f_name').value);
+  fd.append('retail_price',   document.getElementById('f_price').value || '0');
+  fd.append('wholesale_price',document.getElementById('f_wprice')?.value || '0');
+  fd.append('cost_price',     '0');
+  fd.append('barcode',        document.getElementById('f_barcode').value || '');
+  fd.append('category_id',    document.getElementById('f_cat')?.value || '');
+  fd.append('supplier_id',    document.getElementById('f_sup')?.value || '');
+  fd.append('unit',           document.getElementById('f_unit')?.value || 'бр');
+  fd.append('location',       document.getElementById('f_loc')?.value || '');
+  fd.append('description',    document.getElementById('f_desc')?.value || '');
+  fd.append('code',           document.getElementById('f_code')?.value || '');
+
+  if (isVariant) {
+    fd.append('has_variants', '1');
+    fd.append('variants_batch', JSON.stringify(variantCombs));
+  } else {
+    fd.append('has_variants', '0');
+    const sc = document.querySelector('.color-dot-wrap.sel');
+    if (sc) fd.append('color', sc.dataset.color);
+    const ss = document.querySelector('.size-chip.sel');
+    if (ss) fd.append('size', ss.dataset.size);
+  }
+
+  // Снимка — вземаме от whichever input има файл
+  const ph1 = document.getElementById('photoInputCamera');
+  const ph2 = document.getElementById('photoInputGallery');
+  const photo = ph1?.files[0] || ph2?.files[0];
+  if (photo) fd.append('image', photo);
+
+  return fd;
+}
+
+function renderPrintList() {
+  const items = productType === 'variant' ? variantCombs : [{
+    size: null, color: null, label: document.getElementById('f_name').value,
+    barcode: document.getElementById('f_barcode').value || 'автогенериран', price: null
+  }];
+  const code = document.getElementById('f_code')?.value || 'ART';
+  document.getElementById('printList').innerHTML = items.map((v, i) => {
+    const lbl = [v.size, v.color, v.label].filter(Boolean).join(' / ') || ('Вариант '+(i+1));
+    const bc  = v.barcode || 'автогенериран';
+    const artCode = code + (items.length > 1 ? '-'+(i+1) : '');
+    return `<div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#f1f5f9">${lbl}</div>
+        <div style="font-size:11px;color:#6b7280">${artCode} · ${bc}</div>
+      </div>
+      <input type="number" min="1" max="999" value="1" id="printQty_${i}"
+        style="width:56px;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.25);border-radius:8px;color:#e2e8f0;font-size:14px;font-weight:700;text-align:center;padding:6px 4px;font-family:Montserrat,sans-serif;outline:none">
+      <button onclick="printLabel(${i},'${lbl.replace(/'/g,"\\'")}','${bc}','${artCode}')"
+        style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🖨️</button>
+    </div>`;
+  }).join('');
+}
+
+function printLabel(idx, name, barcode, code) {
+  const qty = parseInt(document.getElementById('printQty_'+idx).value) || 1;
+  showToast(`Печат: ${name} × ${qty} ет.`);
+}
+
+// ─── MODAL ────────────────────────────────────────────
+function openModal() {
+  productType = null; selectedSizes = {}; selectedColors = []; customVarSel = {}; variantCombs = []; onbVariants = [];
+  ['f_name','f_price','f_barcode','f_wprice','f_code','f_loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['f_cat','f_desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const pp = document.getElementById('photoPreview'); if (pp) pp.style.backgroundImage = '';
+  document.getElementById('typeCardSingle').classList.remove('sel');
+  document.getElementById('typeCardVariant').classList.remove('sel');
+  document.getElementById('btn0Next').style.display = 'none';
+  const vc = document.getElementById('variantsContainer'); if (vc) vc.innerHTML = '';
+  const pl = document.getElementById('printList'); if (pl) pl.innerHTML = '';
+  // Reset photo inputs
+  document.getElementById('photoInputCamera').value = '';
+  document.getElementById('photoInputGallery').value = '';
+  goStep(0);
+  document.getElementById('modalOvl').classList.add('open');
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOvl').classList.remove('open');
+  document.getElementById('addModal').classList.remove('open');
+}
+
+// ─── PRODUCT DRAWER ───────────────────────────────────
+function openDrawer(p) {
+  document.getElementById('plist').classList.add('blurred');
+  document.querySelector(`.pcard[data-id="${p.id}"]`)?.classList.add('focused');
+  const sc = p.sc==='sg'?'#22c55e':p.sc==='sy'?'#f59e0b':'#ef4444';
+  const margin = p.cost > 0 ? ((p.price - p.cost) / p.price * 100).toFixed(1) : '—';
+  fetch(`product-save.php?stock=${p.id}`).then(r => r.json()).then(stores => {
+    const storeHtml = stores.length > 1
+      ? `<div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Наличност по обекти</div>
+         <div style="background:rgba(15,15,40,.8);border:1px solid rgba(99,102,241,.12);border-radius:12px;overflow:hidden;margin-bottom:14px">
+           ${stores.map(s => `<div class="store-stock-row"><span style="font-size:13px;color:#e2e8f0">${s.name}</span><span style="font-size:14px;font-weight:700;color:${s.qty==0?'#ef4444':s.qty<=s.min_qty&&s.min_qty>0?'#f59e0b':'#22c55e'}">${s.qty} ${p.unit}</span></div>`).join('')}
+         </div>` : '';
+    document.getElementById('pDrawerBody').innerHTML =
+      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+         <div style="width:5px;height:50px;border-radius:3px;background:${sc};box-shadow:0 0 14px ${sc}88;flex-shrink:0"></div>
+         <div style="flex:1;min-width:0"><div class="d-name">${p.name}</div>
+         <div class="d-meta">${p.code?'Код: '+p.code+' · ':''}${p.cat||''}${p.sup?' · '+p.sup:''}${p.size?' · '+p.size:''}${p.color?' · '+p.color:''}</div></div></div>
+       <div class="sg2">
+         <div class="si"><div class="sil">Наличност</div><div class="siv" style="color:${sc}">${p.qty} ${p.unit}</div></div>
+         <div class="si"><div class="sil">Минимум</div><div class="siv">${p.min||'—'}</div></div>
+         <div class="si"><div class="sil">Продажна</div><div class="siv">€${parseFloat(p.price).toFixed(2)}</div></div>
+         <div class="si"><div class="sil">Марж</div><div class="siv" style="color:#a5b4fc">${margin}%</div></div>
+       </div>
+       ${storeHtml}
+       ${p.loc?`<div style="font-size:12px;color:#6b7280;margin-bottom:14px">📍 ${p.loc}</div>`:''}
+       ${p.variants>0?`<div style="font-size:12px;color:#8b5cf6;margin-bottom:14px">🎨 ${p.variants} варианта</div>`:''}
+       <div class="dab-grid">
+         ${canAdd?`<button class="dab dab-p" onclick="editProduct(${p.id})">✏️ Редактирай</button>`:'<div></div>'}
+         <button class="dab dab-s" onclick="openAI(${JSON.stringify(p).replace(/'/g,"\\'")})" >✦ AI съвет</button>
+       </div>
+       <div class="dab-grid">
+         <a href="sale.php?product=${p.id}" class="dab dab-s">🛒 Продажба</a>
+         <a href="product-detail.php?id=${p.id}" class="dab dab-s">🔍 Детайли</a>
+       </div>`;
+  }).catch(() => {
+    document.getElementById('pDrawerBody').innerHTML = `<div class="d-name">${p.name}</div><div class="d-meta">${p.tag}</div>`;
+  });
+  document.getElementById('ovl').classList.add('open');
+  document.getElementById('pDrawer').classList.add('open');
+}
+
+function openAI(p) {
+  document.getElementById('pDrawer').classList.remove('open');
+  let rec = '';
+  if (p.qty == 0) rec = `<strong>${p.name}</strong> е изчерпан. Зареди незабавно.`;
+  else if (p.min > 0 && p.qty <= p.min) rec = `Наличността е под минимума (${p.qty} от ${p.min}). Презареди скоро.`;
+  else if (p.cost > 0) {
+    const m = ((p.price - p.cost) / p.price * 100).toFixed(1);
+    rec = m < 20 ? `Маржът е само ${m}%. Провери доставната цена.` : `Всичко е наред. Марж ${m}%.`;
+  } else rec = `${p.name} е в наличност. Добави доставна цена за анализ.`;
+
+  document.getElementById('aiBody').innerHTML =
+    `<div style="font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">✦ AI Анализ</div>
+     <div style="font-size:20px;font-weight:800;color:#f1f5f9;margin-bottom:18px">${p.name}</div>
+     <div class="ai-rec"><div class="ai-rl">Препоръка</div><div class="ai-rt">${rec}</div></div>
+     <a href="chat.php?q=${encodeURIComponent('Анализирай '+p.name)}" class="dab dab-p" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:4px">Попитай AI →</a>`;
+  document.getElementById('ovl').classList.add('open');
+  document.getElementById('aiDrawer').classList.add('open');
+}
+
+function openFilterDrawer() {
+  closeAll();
+  document.getElementById('ovl').classList.add('open');
+  document.getElementById('filterDrawer').classList.add('open');
+}
+
+function closeAll() {
+  ['pDrawer','aiDrawer','filterDrawer'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+  document.getElementById('ovl').classList.remove('open');
+  document.getElementById('plist').classList.remove('blurred');
+  document.querySelectorAll('.pcard.focused').forEach(c => c.classList.remove('focused'));
+}
+
+['pDrawer','aiDrawer','filterDrawer'].forEach(id => {
+  const el = document.getElementById(id); if (!el) return;
+  el.addEventListener('touchstart', e => ts = e.touches[0].clientY, { passive: true });
+  el.addEventListener('touchend',   e => { if (e.changedTouches[0].clientY - ts > 70) closeAll(); }, { passive: true });
+});
+
+// ─── КАМЕРА (баркод скенер) ───────────────────────────
+async function openCamera(target) {
+  cameraTarget = target;
+  const labels = { search: 'Търси по баркод', barcode: 'Сканирай баркода на артикула', scanner: 'Сканирай баркода' };
+  document.getElementById('cameraLabelText').textContent = labels[target] || 'Насочи към баркода';
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('cameraVideo').srcObject = cameraStream;
+    document.getElementById('cameraWrap').classList.add('open');
+    if ('BarcodeDetector' in window) {
+      const bd = new BarcodeDetector();
+      const iv = setInterval(async () => {
+        try {
+          const codes = await bd.detect(document.getElementById('cameraVideo'));
+          if (codes.length) { clearInterval(iv); useScannedBarcode(codes[0].rawValue); }
+        } catch(e) {}
+      }, 300);
+    }
+  } catch(e) { showToast('Камерата не е достъпна'); }
+}
+
+function useScannedBarcode(code) {
+  const b = document.getElementById('cameraBeep');
+  b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 800);
+  beepSound();
+  if (cameraTarget === 'search') {
+    document.getElementById('searchInput').value = code;
+    closeCamera();
+    document.getElementById('searchForm').submit();
+  } else if (cameraTarget === 'barcode') {
+    document.getElementById('f_barcode').value = code;
+    closeCamera();
+  }
+}
+
+function closeCamera() {
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  document.getElementById('cameraWrap').classList.remove('open');
+}
+
+function beepSound() {
+  try {
+    const a = new AudioContext(); const o = a.createOscillator(); const g = a.createGain();
+    o.connect(g); g.connect(a.destination); o.frequency.value = 880;
+    g.gain.setValueAtTime(.3, a.currentTime); g.gain.exponentialRampToValueAtTime(.01, a.currentTime+.1);
+    o.start(a.currentTime); o.stop(a.currentTime+.1);
+  } catch(e) {}
+}
+
+// ─── VOICE ───────────────────────────────────────────
+function startVoiceSearch() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Не се поддържа'); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR(); r.lang = 'bg-BG'; r.start();
+  document.getElementById('voiceSearchBtn').style.color = '#ef4444';
+  r.onresult = e => { document.getElementById('searchInput').value = e.results[0][0].transcript; document.getElementById('searchForm').submit(); };
+  r.onend = () => { document.getElementById('voiceSearchBtn').style.color = ''; };
+}
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { showToast('Не се поддържа'); return; }
+  const btn = document.getElementById('voiceBtn');
+  if (voiceRec) { voiceRec.stop(); voiceRec = null; btn.classList.remove('recording'); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceRec = new SR(); voiceRec.lang = 'bg-BG'; voiceRec.continuous = true;
+  btn.classList.add('recording');
+  voiceRec.onresult = e => {
+    const text = e.results[e.results.length-1][0].transcript;
+    showToast('Обработвам...');
+    fetch('chat-send.php', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Извлечи данни за артикул: "${text}". JSON с name, retail_price, cost_price, barcode, size, color, location. Само JSON.` })
+    }).then(r => r.json()).then(d => {
+      try {
+        const m = (d.response || d.message || '').match(/\{[\s\S]*\}/);
+        if (m) {
+          const o = JSON.parse(m[0]);
+          if (o.name)         document.getElementById('f_name').value = o.name;
+          if (o.retail_price) document.getElementById('f_price').value = o.retail_price;
+          if (o.location)     { document.getElementById('f_loc').value = o.location; document.getElementById('f_loc_vis').value = o.location; }
+          showToast('AI попълни ✓');
+        }
+      } catch(e) {}
+    });
   };
-  r.readAsText(f,'UTF-8');
+  voiceRec.onend = () => { btn.classList.remove('recording'); voiceRec = null; };
+  voiceRec.start();
 }
-function toast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
+
+async function generateAIDescription() {
+  const name = document.getElementById('f_name').value;
+  if (!name) { showToast('Първо въведи наименование'); return; }
+  showToast('AI генерира...');
+  const r = await fetch('chat-send.php', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `Напиши кратко търговско описание (2-3 изречения) за артикул "${name}". Само описанието.` })
+  });
+  const d = await r.json();
+  const txt = d.response || d.message || '';
+  if (txt) { document.getElementById('f_desc').value = txt; showToast('Описанието е генерирано ✓'); }
 }
+
+// ─── EDIT PRODUCT ─────────────────────────────────────
+function editProduct(id) {
+  closeAll();
+  fetch(`product-save.php?get=${id}`).then(r => r.json()).then(p => {
+    document.getElementById('modalTitle').textContent = 'Редактирай';
+    document.getElementById('f_name').value    = p.name || '';
+    document.getElementById('f_price').value   = p.retail_price || '';
+    document.getElementById('f_wprice').value  = p.wholesale_price || '';
+    document.getElementById('f_barcode').value = p.barcode || '';
+    document.getElementById('f_cat').value     = p.category_id || '';
+    document.getElementById('f_unit').value    = p.unit || 'бр';
+    document.getElementById('f_code').value    = p.code || '';
+    document.getElementById('f_loc').value     = p.location || '';
+    document.getElementById('f_desc').value    = p.description || '';
+    if (document.getElementById('f_code_vis'))  document.getElementById('f_code_vis').value  = p.code || '';
+    if (document.getElementById('f_loc_vis'))   document.getElementById('f_loc_vis').value   = p.location || '';
+    if (document.getElementById('f_unit_vis'))  document.getElementById('f_unit_vis').value  = p.unit || 'бр';
+    productType = 'single';
+    goStep(1);
+    document.getElementById('modalOvl').classList.add('open');
+    document.getElementById('addModal').classList.add('open');
+  });
+}
+
+// ─── HELPERS ──────────────────────────────────────────
+function setFilter(f) {
+  const u = new URL(window.location); u.searchParams.set('filter', f); window.location = u;
+}
+
+document.querySelectorAll('.pcard').forEach(c => {
+  c.addEventListener('mousemove', e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left)+'px');
+    c.style.setProperty('--my', (e.clientY - r.top)+'px');
+  });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+<?php if(isset($_GET['saved'])): ?>showToast('Артикулът е запазен ✓');<?php endif; ?>
+<?php if(isset($_GET['error'])): ?>showToast('Грешка при запазване');<?php endif; ?>
 </script>
 </body>
 </html>
