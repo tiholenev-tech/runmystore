@@ -19,7 +19,7 @@ $stores = DB::run("SELECT id, name FROM stores WHERE tenant_id = ? ORDER BY name
 $store_id = $_SESSION['store_id'] ?? ($stores[0]['id'] ?? 0);
 
 // Unread store messages
-$unread = DB::run("SELECT COUNT(*) FROM store_messages WHERE tenant_id=? AND is_read=0 AND sender_store_id != ?", [$tenant_id, $store_id])->fetchColumn();
+$unread = DB::run("SELECT COUNT(*) FROM store_messages WHERE tenant_id=? AND is_read=0 AND from_store_id != ?", [$tenant_id, $store_id])->fetchColumn();
 
 // Chat history (последните 40)
 $chat_msgs = DB::run(

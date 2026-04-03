@@ -37,7 +37,7 @@ $categories = DB::run($cq, $cp)->fetchAll();
 
 // Products — ALL (за броячите)
 $w = ["p.tenant_id = ?", "p.parent_id IS NULL"];
-$pp = [$tenant_id, $tenant_id, $tenant_id, $tenant_id, $tenant_id];
+$pp = [$tenant_id, $tenant_id, $tenant_id];
 if ($filter_supplier) { $w[] = "p.supplier_id = ?"; $pp[] = $filter_supplier; }
 if ($filter_category) { $w[] = "p.category_id = ?"; $pp[] = $filter_category; }
 if ($search) { $w[] = "(p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)"; $pp[] = "%$search%"; $pp[] = "%$search%"; $pp[] = "%$search%"; }
@@ -64,14 +64,14 @@ $capital = DB::run("SELECT COALESCE(SUM(i.quantity*p.cost_price),0) FROM invento
 $cnt_all    = count($all_products);
 $cnt_hot    = count(array_filter($all_products, fn($p) => ($p['sold_30d'] ?? 0) > 10));
 $cnt_zombie = count(array_filter($all_products, fn($p) => ($p['days_no_sale'] ?? 0) > 30 && ($p['total_stock'] ?? 0) > 0));
-$cnt_low    = count(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) > 0 && ($p['total_stock'] ?? 0) <= ($p['min_qty'] ?? 5)));
+$cnt_low    = count(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) > 0 && ($p['total_stock'] ?? 0) <= ($p['min_quantity'] ?? 5)));
 $cnt_out    = count(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) == 0));
 
 // Филтрация по таб
 switch ($filter_tab) {
     case 'hot':    $products = array_values(array_filter($all_products, fn($p) => ($p['sold_30d'] ?? 0) > 10)); break;
     case 'zombie': $products = array_values(array_filter($all_products, fn($p) => ($p['days_no_sale'] ?? 0) > 30 && ($p['total_stock'] ?? 0) > 0)); break;
-    case 'low':    $products = array_values(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) > 0 && ($p['total_stock'] ?? 0) <= ($p['min_qty'] ?? 5))); break;
+    case 'low':    $products = array_values(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) > 0 && ($p['total_stock'] ?? 0) <= ($p['min_quantity'] ?? 5))); break;
     case 'out':    $products = array_values(array_filter($all_products, fn($p) => ($p['total_stock'] ?? 0) == 0)); break;
     default:       $products = $all_products;
 }
@@ -353,7 +353,7 @@ body{font-family:'Montserrat',sans-serif;background:#030712;color:#e2e8f0;min-he
   <div class="empty"><div class="ei">📦</div><div class="et">Няма артикули</div><div class="es">Добави с бутона отдолу или чрез AI</div></div>
 <?php else: foreach ($products as $p):
   $qty  = $p['total_stock'];
-  $min  = $p['min_qty'] ?? 5;
+  $min  = $p['min_quantity'] ?? 5;
   $clr  = sc($qty, $min);
   $is_hot    = ($p['sold_30d'] ?? 0) > 10;
   $is_zombie = ($p['days_no_sale'] ?? 0) > 30 && $qty > 0;
