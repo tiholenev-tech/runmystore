@@ -180,6 +180,9 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .bnav-tab.active { color: #818cf8; }
 .bnav-tab .bnav-icon { font-size: 1.2rem; }
 
+/* ── Indigo line separators (сини ленти) ── */
+.indigo-sep { height: 1px; background: linear-gradient(to right, transparent, rgba(99,102,241,0.35), transparent); margin: 0 12px; }
+
 /* ── TOAST ── */
 .toast { position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 500; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
@@ -218,6 +221,7 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
     <div class="tab active">✦ AI Асистент</div>
     <a class="tab" href="store-chat.php">Чат Обекти<?php if ($unread_count > 0): ?><span class="tab-badge"><?= $unread_count ?></span><?php endif; ?></a>
   </div>
+  <div class="indigo-sep"></div>
 </div>
 
 <!-- BRIEFING -->
@@ -257,6 +261,8 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
     <?php endforeach; ?>
   </div>
 </div>
+
+<div class="indigo-sep"></div>
 
 <!-- INPUT -->
 <div class="input-area">
