@@ -66,7 +66,7 @@ elseif ($filter === 'out') $products = array_values(array_filter($all_products, 
 else $products = $all_products;
 
 $categories  = DB::run("SELECT id, name, variant_type FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll();
-$suppliers   = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
+$suppliers   = DB::run("SELECT s.id, s.name, COUNT(DISTINCT p.id) as cnt FROM suppliers s LEFT JOIN products p ON p.supplier_id=s.id AND p.tenant_id=s.tenant_id AND p.is_active=1 AND p.parent_id IS NULL WHERE s.tenant_id=? AND s.is_active=1 GROUP BY s.id ORDER BY cnt DESC, s.name", [$tenant_id])->fetchAll();
 $stores      = DB::run("SELECT id, name FROM stores WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll();
 $sizes_used  = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
 $colors_used = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
@@ -75,6 +75,8 @@ $tenant_cfg      = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tena
 $onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
 
 $has_filters = $f_cat || $f_sup || $f_size || $f_color || $f_min !== '' || $f_max !== '' || ($role !== 'seller' && $f_store);
+
+$SUP_COLORS = ['#6366f1','#8b5cf6','#ec4899','#14b8a6','#f97316','#22c55e','#f59e0b','#3b82f6'];
 
 $COLOR_PALETTE = [
     ['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],
@@ -298,6 +300,23 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 @keyframes bp{0%,100%{opacity:1}50%{opacity:.55}}
 @keyframes scanAnim{0%{top:10%}50%{top:80%}100%{top:10%}}
 @keyframes pulse-rec{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+/* ── Supplier chips ── */
+.sup-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px;align-items:flex-start}
+.sup-row::-webkit-scrollbar{display:none}
+.sup-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sup-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;border:2px solid transparent;transition:border-color .2s,box-shadow .2s;flex-shrink:0}
+.sup-av.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.sup-nm{font-size:9px;font-weight:600;color:#4b5563;text-align:center;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sup-cnt{font-size:8px;color:#374151}
+.sup-all{width:42px;height:42px;border-radius:50%;background:rgba(99,102,241,.08);border:1.5px dashed rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#6b7280;text-align:center;line-height:1.3;cursor:pointer}
+.sup-all.active{border-color:#6366f1;color:#a5b4fc;background:rgba(99,102,241,.15)}
+/* ── Category chips ── */
+.cat-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 0 10px}
+.cat-row::-webkit-scrollbar{display:none}
+.cat-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(15,15,40,.6);border:1px solid rgba(99,102,241,.15);color:#6b7280;display:flex;align-items:center;gap:5px;cursor:pointer;text-decoration:none;transition:all .2s;font-family:'Montserrat',sans-serif}
+.cat-chip.active{background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.5);color:#a5b4fc}
+.cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hdr-sup-lbl{font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .pcard:nth-child(1){animation-delay:.04s}.pcard:nth-child(2){animation-delay:.08s}.pcard:nth-child(3){animation-delay:.12s}.pcard:nth-child(n+4){animation-delay:.16s}
 </style>
 </head>
@@ -343,6 +362,40 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <button class="ftab <?= $filter==='low'?'active':'' ?>" onclick="setFilter('low')">Ниска нал. <span class="cnt <?= $cnt_low>0?'w':'' ?>"><?= $cnt_low ?></span></button>
     <button class="ftab <?= $filter==='out'?'active':'' ?>" onclick="setFilter('out')">Изчерпани <span class="cnt <?= $cnt_out>0?'d':'' ?>"><?= $cnt_out ?></span></button>
   </div>
+  <?php if($suppliers): ?>
+  <div class="hdr-sup-lbl">Доставчици</div>
+  <div class="sup-row">
+    <div class="sup-chip" onclick="goSupplier(0)">
+      <div class="sup-all <?= !$f_sup?'active':'' ?>">Всички</div>
+      <div class="sup-nm">Всички</div>
+    </div>
+    <?php foreach($suppliers as $i=>$s):
+      $ini = mb_strtoupper(implode('', array_map(fn($w)=>mb_substr($w,0,1), array_slice(explode(' ', $s['name']), 0, 2))));
+      $clr = $SUP_COLORS[$i % count($SUP_COLORS)];
+    ?>
+    <div class="sup-chip" onclick="goSupplier(<?= $s['id'] ?>)">
+      <div class="sup-av <?= $f_sup==$s['id']?'active':'' ?>" style="background:<?= $clr ?>"><?= htmlspecialchars($ini) ?></div>
+      <div class="sup-nm"><?= htmlspecialchars($s['name']) ?></div>
+      <div class="sup-cnt"><?= (int)$s['cnt'] ?> бр.</div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <?php if($categories): ?>
+  <div class="cat-row">
+    <?php
+    $cat_colors_dark=['#6366f1','#8b5cf6','#22c55e','#f59e0b','#ec4899','#14b8a6','#f97316','#3b82f6'];
+    foreach($categories as $ci=>$cat):
+      $p2 = array_merge($_GET, ['cat'=>$cat['id']]);
+      $active = $f_cat==$cat['id']?'active':'';
+    ?>
+    <a href="?<?= http_build_query($p2) ?>" class="cat-chip <?= $active ?>">
+      <div class="cat-dot" style="background:<?= $cat_colors_dark[$ci%count($cat_colors_dark)] ?>"></div>
+      <?= htmlspecialchars($cat['name']) ?>
+    </a>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
 </div>
 
 <div class="plist" id="plist">
@@ -1220,6 +1273,13 @@ function editProduct(id) {
 // ─── HELPERS ──────────────────────────────────────────
 function setFilter(f) {
   const u = new URL(window.location); u.searchParams.set('filter', f); window.location = u;
+}
+
+function goSupplier(id) {
+  const u = new URL(window.location);
+  if (id) u.searchParams.set('sup', id); else u.searchParams.delete('sup');
+  u.searchParams.delete('cat');
+  window.location = u;
 }
 
 document.querySelectorAll('.pcard').forEach(c => {
