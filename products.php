@@ -391,22 +391,98 @@ if (isset($_GET['ajax'])) {
         echo json_encode(['code'=>$code]); exit;
     }
 
-    if ($_GET['ajax'] === 'ai_assist' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+   if ($_GET['ajax'] === 'ai_assist' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $question = $input['question'] ?? '';
         if (!$question) { echo json_encode(['error'=>'no_question']); exit; }
-        $stats = DB::run("SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity),0) AS total_qty FROM products p LEFT JOIN inventory i ON i.product_id=p.id WHERE p.tenant_id=? AND p.is_active=1", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
-        $low = DB::run("SELECT COUNT(*) AS cnt FROM products p JOIN inventory i ON i.product_id=p.id WHERE p.tenant_id=? AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0", [$tenant_id])->fetchColumn();
-        $out = DB::run("SELECT COUNT(*) AS cnt FROM products p JOIN inventory i ON i.product_id=p.id WHERE p.tenant_id=? AND i.quantity=0", [$tenant_id])->fetchColumn();
-        $ctx = "Контекст: {$stats['cnt']} артикула, {$stats['total_qty']} бройки общо, {$low} с ниска наличност, {$out} изчерпани.";
-        $prompt = "Ти си AI асистент за управление на артикули в магазин. {$ctx}\n\nВъпрос: {$question}\n\nОтговори кратко (2-3 изречения), конкретно, с числа. Без технически термини.";
+
+        // Събираме богат контекст
+        $stats = DB::run("SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity),0) AS total_qty FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1", [$store_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        $low = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0", [$store_id, $tenant_id])->fetchColumn();
+        $out = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity=0", [$store_id, $tenant_id])->fetchColumn();
+        $zombie = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity>0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) > 45", [$store_id, $tenant_id])->fetchColumn();
+
+        $cats = DB::run("SELECT name FROM categories WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+
+        $top5 = DB::run("SELECT p.name, SUM(si.quantity) AS sold FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) GROUP BY p.id ORDER BY sold DESC LIMIT 5", [$tenant_id, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+        $top5str = implode(', ', array_map(fn($t) => $t['name'].'('.$t['sold'].'бр)', $top5));
+
+        $memories = DB::run("SELECT memory_text FROM tenant_ai_memory WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $memStr = implode('; ', $memories);
+
+        $role_bg = match($user_role) { 'owner'=>'собственик', 'manager'=>'управител', default=>'продавач' };
+
+        $systemPrompt = "Ти си AI асистент в модул 'Артикули' на RunMyStore.ai.
+Магазин: {$stats['cnt']} артикула, {$stats['total_qty']} бройки, {$low} с ниска наличност, {$out} изчерпани, {$zombie} zombie (45+ дни без продажба).
+Потребител: {$user_name}, роля: {$role_bg}.
+Категории: " . implode(', ', $cats) . "
+Доставчици: " . implode(', ', $sups) . "
+Топ 5 (30 дни): {$top5str}
+" . ($memStr ? "Памет: {$memStr}" : "") . "
+
+ПРАВИЛА:
+- Говори кратко (2-3 изречения), конкретно, с числа
+- Без технически термини
+- Разбирай жаргон: дреги=дрехи, офки=обувки, якита=якета
+- НИКОГА не питай 'Имаш ли предвид X?' — разпознавай и действай
+
+ВЪРНИ ОТГОВОР САМО КАТО JSON (без markdown, без ```):
+{
+  \"message\": \"текст който потребителят вижда\",
+  \"action\": \"тип действие или null\",
+  \"data\": {},
+  \"buttons\": []
+}
+
+ВЪЗМОЖНИ ДЕЙСТВИЯ (action):
+- \"search\" + data:{\"query\":\"текст\"} — търси артикул
+- \"add_product\" + data:{\"name\":\"\",\"supplier\":\"\",\"sizes\":[],\"colors\":[],\"retail_price\":0} — добави нов артикул с попълнени полета
+- \"show_zombie\" — покажи zombie секцията
+- \"show_low\" — покажи ниска наличност
+- \"show_top\" — покажи топ продавани
+- \"navigate\" + data:{\"url\":\"страница.php\"} — навигирай
+- \"product_detail\" + data:{\"query\":\"име за търсене\"} — отвори конкретен артикул
+- null — само информация, без действие
+
+БУТОНИ (buttons) — масив от:
+{\"label\": \"текст на бутона\", \"action\": \"тип\", \"data\": {}}
+
+ПРИМЕРИ:
+Въпрос: 'добави бикини nike размер M цена 25'
+Отговор: {\"message\":\"Добавям бикини Nike, размер M, 25 €. Потвърди данните.\",\"action\":\"add_product\",\"data\":{\"name\":\"Бикини\",\"supplier\":\"Nike\",\"sizes\":[\"M\"],\"colors\":[],\"retail_price\":25},\"buttons\":[]}
+
+Въпрос: 'какво свършва'
+Отговор: {\"message\":\"{$low} артикула свършват.\",\"action\":\"show_low\",\"data\":{},\"buttons\":[{\"label\":\"Виж списъка\",\"action\":\"show_low\",\"data\":{}}]}
+
+Въпрос: 'покажи nike'
+Отговор: {\"message\":\"Търся Nike...\",\"action\":\"search\",\"data\":{\"query\":\"Nike\"},\"buttons\":[]}
+
+Въпрос: 'колко чифта маратонки имам'
+Отговор: (търси в контекста и отговаря с число + бутон за търсене)";
+
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GEMINI_API_KEY;
-        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>300]];
-        $ch = curl_init($api_url); curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload), CURLOPT_HTTPHEADER=>['Content-Type: application/json'], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15]);
+        $payload = [
+            'contents' => [['parts' => [['text' => $question]]]],
+            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 500]
+        ];
+
+        $ch = curl_init($api_url);
+        curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload), CURLOPT_HTTPHEADER=>['Content-Type: application/json'], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
-        $text = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? 'Не успях да отговоря.');
-        echo json_encode(['response'=>$text]); exit;
+        $text = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
+        $text = preg_replace('/```json\s*|\s*```/', '', $text);
+
+        $parsed = json_decode($text, true);
+        if ($parsed && isset($parsed['message'])) {
+            echo json_encode($parsed);
+        } else {
+            // Fallback ако Gemini не върне JSON
+            echo json_encode(['message' => $text ?: 'Не разбрах. Опитай пак.', 'action' => null, 'data' => new \stdClass(), 'buttons' => []]);
+        }
+        exit;
     }
 
     echo json_encode(['error' => 'unknown_action']); exit;
