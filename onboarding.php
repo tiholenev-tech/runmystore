@@ -189,13 +189,12 @@ function startChat(){
   setTimeout(function(){aiSay('Здравей! Приятно ми е — аз съм твоят бъдещ AI бизнес партньор.\nКак се казваш?')},400);
 }
 
-function scrollBot(){chatArea.scrollTop=chatArea.scrollHeight}
+function scrollBot(){chatArea.scrollTop=chatArea.scrollHeight;setTimeout(function(){chatArea.scrollTop=chatArea.scrollHeight},100);setTimeout(function(){chatArea.scrollTop=chatArea.scrollHeight},400)}
 function showTyping(){typing.style.display='block';scrollBot()}
 function hideTyping(){typing.style.display='none'}
 function aiSay(text,isWow){
-  // Safety: if text is raw JSON, extract message
   if(typeof text==='string'&&text.trim().charAt(0)==='{'){try{var j=JSON.parse(text);if(j.message)text=j.message}catch(e){var m=text.match(/"message"\s*:\s*"([^"]+)"/);if(m)text=m[1]}}
-  hideActs();var g=document.createElement('div');g.className='msg-g';
+  hideTyping();hideActs();var g=document.createElement('div');g.className='msg-g';
   g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-bars"><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div></div></div>AI Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+bold(esc(text)).replace(/\n/g,'<br>')+'</div>';
   chatArea.insertBefore(g,typing);scrollBot();
 }
