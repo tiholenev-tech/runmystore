@@ -959,17 +959,19 @@ if ($sup_id && $cat_id && $screen === 'products') {
         </div>
     </div>
 
-    <!-- AI Assistant Drawer -->
-    <div class="drawer-overlay" id="aiAssistOverlay" onclick="closeDrawer('aiAssist')"></div>
-    <div class="drawer" id="aiAssistDrawer" style="z-index:102;">
-        <div class="drawer-handle"></div>
-        <div class="drawer-header"><h3>✦ AI Асистент</h3><button class="drawer-close" onclick="closeDrawer('aiAssist')">✕</button></div>
-        <div class="drawer-body">
-            <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">Попитай каквото и да е за артикулите, наличностите, цените. AI знае всичко за склада ти.</div>
-            <div id="aiAssistChat"></div>
-            <div class="ai-assist-input">
-                <input type="text" id="aiAssistQ" placeholder="Попитай AI..." onkeydown="if(event.key==='Enter')askAI()">
-                <button onclick="askAI()">✦ Питай</button>
+   <!-- AI Voice Overlay (Module A) -->
+    <div class="rec-ov" id="recOverlay" onclick="closeAIOverlay()">
+        <div class="rec-box" onclick="event.stopPropagation()">
+            <div class="rec-head">
+                <div class="rec-dot" id="recDot"></div>
+                <span class="rec-label" id="recLabel">✦ AI Помощник</span>
+                <button class="rec-x" onclick="closeAIOverlay()">✕</button>
+            </div>
+            <div class="rec-chat" id="recChat"></div>
+            <div class="rec-transcript" id="recTranscript" contenteditable="true" placeholder="Попитай или продиктувай..."></div>
+            <div class="rec-foot">
+                <button class="rec-mic" id="recMic" onclick="toggleAIVoice()">🎤</button>
+                <button class="rec-send" id="recSendBtn" onclick="sendAIText()">Изпрати →</button>
             </div>
         </div>
     </div>
