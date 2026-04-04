@@ -1080,7 +1080,7 @@ if ($sup_id && $cat_id && $screen === 'products') {
     // ============================================================
     function openDrawer(n){document.getElementById(n+'Overlay').classList.add('open');document.getElementById(n+'Drawer').classList.add('open');document.body.style.overflow='hidden';}
     function closeDrawer(n){document.getElementById(n+'Overlay').classList.remove('open');document.getElementById(n+'Drawer').classList.remove('open');document.body.style.overflow='';}
-    ['detail','ai','filter','aiAssist'].forEach(n=>{const d=document.getElementById(n+'Drawer');if(!d)return;let sy=0,cy=0,drag=false;d.addEventListener('touchstart',e=>{if(e.target.closest('.drawer-body')?.scrollTop>0)return;sy=e.touches[0].clientY;drag=true;},{passive:true});d.addEventListener('touchmove',e=>{if(!drag)return;cy=e.touches[0].clientY-sy;if(cy>0)d.style.transform=`translateY(${cy}px)`;},{passive:true});d.addEventListener('touchend',()=>{if(!drag)return;drag=false;if(cy>100)closeDrawer(n);d.style.transform='';cy=0;});});
+    ['detail','ai','filter'].forEach(n=>{const d=document.getElementById(n+'Drawer');if(!d)return;let sy=0,cy=0,drag=false;d.addEventListener('touchstart',e=>{if(e.target.closest('.drawer-body')?.scrollTop>0)return;sy=e.touches[0].clientY;drag=true;},{passive:true});d.addEventListener('touchmove',e=>{if(!drag)return;cy=e.touches[0].clientY-sy;if(cy>0)d.style.transform=`translateY(${cy}px)`;},{passive:true});d.addEventListener('touchend',()=>{if(!drag)return;drag=false;if(cy>100)closeDrawer(n);d.style.transform='';cy=0;});});
 
     // ============================================================
     // AI ASSIST
