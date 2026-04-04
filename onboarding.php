@@ -1,6 +1,7 @@
 <?php
 /**
  * onboarding.php — AI-Driven Conversational Onboarding (Cruip Dark)
+ * Сесия 18 FIX — robust JSON parsing, no more freezing
  *
  * FLOW:
  *   Фаза 1-3: AI интервю (свободен текст/глас) — име, бизнес, уточняване, мащаб
@@ -8,8 +9,6 @@
  *   Фаза 5: Суперсили — 10 функции една по една с бутон "Напред"
  *   Фаза 6: Лоялна — AI предложение + 2 бутона
  *   Фаза 7: Финал — "Готов ли си?" + бутон → chat.php
- *
- * П0: AI First, П8: Cruip Dark, П12: style.css + aos.css
  */
 session_start();
 if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
@@ -132,13 +131,34 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function autoResize(el){el.style.height='';el.style.height=Math.min(el.scrollHeight,80)+'px'}
 function bold(s){return s.replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--color-indigo-300)">$1</strong>')}
-async function aiFetch(body){return fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+
+/* ── ROBUST AI FETCH — С18 FIX ── */
+async function aiFetch(body){
+    try {
+        var r = await fetch('ai-helper.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if (!r.ok) throw new Error('HTTP '+r.status);
+        var text = await r.text();
+        // Try JSON parse
+        try { return JSON.parse(text); }
+        catch(e) {
+            // Try to extract JSON from mixed response
+            var m = text.match(/\{[\s\S]*\}/);
+            if (m) { try { return JSON.parse(m[0]); } catch(e2){} }
+            // Return as plain message
+            return {message: text.trim() || 'Моля, опитай пак.', phase: null};
+        }
+    } catch(e) {
+        console.error('aiFetch error:', e);
+        return {message: 'Нещо се обърка. Опитай пак.', phase: null, _error: true};
+    }
+}
 
 var S={phase:'interview',name:'',biz:'',segment:'',stores:'',wowIdx:0,featIdx:0,loyaltyChoice:''};
-var history=[];
+var chatHistory=[];
 var voiceRec=null,isRec=false;
 var chatArea=document.getElementById('chatArea'),typing=document.getElementById('typing');
 var actWrap=document.getElementById('actWrap'),actRow=document.getElementById('actRow');
+var inputLocked=false;
 
 var wowItems=[];
 var featItems=[
@@ -208,9 +228,11 @@ function sendText(){var inp=document.getElementById('chatInput');var t=inp.value
 function handleAct(v){processInput(v)}
 
 /* ══════════════════════════════════════════════════
-   MAIN LOGIC
+   MAIN LOGIC — С18 FIX: robust, no more freezing
    ══════════════════════════════════════════════════ */
 async function processInput(text){
+  if(inputLocked) return;
+
   var isBtn=(S.phase==='wow_walk'||S.phase==='feat_walk'||S.phase==='wow_done'||S.phase==='loyalty_choice'||S.phase==='final');
   if(!isBtn) userSay(text);
 
@@ -218,17 +240,32 @@ async function processInput(text){
 
     // ── ФАЗА 1-3: AI ИНТЕРВЮ ──
     case 'interview':
-      history.push({role:'user',content:text});
-      showTyping();
+      inputLocked=true;
+      chatHistory.push({role:'user',content:text});
+      showTyping();hideInput();
       try{
-        var r=await aiFetch({action:'onboarding',history:history});
-        var d=await r.json();hideTyping();
-        if(d.message){aiSay(d.message);history.push({role:'assistant',content:d.message})}
-        if(d.phase>=4&&d.data){
+        var d=await aiFetch({action:'onboarding',history:chatHistory});
+        hideTyping();
+
+        var msg = d.message || d.text || '';
+        if(!msg && !d._error) msg = 'Продължаваме — какво продаваш?';
+
+        aiSay(msg);
+        chatHistory.push({role:'assistant',content:msg});
+
+        // Check if AI says we're done (phase 4+)
+        if(d.phase>=4 && d.data){
           S.name=d.data.name||'';S.biz=d.data.biz||'';S.segment=d.data.segment||'';S.stores=d.data.stores||'1';
+          showInput();inputLocked=false;
           await wait(2000);S.phase='wow_generate';await generateWow();
+        } else {
+          showInput();inputLocked=false;
         }
-      }catch(e){hideTyping();aiSay('Нещо се обърка. Опитай пак.')}
+      }catch(e){
+        hideTyping();showInput();inputLocked=false;
+        console.error('Interview error:',e);
+        aiSay('Нещо се обърка. Опитай пак.');
+      }
       break;
 
     // ── ФАЗА 4: WOW ЕДИН ПО ЕДИН ──
@@ -275,17 +312,17 @@ async function processInput(text){
 /* ══════════════════════════════════════════════════
    ФАЗА 4: WOW ГЕНЕРИРАНЕ
    ══════════════════════════════════════════════════ */
-var serverLosses=null;// от backend
+var serverLosses=null;
 
 async function generateWow(){
   aiSay('Изчислявам загубите за твоя тип бизнес...');
   showTyping();hideInput();
   try{
-    var r=await aiFetch({action:'onboarding_wow',biz:S.biz,segment:S.segment,stores:S.stores});
-    var d=await r.json();hideTyping();
+    var d=await aiFetch({action:'onboarding_wow',biz:S.biz,segment:S.segment,stores:S.stores});
+    hideTyping();
     if(d.losses) serverLosses=d.losses;
     if(d.scenarios&&d.scenarios.length>=5) wowItems=d.scenarios;
-    else throw new Error('bad');
+    else wowItems=buildFallbackWow();
   }catch(e){hideTyping();wowItems=buildFallbackWow()}
   S.phase='wow_walk';S.wowIdx=0;
   await wait(500);aiSay(wowItems[0],true);
@@ -325,10 +362,10 @@ async function generateLoyalty(){
   showTyping();
   var loyaltyText='';
   try{
-    var r=await aiFetch({action:'loyalty_options',biz:S.biz,segment:S.segment,name:S.name});
-    var d=await r.json();hideTyping();
-    if(d.summary) loyaltyText=d.summary; else throw new Error('no');
-  }catch(e){hideTyping();loyaltyText='Точки за всяка покупка: 1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = двойни точки. VIP ниво при 500 EUR оборот.'}
+    var d=await aiFetch({action:'loyalty_options',biz:S.biz,segment:S.segment,name:S.name});
+    hideTyping();
+    if(d.summary) loyaltyText=d.summary; else loyaltyText='Точки за всяка покупка: 1 EUR = 1 точка. На 100 точки → 5 EUR отстъпка. Рожден ден = двойни точки. VIP ниво при 500 EUR оборот.';
+  }catch(e){hideTyping();loyaltyText='1 EUR = 1 точка. 100 точки → 5 EUR отстъпка. Рожден ден = двойни точки. VIP при 500 EUR оборот → постоянна -10%.';}
   aiSay('🎁 **Лоялна програма (БЕЗПЛАТНА ЗАВИНАГИ):**\n\n'+loyaltyText);
   await wait(500);S.phase='loyalty_choice';
   showActs([{l:'✅ Харесва ми, активирай!',v:'Стандартна лоялна',p:true},{l:'⚙️ Ще си направя собствена от настройки',v:'Ще настроя сам'}]);
