@@ -122,9 +122,18 @@ body{display:flex;flex-direction:column}
   </div>
 </div>
 <div class="rec-ov" id="recOverlay">
-  <div class="rec-circle"><div class="rec-bars"><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div></div></div>
-  <div class="rec-t">Слушам те...</div><div class="rec-s">Говори свободно</div>
-  <button class="rec-stop" onclick="stopVoice()">Спри записа</button>
+  <div class="rec-box">
+    <div class="rec-head">
+      <div class="rec-dot"></div>
+      <span class="rec-label">Слушам...</span>
+      <button class="rec-x" onclick="cancelVoice()">✕</button>
+    </div>
+    <div class="rec-transcript" id="recTranscript" contenteditable="true" placeholder="Говори..."></div>
+    <div class="rec-foot">
+      <button class="rec-cancel" onclick="cancelVoice()">Откажи</button>
+      <button class="rec-send" id="recSendBtn" onclick="sendVoiceText()" disabled>Изпрати →</button>
+    </div>
+  </div>
 </div>
 <script>
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
