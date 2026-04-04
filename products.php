@@ -1251,7 +1251,7 @@ if ($sup_id && $cat_id && $screen === 'products') {
         if (dot) dot.className = 'rec-dot';
     }
 
-    function sendAIText() {
+  function sendAIText() {
         var transcript = document.getElementById('recTranscript');
         var txt = transcript.innerText.trim();
         if (!txt) return;
@@ -1288,11 +1288,32 @@ if ($sup_id && $cat_id && $screen === 'products') {
         })
         .then(function(r) { return r.json(); })
         .then(function(d) {
+            // Покажи съобщението
             thinkDiv.className = 'rec-msg ai';
-            thinkDiv.textContent = d.response || 'Не успях да отговоря.';
+            thinkDiv.textContent = d.message || d.response || 'Не разбрах.';
             label.textContent = '✦ AI Помощник';
             sendBtn.disabled = false;
+
+            // Покажи бутони ако има
+            if (d.buttons && d.buttons.length > 0) {
+                var btnsDiv = document.createElement('div');
+                btnsDiv.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;';
+                d.buttons.forEach(function(btn) {
+                    var b = document.createElement('button');
+                    b.textContent = btn.label;
+                    b.style.cssText = 'padding:6px 12px;border-radius:8px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;font-size:0.75rem;cursor:pointer;font-family:inherit;';
+                    b.onclick = function() { handleAIAction(btn.action, btn.data || {}); };
+                    btnsDiv.appendChild(b);
+                });
+                thinkDiv.appendChild(btnsDiv);
+            }
+
             chat.scrollTop = chat.scrollHeight;
+
+            // Изпълни действието автоматично
+            if (d.action) {
+                handleAIAction(d.action, d.data || {});
+            }
         })
         .catch(function(err) {
             console.error('AI assist error:', err);
@@ -1302,6 +1323,135 @@ if ($sup_id && $cat_id && $screen === 'products') {
             sendBtn.disabled = false;
             chat.scrollTop = chat.scrollHeight;
         });
+    }
+
+    function handleAIAction(action, data) {
+        switch (action) {
+            case 'search':
+                if (data.query) {
+                    closeAIOverlay();
+                    document.getElementById('searchInput').value = data.query;
+                    document.getElementById('searchInput').dispatchEvent(new Event('input'));
+                }
+                break;
+
+            case 'add_product':
+                closeAIOverlay();
+                // Отвори wizard с попълнени данни
+                STATE.editProductId = null;
+                STATE.wizStep = 0;
+                STATE.productType = (data.sizes && data.sizes.length > 0) ? 'variant' : 'single';
+                STATE.selectedSizes = {};
+                STATE.selectedColors = [];
+                if (data.sizes) { data.sizes.forEach(function(s) { STATE.selectedSizes[s] = null; }); }
+                if (data.colors) { STATE.selectedColors = data.colors; }
+                STATE.aiScanData = {
+                    name: data.name || '',
+                    retail_price: data.retail_price || 0,
+                    code: data.code || '',
+                    description: data.description || ''
+                };
+                STATE.variantCombs = [];
+                document.getElementById('modalTitle').textContent = 'Нов артикул';
+                STATE.wizStep = 2; // Скочи директно на формата
+                renderWizard();
+                document.getElementById('addModal').classList.add('open');
+                document.body.style.overflow = 'hidden';
+                // Сетни supplier и category след рендериране
+                setTimeout(function() {
+                    if (data.supplier) {
+                        var supSel = document.getElementById('wiz_sup');
+                        if (supSel) {
+                            // Търси по име
+                            for (var i = 0; i < supSel.options.length; i++) {
+                                if (supSel.options[i].text.toLowerCase().indexOf(data.supplier.toLowerCase()) > -1) {
+                                    supSel.selectedIndex = i; break;
+                                }
+                            }
+                        }
+                    }
+                    if (data.category) {
+                        var catSel = document.getElementById('wiz_cat');
+                        if (catSel) {
+                            for (var i = 0; i < catSel.options.length; i++) {
+                                if (catSel.options[i].text.toLowerCase().indexOf(data.category.toLowerCase()) > -1) {
+                                    catSel.selectedIndex = i; break;
+                                }
+                            }
+                        }
+                    }
+                }, 100);
+                showToast('AI попълни данните — провери и запази', 'success');
+                break;
+
+            case 'show_zombie':
+                closeAIOverlay();
+                goScreen('home');
+                setTimeout(function() {
+                    var el = document.getElementById('collapseZombie');
+                    if (el) {
+                        el.style.display = 'block';
+                        el.querySelector('.collapse-header').classList.add('open');
+                        el.querySelector('.collapse-body').classList.add('open');
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 500);
+                break;
+
+            case 'show_low':
+                closeAIOverlay();
+                goScreen('home');
+                setTimeout(function() {
+                    var el = document.getElementById('collapseLow');
+                    if (el) {
+                        el.style.display = 'block';
+                        el.querySelector('.collapse-header').classList.add('open');
+                        el.querySelector('.collapse-body').classList.add('open');
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 500);
+                break;
+
+            case 'show_top':
+                closeAIOverlay();
+                goScreen('home');
+                setTimeout(function() {
+                    var el = document.getElementById('collapseTop');
+                    if (el) {
+                        el.style.display = 'block';
+                        el.querySelector('.collapse-header').classList.add('open');
+                        el.querySelector('.collapse-body').classList.add('open');
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 500);
+                break;
+
+            case 'navigate':
+                if (data.url) {
+                    closeAIOverlay();
+                    window.location.href = data.url;
+                }
+                break;
+
+            case 'product_detail':
+                if (data.query) {
+                    // Търси артикула и отвори детайл
+                    closeAIOverlay();
+                    fetchJSON('products.php?ajax=search&q=' + encodeURIComponent(data.query) + '&store_id=' + STATE.storeId)
+                    .then(function(results) {
+                        if (results && results.length > 0) {
+                            openProductDetail(results[0].id);
+                        } else {
+                            showToast('Не намерих "' + data.query + '"', 'info');
+                        }
+                    });
+                }
+                break;
+
+            default:
+                // Само информация, без действие
+                break;
+        }
     }
 
     // Enter за изпращане, focus спира записа
