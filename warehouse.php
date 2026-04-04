@@ -52,104 +52,130 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
     <link href="./css/vendors/aos.css" rel="stylesheet" />
     <link href="./style.css" rel="stylesheet" />
     <style>
+        :root { --nav-h: 64px; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: Inter, system-ui, sans-serif; background: #0b0f1a; color: #e5e7eb; min-height: 100vh; overflow-x: hidden; }
+        body { 
+            font-family: Inter, system-ui, sans-serif; 
+            background: radial-gradient(circle at top right, #13172c, #0b0f1a); 
+            color: #e2e8f0; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+            padding-bottom: var(--nav-h);
+        }
 
-        /* ── SVG Backgrounds (Cruip) ── */
-        .bg-deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-        .bg-deco .d1 { position: absolute; left: 50%; top: 0; transform: translateX(-25%); width: 846px; max-width: none; opacity: 0.15; }
-        .bg-deco .d2 { position: absolute; left: 50%; top: 400px; transform: translateX(-100%); width: 760px; max-width: none; opacity: .5; }
-        .bg-deco .d3 { position: absolute; left: 50%; top: 440px; transform: translateX(-33%); width: 760px; max-width: none; }
+        /* ── SVG Backgrounds ── */
+        .bg-deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; opacity: 0.7; }
+        .bg-deco .d1 { position: absolute; left: 50%; top: 0; transform: translateX(-25%); width: 846px; max-width: none; }
+        .bg-deco .d2 { position: absolute; left: 50%; top: 400px; transform: translateX(-100%); width: 760px; max-width: none; opacity: .4; }
+        .bg-deco .d3 { position: absolute; left: 50%; top: 440px; transform: translateX(-33%); width: 760px; max-width: none; opacity: 0.5; }
 
-        .page-wrap { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 16px; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+        .page-wrap { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 16px; }
 
         /* ── Header ── */
-        .page-header { padding: 20px 0 8px; }
+        .page-header { padding: 24px 0 12px; }
         .page-title {
-            font-size: 1.6rem; font-weight: 900; font-family: Nacelle, Inter, sans-serif;
-            background: linear-gradient(to right, #e5e7eb, #c7d2fe, #f9fafb, #a5b4fc, #e5e7eb);
-            background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text; animation: gShift 6s linear infinite;
+            font-size: 24px; font-weight: 800; font-family: Nacelle, Inter, sans-serif;
+            background: linear-gradient(135deg, #ffffff, #a5b4fc);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; letter-spacing: -0.5px;
         }
-        @keyframes gShift { 0% { background-position: 0% center } 100% { background-position: 200% center } }
 
-        /* ── Indigo line separator (сините ленти) ── */
-        .indigo-sep { height: 1px; background: linear-gradient(to right, transparent, rgba(99,102,241,0.35), transparent); margin: 14px 0; }
+        /* ── Indigo line separator ── */
+        .indigo-sep { height: 1px; background: linear-gradient(to right, transparent, rgba(99,102,241,0.25), transparent); margin: 16px 0; }
 
         /* ── Alert banner ── */
         .alert-banner {
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25);
-            border-radius: 12px; padding: 12px 14px; margin-bottom: 6px; text-decoration: none;
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 16px; padding: 14px 16px; margin-bottom: 20px; text-decoration: none;
+            backdrop-filter: blur(10px); animation: fadeUp .35s ease both;
         }
-        .alert-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; box-shadow: 0 0 8px #ef4444; animation: blink 2s infinite; }
-        @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:.3 } }
-        .alert-text { font-size: .8rem; font-weight: 700; color: #fca5a5; flex: 1; }
-        .alert-arr { color: #f87171; font-size: 18px; }
+        .alert-dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; flex-shrink: 0; box-shadow: 0 0 10px #ef4444; animation: blink 2s infinite; }
+        @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+        .alert-text { font-size: 13px; font-weight: 700; color: #fca5a5; flex: 1; }
+        .alert-arr { color: #f87171; font-size: 20px; font-weight: bold; }
 
         /* ── Grid ── */
-        .wh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .wh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-        /* ── Card with GLOW ── */
+        /* ── Card with Modern GLOW ── */
         .wh-card {
             position: relative; display: flex; flex-direction: column;
-            border-radius: 22px; padding: 20px 18px 18px; text-decoration: none;
-            min-height: 152px; overflow: hidden; transition: transform .13s ease;
-            background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 24px; padding: 20px; text-decoration: none;
+            min-height: 160px; overflow: hidden; transition: all 0.2s ease;
+            background: rgba(30, 35, 60, 0.5); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .wh-card::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
-            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
-            border-radius: 22px 22px 0 0; pointer-events: none;
+        .wh-card:active { transform: scale(0.95); background: rgba(99, 102, 241, 0.15); }
+
+        /* Glow effects */
+        .g-indigo { box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15); border-color: rgba(79, 70, 229, 0.2); }
+        .g-purple { box-shadow: 0 8px 24px rgba(147, 51, 234, 0.15); border-color: rgba(147, 51, 234, 0.2); }
+        .g-green  { box-shadow: 0 8px 24px rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.2); }
+        .g-orange { box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12); border-color: rgba(249, 115, 22, 0.2); }
+        .g-teal   { box-shadow: 0 8px 24px rgba(20, 184, 166, 0.12); border-color: rgba(20, 184, 166, 0.2); }
+        .g-gold   { box-shadow: 0 8px 24px rgba(234, 179, 8, 0.12); border-color: rgba(234, 179, 8, 0.2); }
+
+        /* Icon styling */
+        .wh-icon { 
+            width: 48px; height: 48px; border-radius: 16px; 
+            display: flex; align-items: center; justify-content: center; 
+            margin-bottom: 16px; position: relative;
         }
-        .wh-card:active { transform: scale(0.96); }
-
-        /* Per-card GLOW (силен, както беше) */
-        .g-indigo { box-shadow: 0 8px 32px rgba(99,102,241,0.22), 0 0 0 1px rgba(99,102,241,0.18) inset; }
-        .g-purple { box-shadow: 0 8px 32px rgba(139,92,246,0.22), 0 0 0 1px rgba(139,92,246,0.18) inset; }
-        .g-green  { box-shadow: 0 8px 32px rgba(16,185,129,0.20), 0 0 0 1px rgba(16,185,129,0.18) inset; }
-        .g-orange { box-shadow: 0 8px 32px rgba(249,115,22,0.20), 0 0 0 1px rgba(249,115,22,0.18) inset; }
-        .g-teal   { box-shadow: 0 8px 32px rgba(6,182,212,0.20),  0 0 0 1px rgba(6,182,212,0.18) inset; }
-        .g-gold   { box-shadow: 0 8px 32px rgba(251,191,36,0.18), 0 0 0 1px rgba(251,191,36,0.15) inset; }
-
-        /* Icon with GLOW */
-        .wh-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-        .wh-icon svg { width: 24px; height: 24px; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-        .i-indigo { background: rgba(99,102,241,0.22);  box-shadow: 0 0 20px rgba(99,102,241,0.50); }
+        .wh-icon svg { width: 24px; height: 24px; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+        
+        .i-indigo { background: rgba(79, 70, 229, 0.2); box-shadow: 0 0 15px rgba(79, 70, 229, 0.4); }
         .i-indigo svg { stroke: #a5b4fc; }
-        .i-purple { background: rgba(139,92,246,0.22);  box-shadow: 0 0 20px rgba(139,92,246,0.50); }
+        .i-purple { background: rgba(147, 51, 234, 0.2); box-shadow: 0 0 15px rgba(147, 51, 234, 0.4); }
         .i-purple svg { stroke: #c4b5fd; }
-        .i-green  { background: rgba(16,185,129,0.20);  box-shadow: 0 0 20px rgba(16,185,129,0.50); }
-        .i-green svg  { stroke: #6ee7b7; }
-        .i-orange { background: rgba(249,115,22,0.20);  box-shadow: 0 0 20px rgba(249,115,22,0.50); }
+        .i-green  { background: rgba(34, 197, 94, 0.2); box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+        .i-green svg  { stroke: #86efac; }
+        .i-orange { background: rgba(249, 115, 22, 0.2); box-shadow: 0 0 15px rgba(249, 115, 22, 0.4); }
         .i-orange svg { stroke: #fdba74; }
-        .i-teal   { background: rgba(6,182,212,0.20);   box-shadow: 0 0 20px rgba(6,182,212,0.50); }
-        .i-teal svg   { stroke: #67e8f9; }
-        .i-gold   { background: rgba(251,191,36,0.18);  box-shadow: 0 0 20px rgba(251,191,36,0.45); }
-        .i-gold svg   { stroke: #fde68a; }
+        .i-teal   { background: rgba(20, 184, 166, 0.2); box-shadow: 0 0 15px rgba(20, 184, 166, 0.4); }
+        .i-teal svg   { stroke: #5eead4; }
+        .i-gold   { background: rgba(234, 179, 8, 0.2); box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+        .i-gold svg   { stroke: #fde047; }
 
         /* Labels */
-        .wh-label { font-size: 15px; font-weight: 800; color: #f9fafb; letter-spacing: -0.01em; line-height: 1.2; }
-        .wh-sub { font-size: 11px; font-weight: 500; color: rgba(156,163,175,0.80); margin-top: 5px; }
+        .wh-label { font-size: 15px; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em; }
+        .wh-sub { font-size: 12px; font-weight: 500; color: #6b7280; margin-top: 4px; }
         .wh-sub.danger { color: #f87171; font-weight: 700; }
 
         /* Badge */
-        .wh-badge { position: absolute; top: 14px; right: 14px; min-width: 24px; height: 24px; border-radius: 12px; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 7px; color: #fff; }
-        .b-red    { background: #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.70); }
-        .b-amber  { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.70); }
-        .b-indigo { background: #6366f1; box-shadow: 0 0 12px rgba(99,102,241,0.70); }
+        .wh-badge { 
+            position: absolute; top: 12px; right: 12px; 
+            min-width: 22px; height: 22px; border-radius: 11px; 
+            font-size: 10px; font-weight: 800; display: flex; 
+            align-items: center; justify-content: center; 
+            padding: 0 6px; color: #fff; z-index: 2;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .b-red     { background: #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+        .b-amber   { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.5); }
+        .b-indigo  { background: #6366f1; box-shadow: 0 0 12px rgba(99,102,241,0.5); }
 
-        /* ── Stats section under cards ── */
-        .stats-row { display: flex; justify-content: space-around; padding: 8px 0; }
+        /* Stats Section */
+        .stats-row { display: flex; justify-content: space-around; padding: 12px 0; background: rgba(255,255,255,0.02); border-radius: 20px; margin-top: 10px; }
         .stat-item { text-align: center; }
-        .stat-num { font-size: 1.3rem; font-weight: 800; color: #c7d2fe; font-family: Nacelle, Inter, sans-serif; }
-        .stat-lbl { font-size: 0.6rem; color: rgba(165,180,252,0.65); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .stat-num { font-size: 18px; font-weight: 800; color: #c7d2fe; }
+        .stat-lbl { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
-        /* ── BOTTOM NAV (С17 унифициран) ── */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(11,15,26,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(99,102,241,0.15); display: flex; height: 56px; }
-        .bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; color: rgba(165,180,252,0.65); text-decoration: none; transition: color 0.2s; }
-        .bnav-tab.active { color: #818cf8; text-shadow: 0 0 12px rgba(99,102,241,0.8); }
-        .bnav-tab .bnav-icon { font-size: 1.2rem; }
+        /* ── BOTTOM NAV (Идентичен с чата) ── */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; 
+            background: rgba(11,15,26,0.92); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
+            border-top: 1px solid rgba(99,102,241,0.25); 
+            display: flex; height: var(--nav-h); 
+            box-shadow: 0 -5px 25px rgba(99,102,241,0.2);
+        }
+        .bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: 600; color: rgba(165,180,252,0.5); text-decoration: none; transition: all 0.3s; }
+        .bnav-tab.active { color: #c7d2fe; text-shadow: 0 0 12px rgba(129,140,248,0.9); }
+        .bnav-tab .bnav-icon { font-size: 1.3rem; transition: all 0.3s; }
+        .bnav-tab.active .bnav-icon { transform: translateY(-2px); filter: drop-shadow(0 0 8px rgba(129,140,248,0.8)); }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
     </style>
 </head>
 <body>
@@ -166,7 +192,6 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         <h1 class="page-title">Склад</h1>
     </div>
 
-    <!-- Синя лента разделител -->
     <div class="indigo-sep"></div>
 
     <?php if ($low_stock_count > 0): ?>
@@ -175,7 +200,6 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         <span class="alert-text"><?= $low_stock_count ?> <?= $low_stock_count === 1 ? 'артикул' : 'артикула' ?> под минимална наличност</span>
         <span class="alert-arr">›</span>
     </a>
-    <div class="indigo-sep"></div>
     <?php endif; ?>
 
     <div class="wh-grid">
@@ -185,12 +209,14 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             <div class="wh-label">Артикули</div>
             <div class="wh-sub <?= $low_stock_count > 0 ? 'danger' : '' ?>"><?= $low_stock_count > 0 ? $low_stock_count . ' под минимум' : $product_count . ' активни' ?></div>
         </a>
+
         <a href="transfers.php" class="wh-card g-purple">
             <?php if ($pending_transfers > 0): ?><div class="wh-badge b-amber"><?= $pending_transfers ?></div><?php endif; ?>
             <div class="wh-icon i-purple"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m15 7 5 5-5 5"/><path d="m9 7-5 5 5 5"/></svg></div>
             <div class="wh-label">Трансфери</div>
             <div class="wh-sub"><?= $pending_transfers > 0 ? $pending_transfers . ' чакащи' : 'Между обекти' ?></div>
         </a>
+
         <?php if (!$is_seller): ?>
         <a href="deliveries.php" class="wh-card g-green">
             <?php if ($pending_deliveries > 0): ?><div class="wh-badge b-indigo"><?= $pending_deliveries ?></div><?php endif; ?>
@@ -198,17 +224,20 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             <div class="wh-label">Доставки</div>
             <div class="wh-sub"><?= $pending_deliveries > 0 ? $pending_deliveries . ' чакащи' : 'Получени стоки' ?></div>
         </a>
+
         <a href="suppliers.php" class="wh-card g-orange">
             <div class="wh-icon i-orange"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
             <div class="wh-label">Доставчици</div>
             <div class="wh-sub"><?= $supplier_count ?> активни</div>
         </a>
+
         <a href="inventory.php" class="wh-card g-teal">
             <?php if ($active_inventory > 0): ?><div class="wh-badge b-amber"><?= $active_inventory ?></div><?php endif; ?>
             <div class="wh-icon i-teal"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
             <div class="wh-label">Инвентаризация</div>
             <div class="wh-sub"><?= $active_inventory > 0 ? $active_inventory . ' в ход' : 'Броене по артикул' ?></div>
         </a>
+
         <a href="revision.php" class="wh-card g-gold">
             <div class="wh-icon i-gold"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div class="wh-label">Ревизия</div>
@@ -217,7 +246,6 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         <?php endif; ?>
     </div>
 
-    <!-- Синя лента + бързи статистики -->
     <div class="indigo-sep"></div>
     <div class="stats-row">
         <div class="stat-item"><div class="stat-num"><?= $product_count ?></div><div class="stat-lbl">Артикули</div></div>
