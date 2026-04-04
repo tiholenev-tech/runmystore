@@ -243,6 +243,14 @@ async function processInput(text){
 
     // ── ФАЗА 1-3: AI ИНТЕРВЮ ──
     case 'interview':
+      userMsgCount++;
+      if(userMsgCount>=MAX_USER_MSGS){
+        aiSay('Хайде да продължим напред! Имам достатъчно информация.');
+        S.name=S.name||'Приятел';S.biz=S.biz||'магазин';S.segment=S.segment||'среден клас';S.stores=S.stores||'1';
+        showInput();inputLocked=false;
+        await wait(1500);S.phase='wow_generate';await generateWow();
+        break;
+      }
       inputLocked=true;
       chatHistory.push({role:'user',content:text});
       showTyping();hideInput();
