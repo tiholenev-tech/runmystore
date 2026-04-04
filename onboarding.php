@@ -193,6 +193,8 @@ function scrollBot(){chatArea.scrollTop=chatArea.scrollHeight}
 function showTyping(){typing.style.display='block';scrollBot()}
 function hideTyping(){typing.style.display='none'}
 function aiSay(text,isWow){
+  // Safety: if text is raw JSON, extract message
+  if(typeof text==='string'&&text.trim().charAt(0)==='{'){try{var j=JSON.parse(text);if(j.message)text=j.message}catch(e){var m=text.match(/"message"\s*:\s*"([^"]+)"/);if(m)text=m[1]}}
   hideActs();var g=document.createElement('div');g.className='msg-g';
   g.innerHTML='<div class="msg-meta"><div class="ai-ava"><div class="ai-bars"><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div><div class="ai-bar"></div></div></div>AI Асистент</div><div class="msg ai'+(isWow?' wow':'')+'">'+bold(esc(text)).replace(/\n/g,'<br>')+'</div>';
   chatArea.insertBefore(g,typing);scrollBot();
