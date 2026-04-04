@@ -644,7 +644,32 @@ if ($sup_id && $cat_id && $screen === 'products') {
         /* Voice overlay */
         .voice-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(11,15,26,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; flex-direction: column; align-items: center; justify-content: center; }
         .voice-overlay.open { display: flex; }
-
+        /* ====== AI Voice Overlay (Module A) ====== */
+        .rec-ov{position:fixed;inset:0;background:rgba(3,7,18,.5);z-index:400;display:none;align-items:flex-end;justify-content:center;padding:0 16px 24px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+        .rec-ov.show{display:flex}
+        .rec-box{width:100%;max-width:420px;background:rgba(17,24,39,.95);border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:recFadeUp .3s ease both;max-height:70vh;display:flex;flex-direction:column}
+        .rec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-shrink:0}
+        .rec-dot{width:10px;height:10px;border-radius:50%;background:#6366f1;box-shadow:0 0 12px rgba(99,102,241,0.6);flex-shrink:0;transition:background .3s,box-shadow .3s}
+        .rec-dot.recording{background:#ef4444;box-shadow:0 0 12px #ef4444;animation:recPulse 1.5s ease-out infinite}
+        .rec-dot.done{background:#22c55e;box-shadow:0 0 12px #22c55e;animation:none}
+        .rec-label{font-size:14px;font-weight:700;color:#a5b4fc;flex:1}
+        .rec-x{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#9ca3af;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .rec-chat{flex:1;overflow-y:auto;margin-bottom:12px;max-height:40vh;min-height:0;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.3) transparent}
+        .rec-msg{padding:10px 12px;border-radius:12px;margin-bottom:8px;font-size:.8rem;line-height:1.5;max-width:88%;word-break:break-word}
+        .rec-msg.user{background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.2);color:#e5e7eb;margin-left:auto;text-align:right}
+        .rec-msg.ai{background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1);color:#e5e7eb}
+        .rec-msg.ai.thinking{color:rgba(165,180,252,0.6);font-style:italic}
+        .rec-transcript{min-height:44px;max-height:100px;overflow-y:auto;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(99,102,241,.15);border-radius:12px;color:#e5e7eb;font-size:14px;line-height:1.5;font-family:inherit;outline:none;margin-bottom:10px;word-break:break-word;flex-shrink:0}
+        .rec-transcript:focus{border-color:rgba(99,102,241,.35);box-shadow:0 0 12px rgba(99,102,241,0.1)}
+        .rec-transcript:empty::before{content:attr(placeholder);color:rgba(165,180,252,.3);pointer-events:none}
+        .rec-foot{display:flex;gap:8px;flex-shrink:0}
+        .rec-mic{width:44px;height:44px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,.1);color:#9ca3af;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+        .rec-mic.active{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.35);color:#ef4444;animation:recMicPulse 1.5s ease-out infinite}
+        @keyframes recMicPulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px rgba(239,68,68,0.3)}}
+        .rec-send{flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(99,102,241,.35);transition:opacity .2s}
+        .rec-send:disabled{opacity:.4;cursor:default}
+        @keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}70%{box-shadow:0 0 0 18px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+        @keyframes recFadeUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
         /* Modal, wizard, forms, sort, filter, pagination, toast, skeleton, etc */
         .modal-overlay { position: fixed; inset: 0; background: var(--bg-main); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; }
         .modal-overlay.open { opacity: 1; pointer-events: auto; }
