@@ -159,6 +159,8 @@ var voiceRec=null,isRec=false;
 var chatArea=document.getElementById('chatArea'),typing=document.getElementById('typing');
 var actWrap=document.getElementById('actWrap'),actRow=document.getElementById('actRow');
 var inputLocked=false;
+var userMsgCount=0;
+var MAX_USER_MSGS=30;
 
 var wowItems=[];
 var featItems=[
