@@ -95,8 +95,30 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .brief-close:active { background: rgba(255,255,255,.15); color: #fff; }
 .brief-loading { font-size: 13px; font-weight: 600; color: #818cf8; padding: 10px 0; display: flex; align-items: center; gap: 8px; }
 
-/* ── CHAT AREA ── */
-.chat-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 16px 20px; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; scrollbar-width: none; position: relative; z-index: 1; }
+/* ── CHAT AREA (НОВ ИЗОЛИРАН ДИЗАЙН С ОРНАМЕНТИ) ── */
+.chat-area { 
+    flex: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden; 
+    padding: 16px; 
+    display: flex; 
+    flex-direction: column; 
+    -webkit-overflow-scrolling: touch; 
+    scrollbar-width: none; 
+    position: relative; 
+    z-index: 1;
+    
+    /* Отделяне на чата от общия фон (за да не се слива) */
+    margin: 4px 12px 12px;
+    background-color: #0e1322;
+    border-radius: 24px;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    box-shadow: inset 0 8px 30px rgba(0,0,0,0.5), 0 4px 15px rgba(0,0,0,0.2);
+    
+    /* Фин минималистичен WhatsApp-like патърн с орнаменти */
+    background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%238b5cf6' stroke-opacity='0.04' stroke-width='1.5'%3E%3Cpath d='M20,20 Q25,10 30,20 T40,20' /%3E%3Ccircle cx='90' cy='30' r='5' /%3E%3Cpath d='M20,90 L30,100 L20,110' /%3E%3Crect x='80' y='85' width='12' height='12' rx='3' /%3E%3Cpath d='M60,60 L68,52 M60,52 L68,60' /%3E%3Ccircle cx='70' cy='15' r='1.5' fill='%236366f1' fill-opacity='0.05' stroke='none' /%3E%3Ccircle cx='15' cy='70' r='2' fill='%236366f1' fill-opacity='0.05' stroke='none' /%3E%3C/g%3E%3C/svg%3E");
+    background-attachment: local;
+}
 .chat-area::-webkit-scrollbar { display: none; }
 .msg-group { margin-bottom: 16px; animation: fadeUp .3s ease both; }
 .msg-meta { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
@@ -108,27 +130,27 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .ai-ava-bar:nth-child(2) { height: 9px; animation-delay: .15s; }
 .ai-ava-bar:nth-child(3) { height: 12px; animation-delay: .3s; }
 .ai-ava-bar:nth-child(4) { height: 6px; animation-delay: .45s; }
-.msg { max-width: 88%; padding: 12px 16px; font-size: 14px; line-height: 1.5; word-break: break-word; }
-.msg.ai { background: rgba(30,35,55,.6); backdrop-filter: blur(12px); border: 1px solid rgba(99,102,241,.2); border-left: 3px solid #6366f1; color: #e2e8f0; border-radius: 4px 16px 16px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-.msg.user { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border-radius: 16px 16px 4px 16px; margin-left: auto; box-shadow: 0 8px 24px rgba(99,102,241,0.3), inset 0 1px 1px rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.1); }
+.msg { max-width: 88%; padding: 12px 16px; font-size: 14px; line-height: 1.5; word-break: break-word; position: relative; z-index: 2; }
+.msg.ai { background: rgba(30,35,55,.8); backdrop-filter: blur(12px); border: 1px solid rgba(99,102,241,.2); border-left: 3px solid #6366f1; color: #e2e8f0; border-radius: 4px 16px 16px 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.msg.user { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border-radius: 16px 16px 4px 16px; margin-left: auto; box-shadow: 0 6px 20px rgba(99,102,241,0.2), inset 0 1px 1px rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.1); }
 .msg a.deeplink { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(0,0,0,.3); border: 1px solid rgba(99,102,241,.4); border-radius: 8px; color: #c7d2fe; font-size: 12px; font-weight: 800; text-decoration: none; margin: 8px 2px 0; transition: all .2s; }
 .msg a.deeplink:active { background: #6366f1; color: #fff; border-color: #8b5cf6; }
-.typing-wrap { display: none; padding: 12px 16px; background: rgba(30,35,55,.6); border: 1px solid rgba(99,102,241,.2); border-left: 3px solid #6366f1; border-radius: 4px 16px 16px 16px; width: fit-content; margin-bottom: 10px; }
+.typing-wrap { display: none; padding: 12px 16px; background: rgba(30,35,55,.8); border: 1px solid rgba(99,102,241,.2); border-left: 3px solid #6366f1; border-radius: 4px 16px 16px 16px; width: fit-content; margin-bottom: 10px; position: relative; z-index: 2; }
 .typing-dots { display: flex; gap: 5px; align-items: center; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6; animation: bounce 1.2s infinite; box-shadow: 0 0 8px #8b5cf6; }
 .dot:nth-child(2) { animation-delay: .2s; }
 .dot:nth-child(3) { animation-delay: .4s; }
-.welcome { text-align: center; padding: 40px 20px 20px; color: #9ca3af; font-size: 14px; }
+.welcome { text-align: center; padding: 40px 20px 20px; color: #9ca3af; font-size: 14px; position: relative; z-index: 2; }
 .welcome-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; color: #fff; text-shadow: 0 4px 20px rgba(99,102,241,0.5); }
 
 /* ── QUICK COMMANDS ── */
-.quick-wrap { padding: 8px 16px 4px; flex-shrink: 0; position: relative; z-index: 1; }
+.quick-wrap { padding: 4px 16px 4px; flex-shrink: 0; position: relative; z-index: 1; margin-top: 4px; }
 .quick-row { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .quick-row::-webkit-scrollbar { display: none; }
 .quick-btn { flex-shrink: 0; padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 800; border: 1px solid rgba(99,102,241,.3); color: #c7d2fe; background: rgba(15,20,35,0.8); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all .2s; }
 .quick-btn:active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-color: transparent; transform: translateY(2px); }
 
-/* ── INPUT AREA (FLOATING APP STYLE) ── */
+/* ── INPUT AREA ── */
 .input-area { background: transparent; padding: 0 16px 16px; flex-shrink: 0; position: relative; z-index: 10; }
 .input-row { display: flex; gap: 10px; align-items: flex-end; background: rgba(15,20,35,.85); backdrop-filter: blur(20px); border: 1px solid rgba(99,102,241,.3); border-radius: 24px; padding: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05); }
 .text-input { flex: 1; background: transparent; border: none; color: #fff; font-size: 15px; padding: 12px 8px 12px 16px; font-family: inherit; outline: none; resize: none; max-height: 100px; line-height: 1.4; }
@@ -191,9 +213,6 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
 .bnav-tab .bnav-icon { font-size: 20px; transition: transform 0.3s; filter: grayscale(100%) opacity(0.6); }
 .bnav-tab.active .bnav-icon { transform: translateY(-2px); filter: grayscale(0%) opacity(1); text-shadow: 0 4px 15px rgba(99,102,241,0.8); }
 
-/* ── Indigo line separators (Скриваме ги, за да е по-чисто, или ги правим много фини) ── */
-.indigo-sep { display: none; }
-
 /* ── TOAST ── */
 .toast { position: fixed; bottom: calc(var(--nav-h) + 20px); left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15,20,35,0.95); border: 1px solid rgba(99,102,241,.4); color: #fff; padding: 12px 24px; border-radius: 20px; font-size: 14px; font-weight: 800; z-index: 500; opacity: 0; transition: all .4s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; white-space: nowrap; box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(99,102,241,0.2); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -230,7 +249,6 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
     <div class="tab active">✦ AI Асистент</div>
     <a class="tab" href="store-chat.php">Чат Обекти<?php if ($unread_count > 0): ?><span class="tab-badge"><?= $unread_count ?></span><?php endif; ?></a>
   </div>
-  <div class="indigo-sep"></div>
 </div>
 
 <div class="brief-area" id="briefArea">
@@ -267,8 +285,6 @@ body { background: #0b0f1a; color: #e2e8f0; font-family: Inter, sans-serif; heig
     <?php endforeach; ?>
   </div>
 </div>
-
-<div class="indigo-sep"></div>
 
 <div class="input-area">
   <div class="input-row">
