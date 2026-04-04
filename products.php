@@ -1138,7 +1138,7 @@ if ($sup_id && $cat_id && $screen === 'products') {
         aiVoiceRec = new SR();
         aiVoiceRec.lang = 'bg-BG';
         aiVoiceRec.interimResults = true;
-        aiVoiceRec.continuous = true;
+        aiVoiceRec.continuous = false;
 
         aiVoiceRec.onresult = function(e) {
             var finalText = '', interimText = '';
