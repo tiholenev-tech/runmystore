@@ -523,8 +523,22 @@ if ($action === 'onboarding') {
     if ($result && isset($result['message'])) {
         echo json_encode($result);
     } else {
+        // Strip JSON artifacts and markdown fences
         $clean = trim(preg_replace('/```json\s*|\s*```/', '', $text));
-        echo json_encode(['message' => $clean ?: 'Какво продаваш в твоя магазин?', 'phase' => 1]);
+        // If still looks like JSON but failed parse — extract readable text
+        if (preg_match('/^[\s]*\{/', $clean)) {
+            // Try to pull "message" value via regex
+            if (preg_match('/"message"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/u', $clean, $msgMatch)) {
+                $clean = stripcslashes($msgMatch[1]);
+            } else {
+                // Strip all JSON syntax, keep readable text
+                $clean = preg_replace('/[{}\[\]"]+/', '', $clean);
+                $clean = preg_replace('/\b(message|phase|data|name|biz|segment|stores)\s*:/i', '', $clean);
+                $clean = trim(preg_replace('/\s{2,}/', ' ', $clean));
+            }
+        }
+        if (!$clean) $clean = 'Какво продаваш в твоя магазин?';
+        echo json_encode(['message' => $clean, 'phase' => 1]);
     }
     exit;
 }
