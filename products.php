@@ -1083,10 +1083,167 @@ if ($sup_id && $cat_id && $screen === 'products') {
     ['detail','ai','filter'].forEach(n=>{const d=document.getElementById(n+'Drawer');if(!d)return;let sy=0,cy=0,drag=false;d.addEventListener('touchstart',e=>{if(e.target.closest('.drawer-body')?.scrollTop>0)return;sy=e.touches[0].clientY;drag=true;},{passive:true});d.addEventListener('touchmove',e=>{if(!drag)return;cy=e.touches[0].clientY-sy;if(cy>0)d.style.transform=`translateY(${cy}px)`;},{passive:true});d.addEventListener('touchend',()=>{if(!drag)return;drag=false;if(cy>100)closeDrawer(n);d.style.transform='';cy=0;});});
 
     // ============================================================
-    // AI ASSIST
+    // AI VOICE OVERLAY (Module A)
     // ============================================================
-    function openAIAssist(){openDrawer('aiAssist');}
-    async function askAI(){const inp=document.getElementById('aiAssistQ');const q=inp.value.trim();if(!q)return;inp.value='';const chat=document.getElementById('aiAssistChat');chat.innerHTML+=`<div class="ai-assist-msg user">${escHTML(q)}</div>`;chat.innerHTML+=`<div class="ai-assist-msg ai" id="aiTyping">✦ Мисля...</div>`;chat.scrollTop=chat.scrollHeight;const d=await fetchJSON('products.php?ajax=ai_assist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});const typing=document.getElementById('aiTyping');if(d?.response){typing.textContent=d.response;typing.id='';}else{typing.textContent='Не успях да отговоря.';typing.id='';}chat.scrollTop=chat.scrollHeight;}
+    var aiVoiceRec = null;
+    var aiIsRec = false;
+
+    function openAIAssist() {
+        var overlay = document.getElementById('recOverlay');
+        var chat = document.getElementById('recChat');
+        var transcript = document.getElementById('recTranscript');
+        var dot = document.getElementById('recDot');
+        var label = document.getElementById('recLabel');
+        var sendBtn = document.getElementById('recSendBtn');
+
+        overlay.classList.add('show');
+        chat.innerHTML = '';
+        transcript.innerText = '';
+        dot.className = 'rec-dot';
+        label.textContent = '✦ AI Помощник';
+        sendBtn.disabled = false;
+        document.body.style.overflow = 'hidden';
+
+        // Авто-старт voice след кратка пауза
+        setTimeout(function() { toggleAIVoice(); }, 400);
+    }
+
+    function closeAIOverlay() {
+        stopAIVoice();
+        document.getElementById('recOverlay').classList.remove('show');
+        document.body.style.overflow = '';
+        // Restore chat visibility (за съвместимост с wizard mode)
+        var chatEl = document.getElementById('recChat');
+        if (chatEl) chatEl.style.display = '';
+        var sendBtn = document.getElementById('recSendBtn');
+        if (sendBtn) sendBtn.onclick = function() { sendAIText(); };
+    }
+
+    function toggleAIVoice() {
+        if (aiIsRec) { stopAIVoice(); return; }
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { showToast('Гласовото въвеждане не е поддържано', 'error'); return; }
+
+        aiIsRec = true;
+        var micBtn = document.getElementById('recMic');
+        var dot = document.getElementById('recDot');
+        var label = document.getElementById('recLabel');
+        var transcript = document.getElementById('recTranscript');
+
+        micBtn.classList.add('active');
+        dot.className = 'rec-dot recording';
+        label.textContent = 'Слушам...';
+        transcript.innerText = '';
+
+        aiVoiceRec = new SR();
+        aiVoiceRec.lang = 'bg-BG';
+        aiVoiceRec.interimResults = true;
+        aiVoiceRec.continuous = true;
+
+        aiVoiceRec.onresult = function(e) {
+            var finalText = '', interimText = '';
+            for (var i = 0; i < e.results.length; i++) {
+                if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+                else interimText += e.results[i][0].transcript;
+            }
+            // ВАЖНО: innerText, НИКОГА innerHTML
+            transcript.innerText = finalText + (interimText ? ' ' + interimText : '');
+            if (interimText) label.textContent = 'Слушам...';
+            else if (finalText.trim()) label.textContent = 'Готово — редактирай или изпрати';
+        };
+
+        aiVoiceRec.onerror = function(e) { console.log('AI voice error:', e.error); stopAIVoice(); };
+
+        aiVoiceRec.onend = function() {
+            if (aiIsRec) {
+                dot.className = 'rec-dot done';
+                label.textContent = 'Готово — редактирай или изпрати';
+                aiIsRec = false;
+                micBtn.classList.remove('active');
+            }
+        };
+
+        try { aiVoiceRec.start(); } catch(e) { console.log('AI voice start error:', e); stopAIVoice(); }
+    }
+
+    function stopAIVoice() {
+        aiIsRec = false;
+        if (aiVoiceRec) { try { aiVoiceRec.stop(); } catch(e) {} aiVoiceRec = null; }
+        var micBtn = document.getElementById('recMic');
+        var dot = document.getElementById('recDot');
+        if (micBtn) micBtn.classList.remove('active');
+        if (dot) dot.className = 'rec-dot';
+    }
+
+    function sendAIText() {
+        var transcript = document.getElementById('recTranscript');
+        var txt = transcript.innerText.trim();
+        if (!txt) return;
+        stopAIVoice();
+
+        var chat = document.getElementById('recChat');
+        var label = document.getElementById('recLabel');
+        var sendBtn = document.getElementById('recSendBtn');
+
+        // Покажи въпроса
+        var userDiv = document.createElement('div');
+        userDiv.className = 'rec-msg user';
+        userDiv.textContent = txt;
+        chat.appendChild(userDiv);
+
+        // Изчисти
+        transcript.innerText = '';
+
+        // Покажи "мисля..."
+        var thinkDiv = document.createElement('div');
+        thinkDiv.className = 'rec-msg ai thinking';
+        thinkDiv.textContent = '✦ Мисля...';
+        chat.appendChild(thinkDiv);
+        chat.scrollTop = chat.scrollHeight;
+
+        label.textContent = '✦ Обработвам...';
+        sendBtn.disabled = true;
+
+        // POST към AI
+        fetch('products.php?ajax=ai_assist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: txt })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            thinkDiv.className = 'rec-msg ai';
+            thinkDiv.textContent = d.response || 'Не успях да отговоря.';
+            label.textContent = '✦ AI Помощник';
+            sendBtn.disabled = false;
+            chat.scrollTop = chat.scrollHeight;
+        })
+        .catch(function(err) {
+            console.error('AI assist error:', err);
+            thinkDiv.className = 'rec-msg ai';
+            thinkDiv.textContent = 'Грешка при свързване.';
+            label.textContent = '✦ AI Помощник';
+            sendBtn.disabled = false;
+            chat.scrollTop = chat.scrollHeight;
+        });
+    }
+
+    // Enter за изпращане, focus спира записа
+    (function() {
+        var el = document.getElementById('recTranscript');
+        if (el) {
+            el.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIText(); }
+            });
+            el.addEventListener('focus', function() {
+                if (aiIsRec) {
+                    stopAIVoice();
+                    document.getElementById('recDot').className = 'rec-dot done';
+                    document.getElementById('recLabel').textContent = 'Готово — редактирай или изпрати';
+                }
+            });
+        }
+    })();
 
     // ============================================================
     // INFO OVERLAY
