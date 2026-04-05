@@ -1023,4 +1023,4 @@ body::before{
                 </div>
             </div>
 
-            <?php if ($role === 'owner' &&
+            <?php if ($role === 'owner' && $anomaly_discounts): ?>
