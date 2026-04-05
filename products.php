@@ -1568,6 +1568,310 @@ if ($sup_id && $cat_id && $screen === 'products') {
     // ============================================================
     function loadCurrentScreen(){switch(STATE.screen){case'home':loadHomeScreen();break;case'suppliers':loadSuppliers();break;case'categories':loadCategories();break;case'products':loadProductsList();break;}}
     document.addEventListener('click',e=>{if(!e.target.closest('[onclick*="toggleSort"]')&&!e.target.closest('.sort-dropdown'))document.getElementById('sortDropdown')?.classList.remove('open');});
+    /**
+ * PRODUCTS.PHP — AI WIZARD PATCH (Сесия 22)
+ * 
+ * ИНСТРУКЦИИ ЗА ИНТЕГРАЦИЯ:
+ * 
+ * СТЪПКА 1: Намери в HTML секцията (ред ~680):
+ *   onclick="openAddModal()"
+ * Замени с:
+ *   onclick="openAIWizard()"
+ * 
+ * СТЪПКА 2: Добави целия JS код по-долу в <script> секцията,
+ *           ПРЕДИ последния ред "document.addEventListener('DOMContentLoaded',loadCurrentScreen);"
+ * 
+ * СТЪПКА 3: Готово. "Добави" бутонът сега отваря AI чат вместо wizard.
+ */
+
+// ============================================================
+// AI WIZARD MODE — замества 6-стъпков wizard
+// ============================================================
+var wizardMode = false;
+var wizardConversation = [];
+var wizardCollected = {};
+var wizardImageType = null;
+var wizardBusinessType = ''; // от tenants.business_type
+
+// Зареди business_type при старт
+(function loadBusinessType() {
+    fetch('ai-wizard.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'get_biz_type'})
+    }).catch(function(){});
+    // Fallback: опитваме от meta tag или оставяме празно
+    var meta = document.querySelector('meta[name="business-type"]');
+    if (meta) wizardBusinessType = meta.content;
+})();
+
+function openAIWizard() {
+    wizardMode = true;
+    wizardConversation = [];
+    wizardCollected = {};
+    wizardImageType = null;
+
+    var overlay = document.getElementById('recOverlay');
+    var chat = document.getElementById('recChat');
+    var transcript = document.getElementById('recTranscript');
+    var dot = document.getElementById('recDot');
+    var label = document.getElementById('recLabel');
+    var sendBtn = document.getElementById('recSendBtn');
+
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    // Заглавие
+    label.textContent = '✦ Добави артикул';
+    dot.className = 'rec-dot';
+    transcript.innerText = '';
+    sendBtn.disabled = false;
+
+    // Смени send бутона да ползва wizard
+    sendBtn.onclick = function() { sendWizardText(); };
+
+    // Начално AI съобщение
+    chat.innerHTML = '';
+    var aiDiv = document.createElement('div');
+    aiDiv.className = 'rec-msg ai';
+    aiDiv.textContent = 'Какво добавяме? Кажи или снимай.';
+    chat.appendChild(aiDiv);
+
+    // Добави бутон за снимка
+    var photoDiv = document.createElement('div');
+    photoDiv.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:8px;margin-bottom:8px;';
+    photoDiv.innerHTML = '<button onclick="wizardTakePhoto()" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;font-size:0.8rem;cursor:pointer;font-family:inherit;">📷 Снимай</button>';
+    chat.appendChild(photoDiv);
+
+    chat.scrollTop = chat.scrollHeight;
+
+    // Авто-старт voice
+    setTimeout(function() { toggleAIVoice(); }, 400);
+}
+
+function closeAIWizard() {
+    wizardMode = false;
+    closeAIOverlay();
+    // Върни send бутона към оригиналния
+    var sendBtn = document.getElementById('recSendBtn');
+    if (sendBtn) sendBtn.onclick = function() { sendAIText(); };
+}
+
+function wizardTakePhoto() {
+    stopAIVoice();
+    document.getElementById('wizardPhotoInput').click();
+}
+
+function sendWizardText() {
+    var transcript = document.getElementById('recTranscript');
+    var txt = transcript.innerText.trim();
+    if (!txt) return;
+    stopAIVoice();
+
+    var chat = document.getElementById('recChat');
+    var label = document.getElementById('recLabel');
+    var sendBtn = document.getElementById('recSendBtn');
+
+    // Покажи въпроса на потребителя
+    var userDiv = document.createElement('div');
+    userDiv.className = 'rec-msg user';
+    userDiv.textContent = txt;
+    chat.appendChild(userDiv);
+    transcript.innerText = '';
+
+    // Добави в conversation
+    wizardConversation.push({role: 'user', text: txt});
+
+    // Покажи "мисля..."
+    var thinkDiv = document.createElement('div');
+    thinkDiv.className = 'rec-msg ai thinking';
+    thinkDiv.textContent = '✦ Мисля...';
+    chat.appendChild(thinkDiv);
+    chat.scrollTop = chat.scrollHeight;
+
+    label.textContent = '✦ Обработвам...';
+    sendBtn.disabled = true;
+
+    // POST към ai-wizard.php
+    fetch('ai-wizard.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            business_type: wizardBusinessType,
+            image_base64: null,
+            image_type: wizardImageType,
+            conversation: wizardConversation,
+            collected: wizardCollected
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        // Обнови collected
+        if (d.collected) wizardCollected = d.collected;
+        if (d.image_type) wizardImageType = d.image_type;
+
+        // Покажи AI отговора
+        thinkDiv.className = 'rec-msg ai';
+        thinkDiv.textContent = d.message || 'Какво добавяме?';
+        wizardConversation.push({role: 'ai', text: d.message || ''});
+
+        label.textContent = '✦ Добави артикул';
+        sendBtn.disabled = false;
+
+        // Ако done → запиши
+        if (d.done) {
+            handleWizardDone(d);
+        } else {
+            // Авто-старт voice за следващия отговор
+            setTimeout(function() { toggleAIVoice(); }, 500);
+        }
+
+        chat.scrollTop = chat.scrollHeight;
+    })
+    .catch(function(err) {
+        console.error('Wizard error:', err);
+        thinkDiv.className = 'rec-msg ai';
+        thinkDiv.textContent = 'Грешка. Опитай пак.';
+        label.textContent = '✦ Добави артикул';
+        sendBtn.disabled = false;
+    });
+}
+
+function handleWizardDone(d) {
+    var chat = document.getElementById('recChat');
+    var c = d.collected || {};
+
+    // Покажи бутон за потвърждение
+    var btnsDiv = document.createElement('div');
+    btnsDiv.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:8px;';
+
+    var saveBtn = document.createElement('button');
+    saveBtn.textContent = '✓ Записвам';
+    saveBtn.style.cssText = 'padding:10px 20px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(34,197,94,0.3);';
+    saveBtn.onclick = function() {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Записвам...';
+        doWizardSave(d);
+    };
+    btnsDiv.appendChild(saveBtn);
+    chat.appendChild(btnsDiv);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function doWizardSave(d) {
+    var c = d.collected || {};
+    var payload = {
+        name: c.name || '',
+        barcode: c.barcode || '',
+        retail_price: parseFloat(c.retail_price) || 0,
+        wholesale_price: parseFloat(c.wholesale_price) || 0,
+        cost_price: 0,
+        supplier_id: d.supplier_id || null,
+        category_id: d.category_id || null,
+        code: c.code || '',
+        unit: c.unit || 'бр',
+        min_quantity: parseInt(c.min_quantity) || 0,
+        description: c.description || '',
+        product_type: (d.variants_preview && d.variants_preview.length > 1) ? 'variant' : 'simple',
+        sizes: [],
+        colors: [],
+        variants: d.variants_preview || [{size: null, color: null, qty: 0}]
+    };
+
+    // Извлечи sizes и colors от variants
+    if (d.variants_preview) {
+        var sizeSet = {}, colorSet = {};
+        d.variants_preview.forEach(function(v) {
+            if (v.size) sizeSet[v.size] = true;
+            if (v.color) colorSet[v.color] = true;
+        });
+        payload.sizes = Object.keys(sizeSet);
+        payload.colors = Object.keys(colorSet);
+    }
+
+    fetch('product-save.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success || res.id) {
+            showToast('Артикулът е добавен!', 'success');
+            closeAIWizard();
+            loadCurrentScreen();
+        } else {
+            showToast(res.error || 'Грешка при запис', 'error');
+        }
+    })
+    .catch(function(err) {
+        showToast('Мрежова грешка', 'error');
+        console.error(err);
+    });
+}
+
+// Снимка за wizard
+function handleWizardPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    var chat = document.getElementById('recChat');
+
+    var userDiv = document.createElement('div');
+    userDiv.className = 'rec-msg user';
+    userDiv.textContent = '📷 Снимка...';
+    chat.appendChild(userDiv);
+
+    var thinkDiv = document.createElement('div');
+    thinkDiv.className = 'rec-msg ai thinking';
+    thinkDiv.textContent = '✦ Гледам снимката...';
+    chat.appendChild(thinkDiv);
+    chat.scrollTop = chat.scrollHeight;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var base64 = e.target.result.split(',')[1];
+
+        fetch('ai-wizard.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                business_type: wizardBusinessType,
+                image_base64: base64,
+                image_type: null,
+                conversation: wizardConversation,
+                collected: wizardCollected
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.image_type) wizardImageType = d.image_type;
+            if (d.collected) wizardCollected = d.collected;
+
+            thinkDiv.className = 'rec-msg ai';
+            thinkDiv.textContent = d.message || 'Не разпознах. Кажи какво е.';
+            wizardConversation.push({role: 'ai', text: d.message || ''});
+
+            // Авто-старт voice
+            setTimeout(function() { toggleAIVoice(); }, 500);
+            chat.scrollTop = chat.scrollHeight;
+        })
+        .catch(function(err) {
+            thinkDiv.className = 'rec-msg ai';
+            thinkDiv.textContent = 'Грешка. Опитай пак или кажи с глас.';
+        });
+    };
+    reader.readAsDataURL(input.files[0]);
+    input.value = '';
+}
+
+// Промени closeAIOverlay за wizard mode
+var _origCloseAIOverlay = closeAIOverlay;
+closeAIOverlay = function() {
+    if (wizardMode) {
+        closeAIWizard();
+    } else {
+        _origCloseAIOverlay();
+    }
+};    
     document.addEventListener('DOMContentLoaded',loadCurrentScreen);
     </script>
 </body>
