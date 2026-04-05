@@ -1,8 +1,8 @@
 <?php
 /**
- * chat.php — AI First Dashboard
+ * chat.php — AI First Dashboard with Dynamic Cards
  * Cruip Dark тема. Proactive Briefing. Пулс бутон. Deeplinks. Voice.
- * С17 — уеднаквен bottom nav
+ * Dynamic cards based on role: Owner(5), Manager(4), Seller(3)
  */
 session_start();
 require_once __DIR__ . '/config/database.php';
@@ -15,6 +15,107 @@ $store_id  = $_SESSION['store_id'];
 $role      = $_SESSION['role'] ?? 'seller';
 $user_name = $_SESSION['user_name'] ?? '';
 
+// ═══════════════════════════════════════════════════════════
+// DYNAMIC DATA FETCHING FOR CARDS
+// ═══════════════════════════════════════════════════════════
+
+// 1. ZOMBIE STOCK (45+ days no movement)
+$zombie = DB::run("
+    SELECT 
+        COUNT(DISTINCT p.id) as count,
+        SUM(p.retail_price * i.qty) as frozen_capital
+    FROM products p
+    JOIN inventory i ON p.id = i.product_id
+    WHERE i.qty > 0
+      AND p.tenant_id = ?
+      AND p.id NOT IN (
+          SELECT product_id FROM sale_items 
+          WHERE created_at > DATE_SUB(NOW(), INTERVAL 45 DAY)
+      )
+", [$tenant_id])->fetch();
+$zombie_count = $zombie['count'] ?? 0;
+$zombie_value = $zombie['frozen_capital'] ?? 0;
+
+// 2. TODAY'S PROFIT (owner only)
+$profit_today = DB::run("
+    SELECT 
+        SUM((si.unit_price - si.cost_price) * si.qty) as profit,
+        COUNT(DISTINCT s.id) as sales_count,
+        AVG((si.unit_price - si.cost_price) / si.unit_price * 100) as margin
+    FROM sales s
+    JOIN sale_items si ON s.id = si.sale_id
+    WHERE DATE(s.created_at) = CURDATE()
+      AND s.tenant_id = ?
+", [$tenant_id])->fetch();
+$profit = $profit_today['profit'] ?? 0;
+$sales_count = $profit_today['sales_count'] ?? 0;
+$margin = round($profit_today['margin'] ?? 0);
+
+// 3. LOW STOCK (below min_qty)
+$low_stock = DB::run("
+    SELECT 
+        COUNT(*) as count,
+        SUM(p.retail_price * (p.min_qty - i.qty)) as needed_value
+    FROM products p
+    JOIN inventory i ON p.id = i.product_id
+    WHERE i.qty < p.min_qty
+      AND p.tenant_id = ?
+", [$tenant_id])->fetch();
+$low_count = $low_stock['count'] ?? 0;
+$low_value = $low_stock['needed_value'] ?? 0;
+
+// 4. DEAD SIZES (popular sizes out of stock)
+$dead_sizes = DB::run("
+    SELECT 
+        COUNT(DISTINCT pv.id) as count
+    FROM products p
+    JOIN products pv ON pv.parent_id = p.id
+    LEFT JOIN inventory i ON pv.id = i.product_id
+    WHERE (i.qty = 0 OR i.qty IS NULL)
+      AND p.tenant_id = ?
+      AND pv.id IN (
+          SELECT product_id FROM sale_items 
+          WHERE created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)
+          GROUP BY product_id
+          HAVING SUM(qty) >= 3
+      )
+", [$tenant_id])->fetch();
+$dead_count = $dead_sizes['count'] ?? 0;
+
+// 5. TOP PRODUCT TODAY
+$top_product = DB::run("
+    SELECT 
+        p.name,
+        SUM(si.qty) as qty_sold,
+        SUM(si.unit_price * si.qty) as revenue,
+        i.qty as remaining
+    FROM sale_items si
+    JOIN products p ON si.product_id = p.id
+    JOIN sales s ON si.sale_id = s.id
+    LEFT JOIN inventory i ON p.id = i.product_id
+    WHERE DATE(s.created_at) = CURDATE()
+      AND s.tenant_id = ?
+    GROUP BY p.id
+    ORDER BY qty_sold DESC
+    LIMIT 1
+", [$tenant_id])->fetch();
+$top_name = $top_product['name'] ?? 'Няма';
+$top_qty = $top_product['qty_sold'] ?? 0;
+$top_revenue = $top_product['revenue'] ?? 0;
+$top_remaining = $top_product['remaining'] ?? 0;
+
+// 6. WHAT TO ORDER (manager)
+$order_needed = DB::run("
+    SELECT 
+        SUM(p.cost_price * (p.min_qty - i.qty)) as order_value
+    FROM products p
+    JOIN inventory i ON p.id = i.product_id
+    WHERE i.qty < p.min_qty
+      AND p.tenant_id = ?
+", [$tenant_id])->fetch();
+$order_value = $order_needed['order_value'] ?? 0;
+
+// Fetch messages
 $messages = DB::run(
     'SELECT role, content, created_at FROM chat_messages WHERE tenant_id = ? AND store_id = ? ORDER BY created_at ASC LIMIT 50',
     [$tenant_id, $store_id]
@@ -101,7 +202,132 @@ body {
 .brief-close:active { background: rgba(255,255,255,.2); transform: scale(0.9); }
 .brief-loading { font-size: 12px; color: #6b7280; padding: 4px 0; }
 
-/* ── CHAT AREA (Maximized Space) ── */
+/* ── PULSE CARDS ── */
+.pulse-cards-section { padding: 0 16px 10px; flex-shrink: 0; position: relative; z-index: 1; }
+.pulse-cards-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pulse-card { 
+    border-radius: 16px; 
+    padding: 16px; 
+    margin-bottom: 10px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+    position: relative; 
+    animation: fadeUp .4s ease both; 
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+.pulse-card:nth-child(2) { animation-delay: 0.05s; }
+.pulse-card:nth-child(3) { animation-delay: 0.1s; }
+.pulse-card:nth-child(4) { animation-delay: 0.15s; }
+.pulse-card:nth-child(5) { animation-delay: 0.2s; }
+.pulse-card:nth-child(6) { animation-delay: 0.25s; }
+.pulse-card:active { transform: scale(0.98); }
+
+.pulse-card.danger { 
+    background: rgba(239,68,68,.08); 
+    border: 1px solid rgba(239,68,68,.25); 
+    border-left: 4px solid #ef4444;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.1);
+}
+.pulse-card.success { 
+    background: rgba(34,197,94,.08); 
+    border: 1px solid rgba(34,197,94,.25); 
+    border-left: 4px solid #22c55e;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.1);
+}
+.pulse-card.warning { 
+    background: rgba(245,158,11,.08); 
+    border: 1px solid rgba(245,158,11,.25); 
+    border-left: 4px solid #f59e0b;
+    box-shadow: 0 4px 20px rgba(245,158,11,0.1);
+}
+.pulse-card.info { 
+    background: rgba(99,102,241,.08); 
+    border: 1px solid rgba(99,102,241,.25); 
+    border-left: 4px solid #6366f1;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.1);
+}
+
+.pulse-card-header { display: flex; align-items: center; justify-content: space-between; }
+.pulse-card-icon-wrap { display: flex; align-items: center; gap: 10px; }
+.pulse-card-icon { 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 12px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 20px;
+    background: rgba(255,255,255,.06);
+}
+.pulse-card.danger .pulse-card-icon { background: rgba(239,68,68,.18); }
+.pulse-card.success .pulse-card-icon { background: rgba(34,197,94,.18); }
+.pulse-card.warning .pulse-card-icon { background: rgba(245,158,11,.18); }
+.pulse-card.info .pulse-card-icon { background: rgba(99,102,241,.18); }
+
+.pulse-card-trend { 
+    font-size: 11px; 
+    padding: 4px 10px; 
+    border-radius: 20px; 
+    font-weight: 700;
+}
+.trend-up { background: rgba(34,197,94,.2); color: #22c55e; }
+.trend-down { background: rgba(239,68,68,.2); color: #ef4444; }
+
+.pulse-card-value { 
+    font-family: 'Montserrat', Inter, sans-serif;
+    font-size: 28px; 
+    font-weight: 800; 
+    color: #fff;
+    letter-spacing: -0.5px;
+    margin-top: 4px;
+}
+.pulse-card-label { 
+    font-size: 15px; 
+    font-weight: 700; 
+    color: #f1f5f9;
+}
+.pulse-card-sub { 
+    font-size: 13px; 
+    color: #9ca3af;
+    line-height: 1.4;
+}
+.pulse-card-voice { 
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #c7d2fe;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.pulse-card-voice:active { 
+    background: rgba(99,102,241,.2); 
+    border-color: rgba(99,102,241,.4);
+    transform: scale(0.98);
+}
+
+/* ── CHAT AREA ── */
 .chat-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 0; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; scrollbar-width: none; position: relative; z-index: 1; }
 .chat-area::-webkit-scrollbar { display: none; }
 .msg-group { margin-bottom: 16px; animation: fadeUp .3s ease both; }
@@ -127,20 +353,20 @@ body {
 .welcome { text-align: center; padding: 40px 20px 20px; color: #9ca3af; font-size: 14px; line-height: 1.6; }
 .welcome-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; background: linear-gradient(to right, #e5e7eb, #c7d2fe, #f9fafb); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gShift 6s linear infinite; }
 
-/* ── QUICK COMMANDS (Horizontal Scroll to save space) ── */
+/* ── QUICK COMMANDS ── */
 .quick-wrap { padding: 10px 16px; flex-shrink: 0; position: relative; z-index: 1; }
 .quick-row { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .quick-row::-webkit-scrollbar { display: none; }
 .quick-btn { padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid rgba(99,102,241,.3); color: #c7d2fe; background: rgba(99,102,241,.1); cursor: pointer; font-family: inherit; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: 0.2s; backdrop-filter: blur(5px); }
 .quick-btn:active { background: rgba(99,102,241,.4); border-color: #a5b4fc; transform: scale(0.96); }
 
-/* ── INPUT AREA (Floating Island) ── */
+/* ── INPUT AREA ── */
 .input-area { background: transparent; padding: 0 16px 16px; flex-shrink: 0; position: relative; z-index: 10; border: none; }
 .input-row { display: flex; gap: 8px; align-items: center; background: rgba(15,20,35,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(99,102,241,.3); border-radius: 32px; padding: 6px 6px 6px 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); }
 .text-input { flex: 1; background: transparent; border: none; color: #f8fafc; font-size: 15px; padding: 10px 0; font-family: inherit; outline: none; resize: none; max-height: 100px; line-height: 1.4; }
 .text-input::placeholder { color: #6b7280; font-weight: 500; }
 
-/* ── VOICE & SEND BUTTONS ── */
+/* ── VOICE & SEND ── */
 .voice-wrap { position: relative; flex-shrink: 0; width: 44px; height: 44px; cursor: pointer; }
 .voice-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(139,92,246,.5); animation: waveOut 2s ease-out infinite; pointer-events: none; }
 .voice-ring:nth-child(1) { inset: -4px; }
@@ -160,7 +386,7 @@ body {
 .send-btn:active { background: rgba(99,102,241,.5); transform: scale(.92); }
 .send-btn:disabled { opacity: .2; cursor: default; background: transparent; color: #6b7280; border-color: transparent; }
 
-/* ── ACTION CONFIRM & OVERLAYS ── */
+/* ── OVERLAYS ── */
 .act-ovl { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 350; display: none; align-items: flex-end; justify-content: center; }
 .act-ovl.show { display: flex; }
 .act-box { background: #0f1423; border: 1px solid rgba(99,102,241,.3); border-radius: 24px 24px 0 0; width: 100%; max-width: 420px; padding: 28px 24px 36px; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
@@ -185,24 +411,24 @@ body {
 .rec-stop { padding: 14px 32px; background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.4); border-radius: 30px; color: #fca5a5; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: 0.2s; }
 .rec-stop:active { background: rgba(239,68,68,.3); transform: scale(0.95); }
 
-/* ── BOTTOM NAV (С готин Glow ефект) ── */
+/* ── BOTTOM NAV ── */
 .bottom-nav { 
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; 
     background: rgba(11,15,26,0.92); 
     backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
     border-top: 1px solid rgba(99,102,241,0.25); 
     display: flex; height: var(--nav-h); 
-    box-shadow: 0 -5px 25px rgba(99,102,241,0.2); /* ГЛАВНИЯТ GLOW ЕФЕКТ */
+    box-shadow: 0 -5px 25px rgba(99,102,241,0.2);
 }
 .bnav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: 600; color: rgba(165,180,252,0.5); text-decoration: none; transition: all 0.3s; }
 .bnav-tab.active { 
     color: #c7d2fe; 
-    text-shadow: 0 0 12px rgba(129,140,248,0.9); /* Glow на текста */
+    text-shadow: 0 0 12px rgba(129,140,248,0.9);
 }
 .bnav-tab .bnav-icon { font-size: 1.3rem; transition: all 0.3s; }
 .bnav-tab.active .bnav-icon {
     transform: translateY(-2px);
-    filter: drop-shadow(0 0 8px rgba(129,140,248,0.8)); /* Glow на иконката */
+    filter: drop-shadow(0 0 8px rgba(129,140,248,0.8));
 }
 
 /* ── TOAST ── */
@@ -217,7 +443,7 @@ body {
 @keyframes waveOut { 0% { transform: scale(1); opacity: .6 } 100% { transform: scale(2); opacity: 0 } }
 @keyframes recPulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.6) } 70% { box-shadow: 0 0 0 20px rgba(239,68,68,0) } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0) } }
 
-.indigo-sep { display: none; } /* Скриваме излишната линия за по-изчистен вид */
+.indigo-sep { display: none; }
 </style>
 </head>
 <body>
@@ -249,6 +475,241 @@ body {
 <div class="brief-area" id="briefArea">
   <div class="brief-loading" id="briefLoading">Зареждам...</div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DYNAMIC CARDS BASED ON ROLE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<?php if ($role === 'owner'): ?>
+<!-- OWNER: 5 CARDS -->
+<div class="pulse-cards-section">
+  <div class="pulse-cards-title">📊 Бърз преглед · Собственик</div>
+
+  <!-- Card 1: Zombie -->
+  <?php if ($zombie_count > 0): ?>
+  <div class="pulse-card danger" onclick="fillAndSend('Покажи zombie стоката')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">💀</div>
+      </div>
+      <span class="pulse-card-trend trend-up">↑ Замразени</span>
+    </div>
+    <div class="pulse-card-value">€<?= number_format($zombie_value, 0, ',', '.') ?></div>
+    <div class="pulse-card-label">Zombie стока</div>
+    <div class="pulse-card-sub"><?= $zombie_count ?> артикула · 45+ дни без движение</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Намали цените на zombie стоката с 20%')">
+      <span>🎤</span> Намали цените
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 2: Profit Today -->
+  <div class="pulse-card success" onclick="fillAndSend('Каква е печалбата днес')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">🔥</div>
+      </div>
+      <span class="pulse-card-trend trend-up">↑ Днес</span>
+    </div>
+    <div class="pulse-card-value">€<?= number_format($profit, 0, ',', '.') ?></div>
+    <div class="pulse-card-label">Печалба днес</div>
+    <div class="pulse-card-sub"><?= $sales_count ?> продажби · Марж <?= $margin ?>%</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Покажи детайли за печалбата')">
+      <span>🎤</span> Детайли
+    </div>
+  </div>
+
+  <!-- Card 3: Dead Sizes -->
+  <?php if ($dead_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Покажи липсващите размери')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">📐</div>
+      </div>
+      <span class="pulse-card-trend trend-down">↓ Липсват</span>
+    </div>
+    <div class="pulse-card-value"><?= $dead_count ?> размера</div>
+    <div class="pulse-card-label">Липсващи размери</div>
+    <div class="pulse-card-sub">Популярни, но изчерпани · Губим продажби</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Поръчай липсващите размери')">
+      <span>🎤</span> Поръчай сега
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 4: Low Stock -->
+  <?php if ($low_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Какво свършва')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">⚠️</div>
+      </div>
+      <span class="pulse-card-trend trend-down">↓ Свършва</span>
+    </div>
+    <div class="pulse-card-value"><?= $low_count ?> арт.</div>
+    <div class="pulse-card-label">Свършва</div>
+    <div class="pulse-card-sub">Под минимум · €<?= number_format($low_value, 0, ',', '.') ?> стойност</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Направи поръчка за свършващите артикули')">
+      <span>🎤</span> Направи поръчка
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 5: Top Product -->
+  <?php if ($top_qty > 0): ?>
+  <div class="pulse-card info" onclick="fillAndSend('Покажи топ продаваните днес')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">🏆</div>
+      </div>
+      <span class="pulse-card-trend trend-up">↑ Топ</span>
+    </div>
+    <div class="pulse-card-value"><?= htmlspecialchars($top_name) ?></div>
+    <div class="pulse-card-label">Топ артикул днес</div>
+    <div class="pulse-card-sub"><?= $top_qty ?> бр · €<?= number_format($top_revenue, 0, ',', '.') ?> · Остават <?= $top_remaining ?> бр</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Поръчай още от <?= htmlspecialchars($top_name) ?>')">
+      <span>🎤</span> Поръчай още
+    </div>
+  </div>
+  <?php endif; ?>
+</div>
+
+<?php elseif ($role === 'manager'): ?>
+<!-- MANAGER: 4 CARDS -->
+<div class="pulse-cards-section">
+  <div class="pulse-cards-title">📊 Бърз преглед · Управител</div>
+
+  <!-- Card 1: Low Stock -->
+  <?php if ($low_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Какво свършва')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">⚠️</div>
+      </div>
+      <span class="pulse-card-trend trend-down">↓ Свършва</span>
+    </div>
+    <div class="pulse-card-value"><?= $low_count ?> арт.</div>
+    <div class="pulse-card-label">Какво свършва</div>
+    <div class="pulse-card-sub">Под минимум · Нужни за поръчка</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Направи поръчка')">
+      <span>🎤</span> Направи поръчка
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 2: What to Order -->
+  <?php if ($order_value > 0): ?>
+  <div class="pulse-card info" onclick="fillAndSend('Какво трябва да поръчам')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">📋</div>
+      </div>
+      <span class="pulse-card-trend trend-up">→ Поръчка</span>
+    </div>
+    <div class="pulse-card-value">€<?= number_format($order_value, 0, ',', '.') ?></div>
+    <div class="pulse-card-label">Какво да поръчам</div>
+    <div class="pulse-card-sub">Мин. стойност за поръчка · <?= $low_count ?> артикула</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Генерирай поръчка към доставчици')">
+      <span>🎤</span> Генерирай
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 3: Dead Sizes -->
+  <?php if ($dead_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Покажи липсващите размери')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">📐</div>
+      </div>
+      <span class="pulse-card-trend trend-down">↓ Липсват</span>
+    </div>
+    <div class="pulse-card-value"><?= $dead_count ?> размера</div>
+    <div class="pulse-card-label">Кои размери липсват</div>
+    <div class="pulse-card-sub">Популярни, но изчерпани</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Поръчай липсващите размери')">
+      <span>🎤</span> Поръчай
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 4: Top Product -->
+  <?php if ($top_qty > 0): ?>
+  <div class="pulse-card success" onclick="fillAndSend('Покажи топ продаваните днес')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">🏆</div>
+      </div>
+      <span class="pulse-card-trend trend-up">↑ Топ</span>
+    </div>
+    <div class="pulse-card-value"><?= htmlspecialchars($top_name) ?></div>
+    <div class="pulse-card-label">Топ продавани</div>
+    <div class="pulse-card-sub"><?= $top_qty ?> бр днес · Остават <?= $top_remaining ?> бр</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Провери наличност за <?= htmlspecialchars($top_name) ?>')">
+      <span>🎤</span> Провери наличност
+    </div>
+  </div>
+  <?php endif; ?>
+</div>
+
+<?php else: ?>
+<!-- SELLER: 3 CARDS -->
+<div class="pulse-cards-section">
+  <div class="pulse-cards-title">📊 Бърз преглед · Продавач</div>
+
+  <!-- Card 1: Dead Sizes -->
+  <?php if ($dead_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Какви размери липсват')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">📐</div>
+      </div>
+    </div>
+    <div class="pulse-card-value"><?= $dead_count ?> размера</div>
+    <div class="pulse-card-label">Липсващи размери</div>
+    <div class="pulse-card-sub">Клиенти питат, но нямаме</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Уведоми управителя за липсващите размери')">
+      <span>🎤</span> Уведоми шефа
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 2: Low Stock -->
+  <?php if ($low_count > 0): ?>
+  <div class="pulse-card warning" onclick="fillAndSend('Какво свършва')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">⚠️</div>
+      </div>
+    </div>
+    <div class="pulse-card-value"><?= $low_count ?> арт.</div>
+    <div class="pulse-card-label">Какво свършва</div>
+    <div class="pulse-card-sub">Под минимум · Предложи алтернатива</div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Покажи алтернативи за свършващите артикули')">
+      <span>🎤</span> Алтернативи
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Card 3: Top Product -->
+  <?php if ($top_qty > 0): ?>
+  <div class="pulse-card success" onclick="fillAndSend('Какво се продава най-много днес')">
+    <div class="pulse-card-header">
+      <div class="pulse-card-icon-wrap">
+        <div class="pulse-card-icon">🏆</div>
+      </div>
+    </div>
+    <div class="pulse-card-value"><?= htmlspecialchars($top_name) ?></div>
+    <div class="pulse-card-label">Топ днес</div>
+    <div class="pulse-card-sub"><?= $top_qty ?> бр · €<?= number_format($top_revenue, 0, ',', '.') ?></div>
+    <div class="pulse-card-voice" onclick="event.stopPropagation();fillAndSend('Предложи <?= htmlspecialchars($top_name) ?> на клиенти')">
+      <span>🎤</span> Предложи на клиенти
+    </div>
+  </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+<!-- ═══════════════════════════════════════════════════════════ -->
 
 <div class="chat-area" id="chatArea">
   <?php if (empty($messages)): ?>
@@ -403,7 +864,8 @@ function addUserMsg(text) {
 
 function addAIMsg(text) {
   const g = document.createElement('div'); g.className = 'msg-group';
-  const parsed = parseDeeplinksJS(esc(text).replace(/\n/g,'<br>'));
+  const parsed = parseDeeplinksJS(esc(text).replace(/
+/g,'<br>'));
   g.innerHTML = `<div class="msg-meta"><div class="ai-ava"><div class="ai-ava-bars"><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div><div class="ai-ava-bar"></div></div></div> AI</div><div class="msg ai">${parsed}</div>`;
   chatArea.insertBefore(g, typing); scrollBottom();
 }
