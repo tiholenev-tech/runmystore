@@ -39,7 +39,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     if (strlen($q) < 1) { echo json_encode([]); exit; }
     $like = "%$q%";
     $results = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode, p.image,
+        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+               COALESCE
                p.parent_id,
                COALESCE(i.quantity, 0) as stock
         FROM products p
@@ -60,7 +61,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
     header('Content-Type: application/json; charset=utf-8');
     $barcode = trim($_GET['barcode'] ?? '');
     $product = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode, p.image,
+        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                COALESCE(i.quantity, 0) as stock
         FROM products p
         LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
