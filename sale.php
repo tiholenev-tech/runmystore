@@ -1,1318 +1,1978 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 session_start();
-if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
-
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
 
+$pdo = DB::get();
 $tenant_id = $_SESSION['tenant_id'];
-$user_id   = $_SESSION['user_id'];
-$store_id  = $_SESSION['store_id'];
-$role      = $_SESSION['role'];
+$user_id = $_SESSION['user_id'];
+$store_id = $_SESSION['store_id'] ?? 1;
 
 // Tenant info
-$stmt = $pdo->prepare("SELECT * FROM tenants WHERE id = ?");
-$stmt->execute([$tenant_id]);
-$tenant = $stmt->fetch();
+$tenant = DB::run("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+$supato_mode = $tenant['supato_mode'] ?? 0;
+$lang = $tenant['lang'] ?? 'bg';
+$business_type = $tenant['business_type'] ?? '';
+$currency = htmlspecialchars($tenant['currency'] ?? 'лв');
 
 // User info
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch();
+$user = DB::run("SELECT * FROM users WHERE id = ?", [$user_id])->fetch(PDO::FETCH_ASSOC);
+$user_role = $user['role'] ?? 'seller';
+$user_name = $user['name'] ?? '';
+$max_discount = floatval($user['max_discount_pct'] ?? 100);
 
-$currency        = $tenant['currency'] ?? 'EUR';
-$supato_mode     = $tenant['supato_mode'] ?? 0;
-$max_discount    = ($role === 'seller') ? (float)($user['max_discount_pct'] ?? 50) : 100;
-$notify_discount = ($role === 'seller') ? (float)($user['discount_notify_pct'] ?? 30) : 100;
+// Store info
+$store = DB::run("SELECT * FROM stores WHERE id = ? AND tenant_id = ?", [$store_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+$store_name = $store['name'] ?? 'Магазин';
 
 // Wholesale clients
-$clients = $pdo->prepare("SELECT id, name FROM customers WHERE tenant_id = ? AND is_wholesale = 1 AND is_active = 1 ORDER BY name");
-$clients->execute([$tenant_id]);
-$wholesale_clients = $clients->fetchAll();
+$wholesale_clients = DB::run("SELECT id, name, phone FROM customers WHERE tenant_id = ? AND type = 'wholesale' AND is_active = 1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
 
-// Parked sales from session
-if (!isset($_SESSION['parked_sales'])) $_SESSION['parked_sales'] = [];
-$parked_count = count($_SESSION['parked_sales']);
+// Page title
+$page_title = $supato_mode ? 'Изходящо движение' : 'Продажба';
 
-$sale_label = $supato_mode ? 'Изходящо движение' : 'Продажба';
+// ─── AJAX: Quick Search ───
+if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
+    header('Content-Type: application/json; charset=utf-8');
+    $q = trim($_GET['q'] ?? '');
+    if (strlen($q) < 1) { echo json_encode([]); exit; }
+    $like = "%$q%";
+    $results = DB::run("
+        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode, p.image,
+               p.parent_id,
+               COALESCE(i.quantity, 0) as stock
+        FROM products p
+        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+        WHERE p.tenant_id = ? AND p.is_active = 1
+          AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
+        ORDER BY
+          CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
+          p.name
+        LIMIT 10
+    ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($results);
+    exit;
+}
+
+// ─── AJAX: Barcode Lookup ───
+if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
+    header('Content-Type: application/json; charset=utf-8');
+    $barcode = trim($_GET['barcode'] ?? '');
+    $product = DB::run("
+        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode, p.image,
+               COALESCE(i.quantity, 0) as stock
+        FROM products p
+        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+        WHERE p.tenant_id = ? AND p.is_active = 1 AND p.barcode = ?
+        LIMIT 1
+    ", [$store_id, $tenant_id, $barcode])->fetch(PDO::FETCH_ASSOC);
+    echo json_encode($product ?: null);
+    exit;
+}
+
+// ─── AJAX: Save Sale ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
+    header('Content-Type: application/json; charset=utf-8');
+    $data = json_decode(file_get_contents('php://input'), true);
+    $items = $data['items'] ?? [];
+    $payment_method = $data['payment_method'] ?? 'cash';
+    $discount_pct = floatval($data['discount_pct'] ?? 0);
+    $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
+    $received = floatval($data['received'] ?? 0);
+
+    if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
+
+    try {
+        $pdo->beginTransaction();
+        $subtotal = 0;
+        foreach ($items as $it) {
+            $subtotal += floatval($it['unit_price']) * intval($it['quantity']);
+        }
+        $discount_amount = round($subtotal * ($discount_pct / 100), 2);
+        $total = round($subtotal - $discount_amount, 2);
+
+        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total_amount, discount_amount, discount_pct, payment_method, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
+            [$tenant_id, $store_id, $user_id, $customer_id, $total, $discount_amount, $discount_pct, $payment_method]);
+        $sale_id = $pdo->lastInsertId();
+
+        foreach ($items as $it) {
+            $pid = intval($it['product_id']);
+            $qty = intval($it['quantity']);
+            $price = floatval($it['unit_price']);
+            $idp = floatval($it['discount_pct'] ?? 0);
+            $ist = round($price * $qty * (1 - $idp / 100), 2);
+
+            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount_pct, subtotal) VALUES (?, ?, ?, ?, ?, ?)",
+                [$sale_id, $pid, $qty, $price, $idp, $ist]);
+            DB::run("UPDATE inventory SET quantity = GREATEST(quantity - ?, 0) WHERE product_id = ? AND store_id = ?",
+                [$qty, $pid, $store_id]);
+            DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, quantity, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, 'out', 'sale', ?, NOW())",
+                [$tenant_id, $pid, $store_id, $qty, $sale_id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true, 'sale_id' => $sale_id, 'total' => $total]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
 ?>
 <!doctype html>
-<html lang="bg">
+<html lang="<?= $lang ?>">
 <head>
-    <meta charset="utf-8"/>
-    <title>Продажба — RunMyStore</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-    <link href="./css/vendors/aos.css" rel="stylesheet"/>
-    <link href="./style.css" rel="stylesheet"/>
-    <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { overscroll-behavior: none; }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title><?= $page_title ?> — RunMyStore.ai</title>
+<link href="./css/vendors/aos.css" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SALE MODULE — Unified Design System 2026
+   Reference: warehouse.php
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    --bg-main: #030712;
+    --bg-card: rgba(15, 15, 40, 0.75);
+    --bg-card-hover: rgba(23, 28, 58, 0.9);
+    --border-subtle: rgba(99, 102, 241, 0.15);
+    --border-glow: rgba(99, 102, 241, 0.4);
+    --indigo-600: #4f46e5;
+    --indigo-500: #6366f1;
+    --indigo-400: #818cf8;
+    --indigo-300: #a5b4fc;
+    --text-primary: #f1f5f9;
+    --text-secondary: #6b7280;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #22c55e;
+    --bottom-nav-h: 64px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{
+    height:100%;background:var(--bg-main);color:var(--text-primary);
+    font-family:'Montserrat',Inter,system-ui,sans-serif;
+    overflow:hidden;touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;
+}
+body::before{
+    content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
+    width:700px;height:400px;
+    background:radial-gradient(ellipse,rgba(99,102,241,0.1) 0%,transparent 70%);
+    pointer-events:none;z-index:0;
+}
 
-        /* ── HEADER ── */
-        .sale-header {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-            background: #0f0f17;
-            padding: 10px 12px 8px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(99,102,241,0.15);
-        }
-        .sale-header.wholesale-mode { background: #1a1a2e; border-bottom-color: rgba(99,102,241,0.4); }
-        .wholesale-badge {
-            font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-            background: rgba(99,102,241,0.2); color: #818cf8;
-            border: 1px solid rgba(99,102,241,0.3);
-            padding: 2px 8px; border-radius: 20px;
-        }
+/* ═══ LAYOUT — Full screen, no scroll ═══ */
+.sale-wrap{
+    position:relative;z-index:1;display:flex;flex-direction:column;
+    height:100dvh;height:100vh;max-width:480px;margin:0 auto;
+}
 
-        /* ── CAMERA ── */
-        .camera-wrap {
-            position: fixed; top: 56px; left: 0; right: 0; z-index: 40;
-            height: 160px; background: #000; overflow: hidden;
-            transition: height 0.3s ease;
-        }
-        .camera-wrap.hidden-cam { height: 0; }
-        #camera-video { width: 100%; height: 100%; object-fit: cover; }
-        .camera-overlay {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: none;
-        }
-        .camera-frame {
-            width: 160px; height: 60px;
-            border: 2px solid rgba(99,102,241,0.7);
-            border-radius: 8px;
-            box-shadow: 0 0 0 2000px rgba(0,0,0,0.3);
-        }
-        .camera-frame.scanned {
-            border-color: #22c55e;
-            box-shadow: 0 0 0 2000px rgba(0,0,0,0.3), 0 0 20px rgba(34,197,94,0.5);
-        }
-        .cam-close {
-            position: absolute; top: 8px; right: 8px;
-            background: rgba(0,0,0,0.6); border: none; color: #fff;
-            width: 28px; height: 28px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; cursor: pointer; pointer-events: all;
-        }
-        .cam-toggle {
-            position: fixed; top: 58px; right: 12px; z-index: 45;
-            background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.3);
-            color: #818cf8; border-radius: 8px; padding: 4px 10px;
-            font-size: 11px; font-weight: 600; cursor: pointer;
-            transition: all 0.2s;
-        }
+/* ═══ HEADER ═══ */
+.sale-header{
+    display:flex;align-items:center;justify-content:space-between;
+    height:48px;padding:0 12px;flex-shrink:0;
+    background:rgba(3,7,18,0.93);backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border-subtle);
+    position:relative;z-index:50;
+}
+.sale-header.wholesale{
+    border-bottom:2px solid var(--indigo-400);
+    background:rgba(99,102,241,0.08);
+}
+.hdr-btn{
+    width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+    color:var(--indigo-300);font-size:18px;background:none;border:none;cursor:pointer;
+    border-radius:10px;transition:all 0.2s;
+}
+.hdr-btn:active{background:rgba(99,102,241,0.15);transform:scale(0.92)}
+.hdr-title{
+    font-size:16px;font-weight:800;
+    background:linear-gradient(135deg,#f1f5f9,#a5b4fc);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hdr-right{display:flex;align-items:center;gap:4px}
+.park-badge{
+    position:absolute;top:-4px;right:-4px;
+    min-width:16px;height:16px;border-radius:8px;
+    background:var(--danger);color:#fff;font-size:9px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;padding:0 4px;
+    box-shadow:0 0 8px rgba(239,68,68,0.5);
+}
 
-        /* ── SEARCH ── */
-        .search-wrap {
-            position: fixed; left: 0; right: 0; z-index: 39;
-            background: #0f0f17; padding: 8px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            display: flex; gap: 8px; align-items: center;
-            transition: top 0.3s ease;
-        }
-        .search-input {
-            flex: 1; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #e2e8f0; border-radius: 10px;
-            padding: 9px 12px; font-size: 15px; outline: none;
-            transition: border-color 0.2s;
-        }
-        .search-input:focus { border-color: rgba(99,102,241,0.5); }
-        .mic-btn {
-            width: 40px; height: 40px; border-radius: 10px; border: none;
-            background: rgba(99,102,241,0.15); color: #818cf8;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; flex-shrink: 0; transition: all 0.2s;
-        }
-        .mic-btn.recording { background: rgba(239,68,68,0.2); color: #f87171; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+/* ═══ CAMERA ═══ */
+.camera-zone{
+    position:relative;flex-shrink:0;overflow:hidden;
+    background:#000;transition:height 0.3s ease;
+}
+.camera-zone video{width:100%;height:100%;object-fit:cover}
+.camera-close{
+    position:absolute;top:8px;right:8px;z-index:10;
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.2);color:#fff;
+    font-size:16px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+}
+.camera-open{
+    display:none;height:40px;align-items:center;justify-content:center;gap:6px;
+    background:var(--bg-card);border-bottom:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:13px;font-weight:600;cursor:pointer;
+}
+.camera-open.visible{display:flex}
+.green-flash{
+    position:fixed;inset:0;background:rgba(34,197,94,0.25);
+    z-index:999;pointer-events:none;opacity:0;transition:opacity 0.05s;
+}
+.green-flash.active{opacity:1}
 
-        /* ── SEARCH RESULTS ── */
-        .search-results {
-            position: fixed; left: 0; right: 0; z-index: 38;
-            background: #13131f; border-bottom: 1px solid rgba(255,255,255,0.06);
-            max-height: 200px; overflow-y: auto; display: none;
-            transition: top 0.3s ease;
-        }
-        .search-result-item {
-            padding: 10px 12px; display: flex; align-items: center;
-            justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04);
-            cursor: pointer; transition: background 0.15s;
-        }
-        .search-result-item:active { background: rgba(99,102,241,0.1); }
-        .result-code { font-size: 11px; color: #6366f1; font-weight: 600; }
-        .result-name { font-size: 13px; color: #e2e8f0; }
-        .result-price { font-size: 13px; font-weight: 600; color: #a5b4fc; }
-        .result-sold { font-size: 10px; color: #475569; }
+/* ═══ SEARCH BAR ═══ */
+.search-bar{
+    display:flex;align-items:center;height:44px;padding:0 10px;flex-shrink:0;
+    background:var(--bg-card);border-bottom:1px solid var(--border-subtle);
+    gap:8px;
+}
+.search-display{
+    flex:1;height:32px;display:flex;align-items:center;padding:0 12px;
+    background:rgba(99,102,241,0.08);border:1px solid var(--border-subtle);
+    border-radius:10px;color:var(--text-primary);font-size:14px;font-weight:500;
+    overflow:hidden;white-space:nowrap;
+}
+.search-display .placeholder{color:var(--text-secondary);font-size:13px}
+.search-btn{
+    width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    border-radius:10px;border:1px solid var(--border-subtle);background:rgba(99,102,241,0.08);
+    color:var(--indigo-300);font-size:16px;cursor:pointer;flex-shrink:0;
+    transition:all 0.2s;
+}
+.search-btn:active{background:rgba(99,102,241,0.2);transform:scale(0.92)}
 
-        /* ── ITEMS LIST ── */
-        .items-list {
-            position: fixed; left: 0; right: 0;
-            overflow-y: auto; padding: 8px 12px;
-            transition: top 0.3s ease, bottom 0.3s ease;
-        }
-        .sale-item {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px; padding: 10px 12px;
-            margin-bottom: 8px; display: flex;
-            align-items: center; justify-content: space-between;
-            position: relative; overflow: hidden;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .sale-item.swipe-left { transform: translateX(-80px); }
-        .item-name { font-size: 13px; color: #e2e8f0; font-weight: 500; }
-        .item-detail { font-size: 11px; color: #64748b; margin-top: 2px; }
-        .item-price { font-size: 14px; font-weight: 700; color: #a5b4fc; text-align: right; }
-        .item-qty { font-size: 11px; color: #64748b; text-align: right; }
-        .item-delete-btn {
-            position: absolute; right: -80px; top: 0; bottom: 0;
-            width: 72px; background: rgba(239,68,68,0.8);
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 12px; font-weight: 600;
-            cursor: pointer; transition: right 0.2s;
-        }
-        .sale-item.swipe-left .item-delete-btn { right: 0; }
-        .empty-state {
-            text-align: center; padding: 40px 20px; color: #475569;
-        }
-        .empty-state svg { opacity: 0.3; margin: 0 auto 12px; display: block; }
+/* ═══ SEARCH RESULTS ═══ */
+.search-results{
+    max-height:0;overflow-y:auto;flex-shrink:0;
+    background:rgba(15,15,40,0.95);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border-subtle);
+    transition:max-height 0.25s ease;
+}
+.search-results.open{max-height:200px}
+.sr-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-bottom:1px solid rgba(99,102,241,0.08);
+    cursor:pointer;transition:background 0.15s;
+}
+.sr-item:active{background:rgba(99,102,241,0.12)}
+.sr-code{font-size:11px;color:var(--indigo-400);font-weight:600;margin-right:8px;min-width:50px}
+.sr-name{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-price{font-size:13px;font-weight:700;color:var(--indigo-300);margin-left:8px;white-space:nowrap}
+.sr-stock{font-size:10px;color:var(--text-secondary);margin-left:4px}
+.sr-stock.zero{color:var(--danger)}
 
-        /* ── BOTTOM BAR ── */
-        .bottom-bar {
-            position: fixed; bottom: 60px; left: 0; right: 0; z-index: 50;
-            background: #13131f;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            padding: 10px 12px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .bottom-bar-info { display: flex; align-items: center; gap: 12px; }
-        .bar-count { font-size: 12px; color: #64748b; }
-        .bar-total { font-size: 18px; font-weight: 700; color: #e2e8f0; }
-        .bar-expand {
-            background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
-            color: #818cf8; border-radius: 10px; padding: 8px 16px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            display: flex; align-items: center; gap: 6px;
-            transition: all 0.2s;
-        }
+/* ═══ CART ═══ */
+.cart-zone{
+    flex:1;overflow-y:auto;padding:0;
+    -webkit-overflow-scrolling:touch;
+}
+.cart-empty{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:100%;gap:12px;color:var(--text-secondary);
+}
+.cart-empty-icon{font-size:48px;opacity:0.3}
+.cart-empty-text{font-size:14px;font-weight:500}
+.cart-item{
+    display:flex;align-items:center;padding:10px 14px;
+    border-bottom:1px solid rgba(99,102,241,0.06);
+    position:relative;overflow:hidden;
+    animation:fadeUp 0.2s ease both;
+    cursor:pointer;transition:background 0.15s;
+}
+.cart-item:active{background:rgba(99,102,241,0.08)}
+.cart-item.selected{background:rgba(99,102,241,0.12);border-left:3px solid var(--indigo-500)}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-meta{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.ci-right{text-align:right;flex-shrink:0;margin-left:8px}
+.ci-qty{font-size:13px;font-weight:700;color:var(--indigo-300)}
+.ci-price{font-size:14px;font-weight:700;margin-top:2px}
+.ci-delete{
+    position:absolute;right:0;top:0;bottom:0;width:70px;
+    background:var(--danger);color:#fff;font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    transform:translateX(100%);transition:transform 0.2s;
+}
+.cart-item.swiped .ci-delete{transform:translateX(0)}
 
-        /* ── BOTTOM NAV ── */
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
-            background: #0f0f17;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            display: flex; height: 60px;
-        }
-        .nav-item {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 3px; text-decoration: none; color: #3f3f5a;
-            font-size: 10px; font-weight: 500; transition: color 0.2s;
-        }
-        .nav-item.active { color: #6366f1; }
-        .nav-item svg { width: 22px; height: 22px; }
+/* ═══ SUMMARY BAR ═══ */
+.summary-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    height:44px;padding:0 14px;flex-shrink:0;
+    background:var(--bg-card);border-top:1px solid var(--border-subtle);
+    border-bottom:1px solid var(--border-subtle);
+}
+.sum-count{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.sum-discount{
+    width:36px;height:28px;border-radius:8px;
+    background:rgba(99,102,241,0.1);border:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:all 0.2s;
+}
+.sum-discount:active{background:rgba(99,102,241,0.2);transform:scale(0.92)}
+.sum-discount.active{background:rgba(234,179,8,0.15);border-color:rgba(234,179,8,0.4);color:var(--warning)}
+.sum-total{font-size:15px;font-weight:800}
+.sum-total .amount{
+    background:linear-gradient(90deg,var(--indigo-400) 25%,#c7d2fe 50%,var(--indigo-400) 75%);
+    background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.sum-total .amount.changed{animation:shimmer 1.5s linear 1}
 
-        /* ── POPUP ── */
-        .popup-overlay {
-            position: fixed; inset: 0; z-index: 100;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-            display: flex; align-items: flex-end; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.2s;
-        }
-        .popup-overlay.open { opacity: 1; pointer-events: all; }
-        .popup-box {
-            background: #13131f; border-radius: 20px 20px 0 0;
-            padding: 20px 16px 32px; width: 100%; max-width: 480px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            transform: translateY(100%); transition: transform 0.3s ease;
-        }
-        .popup-overlay.open .popup-box { transform: translateY(0); }
-        .popup-product-name { font-size: 16px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
-        .popup-product-price { font-size: 22px; font-weight: 700; color: #6366f1; margin-bottom: 16px; }
+/* ═══ ACTION BAR ═══ */
+.action-bar{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;flex-shrink:0;
+    background:rgba(3,7,18,0.93);
+}
+.btn-pay{
+    flex:3;height:48px;border-radius:14px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
+    color:#fff;font-size:15px;font-weight:800;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 4px 20px rgba(99,102,241,0.4);
+    transition:all 0.2s;
+}
+.btn-pay:active{transform:scale(0.97);box-shadow:0 2px 10px rgba(99,102,241,0.3)}
+.btn-pay:disabled{opacity:0.3;pointer-events:none}
+.btn-park{
+    flex:1;height:48px;border-radius:14px;border:1px solid var(--border-subtle);
+    background:var(--bg-card);color:var(--indigo-300);font-size:20px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:all 0.2s;backdrop-filter:blur(12px);
+}
+.btn-park:active{background:rgba(99,102,241,0.12);transform:scale(0.95)}
 
-        /* Qty control */
-        .qty-control {
-            display: flex; align-items: center; gap: 8px;
-            background: rgba(255,255,255,0.05); border-radius: 12px;
-            padding: 8px 12px; margin-bottom: 12px;
-        }
-        .qty-btn {
-            width: 36px; height: 36px; border-radius: 8px; border: none;
-            background: rgba(99,102,241,0.2); color: #818cf8;
-            font-size: 20px; font-weight: 700; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: background 0.15s;
-        }
-        .qty-btn:active { background: rgba(99,102,241,0.4); }
-        .qty-display {
-            flex: 1; text-align: center; font-size: 28px; font-weight: 700;
-            color: #e2e8f0; min-width: 60px;
-        }
+/* ═══ NUMPAD ═══ */
+.numpad-zone{flex-shrink:0;background:rgba(3,7,18,0.97);padding:0 8px 4px;backdrop-filter:blur(16px)}
+.numpad-ctx{
+    display:flex;align-items:center;justify-content:center;
+    height:28px;gap:6px;margin-bottom:4px;
+}
+.ctx-label{
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+    padding:3px 12px;border-radius:6px;
+}
+.ctx-code{background:rgba(99,102,241,0.15);color:var(--indigo-400)}
+.ctx-qty{background:rgba(34,197,94,0.15);color:#4ade80}
+.ctx-discount{background:rgba(234,179,8,0.15);color:#facc15}
+.ctx-received{background:rgba(34,197,94,0.15);color:#4ade80}
+.numpad-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+}
+.np-btn{
+    height:46px;border-radius:12px;border:1px solid var(--border-subtle);
+    background:var(--bg-card);color:var(--text-primary);
+    font-size:18px;font-weight:600;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all 0.12s;
+    backdrop-filter:blur(12px);
+}
+.np-btn:active{background:rgba(99,102,241,0.2);transform:scale(0.93);border-color:var(--border-glow)}
+.np-btn.fn{color:var(--indigo-300);font-size:14px;font-weight:700}
+.np-btn.ok{
+    background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
+    border-color:transparent;color:#fff;font-weight:800;
+    box-shadow:0 2px 12px rgba(99,102,241,0.3);
+}
+.np-btn.ok:active{box-shadow:0 1px 6px rgba(99,102,241,0.2)}
+.np-btn.mic{color:#4ade80;font-size:20px}
+.np-btn.clear{color:var(--danger);font-weight:700}
 
-        /* Numpad */
-        .numpad {
-            display: grid; grid-template-columns: repeat(5, 1fr);
-            gap: 6px; margin-bottom: 14px;
-        }
-        .num-btn {
-            height: 44px; border-radius: 10px; border: none;
-            background: rgba(255,255,255,0.07); color: #e2e8f0;
-            font-size: 18px; font-weight: 600; cursor: pointer;
-            transition: background 0.15s;
-        }
-        .num-btn:active { background: rgba(99,102,241,0.3); }
+/* ═══ LETTER KEYBOARD ═══ */
+.keyboard-zone{
+    flex-shrink:0;background:rgba(3,7,18,0.97);padding:4px 4px 4px;
+    backdrop-filter:blur(16px);display:none;
+}
+.keyboard-zone.visible{display:block}
+.kb-row{display:flex;justify-content:center;gap:3px;margin-bottom:3px}
+.kb-key{
+    min-width:30px;height:38px;border-radius:8px;
+    border:1px solid var(--border-subtle);background:var(--bg-card);
+    color:var(--text-primary);font-size:14px;font-weight:600;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all 0.1s;padding:0 2px;
+}
+.kb-key:active{background:rgba(99,102,241,0.2);transform:scale(0.9)}
+.kb-key.wide{min-width:50px;font-size:11px;color:var(--indigo-300);font-weight:700}
+.kb-key.space{flex:1;max-width:120px}
 
-        /* Discount */
-        .discount-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
-        }
-        .discount-label { font-size: 12px; color: #64748b; flex-shrink: 0; }
-        .discount-input {
-            width: 70px; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;
-            border-radius: 8px; padding: 6px 10px; font-size: 14px;
-            text-align: center; outline: none;
-        }
-        .discount-note { font-size: 11px; color: #f87171; display: none; }
+/* ═══ PAYMENT SHEET ═══ */
+.pay-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.65);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity 0.25s;backdrop-filter:blur(4px);
+}
+.pay-overlay.open{opacity:1;pointer-events:all}
+.pay-sheet{
+    position:fixed;bottom:0;left:0;right:0;z-index:201;
+    background:#080818;border-top:1px solid var(--border-glow);
+    border-radius:22px 22px 0 0;padding:0 16px 40px;
+    transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.32,0,0.67,0);
+    max-height:85vh;overflow-y:auto;
+    box-shadow:0 -20px 60px rgba(99,102,241,0.2);
+}
+.pay-sheet.open{transform:translateY(0)}
+.pay-handle{width:36px;height:4px;background:rgba(99,102,241,0.3);border-radius:2px;margin:14px auto 12px}
+.pay-header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+}
+.pay-due{font-size:13px;color:var(--text-secondary)}
+.pay-due-amount{
+    font-size:28px;font-weight:900;
+    background:linear-gradient(135deg,#f1f5f9,#a5b4fc);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.pay-close{
+    width:32px;height:32px;border-radius:10px;
+    background:rgba(99,102,241,0.1);border:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:16px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+}
+.pay-methods{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.pm-chip{
+    flex:1;min-width:70px;height:40px;border-radius:12px;
+    border:1px solid var(--border-subtle);background:var(--bg-card);
+    color:var(--text-secondary);font-size:12px;font-weight:600;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    cursor:pointer;transition:all 0.2s;
+}
+.pm-chip.active{
+    border-color:var(--indigo-400);background:rgba(99,102,241,0.15);
+    color:var(--indigo-300);box-shadow:0 0 12px rgba(99,102,241,0.2);
+}
+.pm-chip:active{transform:scale(0.95)}
 
-        /* Popup actions */
-        .popup-actions { display: flex; gap: 8px; }
-        .btn-cancel {
-            flex: 1; padding: 13px; border-radius: 12px; border: none;
-            background: rgba(255,255,255,0.07); color: #94a3b8;
-            font-size: 15px; font-weight: 600; cursor: pointer;
-        }
-        .btn-add {
-            flex: 2; padding: 13px; border-radius: 12px; border: none;
-            background: linear-gradient(to top, #4f46e5, #6366f1);
-            color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .btn-add:active { opacity: 0.8; }
+/* Payment received section */
+.pay-received{margin-bottom:12px}
+.pay-recv-label{font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+.pay-recv-amount{
+    font-size:24px;font-weight:800;color:var(--text-primary);
+    text-align:center;padding:8px 0;
+}
+.pay-banknotes{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.bn-chip{
+    height:36px;padding:0 14px;border-radius:10px;
+    border:1px solid var(--border-subtle);background:var(--bg-card);
+    color:var(--text-primary);font-size:13px;font-weight:700;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all 0.15s;
+}
+.bn-chip:active{background:rgba(99,102,241,0.15);transform:scale(0.93)}
+.bn-chip.exact{color:var(--success);border-color:rgba(34,197,94,0.3)}
 
-        /* ── SUMMARY SHEET ── */
-        .summary-overlay {
-            position: fixed; inset: 0; z-index: 90;
-            background: rgba(0,0,0,0.5);
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .summary-overlay.open { opacity: 1; pointer-events: all; }
-        .summary-sheet {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 91;
-            background: #0f0f17; border-radius: 20px 20px 0 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            max-height: 90vh; overflow-y: auto;
-            transform: translateY(100%); transition: transform 0.3s ease;
-            padding-bottom: 80px;
-        }
-        .summary-sheet.open { transform: translateY(0); }
-        .sheet-handle {
-            width: 40px; height: 4px; background: rgba(255,255,255,0.2);
-            border-radius: 2px; margin: 12px auto 16px;
-        }
-        .sheet-title {
-            font-size: 16px; font-weight: 700; color: #e2e8f0;
-            padding: 0 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .summary-item {
-            padding: 10px 16px; display: flex;
-            justify-content: space-between; align-items: flex-start;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-        .summary-item-name { font-size: 13px; color: #e2e8f0; }
-        .summary-item-detail { font-size: 11px; color: #64748b; margin-top: 2px; }
-        .summary-item-total { font-size: 14px; font-weight: 600; color: #a5b4fc; }
-        .summary-totals {
-            padding: 14px 16px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
-        .total-row {
-            display: flex; justify-content: space-between;
-            margin-bottom: 6px; font-size: 13px; color: #94a3b8;
-        }
-        .total-row.final {
-            font-size: 18px; font-weight: 700; color: #e2e8f0;
-            margin-top: 10px; padding-top: 10px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
-        .global-discount-wrap {
-            display: flex; align-items: center; gap: 8px;
-        }
-        .global-discount-input {
-            width: 70px; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;
-            border-radius: 8px; padding: 6px 10px; font-size: 14px;
-            text-align: center; outline: none;
-        }
+/* Change display */
+.pay-change{
+    background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);
+    border-radius:16px;padding:16px;text-align:center;margin-bottom:16px;
+}
+.pay-change-label{font-size:12px;color:rgba(74,222,128,0.7);margin-bottom:4px}
+.pay-change-amount{font-size:32px;font-weight:900;color:#4ade80;text-shadow:0 0 20px rgba(34,197,94,0.4)}
 
-        /* Payment buttons */
-        .payment-btns {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 8px; padding: 12px 16px;
-        }
-        .pay-btn {
-            padding: 13px; border-radius: 12px; border: none;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .pay-btn:active { opacity: 0.7; }
-        .pay-cash { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-        .pay-card { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
-        .pay-transfer { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
-        .pay-deferred { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+.btn-confirm{
+    width:100%;height:52px;border-radius:16px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
+    color:#fff;font-size:16px;font-weight:800;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 4px 24px rgba(99,102,241,0.4);transition:all 0.2s;
+}
+.btn-confirm:active{transform:scale(0.97)}
+.btn-confirm:disabled{opacity:0.3;pointer-events:none}
 
-        /* Cash payment */
-        .cash-panel { padding: 0 16px 16px; display: none; }
-        .cash-panel.open { display: block; }
-        .cash-label { font-size: 12px; color: #64748b; margin-bottom: 8px; }
-        .quick-cash {
-            display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
-        }
-        .quick-cash-btn {
-            padding: 8px 14px; border-radius: 10px; border: none;
-            background: rgba(255,255,255,0.07); color: #e2e8f0;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            transition: background 0.15s;
-        }
-        .quick-cash-btn.selected { background: rgba(99,102,241,0.3); color: #a5b4fc; }
-        .cash-input-wrap { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-        .cash-input {
-            flex: 1; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;
-            border-radius: 10px; padding: 10px 14px; font-size: 16px; outline: none;
-        }
-        .change-display {
-            background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
-            border-radius: 10px; padding: 10px 14px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .change-label { font-size: 12px; color: #64748b; }
-        .change-amount { font-size: 20px; font-weight: 700; color: #4ade80; }
-        .finalize-btn {
-            width: 100%; padding: 15px; border-radius: 14px; border: none;
-            background: linear-gradient(to top, #4f46e5, #6366f1);
-            color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
-            margin-top: 12px; transition: opacity 0.2s;
-        }
-        .finalize-btn:active { opacity: 0.8; }
+/* ═══ DISCOUNT CHIPS ═══ */
+.discount-chips{
+    display:none;align-items:center;gap:6px;padding:6px 12px;flex-shrink:0;
+    background:rgba(234,179,8,0.05);border-top:1px solid rgba(234,179,8,0.15);
+}
+.discount-chips.visible{display:flex}
+.dc-chip{
+    height:30px;padding:0 12px;border-radius:8px;
+    border:1px solid rgba(234,179,8,0.25);background:rgba(234,179,8,0.08);
+    color:#facc15;font-size:13px;font-weight:700;font-family:inherit;
+    cursor:pointer;transition:all 0.15s;
+}
+.dc-chip:active{transform:scale(0.93)}
+.dc-chip.active{background:rgba(234,179,8,0.2);border-color:rgba(234,179,8,0.5)}
+.dc-close{
+    margin-left:auto;color:var(--text-secondary);font-size:18px;cursor:pointer;padding:0 4px;
+}
 
-        /* ── WHOLESALE CLIENT ── */
-        .client-btn {
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: #94a3b8; border-radius: 8px; padding: 5px 10px;
-            font-size: 12px; font-weight: 500; cursor: pointer;
-            transition: all 0.2s; white-space: nowrap;
-        }
-        .client-btn.selected { background: rgba(99,102,241,0.2); color: #818cf8; border-color: rgba(99,102,241,0.4); }
-        .client-list-overlay {
-            position: fixed; inset: 0; z-index: 110;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-            display: flex; align-items: flex-end;
-            opacity: 0; pointer-events: none; transition: opacity 0.2s;
-        }
-        .client-list-overlay.open { opacity: 1; pointer-events: all; }
-        .client-list-box {
-            background: #13131f; border-radius: 20px 20px 0 0;
-            padding: 16px; width: 100%; max-height: 60vh; overflow-y: auto;
-            transform: translateY(100%); transition: transform 0.3s;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .client-list-overlay.open .client-list-box { transform: translateY(0); }
-        .client-search {
-            width: 100%; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;
-            border-radius: 10px; padding: 9px 12px; font-size: 14px;
-            outline: none; margin-bottom: 10px;
-        }
-        .client-item {
-            padding: 12px; border-radius: 10px; cursor: pointer;
-            color: #e2e8f0; font-size: 14px;
-            transition: background 0.15s;
-        }
-        .client-item:active { background: rgba(99,102,241,0.15); }
+/* ═══ WHOLESALE SHEET ═══ */
+.ws-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;
+    opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(4px);
+}
+.ws-overlay.open{opacity:1;pointer-events:all}
+.ws-sheet{
+    position:fixed;bottom:0;left:0;right:0;z-index:201;
+    background:#080818;border-top:1px solid var(--border-glow);
+    border-radius:22px 22px 0 0;padding:0 16px 40px;
+    transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.32,0,0.67,0);
+    max-height:70vh;overflow-y:auto;
+    box-shadow:0 -20px 60px rgba(99,102,241,0.2);
+}
+.ws-sheet.open{transform:translateY(0)}
+.ws-title{font-size:15px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:16px}
+.ws-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-bottom:1px solid rgba(99,102,241,0.08);
+    cursor:pointer;transition:background 0.15s;border-radius:10px;margin-bottom:2px;
+}
+.ws-item:active{background:rgba(99,102,241,0.1)}
+.ws-name{font-size:14px;font-weight:600}
+.ws-phone{font-size:12px;color:var(--text-secondary)}
+.ws-retail{
+    padding:12px 14px;border-radius:10px;cursor:pointer;
+    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
+    color:#fca5a5;font-size:13px;font-weight:700;text-align:center;
+    margin-top:8px;transition:all 0.15s;
+}
+.ws-retail:active{background:rgba(239,68,68,0.15)}
 
-        /* ── PARK ── */
-        .park-badge {
-            position: relative; display: flex; align-items: center;
-        }
-        .park-count {
-            position: absolute; top: -4px; right: -4px;
-            background: #ef4444; color: #fff; border-radius: 50%;
-            width: 16px; height: 16px; font-size: 9px; font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
-        }
+/* ═══ PARKED SALES OVERLAY ═══ */
+.parked-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;
+    opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);
+}
+.parked-overlay.open{opacity:1;pointer-events:all}
+.parked-container{
+    position:fixed;top:60px;left:12px;right:12px;bottom:80px;z-index:201;
+    display:flex;flex-direction:column;gap:12px;overflow-y:auto;
+    opacity:0;transform:scale(0.95);transition:all 0.3s;
+}
+.parked-overlay.open .parked-container{opacity:1;transform:scale(1)}
+.parked-card{
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    border-radius:16px;padding:16px;backdrop-filter:blur(12px);
+    cursor:pointer;transition:all 0.2s;animation:cardIn 0.3s ease both;
+}
+.parked-card:active{transform:scale(0.97);border-color:var(--border-glow)}
+.pc-header{display:flex;justify-content:space-between;margin-bottom:8px}
+.pc-client{font-size:13px;font-weight:700;color:var(--indigo-300)}
+.pc-time{font-size:11px;color:var(--text-secondary)}
+.pc-info{font-size:12px;color:var(--text-secondary)}
+.pc-total{font-size:16px;font-weight:800;margin-top:6px}
+.pc-delete{
+    float:right;padding:4px 10px;border-radius:8px;
+    background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
+    color:#fca5a5;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;
+}
+.pc-delete:active{background:rgba(239,68,68,0.2)}
+.parked-title{
+    text-align:center;font-size:16px;font-weight:800;color:var(--text-primary);
+    margin-bottom:8px;flex-shrink:0;
+}
 
-        /* ── VOICE ── */
-        .voice-overlay {
-            position: fixed; inset: 0; z-index: 120;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .voice-overlay.open { opacity: 1; pointer-events: all; }
-        .voice-circle {
-            width: 100px; height: 100px; border-radius: 50%;
-            background: rgba(99,102,241,0.2); border: 2px solid #6366f1;
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 24px; animation: voicePulse 1.5s infinite;
-        }
-        @keyframes voicePulse {
-            0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(99,102,241,0); }
-        }
-        .voice-text { font-size: 14px; color: #94a3b8; text-align: center; padding: 0 40px; }
-        .voice-cancel {
-            margin-top: 32px; background: rgba(255,255,255,0.1);
-            border: none; color: #e2e8f0; border-radius: 12px;
-            padding: 12px 32px; font-size: 14px; cursor: pointer;
-        }
+/* ═══ VOICE OVERLAY ═══ */
+.voice-overlay{
+    position:fixed;inset:0;z-index:300;
+    background:rgba(3,7,18,0.85);backdrop-filter:blur(16px);
+    display:none;align-items:center;justify-content:center;flex-direction:column;
+}
+.voice-overlay.open{display:flex}
+.voice-ring{
+    width:120px;height:120px;border-radius:50%;
+    border:3px solid var(--indigo-400);
+    display:flex;align-items:center;justify-content:center;
+    animation:voicePulse 1.5s ease infinite;
+    margin-bottom:20px;
+}
+@keyframes voicePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)}
+    50%{box-shadow:0 0 0 20px rgba(99,102,241,0)}
+}
+.voice-ring .mic-icon{font-size:48px}
+.voice-text{font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:8px;text-align:center;padding:0 24px}
+.voice-hint{font-size:12px;color:var(--text-secondary);margin-bottom:24px;text-align:center;padding:0 24px}
+.voice-cancel{
+    padding:10px 28px;border-radius:12px;border:1px solid var(--border-subtle);
+    background:var(--bg-card);color:var(--indigo-300);font-size:14px;font-weight:600;
+    cursor:pointer;font-family:inherit;
+}
 
-        /* ── BEEP ── */
-        .scan-flash {
-            position: fixed; inset: 0; z-index: 200;
-            background: rgba(34,197,94,0.15);
-            pointer-events: none; opacity: 0;
-            transition: opacity 0.1s;
-        }
-        .scan-flash.flash { opacity: 1; }
-    </style>
+/* ═══ TOAST ═══ */
+.toast{
+    position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-100px);
+    z-index:500;padding:12px 24px;border-radius:14px;
+    background:rgba(15,15,40,0.95);border:1px solid var(--border-glow);
+    backdrop-filter:blur(16px);color:var(--text-primary);
+    font-size:14px;font-weight:600;white-space:nowrap;
+    box-shadow:0 8px 32px rgba(99,102,241,0.3);
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(34,197,94,0.4);box-shadow:0 8px 32px rgba(34,197,94,0.2)}
+
+/* ═══ BOTTOM NAV ═══ */
+.bottom-nav{
+    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    height:var(--bottom-nav-h);
+    background:rgba(3,7,18,0.95);backdrop-filter:blur(16px);
+    border-top:1px solid var(--border-subtle);
+    display:flex;align-items:center;
+    box-shadow:0 -5px 25px rgba(99,102,241,0.1);
+}
+.bnav-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;font-size:10px;font-weight:600;
+    color:rgba(165,180,252,0.5);text-decoration:none;
+    transition:all 0.3s;height:100%;
+}
+.bnav-tab.active{color:var(--indigo-400);text-shadow:0 0 12px rgba(129,140,248,0.9)}
+.bnav-tab .bnav-icon{font-size:20px;transition:all 0.3s;filter:drop-shadow(0 0 4px rgba(99,102,241,0.3))}
+.bnav-tab.active .bnav-icon{transform:translateY(-2px);filter:drop-shadow(0 0 12px rgba(129,140,248,0.8))}
+
+/* ═══ UNDO BAR ═══ */
+.undo-bar{
+    position:fixed;bottom:calc(var(--bottom-nav-h) + 8px);left:16px;right:16px;
+    z-index:150;padding:12px 16px;border-radius:14px;
+    background:rgba(15,15,40,0.95);border:1px solid rgba(239,68,68,0.3);
+    backdrop-filter:blur(16px);display:none;
+    justify-content:space-between;align-items:center;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:fadeUp 0.2s ease;
+}
+.undo-bar.show{display:flex}
+.undo-text{font-size:13px;color:#fca5a5}
+.undo-btn{
+    padding:6px 14px;border-radius:8px;
+    background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);
+    color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+
+/* ═══ Long press popup ═══ */
+.lp-popup{
+    position:fixed;z-index:250;
+    background:#0c0c24;border:1px solid var(--border-glow);
+    border-radius:18px;padding:16px;min-width:220px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 30px rgba(99,102,241,0.15);
+    display:none;
+}
+.lp-popup.show{display:block;animation:cardIn 0.2s ease}
+.lp-title{font-size:14px;font-weight:700;margin-bottom:12px;text-align:center}
+.lp-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px}
+.lp-num{
+    height:42px;border-radius:10px;border:1px solid var(--border-subtle);
+    background:var(--bg-card);color:var(--text-primary);font-size:16px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;
+}
+.lp-num:active{background:rgba(99,102,241,0.15)}
+.lp-display{
+    text-align:center;font-size:24px;font-weight:800;color:var(--indigo-300);
+    margin-bottom:10px;min-height:32px;
+}
+.lp-actions{display:flex;gap:6px}
+.lp-cancel,.lp-ok{
+    flex:1;height:38px;border-radius:10px;border:none;font-size:13px;font-weight:700;
+    cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;
+}
+.lp-cancel{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#fca5a5}
+.lp-ok{background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));color:#fff}
+</style>
 </head>
-<body class="bg-gray-950 font-inter text-base text-gray-200 antialiased" x-data="saleApp()" x-init="init()">
+<body>
 
-<!-- Scan flash -->
-<div class="scan-flash" :class="{'flash': scanFlash}" @transitionend="scanFlash=false"></div>
+<!-- Green flash overlay -->
+<div class="green-flash" id="greenFlash"></div>
 
-<!-- HEADER -->
-<div class="sale-header" :class="{'wholesale-mode': wholesaleMode}">
-    <div class="flex items-center gap-10">
-        <a href="actions.php" class="text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-        </a>
-        <span class="text-sm font-semibold text-gray-200"><?= $sale_label ?></span>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Undo bar -->
+<div class="undo-bar" id="undoBar">
+    <span class="undo-text" id="undoText"></span>
+    <button class="undo-btn" id="undoBtn">ОТМЕНИ</button>
+</div>
+
+<!-- Voice overlay -->
+<div class="voice-overlay" id="voiceOverlay">
+    <div class="voice-ring"><span class="mic-icon">🎤</span></div>
+    <div class="voice-text" id="voiceText">Слушам...</div>
+    <div class="voice-hint" id="voiceHint">Кажете артикул, количество или команда</div>
+    <button class="voice-cancel" id="voiceCancel">Затвори</button>
+</div>
+
+<!-- Long press popup -->
+<div class="lp-popup" id="lpPopup">
+    <div class="lp-title" id="lpTitle">Бройки</div>
+    <div class="lp-display" id="lpDisplay">0</div>
+    <div class="lp-numpad">
+        <button class="lp-num" onclick="lpNum('1')">1</button>
+        <button class="lp-num" onclick="lpNum('2')">2</button>
+        <button class="lp-num" onclick="lpNum('3')">3</button>
+        <button class="lp-num" onclick="lpNum('4')">4</button>
+        <button class="lp-num" onclick="lpNum('5')">5</button>
+        <button class="lp-num" onclick="lpNum('6')">6</button>
+        <button class="lp-num" onclick="lpNum('7')">7</button>
+        <button class="lp-num" onclick="lpNum('8')">8</button>
+        <button class="lp-num" onclick="lpNum('9')">9</button>
+        <button class="lp-num" onclick="lpNum('C')" style="color:var(--danger)">C</button>
+        <button class="lp-num" onclick="lpNum('0')">0</button>
+        <button class="lp-num" onclick="lpNum('⌫')">⌫</button>
     </div>
-    <div class="flex items-center gap-8">
-        <!-- Wholesale client button -->
-        <button class="client-btn" :class="{'selected': selectedClient}" @click="openClientList()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3"/>
-            </svg>
-            <span x-text="selectedClient ? selectedClient.name : '+ Едро'"></span>
+    <div class="lp-actions">
+        <button class="lp-cancel" onclick="closeLpPopup()">Откажи</button>
+        <button class="lp-ok" onclick="confirmLpPopup()">OK</button>
+    </div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="sale-wrap" id="saleWrap">
+
+    <!-- HEADER -->
+    <div class="sale-header" id="saleHeader">
+        <button class="hdr-btn" onclick="location.href='warehouse.php'">←</button>
+        <span class="hdr-title" id="hdrTitle"><?= $page_title ?></span>
+        <div class="hdr-right">
+            <button class="hdr-btn" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
+                🅿️<span class="park-badge" id="parkedCount">0</span>
+            </button>
+            <button class="hdr-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
+        </div>
+    </div>
+
+    <!-- CAMERA -->
+    <div class="camera-zone" id="cameraZone" style="height:30vh">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <button class="camera-close" onclick="toggleCamera(false)">✕</button>
+    </div>
+    <div class="camera-open" id="cameraOpen" onclick="toggleCamera(true)">📷 Отвори камерата</div>
+
+    <!-- SEARCH BAR -->
+    <div class="search-bar">
+        <div class="search-display" id="searchDisplay">
+            <span class="placeholder">🔍 Код, име или баркод</span>
+        </div>
+        <button class="search-btn" id="btnVoiceSearch" onclick="startVoice()">🎤</button>
+        <button class="search-btn" id="btnKeyboard" onclick="toggleKeyboard()">АБВ</button>
+    </div>
+
+    <!-- SEARCH RESULTS -->
+    <div class="search-results" id="searchResults"></div>
+
+    <!-- DISCOUNT CHIPS -->
+    <div class="discount-chips" id="discountChips">
+        <button class="dc-chip" onclick="applyDiscount(5)">5%</button>
+        <button class="dc-chip" onclick="applyDiscount(10)">10%</button>
+        <button class="dc-chip" onclick="applyDiscount(15)">15%</button>
+        <button class="dc-chip" onclick="applyDiscount(20)">20%</button>
+        <span class="dc-close" onclick="closeDiscount()">✕</span>
+    </div>
+
+    <!-- CART -->
+    <div class="cart-zone" id="cartZone">
+        <div class="cart-empty" id="cartEmpty">
+            <span class="cart-empty-icon">🛒</span>
+            <span class="cart-empty-text">Сканирай или въведи код</span>
+        </div>
+    </div>
+
+    <!-- SUMMARY BAR -->
+    <div class="summary-bar" id="summaryBar" style="display:none">
+        <span class="sum-count" id="sumCount">0 арт.</span>
+        <button class="sum-discount" id="sumDiscountBtn" onclick="toggleDiscount()">%</button>
+        <span class="sum-total">Общо: <span class="amount" id="sumTotal">0,00</span> <?= $currency ?></span>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar" id="actionBar">
+        <button class="btn-pay" id="btnPay" disabled onclick="openPayment()">
+            💵 ПЛАТИ <span id="payAmount">0</span> <?= $currency ?>
         </button>
-        <!-- Parked -->
-        <button class="park-badge" @click="openParked()" x-show="parkedSales.length > 0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6M4 6h16M4 18h16"/>
-            </svg>
-            <span class="park-count" x-text="parkedSales.length"></span>
-        </button>
+        <button class="btn-park" onclick="parkSale()">🅿️</button>
+    </div>
+
+    <!-- NUMPAD -->
+    <div class="numpad-zone" id="numpadZone">
+        <div class="numpad-ctx">
+            <span class="ctx-label ctx-code" id="ctxLabel">КОД</span>
+        </div>
+        <div class="numpad-grid">
+            <button class="np-btn" onclick="numPress('1')">1</button>
+            <button class="np-btn" onclick="numPress('2')">2</button>
+            <button class="np-btn" onclick="numPress('3')">3</button>
+            <button class="np-btn fn" onclick="numPress('⌫')">⌫</button>
+            <button class="np-btn" onclick="numPress('4')">4</button>
+            <button class="np-btn" onclick="numPress('5')">5</button>
+            <button class="np-btn" onclick="numPress('6')">6</button>
+            <button class="np-btn" onclick="numPress('00')">00</button>
+            <button class="np-btn" onclick="numPress('7')">7</button>
+            <button class="np-btn" onclick="numPress('8')">8</button>
+            <button class="np-btn" onclick="numPress('9')">9</button>
+            <button class="np-btn" onclick="numPress('.')">.</button>
+            <button class="np-btn fn clear" onclick="numPress('C')">C</button>
+            <button class="np-btn" onclick="numPress('0')">0</button>
+            <button class="np-btn ok" onclick="numOk()">OK</button>
+            <button class="np-btn mic" onclick="startVoice()">🎤</button>
+        </div>
+    </div>
+
+    <!-- LETTER KEYBOARD (hidden by default) -->
+    <div class="keyboard-zone" id="keyboardZone">
+        <?php if ($lang === 'bg'): ?>
+        <div class="kb-row">
+            <?php foreach(['А','Б','В','Г','Д','Е','Ж','З','И','Й'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['К','Л','М','Н','О','П','Р','С','Т'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ь'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
+            <button class="kb-key" onclick="kbPress('Ю')">Ю</button>
+            <button class="kb-key" onclick="kbPress('Я')">Я</button>
+            <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+            <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
+        </div>
+        <?php elseif ($lang === 'en'): ?>
+        <div class="kb-row">
+            <?php foreach(['Q','W','E','R','T','Y','U','I','O','P'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['A','S','D','F','G','H','J','K','L'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
+            <?php foreach(['Z','X','C','V','B','N','M'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+            <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+        </div>
+        <?php else: /* Romanian */ ?>
+        <div class="kb-row">
+            <?php foreach(['Q','W','E','R','T','Y','U','I','O','P'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['A','S','D','F','G','H','J','K','L','Ă'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
+            <?php foreach(['Z','X','C','V','B','N','M','Î','Ș','Ț'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+            <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key" onclick="kbPress('Â')">Â</button>
+            <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+        </div>
+        <?php endif; ?>
+    </div>
+
+</div><!-- /sale-wrap -->
+
+<!-- PAYMENT BOTTOM SHEET -->
+<div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
+<div class="pay-sheet" id="paySheet">
+    <div class="pay-handle"></div>
+    <div class="pay-header">
+        <div>
+            <div class="pay-due">ДЪЛЖИМО</div>
+            <div class="pay-due-amount" id="payDueAmount">0,00 <?= $currency ?></div>
+        </div>
+        <button class="pay-close" onclick="closePayment()">✕</button>
+    </div>
+    <div class="pay-methods">
+        <button class="pm-chip active" data-method="cash" onclick="setPayMethod('cash')">💵 Брой</button>
+        <button class="pm-chip" data-method="card" onclick="setPayMethod('card')">💳 Карта</button>
+        <button class="pm-chip" data-method="transfer" onclick="setPayMethod('transfer')">🏦 Превод</button>
+        <button class="pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">⏳ Отложено</button>
+    </div>
+    <div id="cashSection">
+        <div class="pay-received">
+            <div class="pay-recv-label">Получено:</div>
+            <div class="pay-recv-amount" id="payRecvAmount">0,00 <?= $currency ?></div>
+        </div>
+        <div class="pay-banknotes">
+            <button class="bn-chip exact" onclick="payBanknote('exact')">Точна</button>
+            <button class="bn-chip" onclick="payBanknote(5)">5</button>
+            <button class="bn-chip" onclick="payBanknote(10)">10</button>
+            <button class="bn-chip" onclick="payBanknote(20)">20</button>
+            <button class="bn-chip" onclick="payBanknote(50)">50</button>
+            <button class="bn-chip" onclick="payBanknote(100)">100</button>
+        </div>
+        <div class="pay-change" id="payChangeBox" style="display:none">
+            <div class="pay-change-label">РЕСТО</div>
+            <div class="pay-change-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
+        </div>
+    </div>
+    <button class="btn-confirm" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
+</div>
+
+<!-- WHOLESALE SHEET -->
+<div class="ws-overlay" id="wsOverlay" onclick="closeWholesale()"></div>
+<div class="ws-sheet" id="wsSheet">
+    <div class="pay-handle"></div>
+    <div class="ws-title">Клиент (едро)</div>
+    <?php foreach ($wholesale_clients as $wc): ?>
+    <div class="ws-item" onclick="selectClient(<?= $wc['id'] ?>, '<?= htmlspecialchars($wc['name'], ENT_QUOTES) ?>')">
+        <div>
+            <div class="ws-name"><?= htmlspecialchars($wc['name']) ?></div>
+            <div class="ws-phone"><?= htmlspecialchars($wc['phone'] ?? '') ?></div>
+        </div>
+        <span style="color:var(--indigo-300)">›</span>
+    </div>
+    <?php endforeach; ?>
+    <?php if (empty($wholesale_clients)): ?>
+    <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:13px">
+        Няма клиенти на едро
+    </div>
+    <?php endif; ?>
+    <div class="ws-retail" id="wsRetail" onclick="selectClient(null, null)" style="display:none">
+        — Без клиент (дребно) —
     </div>
 </div>
 
-<!-- CAMERA -->
-<div class="camera-wrap" :class="{'hidden-cam': !cameraOpen}" id="cameraWrap">
-    <video id="camera-video" autoplay playsinline muted></video>
-    <div class="camera-overlay">
-        <div class="camera-frame" :class="{'scanned': scanSuccess}" id="cameraFrame"></div>
+<!-- PARKED SALES -->
+<div class="parked-overlay" id="parkedOverlay" onclick="closeParked()">
+    <div class="parked-container" id="parkedContainer" onclick="event.stopPropagation()">
+        <div class="parked-title">Паркирани продажби</div>
     </div>
-    <button class="cam-close" @click="toggleCamera()">✕</button>
-</div>
-<button class="cam-toggle" :style="'top: ' + (cameraOpen ? '218px' : '66px')" @click="toggleCamera()">
-    <span x-text="cameraOpen ? 'Скрий' : '📷 Камера'"></span>
-</button>
-
-<!-- SEARCH -->
-<div class="search-wrap" :style="'top: ' + searchTop + 'px'">
-    <input
-        type="text"
-        class="search-input"
-        placeholder="Код или наименование..."
-        x-model="searchQuery"
-        @input="searchProducts()"
-        @focus="showResults = searchResults.length > 0"
-        inputmode="numeric"
-        id="searchInput"
-    />
-    <button class="mic-btn" :class="{'recording': voiceRecording}" @click="startVoice()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-        </svg>
-    </button>
-</div>
-
-<!-- SEARCH RESULTS -->
-<div class="search-results" :style="'top: ' + resultsTop + 'px; display: ' + (showResults ? 'block' : 'none')">
-    <template x-for="p in searchResults" :key="p.id">
-        <div class="search-result-item" @click="openPopup(p)">
-            <div>
-                <div class="result-code" x-text="p.code"></div>
-                <div class="result-name" x-text="p.name"></div>
-                <div class="result-sold" x-text="'Продадени: ' + p.sold_count + ' бр'"></div>
-            </div>
-            <div class="result-price" x-text="formatPrice(wholesaleMode && selectedClient ? p.wholesale_price : p.retail_price)"></div>
-        </div>
-    </template>
-</div>
-
-<!-- ITEMS LIST -->
-<div class="items-list" :style="'top: ' + listTop + 'px; bottom: 116px'" id="itemsList">
-    <template x-if="items.length === 0">
-        <div class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6h13M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
-            </svg>
-            <p class="text-sm">Сканирай или въведи код</p>
-        </div>
-    </template>
-    <template x-for="(item, idx) in items" :key="idx">
-        <div
-            class="sale-item"
-            :class="{'swipe-left': item.swiped}"
-            @touchstart="touchStart($event, idx)"
-            @touchmove="touchMove($event, idx)"
-            @touchend="touchEnd($event, idx)"
-        >
-            <div style="flex:1">
-                <div class="item-name" x-text="item.name"></div>
-                <div class="item-detail" x-text="item.qty + ' × ' + formatPrice(item.price) + (item.discount > 0 ? ' (-' + item.discount + '%)' : '')"></div>
-            </div>
-            <div style="text-align:right">
-                <div class="item-price" x-text="formatPrice(itemTotal(item))"></div>
-                <div class="item-qty" x-text="item.qty + ' бр'"></div>
-            </div>
-            <div class="item-delete-btn" @click="removeItem(idx)">Изтрий</div>
-        </div>
-    </template>
-</div>
-
-<!-- BOTTOM BAR -->
-<div class="bottom-bar">
-    <div class="bottom-bar-info">
-        <span class="bar-count" x-text="items.length + ' арт.'"></span>
-        <span class="bar-total" x-text="formatPrice(grandTotal())"></span>
-    </div>
-    <button class="bar-expand" @click="openSummary()">
-        <span x-text="items.length === 0 ? 'Обобщение' : 'Плащане'"></span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
-        </svg>
-    </button>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-    <a href="chat.php" class="nav-item">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-        </svg>
-        <span>Чат</span>
-    </a>
-    <a href="warehouse.php" class="nav-item">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
-        <span>Склад</span>
-    </a>
-    <a href="stats.php" class="nav-item">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>
-        <span>Статистики</span>
-    </a>
-    <a href="actions.php" class="nav-item active">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        <span>Въвеждане</span>
-    </a>
+    <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
+    <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
+    <a href="stats.php" class="bnav-tab"><span class="bnav-icon">📊</span>Справки</a>
+    <a href="sale.php" class="bnav-tab active"><span class="bnav-icon">⚡</span>Въвеждане</a>
 </nav>
 
-<!-- ═══════════════════════════════════════════
-     POPUP — Артикул: количество + отстъпка
-═══════════════════════════════════════════ -->
-<div class="popup-overlay" :class="{'open': popupOpen}" @click.self="closePopup()">
-    <div class="popup-box">
-        <div class="popup-product-name" x-text="popup.name"></div>
-        <div class="popup-product-price" x-text="formatPrice(popup.price)"></div>
-
-        <!-- Qty -->
-        <div class="qty-control">
-            <button class="qty-btn" @click="popupQtyChange(-1)">−</button>
-            <div class="qty-display" x-text="popup.qty"></div>
-            <button class="qty-btn" @click="popupQtyChange(1)">+</button>
-        </div>
-
-        <!-- Numpad -->
-        <div class="numpad">
-            <template x-for="n in [1,2,3,4,5,6,7,8,9,0]" :key="n">
-                <button class="num-btn" @click="popupNumPress(n)" x-text="n"></button>
-            </template>
-        </div>
-
-        <!-- Discount -->
-        <div class="discount-row">
-            <span class="discount-label">Отстъпка %</span>
-            <input
-                type="number"
-                class="discount-input"
-                x-model="popup.discount"
-                min="0"
-                :max="maxDiscount"
-                @input="checkDiscount()"
-                placeholder="0"
-            />
-            <span class="discount-note" x-show="discountWarning" id="discountNote">Максимум <?= $max_discount ?>%</span>
-        </div>
-
-        <div class="popup-actions">
-            <button class="btn-cancel" @click="closePopup()">Откажи</button>
-            <button class="btn-add" @click="addToSale()">Добави</button>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     SUMMARY SHEET
-═══════════════════════════════════════════ -->
-<div class="summary-overlay" :class="{'open': summaryOpen}" @click.self="closeSummary()"></div>
-<div class="summary-sheet" :class="{'open': summaryOpen}" id="summarySheet"
-     @touchstart="sheetTouchStart($event)"
-     @touchmove="sheetTouchMove($event)"
-     @touchend="sheetTouchEnd($event)">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Обобщение</div>
-
-    <!-- Items -->
-    <template x-for="(item, idx) in items" :key="idx">
-        <div class="summary-item" @click="editItem(idx)">
-            <div>
-                <div class="summary-item-name" x-text="item.name"></div>
-                <div class="summary-item-detail" x-text="item.qty + ' × ' + formatPrice(item.price) + (item.discount > 0 ? ' −' + item.discount + '%' : '')"></div>
-            </div>
-            <div class="summary-item-total" x-text="formatPrice(itemTotal(item))"></div>
-        </div>
-    </template>
-
-    <!-- Totals -->
-    <div class="summary-totals">
-        <div class="total-row">
-            <span>Междинна сума</span>
-            <span x-text="formatPrice(subtotal())"></span>
-        </div>
-        <div class="total-row" x-show="globalDiscount > 0">
-            <span>Обща отстъпка</span>
-            <span x-text="'−' + formatPrice(globalDiscountAmount())"></span>
-        </div>
-        <div class="total-row">
-            <div class="global-discount-wrap">
-                <span>Обща отстъпка %</span>
-                <input type="number" class="global-discount-input" x-model="globalDiscount" min="0" :max="maxDiscount" placeholder="0"/>
-            </div>
-        </div>
-        <div class="total-row final">
-            <span>За плащане</span>
-            <span x-text="formatPrice(grandTotal())"></span>
-        </div>
-    </div>
-
-    <!-- Payment buttons -->
-    <div class="payment-btns">
-        <button class="pay-btn pay-cash" @click="selectPayment('cash')">💵 Брой</button>
-        <button class="pay-btn pay-card" @click="selectPayment('card')">💳 Карта</button>
-        <button class="pay-btn pay-transfer" @click="selectPayment('transfer')">🏦 Превод</button>
-        <button class="pay-btn pay-deferred" @click="selectPayment('deferred')">⏳ Отложено</button>
-    </div>
-
-    <!-- Park button -->
-    <div style="padding: 0 16px 8px;">
-        <button style="width:100%; padding:12px; border-radius:12px; border:none; background:rgba(255,255,255,0.05); color:#64748b; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"
-                @click="parkSale()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6"/>
-            </svg>
-            Паркирай продажбата
-        </button>
-    </div>
-
-    <!-- Cash panel -->
-    <div class="cash-panel" :class="{'open': paymentMethod === 'cash'}" id="cashPanel">
-        <div class="cash-label">Получено от клиента</div>
-        <div class="quick-cash">
-            <template x-for="amt in quickCashAmounts()" :key="amt">
-                <button class="quick-cash-btn" :class="{'selected': receivedAmount == amt}" @click="setReceived(amt)" x-text="formatPrice(amt)"></button>
-            </template>
-        </div>
-        <div class="cash-input-wrap">
-            <input type="number" class="cash-input" x-model="receivedAmount" placeholder="Въведи сума" @input="calcChange()"/>
-        </div>
-        <div class="change-display" x-show="receivedAmount > 0">
-            <span class="change-label">Ресто</span>
-            <span class="change-amount" x-text="formatPrice(changeAmount())"></span>
-        </div>
-        <button class="finalize-btn" @click="finalizeSale()" :disabled="items.length === 0">
-            ФИНАЛИЗИРАЙ
-        </button>
-    </div>
-
-    <!-- Card panel -->
-    <div x-show="paymentMethod === 'card'" style="padding: 0 16px 16px;">
-        <?php if (defined('STRIPE_ENABLED') && STRIPE_ENABLED): ?>
-        <button class="finalize-btn" style="background: linear-gradient(to top, #4f46e5, #818cf8);" @click="finalizeSale()">
-            💳 Stripe Terminal
-        </button>
-        <?php endif; ?>
-        <button class="finalize-btn" style="margin-top:8px;" @click="finalizeSale()">
-            ✅ Платено с карта (собствен ПОС)
-        </button>
-    </div>
-
-    <!-- Transfer panel -->
-    <div x-show="paymentMethod === 'transfer'" style="padding: 0 16px 16px;">
-        <button class="finalize-btn" @click="finalizeSale()">ФИНАЛИЗИРАЙ — Банков превод</button>
-    </div>
-
-    <!-- Deferred panel -->
-    <div x-show="paymentMethod === 'deferred'" style="padding: 0 16px 16px;">
-        <div class="cash-label" style="margin-bottom:8px;">Падеж</div>
-        <input type="date" class="cash-input" x-model="deferredDate" style="margin-bottom:12px;"/>
-        <button class="finalize-btn" style="background: linear-gradient(to top, #dc2626, #ef4444);" @click="finalizeSale()">
-            ФИНАЛИЗИРАЙ — Отложено плащане
-        </button>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     WHOLESALE CLIENT LIST
-═══════════════════════════════════════════ -->
-<div class="client-list-overlay" :class="{'open': clientListOpen}" @click.self="clientListOpen=false">
-    <div class="client-list-box">
-        <input type="text" class="client-search" placeholder="Търси клиент..." x-model="clientSearch"/>
-        <div class="client-item" style="color:#64748b; font-size:12px;" @click="clearClient()">— Без клиент (дребно)</div>
-        <template x-for="c in filteredClients()" :key="c.id">
-            <div class="client-item" @click="selectClient(c)" x-text="c.name"></div>
-        </template>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     VOICE OVERLAY
-═══════════════════════════════════════════ -->
-<div class="voice-overlay" :class="{'open': voiceOverlay}">
-    <div class="voice-circle">
-        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-        </svg>
-    </div>
-    <div class="voice-text" x-text="voiceText || 'Говори... Кажи какво си продал'"></div>
-    <button class="voice-cancel" @click="stopVoice()">Откажи</button>
-</div>
-
-<script src="./js/vendors/alpinejs-focus.min.js"></script>
-<script src="./js/vendors/alpinejs.min.js" defer></script>
-
 <script>
-const CURRENCY = '<?= $currency ?>';
-const MAX_DISCOUNT = <?= $max_discount ?>;
-const NOTIFY_DISCOUNT = <?= $notify_discount ?>;
-const ROLE = '<?= $role ?>';
-const SUPATO_MODE = <?= $supato_mode ?>;
-const TENANT_ID = <?= $tenant_id ?>;
-const STORE_ID = <?= $store_id ?>;
-const USER_ID = <?= $user_id ?>;
+/* ═══════════════════════════════════════════════════════════
+   SALE MODULE — JavaScript Engine
+   ═══════════════════════════════════════════════════════════ */
 
-// Wholesale clients from PHP
-const WHOLESALE_CLIENTS = <?= json_encode($wholesale_clients) ?>;
+// ─── STATE ───
+const STATE = {
+    cart: [],               // [{product_id, code, name, meta, unit_price, quantity, discount_pct, image}]
+    selectedIndex: -1,      // selected cart item index
+    numpadCtx: 'code',      // code | qty | discount | received
+    numpadInput: '',        // current numpad input string
+    isWholesale: false,
+    customerId: null,
+    customerName: '',
+    discountPct: 0,
+    payMethod: 'cash',
+    receivedAmount: 0,
+    parked: JSON.parse(localStorage.getItem('rms_parked_<?= $store_id ?>') || '[]'),
+    cameraActive: false,
+    keyboardVisible: false,
+    searchText: '',
+    searchTimeout: null,
+    undoTimeout: null,
+    undoItem: null,
+    undoIndex: -1,
+    maxDiscount: <?= $max_discount ?>,
+    currency: '<?= $currency ?>',
+    lang: '<?= $lang ?>',
+    storeId: <?= $store_id ?>,
+    scanCooldown: false,
+};
 
-function saleApp() {
-    return {
-        // Layout
-        cameraOpen: true,
-        searchTop: 216,
-        resultsTop: 264,
-        listTop: 312,
+// ─── FORMAT HELPERS ───
+function fmtPrice(n) {
+    return parseFloat(n).toLocaleString('bg-BG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
 
-        // Search
-        searchQuery: '',
-        searchResults: [],
-        showResults: false,
+function getTotal() {
+    let sub = 0;
+    STATE.cart.forEach(it => {
+        sub += it.unit_price * it.quantity * (1 - (it.discount_pct || 0) / 100);
+    });
+    const disc = sub * (STATE.discountPct / 100);
+    return Math.round((sub - disc) * 100) / 100;
+}
 
-        // Items
-        items: [],
+function getItemCount() {
+    return STATE.cart.reduce((s, it) => s + it.quantity, 0);
+}
 
-        // Popup
-        popupOpen: false,
-        popup: { id: null, name: '', price: 0, qty: 1, discount: 0, wholesale_price: 0, retail_price: 0 },
-        discountWarning: false,
-        editingIndex: -1,
+// ─── TOAST ───
+function showToast(msg, type = '', duration = 2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' ' + type : '');
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => t.classList.remove('show'), duration);
+}
 
-        // Summary
-        summaryOpen: false,
-        globalDiscount: 0,
-        paymentMethod: null,
-        receivedAmount: '',
-        deferredDate: '',
+// ─── BEEP ───
+let audioCtx;
+function beep(freq = 1200, dur = 0.15) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+}
 
-        // Client
-        wholesaleMode: false,
-        selectedClient: null,
-        clientListOpen: false,
-        clientSearch: '',
+function ching() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    [800, 1200, 1600].forEach((f, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.value = f;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.3);
+        o.start(audioCtx.currentTime + i * 0.08);
+        o.stop(audioCtx.currentTime + i * 0.08 + 0.3);
+    });
+}
 
-        // Parked
-        parkedSales: [],
+function greenFlash() {
+    const el = document.getElementById('greenFlash');
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 120);
+}
 
-        // Voice
-        voiceOverlay: false,
-        voiceRecording: false,
-        voiceText: '',
-        recognition: null,
+// ─── RENDER ───
+function render() {
+    const zone = document.getElementById('cartZone');
+    const empty = document.getElementById('cartEmpty');
+    const summary = document.getElementById('summaryBar');
+    const btnPay = document.getElementById('btnPay');
+    const payAmt = document.getElementById('payAmount');
+    const sumCount = document.getElementById('sumCount');
+    const sumTotal = document.getElementById('sumTotal');
+    const btnParked = document.getElementById('btnParkedBadge');
+    const parkedCount = document.getElementById('parkedCount');
 
-        // Camera
-        videoStream: null,
-        scanSuccess: false,
-        scanFlash: false,
-        barcodeScanner: null,
+    // Parked badge
+    if (STATE.parked.length > 0) {
+        btnParked.style.display = '';
+        parkedCount.textContent = STATE.parked.length;
+    } else {
+        btnParked.style.display = 'none';
+    }
 
-        // Touch swipe
-        touchStartX: {},
+    // Header wholesale
+    document.getElementById('saleHeader').classList.toggle('wholesale', STATE.isWholesale);
+    const hdrTitle = document.getElementById('hdrTitle');
+    hdrTitle.textContent = STATE.isWholesale
+        ? (STATE.customerName || 'Едро')
+        : '<?= $page_title ?>';
 
-        init() {
-            this.parkedSales = JSON.parse(sessionStorage.getItem('parkedSales') || '[]');
-            this.startCamera();
-            this.adjustLayout();
-            window.addEventListener('resize', () => this.adjustLayout());
-        },
+    // Cart
+    if (STATE.cart.length === 0) {
+        empty.style.display = '';
+        summary.style.display = 'none';
+        btnPay.disabled = true;
+        zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+        return;
+    }
 
-        adjustLayout() {
-            this.searchTop = this.cameraOpen ? 216 : 64;
-            this.resultsTop = this.searchTop + 56;
-            this.listTop = this.resultsTop + (this.showResults ? 0 : 0) + 56;
-        },
+    empty.style.display = 'none';
+    summary.style.display = '';
 
-        // ── CAMERA ──
-        async startCamera() {
-            try {
-                this.videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1280 } }
-                });
-                const video = document.getElementById('camera-video');
-                video.srcObject = this.videoStream;
-                this.startBarcodeScanning();
-            } catch(e) {
-                this.cameraOpen = false;
-                this.adjustLayout();
+    // Remove old items
+    zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+
+    // Build cart items
+    STATE.cart.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'cart-item' + (idx === STATE.selectedIndex ? ' selected' : '');
+        const lineTotal = item.unit_price * item.quantity * (1 - (item.discount_pct || 0) / 100);
+        div.innerHTML = `
+            <div class="ci-info">
+                <div class="ci-name">${esc(item.name)}</div>
+                <div class="ci-meta">${esc(item.code || '')}${item.meta ? ' · ' + esc(item.meta) : ''}</div>
+            </div>
+            <div class="ci-right">
+                <div class="ci-qty">x${item.quantity}</div>
+                <div class="ci-price">${fmtPrice(lineTotal)}</div>
+            </div>
+            <div class="ci-delete">Изтрий</div>
+        `;
+
+        // Tap = select + qty mode
+        div.addEventListener('click', (e) => {
+            if (e.target.closest('.ci-delete')) return;
+            selectCartItem(idx);
+        });
+
+        // Long press = popup numpad
+        let lpTimer;
+        div.addEventListener('touchstart', (e) => {
+            lpTimer = setTimeout(() => openLpPopup(idx), 500);
+        }, {passive: true});
+        div.addEventListener('touchend', () => clearTimeout(lpTimer));
+        div.addEventListener('touchmove', () => clearTimeout(lpTimer));
+
+        // Swipe left to delete
+        let sx = 0;
+        div.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, {passive: true});
+        div.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - sx;
+            if (dx < -40) div.classList.add('swiped');
+            else div.classList.remove('swiped');
+        }, {passive: true});
+        div.addEventListener('touchend', () => {
+            if (div.classList.contains('swiped')) {
+                div.querySelector('.ci-delete').addEventListener('click', () => removeItem(idx));
             }
-        },
+        });
 
-        startBarcodeScanning() {
-            if (!('BarcodeDetector' in window)) return;
-            const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','qr_code','code_39'] });
-            const video = document.getElementById('camera-video');
-            let scanning = true;
-            const scan = async () => {
-                if (!scanning || !this.cameraOpen) return;
-                try {
-                    const barcodes = await detector.detect(video);
-                    if (barcodes.length > 0) {
-                        const code = barcodes[0].rawValue;
-                        scanning = false;
-                        await this.handleBarcode(code);
-                        setTimeout(() => { scanning = true; }, 2000);
-                    }
-                } catch(e) {}
-                requestAnimationFrame(scan);
-            };
-            requestAnimationFrame(scan);
-        },
+        zone.appendChild(div);
+    });
 
-        async handleBarcode(code) {
-            this.triggerScanEffect();
-            const resp = await fetch('sale-search.php?q=' + encodeURIComponent(code) + '&barcode=1&tenant_id=' + TENANT_ID + '&store_id=' + STORE_ID);
-            const data = await resp.json();
-            if (data.length === 1) {
-                // Direct add with qty 1
-                const p = data[0];
-                const price = this.wholesaleMode && this.selectedClient ? p.wholesale_price : p.retail_price;
-                this.items.push({ id: p.id, name: p.name, code: p.code, price: parseFloat(price), qty: 1, discount: 0 });
-            } else if (data.length > 1) {
-                this.searchResults = data;
-                this.showResults = true;
-            }
-        },
+    // Summary
+    const total = getTotal();
+    const count = getItemCount();
+    sumCount.textContent = count + ' арт.';
+    sumTotal.textContent = fmtPrice(total);
+    sumTotal.classList.add('changed');
+    setTimeout(() => sumTotal.classList.remove('changed'), 1500);
 
-        triggerScanEffect() {
-            this.scanFlash = true;
-            this.scanSuccess = true;
-            this.playBeep();
-            setTimeout(() => { this.scanSuccess = false; }, 500);
-            setTimeout(() => { this.scanFlash = false; }, 200);
-        },
+    // Pay button
+    btnPay.disabled = false;
+    payAmt.textContent = fmtPrice(total);
 
-        playBeep() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.frequency.value = 1200; osc.type = 'sine';
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-                osc.start(); osc.stop(ctx.currentTime + 0.15);
-            } catch(e) {}
-        },
+    // Discount button state
+    document.getElementById('sumDiscountBtn').classList.toggle('active', STATE.discountPct > 0);
+}
 
-        toggleCamera() {
-            this.cameraOpen = !this.cameraOpen;
-            this.adjustLayout();
-            if (!this.cameraOpen && this.videoStream) {
-                this.videoStream.getTracks().forEach(t => t.stop());
-                this.videoStream = null;
-            } else if (this.cameraOpen) {
-                this.startCamera();
-            }
-        },
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
 
-        // ── SEARCH ──
-        async searchProducts() {
-            const q = this.searchQuery.trim();
-            if (q.length === 0) { this.showResults = false; return; }
-            const resp = await fetch('sale-search.php?q=' + encodeURIComponent(q) + '&tenant_id=' + TENANT_ID + '&store_id=' + STORE_ID);
-            const data = await resp.json();
-            this.searchResults = data;
-            this.showResults = data.length > 0;
-            this.listTop = this.resultsTop + (this.showResults ? Math.min(data.length * 58, 200) : 0) + 56;
-        },
+// ─── CART OPERATIONS ───
+function addToCart(product) {
+    const price = STATE.isWholesale
+        ? (parseFloat(product.wholesale_price) || parseFloat(product.retail_price))
+        : parseFloat(product.retail_price);
 
-        // ── POPUP ──
-        openPopup(p) {
-            this.showResults = false;
-            this.searchQuery = '';
-            const price = this.wholesaleMode && this.selectedClient ? p.wholesale_price : p.retail_price;
-            this.popup = { id: p.id, name: p.name, price: parseFloat(price), qty: 1, discount: 0,
-                           wholesale_price: p.wholesale_price, retail_price: p.retail_price };
-            this.discountWarning = false;
-            this.editingIndex = -1;
-            this.popupOpen = true;
-        },
+    // Check if already in cart
+    const existing = STATE.cart.findIndex(it => it.product_id === product.id);
+    if (existing >= 0) {
+        STATE.cart[existing].quantity++;
+        beep(1400, 0.1);
+        beep(1800, 0.1); // double beep
+    } else {
+        STATE.cart.push({
+            product_id: product.id,
+            code: product.code || '',
+            name: product.name || '',
+            meta: '',
+            unit_price: price,
+            quantity: 1,
+            discount_pct: 0,
+            image: product.image || '',
+        });
+        beep(1200, 0.15);
+    }
 
-        closePopup() {
-            this.popupOpen = false;
-        },
+    greenFlash();
+    if (navigator.vibrate) navigator.vibrate(50);
 
-        popupNumPress(n) {
-            const current = String(this.popup.qty);
-            if (current === '1' && this.popup._firstPress !== false) {
-                this.popup.qty = n;
-                this.popup._firstPress = false;
-            } else {
-                this.popup.qty = parseInt(String(this.popup.qty) + String(n)) || 1;
-            }
-        },
+    // Reset context to code
+    setNumpadCtx('code');
+    STATE.numpadInput = '';
+    updateSearchDisplay();
+    closeSearchResults();
+    render();
+}
 
-        popupQtyChange(delta) {
-            this.popup.qty = Math.max(1, (parseInt(this.popup.qty) || 1) + delta);
-            this.popup._firstPress = false;
-        },
+function selectCartItem(idx) {
+    if (STATE.selectedIndex === idx) {
+        // Tap again = increment qty
+        STATE.cart[idx].quantity++;
+        beep(1000, 0.08);
+    } else {
+        STATE.selectedIndex = idx;
+        setNumpadCtx('qty');
+        STATE.numpadInput = '';
+    }
+    render();
+}
 
-        checkDiscount() {
-            this.discountWarning = parseFloat(this.popup.discount) > MAX_DISCOUNT;
-            if (this.discountWarning) this.popup.discount = MAX_DISCOUNT;
-        },
+function removeItem(idx) {
+    STATE.undoItem = STATE.cart.splice(idx, 1)[0];
+    STATE.undoIndex = idx;
+    STATE.selectedIndex = -1;
+    setNumpadCtx('code');
+    render();
+    showUndo();
+}
 
-        addToSale() {
-            if (this.editingIndex >= 0) {
-                this.items[this.editingIndex] = { ...this.popup };
-            } else {
-                // Check if same product already in cart
-                const existing = this.items.findIndex(i => i.id === this.popup.id && i.discount === parseFloat(this.popup.discount || 0));
-                if (existing >= 0) {
-                    this.items[existing].qty += parseInt(this.popup.qty);
+function showUndo() {
+    const bar = document.getElementById('undoBar');
+    document.getElementById('undoText').textContent = STATE.undoItem.name + ' изтрит';
+    bar.classList.add('show');
+    clearTimeout(STATE.undoTimeout);
+    STATE.undoTimeout = setTimeout(() => {
+        bar.classList.remove('show');
+        STATE.undoItem = null;
+    }, 3000);
+}
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+    if (STATE.undoItem) {
+        STATE.cart.splice(STATE.undoIndex, 0, STATE.undoItem);
+        STATE.undoItem = null;
+        document.getElementById('undoBar').classList.remove('show');
+        clearTimeout(STATE.undoTimeout);
+        render();
+    }
+});
+
+// ─── NUMPAD CONTEXT ───
+function setNumpadCtx(ctx) {
+    STATE.numpadCtx = ctx;
+    const label = document.getElementById('ctxLabel');
+    label.className = 'ctx-label';
+    switch (ctx) {
+        case 'code':
+            label.classList.add('ctx-code');
+            label.textContent = 'КОД';
+            break;
+        case 'qty':
+            label.classList.add('ctx-qty');
+            label.textContent = 'БРОЙКИ';
+            break;
+        case 'discount':
+            label.classList.add('ctx-discount');
+            label.textContent = 'ОТСТЪПКА %';
+            break;
+        case 'received':
+            label.classList.add('ctx-received');
+            label.textContent = 'ПОЛУЧЕНО';
+            break;
+    }
+}
+
+// ─── NUMPAD INPUT ───
+function numPress(key) {
+    if (key === 'C') {
+        STATE.numpadInput = '';
+        if (STATE.numpadCtx === 'code') {
+            STATE.searchText = '';
+            updateSearchDisplay();
+            closeSearchResults();
+        } else if (STATE.numpadCtx === 'received') {
+            STATE.receivedAmount = 0;
+            updatePayment();
+        }
+        return;
+    }
+    if (key === '⌫') {
+        STATE.numpadInput = STATE.numpadInput.slice(0, -1);
+        if (STATE.numpadCtx === 'code') {
+            STATE.searchText = STATE.numpadInput;
+            updateSearchDisplay();
+            triggerSearch();
+        } else if (STATE.numpadCtx === 'received') {
+            STATE.receivedAmount = parseFloat(STATE.numpadInput) || 0;
+            updatePayment();
+        }
+        return;
+    }
+
+    if (key === '00') {
+        STATE.numpadInput += '00';
+    } else if (key === '.') {
+        if (!STATE.numpadInput.includes('.')) STATE.numpadInput += '.';
+    } else {
+        STATE.numpadInput += key;
+    }
+
+    if (STATE.numpadCtx === 'code') {
+        STATE.searchText = STATE.numpadInput;
+        updateSearchDisplay();
+        triggerSearch();
+    } else if (STATE.numpadCtx === 'received') {
+        STATE.receivedAmount = parseFloat(STATE.numpadInput) || 0;
+        updatePayment();
+    }
+}
+
+function numOk() {
+    const val = STATE.numpadInput;
+
+    switch (STATE.numpadCtx) {
+        case 'code':
+            if (val.length > 0) doSearch(val);
+            break;
+
+        case 'qty':
+            if (STATE.selectedIndex >= 0 && val.length > 0) {
+                const q = parseInt(val) || 0;
+                if (q > 0) {
+                    STATE.cart[STATE.selectedIndex].quantity = q;
                 } else {
-                    this.items.push({
-                        id: this.popup.id,
-                        name: this.popup.name,
-                        price: this.popup.price,
-                        qty: parseInt(this.popup.qty),
-                        discount: parseFloat(this.popup.discount || 0),
-                        swiped: false
-                    });
+                    removeItem(STATE.selectedIndex);
                 }
             }
-            this.closePopup();
-            // Notify if discount too high
-            if (ROLE === 'seller' && parseFloat(this.popup.discount) >= NOTIFY_DISCOUNT) {
-                this.notifyOwnerDiscount(this.popup);
+            STATE.selectedIndex = -1;
+            setNumpadCtx('code');
+            STATE.numpadInput = '';
+            render();
+            break;
+
+        case 'discount':
+            if (val.length > 0) applyDiscount(parseFloat(val));
+            closeDiscount();
+            setNumpadCtx('code');
+            STATE.numpadInput = '';
+            break;
+
+        case 'received':
+            if (val.length > 0) {
+                STATE.receivedAmount = parseFloat(val) || 0;
+                updatePayment();
             }
-        },
+            STATE.numpadInput = '';
+            break;
+    }
+}
 
-        editItem(idx) {
-            const item = this.items[idx];
-            this.popup = { ...item, _firstPress: false };
-            this.editingIndex = idx;
-            this.popupOpen = true;
-            this.closeSummary();
-        },
+// ─── SEARCH ───
+function updateSearchDisplay() {
+    const display = document.getElementById('searchDisplay');
+    if (STATE.searchText.length > 0) {
+        display.innerHTML = '<span style="color:var(--indigo-400);margin-right:4px">🔍</span>' + esc(STATE.searchText) + '<span style="animation:blink 1s infinite">_</span>';
+    } else {
+        display.innerHTML = '<span class="placeholder">🔍 Код, име или баркод</span>';
+    }
+}
 
-        removeItem(idx) {
-            this.items.splice(idx, 1);
-        },
+function triggerSearch() {
+    clearTimeout(STATE.searchTimeout);
+    if (STATE.searchText.length < 1) {
+        closeSearchResults();
+        return;
+    }
+    STATE.searchTimeout = setTimeout(() => doSearch(STATE.searchText), 300);
+}
 
-        // ── SWIPE ──
-        touchStart(e, idx) {
-            this.touchStartX[idx] = e.touches[0].clientX;
-        },
-        touchMove(e, idx) {
-            const diff = this.touchStartX[idx] - e.touches[0].clientX;
-            if (diff > 30) this.items[idx].swiped = true;
-            else if (diff < -10) this.items[idx].swiped = false;
-        },
-        touchEnd(e, idx) {},
-
-        // ── TOTALS ──
-        itemTotal(item) {
-            const disc = parseFloat(item.discount) || 0;
-            return item.price * item.qty * (1 - disc / 100);
-        },
-        subtotal() {
-            return this.items.reduce((sum, i) => sum + this.itemTotal(i), 0);
-        },
-        globalDiscountAmount() {
-            return this.subtotal() * (parseFloat(this.globalDiscount) || 0) / 100;
-        },
-        grandTotal() {
-            return this.subtotal() - this.globalDiscountAmount();
-        },
-
-        // ── SUMMARY ──
-        openSummary() {
-            this.summaryOpen = true;
-        },
-        closeSummary() {
-            this.summaryOpen = false;
-        },
-
-        // Sheet drag to close
-        sheetStartY: 0,
-        sheetTouchStart(e) { this.sheetStartY = e.touches[0].clientY; },
-        sheetTouchMove(e) {},
-        sheetTouchEnd(e) {
-            const diff = e.changedTouches[0].clientY - this.sheetStartY;
-            if (diff > 80) this.closeSummary();
-        },
-
-        // ── PAYMENT ──
-        selectPayment(method) {
-            this.paymentMethod = method;
-            if (method === 'cash') {
-                this.receivedAmount = '';
-                this.$nextTick(() => {
-                    document.querySelector('.cash-input')?.focus();
-                });
-            }
-        },
-
-        quickCashAmounts() {
-            const total = this.grandTotal();
-            const bills = [5,10,20,50,100,200,500];
-            const result = [];
-            for (const b of bills) {
-                if (b >= total && result.length < 4) result.push(b);
-                if (result.length === 4) break;
-            }
-            // Smart: round up
-            const rounded = Math.ceil(total / 5) * 5;
-            if (!result.includes(rounded) && rounded >= total) result.unshift(rounded);
-            return result.slice(0, 4);
-        },
-
-        setReceived(amt) {
-            this.receivedAmount = amt;
-        },
-
-        calcChange() {},
-
-        changeAmount() {
-            const change = parseFloat(this.receivedAmount) - this.grandTotal();
-            return change >= 0 ? change : 0;
-        },
-
-        async finalizeSale() {
-            if (this.items.length === 0) return;
-            const payload = {
-                items: this.items,
-                payment_method: this.paymentMethod,
-                total: this.grandTotal(),
-                global_discount: this.globalDiscount,
-                client_id: this.selectedClient?.id || null,
-                received_amount: this.receivedAmount || null,
-                deferred_date: this.deferredDate || null,
-                store_id: STORE_ID,
-                tenant_id: TENANT_ID,
-                user_id: USER_ID,
-                supato_mode: SUPATO_MODE
-            };
-            try {
-                const resp = await fetch('sale-save.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await resp.json();
-                if (result.success) {
-                    this.items = [];
-                    this.globalDiscount = 0;
-                    this.paymentMethod = null;
-                    this.selectedClient = null;
-                    this.wholesaleMode = false;
-                    this.closeSummary();
-                    this.showSuccessToast(result.sale_id);
-                } else {
-                    alert('Грешка: ' + (result.error || 'Непозната грешка'));
-                }
-            } catch(e) {
-                alert('Грешка при запис');
-            }
-        },
-
-        showSuccessToast(saleId) {
-            // Simple toast
-            const toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:#fff;padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;z-index:999;';
-            toast.textContent = '✓ Продажбата е записана';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
-        },
-
-        // ── PARK ──
-        parkSale() {
-            if (this.items.length === 0) return;
-            this.parkedSales.push({
-                items: [...this.items],
-                client: this.selectedClient,
-                time: new Date().toLocaleTimeString('bg')
-            });
-            sessionStorage.setItem('parkedSales', JSON.stringify(this.parkedSales));
-            this.items = [];
-            this.selectedClient = null;
-            this.wholesaleMode = false;
-            this.closeSummary();
-        },
-
-        openParked() {
-            // Simple: restore first parked
-            if (this.parkedSales.length === 0) return;
-            const parked = this.parkedSales.shift();
-            sessionStorage.setItem('parkedSales', JSON.stringify(this.parkedSales));
-            this.items = parked.items;
-            this.selectedClient = parked.client;
-            this.wholesaleMode = !!parked.client;
-        },
-
-        // ── CLIENT ──
-        openClientList() {
-            this.clientSearch = '';
-            this.clientListOpen = true;
-        },
-
-        selectClient(c) {
-            this.selectedClient = c;
-            this.wholesaleMode = true;
-            this.clientListOpen = false;
-            // Reprice items
-            this.items = this.items.map(item => {
-                const found = this.searchResults.find(p => p.id === item.id);
-                return item;
-            });
-        },
-
-        clearClient() {
-            this.selectedClient = null;
-            this.wholesaleMode = false;
-            this.clientListOpen = false;
-        },
-
-        filteredClients() {
-            const q = this.clientSearch.toLowerCase();
-            return WHOLESALE_CLIENTS.filter(c => c.name.toLowerCase().includes(q));
-        },
-
-        // ── VOICE ──
-        startVoice() {
-            if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-                alert('Гласовият вход не се поддържа в този браузър');
+function doSearch(q) {
+    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(results => {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+            if (results.length === 0) {
+                container.classList.remove('open');
                 return;
             }
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            this.recognition = new SR();
-            this.recognition.lang = 'bg-BG';
-            this.recognition.continuous = false;
-            this.recognition.interimResults = false;
-            this.recognition.onstart = () => {
-                this.voiceOverlay = true;
-                this.voiceRecording = true;
-                this.voiceText = 'Слушам...';
-            };
-            this.recognition.onresult = (e) => {
-                const transcript = e.results[0][0].transcript;
-                this.voiceText = '"' + transcript + '"';
-                setTimeout(() => {
-                    this.stopVoice();
-                    this.processVoiceCommand(transcript);
-                }, 800);
-            };
-            this.recognition.onerror = () => { this.stopVoice(); };
-            this.recognition.start();
-        },
-
-        stopVoice() {
-            this.voiceOverlay = false;
-            this.voiceRecording = false;
-            if (this.recognition) { this.recognition.stop(); this.recognition = null; }
-        },
-
-        async processVoiceCommand(text) {
-            const resp = await fetch('sale-voice.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, tenant_id: TENANT_ID, store_id: STORE_ID })
+            results.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'sr-item';
+                const price = STATE.isWholesale
+                    ? (parseFloat(p.wholesale_price) || parseFloat(p.retail_price))
+                    : parseFloat(p.retail_price);
+                const stockCls = parseInt(p.stock) === 0 ? 'sr-stock zero' : 'sr-stock';
+                div.innerHTML = `
+                    <span class="sr-code">${esc(p.code || '')}</span>
+                    <span class="sr-name">${esc(p.name)}</span>
+                    <span class="sr-price">${fmtPrice(price)}</span>
+                    <span class="${stockCls}">(${p.stock})</span>
+                `;
+                div.addEventListener('click', () => addToCart(p));
+                container.appendChild(div);
             });
-            const data = await resp.json();
-            if (data.items && data.items.length > 0) {
-                // Show confirm before adding
-                const names = data.items.map(i => i.qty + '× ' + i.name).join('\n');
-                if (confirm('Добавям:\n' + names + '\n\nПотвърди?')) {
-                    data.items.forEach(i => {
-                        const price = this.wholesaleMode ? i.wholesale_price : i.retail_price;
-                        this.items.push({ id: i.id, name: i.name, price: parseFloat(price), qty: i.qty, discount: 0, swiped: false });
-                    });
-                }
-            }
-        },
-
-        async notifyOwnerDiscount(item) {
-            await fetch('notify-discount.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item, tenant_id: TENANT_ID, user_id: USER_ID, store_id: STORE_ID })
-            });
-        },
-
-        // ── HELPERS ──
-        formatPrice(amount) {
-            return parseFloat(amount || 0).toFixed(2) + ' ' + CURRENCY;
-        },
-
-        maxDiscount: MAX_DISCOUNT
-    };
+            container.classList.add('open');
+        })
+        .catch(err => console.error('Search error:', err));
 }
+
+function closeSearchResults() {
+    document.getElementById('searchResults').classList.remove('open');
+}
+
+// ─── KEYBOARD ───
+function toggleKeyboard() {
+    STATE.keyboardVisible = !STATE.keyboardVisible;
+    document.getElementById('keyboardZone').classList.toggle('visible', STATE.keyboardVisible);
+    document.getElementById('numpadZone').style.display = STATE.keyboardVisible ? 'none' : '';
+    if (STATE.keyboardVisible) {
+        setNumpadCtx('code');
+    }
+}
+
+function kbPress(key) {
+    if (key === '⌫') {
+        STATE.searchText = STATE.searchText.slice(0, -1);
+    } else {
+        STATE.searchText += key;
+    }
+    STATE.numpadInput = STATE.searchText;
+    updateSearchDisplay();
+    triggerSearch();
+}
+
+// ─── DISCOUNT ───
+function toggleDiscount() {
+    const chips = document.getElementById('discountChips');
+    const visible = chips.classList.contains('visible');
+    if (visible) {
+        closeDiscount();
+    } else {
+        chips.classList.add('visible');
+        setNumpadCtx('discount');
+        STATE.numpadInput = '';
+    }
+}
+
+function applyDiscount(pct) {
+    pct = parseFloat(pct) || 0;
+    if (pct > STATE.maxDiscount) {
+        showToast('Максимум ' + STATE.maxDiscount + '%');
+        pct = STATE.maxDiscount;
+    }
+    STATE.discountPct = pct;
+    // Highlight active chip
+    document.querySelectorAll('.dc-chip').forEach(c => {
+        c.classList.toggle('active', parseFloat(c.textContent) === pct);
+    });
+    setNumpadCtx('code');
+    STATE.numpadInput = '';
+    render();
+}
+
+function closeDiscount() {
+    document.getElementById('discountChips').classList.remove('visible');
+    setNumpadCtx('code');
+}
+
+// ─── PAYMENT ───
+function openPayment() {
+    if (STATE.cart.length === 0) return;
+    STATE.payMethod = 'cash';
+    STATE.receivedAmount = 0;
+    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === 'cash'));
+    document.getElementById('cashSection').style.display = '';
+    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal()) + ' ' + STATE.currency;
+    document.getElementById('payRecvAmount').textContent = '0,00 ' + STATE.currency;
+    document.getElementById('payChangeBox').style.display = 'none';
+    document.getElementById('btnConfirm').disabled = true;
+    setNumpadCtx('received');
+    STATE.numpadInput = '';
+
+    document.getElementById('payOverlay').classList.add('open');
+    document.getElementById('paySheet').classList.add('open');
+}
+
+function closePayment() {
+    document.getElementById('payOverlay').classList.remove('open');
+    document.getElementById('paySheet').classList.remove('open');
+    setNumpadCtx('code');
+    STATE.numpadInput = '';
+}
+
+function setPayMethod(method) {
+    STATE.payMethod = method;
+    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === method));
+
+    const cashSec = document.getElementById('cashSection');
+    const btnConfirm = document.getElementById('btnConfirm');
+
+    if (method === 'cash') {
+        cashSec.style.display = '';
+        setNumpadCtx('received');
+        btnConfirm.disabled = STATE.receivedAmount < getTotal();
+    } else {
+        cashSec.style.display = 'none';
+        setNumpadCtx('code');
+        btnConfirm.disabled = false;
+    }
+}
+
+function payBanknote(val) {
+    if (val === 'exact') {
+        STATE.receivedAmount = getTotal();
+    } else {
+        STATE.receivedAmount = parseFloat(val) || 0;
+    }
+    STATE.numpadInput = '';
+    updatePayment();
+}
+
+function updatePayment() {
+    const total = getTotal();
+    document.getElementById('payRecvAmount').textContent = fmtPrice(STATE.receivedAmount) + ' ' + STATE.currency;
+
+    const changeBox = document.getElementById('payChangeBox');
+    const btnConfirm = document.getElementById('btnConfirm');
+
+    if (STATE.receivedAmount >= total) {
+        const change = STATE.receivedAmount - total;
+        document.getElementById('payChangeAmount').textContent = fmtPrice(change) + ' ' + STATE.currency;
+        changeBox.style.display = '';
+        btnConfirm.disabled = false;
+    } else {
+        changeBox.style.display = 'none';
+        btnConfirm.disabled = true;
+    }
+}
+
+function confirmPayment() {
+    const data = {
+        items: STATE.cart.map(it => ({
+            product_id: it.product_id,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            discount_pct: it.discount_pct || 0,
+        })),
+        payment_method: STATE.payMethod,
+        discount_pct: STATE.discountPct,
+        customer_id: STATE.customerId,
+        received: STATE.receivedAmount,
+        is_wholesale: STATE.isWholesale,
+    };
+
+    document.getElementById('btnConfirm').disabled = true;
+
+    fetch('sale.php?action=save_sale', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            ching();
+            greenFlash();
+            if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+            showToast('✓ Продажба #' + res.sale_id + ' записана', 'success');
+            closePayment();
+
+            // Reset
+            STATE.cart = [];
+            STATE.selectedIndex = -1;
+            STATE.discountPct = 0;
+            STATE.numpadInput = '';
+            STATE.searchText = '';
+            setNumpadCtx('code');
+            updateSearchDisplay();
+            render();
+        } else {
+            showToast('Грешка: ' + (res.error || 'Неизвестна'), '', 4000);
+            document.getElementById('btnConfirm').disabled = false;
+        }
+    })
+    .catch(err => {
+        showToast('Мрежова грешка', '', 3000);
+        document.getElementById('btnConfirm').disabled = false;
+    });
+}
+
+// ─── WHOLESALE ───
+function openWholesale() {
+    document.getElementById('wsOverlay').classList.add('open');
+    document.getElementById('wsSheet').classList.add('open');
+    document.getElementById('wsRetail').style.display = STATE.isWholesale ? '' : 'none';
+}
+
+function closeWholesale() {
+    document.getElementById('wsOverlay').classList.remove('open');
+    document.getElementById('wsSheet').classList.remove('open');
+}
+
+function selectClient(id, name) {
+    closeWholesale();
+    if (id === null) {
+        STATE.isWholesale = false;
+        STATE.customerId = null;
+        STATE.customerName = '';
+    } else {
+        STATE.isWholesale = true;
+        STATE.customerId = id;
+        STATE.customerName = name;
+    }
+    // Recalculate prices in cart
+    STATE.cart.forEach(it => {
+        // We'd need to refetch prices — for now keep current
+    });
+    render();
+}
+
+// ─── PARKING ───
+function parkSale() {
+    if (STATE.cart.length === 0) { showToast('Количката е празна'); return; }
+    STATE.parked.push({
+        cart: [...STATE.cart],
+        customer: STATE.customerName,
+        customerId: STATE.customerId,
+        isWholesale: STATE.isWholesale,
+        discountPct: STATE.discountPct,
+        time: new Date().toLocaleTimeString('bg-BG', {hour: '2-digit', minute: '2-digit'}),
+        total: getTotal(),
+    });
+    saveParked();
+    showToast('🅿️ Продажба паркирана');
+
+    STATE.cart = [];
+    STATE.selectedIndex = -1;
+    STATE.discountPct = 0;
+    STATE.numpadInput = '';
+    STATE.searchText = '';
+    setNumpadCtx('code');
+    updateSearchDisplay();
+    render();
+}
+
+function saveParked() {
+    localStorage.setItem('rms_parked_' + STATE.storeId, JSON.stringify(STATE.parked));
+}
+
+function openParked() {
+    if (STATE.parked.length === 0) return;
+    const container = document.getElementById('parkedContainer');
+    container.innerHTML = '<div class="parked-title">Паркирани продажби</div>';
+
+    STATE.parked.forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'parked-card';
+        card.style.animationDelay = (idx * 0.05) + 's';
+        const count = p.cart.reduce((s, it) => s + it.quantity, 0);
+        card.innerHTML = `
+            <div class="pc-header">
+                <span class="pc-client">${esc(p.customer || 'Дребно')}</span>
+                <span class="pc-time">${p.time}</span>
+            </div>
+            <div class="pc-info">${count} артикула</div>
+            <div class="pc-total">${fmtPrice(p.total)} ${STATE.currency}</div>
+            <span class="pc-delete" data-idx="${idx}">✕ Изтрий</span>
+        `;
+        card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('pc-delete')) {
+                STATE.parked.splice(idx, 1);
+                saveParked();
+                closeParked();
+                render();
+                return;
+            }
+            // Restore
+            if (STATE.cart.length > 0) {
+                parkSale(); // auto-park current
+            }
+            STATE.cart = p.cart;
+            STATE.customerId = p.customerId;
+            STATE.customerName = p.customer;
+            STATE.isWholesale = p.isWholesale;
+            STATE.discountPct = p.discountPct || 0;
+            STATE.parked.splice(idx, 1);
+            saveParked();
+            closeParked();
+            render();
+        });
+        container.appendChild(card);
+    });
+
+    document.getElementById('parkedOverlay').classList.add('open');
+}
+
+function closeParked() {
+    document.getElementById('parkedOverlay').classList.remove('open');
+}
+
+// ─── LONG PRESS POPUP ───
+let lpTargetIdx = -1;
+let lpValue = '';
+
+function openLpPopup(idx) {
+    lpTargetIdx = idx;
+    lpValue = '';
+    document.getElementById('lpTitle').textContent = STATE.cart[idx].name;
+    document.getElementById('lpDisplay').textContent = STATE.cart[idx].quantity;
+    const popup = document.getElementById('lpPopup');
+    popup.style.left = '50%';
+    popup.style.top = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.classList.add('show');
+    if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function closeLpPopup() {
+    document.getElementById('lpPopup').classList.remove('show');
+    lpTargetIdx = -1;
+}
+
+function lpNum(key) {
+    if (key === 'C') { lpValue = ''; }
+    else if (key === '⌫') { lpValue = lpValue.slice(0, -1); }
+    else { lpValue += key; }
+    document.getElementById('lpDisplay').textContent = lpValue || '0';
+}
+
+function confirmLpPopup() {
+    if (lpTargetIdx >= 0 && lpValue.length > 0) {
+        const q = parseInt(lpValue) || 0;
+        if (q > 0) {
+            STATE.cart[lpTargetIdx].quantity = q;
+        } else {
+            removeItem(lpTargetIdx);
+        }
+        render();
+    }
+    closeLpPopup();
+}
+
+// ─── CAMERA & BARCODE ───
+let barcodeDetector;
+let scanRAF;
+
+async function toggleCamera(on) {
+    const zone = document.getElementById('cameraZone');
+    const video = document.getElementById('cameraVideo');
+    const openBtn = document.getElementById('cameraOpen');
+
+    if (on) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+            });
+            video.srcObject = stream;
+            zone.style.height = '30vh';
+            openBtn.classList.remove('visible');
+            STATE.cameraActive = true;
+            startBarcodeScanner();
+        } catch (e) {
+            showToast('Камерата не е достъпна');
+            zone.style.height = '0';
+            openBtn.classList.add('visible');
+        }
+    } else {
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(t => t.stop());
+            video.srcObject = null;
+        }
+        zone.style.height = '0';
+        openBtn.classList.add('visible');
+        STATE.cameraActive = false;
+        if (scanRAF) cancelAnimationFrame(scanRAF);
+    }
+}
+
+function startBarcodeScanner() {
+    if (!('BarcodeDetector' in window)) {
+        console.warn('BarcodeDetector not supported');
+        return;
+    }
+    if (!barcodeDetector) {
+        barcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'code_128', 'qr_code', 'code_39']
+        });
+    }
+    scanLoop();
+}
+
+function scanLoop() {
+    if (!STATE.cameraActive) return;
+    const video = document.getElementById('cameraVideo');
+    if (video.readyState < 2) {
+        scanRAF = requestAnimationFrame(scanLoop);
+        return;
+    }
+    barcodeDetector.detect(video).then(codes => {
+        if (codes.length > 0 && !STATE.scanCooldown) {
+            const code = codes[0].rawValue;
+            STATE.scanCooldown = true;
+            setTimeout(() => { STATE.scanCooldown = false; }, 1500);
+            handleBarcode(code);
+        }
+    }).catch(() => {});
+    scanRAF = requestAnimationFrame(scanLoop);
+}
+
+function handleBarcode(code) {
+    fetch('sale.php?action=barcode_lookup&barcode=' + encodeURIComponent(code))
+        .then(r => r.json())
+        .then(product => {
+            if (product) {
+                addToCart(product);
+            } else {
+                beep(400, 0.3);
+                showToast('Баркод не е намерен: ' + code);
+            }
+        })
+        .catch(() => {
+            beep(400, 0.3);
+            showToast('Грешка при търсене');
+        });
+}
+
+// ─── VOICE ───
+let recognition;
+
+function startVoice() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast('Гласовото разпознаване не се поддържа');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'bg-BG';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    const overlay = document.getElementById('voiceOverlay');
+    const text = document.getElementById('voiceText');
+    const hint = document.getElementById('voiceHint');
+
+    // Context-aware hints
+    switch (STATE.numpadCtx) {
+        case 'code':
+            hint.textContent = 'Напр. "Nike 42 черни" или "Продай 2 Adidas"';
+            break;
+        case 'qty':
+            hint.textContent = 'Кажете число, напр. "пет" или "три"';
+            break;
+        case 'received':
+            hint.textContent = 'Кажете сума, напр. "сто лева"';
+            break;
+        default:
+            hint.textContent = 'Кажете артикул, количество или команда';
+    }
+
+    text.textContent = 'Слушам...';
+    overlay.classList.add('open');
+
+    recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        text.textContent = transcript;
+        setTimeout(() => {
+            overlay.classList.remove('open');
+            handleVoiceResult(transcript);
+        }, 600);
+    };
+
+    recognition.onerror = (e) => {
+        text.textContent = 'Не разбрах, опитайте пак';
+        setTimeout(() => overlay.classList.remove('open'), 1200);
+    };
+
+    recognition.onend = () => {
+        // If no result received, close
+        setTimeout(() => overlay.classList.remove('open'), 500);
+    };
+
+    recognition.start();
+}
+
+function handleVoiceResult(text) {
+    // Send to AI for parsing
+    fetch('sale-voice.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            text: text,
+            context: STATE.numpadCtx,
+            cart: STATE.cart,
+            store_id: STATE.storeId,
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.action === 'search') {
+            STATE.searchText = res.query || text;
+            STATE.numpadInput = STATE.searchText;
+            updateSearchDisplay();
+            doSearch(STATE.searchText);
+        } else if (res.action === 'set_qty' && STATE.selectedIndex >= 0) {
+            STATE.cart[STATE.selectedIndex].quantity = parseInt(res.value) || 1;
+            render();
+        } else if (res.action === 'set_received') {
+            STATE.receivedAmount = parseFloat(res.value) || 0;
+            updatePayment();
+        } else if (res.action === 'add_items' && res.items) {
+            res.items.forEach(it => {
+                if (it.product_id) addToCart(it);
+            });
+        } else {
+            // Fallback: treat as search
+            STATE.searchText = text;
+            STATE.numpadInput = text;
+            updateSearchDisplay();
+            doSearch(text);
+        }
+    })
+    .catch(() => {
+        // Fallback to search
+        STATE.searchText = text;
+        STATE.numpadInput = text;
+        updateSearchDisplay();
+        doSearch(text);
+    });
+}
+
+document.getElementById('voiceCancel').addEventListener('click', () => {
+    if (recognition) recognition.abort();
+    document.getElementById('voiceOverlay').classList.remove('open');
+});
+
+// ─── SWIPE NAVIGATION ───
+let touchStartX = 0;
+const swipePages = ['chat.php', 'warehouse.php', 'stats.php', 'sale.php'];
+const currentPageIdx = 3;
+
+document.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.cart-zone, .pay-sheet, .ws-sheet, .parked-container, .numpad-grid, .keyboard-zone')) return;
+    touchStartX = e.touches[0].clientX;
+}, {passive: true});
+
+document.addEventListener('touchend', (e) => {
+    if (!touchStartX) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    touchStartX = 0;
+    if (Math.abs(dx) < 80) return;
+    if (dx > 0 && currentPageIdx > 0) {
+        window.location.href = swipePages[currentPageIdx - 1];
+    }
+    // No swipe right from last tab
+});
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+    render();
+    toggleCamera(true); // auto-start camera
+});
+
+// CSS blink animation for cursor
+const blinkStyle = document.createElement('style');
+blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}';
+document.head.appendChild(blinkStyle);
 </script>
+
 </body>
 </html>
