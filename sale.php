@@ -361,7 +361,7 @@ body::before{
     background:rgba(3,7,18,0.93);
 }
 .btn-pay{
-    flex:3;height:48px;border-radius:14px;border:none;cursor:pointer;
+    flex:3;height:36px;border-radius:14px;border:none;cursor:pointer;
     background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
     color:#fff;font-size:15px;font-weight:800;font-family:inherit;
     display:flex;align-items:center;justify-content:center;gap:8px;
@@ -371,7 +371,7 @@ body::before{
 .btn-pay:active{transform:scale(0.97);box-shadow:0 2px 10px rgba(99,102,241,0.3)}
 .btn-pay:disabled{opacity:0.3;pointer-events:none}
 .btn-park{
-    flex:1;height:48px;border-radius:14px;border:1px solid var(--border-subtle);
+    flex:1;height:36px;border-radius:14px;border:1px solid var(--border-subtle);
     background:var(--bg-card);color:var(--indigo-300);font-size:20px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
     transition:all 0.2s;backdrop-filter:blur(12px);
@@ -382,7 +382,7 @@ body::before{
 .numpad-zone{flex-shrink:0;background:rgba(3,7,18,0.97);padding:0 8px 4px;backdrop-filter:blur(16px)}
 .numpad-ctx{
     display:flex;align-items:center;justify-content:center;
-    height:28px;gap:6px;margin-bottom:4px;
+    height:0;gap:0;margin-bottom:0;overflow:hidden;
 }
 .ctx-label{
     font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
@@ -396,7 +396,7 @@ body::before{
     display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
 }
 .np-btn{
-    height:46px;border-radius:12px;border:1px solid var(--border-subtle);
+    height:36px;border-radius:10px;border:1px solid var(--border-subtle);
     background:var(--bg-card);color:var(--text-primary);
     font-size:18px;font-weight:600;font-family:inherit;
     display:flex;align-items:center;justify-content:center;
@@ -1526,6 +1526,21 @@ function triggerSearch() {
     STATE.searchTimeout = setTimeout(() => doSearch(STATE.searchText), 300);
 }
 
+function showNoResult() {
+    const cam = document.getElementById('camHeader');
+    const overlay = cam.querySelector('.cam-overlay');
+    const video = document.getElementById('cameraVideo');
+    const savedOverlay = overlay.innerHTML;
+    video.style.opacity = '0';
+    cam.style.background = 'rgba(239,68,68,0.12)';
+    overlay.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:17px;font-weight:800;color:#f87171;letter-spacing:0.5px">Няма такъв артикул</div>';
+    setTimeout(function() {
+        video.style.opacity = '';
+        cam.style.background = '';
+        overlay.innerHTML = savedOverlay;
+    }, 1500);
+}
+
 function doSearch(q) {
     fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
         .then(r => r.json())
@@ -1534,6 +1549,7 @@ function doSearch(q) {
             container.innerHTML = '';
             if (results.length === 0) {
                 container.classList.remove('open');
+                showNoResult();
                 return;
             }
             results.forEach(p => {
