@@ -41,7 +41,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     $results = DB::run("
         SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                COALESCE
-               p.parent_id,
+            
                COALESCE(i.quantity, 0) as stock
         FROM products p
         LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
@@ -380,7 +380,7 @@ body::before{
 .btn-park:active{background:rgba(99,102,241,0.12);transform:scale(0.95)}
 
 /* ═══ NUMPAD ═══ */
-.numpad-zone{flex-shrink:0;background:rgba(3,7,18,0.97);padding:0 8px 4px;backdrop-filter:blur(16px)}
+.numpad-zone{flex-shrink:0;background:rgba(3,7,18,0.97);padding:0 8px 132px;backdrop-filter:blur(16px)}
 .numpad-ctx{
     display:flex;align-items:center;justify-content:center;
     height:0;gap:0;margin-bottom:0;overflow:hidden;
