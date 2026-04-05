@@ -805,7 +805,7 @@ body::before{
     </div>
 
     <!-- CAMERA -->
-    <div class="camera-zone" id="cameraZone" style="height:30vh">
+    <div class="camera-zone" id="cameraZone" style="height:10vh">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <button class="camera-close" onclick="toggleCamera(false)">✕</button>
     </div>
@@ -882,7 +882,34 @@ body::before{
 
     <!-- LETTER KEYBOARD (hidden by default) -->
     <div class="keyboard-zone" id="keyboardZone">
-        <?php if ($lang === 'bg'): ?>
+        <?php
+        // ─── Country-aware keyboard layouts ───
+        // Cyrillic languages get full custom keyboard
+        // Latin languages get QWERTY + special chars row
+        $special_chars_map = [
+            'ro' => ['Ă','Î','Ș','Ț','Â'],
+            'de' => ['Ü','Ö','Ä','ß'],
+            'fr' => ['É','È','Ê','Ç','À','Ù'],
+            'es' => ['Ñ','Á','É','Í','Ó','Ú'],
+            'pt' => ['Ã','Õ','Ç','Á','É','Ó'],
+            'it' => ['À','È','É','Ì','Ò','Ù'],
+            'pl' => ['Ą','Ć','Ę','Ł','Ń','Ó','Ś','Ź','Ż'],
+            'cs' => ['Č','Ř','Š','Ž','Ý','Á','Í','É','Ú'],
+            'sk' => ['Á','Č','Ď','É','Í','Ľ','Ň','Ó','Š','Ž'],
+            'hu' => ['Á','É','Í','Ó','Ö','Ő','Ú','Ü','Ű'],
+            'hr' => ['Č','Ć','Đ','Š','Ž'],
+            'sl' => ['Č','Š','Ž'],
+            'tr' => ['Ç','Ğ','İ','Ö','Ş','Ü'],
+            'sv' => ['Å','Ä','Ö'],
+            'da' => ['Æ','Ø','Å'],
+            'fi' => ['Ä','Ö','Å'],
+            'nl' => [],
+            'el' => [], // Greek gets full keyboard below
+            'en' => [],
+        ];
+        $specials = $special_chars_map[$lang] ?? [];
+
+        if ($lang === 'bg'): ?>
         <!-- Bulgarian Phonetic (Windows layout) -->
         <div class="kb-row">
             <?php foreach(['Я','В','Е','Р','Т','Ъ','У','И','О','П'] as $k): ?>
@@ -907,7 +934,42 @@ body::before{
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
             <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
         </div>
-        <?php elseif ($lang === 'en'): ?>
+
+        <?php elseif ($lang === 'el'): ?>
+        <!-- Greek keyboard -->
+        <div class="kb-row">
+            <?php foreach(['Ω','Ε','Ρ','Τ','Υ','Θ','Ι','Ο','Π'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['Α','Σ','Δ','Φ','Γ','Η','Ξ','Κ','Λ'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <?php foreach(['Ζ','Χ','Ψ','Β','Ν','Μ'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="kb-row">
+            <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
+            <button class="kb-key" onclick="kbPress('Ά')">Ά</button>
+            <button class="kb-key" onclick="kbPress('Έ')">Έ</button>
+            <button class="kb-key" onclick="kbPress('Ώ')">Ώ</button>
+            <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+            <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
+        </div>
+
+        <?php else: ?>
+        <!-- QWERTY (universal) + special chars for <?= $lang ?> -->
+        <?php if (!empty($specials)): ?>
+        <div class="kb-row">
+            <?php foreach($specials as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
         <div class="kb-row">
             <?php foreach(['Q','W','E','R','T','Y','U','I','O','P'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
@@ -926,28 +988,6 @@ body::before{
             <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
         </div>
         <div class="kb-row">
-            <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
-        </div>
-        <?php else: /* Romanian */ ?>
-        <div class="kb-row">
-            <?php foreach(['Q','W','E','R','T','Y','U','I','O','P'] as $k): ?>
-            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
-            <?php endforeach; ?>
-        </div>
-        <div class="kb-row">
-            <?php foreach(['A','S','D','F','G','H','J','K','L','Ă'] as $k): ?>
-            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
-            <?php endforeach; ?>
-        </div>
-        <div class="kb-row">
-            <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
-            <?php foreach(['Z','X','C','V','B','N','M','Î','Ș','Ț'] as $k): ?>
-            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
-            <?php endforeach; ?>
-            <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
-        </div>
-        <div class="kb-row">
-            <button class="kb-key" onclick="kbPress('Â')">Â</button>
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
         </div>
         <?php endif; ?>
@@ -1825,7 +1865,7 @@ async function toggleCamera(on) {
                 video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
             });
             video.srcObject = stream;
-            zone.style.height = '30vh';
+            zone.style.height = '10vh';
             openBtn.classList.remove('visible');
             STATE.cameraActive = true;
             startBarcodeScanner();
