@@ -164,7 +164,6 @@ body::before{
 
 .page-wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 12px}
 
-/* ═══ Header — warehouse style ═══ */
 .page-header{
     position:sticky;
     top:0;
@@ -186,14 +185,12 @@ body::before{
     background-clip:text;
 }
 
-/* ═══ Indigo Separator ═══ */
 .indigo-sep{
     height:1px;
     background:linear-gradient(to right,transparent,rgba(99,102,241,.25),transparent);
     margin:16px 0;
 }
 
-/* ═══ Period Pills — warehouse cards style ═══ */
 .period-bar{
     display:flex;
     gap:8px;
@@ -245,7 +242,6 @@ body::before{
     box-shadow:0 0 16px rgba(99,102,241,.12);
 }
 
-/* ═══ Date Picker Row ═══ */
 .date-picker-row{
     display:none;
     gap:8px;
@@ -285,7 +281,6 @@ body::before{
     box-shadow:0 4px 15px rgba(99,102,241,.3);
 }
 
-/* ═══ Tabs — warehouse cards style ═══ */
 .tabs-bar{
     display:flex;
     gap:8px;
@@ -336,10 +331,8 @@ body::before{
     box-shadow:0 0 16px rgba(99,102,241,.15);
 }
 
-/* ═══ Content ═══ */
 .stats-content{padding:12px 0 80px;position:relative;z-index:1}
 
-/* ═══ Grid & Cards — warehouse style ═══ */
 .grid-2{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -409,7 +402,6 @@ body::before{
     font-weight:600;
 }
 
-/* ═══ Section Title ═══ */
 .section-title{
     font-size:11px;
     font-weight:700;
@@ -422,7 +414,6 @@ body::before{
     gap:6px;
 }
 
-/* ═══ List Cards ═══ */
 .list-card{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
@@ -460,7 +451,6 @@ body::before{
     color:var(--indigo-300);
 }
 
-/* ═══ Badge ═══ */
 .badge{
     font-size:10px;
     padding:3px 10px;
@@ -478,7 +468,6 @@ body::before{
     box-shadow:0 0 8px rgba(245,158,11,.2);
 }
 
-/* ═══ Health Card ═══ */
 .health-wrap{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
@@ -547,7 +536,6 @@ body::before{
     transition:width 1.4s cubic-bezier(.34,1.56,.64,1);
 }
 
-/* ═══ Anomaly Cards ═══ */
 .anomaly-card{
     display:flex;
     align-items:flex-start;
@@ -605,7 +593,6 @@ body::before{
     line-height:1.4;
 }
 
-/* ═══ Empty State ═══ */
 .empty-state{
     text-align:center;
     padding:36px 20px;
@@ -629,7 +616,6 @@ body::before{
     margin:0;
 }
 
-/* ═══ Store Select ═══ */
 .store-select{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
@@ -642,7 +628,6 @@ body::before{
     font-weight:600;
 }
 
-/* ═══ Drawer ═══ */
 .drawer-overlay{
     position:fixed;
     inset:0;
@@ -770,7 +755,6 @@ body::before{
 
 .drawer-btn:active{transform:scale(.98)}
 
-/* ═══ Shimmer ═══ */
 .shimmer-text{
     background:linear-gradient(90deg,var(--indigo-400) 25%,#c7d2fe 50%,var(--indigo-400) 75%);
     background-size:200% auto;
@@ -779,7 +763,6 @@ body::before{
     animation:shimmer 3s linear infinite;
 }
 
-/* ═══ Bottom Nav — warehouse style ═══ */
 .bottom-nav{
     position:fixed;
     bottom:0;
@@ -795,7 +778,7 @@ body::before{
     box-shadow:0 -5px 25px rgba(99,102,241,.1);
 }
 
-.nav-item,.bnav-tab{
+.bnav-tab{
     flex:1;
     display:flex;
     flex-direction:column;
@@ -813,22 +796,9 @@ body::before{
     cursor:pointer;
 }
 
-.nav-item.active,.bnav-tab.active{
+.bnav-tab.active{
     color:var(--indigo-400);
     text-shadow:0 0 12px rgba(129,140,248,.9);
-}
-
-.nav-item svg{
-    width:22px;
-    height:22px;
-    color:#3f3f5a;
-    transition:all .3s;
-}
-
-.nav-item.active svg{
-    color:var(--indigo-400);
-    filter:drop-shadow(0 0 8px rgba(99,102,241,.6));
-    transform:translateY(-2px);
 }
 
 .bnav-tab .bnav-icon{
@@ -842,7 +812,6 @@ body::before{
     filter:drop-shadow(0 0 12px rgba(129,140,248,.8));
 }
 
-/* ═══ Keyframes ═══ */
 @keyframes cardIn{
     from{opacity:0;transform:translateY(12px)}
     to{opacity:1;transform:translateY(0)}
@@ -868,7 +837,6 @@ body::before{
     100%{background-position:200% center}
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{
@@ -1024,3 +992,224 @@ body::before{
             </div>
 
             <?php if ($role === 'owner' && $anomaly_discounts): ?>
+            <p class="section-title">Отстъпки по продавач</p>
+            <div class="list-card">
+                <?php foreach ($anomaly_discounts as $d): ?>
+                <div class="list-row">
+                    <span class="name"><?= htmlspecialchars($d['seller']) ?></span>
+                    <span class="val" style="color:#f59e0b">-<?= number_format($d['total_discount'],0,',','.') ?> <?= $currency ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ═══ СТОКИ ═══ -->
+        <div id="tab-products" class="tab-content" <?= $active_tab!=='products'?'style="display:none"':'' ?>>
+            <p class="section-title">Топ 5 продавани</p>
+            <div class="list-card">
+                <?php if ($top_products): foreach ($top_products as $i=>$p): ?>
+                <div class="list-row">
+                    <span class="name"><span style="color:<?= $i===0?'#f59e0b':'var(--text-secondary)' ?>;margin-right:6px;font-weight:800"><?= $i+1 ?>.</span><?= htmlspecialchars($p['name']) ?></span>
+                    <span class="val"><?= number_format($p['qty_sold'],0) ?> бр.</span>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="empty-state"><p>Няма данни за периода</p></div>
+                <?php endif; ?>
+            </div>
+
+            <p class="section-title">Ниски наличности</p>
+            <div class="list-card">
+                <?php if ($low_stock): foreach ($low_stock as $l): ?>
+                <div class="list-row">
+                    <div style="flex:1"><div class="name"><?= htmlspecialchars($l['name']) ?></div><div style="font-size:10px;color:var(--text-secondary)"><?= htmlspecialchars($l['store_name']) ?></div></div>
+                    <div style="text-align:right"><div style="font-size:14px;font-weight:800;color:#ef4444"><?= $l['quantity'] ?> бр.</div><div style="font-size:10px;color:var(--text-secondary)">мин: <?= $l['min_quantity'] ?></div></div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p>Всички над минимума ✓</p>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <p class="section-title">Стока без движение ≥30 дни</p>
+            <div class="list-card">
+                <?php if ($dead_stock): foreach (array_slice($dead_stock,0,8) as $d): ?>
+                <div class="list-row">
+                    <div style="flex:1"><div class="name"><?= htmlspecialchars($d['name']) ?></div><div style="font-size:10px;color:var(--text-secondary)"><?= $d['days_idle'] ?> дни</div></div>
+                    <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#f59e0b"><?= number_format($d['dead_value'],0,',','.') ?> <?= $currency ?></div><div style="font-size:10px;color:var(--text-secondary)"><?= $d['quantity'] ?> бр.</div></div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p>Нямаш застояла стока ✓</p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ═══ ФИНАНСИ ═══ -->
+        <div id="tab-finance" class="tab-content" <?= $active_tab!=='finance'?'style="display:none"':'' ?>>
+            <?php if ($role === 'seller'): ?>
+            <div class="empty-state" style="padding-top:60px">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <p>Само за управители и собственици</p>
+            </div>
+            <?php else: ?>
+            <?php if ($role === 'owner'): ?>
+            <div class="grid-2">
+                <div class="stat-card" onclick="openDrawer('profit')">
+                    <div class="label">Печалба</div>
+                    <div class="value shimmer-text" data-count="<?= round($profit) ?>">0</div>
+                    <div class="sub"><?= $currency ?> · <?= $margin_pct ?>% марж</div>
+                </div>
+                <div class="stat-card glow-yellow" onclick="openDrawer('dead_capital')">
+                    <div class="label">Мъртъв капитал</div>
+                    <div class="value" style="color:#f59e0b" data-count="<?= round($dead_capital) ?>">0</div>
+                    <div class="sub"><?= $currency ?></div>
+                </div>
+            </div>
+            <?php endif; ?>
+            <p class="section-title">Неплатени фактури</p>
+            <div class="list-card">
+                <?php if ($unpaid_invoices): foreach ($unpaid_invoices as $inv): ?>
+                <div class="list-row">
+                    <div style="flex:1"><div class="name"><?= htmlspecialchars($inv['invoice_number']??'—') ?></div><div style="font-size:10px;color:var(--text-secondary)">пада <?= $inv['due_date'] ?></div></div>
+                    <div style="text-align:right">
+                        <div style="font-size:13px;font-weight:700;color:<?= $inv['overdue_days']>0?'#ef4444':'var(--indigo-300)' ?>"><?= number_format($inv['total'],2,',','.') ?> <?= $currency ?></div>
+                        <?php if ($inv['overdue_days']>0): ?><span class="badge badge-red">+<?= $inv['overdue_days'] ?> дни</span><?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p>Няма просрочени фактури ✓</p>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ═══ АНОМАЛИИ ═══ -->
+        <div id="tab-anomalies" class="tab-content" <?= $active_tab!=='anomalies'?'style="display:none"':'' ?>>
+            <?php
+            $anomalies=[];
+            $qa2=$pdo->prepare("SELECT p.name FROM products p JOIN inventory i ON i.product_id=p.id AND i.tenant_id=p.tenant_id WHERE p.tenant_id=? AND i.quantity=0 AND (SELECT COUNT(*) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.tenant_id=p.tenant_id AND s.created_at>DATE_SUB(NOW(),INTERVAL 30 DAY))>0 LIMIT 5");
+            $qa2->execute([$tenant_id]);
+            foreach($qa2->fetchAll(PDO::FETCH_ASSOC) as $zb) $anomalies[]=['type'=>'critical','title'=>'Топ артикул изчерпан','desc'=>$zb['name'].' — продаван но с 0 наличност'];
+            foreach(array_slice($low_stock,0,3) as $l) $anomalies[]=['type'=>'warning','title'=>'Ниска наличност','desc'=>$l['name'].' — '.$l['quantity'].' бр. (мин: '.$l['min_quantity'].')'];
+            foreach($unpaid_invoices as $inv) if($inv['overdue_days']>0) $anomalies[]=['type'=>'critical','title'=>'Просрочена фактура','desc'=>'Просрочена с '.$inv['overdue_days'].' дни'];
+            if($dead_capital>1000) $anomalies[]=['type'=>'warning','title'=>'Мъртъв капитал','desc'=>number_format($dead_capital,0,',','.').' '.$currency.' блокирани'];
+            if($role==='owner') foreach($anomaly_discounts as $d) if($d['total_discount']>100) $anomalies[]=['type'=>'info','title'=>'Нетипични отстъпки','desc'=>$d['seller'].' — '.number_format($d['total_discount'],0,',','.').' '.$currency];
+            $crit=array_filter($anomalies,fn($a)=>$a['type']==='critical');
+            $warn=array_filter($anomalies,fn($a)=>$a['type']==='warning');
+            $info=array_filter($anomalies,fn($a)=>$a['type']==='info');
+            ?>
+            <?php if($anomalies): ?>
+                <?php if($crit): ?><p class="section-title" style="color:#ef4444">● Критични</p><?php foreach($crit as $an): ?>
+                <div class="anomaly-card"><div class="anomaly-dot dot-red"></div><div class="anomaly-text"><div class="title"><?= htmlspecialchars($an['title']) ?></div><div class="desc"><?= htmlspecialchars($an['desc']) ?></div></div></div>
+                <?php endforeach; endif; ?>
+                <?php if($warn): ?><p class="section-title" style="color:#f59e0b">● Предупреждения</p><?php foreach($warn as $an): ?>
+                <div class="anomaly-card warning"><div class="anomaly-dot dot-yellow"></div><div class="anomaly-text"><div class="title"><?= htmlspecialchars($an['title']) ?></div><div class="desc"><?= htmlspecialchars($an['desc']) ?></div></div></div>
+                <?php endforeach; endif; ?>
+                <?php if($info): ?><p class="section-title">● Информация</p><?php foreach($info as $an): ?>
+                <div class="anomaly-card info"><div class="anomaly-dot dot-blue"></div><div class="anomaly-text"><div class="title"><?= htmlspecialchars($an['title']) ?></div><div class="desc"><?= htmlspecialchars($an['desc']) ?></div></div></div>
+                <?php endforeach; endif; ?>
+            <?php else: ?>
+            <div class="empty-state" style="padding-top:60px">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p>Няма аномалии. Бизнесът върви добре!</p>
+            </div>
+            <?php endif; ?>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<nav class="bottom-nav">
+    <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
+    <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
+    <a href="stats.php" class="bnav-tab active"><span class="bnav-icon">📊</span>Справки</a>
+    <a href="actions.php" class="bnav-tab"><span class="bnav-icon">⚡</span>Въвеждане</a>
+</nav>
+
+<script>
+const D={
+    revenue:{title:'Оборот',value:'<?= number_format($sales_summary['revenue'],2,',','.') ?> <?= $currency ?>',explain:'Общата сума на всички завършени продажби за периода.',ai:'Фокусирай се върху топ артикулите — те носят 80% от парите. Увери се че никога не са на 0.',action:'Виж продажбите',link:'stats.php?tab=sales&period=<?= $period ?>'},
+    transactions:{title:'Транзакции',value:'<?= $sales_summary['transactions'] ?>',explain:'Броят на отделните продажби. По-много транзакции с по-висока средна сметка = по-добър бизнес.',ai:'Средната сметка е <?= number_format($sales_summary['avg_ticket'],2,',','.') ?> <?= $currency ?>. Предлагай допълнителен артикул на всяка продажба.',action:null},
+    avg_ticket:{title:'Средна сметка',value:'<?= number_format($sales_summary['avg_ticket'],2,',','.') ?> <?= $currency ?>',explain:'Оборот ÷ Брой транзакции.',ai:'За да вдигнеш средната сметка: предлагай допълнителни артикули и изложи скъпите до касата.',action:null},
+    profit:{title:'Печалба',value:'<?= number_format($profit,2,',','.') ?> <?= $currency ?> (<?= $margin_pct ?>% марж)',explain:'Оборот минус себестойността по FIFO. Марж под 20% е сигнал.',ai:'<?= $margin_pct < 20 ? "Маржът е под 20% — провери цените за покупка и отстъпките." : ($margin_pct < 35 ? "Добър марж. Намали отстъпките за да го вдигнеш." : "Отличен марж! Фокусирай се върху оборота.") ?>',action:null},
+    low_stock:{title:'Ниски наличности',value:'<?= count($low_stock) ?> артикула',explain:'Артикули под минималната наличност.',ai:'Зареди приоритетно. Всеки ден без наличност = пропуснати продажби.',action:'Виж всички',link:'stats.php?tab=products'},
+    dead_capital:{title:'Мъртъв капитал',value:'<?= number_format($dead_capital,2,',','.') ?> <?= $currency ?>',explain:'Стока без движение над 30 дни. Тези пари не работят.',ai:'<?= $dead_capital>3000?"Пусни -20% промоция. По-добре €80 от €100 отколкото да чакаш.":"Пусни -15% за уикенда. Освободените пари ще работят по-добре." ?>',action:'Виж артикулите',link:'stats.php?tab=products'},
+    unpaid:{title:'Неплатено',value:'<?= number_format($unpaid_total,2,',','.') ?> <?= $currency ?>',explain:'Фактури към доставчици чакащи плащане.',ai:'Плати просрочените първо. Добрите отношения с доставчиците = по-добри цени.',action:'Виж фактурите',link:'stats.php?tab=finance'},
+    health:{title:'Здраве на бизнеса',value:'<?= $health_score ?>/100',explain:'Наличности (30%) + мъртъв капитал (20%) + задължения (20%) + марж (15%) + аномалии (15%). 70+ = добре · 40-70 = внимание · под 40 = действие.',ai:'<?= $health_score>=70?"Бизнесът е в добро здраве.":($health_score>=40?"Зареди ниските наличности, ликвидирай мъртвия капитал, плати просрочените фактури.":"Спешни действия — провери критичните аномалии.") ?>',action:'Виж аномалии',link:'stats.php?tab=anomalies'}
+};
+
+function openDrawer(k){
+    const d=D[k]; 
+    if(!d) return;
+    document.getElementById('drawerBody').innerHTML='<div class="drawer-title">'+d.title+'</div><div class="drawer-value">'+d.value+'</div><div class="drawer-explain">'+d.explain+'</div><div class="ai-box"><div class="ai-label">✦ AI препоръка</div><div class="ai-text">'+d.ai+'</div></div>'+(d.action?'<a href="'+d.link+'" class="drawer-btn">'+d.action+' →</a>':'');
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer(){
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+}
+
+let ts=0;
+document.getElementById('drawer').addEventListener('touchstart',function(e){ts=e.touches[0].clientY});
+document.getElementById('drawer').addEventListener('touchend',function(e){if(e.changedTouches[0].clientY-ts>60)closeDrawer()});
+
+function switchTab(tab,e){
+    document.querySelectorAll('.tab-content').forEach(function(el){el.style.display='none'});
+    document.querySelectorAll('.tab-btn').forEach(function(el){el.classList.remove('active')});
+    document.getElementById('tab-'+tab).style.display='';
+    e.target.classList.add('active');
+    const u=new URL(window.location); 
+    u.searchParams.set('tab',tab); 
+    window.history.replaceState({},'',u);
+}
+
+function toggleDatePicker(){
+    document.getElementById('datePickerRow').classList.toggle('visible');
+}
+
+function animCount(el,target,dur){
+    dur = dur || 900;
+    const s=performance.now();
+    const u=function(n){
+        const p=Math.min((n-s)/dur,1);
+        const e=1-Math.pow(1-p,3);
+        el.textContent=Math.round(target*e).toLocaleString('bg-BG');
+        if(p<1)requestAnimationFrame(u); 
+        else el.textContent=Math.round(target).toLocaleString('bg-BG');
+    };
+    requestAnimationFrame(u);
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('[data-count]').forEach(function(el){
+        animCount(el,parseFloat(el.dataset.count)||0);
+    });
+    const hN=document.getElementById('healthNum');
+    const hB=document.getElementById('healthBar');
+    if(hN){
+        animCount(hN,<?= $health_score ?>);
+        setTimeout(function(){
+            if(hB) hB.style.width='<?= $health_score ?>%';
+        },100);
+    }
+});
+</script>
+</body>
+</html>
