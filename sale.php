@@ -417,7 +417,7 @@ body::before{
 
 /* ═══ LETTER KEYBOARD ═══ */
 .keyboard-zone{
-    flex-shrink:0;background:rgba(3,7,18,0.97);padding:4px 4px 4px;
+    flex-shrink:0;background:rgba(3,7,18,0.97);padding:4px 4px 80px;
     backdrop-filter:blur(16px);display:none;
 }
 .keyboard-zone.visible{display:block}
