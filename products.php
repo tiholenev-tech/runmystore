@@ -994,7 +994,7 @@ if ($sup_id && $cat_id && $screen === 'products') {
         <div class="qa-inner">
             <button class="qa-btn qa-ai" onclick="openAIAssist()"><span class="qa-icon">✦</span><span class="qa-label">AI</span></button>
             <button class="qa-btn qa-scan" onclick="openCamera('scan')"><span class="qa-icon">⬡</span><span class="qa-label">Скан</span></button>
-            <button class="qa-btn qa-add" onclick="openAddModal()"><span class="qa-icon">＋</span><span class="qa-label">Добави</span></button>
+            <button class="qa-btn qa-add" onclick="openAIWizard()"><span class="qa-icon">＋</span><span class="qa-label">Добави</span></button>
             <button class="qa-btn qa-info" onclick="openInfoOverlay()"><span class="qa-icon">ℹ</span><span class="qa-label">Инфо</span></button>
         </div>
     </div>
