@@ -1075,7 +1075,7 @@ if ($sup_id && $cat_id && $screen === 'products') {
         </div>
     </div>
     <input type="file" id="aiScanFileInput" accept="image/*" capture="environment" style="display:none;" onchange="handleAIScanFile(this)">
-
+    <input type="file" id="wizardPhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="handleWizardPhoto(this)">
     <script>
     // ============================================================
     // STATE
