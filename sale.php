@@ -27,7 +27,7 @@ $store = DB::run("SELECT * FROM stores WHERE id = ? AND tenant_id = ?", [$store_
 $store_name = $store['name'] ?? 'Магазин';
 
 // Wholesale clients
-$wholesale_clients = DB::run("SELECT id, name, phone FROM customers WHERE tenant_id = ? AND type = 'wholesale' AND is_active = 1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+$wholesale_clients = DB::run("SELECT id, name, phone FROM customers WHERE tenant_id = ? AND is_wholesale = 1 AND is_active = 1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
 
 // Page title
 $page_title = $supato_mode ? 'Изходящо движение' : 'Продажба';
@@ -570,32 +570,85 @@ body::before{
     margin-bottom:8px;flex-shrink:0;
 }
 
-/* ═══ VOICE OVERLAY ═══ */
-.voice-overlay{
+/* ═══ VOICE OVERLAY — products.php rec-ov/rec-box style ═══ */
+.rec-ov{
     position:fixed;inset:0;z-index:300;
-    background:rgba(3,7,18,0.85);backdrop-filter:blur(16px);
-    display:none;align-items:center;justify-content:center;flex-direction:column;
+    background:rgba(3,7,18,0.6);backdrop-filter:blur(8px);
+    display:none;align-items:flex-end;justify-content:center;
+    padding:0 16px 100px;
 }
-.voice-overlay.open{display:flex}
-.voice-ring{
-    width:120px;height:120px;border-radius:50%;
-    border:3px solid var(--indigo-400);
-    display:flex;align-items:center;justify-content:center;
-    animation:voicePulse 1.5s ease infinite;
-    margin-bottom:20px;
+.rec-ov.open{display:flex}
+.rec-box{
+    width:100%;max-width:400px;
+    background:rgba(15,15,40,0.95);
+    border:1px solid var(--border-glow);
+    border-radius:20px;padding:20px;
+    box-shadow:0 -12px 50px rgba(99,102,241,0.25),0 0 40px rgba(0,0,0,0.5);
+    animation:recSlideUp 0.25s ease;
 }
-@keyframes voicePulse{
-    0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)}
-    50%{box-shadow:0 0 0 20px rgba(99,102,241,0)}
+@keyframes recSlideUp{
+    from{opacity:0;transform:translateY(30px)}
+    to{opacity:1;transform:translateY(0)}
 }
-.voice-ring .mic-icon{font-size:48px}
-.voice-text{font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:8px;text-align:center;padding:0 24px}
-.voice-hint{font-size:12px;color:var(--text-secondary);margin-bottom:24px;text-align:center;padding:0 24px}
-.voice-cancel{
-    padding:10px 28px;border-radius:12px;border:1px solid var(--border-subtle);
-    background:var(--bg-card);color:var(--indigo-300);font-size:14px;font-weight:600;
+/* REC status row — BIG indicator */
+.rec-status{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.rec-dot{
+    width:16px;height:16px;border-radius:50%;
+    background:#ef4444;flex-shrink:0;
+    box-shadow:0 0 12px #ef4444,0 0 24px rgba(239,68,68,0.4);
+    animation:recPulse 1s ease infinite;
+}
+.rec-dot.ready{
+    background:#22c55e;
+    box-shadow:0 0 12px #22c55e,0 0 24px rgba(34,197,94,0.4);
+    animation:none;
+}
+@keyframes recPulse{
+    0%,100%{opacity:1;box-shadow:0 0 8px #ef4444,0 0 16px rgba(239,68,68,0.3)}
+    50%{opacity:0.5;box-shadow:0 0 20px #ef4444,0 0 40px rgba(239,68,68,0.6)}
+}
+.rec-label{
+    font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;
+}
+.rec-label.recording{color:#ef4444}
+.rec-label.ready{color:#22c55e}
+/* Transcription */
+.rec-transcript{
+    min-height:44px;padding:10px 14px;margin-bottom:14px;
+    background:rgba(99,102,241,0.06);border:1px solid var(--border-subtle);
+    border-radius:12px;font-size:15px;font-weight:500;
+    color:var(--text-primary);line-height:1.4;
+    word-wrap:break-word;
+}
+.rec-transcript.empty{color:var(--text-secondary);font-style:italic}
+/* Hint */
+.rec-hint{
+    font-size:11px;color:var(--text-secondary);margin-bottom:14px;
+    text-align:center;line-height:1.4;
+}
+/* Buttons row */
+.rec-actions{display:flex;gap:8px}
+.rec-btn-cancel{
+    flex:1;height:44px;border-radius:12px;
+    border:1px solid var(--border-subtle);background:var(--bg-card);
+    color:var(--indigo-300);font-size:14px;font-weight:600;
     cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
 }
+.rec-btn-cancel:active{background:rgba(99,102,241,0.12)}
+.rec-btn-send{
+    flex:2;height:44px;border-radius:12px;border:none;
+    background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
+    color:#fff;font-size:14px;font-weight:700;
+    cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    box-shadow:0 4px 16px rgba(99,102,241,0.35);
+    transition:all 0.2s;
+}
+.rec-btn-send:active{transform:scale(0.97)}
+.rec-btn-send:disabled{opacity:0.3;pointer-events:none}
 
 /* ═══ TOAST ═══ */
 .toast{
@@ -696,12 +749,20 @@ body::before{
     <button class="undo-btn" id="undoBtn">ОТМЕНИ</button>
 </div>
 
-<!-- Voice overlay -->
-<div class="voice-overlay" id="voiceOverlay">
-    <div class="voice-ring"><span class="mic-icon">🎤</span></div>
-    <div class="voice-text" id="voiceText">Слушам...</div>
-    <div class="voice-hint" id="voiceHint">Кажете артикул, количество или команда</div>
-    <button class="voice-cancel" id="voiceCancel">Затвори</button>
+<!-- Voice overlay — products.php rec-ov/rec-box style -->
+<div class="rec-ov" id="recOv">
+    <div class="rec-box">
+        <div class="rec-status">
+            <div class="rec-dot" id="recDot"></div>
+            <span class="rec-label recording" id="recLabel">● ЗАПИСВА</span>
+        </div>
+        <div class="rec-transcript empty" id="recTranscript">Слушам...</div>
+        <div class="rec-hint" id="recHint">Кажете артикул, количество или команда</div>
+        <div class="rec-actions">
+            <button class="rec-btn-cancel" id="recCancel">Затвори</button>
+            <button class="rec-btn-send" id="recSend" disabled>🎤 Изпрати →</button>
+        </div>
+    </div>
 </div>
 
 <!-- Long press popup -->
@@ -822,25 +883,27 @@ body::before{
     <!-- LETTER KEYBOARD (hidden by default) -->
     <div class="keyboard-zone" id="keyboardZone">
         <?php if ($lang === 'bg'): ?>
+        <!-- Bulgarian Phonetic (Windows layout) -->
         <div class="kb-row">
-            <?php foreach(['А','Б','В','Г','Д','Е','Ж','З','И','Й'] as $k): ?>
+            <?php foreach(['Я','В','Е','Р','Т','Ъ','У','И','О','П'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
             <?php endforeach; ?>
         </div>
         <div class="kb-row">
-            <?php foreach(['К','Л','М','Н','О','П','Р','С','Т'] as $k): ?>
+            <?php foreach(['А','С','Д','Ф','Г','Х','Й','К','Л'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
             <?php endforeach; ?>
         </div>
         <div class="kb-row">
-            <?php foreach(['У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ь'] as $k): ?>
+            <?php foreach(['З','Ь','Ц','Ж','Б','Н','М'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
             <?php endforeach; ?>
         </div>
         <div class="kb-row">
             <button class="kb-key wide" onclick="toggleKeyboard()">123→</button>
-            <button class="kb-key" onclick="kbPress('Ю')">Ю</button>
-            <button class="kb-key" onclick="kbPress('Я')">Я</button>
+            <?php foreach(['Ш','Щ','Ч','Ю'] as $k): ?>
+            <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
+            <?php endforeach; ?>
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
             <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
         </div>
@@ -1833,6 +1896,7 @@ function handleBarcode(code) {
 
 // ─── VOICE ───
 let recognition;
+let lastTranscript = '';
 
 function startVoice() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -1846,49 +1910,95 @@ function startVoice() {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    const overlay = document.getElementById('voiceOverlay');
-    const text = document.getElementById('voiceText');
-    const hint = document.getElementById('voiceHint');
+    const ov = document.getElementById('recOv');
+    const dot = document.getElementById('recDot');
+    const label = document.getElementById('recLabel');
+    const transcript = document.getElementById('recTranscript');
+    const hint = document.getElementById('recHint');
+    const sendBtn = document.getElementById('recSend');
 
     // Context-aware hints
     switch (STATE.numpadCtx) {
         case 'code':
-            hint.textContent = 'Напр. "Nike 42 черни" или "Продай 2 Adidas"';
+            hint.textContent = 'Напр. "Nike 42 черни" или "Продай 2 Adidas 38"';
             break;
         case 'qty':
             hint.textContent = 'Кажете число, напр. "пет" или "три"';
             break;
         case 'received':
-            hint.textContent = 'Кажете сума, напр. "сто лева"';
+            hint.textContent = 'Кажете сума, напр. "сто лева" или "петдесет"';
             break;
         default:
             hint.textContent = 'Кажете артикул, количество или команда';
     }
 
-    text.textContent = 'Слушам...';
-    overlay.classList.add('open');
+    // Reset state — RECORDING
+    dot.className = 'rec-dot';
+    label.className = 'rec-label recording';
+    label.textContent = '● ЗАПИСВА';
+    transcript.textContent = 'Слушам...';
+    transcript.classList.add('empty');
+    sendBtn.disabled = true;
+    lastTranscript = '';
+
+    ov.classList.add('open');
 
     recognition.onresult = (e) => {
-        const transcript = e.results[0][0].transcript;
-        text.textContent = transcript;
-        setTimeout(() => {
-            overlay.classList.remove('open');
-            handleVoiceResult(transcript);
-        }, 600);
+        lastTranscript = e.results[0][0].transcript;
+        // Switch to READY state
+        dot.classList.add('ready');
+        label.className = 'rec-label ready';
+        label.textContent = '✓ ГОТОВО';
+        transcript.textContent = lastTranscript;
+        transcript.classList.remove('empty');
+        sendBtn.disabled = false;
     };
 
     recognition.onerror = (e) => {
-        text.textContent = 'Не разбрах, опитайте пак';
-        setTimeout(() => overlay.classList.remove('open'), 1200);
+        dot.classList.add('ready');
+        label.className = 'rec-label';
+        label.textContent = 'ГРЕШКА';
+        label.style.color = 'var(--warning)';
+        transcript.textContent = 'Не разбрах, опитайте пак';
+        transcript.classList.add('empty');
+        setTimeout(() => {
+            label.style.color = '';
+            ov.classList.remove('open');
+        }, 1500);
     };
 
     recognition.onend = () => {
-        // If no result received, close
-        setTimeout(() => overlay.classList.remove('open'), 500);
+        // If no result yet, show waiting state
+        if (!lastTranscript) {
+            dot.classList.add('ready');
+            label.className = 'rec-label';
+            label.textContent = 'ЧАКАМ';
+            label.style.color = 'var(--text-secondary)';
+        }
     };
 
     recognition.start();
 }
+
+// Send button
+document.getElementById('recSend').addEventListener('click', () => {
+    document.getElementById('recOv').classList.remove('open');
+    if (lastTranscript) handleVoiceResult(lastTranscript);
+});
+
+// Cancel button
+document.getElementById('recCancel').addEventListener('click', () => {
+    if (recognition) recognition.abort();
+    document.getElementById('recOv').classList.remove('open');
+});
+
+// Tap on overlay backdrop = close
+document.getElementById('recOv').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        if (recognition) recognition.abort();
+        e.currentTarget.classList.remove('open');
+    }
+});
 
 function handleVoiceResult(text) {
     // Send to AI for parsing
@@ -1936,10 +2046,7 @@ function handleVoiceResult(text) {
     });
 }
 
-document.getElementById('voiceCancel').addEventListener('click', () => {
-    if (recognition) recognition.abort();
-    document.getElementById('voiceOverlay').classList.remove('open');
-});
+// Voice cancel handled above in recCancel listener
 
 // ─── SWIPE NAVIGATION ───
 let touchStartX = 0;
