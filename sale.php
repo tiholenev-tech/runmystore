@@ -40,8 +40,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     $like = "%$q%";
     $results = DB::run("
         SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
-               COALESCE
-            
                COALESCE(i.quantity, 0) as stock
         FROM products p
         LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
@@ -763,23 +761,25 @@ body::before{
 }
 .lp-cancel{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#fca5a5}
 .lp-ok{background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));color:#fff}
+
+/* ═══ NOT FOUND POPUP ═══ */
+.nf-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);z-index:600;background:rgba(15,15,40,0.95);border:1px solid rgba(239,68,68,0.4);border-radius:16px;padding:20px 30px;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;pointer-events:none;box-shadow:0 10px 40px rgba(239,68,68,0.2);backdrop-filter:blur(16px);transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1)}
+.nf-popup.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.nf-popup .nf-icon{font-size:36px}
+.nf-popup .nf-text{color:#fca5a5;font-size:16px;font-weight:700;text-align:center}
 </style>
 </head>
 <body>
 
-<!-- Green flash overlay -->
 <div class="green-flash" id="greenFlash"></div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Undo bar -->
 <div class="undo-bar" id="undoBar">
     <span class="undo-text" id="undoText"></span>
     <button class="undo-btn" id="undoBtn">ОТМЕНИ</button>
 </div>
 
-<!-- Voice overlay — products.php rec-ov/rec-box style -->
 <div class="rec-ov" id="recOv">
     <div class="rec-box">
         <div class="rec-status">
@@ -795,7 +795,6 @@ body::before{
     </div>
 </div>
 
-<!-- Long press popup -->
 <div class="lp-popup" id="lpPopup">
     <div class="lp-title" id="lpTitle">Бройки</div>
     <div class="lp-display" id="lpDisplay">0</div>
@@ -819,14 +818,16 @@ body::before{
     </div>
 </div>
 
-<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="nf-popup" id="nfPopup">
+    <div class="nf-icon">⚠️</div>
+    <div class="nf-text">Няма такъв артикул</div>
+</div>
+
 <div class="sale-wrap" id="saleWrap">
 
-    <!-- CAMERA-HEADER (merged) -->
     <div class="cam-header" id="camHeader">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div class="cam-overlay">
-            <!-- Top bar: back + title + buttons -->
             <div class="cam-top">
                 <button class="cam-btn" onclick="location.href='warehouse.php'">←</button>
                 <span class="cam-title" id="camTitle"><?= $page_title ?></span>
@@ -837,14 +838,11 @@ body::before{
                     <button class="cam-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
                 </div>
             </div>
-            <!-- Scan zone corners -->
             <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
             <div class="scan-corner sc-tr"><svg viewBox="0 0 16 16"><path d="M16 5V1a1 1 0 00-1-1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
             <div class="scan-corner sc-bl"><svg viewBox="0 0 16 16"><path d="M0 11v4a1 1 0 001 1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
             <div class="scan-corner sc-br"><svg viewBox="0 0 16 16"><path d="M16 11v4a1 1 0 01-1 1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
-            <!-- Laser line -->
             <div class="scan-laser"></div>
-            <!-- Scanner status -->
             <div class="cam-status">
                 <div class="scan-dot"></div>
                 <span>Скенер активен — насочи към баркод</span>
@@ -852,7 +850,6 @@ body::before{
         </div>
     </div>
 
-    <!-- SEARCH BAR -->
     <div class="search-bar">
         <div class="search-display" id="searchDisplay">
             <span class="placeholder">🔍 Код, име или баркод</span>
@@ -861,10 +858,8 @@ body::before{
         <button class="search-btn" id="btnKeyboard" onclick="toggleKeyboard()">АБВ</button>
     </div>
 
-    <!-- SEARCH RESULTS -->
     <div class="search-results" id="searchResults"></div>
 
-    <!-- DISCOUNT CHIPS -->
     <div class="discount-chips" id="discountChips">
         <button class="dc-chip" onclick="applyDiscount(5)">5%</button>
         <button class="dc-chip" onclick="applyDiscount(10)">10%</button>
@@ -873,7 +868,6 @@ body::before{
         <span class="dc-close" onclick="closeDiscount()">✕</span>
     </div>
 
-    <!-- CART -->
     <div class="cart-zone" id="cartZone">
         <div class="cart-empty" id="cartEmpty">
             <span class="cart-empty-icon">🛒</span>
@@ -881,14 +875,12 @@ body::before{
         </div>
     </div>
 
-    <!-- SUMMARY BAR -->
     <div class="summary-bar" id="summaryBar" style="display:none">
         <span class="sum-count" id="sumCount">0 арт.</span>
         <button class="sum-discount" id="sumDiscountBtn" onclick="toggleDiscount()">%</button>
         <span class="sum-total">Общо: <span class="amount" id="sumTotal">0,00</span> <?= $currency ?></span>
     </div>
 
-    <!-- ACTION BAR -->
     <div class="action-bar" id="actionBar">
         <button class="btn-pay" id="btnPay" disabled onclick="openPayment()">
             💵 ПЛАТИ <span id="payAmount">0</span> <?= $currency ?>
@@ -896,7 +888,6 @@ body::before{
         <button class="btn-park" onclick="parkSale()">🅿️</button>
     </div>
 
-    <!-- NUMPAD -->
     <div class="numpad-zone" id="numpadZone">
         <div class="numpad-ctx">
             <span class="ctx-label ctx-code" id="ctxLabel">КОД</span>
@@ -921,7 +912,6 @@ body::before{
         </div>
     </div>
 
-    <!-- LETTER KEYBOARD (hidden by default) -->
     <div class="keyboard-zone" id="keyboardZone">
         <?php
         // ─── Country-aware keyboard layouts ───
@@ -951,7 +941,6 @@ body::before{
         $specials = $special_chars_map[$lang] ?? [];
 
         if ($lang === 'bg'): ?>
-        <!-- Bulgarian Phonetic (Windows layout) -->
         <div class="kb-row">
             <?php foreach(['Я','В','Е','Р','Т','Ъ','У','И','О','П'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
@@ -977,7 +966,6 @@ body::before{
         </div>
 
         <?php elseif ($lang === 'el'): ?>
-        <!-- Greek keyboard -->
         <div class="kb-row">
             <?php foreach(['Ω','Ε','Ρ','Τ','Υ','Θ','Ι','Ο','Π'] as $k): ?>
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
@@ -1003,7 +991,6 @@ body::before{
         </div>
 
         <?php else: ?>
-        <!-- QWERTY (universal) + special chars for <?= $lang ?> -->
         <?php if (!empty($specials)): ?>
         <div class="kb-row">
             <?php foreach($specials as $k): ?>
@@ -1034,10 +1021,7 @@ body::before{
         <?php endif; ?>
     </div>
 
-</div><!-- /sale-wrap -->
-
-<!-- PAYMENT BOTTOM SHEET -->
-<div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
+</div><div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
 <div class="pay-sheet" id="paySheet">
     <div class="pay-handle"></div>
     <div class="pay-header">
@@ -1074,7 +1058,6 @@ body::before{
     <button class="btn-confirm" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
 </div>
 
-<!-- WHOLESALE SHEET -->
 <div class="ws-overlay" id="wsOverlay" onclick="closeWholesale()"></div>
 <div class="ws-sheet" id="wsSheet">
     <div class="pay-handle"></div>
@@ -1098,14 +1081,12 @@ body::before{
     </div>
 </div>
 
-<!-- PARKED SALES -->
 <div class="parked-overlay" id="parkedOverlay" onclick="closeParked()">
     <div class="parked-container" id="parkedContainer" onclick="event.stopPropagation()">
         <div class="parked-title">Паркирани продажби</div>
     </div>
 </div>
 
-<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
     <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
     <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
@@ -1527,18 +1508,15 @@ function triggerSearch() {
     STATE.searchTimeout = setTimeout(() => doSearch(STATE.searchText), 300);
 }
 
+let nfTimeout;
 function showNoResult() {
-    const cam = document.getElementById('camHeader');
-    const overlay = cam.querySelector('.cam-overlay');
-    const video = document.getElementById('cameraVideo');
-    const savedOverlay = overlay.innerHTML;
-    video.style.opacity = '0';
-    cam.style.background = 'rgba(239,68,68,0.12)';
-    overlay.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:17px;font-weight:800;color:#f87171;letter-spacing:0.5px">Няма такъв артикул</div>';
-    setTimeout(function() {
-        video.style.opacity = '';
-        cam.style.background = '';
-        overlay.innerHTML = savedOverlay;
+    const popup = document.getElementById('nfPopup');
+    popup.classList.add('show');
+    beep(400, 0.2);
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+    clearTimeout(nfTimeout);
+    nfTimeout = setTimeout(() => {
+        popup.classList.remove('show');
     }, 1500);
 }
 
