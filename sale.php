@@ -169,58 +169,87 @@ body::before{
     height:100dvh;height:100vh;max-width:480px;margin:0 auto;
 }
 
-/* ═══ HEADER ═══ */
-.sale-header{
+/* ═══ CAMERA-HEADER (merged) ═══ */
+.cam-header{
+    position:relative;height:80px;flex-shrink:0;overflow:hidden;
+    background:#111;z-index:50;
+}
+.cam-header video{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+}
+.cam-header.wholesale{border-bottom:2px solid var(--indigo-400)}
+/* Overlay controls */
+.cam-overlay{position:absolute;inset:0;z-index:2;pointer-events:none}
+.cam-overlay>*{pointer-events:auto}
+.cam-top{
+    position:absolute;top:0;left:0;right:0;
     display:flex;align-items:center;justify-content:space-between;
-    height:48px;padding:0 12px;flex-shrink:0;
-    background:rgba(3,7,18,0.93);backdrop-filter:blur(16px);
-    border-bottom:1px solid var(--border-subtle);
-    position:relative;z-index:50;
+    padding:6px 10px;
 }
-.sale-header.wholesale{
-    border-bottom:2px solid var(--indigo-400);
-    background:rgba(99,102,241,0.08);
-}
-.hdr-btn{
-    width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-    color:var(--indigo-300);font-size:18px;background:none;border:none;cursor:pointer;
-    border-radius:10px;transition:all 0.2s;
-}
-.hdr-btn:active{background:rgba(99,102,241,0.15);transform:scale(0.92)}
-.hdr-title{
-    font-size:16px;font-weight:800;
+.cam-title{
+    font-size:14px;font-weight:800;
     background:linear-gradient(135deg,#f1f5f9,#a5b4fc);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:none;
 }
-.hdr-right{display:flex;align-items:center;gap:4px}
+.cam-btn{
+    width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+    border-radius:8px;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);
+    color:rgba(165,180,252,0.8);font-size:16px;border:none;cursor:pointer;
+}
+.cam-btn:active{background:rgba(99,102,241,0.3);transform:scale(0.9)}
+.cam-right{display:flex;gap:4px}
 .park-badge{
-    position:absolute;top:-4px;right:-4px;
-    min-width:16px;height:16px;border-radius:8px;
-    background:var(--danger);color:#fff;font-size:9px;font-weight:800;
-    display:flex;align-items:center;justify-content:center;padding:0 4px;
-    box-shadow:0 0 8px rgba(239,68,68,0.5);
+    position:absolute;top:-3px;right:-3px;
+    min-width:14px;height:14px;border-radius:7px;
+    background:var(--danger);color:#fff;font-size:8px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;padding:0 3px;
+    box-shadow:0 0 6px rgba(239,68,68,0.5);
 }
-
-/* ═══ CAMERA ═══ */
-.camera-zone{
-    position:relative;flex-shrink:0;overflow:hidden;
-    background:#000;transition:height 0.3s ease;
+/* Scan zone corners */
+.scan-corner{position:absolute;width:16px;height:16px;z-index:3}
+.scan-corner svg{width:100%;height:100%}
+.sc-tl{top:14px;left:15%}
+.sc-tr{top:14px;right:15%}
+.sc-bl{bottom:22px;left:15%}
+.sc-br{bottom:22px;right:15%}
+/* Laser line */
+.scan-laser{
+    position:absolute;left:16%;right:16%;height:2px;z-index:3;
+    background:linear-gradient(90deg,transparent,#22c55e,transparent);
+    box-shadow:0 0 10px #22c55e,0 0 20px rgba(34,197,94,0.3);
+    animation:scanLine 2.5s ease-in-out infinite;
 }
-.camera-zone video{width:100%;height:100%;object-fit:cover}
-.camera-close{
-    position:absolute;top:8px;right:8px;z-index:10;
-    width:32px;height:32px;border-radius:50%;
-    background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,0.2);color:#fff;
-    font-size:16px;display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
+@keyframes scanLine{
+    0%{top:18%}50%{top:72%}100%{top:18%}
 }
-.camera-open{
-    display:none;height:40px;align-items:center;justify-content:center;gap:6px;
-    background:var(--bg-card);border-bottom:1px solid var(--border-subtle);
-    color:var(--indigo-300);font-size:13px;font-weight:600;cursor:pointer;
+/* Scanner status */
+.cam-status{
+    position:absolute;bottom:4px;left:0;right:0;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    z-index:4;animation:scanPulse 2s ease infinite;
 }
-.camera-open.visible{display:flex}
+@keyframes scanPulse{0%,100%{opacity:0.7}50%{opacity:1}}
+.scan-dot{
+    width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;
+    animation:dotBlink 1.5s ease infinite;
+}
+@keyframes dotBlink{
+    0%,100%{box-shadow:0 0 6px #22c55e;opacity:1}
+    50%{box-shadow:0 0 14px #22c55e,0 0 28px rgba(34,197,94,0.4);opacity:0.6}
+}
+.cam-status span{
+    font-size:9px;font-weight:700;color:rgba(74,222,128,0.9);
+    letter-spacing:0.8px;text-transform:uppercase;
+}
+/* Flash on scan */
+.cam-header.scanned{animation:camFlash 0.4s ease}
+@keyframes camFlash{
+    0%{box-shadow:inset 0 0 0 0 rgba(34,197,94,0)}
+    30%{box-shadow:inset 0 0 40px 10px rgba(34,197,94,0.5)}
+    100%{box-shadow:inset 0 0 0 0 rgba(34,197,94,0)}
+}
+.hdr-btn{display:none} /* legacy — hidden */
 .green-flash{
     position:fixed;inset:0;background:rgba(34,197,94,0.25);
     z-index:999;pointer-events:none;opacity:0;transition:opacity 0.05s;
@@ -792,24 +821,35 @@ body::before{
 <!-- ═══ MAIN LAYOUT ═══ -->
 <div class="sale-wrap" id="saleWrap">
 
-    <!-- HEADER -->
-    <div class="sale-header" id="saleHeader">
-        <button class="hdr-btn" onclick="location.href='warehouse.php'">←</button>
-        <span class="hdr-title" id="hdrTitle"><?= $page_title ?></span>
-        <div class="hdr-right">
-            <button class="hdr-btn" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
-                🅿️<span class="park-badge" id="parkedCount">0</span>
-            </button>
-            <button class="hdr-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
+    <!-- CAMERA-HEADER (merged) -->
+    <div class="cam-header" id="camHeader">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <div class="cam-overlay">
+            <!-- Top bar: back + title + buttons -->
+            <div class="cam-top">
+                <button class="cam-btn" onclick="location.href='warehouse.php'">←</button>
+                <span class="cam-title" id="camTitle"><?= $page_title ?></span>
+                <div class="cam-right">
+                    <button class="cam-btn" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
+                        🅿️<span class="park-badge" id="parkedCount">0</span>
+                    </button>
+                    <button class="cam-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
+                </div>
+            </div>
+            <!-- Scan zone corners -->
+            <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
+            <div class="scan-corner sc-tr"><svg viewBox="0 0 16 16"><path d="M16 5V1a1 1 0 00-1-1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
+            <div class="scan-corner sc-bl"><svg viewBox="0 0 16 16"><path d="M0 11v4a1 1 0 001 1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
+            <div class="scan-corner sc-br"><svg viewBox="0 0 16 16"><path d="M16 11v4a1 1 0 01-1 1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
+            <!-- Laser line -->
+            <div class="scan-laser"></div>
+            <!-- Scanner status -->
+            <div class="cam-status">
+                <div class="scan-dot"></div>
+                <span>Скенер активен — насочи към баркод</span>
+            </div>
         </div>
     </div>
-
-    <!-- CAMERA -->
-    <div class="camera-zone" id="cameraZone" style="height:10vh">
-        <video id="cameraVideo" autoplay playsinline muted></video>
-        <button class="camera-close" onclick="toggleCamera(false)">✕</button>
-    </div>
-    <div class="camera-open" id="cameraOpen" onclick="toggleCamera(true)">📷 Отвори камерата</div>
 
     <!-- SEARCH BAR -->
     <div class="search-bar">
@@ -1186,9 +1226,9 @@ function render() {
     }
 
     // Header wholesale
-    document.getElementById('saleHeader').classList.toggle('wholesale', STATE.isWholesale);
-    const hdrTitle = document.getElementById('hdrTitle');
-    hdrTitle.textContent = STATE.isWholesale
+    document.getElementById('camHeader').classList.toggle('wholesale', STATE.isWholesale);
+    const camTitle = document.getElementById('camTitle');
+    camTitle.textContent = STATE.isWholesale
         ? (STATE.customerName || 'Едро')
         : '<?= $page_title ?>';
 
@@ -1854,36 +1894,30 @@ function confirmLpPopup() {
 let barcodeDetector;
 let scanRAF;
 
-async function toggleCamera(on) {
-    const zone = document.getElementById('cameraZone');
+async function startCamera() {
     const video = document.getElementById('cameraVideo');
-    const openBtn = document.getElementById('cameraOpen');
-
-    if (on) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
-            });
-            video.srcObject = stream;
-            zone.style.height = '10vh';
-            openBtn.classList.remove('visible');
-            STATE.cameraActive = true;
-            startBarcodeScanner();
-        } catch (e) {
-            showToast('Камерата не е достъпна');
-            zone.style.height = '0';
-            openBtn.classList.add('visible');
-        }
-    } else {
-        if (video.srcObject) {
-            video.srcObject.getTracks().forEach(t => t.stop());
-            video.srcObject = null;
-        }
-        zone.style.height = '0';
-        openBtn.classList.add('visible');
-        STATE.cameraActive = false;
-        if (scanRAF) cancelAnimationFrame(scanRAF);
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+        });
+        video.srcObject = stream;
+        STATE.cameraActive = true;
+        startBarcodeScanner();
+    } catch (e) {
+        console.warn('Camera not available');
     }
+}
+
+function flashCamScan() {
+    const el = document.getElementById('camHeader');
+    el.classList.remove('scanned');
+    void el.offsetWidth;
+    el.classList.add('scanned');
+    setTimeout(() => el.classList.remove('scanned'), 500);
+}
+
+async function toggleCamera(on) {
+    // Legacy — camera is always on now
 }
 
 function startBarcodeScanner() {
@@ -1918,6 +1952,7 @@ function scanLoop() {
 }
 
 function handleBarcode(code) {
+    flashCamScan();
     fetch('sale.php?action=barcode_lookup&barcode=' + encodeURIComponent(code))
         .then(r => r.json())
         .then(product => {
@@ -2112,7 +2147,7 @@ document.addEventListener('touchend', (e) => {
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', () => {
     render();
-    toggleCamera(true); // auto-start camera
+    startCamera(); // always-on camera scanner
 });
 
 // CSS blink animation for cursor
