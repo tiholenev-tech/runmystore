@@ -47,10 +47,12 @@ $quick_cmds[] = ['icon' => '🎁', 'label' => 'Лоялна', 'msg' => 'Лоял
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b0f1a">
 <title>RunMyStore.ai</title>
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
 <style>
+html { background-color: #0b0f1a; }
 :root { --nav-h: 64px; }
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 body { 
