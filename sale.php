@@ -767,6 +767,21 @@ body::before{
 .nf-popup.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .nf-popup .nf-icon{font-size:36px}
 .nf-popup .nf-text{color:#fca5a5;font-size:16px;font-weight:700;text-align:center}
+/* 15% Увеличена клавиатура */
+.np-btn { height: 42px !important; font-size: 21px !important; }
+.np-btn.fn { font-size: 16px !important; }
+.np-btn.mic { font-size: 24px !important; }
+.kb-key { height: 44px !important; min-width: 35px !important; font-size: 16px !important; }
+.kb-key.wide { min-width: 58px !important; font-size: 13px !important; }
+
+/* Повдигане на буквената клавиатура */
+.keyboard-zone { padding-bottom: 140px !important; }
+
+/* Адаптивна ширина на буквите срещу изрязване */
+.kb-row { padding: 0 4px !important; width: 100% !important; box-sizing: border-box !important; }
+.kb-key { flex: 1 !important; min-width: 0 !important; max-width: 42px !important; padding: 0 !important; }
+.kb-key.wide { flex: 1.5 !important; max-width: 65px !important; }
+
 </style>
 </head>
 <body>
@@ -962,6 +977,7 @@ body::before{
             <button class="kb-key" onclick="kbPress('<?= $k ?>')"><?= $k ?></button>
             <?php endforeach; ?>
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+            <button class="kb-key wide" onclick="numOk()" style="background:rgba(99,102,241,0.15);color:#818cf8;font-weight:800">OK</button>
             <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
         </div>
 
@@ -987,6 +1003,7 @@ body::before{
             <button class="kb-key" onclick="kbPress('Έ')">Έ</button>
             <button class="kb-key" onclick="kbPress('Ώ')">Ώ</button>
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+            <button class="kb-key wide" onclick="numOk()" style="background:rgba(99,102,241,0.15);color:#818cf8;font-weight:800">OK</button>
             <button class="kb-key" onclick="kbPress('⌫')">⌫</button>
         </div>
 
@@ -1017,6 +1034,7 @@ body::before{
         </div>
         <div class="kb-row">
             <button class="kb-key space" onclick="kbPress(' ')">SPACE</button>
+            <button class="kb-key wide" onclick="numOk()" style="background:rgba(99,102,241,0.15);color:#818cf8;font-weight:800">OK</button>
         </div>
         <?php endif; ?>
     </div>
