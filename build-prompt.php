@@ -1,8 +1,8 @@
 <?php
 /**
  * build-prompt.php — buildSystemPrompt() + getSeasonalContext()
- * Динамичен системен промпт — 6 слоя
- * RunMyStore.ai С26
+ * Динамичен системен промпт — 7 слоя
+ * RunMyStore.ai С28 — DB column fixes + analysis rule
  */
 
 function getSeasonalContext(string $business_type, string $country): string {
@@ -117,7 +117,6 @@ function getSeasonalContext(string $business_type, string $country): string {
 
 function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string {
 
-    // ── БАЗОВИ ДАННИ ──────────────────────────────────────────
     $tenant = DB::run(
         'SELECT t.business_type, t.country, t.language,
                 c.name AS company_name, c.city
@@ -158,20 +157,20 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     // ── СЛОЙ 2: РЕАЛНИ ДАННИ ──────────────────────────────────
     $rev_t = DB::run(
-        'SELECT COALESCE(SUM(total_amount),0) AS r, COUNT(*) AS c
-         FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=CURDATE() AND status!="cancelled"',
+        'SELECT COALESCE(SUM(total),0) AS r, COUNT(*) AS c
+         FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=CURDATE() AND status!="canceled"',
         [$store_id, $tenant_id]
     )->fetch();
 
     $rev_y = DB::run(
-        'SELECT COALESCE(SUM(total_amount),0) AS r
-         FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=DATE_SUB(CURDATE(),INTERVAL 1 DAY) AND status!="cancelled"',
+        'SELECT COALESCE(SUM(total),0) AS r
+         FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=DATE_SUB(CURDATE(),INTERVAL 1 DAY) AND status!="canceled"',
         [$store_id, $tenant_id]
     )->fetch();
 
     $rev_w = DB::run(
-        'SELECT COALESCE(SUM(total_amount),0) AS r
-         FROM sales WHERE store_id=? AND tenant_id=? AND YEARWEEK(created_at,1)=YEARWEEK(CURDATE(),1) AND status!="cancelled"',
+        'SELECT COALESCE(SUM(total),0) AS r
+         FROM sales WHERE store_id=? AND tenant_id=? AND YEARWEEK(created_at,1)=YEARWEEK(CURDATE(),1) AND status!="canceled"',
         [$store_id, $tenant_id]
     )->fetch();
 
@@ -188,7 +187,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
             'SELECT COALESCE(SUM(si.quantity*(si.unit_price - COALESCE(si.cost_price,0))),0) AS profit,
                     COALESCE(SUM(si.quantity*si.unit_price),0) AS revenue
              FROM sale_items si JOIN sales s ON s.id=si.sale_id
-             WHERE s.store_id=? AND s.tenant_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="cancelled"',
+             WHERE s.store_id=? AND s.tenant_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="canceled"',
             [$store_id, $tenant_id]
         )->fetch();
         $profit  = round((float)$p['profit'], 2);
@@ -201,7 +200,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
     $top_rows = DB::run(
         'SELECT p.name, p.code, SUM(si.quantity) AS qty
          FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
-         WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="cancelled"
+         WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="canceled"
          GROUP BY si.product_id ORDER BY qty DESC LIMIT 5',
         [$store_id, $tenant_id]
     )->fetchAll();
@@ -210,12 +209,12 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
         $top_str .= "  " . ($i+1) . ". {$r['name']} [{$r['code']}] — {$r['qty']} units sold\n";
     }
 
-    // Ниска наличност
+    // Ниска наличност — inventory.quantity, inventory.min_quantity
     $low_rows = DB::run(
-        'SELECT p.name, p.code, i.qty, p.min_stock
+        'SELECT p.name, p.code, i.quantity AS qty, i.min_quantity AS min_stock
          FROM inventory i JOIN products p ON p.id=i.product_id
-         WHERE i.store_id=? AND p.tenant_id=? AND i.qty <= p.min_stock AND p.min_stock > 0 AND p.is_active=1
-         ORDER BY i.qty ASC LIMIT 10',
+         WHERE i.store_id=? AND p.tenant_id=? AND i.quantity <= i.min_quantity AND i.min_quantity > 0 AND p.is_active=1
+         ORDER BY i.quantity ASC LIMIT 10',
         [$store_id, $tenant_id]
     )->fetchAll();
     $low_str = '';
@@ -224,17 +223,17 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
         $low_str .= "  {$flag} {$r['name']} [{$r['code']}]: {$r['qty']} units (min: {$r['min_stock']})\n";
     }
 
-    // Zombie
+    // Zombie — inventory.quantity
     $zombie_rows = DB::run(
-        'SELECT p.name, p.code, i.qty,
-                ROUND(i.qty * COALESCE(p.cost_price, p.retail_price * 0.6), 2) AS dead_val,
+        'SELECT p.name, p.code, i.quantity AS qty,
+                ROUND(i.quantity * COALESCE(p.cost_price, p.retail_price * 0.6), 2) AS dead_val,
                 DATEDIFF(NOW(), COALESCE(
                     (SELECT MAX(s2.created_at) FROM sales s2
                      JOIN sale_items si2 ON si2.sale_id=s2.id
                      WHERE si2.product_id=p.id AND s2.store_id=i.store_id),
                     p.created_at)) AS days_idle
          FROM inventory i JOIN products p ON p.id=i.product_id
-         WHERE i.store_id=? AND p.tenant_id=? AND i.qty>0 AND p.is_active=1 AND p.parent_id IS NULL
+         WHERE i.store_id=? AND p.tenant_id=? AND i.quantity>0 AND p.is_active=1 AND p.parent_id IS NULL
          HAVING days_idle >= 45
          ORDER BY dead_val DESC LIMIT 8',
         [$store_id, $tenant_id]
@@ -302,8 +301,8 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
     // Средно за деня на седмицата
     $avg_day = DB::run(
         'SELECT COALESCE(AVG(daily_rev),0) AS avg_rev
-         FROM (SELECT DATE(created_at) AS d, SUM(total_amount) AS daily_rev
-               FROM sales WHERE store_id=? AND tenant_id=? AND status!="cancelled"
+         FROM (SELECT DATE(created_at) AS d, SUM(total) AS daily_rev
+               FROM sales WHERE store_id=? AND tenant_id=? AND status!="canceled"
                AND DAYOFWEEK(created_at)=DAYOFWEEK(CURDATE())
                AND created_at>=DATE_SUB(NOW(),INTERVAL 8 WEEK)
                GROUP BY DATE(created_at)) AS sub',
@@ -351,7 +350,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     $signals_str = empty($signals) ? "No critical alerts at this moment." : implode("\n", $signals);
 
-    // ── СЛОЙ 4: СЕЗОННОСТ ─────────────────────────────────────
+    // ── СЛОЙ 7: СЕЗОННОСТ ─────────────────────────────────────
     $seasonal_str = getSeasonalContext($business_type, $country);
 
     // ── ФИНАЛЕН ПРОМПТ ────────────────────────────────────────
@@ -374,6 +373,21 @@ PERSONALITY RULES:
 - Motivate with data on bad days, not empty encouragement
 - NEVER say "Как мога да помогна?", "Разбира се!", "Нямам достъп до..."
 - Adapt your style after 10+ interactions — if they say "ок", you say "ок"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ANALYSIS RULE (CRITICAL — apply to EVERY response)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEVER respond with just a number or a dry fact.
+ALWAYS follow this 3-part pattern:
+1. ЧИСЛОТО — конкретната стойност
+2. ЗАЩО — причина, сравнение, контекст
+3. КАКВО ДА НАПРАВИШ — конкретна следваща стъпка
+
+ЛОШО: "Оборотът днес е 847 лв."
+ДОБРО: "847 лв от 18 продажби — 12% над вчера. Nike Air Max дърпа силно. Остават 3 чифта — поръчай преди да свършат. [📦 Виж в склада→]"
+
+ЛОШО: "Имаш 5 zombie артикула."
+ДОБРО: "5 артикула стоят 60+ дни — 1,200 лв замразени. Пусни -20% на топ 3 и ги сложи на видно място. [🧟 Zombie стока→]"
 
 CURRENT CONTEXT:
 - Store: {$store_name}, {$city}
