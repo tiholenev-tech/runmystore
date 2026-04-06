@@ -9,9 +9,6 @@ require_once __DIR__ . '/config/database.php';
 
 if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
-// Onboarding check
-$onb = DB::run('SELECT onboarding_completed FROM tenants WHERE id=? LIMIT 1', [$_SESSION['tenant_id']])->fetch();
-if ($onb && !$onb['onboarding_completed']) { header('Location: onboarding.php'); exit; }
 
 $tenant_id = (int)$_SESSION['tenant_id'];
 $user_id   = (int)$_SESSION['user_id'];
