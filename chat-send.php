@@ -3,7 +3,7 @@
  * chat-send.php — AI Chat Endpoint
  * Системен промпт от buildSystemPrompt() — 7 слоя
  * Gemini system_instruction формат (правилен)
- * RunMyStore.ai С26
+ * RunMyStore.ai С28 — Claude fallback МАХНАТ, само 2 Gemini ключа
  */
 session_start();
 require_once __DIR__ . '/config/database.php';
@@ -86,39 +86,43 @@ DB::run(
     [$tenant_id, $store_id, $user_id, 'user', $message]
 );
 
-// ── GEMINI CALL ───────────────────────────────────────────────
-$reply      = null;
-$model_used = 'gemini';
+// ── GEMINI CALL (2 ключа, без Claude fallback) ────────────────
+$reply = null;
 
-if (defined('GEMINI_API_KEY') && GEMINI_API_KEY) {
+$contents = [];
+foreach ($history_rows as $row) {
+    $contents[] = [
+        'role'  => $row['role'] === 'assistant' ? 'model' : 'user',
+        'parts' => [['text' => $row['content']]]
+    ];
+}
+$contents[] = ['role' => 'user', 'parts' => [['text' => $message]]];
+
+$payload = [
+    'contents'           => $contents,
+    'system_instruction' => ['parts' => [['text' => $system_prompt]]],
+    'generationConfig'   => [
+        'temperature'     => 0.7,
+        'maxOutputTokens' => 1024,
+        'topP'            => 0.9,
+    ],
+    'safetySettings' => [
+        ['category' => 'HARM_CATEGORY_HARASSMENT',        'threshold' => 'BLOCK_NONE'],
+        ['category' => 'HARM_CATEGORY_HATE_SPEECH',       'threshold' => 'BLOCK_NONE'],
+        ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+        ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
+    ],
+];
+
+// Ключ 1
+$keys_to_try = [];
+if (defined('GEMINI_API_KEY') && GEMINI_API_KEY)   $keys_to_try[] = GEMINI_API_KEY;
+if (defined('GEMINI_API_KEY_2') && GEMINI_API_KEY_2) $keys_to_try[] = GEMINI_API_KEY_2;
+
+foreach ($keys_to_try as $api_key) {
     try {
-        $contents = [];
-        foreach ($history_rows as $row) {
-            $contents[] = [
-                'role'  => $row['role'] === 'assistant' ? 'model' : 'user',
-                'parts' => [['text' => $row['content']]]
-            ];
-        }
-        $contents[] = ['role' => 'user', 'parts' => [['text' => $message]]];
-
-        $payload = [
-            'contents'           => $contents,
-            'system_instruction' => ['parts' => [['text' => $system_prompt]]],
-            'generationConfig'   => [
-                'temperature'     => 0.7,
-                'maxOutputTokens' => 1024,
-                'topP'            => 0.9,
-            ],
-            'safetySettings' => [
-                ['category' => 'HARM_CATEGORY_HARASSMENT',        'threshold' => 'BLOCK_NONE'],
-                ['category' => 'HARM_CATEGORY_HATE_SPEECH',       'threshold' => 'BLOCK_NONE'],
-                ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
-                ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
-            ],
-        ];
-
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-             . GEMINI_MODEL . ':generateContent?key=' . GEMINI_API_KEY;
+             . GEMINI_MODEL . ':generateContent?key=' . $api_key;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -137,96 +141,18 @@ if (defined('GEMINI_API_KEY') && GEMINI_API_KEY) {
         if (!$cerr && $code === 200) {
             $data  = json_decode($res, true);
             $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if ($reply) break; // Успех — спри
         }
 
-        // 429 → опитай втори ключ
-        if ((!$reply || $code === 429) && defined('GEMINI_API_KEY_2') && GEMINI_API_KEY_2) {
-            $url2 = 'https://generativelanguage.googleapis.com/v1beta/models/'
-                  . GEMINI_MODEL . ':generateContent?key=' . GEMINI_API_KEY_2;
-            $ch2 = curl_init($url2);
-            curl_setopt_array($ch2, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode($payload),
-                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-                CURLOPT_TIMEOUT        => 20,
-                CURLOPT_CONNECTTIMEOUT => 5,
-            ]);
-            $res2  = curl_exec($ch2);
-            $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-            curl_close($ch2);
-            if ($code2 === 200) {
-                $data2 = json_decode($res2, true);
-                $reply = $data2['candidates'][0]['content']['parts'][0]['text'] ?? $reply;
-            }
-        }
-
-        if (!$reply) throw new Exception("Gemini empty response: HTTP {$code}");
+        error_log("Gemini key attempt HTTP {$code}");
 
     } catch (Throwable $e) {
         error_log("Gemini error: " . $e->getMessage());
-        $reply = null;
-    }
-}
-
-// ── CLAUDE FALLBACK ───────────────────────────────────────────
-if (!$reply && defined('CLAUDE_API_KEY') && CLAUDE_API_KEY) {
-    $model_used    = 'claude';
-    $claude_msgs   = [];
-    foreach ($history_rows as $row) {
-        $claude_msgs[] = [
-            'role'    => $row['role'] === 'assistant' ? 'assistant' : 'user',
-            'content' => $row['content'],
-        ];
-    }
-    $claude_msgs[] = ['role' => 'user', 'content' => $message];
-
-    // Осигуряваме редуване user/assistant
-    $fixed = [];
-    $last  = null;
-    foreach ($claude_msgs as $cm) {
-        if ($cm['role'] === $last) continue;
-        $fixed[] = $cm;
-        $last    = $cm['role'];
-    }
-    if (empty($fixed) || $fixed[0]['role'] !== 'user') {
-        array_unshift($fixed, ['role' => 'user', 'content' => '...']);
-    }
-
-    try {
-        $ch = curl_init('https://api.anthropic.com/v1/messages');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode([
-                'model'      => 'claude-sonnet-4-5-20250514',
-                'max_tokens' => 1024,
-                'system'     => $system_prompt,
-                'messages'   => $fixed,
-            ]),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'x-api-key: ' . CLAUDE_API_KEY,
-                'anthropic-version: 2023-06-01',
-            ],
-            CURLOPT_TIMEOUT        => 20,
-            CURLOPT_CONNECTTIMEOUT => 5,
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($code >= 200 && $code < 300) {
-            $data  = json_decode($res, true);
-            $reply = $data['content'][0]['text'] ?? null;
-        }
-    } catch (Throwable $e) {
-        error_log("Claude error: " . $e->getMessage());
     }
 }
 
 if (!$reply) {
-    $reply = 'Системата е натоварена. Опитай пак след минута.';
+    $reply = 'Системата е натоварена — опитай пак след минута. 🔄';
 }
 
 // ── ПАРСВАНЕ НА DEEPLINKS ─────────────────────────────────────
@@ -292,7 +218,7 @@ DB::run(
 );
 
 // ── RESPONSE ──────────────────────────────────────────────────
-$out = ['reply' => $reply, 'model' => $model_used];
+$out = ['reply' => $reply];
 if (!empty($actions))     $out['actions'] = $actions;
 if ($action_data)         $out['action']  = $action_data;
 
