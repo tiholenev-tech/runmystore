@@ -28,27 +28,27 @@ $unread = DB::run(
 
 // ── PULSE RADAR DATA ──
 $rev_today = DB::run(
-    'SELECT COALESCE(SUM(total_amount),0) AS rev, COUNT(*) AS cnt
-     FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=CURDATE() AND status!="cancelled"',
+    'SELECT COALESCE(SUM(total),0) AS rev, COUNT(*) AS cnt
+     FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=CURDATE() AND status!="canceled"',
     [$store_id, $tenant_id]
 )->fetch();
 
 $rev_yesterday = DB::run(
-    'SELECT COALESCE(SUM(total_amount),0) AS rev
-     FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=DATE_SUB(CURDATE(),INTERVAL 1 DAY) AND status!="cancelled"',
+    'SELECT COALESCE(SUM(total),0) AS rev
+     FROM sales WHERE store_id=? AND tenant_id=? AND DATE(created_at)=DATE_SUB(CURDATE(),INTERVAL 1 DAY) AND status!="canceled"',
     [$store_id, $tenant_id]
 )->fetch();
 
 $low_count = (int)DB::run(
     'SELECT COUNT(*) FROM inventory i JOIN products p ON p.id=i.product_id
-     WHERE i.store_id=? AND p.tenant_id=? AND i.qty<=p.min_stock AND p.min_stock>0 AND p.is_active=1',
+     WHERE i.store_id=? AND p.tenant_id=? AND i.quantity<=i.min_quantity AND i.min_quantity>0 AND p.is_active=1',
     [$store_id, $tenant_id]
 )->fetchColumn();
 
 $zombie_data = DB::run(
-    'SELECT COUNT(*) AS cnt, COALESCE(SUM(i.qty * COALESCE(p.cost_price, p.retail_price*0.6)),0) AS val
+    'SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity * COALESCE(p.cost_price, p.retail_price*0.6)),0) AS val
      FROM inventory i JOIN products p ON p.id=i.product_id
-     WHERE i.store_id=? AND p.tenant_id=? AND i.qty>0 AND p.is_active=1 AND p.parent_id IS NULL
+     WHERE i.store_id=? AND p.tenant_id=? AND i.quantity>0 AND p.is_active=1 AND p.parent_id IS NULL
      AND DATEDIFF(NOW(), COALESCE(
          (SELECT MAX(s2.created_at) FROM sales s2 JOIN sale_items si2 ON si2.sale_id=s2.id WHERE si2.product_id=p.id AND s2.store_id=i.store_id),
          p.created_at)) >= 45',
@@ -80,16 +80,16 @@ $cards = [];
 if (in_array($role, ['owner','manager','seller'])) {
     // Свършва — всички роли
     $low_rows = DB::run(
-        'SELECT p.name, p.code, i.qty, p.min_stock
+        'SELECT p.name, p.code, i.quantity, i.min_quantity
          FROM inventory i JOIN products p ON p.id=i.product_id
-         WHERE i.store_id=? AND p.tenant_id=? AND i.qty<=p.min_stock AND p.min_stock>0 AND p.is_active=1
-         ORDER BY i.qty ASC LIMIT 3',
+         WHERE i.store_id=? AND p.tenant_id=? AND i.quantity<=i.min_quantity AND i.min_quantity>0 AND p.is_active=1
+         ORDER BY i.quantity ASC LIMIT 3',
         [$store_id, $tenant_id]
     )->fetchAll();
     $low_sub = $low_count > 0 ? implode(', ', array_column($low_rows, 'name')) : 'Всичко е наред';
     $low_sub = mb_strlen($low_sub) > 35 ? mb_substr($low_sub,0,32).'...' : $low_sub;
     $cards[] = [
-        'icon'=>'⚠️', 'label'=>'Свършва', 'val'=>$low_count.' артикула',
+        'icon'=>'⚠️', 'label'=>'Свършва', 'val'=>$low_count.' арт.',
         'sub'=>$low_sub,
         'bg'=>'rgba(239,68,68,.12)', 'br'=>'rgba(239,68,68,.3)', 'vc'=>'#fca5a5', 'sc'=>'rgba(252,165,165,.6)',
         'ring'=>30, 'ring_color'=>'#ef4444',
@@ -103,7 +103,7 @@ if (in_array($role, ['owner','manager','seller'])) {
     $top = DB::run(
         'SELECT p.name, SUM(si.quantity) AS qty
          FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
-         WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="cancelled"
+         WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="canceled"
          GROUP BY si.product_id ORDER BY qty DESC LIMIT 1',
         [$store_id, $tenant_id]
     )->fetch();
@@ -125,7 +125,7 @@ if (in_array($role, ['owner','manager'])) {
     $size_gaps = DB::run(
         'SELECT COUNT(DISTINCT p.parent_id) AS cnt FROM products p
          JOIN inventory i ON i.product_id=p.id
-         WHERE p.tenant_id=? AND i.store_id=? AND i.qty=0 AND p.parent_id IS NOT NULL AND p.is_active=1
+         WHERE p.tenant_id=? AND i.store_id=? AND i.quantity=0 AND p.parent_id IS NOT NULL AND p.is_active=1
          AND p.parent_id IN (SELECT DISTINCT parent_id FROM products WHERE tenant_id=? AND parent_id IS NOT NULL)',
         [$tenant_id, $store_id, $tenant_id]
     )->fetch();
@@ -147,7 +147,7 @@ if ($role === 'owner') {
         'SELECT COALESCE(SUM(si.quantity*(si.unit_price-COALESCE(si.cost_price,0))),0) AS profit,
                 COALESCE(SUM(si.quantity*si.unit_price),0) AS revenue
          FROM sale_items si JOIN sales s ON s.id=si.sale_id
-         WHERE s.store_id=? AND s.tenant_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="cancelled"',
+         WHERE s.store_id=? AND s.tenant_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="canceled"',
         [$store_id, $tenant_id]
     )->fetch();
     $profit = round((float)$profit_data['profit']);
