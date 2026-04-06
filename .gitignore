@@ -1,0 +1,5 @@
+*.bak
+*.bak
+*.save
+*.bak_*
+FETCH_HEAD
