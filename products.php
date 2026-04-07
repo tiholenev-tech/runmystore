@@ -1079,7 +1079,7 @@ input[type=file]{display:none}
 
 /* ═══ INFO AI BUTTON + PANEL ═══ */
 .info-ai-btn{
-    position:fixed;top:52px;right:12px;z-index:42;width:34px;height:34px;border-radius:50%;
+    width:30px;height:30px;flex-shrink:0;border-radius:50%;
     background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.15));
     border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;
     cursor:pointer;font-size:16px;box-shadow:0 0 14px rgba(99,102,241,0.2);
@@ -1165,7 +1165,7 @@ input[type=file]{display:none}
     <!-- HEADER -->
     <div class="top-header">
         <div class="header-row">
-            <h1 class="header-title">Артикули</h1>
+            <h1 class="header-title">Артикули</h1><div class="info-ai-btn" onclick="toggleInfoPanel()">✦</div>
             <select class="store-select" id="storeSelect" onchange="switchStore(this.value)">
                 <?php foreach ($stores as $st): ?>
                 <option value="<?= $st['id'] ?>" <?= $st['id'] == $store_id ? 'selected' : '' ?>><?= htmlspecialchars($st['name']) ?></option>
@@ -1252,8 +1252,7 @@ input[type=file]{display:none}
 
 </div><!-- /main-wrap -->
 
-<!-- ═══ INFO AI BUTTON ═══ -->
-<div class="info-ai-btn" onclick="toggleInfoPanel()">✦</div>
+
 
 <!-- ═══ INFO AI PANEL ═══ -->
 <div class="info-panel-ov" id="infoPanelOv" onclick="closeInfoPanel()"></div>
@@ -1271,11 +1270,11 @@ input[type=file]{display:none}
 
 <!-- ═══ QUICK ACTIONS PILL BAR ═══ -->
 <?php if ($can_add): ?>
-<div style="position:fixed;bottom:142px;left:50%;transform:translateX(-50%);z-index:41;
+<div style="position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:41;
     font-size:8px;font-weight:800;color:rgba(165,180,252,0.5);text-transform:uppercase;letter-spacing:1.5px;
     text-align:center;pointer-events:none">Добави артикул</div>
 <div class="qa-bar" id="qaBar">
-    <button class="qa-btn qa-ai" onclick="openAIWizard()">
+    <button class="qa-btn qa-ai" onclick="openVoiceWizard()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
         <span>С глас</span>
     </button>
@@ -2601,14 +2600,117 @@ function toggleInfoAnswer(id){
 function openInfoFreeChat(){
     closeInfoPanel();
     openVoice('Питай каквото искаш за артикулите', text => {
-        // Use ai_assist endpoint
+        showToast('✦ AI мисли...');
         fetch('products.php?ajax=ai_assist', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({question: text})
         }).then(r=>r.json()).then(d=>{
-            if(d.message) showToast(d.message);
-        }).catch(()=>showToast('Грешка'));
+            if(d.message){
+                openDrawer('ai');
+                document.getElementById('aiBody').innerHTML =
+                    '<div style="font-size:13px;color:var(--text-primary);line-height:1.6;padding:4px 0">' +
+                    esc(d.message).replace(/\n/g,'<br>') + '</div>' +
+                    (d.action ? '<div style="margin-top:10px"><button class="abtn primary" onclick="handleInfoAction(\'' + esc(d.action) + '\')">Изпълни →</button></div>' : '');
+            } else {
+                showToast(d.error || 'Грешка');
+            }
+        }).catch(()=>showToast('Грешка при свързване'));
     });
+}
+function handleInfoAction(action){
+    closeDrawer('ai');
+    if(action==='show_zombie'||action==='show_low'||action==='show_top') loadHome();
+    else if(action==='search') focusSearch();
+    else if(action==='add_product') openManualWizard();
+    else if(action==='navigate') location.href='chat.php';
+}
+
+
+// ═══ VOICE-ASSISTED WIZARD — same steps as manual but voice fills each field ═══
+function openVoiceWizard(){
+    // Open manual wizard first
+    S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+    document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
+    // Auto-select type via voice
+    openVoice('Единичен артикул или с варианти (размери/цветове)?', text => {
+        const t = text.toLowerCase();
+        if(t.includes('вариант')||t.includes('размер')||t.includes('цвят')||t.includes('цветов')) S.wizType='variant';
+        else S.wizType='single';
+        showToast(S.wizType==='variant'?'С варианти ✓':'Единичен ✓','success');
+        S.wizStep=2; // skip photo step, go to main info
+        renderWizard();
+        document.getElementById('wizModal').classList.add('open');
+        document.body.style.overflow='hidden';
+        // Auto voice-fill step 2
+        setTimeout(()=>voiceFillCurrentStep(), 500);
+    });
+}
+
+function voiceFillCurrentStep(){
+    if(S.wizStep===2){
+        openVoice('Кажи име, цена, доставчик — каквото знаеш', text => {
+            parseVoiceToFields(text);
+            renderWizard();
+            showToast('Попълнено ✓','success');
+        });
+    } else if(S.wizStep===3 && S.wizType==='variant'){
+        openVoice('Кажи размерите (напр. S M L XL)', text => {
+            if(!S.wizData.axes) S.wizData.axes=[];
+            if(!S.wizData.axes.find(a=>a.name.toLowerCase().includes('размер'))){
+                const vals = text.split(/[\s,]+/).filter(Boolean);
+                if(vals.length) S.wizData.axes.push({name:'Размер',values:vals});
+            }
+            renderWizard();
+            showToast('Размери добавени ✓','success');
+            // Ask for colors
+            setTimeout(()=>{
+                openVoice('Цветове? (напр. черен бял син) или кажи "без"', text2 => {
+                    const t2 = text2.toLowerCase();
+                    if(!t2.includes('без') && !t2.includes('няма') && !t2.includes('не')){
+                        const vals2 = text2.split(/[\s,]+/).filter(Boolean);
+                        if(vals2.length && !S.wizData.axes.find(a=>a.name.toLowerCase().includes('цвят'))){
+                            S.wizData.axes.push({name:'Цвят',values:vals2});
+                        }
+                    }
+                    renderWizard();
+                });
+            }, 500);
+        });
+    }
+}
+
+function parseVoiceToFields(text){
+    // Extract price (number followed by лева/евро/€ or standalone number)
+    const priceMatch = text.match(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/i);
+    if(priceMatch) S.wizData.retail_price = parseFloat(priceMatch[1].replace(',','.'));
+
+    // Try to match supplier
+    const textLow = text.toLowerCase();
+    for(const s of CFG.suppliers){
+        if(textLow.includes(s.name.toLowerCase())){
+            S.wizData.supplier_id = s.id;
+            break;
+        }
+    }
+
+    // Try to match category
+    for(const c of CFG.categories){
+        if(textLow.includes(c.name.toLowerCase())){
+            S.wizData.category_id = c.id;
+            break;
+        }
+    }
+
+    // Name = everything that's not price/supplier/category (simplified: use full text as name if no name yet)
+    if(!S.wizData.name){
+        // Remove price part
+        let name = text.replace(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/gi, '').trim();
+        // Remove matched supplier/category names
+        for(const s of CFG.suppliers) name = name.replace(new RegExp(s.name,'gi'),'');
+        for(const c of CFG.categories) name = name.replace(new RegExp(c.name,'gi'),'');
+        name = name.replace(/\s+/g,' ').trim();
+        if(name.length > 2) S.wizData.name = name;
+    }
 }
 
 // ─── INIT ───
