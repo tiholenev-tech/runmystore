@@ -1377,6 +1377,8 @@ input[type=file]{display:none}
 
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
+<input type="file" id="filePickerInput" accept="image/*">
+<input type="file" id="filePickerInput" accept="image/*,.pdf">
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
 <script>
@@ -1969,6 +1971,9 @@ function closeWizard(){
 
 function wizGo(step){
     if(S.wizStep>=3&&S.wizStep<=5)wizCollectData();
+    if(step===2&&!S.wizData._hasPhoto){step=3;}
+    // Skip AI Studio if no photo
+    if(step===2&&!S.wizData._hasPhoto){step=3;}
     S.wizStep=step;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
@@ -2022,6 +2027,7 @@ function renderWizPage(step){
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
         '<div id="wizPhotoPreview"></div><div id="wizScanResult"></div>'+
         '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
+        '<button class="abtn" onclick="S.wizData._hasPhoto=false;wizGo(3)" style="margin-top:6px;color:var(--text-secondary)">Пропусни снимката →</button>'+
         '<button class="abtn" onclick="wizGo(0)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
     }
@@ -2205,7 +2211,7 @@ function renderStudioStep(){
     '<button class="abtn" onclick="doStudioObjects()" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none;font-size:11px">Генерирай студийна снимка</button></div>'+
 
     // Skip
-    '<div style="padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(3)"><span style="font-size:11px;color:#4b5563">Запази оригинала без обработка →</span></div>'+
+    '<div style="padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(3)"><span style="font-size:11px;color:#4b5563">Пропусни →</span></div>'+
 
     '<button class="abtn" onclick="wizGo(1)" style="margin-top:4px">← Назад</button>'+
     vskip+'</div>';
@@ -2424,6 +2430,12 @@ function wizAddUnit(){
 // Photo handlers
 function wizTakePhoto(){openCamera('photo')}
 
+document.getElementById('filePickerInput').addEventListener('change',async function(){
+    document.getElementById('photoInput').files = this.files;
+    document.getElementById('photoInput').dispatchEvent(new Event('change'));
+    this.value='';
+});
+document.getElementById("filePickerInput").addEventListener("change",function(){document.getElementById("photoInput").files=this.files;document.getElementById("photoInput").dispatchEvent(new Event("change"));this.value="";});
 document.getElementById('photoInput').addEventListener('change',async function(){
     if(!this.files?.[0])return;
     const preview=document.getElementById('wizPhotoPreview');
@@ -2447,10 +2459,12 @@ document.getElementById('photoInput').addEventListener('change',async function()
                 if(!S.wizData.axes.find(a=>a.name.toLowerCase().includes('цвят')))
                     S.wizData.axes.push({name:'Цвят',values:d.colors});
             }
+            S.wizData._hasPhoto=true;
             if(result)result.innerHTML='<div style="font-size:12px;color:var(--success);margin-top:6px">✓ AI разпозна — данните попълнени</div>';
             showToast('AI разпозна ✓','success');
             setTimeout(()=>wizGo(2),800);
         }else{
+            S.wizData._hasPhoto=true;
             if(result)result.innerHTML='<div style="font-size:12px;color:var(--warning);margin-top:6px">AI не разпозна — продължи ръчно</div>';
         }
     };
