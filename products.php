@@ -1377,7 +1377,7 @@ input[type=file]{display:none}
 
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
-<input type="file" id="filePickerInput" accept="image/*">
+<input type="file" id="filePickerInput" accept="image/*,*/*">
 <input type="file" id="filePickerInput" accept="image/*,.pdf">
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
@@ -2023,9 +2023,9 @@ function renderWizPage(step){
         '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Силно препоръчително — AI използва снимката за описание и обработка</div>'+
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px;margin-bottom:14px;text-align:left"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Сложи на равна светла повърхност<br>✓ Без други предмети около<br>✓ Добро осветление<br>✓ Ясна, неразмазана снимка<br>✓ Максимално добро качество</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
-        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="wizTakePhoto()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><div style="font-size:11px;font-weight:600">Камера</div></div>'+
+        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById('photoInput').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
-        '<div id="wizPhotoPreview"></div><div id="wizScanResult"></div>'+
+        '<div id="wizPhotoPreview">'+(S.wizData._photoDataUrl?'<img src="'+S.wizData._photoDataUrl+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">':'')+'</div><div id="wizScanResult"></div>'+
         '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
         '<button class="abtn" onclick="S.wizData._hasPhoto=false;wizGo(3)" style="margin-top:6px;color:var(--text-secondary)">Пропусни снимката →</button>'+
         '<button class="abtn" onclick="wizGo(0)" style="margin-top:6px">← Назад</button>'+
@@ -2056,7 +2056,7 @@ function renderWizPage(step){
         '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<select class="fc" id="wCat">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
-        '<button class="abtn" onclick="wizGo(2)" style="margin-top:6px">← Назад</button>'+
+        '<button class="abtn" onclick="wizGo(S.wizData._hasPhoto?2:1)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
     }
     return renderWizPagePart2(step);
@@ -2444,6 +2444,9 @@ document.getElementById('photoInput').addEventListener('change',async function()
     if(result)result.innerHTML='<div style="font-size:12px;color:var(--indigo-300);margin-top:6px">✦ AI анализира...</div>';
     const reader=new FileReader();
     reader.onload=async e=>{
+        S.wizData._photoDataUrl=e.target.result;
+        S.wizData._hasPhoto=true;
+        if(document.getElementById('wizPhotoPreview'))document.getElementById('wizPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">';
         const base64=e.target.result.split(',')[1];
         const d=await api('products.php?ajax=ai_scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:base64})});
         if(d&&!d.error){
