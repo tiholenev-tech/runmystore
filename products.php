@@ -1611,6 +1611,7 @@ function clearFilters(){document.querySelectorAll('.f-chip').forEach(c=>c.classL
 // ─── CAMERA & BARCODE ───
 async function openCamera(mode){
     S.cameraMode=mode;
+    history.pushState({camera:true}, "", "#camera");
     document.getElementById('cameraOv').classList.add('open');
     try{
         const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}});
