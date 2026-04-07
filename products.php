@@ -2013,7 +2013,7 @@ function renderWizPage(step){
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">'+
         '<div style="padding:18px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);text-align:center;cursor:pointer;'+ss+'" onclick="S.wizType=\'single\';renderWizard()"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><div style="font-size:13px;font-weight:600">Единичен</div><div style="font-size:10px;color:var(--text-secondary)">Без варианти</div>'+infoBtn('type_single')+'</div>'+
         '<div style="padding:18px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);text-align:center;cursor:pointer;'+vs+'" onclick="S.wizType=\'variant\';renderWizard()"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><div style="font-size:13px;font-weight:600">С варианти</div><div style="font-size:10px;color:var(--text-secondary)">Размери, цветове...</div>'+infoBtn('type_variant')+'</div></div>'+
-        (S.wizType?'<button class="abtn primary" onclick="wizGo(1)">Напред →</button>':'');
+        '<button class="abtn" onclick="closeWizard()" style="margin-top:10px">← Затвори</button>';
     }
 
     // ═══ STEP 1: СНИМКА ═══
@@ -2428,7 +2428,7 @@ function wizAddUnit(){
 }
 
 // Photo handlers
-function wizTakePhoto(){openCamera('photo')}
+function document.getElementById('photoInput').click(){openCamera('photo')}
 
 document.getElementById('filePickerInput').addEventListener('change',async function(){
     document.getElementById('photoInput').files = this.files;
