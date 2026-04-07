@@ -1,9 +1,10 @@
 <?php
 /**
  * chat-send.php — AI Chat Endpoint
- * RunMyStore.ai С28
+ * RunMyStore.ai С31
  *
- * Промени спрямо С26:
+ * Промени спрямо С28:
+ * - maxOutputTokens: 1024 → 4096 (fix за отрязани отговори)
  * - Claude fallback МАХНАТ — само 2 Gemini ключа
  * - ai-safety.php интегриран (preValidate + postValidate + logAdvice)
  * - DB колони коригирани (total, canceled, inventory.quantity, inventory.min_quantity)
@@ -129,7 +130,7 @@ $payload = [
     'system_instruction' => ['parts' => [['text' => $system_prompt]]],
     'generationConfig'   => [
         'temperature'     => 0.7,
-        'maxOutputTokens' => 1024,
+        'maxOutputTokens' => 4096,
         'topP'            => 0.9,
     ],
     'safetySettings' => [
@@ -155,7 +156,7 @@ foreach ($keys_to_try as $api_key) {
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => json_encode($payload),
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_TIMEOUT        => 30,
             CURLOPT_CONNECTTIMEOUT => 5,
         ]);
         $res  = curl_exec($ch);
