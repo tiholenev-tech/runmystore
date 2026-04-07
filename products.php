@@ -1932,7 +1932,7 @@ function closeWizard(){
     document.getElementById('wizModal').classList.remove('open');
     document.body.style.overflow='';
 }
-function wizGo(step){S.wizStep=step;renderWizard()}
+function wizGo(step){if(S.wizStep>=2&&S.wizStep<=4)wizCollectData();S.wizStep=step;renderWizard()}
 
 function renderWizard(){
     let sb='';
@@ -1976,6 +1976,7 @@ function renderWizPage(step){
             <div class="fg"><label class="fl">Доставчик <span class="fl-add" onclick="toggleInl('inlSup')">+ Нов</span></label><select class="fc" id="wSup">${supO}</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline('supplier')">Запази</button></div></div>
             <div class="fg"><label class="fl">Категория <span class="fl-add" onclick="toggleInl('inlCat')">+ Нова</span></label><select class="fc" id="wCat">${catO}</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline('category')">Запази</button></div></div>
             <div class="fg"><label class="fl">Подкатегория <span class="hint">(не задължителна)</span></label><select class="fc" id="wSubcat"><option value="">— Няма —</option></select></div>
+            <script>document.getElementById("wCat")?.addEventListener("change",async function(){const id=this.value;const sel=document.getElementById("wSubcat");sel.innerHTML="<option value=\"\">— Няма —</option>";if(!id)return;const d=await api("products.php?ajax=subcategories&parent_id="+id);if(d&&d.length)d.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.name;sel.appendChild(o)})})</script>
             <button class="abtn primary" onclick="wizGo(3)">Напред →</button>
             <button class="abtn" onclick="wizGo(1)" style="margin-top:6px">← Назад</button></div>`;
     }
@@ -2107,17 +2108,23 @@ async function wizSave(){
     const singleQty=parseInt(document.getElementById('wSingleQty')?.value)||0;
 
     // Build sizes/colors from axes for backward compat
-    let sizes=[],colors=[];
+    // Оси "размер/size" → sizes[], "цвят/color" → colors[]
+    // Останалите оси се конкатенират в size поле (напр. "42 / Памук")
+    let sizes=[],colors=[],extraAxes=[];
     (S.wizData.axes||[]).forEach(ax=>{
         const n=ax.name.toLowerCase();
         if(n.includes('размер')||n.includes('size'))sizes=ax.values;
         else if(n.includes('цвят')||n.includes('color'))colors=ax.values;
+        else extraAxes.push(ax);
     });
 
     const variants=combos.map(c=>{
         const sizeVal=c.parts?.find(p=>p.axis.toLowerCase().includes('размер')||p.axis.toLowerCase().includes('size'))?.value||null;
         const colorVal=c.parts?.find(p=>p.axis.toLowerCase().includes('цвят')||p.axis.toLowerCase().includes('color'))?.value||null;
-        return{size:sizeVal,color:colorVal,qty:c.qty||0};
+        // Extra axes concat into size field: "42 / Памук"
+        const extras=c.parts?.filter(p=>{const n=p.axis.toLowerCase();return !n.includes('размер')&&!n.includes('size')&&!n.includes('цвят')&&!n.includes('color')}).map(p=>p.value)||[];
+        const finalSize=[sizeVal,...extras].filter(Boolean).join(' / ')||null;
+        return{size:finalSize,color:colorVal,qty:c.qty||0};
     });
 
     const payload={
