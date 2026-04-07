@@ -261,15 +261,15 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     // Доставки
     $del_rows = DB::run(
-        'SELECT s.name AS sup, d.expected_date, d.status
+        'SELECT s.name AS sup, d.created_at
          FROM deliveries d JOIN suppliers s ON s.id=d.supplier_id
-         WHERE d.tenant_id=? AND d.status IN ("pending","in_transit")
-         ORDER BY d.expected_date ASC LIMIT 5',
+         WHERE d.tenant_id=? AND d.delivered_at IS NULL
+         ORDER BY d.created_at ASC LIMIT 5',
         [$tenant_id]
     )->fetchAll();
     $del_str = '';
     foreach ($del_rows as $r) {
-        $del_str .= "  - {$r['sup']}: expected {$r['expected_date']} [{$r['status']}]\n";
+        $del_str .= "  - {$r['sup']}: (доставка в път)\n";
     }
 
     // Неплатени фактури (owner/manager)
@@ -288,7 +288,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     // Топ доставчик
     $top_sup = DB::run(
-        'SELECT s.name, COALESCE(SUM(di.quantity * di.unit_price),0) AS val
+        'SELECT s.name, COALESCE(SUM(di.quantity * di.cost_price),0) AS val
          FROM delivery_items di
          JOIN deliveries d ON d.id=di.delivery_id
          JOIN suppliers s ON s.id=d.supplier_id
@@ -316,14 +316,14 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     // ── СЛОЙ 3: AI ПАМЕТ ──────────────────────────────────────
     $mem_rows = DB::run(
-        'SELECT `key`, `value` FROM tenant_ai_memory
-         WHERE tenant_id=? AND (store_id=? OR store_id IS NULL)
+        'SELECT content FROM tenant_ai_memory
+         WHERE tenant_id=? 
          ORDER BY created_at DESC LIMIT 25',
-        [$tenant_id, $store_id]
+        [$tenant_id]
     )->fetchAll();
     $mem_str = '';
     foreach ($mem_rows as $m) {
-        $mem_str .= "  - {$m['key']}: {$m['value']}\n";
+        $mem_str .= "  - {$m['content']}\n";
     }
 
     // ── СЛОЙ 5: БИЗНЕС СИГНАЛИ ────────────────────────────────

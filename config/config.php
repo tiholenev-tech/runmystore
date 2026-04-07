@@ -1,4 +1,3 @@
-AIzaSyCiWJltZXfrTbEJXtOlmcuv9tjKYLzVW8
 
 <?php
 define('GEMINI_API_KEY', 'AIzaSyDjTrNXlEfWJ-brqLhjWbkZR0f0yoYScww');
