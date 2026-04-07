@@ -1226,19 +1226,19 @@ input[type=file]{display:none}
 
 <!-- ═══ SCREEN NAV ═══ -->
 <div class="screen-nav"><div class="screen-nav-inner">
-    <button class="sn-btn" data-scr="products" onclick="goScreen('products')">
+    <button class="sn-btn" data-scr="products" onclick="goScreenWithHistory('products')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         <span>Артикули</span>
     </button>
-    <button class="sn-btn" data-scr="categories" onclick="goScreen('categories')">
+    <button class="sn-btn" data-scr="categories" onclick="goScreenWithHistory('categories')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         <span>Категории</span>
     </button>
-    <button class="sn-btn" data-scr="suppliers" onclick="goScreen('suppliers')">
+    <button class="sn-btn" data-scr="suppliers" onclick="goScreenWithHistory('suppliers')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span>Доставчици</span>
     </button>
-    <button class="sn-btn active" data-scr="home" onclick="goScreen('home')">
+    <button class="sn-btn active" data-scr="home" onclick="goScreenWithHistory('home')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Начало</span>
     </button>
@@ -1443,7 +1443,7 @@ async function loadSuppliers(){
     if(!d.length){el.innerHTML=`<div class="empty-st" style="width:100%"><div class="es-icon">📦</div><div class="es-text">Няма доставчици</div></div>`;return}
     el.innerHTML=d.map(s=>{
         const ok=s.product_count-s.low_count-s.out_count;
-        return`<div class="sup-card" onclick="goScreen('categories',{sup:${s.id}})"><div class="sc-name">${esc(s.name)}</div><div class="sc-count">${s.product_count} арт. · ${fmtNum(s.total_stock)} бр.</div><div class="sc-badges">${ok>0?`<span class="sc-badge ok">✓ ${ok}</span>`:''}${s.low_count>0?`<span class="sc-badge low">↓ ${s.low_count}</span>`:''}${s.out_count>0?`<span class="sc-badge out">✕ ${s.out_count}</span>`:''}</div><div class="sc-arrow">›</div></div>`;
+        return`<div class="sup-card" onclick="goScreenWithHistory('categories',{sup:${s.id}})"><div class="sc-name">${esc(s.name)}</div><div class="sc-count">${s.product_count} арт. · ${fmtNum(s.total_stock)} бр.</div><div class="sc-badges">${ok>0?`<span class="sc-badge ok">✓ ${ok}</span>`:''}${s.low_count>0?`<span class="sc-badge low">↓ ${s.low_count}</span>`:''}${s.out_count>0?`<span class="sc-badge out">✕ ${s.out_count}</span>`:''}</div><div class="sc-arrow">›</div></div>`;
     }).join('');
 }
 
@@ -1456,10 +1456,10 @@ async function loadCategories(){
     if(S.supId){
         el.innerHTML=d.length===0?`<div class="empty-st"><div class="es-text">Няма категории</div></div>`:
         `<div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-subtle);overflow:hidden">`+
-        d.map(c=>`<div class="cat-item" onclick="goScreen('products',{sup:${S.supId},cat:${c.id}})"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div><div><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary)">${c.product_count} арт. · ${fmtNum(c.total_stock)} бр.</div></div></div><span style="color:var(--text-secondary)">›</span></div>`).join('')+`</div>`;
+        d.map(c=>`<div class="cat-item" onclick="goScreenWithHistory('products',{sup:${S.supId},cat:${c.id}})"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div><div><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary)">${c.product_count} арт. · ${fmtNum(c.total_stock)} бр.</div></div></div><span style="color:var(--text-secondary)">›</span></div>`).join('')+`</div>`;
     }else{
         el.innerHTML=d.length===0?`<div class="empty-st"><div class="es-text">Няма категории</div></div>`:
-        `<div class="swipe-row">`+d.map(c=>`<div class="cat-card" onclick="goScreen('products',{cat:${c.id}})"><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary);margin-top:3px">${c.product_count} арт.${c.supplier_count?' · '+c.supplier_count+' дост.':''}</div></div>`).join('')+`</div>`;
+        `<div class="swipe-row">`+d.map(c=>`<div class="cat-card" onclick="goScreenWithHistory('products',{cat:${c.id}})"><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary);margin-top:3px">${c.product_count} арт.${c.supplier_count?' · '+c.supplier_count+' дост.':''}</div></div>`).join('')+`</div>`;
     }
 }
 
@@ -1530,6 +1530,7 @@ function openVoiceSearch(){
 
 // ─── DRAWERS ───
 function openDrawer(name){
+    history.pushState({drawer:name}, '', '#'+name);
     document.getElementById(name+'Ov')?.classList.add('open');
     document.getElementById(name+'Dr')?.classList.add('open');
     document.body.style.overflow='hidden';
@@ -1603,7 +1604,7 @@ function applyFilters(){
     const cat=document.querySelector('#fCats .f-chip.sel');
     const sup=document.querySelector('#fSups .f-chip.sel');
     closeDrawer('filter');
-    goScreen('products',{sup:sup?.dataset.sup,cat:cat?.dataset.cat});
+    goScreenWithHistory('products',{sup:sup?.dataset.sup,cat:cat?.dataset.cat});
 }
 function clearFilters(){document.querySelectorAll('.f-chip').forEach(c=>c.classList.remove('sel'))}
 
@@ -1925,6 +1926,7 @@ function openManualWizard(){
     S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
+    history.pushState({modal:'wizard'}, '', '#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
 }
@@ -1944,6 +1946,8 @@ function renderWizard(){
     document.getElementById('wizLabel').innerHTML=`${S.wizStep+1} · <b>${WIZ_LABELS[S.wizStep]}</b>`;
     document.getElementById('wizBody').innerHTML=renderWizPage(S.wizStep);
     document.getElementById('wizBody').scrollTop=0;
+    // Subcategory loader for step 2
+    if(S.wizStep===2){const wCat=document.getElementById('wCat');if(wCat){wCat.onchange=async function(){const id=this.value;const sel=document.getElementById('wSubcat');sel.innerHTML='<option value="">\u2014 \u041d\u044f\u043c\u0430 \u2014</option>';if(!id)return;const d=await api('products.php?ajax=subcategories&parent_id='+id);if(d&&d.length)d.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)})};if(S.wizData.category_id)wCat.onchange()}}
 }
 
 function renderWizPage(step){
@@ -1976,7 +1980,6 @@ function renderWizPage(step){
             <div class="fg"><label class="fl">Доставчик <span class="fl-add" onclick="toggleInl('inlSup')">+ Нов</span></label><select class="fc" id="wSup">${supO}</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline('supplier')">Запази</button></div></div>
             <div class="fg"><label class="fl">Категория <span class="fl-add" onclick="toggleInl('inlCat')">+ Нова</span></label><select class="fc" id="wCat">${catO}</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline('category')">Запази</button></div></div>
             <div class="fg"><label class="fl">Подкатегория <span class="hint">(не задължителна)</span></label><select class="fc" id="wSubcat"><option value="">— Няма —</option></select></div>
-            <script>document.getElementById("wCat")?.addEventListener("change",async function(){const id=this.value;const sel=document.getElementById("wSubcat");sel.innerHTML="<option value=\"\">— Няма —</option>";if(!id)return;const d=await api("products.php?ajax=subcategories&parent_id="+id);if(d&&d.length)d.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.name;sel.appendChild(o)})})</script>
             <button class="abtn primary" onclick="wizGo(3)">Напред →</button>
             <button class="abtn" onclick="wizGo(1)" style="margin-top:6px">← Назад</button></div>`;
     }
@@ -2218,6 +2221,7 @@ async function editProduct(id){
         description:p.description,unit:p.unit,min_quantity:p.min_quantity,axes:[]};
     document.getElementById('wizTitle').textContent='Редактирай';
     renderWizard();
+    history.pushState({modal:'wizard'}, '', '#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
 }
@@ -2424,8 +2428,33 @@ function exportLabels(pid,format){
     window.open(`products.php?ajax=export_labels&product_id=${pid}&format=${format}`,'_blank');
 }
 
+// ─── HISTORY (back button stays in module) ───
+function goScreenWithHistory(scr, params={}){
+    history.pushState({scr,params}, '', '#'+scr);
+    goScreen(scr, params);
+}
+window.addEventListener('popstate', (e)=>{
+    // 1. Close camera
+    if(document.getElementById('cameraOv').classList.contains('open')){closeCamera();return}
+    // 2. Close voice overlay
+    if(document.getElementById('recOv').classList.contains('open')){if(S.aiWizMode)closeAIWizardOverlay();else closeVoice();return}
+    // 3. Close wizard modal
+    if(document.getElementById('wizModal').classList.contains('open')){closeWizard();return}
+    // 4. Close any drawer
+    const openDr=document.querySelector('.drawer.open');
+    if(openDr){const n=openDr.id.replace('Dr','');closeDrawer(n);return}
+    // 5. Navigate between screens
+    if(e.state && e.state.scr){goScreen(e.state.scr, e.state.params||{});return}
+    // 6. If not on home, go home
+    if(S.screen !== 'home'){goScreen('home');history.replaceState({scr:'home'},'','#home');return}
+    // 7. Actually leave page (real back)
+    window.removeEventListener('popstate',arguments.callee);
+    history.back();
+});
+
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
+    history.replaceState({scr:'home'}, '', '#home');
     goScreen('home');
 });
 
