@@ -1658,6 +1658,7 @@ function playBeep(){try{const c=new(window.AudioContext||window.webkitAudioConte
 function openVoice(hint, callback){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласовото не е поддържано','error');return}
+    history.pushState({voice:true}, '', '#voice');
 
     const ov=document.getElementById('recOv');
     const dot=document.getElementById('recDot');
@@ -1741,6 +1742,7 @@ document.addEventListener('touchend',e=>{
 // ─── AI WIZARD (voice overlay, hint-based Q&A via ai-wizard.php) ───
 function openAIWizard(){
     S.aiWizMode=true;
+    history.pushState({voice:true}, '', '#aiwiz');
     S.aiWizConversation=[];
     S.aiWizCollected={};
 
