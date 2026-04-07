@@ -1,8 +1,8 @@
 <?php
 /**
- * chat.php — AI First Dashboard v4
- * С31 — Visual redesign: stats.php style cards, sticky chat, plan indicator,
- *        info chat button, wave mic, flipCard animations, logout
+ * chat.php — AI First Dashboard v4.1
+ * S31 — Visual polish: 6 signal cards (red/yellow/green rows), flip animation,
+ *        vivid colors, new emoji, 280px chat, font tweaks
  *        ZERO logic changes — all PHP queries identical to v3
  */
 session_start();
@@ -73,10 +73,14 @@ elseif ($diff <= -20 && (int)date('H') >= 14)
 else
     $pulse = ['color'=>'green',  'text'=>number_format($rv,0,'.',' ')." {$currency_symbol} от ".(int)$rev_t['c']." продажби днес"];
 
-// ── CARDS (exact same logic) ──
-$cards = [];
+// ── CARDS — ordered: red, red, yellow, yellow, green, green ──
+// We build them into categorized arrays then merge
 
-// Свършва
+$cards_red = [];
+$cards_yellow = [];
+$cards_green = [];
+
+// Свършва — RED
 $low_rows = DB::run(
     'SELECT p.name FROM inventory i JOIN products p ON p.id=i.product_id
      WHERE i.store_id=? AND p.tenant_id=? AND i.quantity<=i.min_quantity AND i.min_quantity>0 AND p.is_active=1
@@ -84,37 +88,70 @@ $low_rows = DB::run(
     [$store_id, $tenant_id])->fetchAll();
 $low_names = implode(', ', array_column($low_rows,'name'));
 if (mb_strlen($low_names)>32) $low_names = mb_substr($low_names,0,30).'...';
-$cards[] = ['icon'=>'⚠️','label'=>'Свършва','val'=>$low_cnt.' арт.','sub'=>$low_cnt>0?$low_names:'Всичко е наред',
+$cards_red[] = ['icon'=>'🚨','label'=>'Свършва','val'=>$low_cnt.' арт.','sub'=>$low_cnt>0?$low_names:'Всичко е наред',
     'color'=>'#ef4444','bg'=>'rgba(239,68,68,.18)','border'=>'rgba(239,68,68,.5)','glow'=>'rgba(239,68,68,.25)',
     'dt'=>'Свършваща наличност','dv'=>$low_cnt.' арт. под минимума',
     'dai'=>'Зареди приоритетно. Всеки ден без наличност = директно загубени продажби.',
     'db'=>'Виж в склада','du'=>'products.php?filter=low'];
 
-// Топ
-$top = DB::run(
-    'SELECT p.name, SUM(si.quantity) AS qty FROM sale_items si
-     JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
-     WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="canceled"
-     GROUP BY si.product_id ORDER BY qty DESC LIMIT 1',
-    [$store_id, $tenant_id])->fetch();
-$cards[] = ['icon'=>'🔥','label'=>'Топ продавани','val'=>$top?$top['name']:'Няма данни','sub'=>($top?(int)$top['qty'].' бр.':'').' / 7 дни',
-    'color'=>'#22c55e','bg'=>'rgba(34,197,94,.15)','border'=>'rgba(34,197,94,.45)','glow'=>'rgba(34,197,94,.2)',
-    'dt'=>'Топ продавани','dv'=>($top?$top['name'].' — '.(int)$top['qty'].' бр.':'Няма данни'),
-    'dai'=>'Увери се че топ артикулите никога не са на нула. Поръчай преди да свършат.',
-    'db'=>'Виж в склада','du'=>'products.php'];
+// Губиш пари — RED (always show for owner)
+if ($role === 'owner') {
+    $loss_cnt = (int)DB::run(
+        'SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0 AND retail_price < cost_price',
+        [$tenant_id]
+    )->fetchColumn();
+    if ($loss_cnt > 0) {
+        $cards_red[] = ['icon'=>'💸','label'=>'Губиш пари','val'=>$loss_cnt.' арт.','sub'=>'Под себестойност',
+            'color'=>'#ef4444','bg'=>'rgba(239,68,68,.18)','border'=>'rgba(239,68,68,.5)','glow'=>'rgba(239,68,68,.25)',
+            'dt'=>'Продаваш под себестойност','dv'=>$loss_cnt.' арт. губят пари',
+            'dai'=>'Вдигни цената или спри продажбата. Губиш при всяка транзакция.',
+            'db'=>'Промени цените','du'=>'products.php'];
+    } else {
+        $cards_red[] = ['icon'=>'💸','label'=>'Губиш пари','val'=>'✓','sub'=>'Всичко е наред',
+            'color'=>'#ef4444','bg'=>'rgba(239,68,68,.18)','border'=>'rgba(239,68,68,.5)','glow'=>'rgba(239,68,68,.25)',
+            'dt'=>'Продаваш под себестойност','dv'=>'0 арт. — всичко е наред',
+            'dai'=>'Чудесно! Нито един артикул не се продава под себестойност.',
+            'db'=>'','du'=>''];
+    }
+}
 
+// Zombie стока — YELLOW
+if ($role === 'owner') {
+    $cards_yellow[] = ['icon'=>'💀','label'=>'Zombie стока','val'=>$zc.' арт.',
+        'sub'=>'~'.number_format($zv,0,'.',' ').' '.$currency_symbol.' замразени',
+        'color'=>'#f59e0b','bg'=>'rgba(245,158,11,.15)','border'=>'rgba(245,158,11,.45)','glow'=>'rgba(245,158,11,.2)',
+        'dt'=>'Zombie стока (45+ дни)','dv'=>$zc.' арт. / '.number_format($zv,0,'.',' ').' '.$currency_symbol,
+        'dai'=>'Пусни -20% промоция. По-добре 80% от парите сега, отколкото да чакаш.',
+        'db'=>'Виж zombie','du'=>'products.php?filter=zombie'];
+}
+
+// Липсващи размери — YELLOW
 if (in_array($role,['owner','manager'])) {
     $gap = (int)DB::run(
         'SELECT COUNT(DISTINCT p.parent_id) FROM products p JOIN inventory i ON i.product_id=p.id
          WHERE p.tenant_id=? AND i.store_id=? AND i.quantity=0 AND p.parent_id IS NOT NULL AND p.is_active=1',
         [$tenant_id, $store_id])->fetchColumn();
-    $cards[] = ['icon'=>'📏','label'=>'Липсващи размери','val'=>$gap.' продукта','sub'=>'с нулеви варианти',
+    $cards_yellow[] = ['icon'=>'🔲','label'=>'Липсващи размери','val'=>$gap.' продукта','sub'=>'с нулеви варианти',
         'color'=>'#f59e0b','bg'=>'rgba(245,158,11,.15)','border'=>'rgba(245,158,11,.45)','glow'=>'rgba(245,158,11,.2)',
         'dt'=>'Липсващи размери','dv'=>$gap.' продукта с нулеви варианти',
         'dai'=>'Допълни преди уикенда — липсващите размери са директно загубени продажби.',
         'db'=>'Виж в склада','du'=>'products.php?filter=zero'];
 }
 
+// Топ продавани — GREEN
+$top = DB::run(
+    'SELECT p.name, SUM(si.quantity) AS qty FROM sale_items si
+     JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
+     WHERE s.store_id=? AND s.tenant_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) AND s.status!="canceled"
+     GROUP BY si.product_id ORDER BY qty DESC LIMIT 1',
+    [$store_id, $tenant_id])->fetch();
+$cards_green[] = ['icon'=>'🏆','label'=>'Топ продавани','val'=>$top?$top['name']:'Няма данни','sub'=>($top?(int)$top['qty'].' бр.':'').' / 7 дни',
+    'color'=>'#22c55e','bg'=>'rgba(34,197,94,.15)','border'=>'rgba(34,197,94,.45)','glow'=>'rgba(34,197,94,.2)',
+    'dt'=>'Топ продавани','dv'=>($top?$top['name'].' — '.(int)$top['qty'].' бр.':'Няма данни'),
+    'dai'=>'Увери се че топ артикулите никога не са на нула. Поръчай преди да свършат.',
+    'db'=>'Виж в склада','du'=>'products.php'];
+
+// Печалба днес — GREEN
 if ($role === 'owner') {
     $pr = DB::run(
         'SELECT COALESCE(SUM(si.quantity*(si.unit_price-COALESCE(si.cost_price,0))),0) AS profit,
@@ -125,35 +162,16 @@ if ($role === 'owner') {
     $profit = round((float)$pr['profit']);
     $margin = $pr['revenue']>0 ? round($profit/(float)$pr['revenue']*100,1) : 0;
     $ds = $diff>=0?'+'.abs($diff).'%':'-'.abs($diff).'%';
-    $cards[] = ['icon'=>'💰','label'=>'Печалба днес','val'=>number_format($profit,0,'.',' ').' '.$currency_symbol,
+    $cards_green[] = ['icon'=>'📈','label'=>'Печалба днес','val'=>number_format($profit,0,'.',' ').' '.$currency_symbol,
         'sub'=>$margin.'% марж · '.$ds.' vs вчера',
         'color'=>'#22c55e','bg'=>'rgba(34,197,94,.15)','border'=>'rgba(34,197,94,.45)','glow'=>'rgba(34,197,94,.2)',
         'dt'=>'Печалба днес','dv'=>number_format($profit,0,'.',' ').' '.$currency_symbol.' (марж '.$margin.'%)',
         'dai'=>$margin<20?'Маржът е под 20% — провери цените и отстъпките.':'Добър марж! Фокусирай се върху оборота.',
         'db'=>'Виж справките','du'=>'stats.php?tab=finance'];
-
-    $cards[] = ['icon'=>'🧟','label'=>'Zombie стока','val'=>$zc.' арт.',
-        'sub'=>'~'.number_format($zv,0,'.',' ').' '.$currency_symbol.' замразени',
-        'color'=>'#f59e0b','bg'=>'rgba(245,158,11,.15)','border'=>'rgba(245,158,11,.45)','glow'=>'rgba(245,158,11,.2)',
-        'dt'=>'Zombie стока (45+ дни)','dv'=>$zc.' арт. / '.number_format($zv,0,'.',' ').' '.$currency_symbol,
-        'dai'=>'Пусни -20% промоция. По-добре 80% от парите сега, отколкото да чакаш.',
-        'db'=>'Виж zombie','du'=>'products.php?filter=zombie'];
 }
 
-// Losing money (NEW card for v4 visual — uses existing query pattern)
-if ($role === 'owner') {
-    $loss_cnt = (int)DB::run(
-        'SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0 AND retail_price < cost_price',
-        [$tenant_id]
-    )->fetchColumn();
-    if ($loss_cnt > 0) {
-        $cards[] = ['icon'=>'❌','label'=>'Губиш пари','val'=>$loss_cnt.' арт.','sub'=>'Под себестойност',
-            'color'=>'#ef4444','bg'=>'rgba(239,68,68,.18)','border'=>'rgba(239,68,68,.5)','glow'=>'rgba(239,68,68,.25)',
-            'dt'=>'Продаваш под себестойност','dv'=>$loss_cnt.' арт. губят пари',
-            'dai'=>'Вдигни цената или спри продажбата. Губиш при всяка транзакция.',
-            'db'=>'Промени цените','du'=>'products.php'];
-    }
-}
+// Merge: red, red, yellow, yellow, green, green
+$cards = array_merge($cards_red, $cards_yellow, $cards_green);
 
 // ── MESSAGES (exact same) ──
 $messages = DB::run(
@@ -287,13 +305,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 /* Signal cards — VIVID bright */
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
 .sig-card{border-radius:14px;padding:9px 10px;cursor:pointer;position:relative;overflow:hidden;
-    transition:transform .15s,box-shadow .3s}
+    transition:transform .2s,box-shadow .3s}
 .sig-card:active{transform:scale(.97)}
-.sig-card::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.sig-card:hover{transform:scale(1.04)}
 .sig-card .sc-row{display:flex;align-items:center;gap:3px;margin-bottom:2px;position:relative}
 .sig-card .sc-icon{font-size:10px}
-.sig-card .sc-label{font-size:7.5px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.sig-card .sc-val{font-size:16px;font-weight:800;line-height:1.1;position:relative}
+.sig-card .sc-label{font-size:8px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.sig-card .sc-val{font-size:17px;font-weight:800;line-height:1.1;position:relative}
 .sig-card .sc-unit{font-size:10px;font-weight:600;opacity:.7;margin-left:2px}
 .sig-card .sc-sub{font-size:9px;color:#9ca3af;margin-top:1px;position:relative}
 
@@ -317,7 +335,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .q-card.full{grid-column:1/-1}
 
 /* ══ STICKY CHAT ══ */
-.chat-wrap{height:330px;flex-shrink:0;display:flex;flex-direction:column;position:relative;z-index:10;
+.chat-wrap{height:280px;flex-shrink:0;display:flex;flex-direction:column;position:relative;z-index:10;
     background:rgba(3,7,18,.97)}
 .chat-hdr{display:flex;align-items:center;gap:5px;padding:5px 12px 2px;flex-shrink:0}
 .chat-ava{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#9333ea);
@@ -387,7 +405,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s;font-size:12px}
 .send-btn:disabled{opacity:.2}
 
-/* ══ VOICE OVERLAY — exact same as before ══ */
+/* ══ VOICE OVERLAY ══ */
 .rec-ov{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,.6);backdrop-filter:blur(8px);
     display:none;align-items:flex-end;justify-content:center;padding:0 16px 80px}
 .rec-ov.open{display:flex}
@@ -414,7 +432,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .rec-btn-send:disabled{opacity:.3;pointer-events:none}
 .rec-close-hint{font-size:10px;color:rgba(107,114,128,.6);text-align:center;margin-top:8px}
 
-/* ══ DRAWER — stats.php style ══ */
+/* ══ DRAWER ══ */
 .drawer-ovl{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
     z-index:200;display:none;align-items:flex-end}
 .drawer-ovl.show{display:flex}
@@ -440,7 +458,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .drawer-btn:active{transform:scale(.98)}
 .drawer-close-hint{font-size:10px;color:rgba(107,114,128,.5);text-align:center;padding:6px 0 0}
 
-/* ══ HELP MODAL — exact same ══ */
+/* ══ HELP MODAL ══ */
 .help-ovl{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:300;display:none;align-items:flex-end}
 .help-ovl.show{display:flex}
 .help-box{width:100%;background:#080818;border-top:.5px solid var(--border-glow);border-radius:22px 22px 0 0;
@@ -544,15 +562,18 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 <!-- ══ TOP SCROLL — signal cards + question sections ══ -->
 <div class="top-scroll">
 
-  <!-- Signal Cards — vivid, flipCard animation -->
+  <!-- Signal Cards — vivid, flipCard animation, staggered 90ms -->
   <div class="sig-grid">
     <?php foreach ($cards as $i => $c):
-      $delay = number_format($i * 0.09, 2);
+      $delay = $i * 90; // stagger in ms
+      $hover_glow = str_replace('0 0 12px','0 0 24px',"0 0 12px {$c['glow']}");
       $drawer_data = htmlspecialchars(json_encode(['title'=>$c['dt'],'val'=>$c['dv'],'ai'=>$c['dai'],'btn'=>$c['db'],'url'=>$c['du']]),ENT_QUOTES);
     ?>
     <div class="sig-card" style="background:<?= $c['bg'] ?>;border:1.5px solid <?= $c['border'] ?>;
          box-shadow:0 0 12px <?= $c['glow'] ?>,inset 0 1px 0 rgba(255,255,255,.05);
-         animation:flipCard .5s <?= $delay ?>s ease both"
+         animation:flipCard .5s <?= $delay ?>ms ease both"
+         onmouseenter="this.style.boxShadow='0 0 24px <?= $c['glow'] ?>,inset 0 1px 0 rgba(255,255,255,.05)'"
+         onmouseleave="this.style.boxShadow='0 0 12px <?= $c['glow'] ?>,inset 0 1px 0 rgba(255,255,255,.05)'"
          data-drawer="<?= $drawer_data ?>" onclick="openCardDrawer(this)">
       <div style="position:absolute;inset:0;border-radius:inherit;background:linear-gradient(135deg,<?= $c['color'] ?>12,transparent 60%);pointer-events:none"></div>
       <div class="sc-row"><span class="sc-icon"><?= $c['icon'] ?></span><span class="sc-label"><?= htmlspecialchars($c['label']) ?></span></div>
@@ -661,7 +682,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 </div>
 
-<!-- ══ VOICE OVERLAY — exact same ══ -->
+<!-- ══ VOICE OVERLAY ══ -->
 <div class="rec-ov" id="recOv">
   <div class="rec-box">
     <div class="rec-status">
@@ -846,7 +867,7 @@ function addAIMsg(text) {
 function scrollBottom(){ chatArea.scrollTop = chatArea.scrollHeight; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── VOICE — exact same ──
+// ── VOICE ──
 let voiceRec=null, isRec=false, voiceText='';
 
 function toggleVoice() {
