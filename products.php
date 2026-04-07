@@ -1076,6 +1076,56 @@ select.fc{
 .screen-section.active{display:block}
 .hidden{display:none!important}
 input[type=file]{display:none}
+
+/* ═══ INFO AI BUTTON + PANEL ═══ */
+.info-ai-btn{
+    position:fixed;top:52px;right:12px;z-index:42;width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.15));
+    border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:16px;box-shadow:0 0 14px rgba(99,102,241,0.2);
+    animation:infoPulse 3s ease-in-out infinite;transition:all 0.2s;
+}
+.info-ai-btn:active{transform:scale(0.9)}
+@keyframes infoPulse{0%,100%{box-shadow:0 0 10px rgba(99,102,241,0.2)}50%{box-shadow:0 0 22px rgba(99,102,241,0.4)}}
+.info-panel{
+    position:fixed;top:0;right:0;bottom:0;width:min(320px,85vw);z-index:250;
+    background:rgba(8,8,24,0.97);backdrop-filter:blur(20px);
+    border-left:1px solid var(--border-glow);
+    transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.32,0,0.67,0);
+    display:flex;flex-direction:column;
+    box-shadow:-10px 0 40px rgba(0,0,0,0.5);
+}
+.info-panel.open{transform:translateX(0)}
+.info-panel-ov{position:fixed;inset:0;z-index:249;background:rgba(0,0,0,0.5);display:none}
+.info-panel-ov.open{display:block}
+.info-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+    border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.info-panel-hdr h3{font-size:14px;font-weight:800;margin:0;
+    background:linear-gradient(135deg,#f1f5f9,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.info-panel-close{width:28px;height:28px;border-radius:8px;background:rgba(99,102,241,0.1);
+    border:1px solid var(--border-subtle);color:var(--indigo-300);font-size:14px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer}
+.info-panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px}
+.info-q{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;
+    border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid var(--border-subtle);
+    cursor:pointer;transition:all 0.15s}
+.info-q:active{background:rgba(99,102,241,0.12);transform:scale(0.98)}
+.info-q .iq-icon{font-size:16px;flex-shrink:0}
+.info-q .iq-text{font-size:12px;font-weight:600;color:var(--text-primary)}
+.info-q .iq-arrow{color:var(--text-secondary);font-size:10px;margin-left:auto;flex-shrink:0}
+.info-answer{padding:10px 12px;margin:-2px 0 6px;border-radius:0 0 10px 10px;
+    background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-top:none;
+    font-size:12px;color:rgba(241,245,249,0.8);line-height:1.5;display:none}
+.info-answer.open{display:block;animation:fadeUp 0.2s ease}
+.info-section-title{font-size:9px;font-weight:800;color:var(--indigo-300);text-transform:uppercase;
+    letter-spacing:1px;padding:10px 0 4px}
+.info-free-wrap{padding:10px 12px;border-top:1px solid var(--border-subtle);flex-shrink:0}
+.info-free-btn{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(99,102,241,0.25);
+    background:rgba(99,102,241,0.06);color:var(--indigo-300);font-size:13px;font-weight:700;
+    cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;
+    transition:all 0.15s}
+.info-free-btn:active{background:rgba(99,102,241,0.2)}
+
 </style>
 </head>
 <body>
@@ -1202,8 +1252,28 @@ input[type=file]{display:none}
 
 </div><!-- /main-wrap -->
 
+<!-- ═══ INFO AI BUTTON ═══ -->
+<div class="info-ai-btn" onclick="toggleInfoPanel()">✦</div>
+
+<!-- ═══ INFO AI PANEL ═══ -->
+<div class="info-panel-ov" id="infoPanelOv" onclick="closeInfoPanel()"></div>
+<div class="info-panel" id="infoPanel">
+    <div class="info-panel-hdr">
+        <h3>✦ Помощ — Артикули</h3>
+        <button class="info-panel-close" onclick="closeInfoPanel()">✕</button>
+    </div>
+    <div class="info-panel-body" id="infoPanelBody"></div>
+    <div class="info-free-wrap">
+        <button class="info-free-btn" onclick="openInfoFreeChat()">🎤 Питай AI свободно</button>
+    </div>
+</div>
+
+
 <!-- ═══ QUICK ACTIONS PILL BAR ═══ -->
 <?php if ($can_add): ?>
+<div style="position:fixed;bottom:142px;left:50%;transform:translateX(-50%);z-index:41;
+    font-size:8px;font-weight:800;color:rgba(165,180,252,0.5);text-transform:uppercase;letter-spacing:1.5px;
+    text-align:center;pointer-events:none">Добави артикул</div>
 <div class="qa-bar" id="qaBar">
     <button class="qa-btn qa-ai" onclick="openAIWizard()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
@@ -1276,7 +1346,7 @@ input[type=file]{display:none}
 <div class="drawer" id="labelsDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>🏷 Етикети и наличност</h3><button class="drawer-close" onclick="closeDrawer('labels')">✕</button></div><div id="labelsBody"></div></div>
 
 <div class="drawer-ov" id="csvOv" onclick="closeDrawer('csv')"></div>
-<div class="drawer" id="csvDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>📄 CSV / Excel Import</h3><button class="drawer-close" onclick="closeDrawer('csv')">✕</button></div><div id="csvBody"></div></div>
+<div class="drawer" id="csvDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>📄 Импорт от файл</h3><button class="drawer-close" onclick="closeDrawer('csv')">✕</button></div><div id="csvBody"></div></div>
 
 <!-- ═══ MANUAL WIZARD MODAL ═══ -->
 <div class="modal-ov" id="wizModal">
@@ -2235,8 +2305,8 @@ function openCSVImport(){
     document.getElementById('csvBody').innerHTML=`
         <div style="text-align:center;padding:20px">
             <div style="font-size:36px;margin-bottom:8px">📄</div>
-            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Качи CSV или Excel файл</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:16px">AI ще разпознае колоните автоматично</div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Качи CSV, Excel или текстов файл</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:16px">AI ще разпознае колоните и формата автоматично</div>
             <button class="abtn primary" onclick="document.getElementById('csvInput').click()">📁 Избери файл</button>
         </div>`;
 }
@@ -2438,6 +2508,7 @@ function goScreenWithHistory(scr, params={}){
 }
 window.addEventListener('popstate', (e)=>{
     // 1. Close camera
+    if(document.getElementById('infoPanel').classList.contains('open')){closeInfoPanel();return}
     if(document.getElementById('cameraOv').classList.contains('open')){closeCamera();return}
     // 2. Close voice overlay
     if(document.getElementById('recOv').classList.contains('open')){if(S.aiWizMode)closeAIWizardOverlay();else closeVoice();return}
@@ -2454,6 +2525,91 @@ window.addEventListener('popstate', (e)=>{
     window.removeEventListener('popstate',arguments.callee);
     history.back();
 });
+
+
+// ═══ INFO AI PANEL — 90% pre-built, no Gemini ═══
+const INFO_QA = [
+    {section:'Основни', items:[
+        {icon:'📦',q:'Колко артикула имам?',answer:'PHP_COUNT'},
+        {icon:'📊',q:'Колко бройки общо?',answer:'PHP_UNITS'},
+        {icon:'💰',q:'Каква е стойността на склада?',answer:'PHP_CAPITAL'},
+        {icon:'🔍',q:'Как да търся артикул?',answer:'Използвай лупата горе или натисни 🎤 до нея и кажи какво търсиш. Можеш и да сканираш баркод с бутон ⬡ Скан.'},
+    ]},
+    {section:'Добавяне', items:[
+        {icon:'🎤',q:'Как да добавя с глас?',answer:'Натисни "🎤 С глас" → говори какво добавяш → AI пита за цена, доставчик, размери → потвърждаваш с "да". Готово за 10 секунди.'},
+        {icon:'✏️',q:'Как да добавя ръчно?',answer:'Натисни "✏️ Ръчно" → избираш единичен или с варианти → попълваш стъпка по стъпка → записваш. AI генерира код и описание.'},
+        {icon:'📄',q:'Как да импортирам от файл?',answer:'Натисни "📄 Файл" → качваш CSV или Excel → AI разпознава колоните → преглеждаш → импортираш. Поддържа: CSV, XLS, XLSX.'},
+        {icon:'⬡',q:'Как работи баркод скенерът?',answer:'Натисни "⬡ Скан" → насочи камерата към баркода → ако артикулът съществува, отваря се. Ако не — предлага добавяне.'},
+    ]},
+    {section:'Управление', items:[
+        {icon:'💀',q:'Какво е Zombie стока?',answer:'Артикули с наличност, но без продажба от 45+ дни. Замразяват капитала ти. Виж ги в секция "Zombie стока" на началния екран.'},
+        {icon:'⚠️',q:'Какво значи "Ниска наличност"?',answer:'Артикули, при които наличността е под зададения минимум. Задай минимум при добавяне или в етикетите.'},
+        {icon:'🏷️',q:'Как да печатам етикети?',answer:'Отвори артикул → 🏷 Етикет → избери формат (баркод/арт.номер/двете) → печатай или експортирай CSV/PDF.'},
+        {icon:'✨',q:'Какво е AI Image Studio?',answer:'Обработва снимки на артикули: бял фон (€0.05) или облича на модел (€0.50). Отвори артикул → ✨ AI Снимка.'},
+    ]},
+    {section:'Навигация', items:[
+        {icon:'🏠',q:'Как е организиран модулът?',answer:'4 екрана: Начало (обзор + бързи действия), Артикули (списък), Категории (групирани), Доставчици (по доставчик → категория → артикул).'},
+        {icon:'↩️',q:'Как да се върна назад?',answer:'Бутон "Назад" на телефона те връща стъпка назад вътре в модула. Няма да излезеш случайно.'},
+        {icon:'🔄',q:'Как да сменя магазина?',answer:'Горе вдясно има dropdown с магазините ти. Избери друг и данните се обновяват.'},
+    ]},
+];
+
+function toggleInfoPanel(){
+    const panel = document.getElementById('infoPanel');
+    const ov = document.getElementById('infoPanelOv');
+    if(panel.classList.contains('open')){closeInfoPanel();return}
+    history.pushState({infoPanel:true},'','#info');
+    renderInfoPanel();
+    ov.classList.add('open');
+    panel.classList.add('open');
+}
+function closeInfoPanel(){
+    document.getElementById('infoPanel').classList.remove('open');
+    document.getElementById('infoPanelOv').classList.remove('open');
+}
+
+function renderInfoPanel(){
+    const body = document.getElementById('infoPanelBody');
+    let h = '';
+    INFO_QA.forEach(sec => {
+        h += '<div class="info-section-title">' + sec.section + '</div>';
+        sec.items.forEach((item, i) => {
+            const id = 'iq_' + sec.section + '_' + i;
+            let ans = item.answer;
+            // Replace PHP placeholders with real data
+            if(ans==='PHP_COUNT') ans = (document.getElementById('cntAll')?.textContent||'—') + ' артикула в този магазин.';
+            if(ans==='PHP_UNITS') ans = (document.getElementById('stUnits')?.textContent || document.getElementById('stCapital')?.textContent || '—') + ' — общо бройки на склад.';
+            if(ans==='PHP_CAPITAL') ans = (document.getElementById('stCapital')?.textContent||'Виж картата "Капитал" на началния екран.') + (CFG.canSeeMargin?' — стойност на склада по продажни цени.':' (видимо само за собственика)');
+            h += '<div class="info-q" onclick="toggleInfoAnswer(\'' + id + '\')">';
+            h += '<span class="iq-icon">' + item.icon + '</span>';
+            h += '<span class="iq-text">' + item.q + '</span>';
+            h += '<span class="iq-arrow">›</span></div>';
+            h += '<div class="info-answer" id="' + id + '">' + ans + '</div>';
+        });
+    });
+    body.innerHTML = h;
+}
+
+function toggleInfoAnswer(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const wasOpen = el.classList.contains('open');
+    document.querySelectorAll('.info-answer.open').forEach(a=>a.classList.remove('open'));
+    if(!wasOpen) el.classList.add('open');
+}
+
+function openInfoFreeChat(){
+    closeInfoPanel();
+    openVoice('Питай каквото искаш за артикулите', text => {
+        // Use ai_assist endpoint
+        fetch('products.php?ajax=ai_assist', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({question: text})
+        }).then(r=>r.json()).then(d=>{
+            if(d.message) showToast(d.message);
+        }).catch(()=>showToast('Грешка'));
+    });
+}
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
