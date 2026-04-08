@@ -2816,12 +2816,12 @@ async function wizAddInline(type){
         const n=document.getElementById('inlSupName')?.value.trim();
         if(!n)return;
         const d=await api('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){if(d.duplicate){showToast('Доставчик "'+d.name+'" вече съществува','error');S.wizData.supplier_id=d.id;renderWizard()}else{CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();openSupCatModal(d.id,d.name)}}
+        if(d?.id){if(d.duplicate){showToast('Доставчик "'+d.name+'" вече съществува','error');S.wizData.supplier_id=d.id;const ss=document.getElementById('wSup');if(ss)ss.value=d.id;document.getElementById('inlSup')?.classList.remove('open')}else{CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();openSupCatModal(d.id,d.name)}}
     }else{
         const n=document.getElementById('inlCatName')?.value.trim();
         if(!n)return;
         const d=await api('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){if(d.duplicate){showToast('Категория "'+d.name+'" вече съществува','error');S.wizData.category_id=d.id;renderWizard()}else{CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}}
+        if(d?.id){if(d.duplicate){showToast('Категория "'+d.name+'" вече съществува','error');S.wizData.category_id=d.id;const cs=document.getElementById('wCat');if(cs)cs.value=d.id;document.getElementById('inlCat')?.classList.remove('open')}else{CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}}
     }
 }
 
