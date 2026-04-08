@@ -55,7 +55,7 @@ if (isset($_GET['ajax'])) {
         if (strlen($q) < 1) { echo json_encode([]); exit; }
         $like = "%{$q}%";
         $rows = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image, p.supplier_id,
+            SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image_url, p.supplier_id,
                    s.name AS supplier_name, c.name AS category_name,
                    COALESCE(SUM(i.quantity), 0) AS total_stock
             FROM products p
@@ -75,7 +75,7 @@ if (isset($_GET['ajax'])) {
         $code = trim($_GET['code'] ?? '');
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $row = DB::run("
-            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image,
+            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image_url,
                    p.supplier_id, p.category_id, p.parent_id, p.description, p.unit,
                    p.discount_pct, p.discount_ends_at, p.min_quantity,
                    s.name AS supplier_name, c.name AS category_name,
@@ -136,32 +136,32 @@ if (isset($_GET['ajax'])) {
             $avg_margin = round((($capital['retail_value'] - $capital['cost_value']) / $capital['retail_value']) * 100, 1);
         }
         $zombies = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image, COALESCE(i.quantity, 0) AS qty,
+            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity, 0) AS qty,
                    DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id), p.created_at)) AS days_stale
             FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity > 0 AND p.parent_id IS NULL
             HAVING days_stale > 45 ORDER BY days_stale DESC LIMIT 10
         ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $low_stock = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image, p.min_quantity, COALESCE(i.quantity, 0) AS qty
+            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.min_quantity, COALESCE(i.quantity, 0) AS qty
             FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1 AND p.min_quantity > 0 AND i.quantity <= p.min_quantity AND i.quantity > 0
             ORDER BY (i.quantity / p.min_quantity) ASC LIMIT 10
         ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $out_of_stock = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image
+            SELECT p.id, p.name, p.code, p.retail_price, p.image_url
             FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity = 0 AND p.parent_id IS NULL
             ORDER BY p.name LIMIT 20
         ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $top_sellers = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image, SUM(si.quantity) AS sold_qty, SUM(si.quantity * si.unit_price) AS revenue
+            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, SUM(si.quantity) AS sold_qty, SUM(si.quantity * si.unit_price) AS revenue
             FROM sale_items si JOIN sales s ON s.id = si.sale_id JOIN products p ON p.id = si.product_id
             WHERE p.tenant_id = ? AND s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND s.status = 'completed'
             GROUP BY p.id ORDER BY sold_qty DESC LIMIT 5
         ", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
         $slow_movers = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image, COALESCE(i.quantity, 0) AS qty,
+            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity, 0) AS qty,
                    DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id), p.created_at)) AS days_stale
             FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity > 0 AND p.parent_id IS NULL
@@ -244,7 +244,7 @@ if (isset($_GET['ajax'])) {
             'newest' => 'p.created_at DESC', default => 'p.name ASC'
         };
         $products = DB::run("
-            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image,
+            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image_url,
                    p.supplier_id, p.category_id, p.parent_id, p.discount_pct, p.discount_ends_at,
                    p.min_quantity, p.unit, s.name AS supplier_name, c.name AS category_name,
                    COALESCE(i.quantity, 0) AS store_stock
@@ -1451,7 +1451,7 @@ function productCardHTML(p){
     const q=p.store_stock||p.qty||0;
     const sc=stockClass(q,p.min_quantity||0);
     const bc=stockBar(q,p.min_quantity||0);
-    const thumb=p.image?`<img src="${p.image}">`:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+    const thumb=p.image_url?`<img src="${p.image_url}">`:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
     const disc=(p.discount_pct&&p.discount_pct>0)?`<div class="p-discount">-${p.discount_pct}%</div>`:'';
     return `<div class="p-card" onclick="openProductDetail(${p.id})">
         <div class="stock-bar ${bc}"></div>
@@ -1496,10 +1496,10 @@ async function loadHome(){
     document.getElementById('cntLow').textContent=d.low_stock?.length||0;
     document.getElementById('cntOut').textContent=d.out_of_stock?.length||0;
 
-    renderCollapse('collapseZombie','💀','Zombie стока',d.zombies,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar red"></div><div class="p-thumb">${p.image?`<img src="${p.image}">`:'💀'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д без продажба</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock out">${p.qty} бр.</div></div></div>`);
-    renderCollapse('collapseLow','⚠️','Свършват скоро',d.low_stock,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image?`<img src="${p.image}">`:'⚠️'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>Мин: ${p.min_quantity}</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
+    renderCollapse('collapseZombie','💀','Zombie стока',d.zombies,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar red"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'💀'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д без продажба</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock out">${p.qty} бр.</div></div></div>`);
+    renderCollapse('collapseLow','⚠️','Свършват скоро',d.low_stock,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'⚠️'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>Мин: ${p.min_quantity}</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
     renderCollapse('collapseTop','🔥','Топ 5 хитове',d.top_sellers,(p,i)=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar green"></div><div class="p-thumb" style="font-size:13px;font-weight:800;color:var(--indigo-300)">#${i+1}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.sold_qty} продадени</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.revenue)}</div></div></div>`);
-    renderCollapse('collapseSlow','🐌','Бавни',d.slow_movers,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image?`<img src="${p.image}">`:'🐌'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
+    renderCollapse('collapseSlow','🐌','Бавни',d.slow_movers,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'🐌'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
     loadHomeProducts();
 }
 
@@ -1655,7 +1655,7 @@ async function openProductDetail(id){
     const p=d.product;
     document.getElementById('detailTitle').textContent=p.name;
     let h='';
-    if(p.image)h+=`<div style="text-align:center;margin-bottom:12px"><img src="${p.image}" style="max-width:180px;border-radius:12px;border:1px solid var(--border-subtle)"></div>`;
+    if(p.image_url)h+=`<div style="text-align:center;margin-bottom:12px"><img src="${p.image_url}" style="max-width:180px;border-radius:12px;border:1px solid var(--border-subtle)"></div>`;
     h+=`<div class="d-row"><span class="d-label">Код</span><span class="d-value">${esc(p.code)||'—'}</span></div>`;
     h+=`<div class="d-row"><span class="d-label">Цена</span><span class="d-value">${fmtPrice(p.retail_price)}</span></div>`;
     if(CFG.canSeeCost)h+=`<div class="d-row"><span class="d-label">Доставна</span><span class="d-value">${fmtPrice(p.cost_price)}</span></div>`;
