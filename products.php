@@ -1979,7 +1979,7 @@ function closeWizard(){
 }
 
 function wizGo(step){
-    if(S.wizStep>=3&&S.wizStep<=5)wizCollectData();
+    wizCollectData();
     if(step===2&&!S.wizData._hasPhoto){step=3;}
     // Skip AI Studio if no photo
     if(step===2&&!S.wizData._hasPhoto){step=3;}
@@ -2085,15 +2085,15 @@ function renderWizPage(step){
         CFG.categories.filter(c=>!c.parent_id).forEach(c=>catO+='<option value="'+c.id+'" '+(S.wizData.category_id==c.id?'selected':'')+'>'+esc(c.name)+'</option>');
         const wpHidden=CFG.skipWholesale?'display:none':'';
         return '<div class="wiz-page active">'+
-        '<div class="fg">'+fieldLabel('Наименование *','name')+'<input type="text" class="fc" id="wName" value="'+esc(nm)+'" placeholder="напр. Nike Air Max 90 Черни"></div>'+
-        '<div class="fg">'+fieldLabel('Артикулен номер *','code','<span class="hint">(AI генерира ако е празно)</span>')+'<input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="автоматично"></div>'+
+        '<div class="fg">'+fieldLabel('Наименование *','name')+'<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Nike Air Max 90 Черни"></div>'+
+        '<div class="fg">'+fieldLabel('Артикулен номер *','code','<span class="hint">(AI генерира ако е празно)</span>')+'<input type="text" class="fc" id="wCode" oninput="S.wizData.code=this.value.trim()" value="'+esc(S.wizData.code||'')+'" placeholder="автоматично"></div>'+
         '<div class="form-row">'+
-        '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<input type="number" step="0.01" class="fc" id="wPrice" value="'+pr+'" placeholder="0,00"></div>'+
-        '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" value="'+wp+'" placeholder="0,00"></div></div>'+
-        '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
-        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">+ Нов</span>')+'<select class="fc" id="wSup">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<select class="fc" id="wCat">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<input type="number" step="0.01" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0,00"></div>'+
+        '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00"></div></div>'+
+        '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
+        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">+ Нов</span>')+'<select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value||null">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(S.wizData._hasPhoto?2:1)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
@@ -2157,10 +2157,10 @@ function renderWizPagePart2(step){
         let unitO='';CFG.units.forEach(u=>unitO+='<option value="'+u+'" '+(S.wizData.unit===u?'selected':'')+'>'+u+'</option>');
         return '<div class="wiz-page active">'+
         '<div class="fg">'+fieldLabel('Мерна единица','unit','<span class="fl-add" onclick="toggleInl(\'inlUnit\')">+ Друга</span>')+
-        '<select class="fc" id="wUnit">'+unitO+'</select>'+
+        '<select class="fc" id="wUnit" onchange="S.wizData.unit=this.value">'+unitO+'</select>'+
         '<div class="inline-add" id="inlUnit"><input type="text" placeholder="напр. метър, кг..." id="inlUnitName"><button onclick="wizAddUnit()">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Минимално количество','min_qty')+
-        '<input type="number" class="fc" id="wMinQty" value="'+(S.wizData.min_quantity||0)+'" placeholder="0"></div>'+
+        '<input type="number" class="fc" id="wMinQty" oninput="S.wizData.min_quantity=parseInt(this.value)||0" value="'+(S.wizData.min_quantity||0)+'" placeholder="0"></div>'+
         '<button class="abtn primary" onclick="wizGoPreview()">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(4)" style="margin-top:6px">← Назад</button>'+vskip+'</div>';
     }
