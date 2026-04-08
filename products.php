@@ -1998,9 +1998,33 @@ function renderWizard(){
     document.getElementById('wizLabel').innerHTML=(S.wizStep+1)+' · <b>'+WIZ_LABELS[S.wizStep]+'</b>';
     document.getElementById('wizBody').innerHTML=renderWizPage(S.wizStep);
     document.getElementById('wizBody').scrollTop=0;
-    // Subcategory loader for step 3
+    // Subcategory loader + Supplier→Category filter for step 3
     if(S.wizStep===3){
+        const wSup=document.getElementById('wSup');
         const wCat=document.getElementById('wCat');
+        // When supplier changes → reload categories for this supplier
+        if(wSup){wSup.onchange=async function(){
+            const supId=this.value;
+            const sel=document.getElementById('wCat');
+            const subsel=document.getElementById('wSubcat');
+            sel.innerHTML='<option value="">— Избери —</option>';
+            if(subsel)subsel.innerHTML='<option value="">— Няма —</option>';
+            if(!supId){
+                // No supplier — show all categories
+                CFG.categories.filter(c=>!c.parent_id).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+                return;
+            }
+            const d=await api('products.php?ajax=categories&store_id='+CFG.storeId+'&sup='+supId);
+            if(d&&d.length){
+                d.filter(c=>!c.parent_id).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+            }
+            // Always add separator + all categories option
+            const sep=document.createElement('option');sep.disabled=true;sep.textContent='── Всички категории ──';sel.appendChild(sep);
+            CFG.categories.filter(c=>!c.parent_id).forEach(c=>{
+                if(!d||!d.find(dc=>dc.id==c.id)){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;o.style.color='#666';sel.appendChild(o)}
+            });
+        };if(S.wizData.supplier_id)wSup.onchange()}
+        // When category changes → reload subcategories
         if(wCat){wCat.onchange=async function(){
             const id=this.value;const sel=document.getElementById('wSubcat');
             sel.innerHTML='<option value="">\u2014 Няма \u2014</option>';
