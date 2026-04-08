@@ -2000,6 +2000,14 @@ function renderWizard(){
     document.getElementById('wizBody').scrollTop=0;
     // Subcategory loader + Supplier→Category filter for step 3
     if(S.wizStep===3){
+        // Force restore all fields from saved data (belt-and-suspenders)
+        const _el=id=>document.getElementById(id);
+        if(_el('wName')&&S.wizData.name)_el('wName').value=S.wizData.name;
+        if(_el('wCode')&&S.wizData.code)_el('wCode').value=S.wizData.code;
+        if(_el('wPrice')&&S.wizData.retail_price)_el('wPrice').value=S.wizData.retail_price;
+        if(_el('wWprice')&&S.wizData.wholesale_price)_el('wWprice').value=S.wizData.wholesale_price;
+        if(_el('wBarcode')&&S.wizData.barcode)_el('wBarcode').value=S.wizData.barcode;
+        if(_el('wSup')&&S.wizData.supplier_id)_el('wSup').value=S.wizData.supplier_id;
         const wSup=document.getElementById('wSup');
         const wCat=document.getElementById('wCat');
         // When supplier changes → reload categories for this supplier
@@ -2011,16 +2019,18 @@ function renderWizard(){
             if(subsel)subsel.innerHTML='<option value="">— Няма —</option>';
             if(!supId){
                 // No supplier — show all categories
-                CFG.categories.filter(c=>!c.parent_id).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+                CFG.categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+                if(S.wizData.category_id)sel.value=S.wizData.category_id;
+                if(sel.value&&wCat)wCat.onchange();
                 return;
             }
             const d=await api('products.php?ajax=categories&store_id='+CFG.storeId+'&sup='+supId);
             if(d&&d.length){
-                d.filter(c=>!c.parent_id).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+                d.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
             }
             // Always add separator + all categories option
             const sep=document.createElement('option');sep.disabled=true;sep.textContent='── Всички категории ──';sel.appendChild(sep);
-            CFG.categories.filter(c=>!c.parent_id).forEach(c=>{
+            CFG.categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{
                 if(!d||!d.find(dc=>dc.id==c.id)){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;o.style.color='#666';sel.appendChild(o)}
             });
             // Re-select saved category after rebuild
@@ -2080,9 +2090,9 @@ function renderWizPage(step){
     if(step===3){
         const nm=S.wizData.name||'';const pr=S.wizData.retail_price||'';const wp=S.wizData.wholesale_price||'';
         let supO='<option value="">— Избери —</option>';
-        CFG.suppliers.forEach(s=>supO+='<option value="'+s.id+'" '+(S.wizData.supplier_id==s.id?'selected':'')+'>'+esc(s.name)+'</option>');
+        CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(s=>supO+='<option value="'+s.id+'" '+(S.wizData.supplier_id==s.id?'selected':'')+'>'+esc(s.name)+'</option>');
         let catO='<option value="">— Избери —</option>';
-        CFG.categories.filter(c=>!c.parent_id).forEach(c=>catO+='<option value="'+c.id+'" '+(S.wizData.category_id==c.id?'selected':'')+'>'+esc(c.name)+'</option>');
+        CFG.categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>catO+='<option value="'+c.id+'" '+(S.wizData.category_id==c.id?'selected':'')+'>'+esc(c.name)+'</option>');
         const wpHidden=CFG.skipWholesale?'display:none':'';
         return '<div class="wiz-page active">'+
         '<div class="fg">'+fieldLabel('Наименование *','name')+'<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Nike Air Max 90 Черни"></div>'+
@@ -2092,7 +2102,7 @@ function renderWizPage(step){
         '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00"></div></div>'+
         '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
         '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">+ Нов</span>')+'<select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value||null">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<input type="text" class="fc" id="wCatSearch" placeholder="🔍 Търси категория..." style="margin-bottom:4px;font-size:12px" oninput="wizFilterSelect(\'wCat\',this.value)"><select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(S.wizData._hasPhoto?2:1)" style="margin-top:6px">← Назад</button>'+
@@ -2475,6 +2485,16 @@ function wizBuildCombinations(){
         axisValues:c.parts.map(p=>p.value).join(' / '),
         parts:c.parts,qty:0
     }));
+}
+
+
+function wizFilterSelect(selId,q){
+    const sel=document.getElementById(selId);if(!sel)return;
+    const lq=q.toLowerCase().trim();
+    for(const o of sel.options){
+        if(!o.value){o.style.display='';continue}
+        o.style.display=(!lq||o.textContent.toLowerCase().includes(lq))?'':'none';
+    }
 }
 
 function wizCollectData(){
