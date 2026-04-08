@@ -16,15 +16,16 @@ $store_id  = (int)$_SESSION['store_id'];
 $role      = $_SESSION['role'] ?? 'seller';
 $user_name = $_SESSION['user_name'] ?? '';
 
-// ── TENANT INFO ──
-$tenant = DB::run('SELECT plan, currency, lang FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
-$plan = strtoupper($tenant['plan'] ?? 'free');
+// ── PLAN (from subscriptions) ──
+$sub = DB::run(
+    'SELECT plan, status FROM subscriptions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 1',
+    [$tenant_id]
+)->fetch();
+$plan = strtoupper($sub['plan'] ?? 'FREE');
 if (!in_array($plan, ['FREE','BUSINESS','PRO','ENTERPRISE'])) $plan = 'FREE';
-$currency = $tenant['currency'] ?? 'EUR';
-$lang = $tenant['lang'] ?? 'bg';
 
-$currency_symbols = ['EUR'=>'€','BGN'=>'лв','RON'=>'lei','GBP'=>'£','USD'=>'$','CZK'=>'Kč','PLN'=>'zł','HUF'=>'Ft','RSD'=>'дин','HRK'=>'kn','TRY'=>'₺','GEL'=>'₾','UAH'=>'₴'];
-$cs = $currency_symbols[$currency] ?? $currency;
+// ── CURRENCY ──
+$cs = '€';
 
 function fmtMoney($v, $cs) {
     return number_format($v, 0, ',', '.') . ' ' . $cs;
@@ -40,7 +41,7 @@ $is_night = (int)date('H') >= 20 || (int)date('H') < 8;
 // ══════════════════════════════════════════════
 $rev_today = DB::run(
     'SELECT COALESCE(SUM(total),0) AS revenue, COUNT(*) AS cnt
-     FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)=CURDATE() AND status="completed"',
+     FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)=CURDATE() AND status!="canceled"',
     [$tenant_id, $store_id]
 )->fetch();
 $today_revenue = (float)$rev_today['revenue'];
@@ -53,7 +54,7 @@ if ($role === 'owner' && $today_count > 0) {
     $margin_data = DB::run(
         'SELECT COALESCE(SUM(si.total - si.cost_price * si.quantity),0) AS profit
          FROM sale_items si JOIN sales s ON s.id=si.sale_id
-         WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)=CURDATE() AND s.status="completed"',
+         WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="canceled"',
         [$tenant_id, $store_id]
     )->fetch();
     $today_profit = (float)$margin_data['profit'];
@@ -69,7 +70,7 @@ $dow = (int)date('N');
 // 7d: today vs same weekday last week
 $prev_7d = (float)DB::run(
     'SELECT COALESCE(SUM(total),0) FROM sales
-     WHERE tenant_id=? AND store_id=? AND DATE(created_at)=DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status="completed"',
+     WHERE tenant_id=? AND store_id=? AND DATE(created_at)=DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status!="canceled"',
     [$tenant_id, $store_id]
 )->fetchColumn();
 
@@ -85,13 +86,13 @@ $last_week_end = date('Y-m-d', strtotime('sunday last week'));
 
 $tw_rev = (float)DB::run(
     'SELECT COALESCE(SUM(total),0) FROM sales
-     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=CURDATE() AND status="completed"',
+     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=CURDATE() AND status!="canceled"',
     [$tenant_id, $store_id, $this_week_start]
 )->fetchColumn();
 
 $lw_rev = (float)DB::run(
     'SELECT COALESCE(SUM(total),0) FROM sales
-     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status="completed"',
+     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
     [$tenant_id, $store_id, $last_week_start, $last_week_end]
 )->fetchColumn();
 
@@ -110,13 +111,13 @@ $ly_month_days = max(1, (int)date('t', strtotime('-1 year')));
 
 $tm_rev = (float)DB::run(
     'SELECT COALESCE(SUM(total),0) FROM sales
-     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=CURDATE() AND status="completed"',
+     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=CURDATE() AND status!="canceled"',
     [$tenant_id, $store_id, $month_start]
 )->fetchColumn();
 
 $lym_rev = (float)DB::run(
     'SELECT COALESCE(SUM(total),0) FROM sales
-     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status="completed"',
+     WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
     [$tenant_id, $store_id, $ly_month_start, $ly_month_end]
 )->fetchColumn();
 
@@ -130,7 +131,7 @@ $cmp_365d_sub = fmtMoney(round($lym_avg), $cs) . '/ден → ' . fmtMoney(round
 $top_today = DB::run(
     'SELECT p.name, SUM(si.quantity) AS qty FROM sale_items si
      JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
-     WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)=CURDATE() AND s.status="completed"
+     WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="canceled"
      GROUP BY si.product_id ORDER BY qty DESC LIMIT 1',
     [$tenant_id, $store_id]
 )->fetch();
@@ -169,7 +170,7 @@ if (!$is_night) {
          JOIN inventory i ON i.product_id=p.id AND i.store_id=?
          WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0
          AND p.id IN (SELECT si.product_id FROM sale_items si JOIN sales s ON s.id=si.sale_id
-                      WHERE s.tenant_id=? AND s.store_id=? AND s.status="completed"
+                      WHERE s.tenant_id=? AND s.store_id=? AND s.status!="canceled"
                       AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))',
         [$store_id, $tenant_id, $tenant_id, $store_id]
     )->fetchColumn();
@@ -210,7 +211,7 @@ if (!$is_night) {
          WHERE i.store_id=? AND p.tenant_id=? AND i.quantity>0 AND p.is_active=1 AND p.parent_id IS NULL
          AND DATEDIFF(NOW(),COALESCE(
             (SELECT MAX(s2.created_at) FROM sales s2 JOIN sale_items si2 ON si2.sale_id=s2.id
-             WHERE si2.product_id=p.id AND s2.store_id=i.store_id AND s2.status="completed"),
+             WHERE si2.product_id=p.id AND s2.store_id=i.store_id AND s2.status!="canceled"),
             p.created_at))>=45',
         [$store_id, $tenant_id]
     )->fetch();
@@ -261,10 +262,10 @@ if (!$is_night) {
              JOIN inventory i ON i.product_id=p.id AND i.store_id=?
              WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0
              AND p.id IN (SELECT si.product_id FROM sale_items si JOIN sales s ON s.id=si.sale_id
-                          WHERE s.tenant_id=? AND s.store_id=? AND s.status="completed"
+                          WHERE s.tenant_id=? AND s.store_id=? AND s.status!="canceled"
                           AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))
              ORDER BY (SELECT SUM(si2.quantity) FROM sale_items si2 JOIN sales s2 ON s2.id=si2.sale_id
-                       WHERE si2.product_id=p.id AND s2.store_id=? AND s2.status="completed"
+                       WHERE si2.product_id=p.id AND s2.store_id=? AND s2.status!="canceled"
                        AND s2.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) DESC
              LIMIT 5',
             [$store_id, $tenant_id, $tenant_id, $store_id, $store_id]
@@ -318,7 +319,7 @@ $plan_colors = match($plan) {
 };
 ?>
 <!DOCTYPE html>
-<html lang="<?= htmlspecialchars($lang) ?>">
+<html lang="bg">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
