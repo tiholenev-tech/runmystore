@@ -200,19 +200,22 @@ if (isset($_GET['ajax'])) {
     if ($ajax === 'categories') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
-        $where = $sup ? "AND p.supplier_id = ?" : "";
-        $params = $sup ? [$tenant_id, $sid, $sup, $tenant_id] : [$tenant_id, $sid, $tenant_id];
-        $sql = $sup
-            ? "SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count, COALESCE(SUM(i.quantity), 0) AS total_stock
-               FROM categories c JOIN products p ON p.category_id = c.id AND p.tenant_id = ? AND p.is_active = 1
-               LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-               WHERE p.supplier_id = ? AND c.tenant_id = ? GROUP BY c.id ORDER BY c.name"
-            : "SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count,
+        if ($sup) {
+            // Get categories linked to this supplier via supplier_categories table
+            $sql = "SELECT c.id, c.name, c.parent_id
+                    FROM categories c
+                    JOIN supplier_categories sc ON sc.category_id = c.id AND sc.supplier_id = ? AND sc.tenant_id = ?
+                    WHERE c.tenant_id = ?
+                    ORDER BY c.name";
+            $categories = DB::run($sql, [$sup, $tenant_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $sql = "SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count,
                       COUNT(DISTINCT p.supplier_id) AS supplier_count, COALESCE(SUM(i.quantity), 0) AS total_stock
                FROM categories c JOIN products p ON p.category_id = c.id AND p.tenant_id = ? AND p.is_active = 1
                LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
                WHERE c.tenant_id = ? GROUP BY c.id ORDER BY c.name";
-        $categories = DB::run($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+            $categories = DB::run($sql, [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        }
         echo json_encode($categories); exit;
     }
 
@@ -221,6 +224,46 @@ if (isset($_GET['ajax'])) {
         $parent_id = (int)($_GET['parent_id'] ?? 0);
         $rows = DB::run("SELECT id, name FROM categories WHERE tenant_id = ? AND parent_id = ? ORDER BY name", [$tenant_id, $parent_id])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($rows); exit;
+    }
+
+    // ─── SUPPLIER CATEGORIES (get/save) ───
+    if ($ajax === 'get_supplier_categories') {
+        $sup_id = (int)($_GET['supplier_id'] ?? 0);
+        $rows = DB::run("SELECT category_id FROM supplier_categories WHERE tenant_id = ? AND supplier_id = ?",
+            [$tenant_id, $sup_id])->fetchAll(PDO::FETCH_COLUMN);
+        echo json_encode($rows); exit;
+    }
+
+    if ($ajax === 'save_supplier_categories') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $sup_id = (int)($input['supplier_id'] ?? 0);
+        $cat_ids = $input['category_ids'] ?? [];
+        if (!$sup_id) { echo json_encode(['error' => 'No supplier']); exit; }
+        // Clear old
+        DB::run("DELETE FROM supplier_categories WHERE tenant_id = ? AND supplier_id = ?", [$tenant_id, $sup_id]);
+        // Insert new
+        foreach ($cat_ids as $cid) {
+            $cid = (int)$cid;
+            if ($cid > 0) {
+                DB::run("INSERT IGNORE INTO supplier_categories (tenant_id, supplier_id, category_id) VALUES (?, ?, ?)",
+                    [$tenant_id, $sup_id, $cid]);
+            }
+        }
+        echo json_encode(['ok' => true, 'count' => count($cat_ids)]); exit;
+    }
+
+    // ─── CATEGORY GROUPS (from JSON) ───
+    if ($ajax === 'category_groups') {
+        $jsonFile = __DIR__ . '/category-groups.json';
+        if (!file_exists($jsonFile)) { echo json_encode([]); exit; }
+        $all = json_decode(file_get_contents($jsonFile), true);
+        $bt = $_GET['business_type'] ?? $business_type;
+        foreach ($all as $item) {
+            if ($item['business_type'] === $bt) {
+                echo json_encode($item['category_groups']); exit;
+            }
+        }
+        echo json_encode([]); exit;
     }
 
     // ─── PRODUCTS LIST ───
@@ -2484,6 +2527,109 @@ function wizBuildCombinations(){
 }
 
 
+// ═══ SUPPLIER CATEGORY PICKER ═══
+let _supCatSupplierId = null;
+
+async function openSupCatModal(supplierId, supplierName) {
+    _supCatSupplierId = supplierId;
+    document.getElementById('supCatTitle').textContent = 'Категории на ' + supplierName;
+    document.getElementById('supCatSearch').value = '';
+    const body = document.getElementById('supCatBody');
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary)">Зарежда...</div>';
+    document.getElementById('supCatModal').style.display = '';
+
+    // Load category groups for this business type
+    const groups = await api('products.php?ajax=category_groups&business_type=' + encodeURIComponent(CFG.businessType));
+    // Load existing selected categories for this supplier
+    const existing = await api('products.php?ajax=get_supplier_categories&supplier_id=' + supplierId);
+    const existingSet = new Set((existing||[]).map(Number));
+    // Load all tenant categories to match by name
+    const allCats = CFG.categories.filter(c => !c.parent_id);
+    const catByName = {};
+    allCats.forEach(c => catByName[c.name.toLowerCase()] = c);
+
+    let html = '';
+    if (groups && groups.length) {
+        groups.forEach(g => {
+            html += '<div class="scp-group" style="margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--indigo-300);margin-bottom:6px">' + g.icon + ' ' + esc(g.group) + '</div>';
+            g.categories.forEach(catName => {
+                const match = catByName[catName.toLowerCase()];
+                const catId = match ? match.id : 'new:' + catName;
+                const checked = match && existingSet.has(match.id) ? 'checked' : '';
+                html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px" data-name="' + esc(catName) + '">';
+                html += '<input type="checkbox" value="' + catId + '" ' + checked + ' style="accent-color:var(--indigo-500);width:18px;height:18px">';
+                html += '<span>' + esc(catName) + '</span>';
+                if (!match) html += '<span style="font-size:9px;color:rgba(245,158,11,0.8);margin-left:auto">нова</span>';
+                html += '</label>';
+            });
+            html += '</div>';
+        });
+    } else {
+        // No groups for this business type — show all existing categories
+        html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Всички категории:</div>';
+        allCats.sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
+            const checked = existingSet.has(c.id) ? 'checked' : '';
+            html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px" data-name="' + esc(c.name) + '">';
+            html += '<input type="checkbox" value="' + c.id + '" ' + checked + ' style="accent-color:var(--indigo-500);width:18px;height:18px">';
+            html += '<span>' + esc(c.name) + '</span></label>';
+        });
+    }
+    body.innerHTML = html;
+}
+
+function filterSupCatModal(q) {
+    const lq = q.toLowerCase().trim();
+    document.querySelectorAll('#supCatBody .scp-item').forEach(el => {
+        el.style.display = (!lq || el.dataset.name.toLowerCase().includes(lq)) ? '' : 'none';
+    });
+    document.querySelectorAll('#supCatBody .scp-group').forEach(g => {
+        const visible = g.querySelectorAll('.scp-item[style=""], .scp-item:not([style])');
+        g.style.display = visible.length > 0 ? '' : 'none';
+    });
+}
+
+function closeSupCatModal() {
+    document.getElementById('supCatModal').style.display = 'none';
+}
+
+async function saveSupCatModal() {
+    const checks = document.querySelectorAll('#supCatBody input[type=checkbox]:checked');
+    const catIds = [];
+    const newCats = [];
+    checks.forEach(cb => {
+        const v = cb.value;
+        if (v.startsWith('new:')) {
+            newCats.push(v.substring(4));
+        } else {
+            catIds.push(parseInt(v));
+        }
+    });
+
+    // Create new categories first
+    for (const name of newCats) {
+        const d = await api('products.php?ajax=add_category', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'name=' + encodeURIComponent(name)
+        });
+        if (d?.id) {
+            catIds.push(d.id);
+            CFG.categories.push({id: d.id, name: d.name});
+        }
+    }
+
+    // Save supplier_categories
+    await api('products.php?ajax=save_supplier_categories', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({supplier_id: _supCatSupplierId, category_ids: catIds})
+    });
+
+    showToast(catIds.length + ' категории записани ✓', 'success');
+    closeSupCatModal();
+    renderWizard();
+}
+
 function wizFilterSelect(selId,q){
     const sel=document.getElementById(selId);if(!sel)return;
     const lq=q.toLowerCase().trim();
@@ -2668,7 +2814,7 @@ async function wizAddInline(type){
         const n=document.getElementById('inlSupName')?.value.trim();
         if(!n)return;
         const d=await api('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard()}
+        if(d?.id){CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();openSupCatModal(d.id,d.name)}
     }else{
         const n=document.getElementById('inlCatName')?.value.trim();
         if(!n)return;
@@ -2710,5 +2856,21 @@ document.getElementById('recOv').addEventListener('click',function(e){
     }
 });
 </script>
+<!-- Supplier Category Picker Modal -->
+<div id="supCatModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);overflow-y:auto;padding:16px">
+<div style="max-width:480px;margin:20px auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-subtle);padding:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:15px;font-weight:700" id="supCatTitle">Категории на доставчика</div>
+<button onclick="closeSupCatModal()" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">✕</button>
+</div>
+<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px">Избери какви категории носи този доставчик:</div>
+<input type="text" class="fc" id="supCatSearch" placeholder="🔍 Търси..." style="margin-bottom:10px;font-size:12px" oninput="filterSupCatModal(this.value)">
+<div id="supCatBody" style="max-height:55vh;overflow-y:auto"></div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button class="abtn primary" onclick="saveSupCatModal()" style="flex:1">✓ Запази</button>
+<button class="abtn" onclick="closeSupCatModal()" style="flex:1">Затвори</button>
+</div>
+</div>
+</div>
 </body>
 </html>
