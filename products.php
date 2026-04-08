@@ -2023,6 +2023,10 @@ function renderWizard(){
             CFG.categories.filter(c=>!c.parent_id).forEach(c=>{
                 if(!d||!d.find(dc=>dc.id==c.id)){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;o.style.color='#666';sel.appendChild(o)}
             });
+            // Re-select saved category after rebuild
+            if(S.wizData.category_id)sel.value=S.wizData.category_id;
+            // Trigger subcategory load for saved category
+            if(sel.value&&wCat)wCat.onchange();
         };if(S.wizData.supplier_id)wSup.onchange()}
         // When category changes → reload subcategories
         if(wCat){wCat.onchange=async function(){
@@ -2031,7 +2035,9 @@ function renderWizard(){
             if(!id)return;
             const d=await api('products.php?ajax=subcategories&parent_id='+id);
             if(d&&d.length)d.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
-        };if(S.wizData.category_id)wCat.onchange()}
+            // Re-select saved subcategory
+            if(S.wizData.subcategory_id)sel.value=S.wizData.subcategory_id;
+        };if(S.wizData.category_id&&!S.wizData.supplier_id)wCat.onchange()}
     }
 }
 
