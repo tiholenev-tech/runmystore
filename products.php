@@ -2028,11 +2028,7 @@ function renderWizard(){
             if(d&&d.length){
                 d.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
             }
-            // Always add separator + all categories option
-            const sep=document.createElement('option');sep.disabled=true;sep.textContent='── Всички категории ──';sel.appendChild(sep);
-            CFG.categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{
-                if(!d||!d.find(dc=>dc.id==c.id)){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;o.style.color='#666';sel.appendChild(o)}
-            });
+            // No fallback — show only supplier's categories (+ Нова via inline add)
             // Re-select saved category after rebuild
             if(S.wizData.category_id)sel.value=S.wizData.category_id;
             // Trigger subcategory load for saved category
