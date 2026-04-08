@@ -425,7 +425,7 @@ if (isset($_GET['ajax'])) {
         $name = trim($_POST['name'] ?? '');
         if (!$name) { echo json_encode(['error'=>'Въведи име']); exit; }
         $exists = DB::run("SELECT id FROM suppliers WHERE tenant_id=? AND name=?", [$tenant_id, $name])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name]); exit; }
+        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
         DB::run("INSERT INTO suppliers (tenant_id, name, is_active) VALUES (?,?,1)", [$tenant_id, $name]);
         echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
     }
@@ -436,7 +436,7 @@ if (isset($_GET['ajax'])) {
         $parent = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
         if (!$name) { echo json_encode(['error'=>'Въведи име']); exit; }
         $exists = DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND (parent_id=? OR (parent_id IS NULL AND ? IS NULL))", [$tenant_id, $name, $parent, $parent])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name]); exit; }
+        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
         DB::run("INSERT INTO categories (tenant_id, name, parent_id) VALUES (?,?,?)", [$tenant_id, $name, $parent]);
         echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
     }
@@ -447,7 +447,7 @@ if (isset($_GET['ajax'])) {
         $parent_id = (int)($_POST['parent_id'] ?? 0);
         if (!$name || !$parent_id) { echo json_encode(['error'=>'Въведи име и категория']); exit; }
         $exists = DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?", [$tenant_id, $name, $parent_id])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name]); exit; }
+        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
         DB::run("INSERT INTO categories (tenant_id, name, parent_id) VALUES (?,?,?)", [$tenant_id, $name, $parent_id]);
         echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
     }
@@ -2737,10 +2737,12 @@ function wizAddSubcat(){
     if(!name||!parentId){showToast('Избери категория и въведи име','error');return}
     api('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(name)+'&parent_id='+parentId}).then(d=>{
         if(d?.id){
+            if(d.duplicate){showToast('Подкатегория "'+d.name+'" вече съществува','error')}
+            else{showToast('Подкатегория добавена ✓','success')}
             const sel=document.getElementById('wSubcat');
             const o=document.createElement('option');o.value=d.id;o.textContent=d.name;o.selected=true;
             sel.appendChild(o);
-            showToast('Подкатегория добавена ✓','success');
+            S.wizData.subcategory_id=d.id;
             document.getElementById('inlSubcat').classList.remove('open');
         }
     });
@@ -2814,12 +2816,12 @@ async function wizAddInline(type){
         const n=document.getElementById('inlSupName')?.value.trim();
         if(!n)return;
         const d=await api('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();openSupCatModal(d.id,d.name)}
+        if(d?.id){if(d.duplicate){showToast('Доставчик "'+d.name+'" вече съществува','error');S.wizData.supplier_id=d.id;renderWizard()}else{CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();openSupCatModal(d.id,d.name)}}
     }else{
         const n=document.getElementById('inlCatName')?.value.trim();
         if(!n)return;
         const d=await api('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}
+        if(d?.id){if(d.duplicate){showToast('Категория "'+d.name+'" вече съществува','error');S.wizData.category_id=d.id;renderWizard()}else{CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}}
     }
 }
 
