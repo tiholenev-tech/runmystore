@@ -942,7 +942,14 @@ select.fc{
     background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.12);
     border-radius:8px;padding:8px;margin-top:4px;display:none;gap:6px;align-items:center;
 }
-.inline-add.open{display:flex}
+.inline-add.open{display:flex;animation:inlGlow 0.4s ease;border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.08);box-shadow:0 0 6px rgba(34,197,94,0.15)}
+@keyframes inlGlow{0%{box-shadow:0 0 0 rgba(34,197,94,0)}50%{box-shadow:0 0 18px rgba(34,197,94,0.4)}100%{box-shadow:0 0 6px rgba(34,197,94,0.15)}}
+.preset-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease}
+.preset-box{background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:20px;border:1px solid var(--border-subtle);border-bottom:none}
+.preset-chip{display:inline-block;padding:8px 16px;margin:4px;border-radius:10px;border:1.5px solid var(--border-subtle);background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;user-select:none}
+.preset-chip.sel{border-color:var(--indigo-500);background:rgba(99,102,241,0.2);color:var(--indigo-300);box-shadow:0 0 8px rgba(99,102,241,0.2)}
+.preset-chip:active{transform:scale(0.95)}
+.preset-cat{font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:12px 0 6px;letter-spacing:0.5px}
 .inline-add input{flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-card);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .inline-add button{padding:7px 12px;border-radius:6px;border:none;background:var(--indigo-500);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 
@@ -1378,6 +1385,7 @@ input[type=file]{display:none}
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
 <input type="file" id="filePickerInput" accept="image/*,*/*">
+<input type="file" id="filePickerInput" accept="image/*,.pdf">
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
 <script>
@@ -1398,6 +1406,8 @@ const CFG = {
     units: <?= json_encode($onboarding_units, JSON_UNESCAPED_UNICODE) ?>,
     colors: <?= json_encode($COLOR_PALETTE, JSON_UNESCAPED_UNICODE) ?>,
 };
+window._bizVariants=<?= json_encode($bizVars ?: [], JSON_UNESCAPED_UNICODE) ?>;
+window._sizePresets={clothing:['XS','S','M','L','XL','2XL','3XL','4XL'],shoes:['36','37','38','39','40','41','42','43','44','45','46'],clothing_eu:['34','36','38','40','42','44','46','48','50','52','54','56'],kids:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164'],pants:['W28','W29','W30','W31','W32','W33','W34','W36','W38'],rings:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'],socks:['35-38','39-42','43-46'],hats:['S/M','L/XL','One Size'],bra:['70A','70B','75A','75B','75C','80A','80B','80C','80D','85B','85C','85D']};
 
 // ═══════════════════════════════════════════════════════════
 // PART 3: JS CORE — Navigation, Home, Search, Drawers, Camera
@@ -1451,10 +1461,6 @@ function productCardHTML(p){
 }
 
 // ─── NAVIGATION ───
-function goScreenWithHistory(scr, params={}){
-    history.pushState({scr, params}, '', '#'+scr);
-    goScreen(scr, params);
-}
 function goScreen(scr, params={}){
     S.screen=scr; S.supId=params.sup||null; S.catId=params.cat||null; S.page=1;
     document.querySelectorAll('.screen-section').forEach(el=>el.classList.remove('active'));
@@ -2026,7 +2032,7 @@ function renderWizPage(step){
         '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Силно препоръчително — AI използва снимката за описание и обработка</div>'+
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px;margin-bottom:14px;text-align:left"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Сложи на равна светла повърхност<br>✓ Без други предмети около<br>✓ Добро осветление<br>✓ Ясна, неразмазана снимка<br>✓ Максимално добро качество</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
-        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
+        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById('photoInput').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
         '<div id="wizPhotoPreview">'+(S.wizData._photoDataUrl?'<img src="'+S.wizData._photoDataUrl+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">':'')+'</div><div id="wizScanResult"></div>'+
         '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
@@ -2054,7 +2060,7 @@ function renderWizPage(step){
         '<div class="form-row">'+
         '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<input type="number" step="0.01" class="fc" id="wPrice" value="'+pr+'" placeholder="0,00"></div>'+
         '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" value="'+wp+'" placeholder="0,00"></div></div>'+
-        '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<input type="text" class="fc" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи"></div>'+
+        '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
         '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">+ Нов</span>')+'<select class="fc" id="wSup">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<select class="fc" id="wCat">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
@@ -2089,19 +2095,29 @@ function renderWizPagePart2(step){
 
         let axesH='';
         S.wizData.axes.forEach((ax,i)=>{
-            const vals=ax.values.map((v,vi)=>'<span style="display:inline-block;padding:3px 9px;border-radius:6px;background:rgba(99,102,241,0.12);color:var(--indigo-300);font-size:11px;font-weight:600;margin:2px;cursor:pointer" onclick="S.wizData.axes['+i+'].values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>').join('');
-            axesH+='<div style="margin-bottom:10px;padding:10px;border-radius:10px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle)">'+
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:var(--indigo-300)">'+esc(ax.name)+'</span><span style="font-size:10px;color:var(--danger);cursor:pointer" onclick="S.wizData.axes.splice('+i+',1);renderWizard()">✕ Махни</span></div>'+
-            '<div style="margin-bottom:6px">'+(vals||'<span style="font-size:10px;color:var(--text-secondary)">Добави стойности</span>')+'</div>'+
-            '<div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Добави стойност..." style="font-size:12px;padding:6px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddAxisValue('+i+')">+</button></div></div>';
+            const isSize=ax.name.toLowerCase().includes('размер')||ax.name.toLowerCase().includes('size');
+            const isColor=ax.name.toLowerCase().includes('цвят')||ax.name.toLowerCase().includes('color');
+            const hasPresets=isSize||isColor;
+            const vals=ax.values.map((v,vi)=>'<span style="display:inline-block;padding:4px 10px;border-radius:8px;background:rgba(99,102,241,0.15);color:var(--indigo-300);font-size:12px;font-weight:600;margin:2px;cursor:pointer" onclick="S.wizData.axes['+i+'].values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>').join('');
+            axesH+='<div style="margin-bottom:10px;padding:12px;border-radius:12px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle)">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--indigo-300)">'+esc(ax.name)+'</span>'+
+            '<div style="display:flex;gap:8px;align-items:center">'+
+            (ax.values.length>0?'<span style="font-size:10px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600" onclick="S.wizData.axes['+i+'].values=[];renderWizard()">Изчисти</span>':'')+
+            '<span style="font-size:10px;color:var(--danger);cursor:pointer;font-weight:600" onclick="if(confirm(\'Премахни вариация?\')){S.wizData.axes.splice('+i+',1);renderWizard()}">✕ Премахни</span></div></div>'+
+            '<div style="margin-bottom:8px;min-height:24px">'+(vals||'<span style="font-size:11px;color:var(--text-secondary)">Няма избрани стойности</span>')+'</div>'+
+            (hasPresets?'<button type="button" class="abtn" style="width:100%;padding:10px;font-size:12px;font-weight:700;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06);margin-bottom:6px" onclick="openPresetPicker('+i+','+(isSize?'true':'false')+')">Избери от списък</button>':'')+
+            '<div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Или въведи ръчно..." style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div></div>';
         });
 
         const combos=wizCountCombinations();
         return '<div class="wiz-page active">'+
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">Вариации на артикула</div>'+infoBtn('variations')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><div style="font-size:14px;font-weight:700">Вариации на артикула</div>'+infoBtn('variations')+'</div>'+
         axesH+
-        '<div style="display:flex;gap:6px;margin-bottom:10px"><input type="text" class="fc" id="newAxisName" placeholder="Добави нова вариация (напр. Материал)" style="font-size:12px;padding:6px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddAxis()">+ Добави</button></div>'+
-        (combos>0?'<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;padding:6px 10px;border-radius:6px;background:rgba(99,102,241,0.04)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> вариации ще бъдат създадени</div>':'')+
+        '<div style="padding:12px;border-radius:12px;border:1px dashed var(--border-subtle);margin-bottom:12px">'+
+        '<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">ДОБАВИ НОВА ВАРИАЦИЯ</div>'+
+        '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Напр: Материал, Форма, Дължина, Модел...</div>'+
+        '<div style="display:flex;gap:6px"><input type="text" class="fc" id="newAxisName" placeholder="Име на вариация" style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" onclick="wizAddAxis()">+ Добави</button></div></div>'+
+        (combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;padding:8px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> комбинации</div>':'')+
         '<button class="abtn primary" onclick="wizGo(5)">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button>'+vskip+'</div>';
     }
@@ -2273,6 +2289,94 @@ async function doStudioObjects(){
 
 // ─── HELPERS ───
 
+function wizScanBarcode(){
+    const ov=document.createElement('div');ov.className='preset-ov';ov.id='barcodeScanOv';
+    ov.innerHTML='<div class="preset-box" style="text-align:center;padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">Сканирай баркод</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
+    '<video id="wizBcVid" autoplay playsinline muted style="width:100%;max-height:250px;border-radius:12px;background:#000;object-fit:cover"></video>'+
+    '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">Насочи камерата към баркода</div>'+
+    '<button class="abtn" onclick="closeBarcodeScan()" style="margin-top:10px">Затвори</button></div>';
+    document.body.appendChild(ov);
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(stream=>{
+        const vid=document.getElementById('wizBcVid');
+        if(!vid){stream.getTracks().forEach(t=>t.stop());return}
+        vid.srcObject=stream;vid._stream=stream;
+        if('BarcodeDetector' in window){
+            const det=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
+            vid._bcInterval=setInterval(async()=>{
+                try{const codes=await det.detect(vid);
+                if(codes.length){clearInterval(vid._bcInterval);const val=codes[0].rawValue;
+                const el=document.getElementById('wBarcode');if(el)el.value=val;
+                S.wizData.barcode=val;showToast('Баркод: '+val,'success');closeBarcodeScan();}
+                }catch(e){}
+            },300);
+        }else{showToast('Браузърът не поддържа сканиране','error')}
+    }).catch(()=>{showToast('Няма достъп до камерата','error');closeBarcodeScan()});
+}
+function closeBarcodeScan(){
+    const ov=document.getElementById('barcodeScanOv');if(!ov)return;
+    const vid=document.getElementById('wizBcVid');
+    if(vid){if(vid._bcInterval)clearInterval(vid._bcInterval);if(vid._stream)vid._stream.getTracks().forEach(t=>t.stop())}
+    ov.remove();
+}
+
+function openPresetPicker(axIdx,isSize){
+    const ax=S.wizData.axes[axIdx];if(!ax)return;
+    const existing=new Set(ax.values);
+    let presets=[];
+    if(isSize){
+        const groups=[
+            {label:'Букви (XS-4XL)',vals:['XS','S','M','L','XL','2XL','3XL','4XL']},
+            {label:'EU номера (дрехи)',vals:['34','36','38','40','42','44','46','48','50','52','54','56']},
+            {label:'Обувки (36-46)',vals:['36','37','38','39','40','41','42','43','44','45','46']},
+            {label:'Детски',vals:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164']},
+            {label:'Панталони',vals:['W28','W29','W30','W31','W32','W33','W34','W36','W38']},
+            {label:'Чорапи',vals:['35-38','39-42','43-46']},
+            {label:'Шапки',vals:['S/M','L/XL','One Size']},
+            {label:'Пръстени',vals:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII']},
+        ];
+        if(window._bizVariants?.variant_presets){
+            for(const[k,v] of Object.entries(window._bizVariants.variant_presets)){
+                if(k.toLowerCase().includes('размер')||k.toLowerCase().includes('size')){
+                    if(v.length)groups.unshift({label:'За твоя бизнес ⭐',vals:v});
+                }
+            }
+        }
+        presets=groups;
+    }else{
+        presets=[{label:'Основни цветове',vals:CFG.colors.map(c=>c.name)}];
+    }
+    let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:sticky;top:0;background:var(--bg-card);padding:4px 0;z-index:1"><span style="font-size:16px;font-weight:700" id="presetTitle">Избери '+esc(ax.name)+'</span><span style="font-size:24px;cursor:pointer;padding:4px 8px" onclick="closePresetPicker()">✕</span></div>';
+    html+='<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px">Натисни за избор. Натисни отново за махане.</div>';
+    presets.forEach(g=>{
+        html+='<div class="preset-cat">'+g.label+'</div><div style="margin-bottom:8px">';
+        g.vals.forEach(v=>{
+            const sel=existing.has(v)?'sel':'';
+            let sw='';
+            if(!isSize){const c=CFG.colors.find(cc=>cc.name===v);if(c)sw='<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c.hex+';margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,0.2)"></span>'}
+            html+='<span class="preset-chip '+sel+'" onclick="togglePresetVal(this,'+axIdx+',\''+v.replace(/'/g,"\\'")+'\')">' +sw+esc(v)+'</span>';
+        });
+        html+='</div>';
+    });
+    html+='<div style="margin-top:14px;position:sticky;bottom:0;background:var(--bg-card);padding:8px 0"><button class="abtn primary" onclick="closePresetPicker()" style="width:100%;font-size:14px;padding:12px">Готово ✓</button></div>';
+    const ov=document.createElement('div');ov.className='preset-ov';ov.id='presetPickerOv';
+    ov.innerHTML='<div class="preset-box">'+html+'</div>';
+    ov.addEventListener('click',function(e){if(e.target===this)closePresetPicker()});
+    document.body.appendChild(ov);
+}
+function togglePresetVal(chip,axIdx,val){
+    const ax=S.wizData.axes[axIdx];if(!ax)return;
+    const idx=ax.values.indexOf(val);
+    if(idx>=0){ax.values.splice(idx,1);chip.classList.remove('sel')}
+    else{ax.values.push(val);chip.classList.add('sel')}
+    const t=document.getElementById('presetTitle');
+    if(t)t.textContent='Избери '+ax.name+' ('+ax.values.length+')';
+}
+function closePresetPicker(){
+    const ov=document.getElementById('presetPickerOv');if(ov)ov.remove();
+    renderWizard();
+}
+
 function wizAddAxis(){
     const inp=document.getElementById('newAxisName');
     const name=inp?.value.trim();
@@ -2312,17 +2416,18 @@ function wizBuildCombinations(){
 }
 
 function wizCollectData(){
-    const name=document.getElementById('wName')?.value.trim();
-    if(name)S.wizData.name=name;
-    S.wizData.code=document.getElementById('wCode')?.value.trim()||'';
-    S.wizData.retail_price=parseFloat(document.getElementById('wPrice')?.value)||0;
-    S.wizData.wholesale_price=parseFloat(document.getElementById('wWprice')?.value)||0;
-    S.wizData.barcode=document.getElementById('wBarcode')?.value.trim()||'';
-    S.wizData.supplier_id=document.getElementById('wSup')?.value||null;
-    S.wizData.category_id=document.getElementById('wCat')?.value||null;
-    S.wizData.unit=document.getElementById('wUnit')?.value||'бр';
-    S.wizData.min_quantity=parseInt(document.getElementById('wMinQty')?.value)||0;
-    S.wizData.description=document.getElementById('wDesc')?.value||'';
+    const el=id=>document.getElementById(id);
+    if(el('wName')){const v=el('wName').value.trim();if(v)S.wizData.name=v}
+    if(el('wCode'))S.wizData.code=el('wCode').value.trim();
+    if(el('wPrice')){const v=parseFloat(el('wPrice').value);if(v)S.wizData.retail_price=v}
+    if(el('wWprice'))S.wizData.wholesale_price=parseFloat(el('wWprice').value)||0;
+    if(el('wBarcode'))S.wizData.barcode=el('wBarcode').value.trim();
+    if(el('wSup'))S.wizData.supplier_id=el('wSup').value||null;
+    if(el('wCat'))S.wizData.category_id=el('wCat').value||null;
+    if(el('wSubcat'))S.wizData.subcategory_id=el('wSubcat').value||null;
+    if(el('wUnit'))S.wizData.unit=el('wUnit').value||'бр';
+    if(el('wMinQty'))S.wizData.min_quantity=parseInt(el('wMinQty').value)||0;
+    if(el('wDesc'))S.wizData.description=el('wDesc').value;
 }
 
 async function wizGoPreview(){
@@ -2431,12 +2536,14 @@ function wizAddUnit(){
 }
 
 // Photo handlers
+function document.getElementById('photoInput').click(){openCamera('photo')}
 
 document.getElementById('filePickerInput').addEventListener('change',async function(){
     document.getElementById('photoInput').files = this.files;
     document.getElementById('photoInput').dispatchEvent(new Event('change'));
     this.value='';
 });
+document.getElementById("filePickerInput").addEventListener("change",function(){document.getElementById("photoInput").files=this.files;document.getElementById("photoInput").dispatchEvent(new Event("change"));this.value="";});
 document.getElementById('photoInput').addEventListener('change',async function(){
     if(!this.files?.[0])return;
     const preview=document.getElementById('wizPhotoPreview');
@@ -2510,220 +2617,6 @@ async function editProduct(id){
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
 }
-
-
-
-// ═══ S33 RESTORED FUNCTIONS ═══
-
-function openCSVImport(){
-    openDrawer('csv');
-    document.getElementById('csvBody').innerHTML=
-    '<div style="text-align:center;padding:20px">'+
-    '<div style="font-size:14px;font-weight:600;margin-bottom:10px">Импорт от CSV / Excel</div>'+
-    '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Качи CSV или Excel файл с артикули</div>'+
-    '<button class="abtn primary" onclick="document.getElementById(\'csvInput\').click()">Избери файл</button>'+
-    '<div id="csvPreview" style="margin-top:14px"></div></div>';
-}
-
-document.getElementById('csvInput')?.addEventListener('change',async function(){
-    if(!this.files?.[0])return;
-    const fd=new FormData();fd.append('file',this.files[0]);
-    showToast('Зареждам файла...','');
-    const d=await api('products.php?ajax=import_csv',{method:'POST',body:fd});
-    if(!d||d.error){showToast(d?.error||'Грешка','error');return}
-    let h='<div style="font-size:12px;font-weight:600;margin-bottom:6px">Намерени: '+d.total+' реда</div>';
-    h+='<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Колони: '+d.columns.join(', ')+'</div>';
-    h+='<div style="max-height:200px;overflow:auto;margin-bottom:10px">';
-    d.preview.forEach(function(r,i){h+='<div style="font-size:10px;padding:4px 6px;border-bottom:1px solid var(--border-subtle)">'+(i+1)+'. '+(r['name']||r['Име']||r['Name']||JSON.stringify(r).substring(0,60))+'</div>'});
-    h+='</div><button class="abtn save" onclick="doCSVImport()">Импортирай '+d.total+' артикула</button>';
-    document.getElementById('csvPreview').innerHTML=h;
-    window._csvData=d;
-    this.value='';
-});
-
-async function doCSVImport(){
-    if(!window._csvData?.all_rows?.length){showToast('Няма данни','error');return}
-    showToast('Импортирам...','');
-    let ok=0,fail=0;
-    for(const row of window._csvData.all_rows){
-        const name=row['name']||row['Име']||row['Name']||'';
-        const price=parseFloat(row['retail_price']||row['Цена']||row['Price']||0);
-        if(!name)continue;
-        try{
-            const r=await api('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({name,retail_price:price,code:row['code']||row['Код']||'',
-                    unit:row['unit']||row['Единица']||'бр',action:'create',product_type:'simple',
-                    variants:[{size:null,color:null,qty:parseInt(row['quantity']||row['Количество']||0)}]})});
-            if(r?.success||r?.id)ok++;else fail++;
-        }catch(e){fail++}
-    }
-    showToast('Импорт: '+ok+' ОК, '+fail+' грешки',ok>0?'success':'error');
-    closeDrawer('csv');loadScreen();
-}
-
-function openImageStudio(productId){
-    closeDrawer('detail');
-    setTimeout(function(){
-        openDrawer('studio');
-        document.getElementById('studioBody').innerHTML=renderStudioMain(productId);
-    },300);
-}
-
-function renderStudioMain(pid){
-    return '<div style="text-align:center;padding:10px">'+
-    '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Избери обработка</div>'+
-    '<div style="padding:12px;border-radius:12px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.2);margin-bottom:8px;cursor:pointer" onclick="doStudioAction('+pid+',\'bg_removal\',\'\')">'+
-    '<div style="font-size:13px;font-weight:600">Бял фон — 0.05 EUR</div></div>'+
-    '<div style="padding:12px;border-radius:12px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.2);margin-bottom:8px;cursor:pointer" onclick="showMagicModels('+pid+')">'+
-    '<div style="font-size:13px;font-weight:600">AI Магия дрехи — 0.50 EUR</div></div>'+
-    '<div style="padding:12px;border-radius:12px;background:rgba(234,179,8,0.04);border:1px solid rgba(234,179,8,0.2);margin-bottom:8px;cursor:pointer" onclick="showObjectPresets('+pid+')">'+
-    '<div style="font-size:13px;font-weight:600">AI Магия предмети — 0.50 EUR</div></div>'+
-    '<button class="abtn" onclick="closeDrawer(\'studio\')" style="margin-top:10px">Затвори</button></div>';
-}
-
-function showMagicModels(pid){
-    var models=[{key:'woman',label:'Жена'},{key:'man',label:'Мъж'},{key:'girl',label:'Момиче'},{key:'boy',label:'Момче'},{key:'teen_f',label:'Тийн F'},{key:'teen_m',label:'Тийн M'}];
-    var h='<div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--indigo-300)">Избери модел</div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">';
-    models.forEach(function(m){
-        var sel=S.studioModel===m.key;
-        var bg=sel?'rgba(139,92,246,0.15)':'rgba(99,102,241,0.05)';
-        var bc=sel?'rgba(139,92,246,0.4)':'rgba(139,92,246,0.2)';
-        h+='<div style="padding:10px;border-radius:8px;background:'+bg+';border:1px solid '+bc+';text-align:center;cursor:pointer" onclick="S.studioModel=\''+m.key+'\';showMagicModels('+pid+')"><div style="font-size:10px;font-weight:600;color:#c4b5fd">'+m.label+'</div></div>';
-    });
-    h+='</div><input type="text" class="fc" id="magicPrompt" placeholder="допълни промпт..." style="margin-bottom:8px;font-size:11px">';
-    h+='<button class="abtn" onclick="doStudioAction('+pid+',\'tryon_\'+S.studioModel,document.getElementById(\'magicPrompt\')?.value||\'\')" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none">Генерирай</button>';
-    h+='<button class="abtn" onclick="document.getElementById(\'studioBody\').innerHTML=renderStudioMain('+pid+')" style="margin-top:6px">Назад</button>';
-    document.getElementById('studioBody').innerHTML=h;
-}
-
-function showObjectPresets(pid){
-    var presets=['Бижу на ръка','На кадифе','На мрамор','Макро близък план','На дърво','Lifestyle сцена','Обувка на крак','Чанта на рамо'];
-    var h='<div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#fbbf24">Избери стил</div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
-    presets.forEach(function(p){
-        h+='<div style="padding:8px 10px;border-radius:8px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);cursor:pointer;font-size:11px;color:#fcd34d" onclick="document.getElementById(\'objPrompt\').value=\''+p+'\'">'+p+'</div>';
-    });
-    h+='</div><input type="text" class="fc" id="objPrompt" placeholder="или опиши стила..." style="margin-bottom:8px;font-size:11px">';
-    h+='<button class="abtn" onclick="doStudioAction('+pid+',\'object_studio\',document.getElementById(\'objPrompt\')?.value||\'\')" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none">Генерирай</button>';
-    h+='<button class="abtn" onclick="document.getElementById(\'studioBody\').innerHTML=renderStudioMain('+pid+')" style="margin-top:6px">Назад</button>';
-    document.getElementById('studioBody').innerHTML=h;
-}
-
-async function doStudioAction(pid,type,prompt){
-    showToast('AI обработва... 5-15 сек','');
-    var d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,type:type,prompt:prompt})});
-    if(d?.error)showToast(d.error,'error');
-    else{showToast('Готово!','success');closeDrawer('studio')}
-}
-
-function openLabels(productId){
-    openDrawer('labels');
-    document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px">Зареждам...</div>';
-    loadLabelsData(productId);
-}
-
-async function loadLabelsData(pid){
-    var d=await api('products.php?ajax=export_labels&product_id='+pid+'&format=json');
-    if(!d||!d.length){document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>';return}
-    var h='';
-    d.forEach(function(v){
-        h+='<div class="label-var"><div class="lv-name">'+esc(v.name)+'</div><div class="lv-code">'+(v.code||'')+' / '+(v.barcode||'')+'</div>'+
-        '<div class="lv-fields"><div class="lv-field"><label>Мин.кол.</label><input type="number" value="'+(v.min_quantity||0)+'" onchange="saveLabelMinQty('+v.id+',this.value)"></div>'+
-        '<div class="lv-field"><label>Етикети</label><input type="number" value="1"></div></div></div>';
-    });
-    h+='<div style="margin-top:10px;font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Формат</div>';
-    h+='<div class="format-chips"><button class="fmt-chip sel" onclick="setLblFormat(this)">Етикет</button><button class="fmt-chip" onclick="setLblFormat(this)">Баркод</button><button class="fmt-chip" onclick="setLblFormat(this)">Двете</button></div>';
-    h+='<button class="abtn primary" onclick="printLabels('+pid+')" style="margin-top:10px">Принтирай</button>';
-    h+='<div style="display:flex;gap:6px;margin-top:6px"><button class="abtn" onclick="exportLabels('+pid+',\'csv\')">CSV</button><button class="abtn" onclick="exportLabels('+pid+',\'json\')">JSON</button></div>';
-    document.getElementById('labelsBody').innerHTML=h;
-}
-
-function setLblFormat(btn){btn.parentElement.querySelectorAll('.fmt-chip').forEach(function(b){b.classList.remove('sel')});btn.classList.add('sel')}
-async function saveLabelMinQty(vid,val){await api('products.php?ajax=save_labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({variations:[{id:vid,min_quantity:parseInt(val)||0}]})})}
-function exportLabels(pid,format){window.open('products.php?ajax=export_labels&product_id='+pid+'&format='+format,'_blank')}
-function printLabels(pid){showToast('Bluetooth принтер — скоро!','')}
-
-function toggleInfoPanel(){
-    var p=document.getElementById('infoPanel');
-    var o=document.getElementById('infoPanelOv');
-    if(p.classList.contains('open')){closeInfoPanel();return}
-    history.pushState({info:true},'','#info');
-    p.classList.add('open');o.classList.add('open');
-    document.body.style.overflow='hidden';
-    renderInfoPanel();
-}
-
-function closeInfoPanel(){
-    document.getElementById('infoPanel').classList.remove('open');
-    document.getElementById('infoPanelOv').classList.remove('open');
-    document.body.style.overflow='';
-}
-
-function renderInfoPanel(){
-    var questions=[
-        {cat:'Навигация',items:[
-            {icon:'📦',q:'Как да намеря артикул?',a:'Търси по име, код или баркод горе. Или сканирай баркод с жълтия бутон.'},
-            {icon:'🏷',q:'Как работят категориите?',a:'Организират артикулите. Отиди на Категории долу. Добавяш нови при създаване на артикул.'},
-            {icon:'🚚',q:'Как да видя доставчиците?',a:'Натисни Доставчици долу. Виждаш артикули, наличност и проблеми.'}
-        ]},
-        {cat:'Добавяне',items:[
-            {icon:'🎤',q:'Гласов wizard?',a:'Натисни С глас. AI пита стъпка по стъпка, ти отговаряш с глас.'},
-            {icon:'✏️',q:'Ръчно добавяне?',a:'Натисни Ръчно. 8 стъпки: вид, снимка, AI, информация, вариации, детайли, преглед, етикети.'},
-            {icon:'📄',q:'Импорт от файл?',a:'Натисни Файл. CSV или Excel с колони Име, Код, Цена, Количество.'},
-            {icon:'📷',q:'Защо да снимам?',a:'AI разпознава продукта, генерира описание и обработва снимката.'}
-        ]},
-        {cat:'AI функции',items:[
-            {icon:'✨',q:'AI Image Studio?',a:'Бял фон 0.05 EUR, облечи на модел 0.50 EUR, студийна снимка 0.50 EUR.'},
-            {icon:'✦',q:'AI Съвет?',a:'Анализира: zombie, ниска наличност, марж, продажби. Дава препоръка.'},
-            {icon:'🏷',q:'Етикети?',a:'След запис: всички вариации с мин. количество и брой етикети. Скоро Bluetooth принтер.'}
-        ]},
-        {cat:'Статистики',items:[
-            {icon:'💀',q:'Zombie стока?',a:'Без продажба 45+ дни. Намали или пакетна продажба.'},
-            {icon:'🔥',q:'Топ хитове?',a:'Най-продавани за последните 30 дни.'},
-            {icon:'⚠️',q:'Ниска наличност?',a:'Когато количеството падне до минималното което си задал.'}
-        ]}
-    ];
-    var h='';
-    questions.forEach(function(cat){
-        h+='<div class="info-section-title">'+cat.cat+'</div>';
-        cat.items.forEach(function(item,i){
-            var id='iq_'+cat.cat.substring(0,3)+'_'+i;
-            h+='<div class="info-q" onclick="toggleInfoAnswer(\''+id+'\')"><span class="iq-icon">'+item.icon+'</span><span class="iq-text">'+item.q+'</span><span class="iq-arrow">▸</span></div>';
-            h+='<div class="info-answer" id="'+id+'">'+item.a+'</div>';
-        });
-    });
-    document.getElementById('infoPanelBody').innerHTML=h;
-}
-
-function toggleInfoAnswer(id){
-    var el=document.getElementById(id);
-    if(el)el.classList.toggle('open');
-}
-
-function openInfoFreeChat(){
-    closeInfoPanel();
-    openVoice('Питай каквото искаш',async function(text){
-        showToast('AI мисли...','');
-        var d=await api('products.php?ajax=ai_assist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:text})});
-        if(d?.message){
-            showToast(d.message);
-            if(d.action==='search'&&d.data?.query)doSearch(d.data.query);
-            else if(d.action==='navigate'&&d.data?.screen)goScreenWithHistory(d.data.screen);
-        }
-    });
-}
-
-window.addEventListener('popstate',function(e){
-    if(document.getElementById('wizModal').classList.contains('open')){closeWizard();return}
-    if(document.getElementById('recOv').classList.contains('open')){closeVoice();return}
-    if(document.getElementById('cameraOv').classList.contains('open')){closeCamera();return}
-    if(document.getElementById('infoPanel').classList.contains('open')){closeInfoPanel();return}
-    ['detail','ai','filter','studio','labels','csv'].forEach(function(n){
-        if(document.getElementById(n+'Dr')?.classList.contains('open'))closeDrawer(n);
-    });
-    if(e.state?.scr)goScreen(e.state.scr,e.state.params||{});
-});
 
 
 // ─── INIT ───
