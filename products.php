@@ -1378,7 +1378,6 @@ input[type=file]{display:none}
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
 <input type="file" id="filePickerInput" accept="image/*,*/*">
-<input type="file" id="filePickerInput" accept="image/*,.pdf">
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
 <script>
@@ -1452,6 +1451,10 @@ function productCardHTML(p){
 }
 
 // ─── NAVIGATION ───
+function goScreenWithHistory(scr, params={}){
+    history.pushState({scr, params}, '', '#'+scr);
+    goScreen(scr, params);
+}
 function goScreen(scr, params={}){
     S.screen=scr; S.supId=params.sup||null; S.catId=params.cat||null; S.page=1;
     document.querySelectorAll('.screen-section').forEach(el=>el.classList.remove('active'));
@@ -2023,7 +2026,7 @@ function renderWizPage(step){
         '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Силно препоръчително — AI използва снимката за описание и обработка</div>'+
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px;margin-bottom:14px;text-align:left"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Сложи на равна светла повърхност<br>✓ Без други предмети около<br>✓ Добро осветление<br>✓ Ясна, неразмазана снимка<br>✓ Максимално добро качество</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
-        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById('photoInput').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
+        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
         '<div id="wizPhotoPreview">'+(S.wizData._photoDataUrl?'<img src="'+S.wizData._photoDataUrl+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">':'')+'</div><div id="wizScanResult"></div>'+
         '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
@@ -2428,14 +2431,12 @@ function wizAddUnit(){
 }
 
 // Photo handlers
-function document.getElementById('photoInput').click(){openCamera('photo')}
 
 document.getElementById('filePickerInput').addEventListener('change',async function(){
     document.getElementById('photoInput').files = this.files;
     document.getElementById('photoInput').dispatchEvent(new Event('change'));
     this.value='';
 });
-document.getElementById("filePickerInput").addEventListener("change",function(){document.getElementById("photoInput").files=this.files;document.getElementById("photoInput").dispatchEvent(new Event("change"));this.value="";});
 document.getElementById('photoInput').addEventListener('change',async function(){
     if(!this.files?.[0])return;
     const preview=document.getElementById('wizPhotoPreview');
@@ -2509,6 +2510,220 @@ async function editProduct(id){
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
 }
+
+
+
+// ═══ S33 RESTORED FUNCTIONS ═══
+
+function openCSVImport(){
+    openDrawer('csv');
+    document.getElementById('csvBody').innerHTML=
+    '<div style="text-align:center;padding:20px">'+
+    '<div style="font-size:14px;font-weight:600;margin-bottom:10px">Импорт от CSV / Excel</div>'+
+    '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Качи CSV или Excel файл с артикули</div>'+
+    '<button class="abtn primary" onclick="document.getElementById(\'csvInput\').click()">Избери файл</button>'+
+    '<div id="csvPreview" style="margin-top:14px"></div></div>';
+}
+
+document.getElementById('csvInput')?.addEventListener('change',async function(){
+    if(!this.files?.[0])return;
+    const fd=new FormData();fd.append('file',this.files[0]);
+    showToast('Зареждам файла...','');
+    const d=await api('products.php?ajax=import_csv',{method:'POST',body:fd});
+    if(!d||d.error){showToast(d?.error||'Грешка','error');return}
+    let h='<div style="font-size:12px;font-weight:600;margin-bottom:6px">Намерени: '+d.total+' реда</div>';
+    h+='<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Колони: '+d.columns.join(', ')+'</div>';
+    h+='<div style="max-height:200px;overflow:auto;margin-bottom:10px">';
+    d.preview.forEach(function(r,i){h+='<div style="font-size:10px;padding:4px 6px;border-bottom:1px solid var(--border-subtle)">'+(i+1)+'. '+(r['name']||r['Име']||r['Name']||JSON.stringify(r).substring(0,60))+'</div>'});
+    h+='</div><button class="abtn save" onclick="doCSVImport()">Импортирай '+d.total+' артикула</button>';
+    document.getElementById('csvPreview').innerHTML=h;
+    window._csvData=d;
+    this.value='';
+});
+
+async function doCSVImport(){
+    if(!window._csvData?.all_rows?.length){showToast('Няма данни','error');return}
+    showToast('Импортирам...','');
+    let ok=0,fail=0;
+    for(const row of window._csvData.all_rows){
+        const name=row['name']||row['Име']||row['Name']||'';
+        const price=parseFloat(row['retail_price']||row['Цена']||row['Price']||0);
+        if(!name)continue;
+        try{
+            const r=await api('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({name,retail_price:price,code:row['code']||row['Код']||'',
+                    unit:row['unit']||row['Единица']||'бр',action:'create',product_type:'simple',
+                    variants:[{size:null,color:null,qty:parseInt(row['quantity']||row['Количество']||0)}]})});
+            if(r?.success||r?.id)ok++;else fail++;
+        }catch(e){fail++}
+    }
+    showToast('Импорт: '+ok+' ОК, '+fail+' грешки',ok>0?'success':'error');
+    closeDrawer('csv');loadScreen();
+}
+
+function openImageStudio(productId){
+    closeDrawer('detail');
+    setTimeout(function(){
+        openDrawer('studio');
+        document.getElementById('studioBody').innerHTML=renderStudioMain(productId);
+    },300);
+}
+
+function renderStudioMain(pid){
+    return '<div style="text-align:center;padding:10px">'+
+    '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Избери обработка</div>'+
+    '<div style="padding:12px;border-radius:12px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.2);margin-bottom:8px;cursor:pointer" onclick="doStudioAction('+pid+',\'bg_removal\',\'\')">'+
+    '<div style="font-size:13px;font-weight:600">Бял фон — 0.05 EUR</div></div>'+
+    '<div style="padding:12px;border-radius:12px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.2);margin-bottom:8px;cursor:pointer" onclick="showMagicModels('+pid+')">'+
+    '<div style="font-size:13px;font-weight:600">AI Магия дрехи — 0.50 EUR</div></div>'+
+    '<div style="padding:12px;border-radius:12px;background:rgba(234,179,8,0.04);border:1px solid rgba(234,179,8,0.2);margin-bottom:8px;cursor:pointer" onclick="showObjectPresets('+pid+')">'+
+    '<div style="font-size:13px;font-weight:600">AI Магия предмети — 0.50 EUR</div></div>'+
+    '<button class="abtn" onclick="closeDrawer(\'studio\')" style="margin-top:10px">Затвори</button></div>';
+}
+
+function showMagicModels(pid){
+    var models=[{key:'woman',label:'Жена'},{key:'man',label:'Мъж'},{key:'girl',label:'Момиче'},{key:'boy',label:'Момче'},{key:'teen_f',label:'Тийн F'},{key:'teen_m',label:'Тийн M'}];
+    var h='<div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--indigo-300)">Избери модел</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">';
+    models.forEach(function(m){
+        var sel=S.studioModel===m.key;
+        var bg=sel?'rgba(139,92,246,0.15)':'rgba(99,102,241,0.05)';
+        var bc=sel?'rgba(139,92,246,0.4)':'rgba(139,92,246,0.2)';
+        h+='<div style="padding:10px;border-radius:8px;background:'+bg+';border:1px solid '+bc+';text-align:center;cursor:pointer" onclick="S.studioModel=\''+m.key+'\';showMagicModels('+pid+')"><div style="font-size:10px;font-weight:600;color:#c4b5fd">'+m.label+'</div></div>';
+    });
+    h+='</div><input type="text" class="fc" id="magicPrompt" placeholder="допълни промпт..." style="margin-bottom:8px;font-size:11px">';
+    h+='<button class="abtn" onclick="doStudioAction('+pid+',\'tryon_\'+S.studioModel,document.getElementById(\'magicPrompt\')?.value||\'\')" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none">Генерирай</button>';
+    h+='<button class="abtn" onclick="document.getElementById(\'studioBody\').innerHTML=renderStudioMain('+pid+')" style="margin-top:6px">Назад</button>';
+    document.getElementById('studioBody').innerHTML=h;
+}
+
+function showObjectPresets(pid){
+    var presets=['Бижу на ръка','На кадифе','На мрамор','Макро близък план','На дърво','Lifestyle сцена','Обувка на крак','Чанта на рамо'];
+    var h='<div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#fbbf24">Избери стил</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
+    presets.forEach(function(p){
+        h+='<div style="padding:8px 10px;border-radius:8px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);cursor:pointer;font-size:11px;color:#fcd34d" onclick="document.getElementById(\'objPrompt\').value=\''+p+'\'">'+p+'</div>';
+    });
+    h+='</div><input type="text" class="fc" id="objPrompt" placeholder="или опиши стила..." style="margin-bottom:8px;font-size:11px">';
+    h+='<button class="abtn" onclick="doStudioAction('+pid+',\'object_studio\',document.getElementById(\'objPrompt\')?.value||\'\')" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none">Генерирай</button>';
+    h+='<button class="abtn" onclick="document.getElementById(\'studioBody\').innerHTML=renderStudioMain('+pid+')" style="margin-top:6px">Назад</button>';
+    document.getElementById('studioBody').innerHTML=h;
+}
+
+async function doStudioAction(pid,type,prompt){
+    showToast('AI обработва... 5-15 сек','');
+    var d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:pid,type:type,prompt:prompt})});
+    if(d?.error)showToast(d.error,'error');
+    else{showToast('Готово!','success');closeDrawer('studio')}
+}
+
+function openLabels(productId){
+    openDrawer('labels');
+    document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px">Зареждам...</div>';
+    loadLabelsData(productId);
+}
+
+async function loadLabelsData(pid){
+    var d=await api('products.php?ajax=export_labels&product_id='+pid+'&format=json');
+    if(!d||!d.length){document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>';return}
+    var h='';
+    d.forEach(function(v){
+        h+='<div class="label-var"><div class="lv-name">'+esc(v.name)+'</div><div class="lv-code">'+(v.code||'')+' / '+(v.barcode||'')+'</div>'+
+        '<div class="lv-fields"><div class="lv-field"><label>Мин.кол.</label><input type="number" value="'+(v.min_quantity||0)+'" onchange="saveLabelMinQty('+v.id+',this.value)"></div>'+
+        '<div class="lv-field"><label>Етикети</label><input type="number" value="1"></div></div></div>';
+    });
+    h+='<div style="margin-top:10px;font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Формат</div>';
+    h+='<div class="format-chips"><button class="fmt-chip sel" onclick="setLblFormat(this)">Етикет</button><button class="fmt-chip" onclick="setLblFormat(this)">Баркод</button><button class="fmt-chip" onclick="setLblFormat(this)">Двете</button></div>';
+    h+='<button class="abtn primary" onclick="printLabels('+pid+')" style="margin-top:10px">Принтирай</button>';
+    h+='<div style="display:flex;gap:6px;margin-top:6px"><button class="abtn" onclick="exportLabels('+pid+',\'csv\')">CSV</button><button class="abtn" onclick="exportLabels('+pid+',\'json\')">JSON</button></div>';
+    document.getElementById('labelsBody').innerHTML=h;
+}
+
+function setLblFormat(btn){btn.parentElement.querySelectorAll('.fmt-chip').forEach(function(b){b.classList.remove('sel')});btn.classList.add('sel')}
+async function saveLabelMinQty(vid,val){await api('products.php?ajax=save_labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({variations:[{id:vid,min_quantity:parseInt(val)||0}]})})}
+function exportLabels(pid,format){window.open('products.php?ajax=export_labels&product_id='+pid+'&format='+format,'_blank')}
+function printLabels(pid){showToast('Bluetooth принтер — скоро!','')}
+
+function toggleInfoPanel(){
+    var p=document.getElementById('infoPanel');
+    var o=document.getElementById('infoPanelOv');
+    if(p.classList.contains('open')){closeInfoPanel();return}
+    history.pushState({info:true},'','#info');
+    p.classList.add('open');o.classList.add('open');
+    document.body.style.overflow='hidden';
+    renderInfoPanel();
+}
+
+function closeInfoPanel(){
+    document.getElementById('infoPanel').classList.remove('open');
+    document.getElementById('infoPanelOv').classList.remove('open');
+    document.body.style.overflow='';
+}
+
+function renderInfoPanel(){
+    var questions=[
+        {cat:'Навигация',items:[
+            {icon:'📦',q:'Как да намеря артикул?',a:'Търси по име, код или баркод горе. Или сканирай баркод с жълтия бутон.'},
+            {icon:'🏷',q:'Как работят категориите?',a:'Организират артикулите. Отиди на Категории долу. Добавяш нови при създаване на артикул.'},
+            {icon:'🚚',q:'Как да видя доставчиците?',a:'Натисни Доставчици долу. Виждаш артикули, наличност и проблеми.'}
+        ]},
+        {cat:'Добавяне',items:[
+            {icon:'🎤',q:'Гласов wizard?',a:'Натисни С глас. AI пита стъпка по стъпка, ти отговаряш с глас.'},
+            {icon:'✏️',q:'Ръчно добавяне?',a:'Натисни Ръчно. 8 стъпки: вид, снимка, AI, информация, вариации, детайли, преглед, етикети.'},
+            {icon:'📄',q:'Импорт от файл?',a:'Натисни Файл. CSV или Excel с колони Име, Код, Цена, Количество.'},
+            {icon:'📷',q:'Защо да снимам?',a:'AI разпознава продукта, генерира описание и обработва снимката.'}
+        ]},
+        {cat:'AI функции',items:[
+            {icon:'✨',q:'AI Image Studio?',a:'Бял фон 0.05 EUR, облечи на модел 0.50 EUR, студийна снимка 0.50 EUR.'},
+            {icon:'✦',q:'AI Съвет?',a:'Анализира: zombie, ниска наличност, марж, продажби. Дава препоръка.'},
+            {icon:'🏷',q:'Етикети?',a:'След запис: всички вариации с мин. количество и брой етикети. Скоро Bluetooth принтер.'}
+        ]},
+        {cat:'Статистики',items:[
+            {icon:'💀',q:'Zombie стока?',a:'Без продажба 45+ дни. Намали или пакетна продажба.'},
+            {icon:'🔥',q:'Топ хитове?',a:'Най-продавани за последните 30 дни.'},
+            {icon:'⚠️',q:'Ниска наличност?',a:'Когато количеството падне до минималното което си задал.'}
+        ]}
+    ];
+    var h='';
+    questions.forEach(function(cat){
+        h+='<div class="info-section-title">'+cat.cat+'</div>';
+        cat.items.forEach(function(item,i){
+            var id='iq_'+cat.cat.substring(0,3)+'_'+i;
+            h+='<div class="info-q" onclick="toggleInfoAnswer(\''+id+'\')"><span class="iq-icon">'+item.icon+'</span><span class="iq-text">'+item.q+'</span><span class="iq-arrow">▸</span></div>';
+            h+='<div class="info-answer" id="'+id+'">'+item.a+'</div>';
+        });
+    });
+    document.getElementById('infoPanelBody').innerHTML=h;
+}
+
+function toggleInfoAnswer(id){
+    var el=document.getElementById(id);
+    if(el)el.classList.toggle('open');
+}
+
+function openInfoFreeChat(){
+    closeInfoPanel();
+    openVoice('Питай каквото искаш',async function(text){
+        showToast('AI мисли...','');
+        var d=await api('products.php?ajax=ai_assist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:text})});
+        if(d?.message){
+            showToast(d.message);
+            if(d.action==='search'&&d.data?.query)doSearch(d.data.query);
+            else if(d.action==='navigate'&&d.data?.screen)goScreenWithHistory(d.data.screen);
+        }
+    });
+}
+
+window.addEventListener('popstate',function(e){
+    if(document.getElementById('wizModal').classList.contains('open')){closeWizard();return}
+    if(document.getElementById('recOv').classList.contains('open')){closeVoice();return}
+    if(document.getElementById('cameraOv').classList.contains('open')){closeCamera();return}
+    if(document.getElementById('infoPanel').classList.contains('open')){closeInfoPanel();return}
+    ['detail','ai','filter','studio','labels','csv'].forEach(function(n){
+        if(document.getElementById(n+'Dr')?.classList.contains('open'))closeDrawer(n);
+    });
+    if(e.state?.scr)goScreen(e.state.scr,e.state.params||{});
+});
 
 
 // ─── INIT ───
