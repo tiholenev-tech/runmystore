@@ -969,10 +969,10 @@ body::before{
 .fg{margin-bottom:10px}
 .fl{display:block;font-size:9px;font-weight:700;color:var(--text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px}
 .fl .hint{color:rgba(107,114,128,0.7);font-weight:400;text-transform:none;letter-spacing:0}
-.fl .fl-add{float:right;color:var(--indigo-500);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.fl .fl-add{float:right;color:var(--indigo-300);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3)}
 .fc{
     width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border-subtle);
-    background:var(--bg-card);color:var(--text-primary);font-size:14px;outline:none;
+    background:rgba(30,35,50,0.9);color:var(--text-primary);font-size:14px;outline:none;
     font-family:inherit;transition:border-color 0.2s;
 }
 .fc:focus{border-color:var(--border-glow);box-shadow:0 0 12px rgba(99,102,241,0.1)}
@@ -1189,7 +1189,7 @@ input[type=file]{display:none}
 
 
 /* ═══ WIZARD INFO SYSTEM ═══ */
-.wiz-info-btn{display:inline-flex;width:18px;height:18px;border-radius:50%;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;margin-left:4px;vertical-align:middle;transition:all 0.15s;flex-shrink:0}
+.wiz-info-btn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:rgba(99,102,241,0.15);border:1.5px solid rgba(99,102,241,0.4);align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;margin-left:6px;vertical-align:middle;transition:all 0.15s;flex-shrink:0;color:var(--indigo-300)}
 .wiz-info-btn:active{background:rgba(99,102,241,0.2);transform:scale(0.9)}
 .wiz-info-overlay{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
 .wiz-info-box{background:#080818;border:1px solid var(--border-glow);border-radius:16px;padding:16px;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(99,102,241,0.2)}
@@ -2142,9 +2142,9 @@ function renderWizPage(step){
         '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<input type="number" step="0.01" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0,00"></div>'+
         '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00"></div></div>'+
         '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
-        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">+ Нов</span>')+'<select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value||null">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">+ Нова</span>')+'<input type="text" class="fc" id="wCatSearch" placeholder="🔍 Търси категория..." style="margin-bottom:4px;font-size:12px" oninput="wizFilterSelect(\'wCat\',this.value)"><select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">+ Нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">Добави нов</span>')+'<select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value||null">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">Добави нова</span>')+'<input type="text" class="fc" id="wCatSearch" placeholder="🔍 Търси категория..." style="margin-bottom:4px;font-size:12px" oninput="wizFilterSelect(\'wCat\',this.value)"><select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">Добави нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(S.wizData._hasPhoto?2:1)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
@@ -2207,7 +2207,7 @@ function renderWizPagePart2(step){
     if(step===5){
         let unitO='';CFG.units.forEach(u=>unitO+='<option value="'+u+'" '+(S.wizData.unit===u?'selected':'')+'>'+u+'</option>');
         return '<div class="wiz-page active">'+
-        '<div class="fg">'+fieldLabel('Мерна единица','unit','<span class="fl-add" onclick="toggleInl(\'inlUnit\')">+ Друга</span>')+
+        '<div class="fg">'+fieldLabel('Мерна единица','unit','<span class="fl-add" onclick="toggleInl(\'inlUnit\')">Добави друга</span>')+
         '<select class="fc" id="wUnit" onchange="S.wizData.unit=this.value">'+unitO+'</select>'+
         '<div class="inline-add" id="inlUnit"><input type="text" placeholder="напр. метър, кг..." id="inlUnitName"><button onclick="wizAddUnit()">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Минимално количество','min_qty')+
