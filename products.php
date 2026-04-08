@@ -435,7 +435,9 @@ if (isset($_GET['ajax'])) {
         $name = trim($_POST['name'] ?? '');
         $parent = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
         if (!$name) { echo json_encode(['error'=>'Въведи име']); exit; }
-        $exists = DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND (parent_id=? OR (parent_id IS NULL AND ? IS NULL))", [$tenant_id, $name, $parent, $parent])->fetch();
+        $exists = $parent
+            ? DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?", [$tenant_id, $name, $parent])->fetch()
+            : DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id IS NULL", [$tenant_id, $name])->fetch();
         if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
         DB::run("INSERT INTO categories (tenant_id, name, parent_id) VALUES (?,?,?)", [$tenant_id, $name, $parent]);
         echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
