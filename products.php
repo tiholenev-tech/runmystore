@@ -2032,7 +2032,7 @@ function renderWizPage(step){
         '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Силно препоръчително — AI използва снимката за описание и обработка</div>'+
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px;margin-bottom:14px;text-align:left"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Сложи на равна светла повърхност<br>✓ Без други предмети около<br>✓ Добро осветление<br>✓ Ясна, неразмазана снимка<br>✓ Максимално добро качество</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
-        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById('photoInput').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
+        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
         '<div id="wizPhotoPreview">'+(S.wizData._photoDataUrl?'<img src="'+S.wizData._photoDataUrl+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">':'')+'</div><div id="wizScanResult"></div>'+
         '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
@@ -2141,12 +2141,36 @@ function renderWizPagePart2(step){
         const combos=wizBuildCombinations();
         let combosH='';
         if(combos.length<=1&&!combos[0]?.axisValues){
-            combosH='<div class="form-row"><div class="fg"><label class="fl">Начална наличност</label><input type="number" class="fc" id="wSingleQty" value="0"></div><div class="fg"><label class="fl">Мин. наличност</label><input type="number" class="fc" id="wSingleMin" value="'+(S.wizData.min_quantity||0)+'"></div></div>';
+            combosH='<div class="form-row"><div class="fg"><label class="fl">Начална наличност</label><input type="number" class="fc" id="wSingleQty" value="1"></div><div class="fg"><label class="fl">Мин. наличност</label><input type="number" class="fc" id="wSingleMin" value="'+(S.wizData.min_quantity||0)+'"></div></div>';
         }else{
-            combosH='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:4px;font-weight:700;text-transform:uppercase">'+combos.length+' вариации — начална наличност</div>';
+            combosH='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:10px;color:var(--text-secondary);font-weight:700;text-transform:uppercase">'+combos.length+' вариации</div><div style="font-size:9px;color:var(--text-secondary)">БРОЙКА</div></div>';
             combos.forEach((v,i)=>{
                 const label=v.axisValues||v.label||'';
-                combosH+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;padding:4px 8px;border-radius:6px;background:rgba(17,24,44,0.3)"><span style="font-size:11px;flex:1">'+esc(label)+'</span><input type="number" class="fc" style="width:50px;padding:4px;text-align:center;font-size:12px" value="0" data-combo="'+i+'"></div>';
+                const parts=v.parts||[];
+                let labelH='';
+                parts.forEach(p=>{
+                    const isSize=p.axis.toLowerCase().includes('размер')||p.axis.toLowerCase().includes('size');
+                    const isColor=p.axis.toLowerCase().includes('цвят')||p.axis.toLowerCase().includes('color');
+                    if(isColor){
+                        const c=CFG.colors.find(cc=>cc.name===p.value);
+                        const hex=c?c.hex:'#666';
+                        labelH+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:12px">'+esc(p.value)+'</span></span>';
+                    }else if(isSize){
+                        labelH+='<span style="font-size:13px;font-weight:800;margin-right:6px">'+esc(p.value)+'</span>';
+                    }else{
+                        labelH+='<span style="font-size:12px;margin-right:6px">'+esc(p.value)+'</span>';
+                    }
+                });
+                if(!labelH)labelH='<span style="font-size:12px">'+esc(label)+'</span>';
+                combosH+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;padding:6px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+i+'">'+
+                '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap">'+labelH+'</div>'+
+                '<div style="display:flex;align-items:center;gap:2px">'+
+                '<button type="button" onclick="wizComboQty('+i+',-1)" style="width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:6px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>'+
+                '<input type="number" class="fc" style="width:48px;padding:6px;text-align:center;font-size:14px;font-weight:700;border-radius:6px" value="1" min="0" data-combo="'+i+'">'+
+                '<button type="button" onclick="wizComboQty('+i+',1)" style="width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:6px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>'+
+                '</div>'+
+                '<button type="button" onclick="if(confirm(\'Премахни тази вариация?\')){document.getElementById(\'comboRow'+i+'\').remove()}" style="width:24px;height:24px;border:none;background:none;color:var(--danger);font-size:14px;cursor:pointer;padding:0" title="Премахни">✕</button>'+
+                '</div>';
             });
         }
 
@@ -2394,6 +2418,14 @@ function wizAddAxisValue(axIdx){
     renderWizard();
 }
 
+function wizComboQty(idx,delta){
+    const inp=document.querySelector('[data-combo="'+idx+'"]');
+    if(!inp)return;
+    let v=parseInt(inp.value)||0;
+    v=Math.max(0,v+delta);
+    inp.value=v;
+}
+
 function wizCountCombinations(){
     if(!S.wizData.axes||!S.wizData.axes.length)return 0;
     return S.wizData.axes.filter(a=>a.values.length>0).reduce((acc,ax)=>acc*ax.values.length,1);
@@ -2536,7 +2568,6 @@ function wizAddUnit(){
 }
 
 // Photo handlers
-function document.getElementById('photoInput').click(){openCamera('photo')}
 
 document.getElementById('filePickerInput').addEventListener('change',async function(){
     document.getElementById('photoInput').files = this.files;
