@@ -493,7 +493,7 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 <meta charset="utf-8">
 <title>Артикули — RunMyStore.ai</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="business-type" content="<?= htmlspecialchars($business_type) ?>">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -2179,7 +2179,6 @@ function openQuickFilter(type) {
     document.getElementById('qfBody').innerHTML = h;
 }
 
-let _qfState = {};
 function _daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
 function _qfApply(params) {
     _qfState = {..._qfState, ...params};
