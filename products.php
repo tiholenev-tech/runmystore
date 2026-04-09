@@ -1602,8 +1602,8 @@ function productCardHTML(p){
     let cols=[];
     // 1. Наличност
     const stockColor=q>0?(q<=(p.min_quantity||0)?'var(--warning)':'var(--success)'):'var(--danger)';
-    let stockSub=p.min_quantity>0?`<div class="rc-sub">мин:${p.min_quantity}</div>`:'';
-    cols.push(`<div class="rc-stat"><div class="rc-sl">Налич.</div><div class="rc-sv" style="color:${stockColor}">${q}</div>${stockSub}</div>`);
+    let stockSub=p.min_quantity>0?`<div class="rc-sub">мин:${Math.round(p.min_quantity)}</div>`:'';
+    cols.push(`<div class="rc-stat"><div class="rc-sl">Налич.</div><div class="rc-sv" style="color:${stockColor}">${Math.round(q)}</div>${stockSub}</div>`);
     // 2. Едро
     cols.push(`<div class="rc-stat"><div class="rc-sl">Едро</div><div class="rc-sv" style="color:rgba(165,180,252,.5)">${p.wholesale_price?fmtPrice(p.wholesale_price):'—'}</div></div>`);
     // 3+4. Маржове (owner only)
@@ -1619,7 +1619,7 @@ function productCardHTML(p){
     }
     // 5. 30д продажби
     const sold=p.sold_30d||0;
-    cols.push(`<div class="rc-stat"><div class="rc-sl">30д</div><div class="rc-sv" style="color:${sold>0?'var(--success)':'rgba(165,180,252,.3)'}">${sold||'—'}</div></div>`);
+    cols.push(`<div class="rc-stat"><div class="rc-sl">30д</div><div class="rc-sv" style="color:${sold>0?'var(--success)':'rgba(165,180,252,.3)'}">${sold?Math.round(sold):'—'}</div></div>`);
     const statsH=cols.join('<div class="rc-sep"></div>');
     return `<div class="rc-card" data-id="${p.id}">
         <div class="stock-bar ${bc}"></div>${disc}
