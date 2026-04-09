@@ -1,12 +1,11 @@
 <?php
 /**
  * products.php — RunMyStore.ai
- * ПЪЛЕН REWRITE — Сесия 26
- * 4-екранен модул: Начало | Доставчици | Категории | Артикули
- * Дизайн: warehouse.php/sale.php система (#030712)
- * Voice: sale.php rec-ov/rec-box (16px пулсираща червена точка)
- * 3 пътя добавяне: AI Wizard (глас) | Ръчен Wizard (6 стъпки) | CSV Import
- * AI Image Studio | Етикети/Наличност екран
+ * S43 FULL REWRITE — 09.04.2026
+ * Fixes: detail drawer, goScreenWithHistory, openCSVImport, openLabels,
+ *   openImageStudio, dup filePickerInput, ai-chat-overlay include,
+ *   filterBySignal real logic, openQuickFilter drawers, extended products
+ *   AJAX with signal+QF filters, 8-category signals, padding-bottom
  */
 session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
@@ -26,7 +25,6 @@ $can_add    = ($is_owner || $is_manager);
 $can_see_cost   = $is_owner;
 $can_see_margin = $is_owner;
 
-// Tenant info
 $tenant = DB::run("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
 $business_type = $tenant['business_type'] ?? '';
 $currency = htmlspecialchars($tenant['currency'] ?? 'лв');
@@ -35,10 +33,7 @@ $skip_wholesale = (int)($tenant['skip_wholesale_price'] ?? 0);
 $ai_bg = (int)($tenant['ai_credits_bg'] ?? 0);
 $ai_tryon = (int)($tenant['ai_credits_tryon'] ?? 0);
 
-// User info
 $user = DB::run("SELECT * FROM users WHERE id = ?", [$user_id])->fetch(PDO::FETCH_ASSOC);
-
-// Stores
 $stores = DB::run("SELECT s.id, s.name FROM stores s WHERE s.company_id = (SELECT company_id FROM stores WHERE id = ?) ORDER BY s.name", [$store_id])->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================================
@@ -96,8 +91,7 @@ if (isset($_GET['ajax'])) {
         $pid = (int)($_GET['id'] ?? 0);
         $product = DB::run("
             SELECT p.*, s.name AS supplier_name, c.name AS category_name
-            FROM products p
-            LEFT JOIN suppliers s ON s.id = p.supplier_id
+            FROM products p LEFT JOIN suppliers s ON s.id = p.supplier_id
             LEFT JOIN categories c ON c.id = p.category_id
             WHERE p.id = ? AND p.tenant_id = ?
         ", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
@@ -118,81 +112,32 @@ if (isset($_GET['ajax'])) {
         $price_history = DB::run("
             SELECT old_price, new_price, changed_at FROM price_history WHERE product_id = ? ORDER BY changed_at DESC LIMIT 10
         ", [$pid])->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['product' => $product, 'stocks' => $stocks, 'variations' => $variations, 'price_history' => $price_history]);
+        echo json_encode(['product'=>$product,'stocks'=>$stocks,'variations'=>$variations,'price_history'=>$price_history]);
         exit;
     }
 
     // ─── HOME STATS ───
     if ($ajax === 'home_stats') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
-        $capital = DB::run("
-            SELECT COALESCE(SUM(i.quantity * p.retail_price), 0) AS retail_value,
-                   COALESCE(SUM(i.quantity * p.cost_price), 0) AS cost_value
-            FROM inventory i JOIN products p ON p.id = i.product_id
-            WHERE p.tenant_id = ? AND i.store_id = ? AND i.quantity > 0
-        ", [$tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
+        $capital = DB::run("SELECT COALESCE(SUM(i.quantity * p.retail_price), 0) AS retail_value, COALESCE(SUM(i.quantity * p.cost_price), 0) AS cost_value FROM inventory i JOIN products p ON p.id = i.product_id WHERE p.tenant_id = ? AND i.store_id = ? AND i.quantity > 0", [$tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
         $avg_margin = 0;
         if ($can_see_margin && $capital['cost_value'] > 0) {
             $avg_margin = round((($capital['retail_value'] - $capital['cost_value']) / $capital['retail_value']) * 100, 1);
         }
-        $zombies = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity, 0) AS qty,
-                   DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id), p.created_at)) AS days_stale
-            FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity > 0 AND p.parent_id IS NULL
-            HAVING days_stale > 45 ORDER BY days_stale DESC LIMIT 10
-        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        $low_stock = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.min_quantity, COALESCE(i.quantity, 0) AS qty
-            FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.min_quantity > 0 AND i.quantity <= p.min_quantity AND i.quantity > 0
-            ORDER BY (i.quantity / p.min_quantity) ASC LIMIT 10
-        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        $out_of_stock = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image_url
-            FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity = 0 AND p.parent_id IS NULL
-            ORDER BY p.name LIMIT 20
-        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        $top_sellers = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, SUM(si.quantity) AS sold_qty, SUM(si.quantity * si.unit_price) AS revenue
-            FROM sale_items si JOIN sales s ON s.id = si.sale_id JOIN products p ON p.id = si.product_id
-            WHERE p.tenant_id = ? AND s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND s.status = 'completed'
-            GROUP BY p.id ORDER BY sold_qty DESC LIMIT 5
-        ", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
-        $slow_movers = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity, 0) AS qty,
-                   DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id), p.created_at)) AS days_stale
-            FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND i.quantity > 0 AND p.parent_id IS NULL
-            HAVING days_stale BETWEEN 25 AND 45 ORDER BY days_stale DESC LIMIT 10
-        ", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        $counts = DB::run("
-            SELECT COUNT(DISTINCT p.id) AS total_products, COALESCE(SUM(i.quantity), 0) AS total_units
-            FROM products p LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL
-        ", [$sid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
-        echo json_encode([
-            'capital' => $can_see_margin ? round($capital['retail_value'], 2) : null,
-            'avg_margin' => $can_see_margin ? $avg_margin : null,
-            'zombies' => $zombies, 'low_stock' => $low_stock, 'out_of_stock' => $out_of_stock,
-            'top_sellers' => $top_sellers, 'slow_movers' => $slow_movers, 'counts' => $counts
-        ]);
+        $zombies = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity,0) AS qty, DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) AS days_stale FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity>0 AND p.parent_id IS NULL HAVING days_stale>45 ORDER BY days_stale DESC LIMIT 10", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $low_stock = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.min_quantity, COALESCE(i.quantity,0) AS qty FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0 ORDER BY (i.quantity/p.min_quantity) ASC LIMIT 10", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $out_of_stock = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0 AND p.parent_id IS NULL ORDER BY p.name LIMIT 20", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $top_sellers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, SUM(si.quantity) AS sold_qty, SUM(si.quantity*si.unit_price) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND s.status='completed' GROUP BY p.id ORDER BY sold_qty DESC LIMIT 5", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
+        $slow_movers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity,0) AS qty, DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) AS days_stale FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity>0 AND p.parent_id IS NULL HAVING days_stale BETWEEN 25 AND 45 ORDER BY days_stale DESC LIMIT 10", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $counts = DB::run("SELECT COUNT(DISTINCT p.id) AS total_products, COALESCE(SUM(i.quantity),0) AS total_units FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL", [$sid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        echo json_encode(['capital'=>$can_see_margin?round($capital['retail_value'],2):null,'avg_margin'=>$can_see_margin?$avg_margin:null,'zombies'=>$zombies,'low_stock'=>$low_stock,'out_of_stock'=>$out_of_stock,'top_sellers'=>$top_sellers,'slow_movers'=>$slow_movers,'counts'=>$counts]);
         exit;
     }
 
     // ─── SUPPLIERS ───
     if ($ajax === 'suppliers') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
-        $suppliers = DB::run("
-            SELECT s.id, s.name, s.phone, s.email, COUNT(DISTINCT p.id) AS product_count,
-                   COALESCE(SUM(i.quantity), 0) AS total_stock,
-                   SUM(CASE WHEN i.quantity = 0 THEN 1 ELSE 0 END) AS out_count,
-                   SUM(CASE WHEN i.quantity > 0 AND i.quantity <= p.min_quantity AND p.min_quantity > 0 THEN 1 ELSE 0 END) AS low_count
-            FROM suppliers s JOIN products p ON p.supplier_id = s.id AND p.tenant_id = ? AND p.is_active = 1
-            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE s.tenant_id = ? GROUP BY s.id ORDER BY s.name
-        ", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $suppliers = DB::run("SELECT s.id, s.name, s.phone, s.email, COUNT(DISTINCT p.id) AS product_count, COALESCE(SUM(i.quantity),0) AS total_stock, SUM(CASE WHEN i.quantity=0 THEN 1 ELSE 0 END) AS out_count, SUM(CASE WHEN i.quantity>0 AND i.quantity<=p.min_quantity AND p.min_quantity>0 THEN 1 ELSE 0 END) AS low_count FROM suppliers s JOIN products p ON p.supplier_id=s.id AND p.tenant_id=? AND p.is_active=1 LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE s.tenant_id=? GROUP BY s.id ORDER BY s.name", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($suppliers); exit;
     }
 
@@ -201,20 +146,9 @@ if (isset($_GET['ajax'])) {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
         if ($sup) {
-            // Get categories linked to this supplier via supplier_categories table
-            $sql = "SELECT c.id, c.name, c.parent_id
-                    FROM categories c
-                    JOIN supplier_categories sc ON sc.category_id = c.id AND sc.supplier_id = ? AND sc.tenant_id = ?
-                    WHERE c.tenant_id = ?
-                    ORDER BY c.name";
-            $categories = DB::run($sql, [$sup, $tenant_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+            $categories = DB::run("SELECT c.id, c.name, c.parent_id FROM categories c JOIN supplier_categories sc ON sc.category_id=c.id AND sc.supplier_id=? AND sc.tenant_id=? WHERE c.tenant_id=? ORDER BY c.name", [$sup, $tenant_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $sql = "SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count,
-                      COUNT(DISTINCT p.supplier_id) AS supplier_count, COALESCE(SUM(i.quantity), 0) AS total_stock
-               FROM categories c JOIN products p ON p.category_id = c.id AND p.tenant_id = ? AND p.is_active = 1
-               LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-               WHERE c.tenant_id = ? GROUP BY c.id ORDER BY c.name";
-            $categories = DB::run($sql, [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+            $categories = DB::run("SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count, COUNT(DISTINCT p.supplier_id) AS supplier_count, COALESCE(SUM(i.quantity),0) AS total_stock FROM categories c JOIN products p ON p.category_id=c.id AND p.tenant_id=? AND p.is_active=1 LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE c.tenant_id=? GROUP BY c.id ORDER BY c.name", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         }
         echo json_encode($categories); exit;
     }
@@ -222,34 +156,22 @@ if (isset($_GET['ajax'])) {
     // ─── SUBCATEGORIES ───
     if ($ajax === 'subcategories') {
         $parent_id = (int)($_GET['parent_id'] ?? 0);
-        $rows = DB::run("SELECT id, name FROM categories WHERE tenant_id = ? AND parent_id = ? ORDER BY name", [$tenant_id, $parent_id])->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($rows); exit;
+        echo json_encode(DB::run("SELECT id, name FROM categories WHERE tenant_id=? AND parent_id=? ORDER BY name", [$tenant_id, $parent_id])->fetchAll(PDO::FETCH_ASSOC)); exit;
     }
 
     // ─── SUPPLIER CATEGORIES (get/save) ───
     if ($ajax === 'get_supplier_categories') {
         $sup_id = (int)($_GET['supplier_id'] ?? 0);
-        $rows = DB::run("SELECT category_id FROM supplier_categories WHERE tenant_id = ? AND supplier_id = ?",
-            [$tenant_id, $sup_id])->fetchAll(PDO::FETCH_COLUMN);
-        echo json_encode($rows); exit;
+        echo json_encode(DB::run("SELECT category_id FROM supplier_categories WHERE tenant_id=? AND supplier_id=?", [$tenant_id, $sup_id])->fetchAll(PDO::FETCH_COLUMN)); exit;
     }
-
     if ($ajax === 'save_supplier_categories') {
         $input = json_decode(file_get_contents('php://input'), true);
         $sup_id = (int)($input['supplier_id'] ?? 0);
         $cat_ids = $input['category_ids'] ?? [];
-        if (!$sup_id) { echo json_encode(['error' => 'No supplier']); exit; }
-        // Clear old
-        DB::run("DELETE FROM supplier_categories WHERE tenant_id = ? AND supplier_id = ?", [$tenant_id, $sup_id]);
-        // Insert new
-        foreach ($cat_ids as $cid) {
-            $cid = (int)$cid;
-            if ($cid > 0) {
-                DB::run("INSERT IGNORE INTO supplier_categories (tenant_id, supplier_id, category_id) VALUES (?, ?, ?)",
-                    [$tenant_id, $sup_id, $cid]);
-            }
-        }
-        echo json_encode(['ok' => true, 'count' => count($cat_ids)]); exit;
+        if (!$sup_id) { echo json_encode(['error'=>'No supplier']); exit; }
+        DB::run("DELETE FROM supplier_categories WHERE tenant_id=? AND supplier_id=?", [$tenant_id, $sup_id]);
+        foreach ($cat_ids as $cid) { $cid=(int)$cid; if($cid>0) DB::run("INSERT IGNORE INTO supplier_categories (tenant_id,supplier_id,category_id) VALUES (?,?,?)", [$tenant_id,$sup_id,$cid]); }
+        echo json_encode(['ok'=>true,'count'=>count($cat_ids)]); exit;
     }
 
     // ─── CATEGORY GROUPS (from JSON) ───
@@ -258,15 +180,11 @@ if (isset($_GET['ajax'])) {
         if (!file_exists($jsonFile)) { echo json_encode([]); exit; }
         $all = json_decode(file_get_contents($jsonFile), true);
         $bt = $_GET['business_type'] ?? $business_type;
-        foreach ($all as $item) {
-            if ($item['business_type'] === $bt) {
-                echo json_encode($item['category_groups']); exit;
-            }
-        }
+        foreach ($all as $item) { if ($item['business_type'] === $bt) { echo json_encode($item['category_groups']); exit; } }
         echo json_encode([]); exit;
     }
 
-    // ─── PRODUCTS LIST ───
+    // ─── PRODUCTS LIST (S43: extended with signal + quick filters) ───
     if ($ajax === 'products') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
@@ -274,79 +192,94 @@ if (isset($_GET['ajax'])) {
         $flt = $_GET['filter'] ?? 'all';
         $sort = $_GET['sort'] ?? 'name';
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $per_page = 30; $offset = ($page - 1) * $per_page;
-        $where = ["p.tenant_id = ?", "p.is_active = 1", "p.parent_id IS NULL"]; $params = [$tenant_id];
+        $per_page = 30; $offset = ($page-1)*$per_page;
+        $where = ["p.tenant_id = ?","p.is_active = 1","p.parent_id IS NULL"]; $params = [$tenant_id];
+        $needHaving = false; $havingClauses = [];
         if ($sup) { $where[] = "p.supplier_id = ?"; $params[] = $sup; }
         if ($cat) { $where[] = "p.category_id = ?"; $params[] = $cat; }
-        if ($flt === 'low') { $where[] = "i.quantity > 0 AND i.quantity <= p.min_quantity AND p.min_quantity > 0"; }
-        elseif ($flt === 'out') { $where[] = "(i.quantity = 0 OR i.quantity IS NULL)"; }
+        if ($flt==='low') { $where[] = "i.quantity > 0 AND i.quantity <= p.min_quantity AND p.min_quantity > 0"; }
+        elseif ($flt==='out') { $where[] = "(i.quantity = 0 OR i.quantity IS NULL)"; }
+        elseif ($flt==='zombie') { $where[] = "i.quantity > 0"; $needHaving=true; $havingClauses[] = "days_stale > 45"; }
+        elseif ($flt==='aging') { $where[] = "i.quantity > 0"; $needHaving=true; $havingClauses[] = "days_stale > 90"; }
+        elseif ($flt==='slow_mover') { $where[] = "i.quantity > 0"; $needHaving=true; $havingClauses[] = "days_stale BETWEEN 25 AND 45"; }
+        elseif ($flt==='at_loss') { $where[] = "p.cost_price > 0 AND p.retail_price < p.cost_price"; }
+        elseif ($flt==='low_margin') { $where[] = "p.cost_price > 0 AND p.retail_price > p.cost_price AND ((p.retail_price-p.cost_price)/p.retail_price*100) < 15"; }
+        elseif ($flt==='critical_low') { $where[] = "i.quantity BETWEEN 1 AND 2"; }
+        elseif ($flt==='zero_stock') { $where[] = "i.quantity = 0"; $where[] = "p.id IN (SELECT si2.product_id FROM sale_items si2 JOIN sales s2 ON s2.id=si2.sale_id WHERE s2.store_id=? AND s2.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND s2.status='completed')"; $params[] = $sid; }
+        elseif ($flt==='below_min') { $where[] = "p.min_quantity > 0 AND i.quantity > 0 AND i.quantity <= p.min_quantity"; }
+        elseif ($flt==='top_sales') { $where[] = "p.id IN (SELECT si3.product_id FROM sale_items si3 JOIN sales s3 ON s3.id=si3.sale_id WHERE s3.store_id=? AND s3.status='completed' AND s3.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) GROUP BY si3.product_id ORDER BY SUM(si3.quantity) DESC LIMIT 10)"; $params[] = $sid; }
+        elseif ($flt==='top_profit') { $where[] = "p.cost_price > 0"; $sort='margin_desc'; }
+        elseif ($flt==='no_photo') { $where[] = "(p.image_url IS NULL OR p.image_url='')"; }
+        elseif ($flt==='no_barcode') { $where[] = "(p.barcode IS NULL OR p.barcode='')"; }
+        elseif ($flt==='no_supplier') { $where[] = "p.supplier_id IS NULL"; }
+        elseif ($flt==='no_cost') { $where[] = "(p.cost_price IS NULL OR p.cost_price=0)"; }
+        elseif ($flt==='new_week') { $where[] = "p.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"; }
+        // Quick filter params
+        if (isset($_GET['price_min']) && $_GET['price_min']!=='') { $where[] = "p.retail_price >= ?"; $params[] = (float)$_GET['price_min']; }
+        if (isset($_GET['price_max']) && $_GET['price_max']!=='') { $where[] = "p.retail_price <= ?"; $params[] = (float)$_GET['price_max']; }
+        if (isset($_GET['stock_min']) && $_GET['stock_min']!=='') { $where[] = "COALESCE(i.quantity,0) >= ?"; $params[] = (int)$_GET['stock_min']; }
+        if (isset($_GET['stock_max']) && $_GET['stock_max']!=='') { $where[] = "COALESCE(i.quantity,0) <= ?"; $params[] = (int)$_GET['stock_max']; }
+        if (isset($_GET['margin_min']) && $_GET['margin_min']!=='' && $can_see_margin) { $where[] = "p.cost_price>0 AND ((p.retail_price-p.cost_price)/p.retail_price*100) >= ?"; $params[] = (float)$_GET['margin_min']; }
+        if (isset($_GET['margin_max']) && $_GET['margin_max']!=='' && $can_see_margin) { $where[] = "p.cost_price>0 AND ((p.retail_price-p.cost_price)/p.retail_price*100) <= ?"; $params[] = (float)$_GET['margin_max']; }
+        if (isset($_GET['date_from']) && $_GET['date_from']!=='') { $where[] = "p.created_at >= ?"; $params[] = $_GET['date_from']; }
+        if (isset($_GET['date_to']) && $_GET['date_to']!=='') { $where[] = "p.created_at <= ?"; $params[] = $_GET['date_to'].' 23:59:59'; }
+
         $where_sql = implode(' AND ', $where);
-        $order = match($sort) {
-            'price_asc' => 'p.retail_price ASC', 'price_desc' => 'p.retail_price DESC',
-            'stock_asc' => 'store_stock ASC', 'stock_desc' => 'store_stock DESC',
-            'newest' => 'p.created_at DESC', default => 'p.name ASC'
-        };
-        $products = DB::run("
-            SELECT p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price, p.image_url,
-                   p.supplier_id, p.category_id, p.parent_id, p.discount_pct, p.discount_ends_at,
-                   p.min_quantity, p.unit, s.name AS supplier_name, c.name AS category_name,
-                   COALESCE(i.quantity, 0) AS store_stock
-            FROM products p LEFT JOIN suppliers s ON s.id = p.supplier_id LEFT JOIN categories c ON c.id = p.category_id
-            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?
-        ", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
-        $total = DB::run("SELECT COUNT(DISTINCT p.id) AS cnt FROM products p LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE {$where_sql}", array_merge([$sid], $params))->fetchColumn();
+        $order = match($sort) { 'price_asc'=>'p.retail_price ASC','price_desc'=>'p.retail_price DESC','stock_asc'=>'store_stock ASC','stock_desc'=>'store_stock DESC','newest'=>'p.created_at DESC','margin_desc'=>'((p.retail_price-p.cost_price)/p.retail_price) DESC', default=>'p.name ASC' };
+        $dse = "DATEDIFF(NOW(), COALESCE((SELECT MAX(s99.created_at) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id WHERE si99.product_id=p.id AND s99.store_id={$sid}), p.created_at))";
+
+        if ($needHaving) {
+            $hSQL = implode(' AND ', str_replace('days_stale', $dse, $havingClauses));
+            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock,{$dse} AS days_stale FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+            $total = DB::run("SELECT COUNT(*) FROM (SELECT p.id,{$dse} AS days_stale FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL}) sub", array_merge([$sid], $params))->fetchColumn();
+        } else {
+            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+            $total = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql}", array_merge([$sid], $params))->fetchColumn();
+        }
         if (!$can_see_cost) { foreach ($products as &$pr) unset($pr['cost_price']); }
-        echo json_encode(['products' => $products, 'total' => (int)$total, 'page' => $page, 'pages' => ceil($total / $per_page)]);
+        echo json_encode(['products'=>$products,'total'=>(int)$total,'page'=>$page,'pages'=>max(1,ceil($total/$per_page))]);
         exit;
     }
 
     // ─── AI ANALYZE ───
     if ($ajax === 'ai_analyze') {
         $pid = (int)($_GET['id'] ?? 0);
-        $product = DB::run("SELECT * FROM products WHERE id = ? AND tenant_id = ?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
-        if (!$product) { echo json_encode(['error' => 'not_found']); exit; }
-        $sales_30d = DB::run("SELECT COALESCE(SUM(si.quantity), 0) AS qty, COALESCE(SUM(si.quantity * si.unit_price), 0) AS revenue FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
-        $stock = DB::run("SELECT COALESCE(SUM(quantity), 0) FROM inventory WHERE product_id = ?", [$pid])->fetchColumn();
-        $days_supply = ($sales_30d['qty'] > 0) ? round(($stock / ($sales_30d['qty'] / 30)), 0) : 999;
+        $product = DB::run("SELECT * FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$product) { echo json_encode(['error'=>'not_found']); exit; }
+        $sales_30d = DB::run("SELECT COALESCE(SUM(si.quantity),0) AS qty, COALESCE(SUM(si.quantity*si.unit_price),0) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
+        $stock = DB::run("SELECT COALESCE(SUM(quantity),0) FROM inventory WHERE product_id=?", [$pid])->fetchColumn();
+        $days_supply = ($sales_30d['qty']>0) ? round(($stock/($sales_30d['qty']/30)),0) : 999;
         $analysis = [];
-        if ($days_supply > 90 && $stock > 0) $analysis[] = ['type'=>'zombie','icon'=>'💀','text'=>"Стока за {$days_supply} дни. Намали с 30% или пакет.",'severity'=>'high'];
-        elseif ($days_supply > 45 && $stock > 0) $analysis[] = ['type'=>'slow','icon'=>'🐌','text'=>"Бавно движеща се — {$days_supply} дни запас.",'severity'=>'medium'];
-        if ($stock <= $product['min_quantity'] && $stock > 0 && $product['min_quantity'] > 0) $analysis[] = ['type'=>'low','icon'=>'⚠️','text'=>"Остават {$stock} бр. (мин. {$product['min_quantity']}). Поръчай!",'severity'=>'high'];
-        elseif ($stock == 0) $analysis[] = ['type'=>'out','icon'=>'🔴','text'=>"ИЗЧЕРПАН! Губиш продажби.",'severity'=>'critical'];
-        if ($can_see_margin && $product['cost_price'] > 0) { $margin = round((($product['retail_price'] - $product['cost_price']) / $product['retail_price']) * 100, 1); if ($margin < 20) $analysis[] = ['type'=>'margin','icon'=>'💰','text'=>"Марж само {$margin}%.",'severity'=>'medium']; }
-        if ($sales_30d['qty'] > 0) $analysis[] = ['type'=>'sales','icon'=>'📊','text'=>"30 дни: {$sales_30d['qty']} бр. / " . number_format($sales_30d['revenue'], 2, ',', '.') . " €",'severity'=>'info'];
-        echo json_encode(['analysis' => $analysis, 'days_supply' => $days_supply, 'sales_30d' => $sales_30d]);
-        exit;
+        if ($days_supply>90 && $stock>0) $analysis[] = ['type'=>'zombie','icon'=>'💀','text'=>"Стока за {$days_supply} дни. Намали с 30% или пакет.",'severity'=>'high'];
+        elseif ($days_supply>45 && $stock>0) $analysis[] = ['type'=>'slow','icon'=>'🐌','text'=>"Бавно движеща се — {$days_supply} дни запас.",'severity'=>'medium'];
+        if ($stock<=$product['min_quantity'] && $stock>0 && $product['min_quantity']>0) $analysis[] = ['type'=>'low','icon'=>'⚠️','text'=>"Остават {$stock} бр. (мин. {$product['min_quantity']}). Поръчай!",'severity'=>'high'];
+        elseif ($stock==0) $analysis[] = ['type'=>'out','icon'=>'🔴','text'=>"ИЗЧЕРПАН! Губиш продажби.",'severity'=>'critical'];
+        if ($can_see_margin && $product['cost_price']>0) { $margin=round((($product['retail_price']-$product['cost_price'])/$product['retail_price'])*100,1); if($margin<20) $analysis[]=['type'=>'margin','icon'=>'💰','text'=>"Марж само {$margin}%.",'severity'=>'medium']; }
+        if ($sales_30d['qty']>0) $analysis[] = ['type'=>'sales','icon'=>'📊','text'=>"30 дни: {$sales_30d['qty']} бр. / ".number_format($sales_30d['revenue'],2,',','.')." {$currency}",'severity'=>'info'];
+        echo json_encode(['analysis'=>$analysis,'days_supply'=>$days_supply,'sales_30d'=>$sales_30d]); exit;
     }
 
     // ─── AI CREDITS ───
     if ($ajax === 'ai_credits') {
-        $credits = DB::run("SELECT ai_credits_bg, ai_credits_tryon FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
-        echo json_encode($credits); exit;
+        echo json_encode(DB::run("SELECT ai_credits_bg, ai_credits_tryon FROM tenants WHERE id=?", [$tenant_id])->fetch(PDO::FETCH_ASSOC)); exit;
     }
 
     // ─── AI SCAN (Gemini Vision) ───
     if ($ajax === 'ai_scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $image_data = $input['image'] ?? '';
-        if (!$image_data) { echo json_encode(['error' => 'no_image']); exit; }
-        $cats = DB::run("SELECT name FROM categories WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
-        $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id = ?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
-        $prompt = "Анализирай тази снимка на продукт. Върни САМО JSON без markdown:\n";
-        $prompt .= "{\"name\":\"\",\"retail_price\":0,\"category\":\"\",\"supplier\":\"\",\"sizes\":[],\"colors\":[],\"code\":\"\",\"description\":\"\",\"unit\":\"бр\"}\n";
-        $prompt .= "Категории: " . implode(', ', $cats) . "\nДоставчици: " . implode(', ', $sups) . "\n";
-        $prompt .= "НЕ измисляй цени. description = SEO. code = 6-8 символа. Само JSON.";
-        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . GEMINI_MODEL . ':generateContent?key=' . GEMINI_API_KEY;
+        if (!$image_data) { echo json_encode(['error'=>'no_image']); exit; }
+        $cats = DB::run("SELECT name FROM categories WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
+        $prompt = "Анализирай тази снимка на продукт. Върни САМО JSON без markdown:\n{\"name\":\"\",\"retail_price\":0,\"category\":\"\",\"supplier\":\"\",\"sizes\":[],\"colors\":[],\"code\":\"\",\"description\":\"\",\"unit\":\"бр\"}\nКатегории: ".implode(', ',$cats)."\nДоставчици: ".implode(', ',$sups)."\nНЕ измисляй цени. description = SEO. code = 6-8 символа. Само JSON.";
+        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
         $payload = ['contents'=>[['parts'=>[['inlineData'=>['mimeType'=>'image/jpeg','data'=>$image_data]],['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.3,'maxOutputTokens'=>500]];
-        $ch = curl_init($api_url);
-        curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload), CURLOPT_HTTPHEADER=>['Content-Type: application/json'], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15]);
+        $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
         $text = preg_replace('/```json\s*|\s*```/', '', $text);
-        echo json_encode(json_decode($text, true) ?: ['error'=>'parse_failed']);
-        exit;
+        echo json_encode(json_decode($text, true) ?: ['error'=>'parse_failed']); exit;
     }
 
     // ─── AI DESCRIPTION ───
@@ -358,76 +291,60 @@ if (isset($_GET['ajax'])) {
         if (!empty($input['category'])) $prompt .= " Категория: {$input['category']}.";
         if (!empty($input['supplier'])) $prompt .= " Марка: {$input['supplier']}.";
         $prompt .= " Подходящо за Google и e-commerce. Само описанието.";
-        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . GEMINI_MODEL . ':generateContent?key=' . GEMINI_API_KEY;
+        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
         $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>200]];
-        $ch = curl_init($api_url); curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload), CURLOPT_HTTPHEADER=>['Content-Type: application/json'], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15]);
+        $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
-        $text = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
-        echo json_encode(['description'=>$text]); exit;
+        echo json_encode(['description'=>trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '')]); exit;
     }
 
-    // ─── AI CODE (auto-generate article number) ───
+    // ─── AI CODE ───
     if ($ajax === 'ai_code' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $name = $input['name'] ?? '';
         if (!$name) { echo json_encode(['code'=>strtoupper(substr(md5(time()),0,6))]); exit; }
         $words = preg_split('/\s+/', $name);
-        $code = ''; foreach ($words as $w) { $code .= mb_strtoupper(mb_substr($w, 0, 2)); }
-        $code = substr($code, 0, 6) . '-' . rand(10,99);
-        $exists = DB::run("SELECT id FROM products WHERE tenant_id=? AND code=?", [$tenant_id, $code])->fetch();
-        if ($exists) $code .= rand(1,9);
+        $code = ''; foreach ($words as $w) { $code .= mb_strtoupper(mb_substr($w,0,2)); }
+        $code = substr($code,0,6).'-'.rand(10,99);
+        if (DB::run("SELECT id FROM products WHERE tenant_id=? AND code=?", [$tenant_id,$code])->fetch()) $code .= rand(1,9);
         echo json_encode(['code'=>$code]); exit;
     }
 
-    // ─── AI ASSIST (Gemini with rich context) ───
+    // ─── AI ASSIST ───
     if ($ajax === 'ai_assist' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $question = $input['question'] ?? '';
         if (!$question) { echo json_encode(['error'=>'no_question']); exit; }
-        $stats = DB::run("SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity),0) AS total_qty FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1", [$store_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
-        $low = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0", [$store_id, $tenant_id])->fetchColumn();
-        $out = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity=0", [$store_id, $tenant_id])->fetchColumn();
-        $zombie = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity>0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) > 45", [$store_id, $tenant_id])->fetchColumn();
+        $stats = DB::run("SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity),0) AS total_qty FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1", [$store_id,$tenant_id])->fetch(PDO::FETCH_ASSOC);
+        $low = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0", [$store_id,$tenant_id])->fetchColumn();
+        $out = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity=0", [$store_id,$tenant_id])->fetchColumn();
+        $zombie = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity>0 AND DATEDIFF(NOW(),COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id),p.created_at))>45", [$store_id,$tenant_id])->fetchColumn();
         $cats = DB::run("SELECT name FROM categories WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
         $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
-        $top5 = DB::run("SELECT p.name, SUM(si.quantity) AS sold FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) GROUP BY p.id ORDER BY sold DESC LIMIT 5", [$tenant_id, $store_id])->fetchAll(PDO::FETCH_ASSOC);
-        $top5str = implode(', ', array_map(fn($t) => $t['name'].'('.$t['sold'].'бр)', $top5));
+        $top5 = DB::run("SELECT p.name, SUM(si.quantity) AS sold FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) GROUP BY p.id ORDER BY sold DESC LIMIT 5", [$tenant_id,$store_id])->fetchAll(PDO::FETCH_ASSOC);
+        $top5str = implode(', ', array_map(fn($t)=>$t['name'].'('.$t['sold'].'бр)', $top5));
         $memories = DB::run("SELECT memory_text FROM tenant_ai_memory WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
-        $memStr = implode('; ', $memories);
-        $role_bg = match($user_role) { 'owner'=>'собственик', 'manager'=>'управител', default=>'продавач' };
-        $systemPrompt = "Ти си AI асистент в модул 'Артикули' на RunMyStore.ai.
-Магазин: {$stats['cnt']} артикула, {$stats['total_qty']} бройки, {$low} с ниска наличност, {$out} изчерпани, {$zombie} zombie.
-Потребител: {$user_name}, роля: {$role_bg}.
-Категории: " . implode(', ', $cats) . "
-Доставчици: " . implode(', ', $sups) . "
-Топ 5 (30 дни): {$top5str}
-" . ($memStr ? "Памет: {$memStr}" : "") . "
-ПРАВИЛА: Кратко (2-3 изречения), конкретно, с числа. Без технически термини. Разбирай жаргон: дреги=дрехи, офки=обувки, якита=якета.
-ВЪРНИ САМО JSON: {\"message\":\"...\",\"action\":\"...\",\"data\":{},\"buttons\":[]}
-ДЕЙСТВИЯ: search, add_product, show_zombie, show_low, show_top, navigate, product_detail, null";
-        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . GEMINI_MODEL . ':generateContent?key=' . GEMINI_API_KEY;
+        $role_bg = match($user_role) { 'owner'=>'собственик','manager'=>'управител',default=>'продавач' };
+        $systemPrompt = "Ти си AI асистент в модул 'Артикули' на RunMyStore.ai.\nМагазин: {$stats['cnt']} артикула, {$stats['total_qty']} бройки, {$low} ниска наличност, {$out} изчерпани, {$zombie} zombie.\nПотребител: {$user_name}, роля: {$role_bg}.\nКатегории: ".implode(', ',$cats)."\nДоставчици: ".implode(', ',$sups)."\nТоп 5 (30 дни): {$top5str}\n".($memories?"Памет: ".implode('; ',$memories):"")."\nПРАВИЛА: Кратко (2-3 изречения), конкретно, с числа. Формула: Число + Защо + Какво да направиш.\nВЪРНИ САМО JSON: {\"message\":\"...\",\"action\":\"...\",\"data\":{},\"buttons\":[]}\nДЕЙСТВИЯ: search, add_product, show_zombie, show_low, show_top, navigate, product_detail, null";
+        $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
         $payload = ['contents'=>[['parts'=>[['text'=>$question]]]],'systemInstruction'=>['parts'=>[['text'=>$systemPrompt]]],'generationConfig'=>['temperature'=>0.3,'maxOutputTokens'=>500]];
-        $ch = curl_init($api_url);
-        curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>json_encode($payload), CURLOPT_HTTPHEADER=>['Content-Type: application/json'], CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15]);
+        $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
-        $data = json_decode($resp, true);
-        $text = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
+        $text = trim(json_decode($resp,true)['candidates'][0]['content']['parts'][0]['text'] ?? '');
         $text = preg_replace('/```json\s*|\s*```/', '', $text);
         $parsed = json_decode($text, true);
-        if ($parsed && isset($parsed['message'])) { echo json_encode($parsed); }
-        else { echo json_encode(['message' => $text ?: 'Не разбрах.', 'action' => null, 'data' => new \stdClass(), 'buttons' => []]); }
-        exit;
+        echo json_encode($parsed && isset($parsed['message']) ? $parsed : ['message'=>$text?:'Не разбрах.','action'=>null,'data'=>new \stdClass(),'buttons'=>[]]); exit;
     }
 
     // ─── ADD SUPPLIER ───
     if ($ajax === 'add_supplier' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
         if (!$name) { echo json_encode(['error'=>'Въведи име']); exit; }
-        $exists = DB::run("SELECT id FROM suppliers WHERE tenant_id=? AND name=?", [$tenant_id, $name])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
-        DB::run("INSERT INTO suppliers (tenant_id, name, is_active) VALUES (?,?,1)", [$tenant_id, $name]);
-        echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
+        $exists = DB::run("SELECT id FROM suppliers WHERE tenant_id=? AND name=?", [$tenant_id,$name])->fetch();
+        if ($exists) { echo json_encode(['id'=>$exists['id'],'name'=>$name,'duplicate'=>true]); exit; }
+        DB::run("INSERT INTO suppliers (tenant_id,name,is_active) VALUES (?,?,1)", [$tenant_id,$name]);
+        echo json_encode(['id'=>DB::get()->lastInsertId(),'name'=>$name]); exit;
     }
 
     // ─── ADD CATEGORY ───
@@ -435,12 +352,10 @@ if (isset($_GET['ajax'])) {
         $name = trim($_POST['name'] ?? '');
         $parent = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
         if (!$name) { echo json_encode(['error'=>'Въведи име']); exit; }
-        $exists = $parent
-            ? DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?", [$tenant_id, $name, $parent])->fetch()
-            : DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id IS NULL", [$tenant_id, $name])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
-        DB::run("INSERT INTO categories (tenant_id, name, parent_id) VALUES (?,?,?)", [$tenant_id, $name, $parent]);
-        echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
+        $exists = $parent ? DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?",[$tenant_id,$name,$parent])->fetch() : DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id IS NULL",[$tenant_id,$name])->fetch();
+        if ($exists) { echo json_encode(['id'=>$exists['id'],'name'=>$name,'duplicate'=>true]); exit; }
+        DB::run("INSERT INTO categories (tenant_id,name,parent_id) VALUES (?,?,?)", [$tenant_id,$name,$parent]);
+        echo json_encode(['id'=>DB::get()->lastInsertId(),'name'=>$name]); exit;
     }
 
     // ─── ADD SUBCATEGORY ───
@@ -448,10 +363,10 @@ if (isset($_GET['ajax'])) {
         $name = trim($_POST['name'] ?? '');
         $parent_id = (int)($_POST['parent_id'] ?? 0);
         if (!$name || !$parent_id) { echo json_encode(['error'=>'Въведи име и категория']); exit; }
-        $exists = DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?", [$tenant_id, $name, $parent_id])->fetch();
-        if ($exists) { echo json_encode(['id'=>$exists['id'], 'name'=>$name, 'duplicate'=>true]); exit; }
-        DB::run("INSERT INTO categories (tenant_id, name, parent_id) VALUES (?,?,?)", [$tenant_id, $name, $parent_id]);
-        echo json_encode(['id'=>DB::get()->lastInsertId(), 'name'=>$name]); exit;
+        $exists = DB::run("SELECT id FROM categories WHERE tenant_id=? AND name=? AND parent_id=?",[$tenant_id,$name,$parent_id])->fetch();
+        if ($exists) { echo json_encode(['id'=>$exists['id'],'name'=>$name,'duplicate'=>true]); exit; }
+        DB::run("INSERT INTO categories (tenant_id,name,parent_id) VALUES (?,?,?)", [$tenant_id,$name,$parent_id]);
+        echo json_encode(['id'=>DB::get()->lastInsertId(),'name'=>$name]); exit;
     }
 
     // ─── ADD UNIT ───
@@ -460,213 +375,117 @@ if (isset($_GET['ajax'])) {
         if (!$unit) { echo json_encode(['error'=>'Въведи единица']); exit; }
         $t = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
         $units = json_decode($t['units_config'] ?? '[]', true) ?: [];
-        if (!in_array($unit, $units)) { $units[] = $unit; DB::run("UPDATE tenants SET units_config=? WHERE id=?", [json_encode($units, JSON_UNESCAPED_UNICODE), $tenant_id]); }
-        echo json_encode(['units'=>$units, 'added'=>$unit]); exit;
+        if (!in_array($unit,$units)) { $units[]=$unit; DB::run("UPDATE tenants SET units_config=? WHERE id=?", [json_encode($units,JSON_UNESCAPED_UNICODE),$tenant_id]); }
+        echo json_encode(['units'=>$units,'added'=>$unit]); exit;
     }
 
     // ─── SKIP WHOLESALE ───
     if ($ajax === 'skip_wholesale' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        DB::run("UPDATE tenants SET skip_wholesale_price = 1 WHERE id = ?", [$tenant_id]);
-        echo json_encode(['ok' => true]); exit;
+        DB::run("UPDATE tenants SET skip_wholesale_price=1 WHERE id=?", [$tenant_id]);
+        echo json_encode(['ok'=>true]); exit;
     }
 
-    // ─── AI IMAGE (fal.ai proxy) ───
+    // ─── AI IMAGE ───
     if ($ajax === 'ai_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        $product_id = (int)($input['product_id'] ?? 0);
-        $type = $input['type'] ?? 'bg_removal'; // bg_removal | tryon_*
-        $model = $input['model'] ?? '';
-        $prompt = $input['prompt'] ?? '';
-        // Check credits
-        if ($type === 'bg_removal') {
-            $cr = DB::run("SELECT ai_credits_bg FROM tenants WHERE id=?", [$tenant_id])->fetchColumn();
-            if ($cr <= 0) { echo json_encode(['error' => 'Нямаш кредити за бял фон']); exit; }
-        } else {
-            $cr = DB::run("SELECT ai_credits_tryon FROM tenants WHERE id=?", [$tenant_id])->fetchColumn();
-            if ($cr <= 0) { echo json_encode(['error' => 'Нямаш кредити за AI Магия']); exit; }
-        }
-        // TODO: fal.ai integration via ai-image-processor.php
-        echo json_encode(['status' => 'pending', 'message' => 'AI обработва снимката...']); exit;
+        $type = $input['type'] ?? 'bg_removal';
+        if ($type === 'bg_removal') { $cr = DB::run("SELECT ai_credits_bg FROM tenants WHERE id=?",[$tenant_id])->fetchColumn(); if ($cr<=0) { echo json_encode(['error'=>'Нямаш кредити за бял фон']); exit; } }
+        else { $cr = DB::run("SELECT ai_credits_tryon FROM tenants WHERE id=?",[$tenant_id])->fetchColumn(); if ($cr<=0) { echo json_encode(['error'=>'Нямаш кредити за AI Магия']); exit; } }
+        echo json_encode(['status'=>'pending','message'=>'AI обработва снимката...']); exit;
     }
 
-    // ─── SAVE LABELS (min_quantity per variation) ───
+    // ─── SAVE LABELS ───
     if ($ajax === 'save_labels' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        $variations = $input['variations'] ?? [];
-        foreach ($variations as $v) {
-            $vid = (int)($v['id'] ?? 0);
-            $min_qty = (int)($v['min_quantity'] ?? 0);
-            if ($vid > 0) {
-                DB::run("UPDATE products SET min_quantity = ? WHERE id = ? AND tenant_id = ?", [$min_qty, $vid, $tenant_id]);
-            }
-        }
-        echo json_encode(['ok' => true]); exit;
+        foreach ($input['variations'] ?? [] as $v) { $vid=(int)($v['id']??0); $mq=(int)($v['min_quantity']??0); if($vid>0) DB::run("UPDATE products SET min_quantity=? WHERE id=? AND tenant_id=?",[$mq,$vid,$tenant_id]); }
+        echo json_encode(['ok'=>true]); exit;
     }
 
     // ─── EXPORT LABELS ───
     if ($ajax === 'export_labels') {
         $product_id = (int)($_GET['product_id'] ?? 0);
         $format = $_GET['format'] ?? 'csv';
-        $variations = DB::run("
-            SELECT p.id, p.name, p.code, p.barcode, p.size, p.color, p.min_quantity,
-                   COALESCE(SUM(i.quantity), 0) AS stock
-            FROM products p LEFT JOIN inventory i ON i.product_id = p.id
-            WHERE (p.id = ? OR p.parent_id = ?) AND p.tenant_id = ? AND p.is_active = 1
-            GROUP BY p.id ORDER BY p.name
-        ", [$product_id, $product_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        if ($format === 'csv') {
-            header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="labels_' . $product_id . '.csv"');
-            $out = fopen('php://output', 'w');
-            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-            fputcsv($out, ['Име', 'Код', 'Баркод', 'Размер', 'Цвят', 'Мин.кол.', 'Наличност']);
-            foreach ($variations as $v) {
-                fputcsv($out, [$v['name'], $v['code'], $v['barcode'], $v['size'], $v['color'], $v['min_quantity'], $v['stock']]);
-            }
+        $variations = DB::run("SELECT p.id, p.name, p.code, p.barcode, p.size, p.color, p.min_quantity, COALESCE(SUM(i.quantity),0) AS stock FROM products p LEFT JOIN inventory i ON i.product_id=p.id WHERE (p.id=? OR p.parent_id=?) AND p.tenant_id=? AND p.is_active=1 GROUP BY p.id ORDER BY p.name", [$product_id,$product_id,$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        if ($format==='csv') {
+            header('Content-Type: text/csv; charset=utf-8'); header('Content-Disposition: attachment; filename="labels_'.$product_id.'.csv"');
+            $out=fopen('php://output','w'); fprintf($out,chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out,['Име','Код','Баркод','Размер','Цвят','Мин.кол.','Наличност']);
+            foreach ($variations as $v) fputcsv($out,[$v['name'],$v['code'],$v['barcode'],$v['size'],$v['color'],$v['min_quantity'],$v['stock']]);
             fclose($out);
-        } else {
-            echo json_encode($variations);
-        }
+        } else { echo json_encode($variations); }
         exit;
     }
 
     // ─── IMPORT CSV ───
     if ($ajax === 'import_csv' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (!isset($_FILES['file'])) { echo json_encode(['error' => 'Няма файл']); exit; }
-        $file = $_FILES['file']['tmp_name'];
-        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
-        $rows = [];
-        if ($ext === 'csv') {
-            $handle = fopen($file, 'r');
-            $header = fgetcsv($handle);
-            while (($line = fgetcsv($handle)) !== false) {
-                $row = [];
-                foreach ($header as $i => $col) {
-                    $row[trim($col)] = $line[$i] ?? '';
-                }
-                $rows[] = $row;
-            }
+        if (!isset($_FILES['file'])) { echo json_encode(['error'=>'Няма файл']); exit; }
+        $file=$_FILES['file']['tmp_name']; $rows=[];
+        if (strtolower(pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION))==='csv') {
+            $handle=fopen($file,'r'); $header=fgetcsv($handle);
+            while (($line=fgetcsv($handle))!==false) { $row=[]; foreach($header as $i=>$col) $row[trim($col)]=$line[$i]??''; $rows[]=$row; }
             fclose($handle);
         }
-        // Return preview (first 10 rows + detected columns)
-        echo json_encode([
-            'columns' => array_keys($rows[0] ?? []),
-            'preview' => array_slice($rows, 0, 10),
-            'total' => count($rows),
-            'all_rows' => $rows
-        ]);
-        exit;
+        echo json_encode(['columns'=>array_keys($rows[0]??[]),'preview'=>array_slice($rows,0,10),'total'=>count($rows),'all_rows'=>$rows]); exit;
     }
 
-
-    // ─── SIGNALS (for home screen) ───
+    // ─── SIGNALS (S43: 8 groups with filter field) ───
     if ($ajax === 'signals') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $signals = [];
-
-        // 1. Zero stock with sales last 30d (critical)
-        $zero_with_sales = DB::run("
-            SELECT COUNT(DISTINCT p.id) AS cnt FROM products p
-            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity = 0
-            AND p.id IN (SELECT si.product_id FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND s.status = 'completed')
-        ", [$sid, $tenant_id, $sid])->fetchColumn();
-        if ($zero_with_sales > 0) $signals[] = ['type'=>'zero_stock','group'=>'critical','color'=>'red','count'=>(int)$zero_with_sales,'label'=>'на нула','desc'=>$zero_with_sales.' артикула с продажби — 0 бр. в склада','question'=>'Кои артикули с продажби са на нула?'];
-
-        // 2. Selling at loss (critical)
+        // НАЛИЧНОСТ (red)
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity=0 AND p.id IN (SELECT si.product_id FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND s.status='completed')", [$sid,$tenant_id,$sid])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'zero_stock','group'=>'stock','color'=>'red','count'=>(int)$v,'label'=>'на нула с продажби','desc'=>$v.' арт. с продажби — 0 бр.','question'=>'Кои артикули с продажби са на нула?','filter'=>'zero_stock'];
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity BETWEEN 1 AND 2", [$sid,$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'critical_low','group'=>'stock','color'=>'red','count'=>(int)$v,'label'=>'критично ниски (1-2)','desc'=>$v.' арт. с 1-2 бр.','question'=>'Кои артикули имат само 1-2 броя?','filter'=>'critical_low'];
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.min_quantity>0 AND i.quantity>0 AND i.quantity<=p.min_quantity", [$sid,$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'below_min','group'=>'stock','color'=>'red','count'=>(int)$v,'label'=>'под минимално','desc'=>$v.' арт. под минимум','question'=>'Кои артикули са под минимално количество?','filter'=>'below_min'];
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity=0", [$sid,$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'out_total','group'=>'stock','color'=>'red','count'=>(int)$v,'label'=>'всички на нула','desc'=>$v.' арт. с 0 бр.','question'=>'Покажи всички артикули с нулева наличност.','filter'=>'out'];
+        // ПАРИ (purple, owner)
         if ($can_see_margin) {
-            $at_loss = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND cost_price > 0 AND retail_price < cost_price", [$tenant_id])->fetchColumn();
-            if ($at_loss > 0) $signals[] = ['type'=>'at_loss','group'=>'critical','color'=>'red','count'=>(int)$at_loss,'label'=>'под себестойност','desc'=>$at_loss.' артикула се продават на загуба','question'=>'Кои артикули се продават под себестойност?'];
+            $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND cost_price>0 AND retail_price<cost_price", [$tenant_id])->fetchColumn();
+            if ($v>0) $signals[]=['type'=>'at_loss','group'=>'money','color'=>'purple','count'=>(int)$v,'label'=>'под себестойност','desc'=>$v.' арт. на загуба','question'=>'Кои артикули се продават под себестойност?','filter'=>'at_loss'];
+            $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND cost_price>0 AND retail_price>cost_price AND ((retail_price-cost_price)/retail_price*100)<15", [$tenant_id])->fetchColumn();
+            if ($v>0) $signals[]=['type'=>'low_margin','group'=>'money','color'=>'purple','count'=>(int)$v,'label'=>'нисък марж <15%','desc'=>$v.' арт. марж под 15%','question'=>'Кои артикули имат нисък марж?','filter'=>'low_margin'];
+            $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND (cost_price IS NULL OR cost_price=0)", [$tenant_id])->fetchColumn();
+            if ($v>0) $signals[]=['type'=>'no_cost','group'=>'money','color'=>'purple','count'=>(int)$v,'label'=>'без себестойност','desc'=>$v.' арт. без доставна цена','question'=>'Кои артикули нямат себестойност?','filter'=>'no_cost'];
+            $signals[]=['type'=>'top_profit','group'=>'money','color'=>'purple','count'=>10,'label'=>'най-печеливши','desc'=>'Топ 10 по марж','question'=>'Кои артикули печелят най-много?','filter'=>'top_profit'];
         }
-
-        // 3. Critical low 1-2 items (critical)
-        $crit_low = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity BETWEEN 1 AND 2", [$sid, $tenant_id])->fetchColumn();
-        if ($crit_low > 0) $signals[] = ['type'=>'critical_low','group'=>'critical','color'=>'red','count'=>(int)$crit_low,'label'=>'критично ниски','desc'=>$crit_low.' артикула с 1-2 бр. остатък','question'=>'Кои артикули имат само 1-2 броя?'];
-
-        // 4. Zombie 45+ days (warning)
-        $zombie = DB::run("SELECT COUNT(DISTINCT p.id) AS cnt, COALESCE(SUM(i.quantity * p.retail_price), 0) AS val FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) > 45", [$sid, $tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
-        if ($zombie['cnt'] > 0) $signals[] = ['type'=>'zombie','group'=>'warning','color'=>'yellow','count'=>(int)$zombie['cnt'],'label'=>'zombie стока','desc'=>'45+ дни без продажба · '.number_format($zombie['val'],0,',','.').' '.$currency.' замразени','question'=>'Кои артикули са zombie стока?'];
-
-        // 5. Below min quantity (warning)
-        $below_min = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.min_quantity > 0 AND i.quantity > 0 AND i.quantity <= p.min_quantity", [$sid, $tenant_id])->fetchColumn();
-        if ($below_min > 0) $signals[] = ['type'=>'below_min','group'=>'warning','color'=>'yellow','count'=>(int)$below_min,'label'=>'под минимално','desc'=>$below_min.' артикула под зададения минимум','question'=>'Кои артикули са под минималното количество?'];
-
-        // 6. Slow movers (warning)
-        $slow = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) BETWEEN 25 AND 45", [$sid, $tenant_id, $sid])->fetchColumn();
-        if ($slow > 0) $signals[] = ['type'=>'slow_mover','group'=>'warning','color'=>'yellow','count'=>(int)$slow,'label'=>'бавно движещи','desc'=>$slow.' артикула с малко продажби','question'=>'Кои артикули са бавно движещи се?'];
-
-        // 7. Low margin <15% (warning) — owner only
-        if ($can_see_margin) {
-            $low_margin = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND cost_price > 0 AND retail_price > cost_price AND ((retail_price - cost_price) / retail_price * 100) < 15", [$tenant_id])->fetchColumn();
-            if ($low_margin > 0) $signals[] = ['type'=>'low_margin','group'=>'warning','color'=>'yellow','count'=>(int)$low_margin,'label'=>'нисък марж','desc'=>$low_margin.' артикула с марж под 15%','question'=>'Кои артикули имат нисък марж?'];
-        }
-
-        // 8. Aging stock 90+ days (warning)
-        $aging = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) > 90", [$sid, $tenant_id, $sid])->fetchColumn();
-        if ($aging > 0) $signals[] = ['type'=>'aging','group'=>'warning','color'=>'yellow','count'=>(int)$aging,'label'=>'остаряваща стока','desc'=>$aging.' артикула над 90 дни без движение','question'=>'Кои артикули са без движение над 90 дни?'];
-
-        // 9. Top 10 by sales (positive)
-        $top_sales = DB::run("SELECT COUNT(DISTINCT si.product_id) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE s.store_id = ? AND s.status = 'completed' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [$sid])->fetchColumn();
-        if ($top_sales > 0) $signals[] = ['type'=>'top_sales','group'=>'positive','color'=>'green','count'=>min(10,(int)$top_sales),'label'=>'топ продажби','desc'=>'Най-продавани последните 30 дни','question'=>'Кои са топ 10 по продажби?'];
-
-        // 10. Most profitable (profit) — owner only
-        if ($can_see_margin) {
-            $signals[] = ['type'=>'top_profit','group'=>'profit','color'=>'purple','count'=>10,'label'=>'най-печеливши','desc'=>'Топ 10 по марж в '.$currency,'question'=>'Кои артикули печелят най-много?'];
-            $signals[] = ['type'=>'top_pct','group'=>'profit','color'=>'purple','count'=>10,'label'=>'най-висок % марж','desc'=>'Топ 10 по процент печалба','question'=>'Кои артикули имат най-висок процент марж?'];
-        }
-
-        // 11. New this week (info)
-        $new_week = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)", [$tenant_id])->fetchColumn();
-        if ($new_week > 0) $signals[] = ['type'=>'new_week','group'=>'info','color'=>'blue','count'=>(int)$new_week,'label'=>'нови тази седмица','desc'=>$new_week.' артикула добавени последните 7 дни','question'=>'Кои артикули са добавени тази седмица?'];
-
-        // 12. No photo (data quality)
-        $no_photo = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND (image_url IS NULL OR image_url = '')", [$tenant_id])->fetchColumn();
-        if ($no_photo > 0) $signals[] = ['type'=>'no_photo','group'=>'data','color'=>'orange','count'=>(int)$no_photo,'label'=>'без снимка','desc'=>$no_photo.' артикула без качена снимка','question'=>'Кои артикули нямат снимка?'];
-
-        // 13. No barcode (data quality)
-        $no_barcode = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND (barcode IS NULL OR barcode = '')", [$tenant_id])->fetchColumn();
-        if ($no_barcode > 0) $signals[] = ['type'=>'no_barcode','group'=>'data','color'=>'orange','count'=>(int)$no_barcode,'label'=>'без баркод','desc'=>$no_barcode.' артикула без въведен баркод','question'=>'Кои артикули нямат баркод?'];
-
-        // 14. No supplier (data quality)
-        $no_sup = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND supplier_id IS NULL", [$tenant_id])->fetchColumn();
-        if ($no_sup > 0) $signals[] = ['type'=>'no_supplier','group'=>'data','color'=>'orange','count'=>(int)$no_sup,'label'=>'без доставчик','desc'=>$no_sup.' артикула без свързан доставчик','question'=>'Кои артикули нямат доставчик?'];
-
+        // ПРОДАЖБИ (green)
+        $v = DB::run("SELECT COUNT(DISTINCT si.product_id) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.store_id=? AND s.status='completed' AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$sid])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'top_sales','group'=>'sales','color'=>'green','count'=>min(10,(int)$v),'label'=>'топ продажби','desc'=>'Най-продавани 30 дни','question'=>'Кои са топ 10 по продажби?','filter'=>'top_sales'];
+        // ZOMBIE (yellow)
+        $z = DB::run("SELECT COUNT(DISTINCT p.id) AS cnt, COALESCE(SUM(i.quantity*p.retail_price),0) AS val FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity>0 AND DATEDIFF(NOW(),COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=?),p.created_at))>45", [$sid,$tenant_id,$sid])->fetch(PDO::FETCH_ASSOC);
+        if ($z['cnt']>0) $signals[]=['type'=>'zombie','group'=>'zombie','color'=>'yellow','count'=>(int)$z['cnt'],'label'=>'zombie 45+ дни','desc'=>number_format($z['val'],0,',','.').' '.$currency.' замразени','question'=>'Кои артикули са zombie стока?','filter'=>'zombie'];
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity>0 AND DATEDIFF(NOW(),COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=?),p.created_at))>90", [$sid,$tenant_id,$sid])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'aging','group'=>'zombie','color'=>'yellow','count'=>(int)$v,'label'=>'остаряваща 90+ дни','desc'=>$v.' арт. над 90 дни','question'=>'Кои артикули са без движение над 90 дни?','filter'=>'aging'];
+        $v = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL AND i.quantity>0 AND DATEDIFF(NOW(),COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=?),p.created_at)) BETWEEN 25 AND 45", [$sid,$tenant_id,$sid])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'slow_mover','group'=>'zombie','color'=>'yellow','count'=>(int)$v,'label'=>'бавно движещи 25-45д','desc'=>$v.' арт. с малко продажби','question'=>'Кои артикули са бавно движещи?','filter'=>'slow_mover'];
+        // НОВИ (blue)
+        $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)", [$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'new_week','group'=>'info','color'=>'blue','count'=>(int)$v,'label'=>'нови тази седмица','desc'=>$v.' арт. последните 7 дни','question'=>'Кои артикули бяха добавени тази седмица?','filter'=>'new_week'];
+        // КАЧЕСТВО (orange)
+        $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND (image_url IS NULL OR image_url='')", [$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'no_photo','group'=>'data','color'=>'orange','count'=>(int)$v,'label'=>'без снимка','desc'=>$v.' арт. без снимка','question'=>'Кои артикули нямат снимка?','filter'=>'no_photo'];
+        $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND (barcode IS NULL OR barcode='')", [$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'no_barcode','group'=>'data','color'=>'orange','count'=>(int)$v,'label'=>'без баркод','desc'=>$v.' арт. без баркод','question'=>'Кои артикули нямат баркод?','filter'=>'no_barcode'];
+        $v = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND supplier_id IS NULL", [$tenant_id])->fetchColumn();
+        if ($v>0) $signals[]=['type'=>'no_supplier','group'=>'data','color'=>'orange','count'=>(int)$v,'label'=>'без доставчик','desc'=>$v.' арт. без доставчик','question'=>'Кои артикули нямат доставчик?','filter'=>'no_supplier'];
         echo json_encode($signals); exit;
     }
 
-
-    echo json_encode(['error' => 'unknown_action']); exit;
+    echo json_encode(['error'=>'unknown_action']); exit;
 }
 
+// Biz-coefficients
+if (file_exists(__DIR__.'/biz-coefficients.php')) { require_once __DIR__.'/biz-coefficients.php'; $bizVars = findBizVariants($business_type ?: 'магазин'); } else { $bizVars = []; }
 
-// Biz-coefficients for wizard pre-loading
-if (file_exists(__DIR__ . '/biz-coefficients.php')) {
-    require_once __DIR__ . '/biz-coefficients.php';
-    $bizVars = findBizVariants($business_type ?: 'магазин');
-} else {
-    $bizVars = [];
-}
-
-// ============================================================
-// PAGE DATA LOADING
-// ============================================================
-$all_suppliers = DB::run("SELECT id, name FROM suppliers WHERE tenant_id = ? AND is_active = 1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-$all_categories = DB::run("SELECT id, name, parent_id FROM categories WHERE tenant_id = ? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+// Page data
+$all_suppliers = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+$all_categories = DB::run("SELECT id, name, parent_id FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
 $tenant_cfg = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
 $onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
-
-$COLOR_PALETTE = [
-    ['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],
-    ['name'=>'Сив','hex'=>'#6b7280'],['name'=>'Червен','hex'=>'#ef4444'],
-    ['name'=>'Син','hex'=>'#3b82f6'],['name'=>'Зелен','hex'=>'#22c55e'],
-    ['name'=>'Жълт','hex'=>'#eab308'],['name'=>'Розов','hex'=>'#ec4899'],
-    ['name'=>'Оранжев','hex'=>'#f97316'],['name'=>'Лилав','hex'=>'#8b5cf6'],
-    ['name'=>'Кафяв','hex'=>'#92400e'],['name'=>'Navy','hex'=>'#1e40af'],
-    ['name'=>'Бежов','hex'=>'#d4b896'],['name'=>'Бордо','hex'=>'#7f1d1d'],
-    ['name'=>'Тюркоаз','hex'=>'#14b8a6'],['name'=>'Графит','hex'=>'#374151'],
-    ['name'=>'Пудра','hex'=>'#f9a8d4'],['name'=>'Маслинен','hex'=>'#65a30d'],
-    ['name'=>'Корал','hex'=>'#fb923c'],['name'=>'Екрю','hex'=>'#fef3c7'],
-];
+$COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],['name'=>'Сив','hex'=>'#6b7280'],['name'=>'Червен','hex'=>'#ef4444'],['name'=>'Син','hex'=>'#3b82f6'],['name'=>'Зелен','hex'=>'#22c55e'],['name'=>'Жълт','hex'=>'#eab308'],['name'=>'Розов','hex'=>'#ec4899'],['name'=>'Оранжев','hex'=>'#f97316'],['name'=>'Лилав','hex'=>'#8b5cf6'],['name'=>'Кафяв','hex'=>'#92400e'],['name'=>'Navy','hex'=>'#1e40af'],['name'=>'Бежов','hex'=>'#d4b896'],['name'=>'Бордо','hex'=>'#7f1d1d'],['name'=>'Тюркоаз','hex'=>'#14b8a6'],['name'=>'Графит','hex'=>'#374151'],['name'=>'Пудра','hex'=>'#f9a8d4'],['name'=>'Маслинен','hex'=>'#65a30d'],['name'=>'Корал','hex'=>'#fb923c'],['name'=>'Екрю','hex'=>'#fef3c7']];
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>">
@@ -712,7 +531,7 @@ body::before{
     background:radial-gradient(ellipse,rgba(99,102,241,0.1) 0%,transparent 70%);
     pointer-events:none;z-index:0;
 }
-.main-wrap{position:relative;z-index:1;padding-bottom:170px;padding-top:0}
+.main-wrap{position:relative;z-index:1;padding-bottom:180px;padding-top:0}
 
 /* ═══ HEADER ═══ */
 .top-header{
@@ -1621,6 +1440,14 @@ input[type=file]{display:none}
     <span>Попитай AI</span>
 </div>
 
+<!-- S43: Detail drawer (was missing) -->
+<div class="drawer-ov" id="detailOv" onclick="closeDrawer('detail')"></div>
+<div class="drawer" id="detailDr" style="max-height:92vh">
+    <div class="drawer-handle"></div>
+    <div class="drawer-hdr"><h3 id="detailTitle">Артикул</h3><button class="drawer-close" onclick="closeDrawer('detail')">✕</button></div>
+    <div id="detailBody" style="padding:0 4px 20px"></div>
+</div>
+
 <div class="drawer-ov" id="aiOv" onclick="closeDrawer('ai')"></div>
 <div class="drawer" id="aiDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>✦ AI Анализ</h3><button class="drawer-close" onclick="closeDrawer('ai')">✕</button></div><div id="aiBody"></div></div>
 
@@ -1658,7 +1485,7 @@ input[type=file]{display:none}
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
 <input type="file" id="filePickerInput" accept="image/*,*/*">
-<input type="file" id="filePickerInput" accept="image/*,.pdf">
+<!-- S43: removed dup filePickerInput -->
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
 <script>
@@ -1743,6 +1570,13 @@ function goScreen(scr, params={}){
     loadScreen();
 }
 function switchStore(id){CFG.storeId=parseInt(id);loadScreen()}
+
+// S43: goScreenWithHistory — was missing
+function goScreenWithHistory(scr, params={}) {
+    history.pushState({scr:scr, ...params}, '', '#'+scr);
+    goScreen(scr, params);
+}
+
 
 function loadScreen(){
     switch(S.screen){
@@ -1848,6 +1682,15 @@ async function loadProducts(){
     if(S.supId)p+=`&sup=${S.supId}`;
     if(S.catId)p+=`&cat=${S.catId}`;
     if(S.filter!=='all')p+=`&filter=${S.filter}`;
+    // S43: Quick filter params
+    if(_qfState.price_min)p+='&price_min='+_qfState.price_min;
+    if(_qfState.price_max)p+='&price_max='+_qfState.price_max;
+    if(_qfState.stock_min!==undefined&&_qfState.stock_min!=='')p+='&stock_min='+_qfState.stock_min;
+    if(_qfState.stock_max!==undefined&&_qfState.stock_max!=='')p+='&stock_max='+_qfState.stock_max;
+    if(_qfState.margin_min)p+='&margin_min='+_qfState.margin_min;
+    if(_qfState.margin_max)p+='&margin_max='+_qfState.margin_max;
+    if(_qfState.date_from)p+='&date_from='+_qfState.date_from;
+    if(_qfState.date_to)p+='&date_to='+_qfState.date_to;
     const d=await api(`products.php?ajax=products&${p}`);
     if(!d)return;
     const cntEl = document.getElementById('prodCnt');
@@ -1931,6 +1774,55 @@ function closeDrawer(name){
     dr.addEventListener('touchmove',e=>{if(!drag)return;dy=e.touches[0].clientY-sy;if(dy>0)dr.style.transform=`translateY(${dy}px)`},{passive:true});
     dr.addEventListener('touchend',()=>{if(!drag)return;drag=false;if(dy>80)closeDrawer(name);dr.style.transform='';dy=0});
 });
+
+
+// S43: openCSVImport — was missing
+function openCSVImport() {
+    openDrawer('csv');
+    document.getElementById('csvBody').innerHTML =
+        '<div style="padding:16px;text-align:center">' +
+        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:10px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:6px">Импорт от CSV файл</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Поддържа .csv — колони: Име, Код, Цена, Баркод, Категория, Доставчик</div>' +
+        '<button class="abtn primary" onclick="document.getElementById(\'csvInput\').click()">📄 Избери файл</button></div>';
+}
+
+// S43: openLabels — was missing
+async function openLabels(productId) {
+    openDrawer('labels');
+    document.getElementById('labelsBody').innerHTML = '<div style="text-align:center;padding:20px">Зареждам...</div>';
+    const d = await api('products.php?ajax=export_labels&product_id='+productId+'&format=json');
+    if (!d||!d.length) { document.getElementById('labelsBody').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>'; return; }
+    let h = '<div style="padding:0 8px">';
+    d.forEach((v,i) => {
+        h += '<div class="label-var"><div class="lv-name">'+esc(v.name)+'</div><div class="lv-code">'+esc(v.code||'')+(v.size?' · '+esc(v.size):'')+(v.color?' · '+esc(v.color):'')+'</div>';
+        h += '<div class="lv-fields"><div class="lv-field"><label>Мин.кол.</label><input type="number" value="'+(v.min_quantity||0)+'" data-vid="'+v.id+'" data-field="min_quantity"></div>';
+        h += '<div class="lv-field"><label>Наличност</label><input type="number" value="'+(v.stock||0)+'" disabled style="opacity:0.5"></div></div></div>';
+    });
+    h += '<div style="display:flex;gap:6px;margin-top:12px"><button class="abtn primary" onclick="saveLabelsFromDrawer('+productId+')">✓ Запази</button>';
+    h += '<button class="abtn" onclick="location.href=\'products.php?ajax=export_labels&product_id='+productId+'&format=csv\'">📥 CSV</button></div></div>';
+    document.getElementById('labelsBody').innerHTML = h;
+}
+async function saveLabelsFromDrawer(pid) {
+    const inputs = document.querySelectorAll('#labelsBody [data-vid]');
+    const variations = [];
+    inputs.forEach(inp => { if(inp.dataset.field==='min_quantity') variations.push({id:parseInt(inp.dataset.vid),min_quantity:parseInt(inp.value)||0}); });
+    const d = await api('products.php?ajax=save_labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({variations})});
+    if (d?.ok) showToast('Запазено ✓','success');
+    else showToast('Грешка','error');
+}
+
+// S43: openImageStudio — was missing
+function openImageStudio(productId) {
+    openDrawer('studio');
+    document.getElementById('studioBody').innerHTML =
+        '<div style="padding:12px">' +
+        '<div style="text-align:center;margin-bottom:12px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><path d="M12 2L9 9H2l5.5 4-2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg></div>' +
+        '<div style="font-size:14px;font-weight:700;text-align:center;margin-bottom:4px">AI Image Studio</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);text-align:center;margin-bottom:14px">Отвори артикула с бутон Редактирай → Снимка → AI Studio</div>' +
+        '<div class="credits-bar"><div class="cr-item">Бял фон: <b>'+CFG.aiBg+'</b> кредита</div><div class="cr-sep"></div><div class="cr-item">AI Магия: <b>'+CFG.aiTryon+'</b> кредита</div></div>' +
+        '</div>';
+}
 
 // ─── PRODUCT DETAIL ───
 async function openProductDetail(id){
@@ -2114,6 +2006,7 @@ let _cascadeSup = 0;
 let _cascadeCat = 0;
 let _cascadeSubcat = 0;
 let _signalsData = [];
+let _qfState = {};
 
 // ─── CASCADE: Supplier selected ───
 async function setCascadeSup(supId, el) {
@@ -2201,9 +2094,9 @@ function renderSignals(signals) {
     countEl.textContent = '· ' + signals.length;
 
     // Group by group
-    const groups = { critical: [], warning: [], positive: [], profit: [], info: [], data: [] };
-    const groupLabels = { critical: 'Критични', warning: 'Внимание', positive: 'Позитивни', profit: 'Печалба', info: 'Информация', data: 'Непълни данни' };
-    const groupColors = { critical: 'red', warning: 'yellow', positive: 'green', profit: 'purple', info: 'blue', data: 'orange' };
+    const groups = { stock: [], money: [], sales: [], zombie: [], info: [], data: [] };
+    const groupLabels = { stock: 'Наличност', money: 'Пари', sales: 'Продажби', zombie: 'Zombie стока', info: 'Информация', data: 'Качество на данни' };
+    const groupColors = { stock: 'red', money: 'purple', sales: 'green', zombie: 'yellow', info: 'blue', data: 'orange' };
 
     signals.forEach(s => { if (groups[s.group]) groups[s.group].push(s); });
 
@@ -2212,7 +2105,7 @@ function renderSignals(signals) {
         if (!items.length) continue;
         html += `<div class="sig-group"><div class="sig-group-label sg-${groupColors[gk]}">${groupLabels[gk]}</div>`;
         items.forEach(s => {
-            html += `<div class="sig-card s-${s.color}" onclick="askAISignal('${esc(s.question)}')">
+            html += `<div class="sig-card s-${s.color}" onclick="askAISignal('${esc(s.question)}')" data-filter="${s.filter||s.type}">
                 <div class="sig-dot"></div>
                 <div class="sig-info"><div class="sig-label">${esc(s.label)}</div><div class="sig-desc">${esc(s.desc)}</div></div>
                 <div class="sig-action">AI</div>
@@ -2227,37 +2120,81 @@ function renderSignals(signals) {
     if (sfRow) {
         let pills = '';
         signals.forEach(s => {
-            pills += `<div class="qfltr-pill sig-${s.color}" onclick="filterBySignal('${s.type}')">${esc(s.label)} <span style="opacity:.5;font-size:8px">${s.count}</span></div>`;
+            pills += `<div class="qfltr-pill sig-${s.color}" onclick="filterBySignal('${s.filter||s.type}')">${esc(s.label)} <span style="opacity:.5;font-size:8px">${s.count}</span></div>`;
         });
         sfRow.innerHTML = pills;
     }
 }
 
 function askAISignal(question) {
-    // Open AI chat overlay and send question
-    if (typeof openAIChatOverlay === 'function') openAIChatOverlay();
-    // If includes/ chat overlay exists, use sendAutoQuestion
-    if (typeof sendAutoQuestion === 'function') {
-        sendAutoQuestion(question);
-    } else {
-        showToast('AI чат: ' + question, '');
-    }
+    // S43: Open AI overlay and auto-send question
+    openAIChatOverlay();
+    setTimeout(function(){
+        if (typeof sendAutoQuestion === 'function') sendAutoQuestion(question);
+    }, 400);
 }
 
 function filterBySignal(type) {
-    showToast('Филтър по сигнал: ' + type, '');
-    // TODO: implement signal-based product filtering
+    // S43: real signal-based filtering via AJAX
+    S.filter = type;
+    S.page = 1;
+    goScreen('products');
 }
 
 function openQuickFilter(type) {
-    showToast('Филтър: ' + type, '');
-    // TODO: implement quick filter dropdowns (price range, stock, margin, date)
+    openDrawer('qf');
+    document.getElementById('qfTitle').textContent = {price:'Филтър по цена',stock:'Филтър по наличност',margin:'Филтър по марж',date:'Филтър по дата',sales:'Филтър по продажби'}[type] || 'Филтър';
+    let h = '<div style="padding:0 8px 16px">';
+    if (type==='price') {
+        h += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Бързи диапазони:</div>';
+        h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
+        [{l:'до 20',min:0,max:20},{l:'20-50',min:20,max:50},{l:'50-100',min:50,max:100},{l:'100-200',min:100,max:200},{l:'над 200',min:200,max:''}].forEach(p=>{
+            h += '<div class="f-chip" onclick="_qfApply({price_min:'+p.min+',price_max:'+(p.max||99999)+'})">'+p.l+' '+CFG.currency+'</div>';
+        });
+        h += '</div><div class="form-row"><div class="fg"><label class="fl">От</label><input type="number" class="fc" id="qfPriceMin" placeholder="0"></div><div class="fg"><label class="fl">До</label><input type="number" class="fc" id="qfPriceMax" placeholder="∞"></div></div>';
+        h += '<button class="abtn primary" onclick="_qfApply({price_min:document.getElementById(\'qfPriceMin\').value,price_max:document.getElementById(\'qfPriceMax\').value})" style="margin-top:10px">Приложи</button>';
+    } else if (type==='stock') {
+        h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
+        [{l:'На нула',min:0,max:0},{l:'1-5 бр.',min:1,max:5},{l:'6-20 бр.',min:6,max:20},{l:'Над 20',min:21,max:''}].forEach(p=>{
+            h += '<div class="f-chip" onclick="_qfApply({stock_min:'+p.min+',stock_max:'+(p.max||99999)+'})">'+p.l+'</div>';
+        });
+        h += '</div><div class="form-row"><div class="fg"><label class="fl">От</label><input type="number" class="fc" id="qfStockMin" placeholder="0"></div><div class="fg"><label class="fl">До</label><input type="number" class="fc" id="qfStockMax" placeholder="∞"></div></div>';
+        h += '<button class="abtn primary" onclick="_qfApply({stock_min:document.getElementById(\'qfStockMin\').value,stock_max:document.getElementById(\'qfStockMax\').value})" style="margin-top:10px">Приложи</button>';
+    } else if (type==='margin') {
+        h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
+        [{l:'Под 10%',min:0,max:10},{l:'10-20%',min:10,max:20},{l:'20-40%',min:20,max:40},{l:'Над 40%',min:40,max:''}].forEach(p=>{
+            h += '<div class="f-chip" onclick="_qfApply({margin_min:'+p.min+',margin_max:'+(p.max||999)+'})">'+p.l+'</div>';
+        });
+        h += '</div><div class="form-row"><div class="fg"><label class="fl">Марж от %</label><input type="number" class="fc" id="qfMarginMin" placeholder="0"></div><div class="fg"><label class="fl">Марж до %</label><input type="number" class="fc" id="qfMarginMax" placeholder="∞"></div></div>';
+        h += '<button class="abtn primary" onclick="_qfApply({margin_min:document.getElementById(\'qfMarginMin\').value,margin_max:document.getElementById(\'qfMarginMax\').value})" style="margin-top:10px">Приложи</button>';
+    } else if (type==='date') {
+        h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
+        h += '<div class="f-chip" onclick="_qfApply({date_from:_daysAgo(7)})">Последните 7 дни</div>';
+        h += '<div class="f-chip" onclick="_qfApply({date_from:_daysAgo(30)})">Последните 30 дни</div>';
+        h += '<div class="f-chip" onclick="_qfApply({date_from:_daysAgo(90)})">Последните 90 дни</div>';
+        h += '</div><div class="form-row"><div class="fg"><label class="fl">От</label><input type="date" class="fc" id="qfDateFrom"></div><div class="fg"><label class="fl">До</label><input type="date" class="fc" id="qfDateTo"></div></div>';
+        h += '<button class="abtn primary" onclick="_qfApply({date_from:document.getElementById(\'qfDateFrom\').value,date_to:document.getElementById(\'qfDateTo\').value})" style="margin-top:10px">Приложи</button>';
+    }
+    h += '<button class="abtn" onclick="closeDrawer(\'qf\')" style="margin-top:6px">Затвори</button></div>';
+    document.getElementById('qfBody').innerHTML = h;
+}
+
+let _qfState = {};
+function _daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
+function _qfApply(params) {
+    _qfState = {..._qfState, ...params};
+    closeDrawer('qf');
+    S.page = 1;
+    loadProducts();
 }
 
 function openAIChatOverlay() {
-    // Check if shared include exists
+    // S43: use shared ai-chat-overlay.php include
     const ov = document.getElementById('aiChatOverlay');
     if (ov) { ov.classList.add('open'); return; }
+    // Fallback: try the drawer
+    const dr = document.getElementById('aiChatOv');
+    if (dr) { dr.classList.add('open'); return; }
     showToast('AI чат скоро...', '');
 }
 
@@ -3166,7 +3103,7 @@ document.getElementById('filePickerInput').addEventListener('change',async funct
     document.getElementById('photoInput').dispatchEvent(new Event('change'));
     this.value='';
 });
-document.getElementById("filePickerInput").addEventListener("change",function(){document.getElementById("photoInput").files=this.files;document.getElementById("photoInput").dispatchEvent(new Event("change"));this.value="";});
+// S43: removed duplicate filePickerInput listener
 document.getElementById('photoInput').addEventListener('change',async function(){
     if(!this.files?.[0])return;
     const preview=document.getElementById('wizPhotoPreview');
@@ -3248,6 +3185,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     goScreen('home');
 });
 
+// S43: Back button support for drawers and screens
+window.addEventListener('popstate', function(e) {
+    const state = e.state;
+    if (!state) { goScreen('home'); return; }
+    if (state.scr) { goScreen(state.scr, state); return; }
+    // Close any open drawers/modals
+    ['detail','ai','filter','studio','labels','csv','qf'].forEach(n => closeDrawer(n));
+    closeWizard();
+    const recOv = document.getElementById('recOv');
+    if (recOv && recOv.classList.contains('open')) closeVoice();
+});
+
 // Override rec-ov backdrop click for wizard mode
 document.getElementById('recOv').addEventListener('click',function(e){
     if(e.target===this){
@@ -3256,6 +3205,7 @@ document.getElementById('recOv').addEventListener('click',function(e){
     }
 });
 </script>
+
 <!-- Supplier Category Picker Modal -->
 <div id="supCatModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);overflow-y:auto;padding:16px">
 <div style="max-width:480px;margin:20px auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-subtle);padding:16px">
@@ -3272,6 +3222,14 @@ document.getElementById('recOv').addEventListener('click',function(e){
 </div>
 </div>
 </div>
+
+<!-- S43: Quick Filter drawer -->
+<div class="drawer-ov" id="qfOv" onclick="closeDrawer('qf')"></div>
+<div class="drawer" id="qfDr">
+    <div class="drawer-handle"></div>
+    <div class="drawer-hdr"><h3 id="qfTitle">Филтър</h3><button class="drawer-close" onclick="closeDrawer('qf')">✕</button></div>
+    <div id="qfBody" style="padding:0 4px 20px"></div>
+</div>
 <nav class="bottom-nav">
   <a href="chat.php" class="bottom-nav-tab">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
@@ -3286,5 +3244,7 @@ document.getElementById('recOv').addEventListener('click',function(e){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
   </a>
 </nav>
+
+<?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
 </body>
 </html>
