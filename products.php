@@ -925,19 +925,11 @@ body::before{
 .sn-btn svg{width:13px;height:13px}
 
 /* ═══ BOTTOM NAV ═══ */
-.bottom-nav{
-    position:fixed;bottom:0;left:0;right:0;z-index:45;height:56px;
-    background:rgba(3,7,18,0.95);backdrop-filter:blur(16px);
-    border-top:1px solid var(--border-subtle);display:flex;align-items:center;
-}
-.bnav-tab{
-    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:2px;font-size:9px;font-weight:600;color:rgba(165,180,252,0.45);
-    text-decoration:none;transition:all 0.3s;height:100%;
-}
-.bnav-tab.active{color:var(--indigo-400);text-shadow:0 0 12px rgba(99,102,241,0.8)}
-.bnav-tab .bn-icon{font-size:18px;transition:all 0.3s;filter:drop-shadow(0 0 4px rgba(99,102,241,0.3))}
-.bnav-tab.active .bn-icon{transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(129,140,248,0.8))}
+
+
+
+
+
 
 /* ═══ VOICE OVERLAY — EXACTLY sale.php ═══ */
 .rec-ov{
@@ -1368,18 +1360,48 @@ input[type=file]{display:none}
 .act-chip .chip-x{width:14px;height:14px;border-radius:50%;background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#818cf8;font-weight:800}
 
 /* ═══ FLOATING AI BUTTON ═══ */
-.ai-float-btn{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 22px;border-radius:20px;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.2);backdrop-filter:blur(12px);cursor:pointer;z-index:41}
-.ai-float-btn span{font-size:13px;font-weight:600;color:#a5b4fc}
-.ai-waves{display:flex;align-items:flex-end;gap:2px;height:16px}
-.wbar{width:3px;border-radius:2px;animation:waveAI 1s ease-in-out infinite}
-@keyframes waveAI{0%,100%{height:35%}50%{height:100%}}
+
+
+
+
+
 
 /* ═══ BOTTOM NAV SVG ═══ */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(3,7,18,.95);backdrop-filter:blur(12px);border-top:1px solid rgba(99,102,241,.08);padding:8px 0 env(safe-area-inset-bottom,8px);z-index:40}
-.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;font-size:9px;font-weight:600;color:rgba(165,180,252,.35);padding:4px 0}
-.bnav-tab svg{opacity:.35}
-.bnav-tab.active{color:#818cf8}
-.bnav-tab.active svg{opacity:1}
+
+
+
+
+
+
+
+/* ═══ BOTTOM NAV — matching chat.php ═══ */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 56px; background: rgba(3,7,18,0.95);
+    backdrop-filter: blur(15px); border-top: 0.5px solid rgba(99,102,241,0.2);
+    display: flex; z-index: 100;
+}
+.bottom-nav-tab {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px;
+    font-size: 9px; font-weight: 600; color: rgba(165,180,252,0.4);
+    text-decoration: none;
+}
+.bottom-nav-tab.active { color: #c7d2fe; }
+.bottom-nav-tab svg { width: 18px; height: 18px; }
+
+/* ═══ FLOATING AI BUTTON — matching chat.php ═══ */
+.ai-float-btn {
+    position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 24px; border-radius: 20px;
+    background: rgba(15,15,40,0.75); border: 1px solid rgba(99,102,241,0.2);
+    cursor: pointer; backdrop-filter: blur(12px); z-index: 41; white-space: nowrap;
+}
+.ai-float-btn span { font-size: 13px; font-weight: 600; color: #a5b4fc; }
+.ai-waves { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
+.ai-wave-bar { width: 3px; border-radius: 2px; background: currentColor; animation: wave-anim 1s ease-in-out infinite; }
+@keyframes wave-anim { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 
 </style>
 </head>
@@ -1591,21 +1613,15 @@ input[type=file]{display:none}
 
 <!-- ═══ FLOATING AI BUTTON ═══ -->
 <div class="ai-float-btn" id="aiFloatBtn" onclick="openAIChatOverlay()">
-    <div class="ai-waves"><div class="wbar" style="background:#6366f1;animation-delay:0s"></div><div class="wbar" style="background:#818cf8;animation-delay:.15s"></div><div class="wbar" style="background:#a5b4fc;animation-delay:.3s"></div><div class="wbar" style="background:#818cf8;animation-delay:.45s"></div><div class="wbar" style="background:#6366f1;animation-delay:.6s"></div></div>
+    <div class="ai-waves">
+      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:0s"></div>
+      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.15s"></div>
+      <div class="ai-wave-bar" style="color:#a5b4fc;height:18px;animation-delay:.3s"></div>
+      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.45s"></div>
+      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:.6s"></div>
+    </div>
     <span>Попитай AI</span>
 </div>
-
-<!-- ═══ BOTTOM NAV — SVG matching chat.php ═══ -->
-<nav class="bottom-nav">
-    <a href="chat.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>AI</a>
-    <a href="warehouse.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Склад</a>
-    <a href="stats.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки</a>
-    <a href="sale.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>Продажба</a>
-</nav>
-
-<!-- ═══ DRAWERS ═══ -->
-<div class="drawer-ov" id="detailOv" onclick="closeDrawer('detail')"></div>
-<div class="drawer" id="detailDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3 id="detailTitle">Артикул</h3><button class="drawer-close" onclick="closeDrawer('detail')">✕</button></div><div id="detailBody"></div></div>
 
 <div class="drawer-ov" id="aiOv" onclick="closeDrawer('ai')"></div>
 <div class="drawer" id="aiDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>✦ AI Анализ</h3><button class="drawer-close" onclick="closeDrawer('ai')">✕</button></div><div id="aiBody"></div></div>
@@ -2086,22 +2102,8 @@ function closeVoice(){
 // Tap backdrop = close
 document.getElementById('recOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeVoice()});
 
-// ─── SWIPE NAVIGATION ───
-let touchStartX=0;
-const swipePages=['chat.php','warehouse.php','stats.php','sale.php'];
-const curPageIdx=1; // warehouse/products = index 1
-document.addEventListener('touchstart',e=>{
-    if(e.target.closest('.drawer,.modal-ov,.rec-ov,.camera-ov,.swipe-row'))return;
-    touchStartX=e.touches[0].clientX;
-},{passive:true});
-document.addEventListener('touchend',e=>{
-    if(!touchStartX)return;
-    const dx=e.changedTouches[0].clientX-touchStartX;
-    touchStartX=0;
-    if(Math.abs(dx)<80)return;
-    if(dx>0&&curPageIdx>0)location.href=swipePages[curPageIdx-1];
-    if(dx<0&&curPageIdx<swipePages.length-1)location.href=swipePages[curPageIdx+1];
-});
+// ─── SWIPE NAVIGATION — DISABLED ───
+// Removed: swipe between pages was accidentally triggering on normal scroll
 
 
 
@@ -3272,5 +3274,19 @@ document.getElementById('recOv').addEventListener('click',function(e){
 </div>
 </div>
 </div>
+<nav class="bottom-nav">
+  <a href="chat.php" class="bottom-nav-tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
+  </a>
+  <a href="warehouse.php" class="bottom-nav-tab active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>Склад
+  </a>
+  <a href="stats.php" class="bottom-nav-tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
+  </a>
+  <a href="sale.php" class="bottom-nav-tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
+  </a>
+</nav>
 </body>
 </html>
