@@ -233,7 +233,7 @@ if (isset($_GET['ajax'])) {
             $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock,{$dse} AS days_stale FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
             $total = DB::run("SELECT COUNT(*) FROM (SELECT p.id,{$dse} AS days_stale FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL}) sub", array_merge([$sid], $params))->fetchColumn();
         } else {
-            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock, COALESCE((SELECT SUM(si99.quantity) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id WHERE si99.product_id=p.id AND s99.store_id=i.store_id AND s99.status='completed' AND s99.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)),0) AS sold_30d FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
             $total = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql}", array_merge([$sid], $params))->fetchColumn();
         }
         if (!$can_see_cost) { foreach ($products as &$pr) unset($pr['cost_price']); }
@@ -1222,6 +1222,41 @@ input[type=file]{display:none}
 .ai-wave-bar { width: 3px; border-radius: 2px; background: currentColor; animation: wave-anim 1s ease-in-out infinite; }
 @keyframes wave-anim { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 
+
+/* ═══ S43: RICH PRODUCT CARDS ═══ */
+.rc-card{position:relative;background:rgba(15,15,40,.75);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;margin-bottom:8px}
+.rc-card .stock-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.rc-card .p-discount{position:absolute;top:6px;right:8px;font-size:9px;padding:2px 6px;border-radius:5px;background:var(--danger);color:#fff;font-weight:700;z-index:2}
+.rc-top{display:flex;gap:10px;padding:12px 12px 0 14px;cursor:pointer}
+.rc-thumb{width:52px;height:52px;border-radius:10px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.rc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.rc-info{flex:1;min-width:0}
+.rc-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.rc-name{font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.rc-price{text-align:right;flex-shrink:0}
+.rc-code{font-size:10px;color:var(--text-secondary);margin-top:1px}
+.rc-code span{color:var(--indigo-400)}
+.rc-pills{display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px 0 14px;cursor:pointer}
+.rc-pill{font-size:9px;padding:2px 7px;border-radius:6px;font-weight:600}
+.rc-sup{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);color:#818cf8}
+.rc-cat{background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.12);color:#5eead4}
+.rc-danger{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.rc-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#fbbf24}
+.rc-orange{background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.15);color:rgba(251,146,60,.7)}
+.rc-stats{display:flex;gap:0;padding:8px 12px 0 14px;margin-top:6px;border-top:1px solid rgba(99,102,241,.06);cursor:pointer}
+.rc-stat{flex:1;text-align:center;padding:2px 0 6px}
+.rc-sl{font-size:7px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+.rc-sv{font-size:12px;font-weight:700;margin-top:1px}
+.rc-sub{font-size:7px;color:rgba(245,158,11,.5)}
+.rc-sep{width:1px;background:rgba(99,102,241,.08);margin:2px 0}
+.rc-actions{display:flex;border-top:1px solid rgba(99,102,241,.08);margin-top:4px}
+.rc-act{flex:1;padding:8px;text-align:center;font-size:10px;font-weight:600;color:#818cf8;cursor:pointer;border-right:1px solid rgba(99,102,241,.08);transition:background .15s}
+.rc-act:last-child{border-right:none}
+.rc-act:active{background:rgba(99,102,241,.1)}
+.rc-more-dd{background:#080818;border:1px solid var(--border-glow);border-radius:12px;padding:4px;min-width:180px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.rc-dd-item{padding:9px 14px;border-radius:8px;font-size:12px;color:var(--text-primary);cursor:pointer;transition:background .15s}
+.rc-dd-item:active{background:rgba(99,102,241,.1)}
+.rc-dd-danger{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -1551,14 +1586,81 @@ function productCardHTML(p){
     const q=p.store_stock||p.qty||0;
     const sc=stockClass(q,p.min_quantity||0);
     const bc=stockBar(q,p.min_quantity||0);
-    const thumb=p.image_url?`<img src="${p.image_url}">`:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+    const thumb=p.image_url?`<img src="${p.image_url}">`:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.25)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
     const disc=(p.discount_pct&&p.discount_pct>0)?`<div class="p-discount">-${p.discount_pct}%</div>`:'';
-    return `<div class="p-card" onclick="openProductDetail(${p.id})">
-        <div class="stock-bar ${bc}"></div>
-        <div class="p-thumb">${thumb}</div>
-        <div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta">${p.code?`<span>${esc(p.code)}</span>`:''}${p.supplier_name?`<span>${esc(p.supplier_name)}</span>`:''}</div></div>
-        <div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock ${sc}">${q} ${p.unit||'бр.'}</div></div>${disc}</div>`;
+    // Price display
+    let priceH=`<div style="font-size:14px;font-weight:800;color:var(--indigo-300)">${fmtPrice(p.retail_price)}</div>`;
+    if(p.discount_pct>0) priceH=`<div style="font-size:14px;font-weight:800;color:var(--indigo-300)">${fmtPrice(p.retail_price*(1-p.discount_pct/100))}</div><div style="font-size:9px;color:var(--text-secondary);text-decoration:line-through">${fmtPrice(p.retail_price)}</div>`;
+    // Pills
+    let pills='';
+    if(p.supplier_name) pills+=`<span class="rc-pill rc-sup">${esc(p.supplier_name)}</span>`;
+    if(p.category_name) pills+=`<span class="rc-pill rc-cat">${esc(p.category_name)}</span>`;
+    if(q===0) pills+=`<span class="rc-pill rc-danger">ИЗЧЕРПАН</span>`;
+    else if(p.min_quantity>0&&q<=p.min_quantity) pills+=`<span class="rc-pill rc-warn">⚠ под минимум</span>`;
+    if(!p.image_url) pills+=`<span class="rc-pill rc-orange">без снимка</span>`;
+    // Stats columns
+    let cols=[];
+    // 1. Наличност
+    const stockColor=q>0?(q<=(p.min_quantity||0)?'var(--warning)':'var(--success)'):'var(--danger)';
+    let stockSub=p.min_quantity>0?`<div class="rc-sub">мин:${p.min_quantity}</div>`:'';
+    cols.push(`<div class="rc-stat"><div class="rc-sl">Налич.</div><div class="rc-sv" style="color:${stockColor}">${q}</div>${stockSub}</div>`);
+    // 2. Едро
+    cols.push(`<div class="rc-stat"><div class="rc-sl">Едро</div><div class="rc-sv" style="color:rgba(165,180,252,.5)">${p.wholesale_price?fmtPrice(p.wholesale_price):'—'}</div></div>`);
+    // 3+4. Маржове (owner only)
+    if(CFG.canSeeMargin && p.cost_price>0){
+        const mr=Math.round((p.retail_price-p.cost_price)/p.retail_price*100);
+        const mrc=mr<15?'var(--danger)':mr<25?'var(--warning)':'var(--purple)';
+        cols.push(`<div class="rc-stat"><div class="rc-sl">Марж др.</div><div class="rc-sv" style="color:${mrc}">${mr}%</div></div>`);
+        if(p.wholesale_price&&p.wholesale_price>0){
+            const mw=Math.round((p.wholesale_price-p.cost_price)/p.wholesale_price*100);
+            const mwc=mw<10?'var(--danger)':mw<20?'var(--warning)':'var(--purple)';
+            cols.push(`<div class="rc-stat"><div class="rc-sl">Марж едр.</div><div class="rc-sv" style="color:${mwc}">${mw}%</div></div>`);
+        }
+    }
+    // 5. 30д продажби
+    const sold=p.sold_30d||0;
+    cols.push(`<div class="rc-stat"><div class="rc-sl">30д</div><div class="rc-sv" style="color:${sold>0?'var(--success)':'rgba(165,180,252,.3)'}">${sold||'—'}</div></div>`);
+    const statsH=cols.join('<div class="rc-sep"></div>');
+    return `<div class="rc-card" data-id="${p.id}">
+        <div class="stock-bar ${bc}"></div>${disc}
+        <div class="rc-top" onclick="openProductDetail(${p.id})">
+            <div class="rc-thumb">${thumb}</div>
+            <div class="rc-info"><div class="rc-row1"><div class="rc-name">${esc(p.name)}</div><div class="rc-price">${priceH}</div></div><div class="rc-code">Код: <span>${esc(p.code||'—')}</span></div></div>
+        </div>
+        <div class="rc-pills" onclick="openProductDetail(${p.id})">${pills}</div>
+        <div class="rc-stats" onclick="openProductDetail(${p.id})">${statsH}</div>
+        <div class="rc-actions">
+            <div class="rc-act" onclick="editProduct(${p.id})">✎ Редактирай</div>
+            <div class="rc-act" onclick="askAIAboutProduct(${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">✦ AI Съвет</div>
+            <div class="rc-act rc-more-trigger" onclick="toggleMoreMenu(event,${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">⋯ Още</div>
+        </div>
+    </div>`;
 }
+
+// S43: AI advice about specific product
+function askAIAboutProduct(id, name) {
+    openAIChatOverlay();
+    setTimeout(function(){
+        if (typeof sendAutoQuestion === 'function') sendAutoQuestion('Анализирай артикул "'+name+'" — наличност, продажби, марж. Какво да направя?');
+    }, 400);
+}
+
+// S43: More menu
+function toggleMoreMenu(e, id, name) {
+    e.stopPropagation();
+    document.querySelectorAll('.rc-more-dd').forEach(d=>d.remove());
+    const rect=e.currentTarget.getBoundingClientRect();
+    const dd=document.createElement('div');
+    dd.className='rc-more-dd';
+    dd.innerHTML=`<div class="rc-dd-item" onclick="openLabels(${id})">🏷 Етикети</div><div class="rc-dd-item" onclick="location.href='sale.php?product=${id}'">💰 Продажба</div><div class="rc-dd-item" onclick="openImageStudio(${id})">✨ AI Снимка</div><div class="rc-dd-item" onclick="duplicateProduct(${id})">📋 Копирай</div><div class="rc-dd-item rc-dd-danger" onclick="deactivateProduct(${id})">🗑 Деактивирай</div>`;
+    dd.style.position='fixed';
+    dd.style.bottom=(window.innerHeight-rect.top+4)+'px';
+    dd.style.right=(window.innerWidth-rect.right)+'px';
+    document.body.appendChild(dd);
+    setTimeout(()=>document.addEventListener('click',function _h(){dd.remove();document.removeEventListener('click',_h)},{once:true}),10);
+}
+function duplicateProduct(id){ showToast('Копиране... (скоро)',''); }
+function deactivateProduct(id){ if(confirm('Деактивирай артикула?')) showToast('Деактивиран (скоро)',''); }
 
 // ─── NAVIGATION ───
 function goScreen(scr, params={}){
