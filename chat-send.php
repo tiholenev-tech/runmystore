@@ -170,7 +170,7 @@ foreach ($keys_to_try as $api_key) {
             if ($raw_reply) break;
         }
 
-        error_log("Gemini attempt HTTP {$code} key=" . substr($api_key, 0, 8) . "...");
+        error_log("Gemini HTTP {$code} key=" . substr($api_key, 0, 8) . " body=" . substr($res, 0, 200));
 
     } catch (Throwable $e) {
         error_log("Gemini error: " . $e->getMessage());
@@ -178,7 +178,7 @@ foreach ($keys_to_try as $api_key) {
 }
 
 if (!$raw_reply) {
-    $raw_reply = 'Системата е натоварена — опитай пак след минута. 🔄';
+    $raw_reply = 'AI обработва друга заявка — опитай след 30 секунди.';
 }
 
 // ── SAFETY СЛОЙ 2: POST-VALIDATION ────────────────────────────
