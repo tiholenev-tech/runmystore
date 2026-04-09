@@ -558,6 +558,83 @@ if (isset($_GET['ajax'])) {
         exit;
     }
 
+
+    // ─── SIGNALS (for home screen) ───
+    if ($ajax === 'signals') {
+        $sid = (int)($_GET['store_id'] ?? $store_id);
+        $signals = [];
+
+        // 1. Zero stock with sales last 30d (critical)
+        $zero_with_sales = DB::run("
+            SELECT COUNT(DISTINCT p.id) AS cnt FROM products p
+            JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity = 0
+            AND p.id IN (SELECT si.product_id FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE s.store_id = ? AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND s.status = 'completed')
+        ", [$sid, $tenant_id, $sid])->fetchColumn();
+        if ($zero_with_sales > 0) $signals[] = ['type'=>'zero_stock','group'=>'critical','color'=>'red','count'=>(int)$zero_with_sales,'label'=>'на нула','desc'=>$zero_with_sales.' артикула с продажби — 0 бр. в склада','question'=>'Кои артикули с продажби са на нула?'];
+
+        // 2. Selling at loss (critical)
+        if ($can_see_margin) {
+            $at_loss = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND cost_price > 0 AND retail_price < cost_price", [$tenant_id])->fetchColumn();
+            if ($at_loss > 0) $signals[] = ['type'=>'at_loss','group'=>'critical','color'=>'red','count'=>(int)$at_loss,'label'=>'под себестойност','desc'=>$at_loss.' артикула се продават на загуба','question'=>'Кои артикули се продават под себестойност?'];
+        }
+
+        // 3. Critical low 1-2 items (critical)
+        $crit_low = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity BETWEEN 1 AND 2", [$sid, $tenant_id])->fetchColumn();
+        if ($crit_low > 0) $signals[] = ['type'=>'critical_low','group'=>'critical','color'=>'red','count'=>(int)$crit_low,'label'=>'критично ниски','desc'=>$crit_low.' артикула с 1-2 бр. остатък','question'=>'Кои артикули имат само 1-2 броя?'];
+
+        // 4. Zombie 45+ days (warning)
+        $zombie = DB::run("SELECT COUNT(DISTINCT p.id) AS cnt, COALESCE(SUM(i.quantity * p.retail_price), 0) AS val FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) > 45", [$sid, $tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
+        if ($zombie['cnt'] > 0) $signals[] = ['type'=>'zombie','group'=>'warning','color'=>'yellow','count'=>(int)$zombie['cnt'],'label'=>'zombie стока','desc'=>'45+ дни без продажба · '.number_format($zombie['val'],0,',','.').' '.$currency.' замразени','question'=>'Кои артикули са zombie стока?'];
+
+        // 5. Below min quantity (warning)
+        $below_min = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.min_quantity > 0 AND i.quantity > 0 AND i.quantity <= p.min_quantity", [$sid, $tenant_id])->fetchColumn();
+        if ($below_min > 0) $signals[] = ['type'=>'below_min','group'=>'warning','color'=>'yellow','count'=>(int)$below_min,'label'=>'под минимално','desc'=>$below_min.' артикула под зададения минимум','question'=>'Кои артикули са под минималното количество?'];
+
+        // 6. Slow movers (warning)
+        $slow = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) BETWEEN 25 AND 45", [$sid, $tenant_id, $sid])->fetchColumn();
+        if ($slow > 0) $signals[] = ['type'=>'slow_mover','group'=>'warning','color'=>'yellow','count'=>(int)$slow,'label'=>'бавно движещи','desc'=>$slow.' артикула с малко продажби','question'=>'Кои артикули са бавно движещи се?'];
+
+        // 7. Low margin <15% (warning) — owner only
+        if ($can_see_margin) {
+            $low_margin = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND cost_price > 0 AND retail_price > cost_price AND ((retail_price - cost_price) / retail_price * 100) < 15", [$tenant_id])->fetchColumn();
+            if ($low_margin > 0) $signals[] = ['type'=>'low_margin','group'=>'warning','color'=>'yellow','count'=>(int)$low_margin,'label'=>'нисък марж','desc'=>$low_margin.' артикула с марж под 15%','question'=>'Кои артикули имат нисък марж?'];
+        }
+
+        // 8. Aging stock 90+ days (warning)
+        $aging = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = ? WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL AND i.quantity > 0 AND DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE si.product_id = p.id AND s.store_id = ?), p.created_at)) > 90", [$sid, $tenant_id, $sid])->fetchColumn();
+        if ($aging > 0) $signals[] = ['type'=>'aging','group'=>'warning','color'=>'yellow','count'=>(int)$aging,'label'=>'остаряваща стока','desc'=>$aging.' артикула над 90 дни без движение','question'=>'Кои артикули са без движение над 90 дни?'];
+
+        // 9. Top 10 by sales (positive)
+        $top_sales = DB::run("SELECT COUNT(DISTINCT si.product_id) FROM sale_items si JOIN sales s ON s.id = si.sale_id WHERE s.store_id = ? AND s.status = 'completed' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [$sid])->fetchColumn();
+        if ($top_sales > 0) $signals[] = ['type'=>'top_sales','group'=>'positive','color'=>'green','count'=>min(10,(int)$top_sales),'label'=>'топ продажби','desc'=>'Най-продавани последните 30 дни','question'=>'Кои са топ 10 по продажби?'];
+
+        // 10. Most profitable (profit) — owner only
+        if ($can_see_margin) {
+            $signals[] = ['type'=>'top_profit','group'=>'profit','color'=>'purple','count'=>10,'label'=>'най-печеливши','desc'=>'Топ 10 по марж в '.$currency,'question'=>'Кои артикули печелят най-много?'];
+            $signals[] = ['type'=>'top_pct','group'=>'profit','color'=>'purple','count'=>10,'label'=>'най-висок % марж','desc'=>'Топ 10 по процент печалба','question'=>'Кои артикули имат най-висок процент марж?'];
+        }
+
+        // 11. New this week (info)
+        $new_week = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)", [$tenant_id])->fetchColumn();
+        if ($new_week > 0) $signals[] = ['type'=>'new_week','group'=>'info','color'=>'blue','count'=>(int)$new_week,'label'=>'нови тази седмица','desc'=>$new_week.' артикула добавени последните 7 дни','question'=>'Кои артикули са добавени тази седмица?'];
+
+        // 12. No photo (data quality)
+        $no_photo = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND (image_url IS NULL OR image_url = '')", [$tenant_id])->fetchColumn();
+        if ($no_photo > 0) $signals[] = ['type'=>'no_photo','group'=>'data','color'=>'orange','count'=>(int)$no_photo,'label'=>'без снимка','desc'=>$no_photo.' артикула без качена снимка','question'=>'Кои артикули нямат снимка?'];
+
+        // 13. No barcode (data quality)
+        $no_barcode = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND (barcode IS NULL OR barcode = '')", [$tenant_id])->fetchColumn();
+        if ($no_barcode > 0) $signals[] = ['type'=>'no_barcode','group'=>'data','color'=>'orange','count'=>(int)$no_barcode,'label'=>'без баркод','desc'=>$no_barcode.' артикула без въведен баркод','question'=>'Кои артикули нямат баркод?'];
+
+        // 14. No supplier (data quality)
+        $no_sup = DB::run("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL AND supplier_id IS NULL", [$tenant_id])->fetchColumn();
+        if ($no_sup > 0) $signals[] = ['type'=>'no_supplier','group'=>'data','color'=>'orange','count'=>(int)$no_sup,'label'=>'без доставчик','desc'=>$no_sup.' артикула без свързан доставчик','question'=>'Кои артикули нямат доставчик?'];
+
+        echo json_encode($signals); exit;
+    }
+
+
     echo json_encode(['error' => 'unknown_action']); exit;
 }
 
@@ -1194,6 +1271,116 @@ input[type=file]{display:none}
 .wiz-info-overlay{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
 .wiz-info-box{background:#080818;border:1px solid var(--border-glow);border-radius:16px;padding:16px;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(99,102,241,0.2)}
 
+/* ═══ NEW HEADER (chat.php matching) ═══ */
+.hdr-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.hdr-logo{font-size:11px;font-weight:700;color:rgba(165,180,252,.6);letter-spacing:.5px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-badge{font-size:8px;font-weight:800;letter-spacing:.8px;padding:3px 8px;border-radius:6px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.25);color:#4ade80}
+.hdr-ico{width:26px;height:26px;border-radius:50%;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;text-decoration:none}
+.hdr-row2{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.hdr-page-title{font-size:15px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui}
+.hdr-count{font-size:10px;color:rgba(165,180,252,.5);font-weight:600}
+.top-header{position:sticky;top:0;z-index:50;padding:10px 16px;backdrop-filter:blur(16px);background:rgba(3,7,18,.95);border-bottom:1px solid var(--border-subtle)}
+
+/* ═══ NEW SEARCH ═══ */
+.new-search-sec{display:flex;align-items:center;gap:6px;padding:12px 16px 0}
+.new-search-bar{display:flex;align-items:center;gap:10px;background:rgba(15,15,40,.6);border:1px solid rgba(99,102,241,.12);border-radius:14px;padding:10px 14px;flex:1;cursor:pointer}
+.new-search-bar svg{flex-shrink:0;opacity:.5}
+.new-search-ph{font-size:13px;color:rgba(165,180,252,.4);font-weight:500;flex:1}
+.new-search-mic{width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.new-info-btn{width:16px;height:16px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+
+/* ═══ CASCADE FILTERS ═══ */
+.fltr-label{display:flex;align-items:center;gap:6px;padding:0 16px;margin-top:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(165,180,252,.35)}
+.fltr-label span{white-space:nowrap}
+.fltr-hint{font-size:8px;color:rgba(165,180,252,.2);font-weight:500;text-transform:none;letter-spacing:0}
+.fltr-info{width:15px;height:15px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.fltr-row{display:flex;gap:6px;padding:8px 16px 0;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.fltr-row::-webkit-scrollbar{display:none}
+.fltr-btn{padding:6px 13px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid rgba(99,102,241,.1);background:rgba(15,15,40,.4);color:rgba(165,180,252,.45);flex-shrink:0;cursor:pointer;transition:all .2s}
+.fltr-btn.active{background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3);color:#a5b4fc}
+.fltr-btn .fc{font-size:9px;opacity:.6;margin-left:3px}
+
+/* ═══ QUICK FILTER PILLS ═══ */
+.qfltr-row{display:flex;gap:5px;padding:6px 16px 0;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.qfltr-row::-webkit-scrollbar{display:none}
+.qfltr-pill{padding:4px 10px;border-radius:16px;font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;cursor:pointer;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);color:rgba(165,180,252,.5);transition:all .2s}
+.qfltr-pill.active{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.35);color:#a5b4fc}
+.qfltr-pill svg{opacity:.5}
+/* Signal pills with colors */
+.qfltr-pill.sig-red{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.15);color:rgba(248,113,113,.7)}
+.qfltr-pill.sig-yellow{background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.15);color:rgba(251,191,36,.7)}
+.qfltr-pill.sig-green{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.15);color:rgba(134,239,172,.7)}
+.qfltr-pill.sig-purple{background:rgba(192,132,252,.06);border-color:rgba(192,132,252,.15);color:rgba(216,180,254,.7)}
+.qfltr-pill.sig-orange{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.15);color:rgba(251,146,60,.7)}
+
+/* ═══ INDIGO SEPARATOR ═══ */
+.indigo-sep{height:1px;background:linear-gradient(to right,transparent,rgba(99,102,241,.2),transparent);margin:14px 16px}
+
+/* ═══ ADD SECTION ═══ */
+.add-sec{padding:0 16px 8px}
+.add-sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.add-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#818cf8}
+.add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.add-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px 12px;border-radius:14px;background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.08);cursor:pointer;position:relative}
+.add-btn span{font-size:10px;font-weight:600;color:#9ca3af}
+.add-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.add-ai .add-icon{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05));border:1px solid rgba(99,102,241,.25)}
+.add-manual .add-icon{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.2)}
+.add-scan .add-icon{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.2)}
+.add-file .add-icon{background:linear-gradient(135deg,rgba(192,132,252,.12),rgba(192,132,252,.04));border:1px solid rgba(192,132,252,.2)}
+
+/* ═══ SIGNALS ═══ */
+.signals-sec{padding:12px 16px}
+.signals-hdr{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.signals-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#818cf8}
+.signals-count{font-size:9px;color:rgba(165,180,252,.3);font-weight:600}
+.sig-group{margin-bottom:14px}
+.sig-group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin:0 0 6px;padding-left:2px}
+.sig-group-label.sg-red{color:rgba(248,113,113,.6)}
+.sig-group-label.sg-yellow{color:rgba(251,191,36,.5)}
+.sig-group-label.sg-green{color:rgba(134,239,172,.5)}
+.sig-group-label.sg-purple{color:rgba(216,180,254,.5)}
+.sig-group-label.sg-blue{color:rgba(165,180,252,.4)}
+.sig-group-label.sg-orange{color:rgba(251,146,60,.5)}
+.sig-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(15,15,40,.7);cursor:pointer;margin-bottom:6px}
+.sig-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sig-info{flex:1}
+.sig-label{font-size:11px;font-weight:700}
+.sig-desc{font-size:10px;color:#9ca3af;margin-top:1px}
+.sig-action{font-size:10px;color:#818cf8;font-weight:600;flex-shrink:0}
+.sig-card.s-red{border:1px solid rgba(239,68,68,.12)}.sig-card.s-red .sig-dot{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5);animation:pulseR 2s infinite}.sig-card.s-red .sig-label{color:#fca5a5}
+.sig-card.s-yellow{border:1px solid rgba(251,191,36,.1)}.sig-card.s-yellow .sig-dot{background:#fbbf24}.sig-card.s-yellow .sig-label{color:#fde68a}
+.sig-card.s-green{border:1px solid rgba(34,197,94,.1)}.sig-card.s-green .sig-dot{background:#4ade80}.sig-card.s-green .sig-label{color:#86efac}
+.sig-card.s-purple{border:1px solid rgba(192,132,252,.1)}.sig-card.s-purple .sig-dot{background:#c084fc}.sig-card.s-purple .sig-label{color:#d8b4fe}
+.sig-card.s-blue{border:1px solid rgba(99,102,241,.1)}.sig-card.s-blue .sig-dot{background:#818cf8}.sig-card.s-blue .sig-label{color:#a5b4fc}
+.sig-card.s-orange{border:1px solid rgba(251,146,60,.1)}.sig-card.s-orange .sig-dot{background:#fb923c}.sig-card.s-orange .sig-label{color:#fdba74}
+@keyframes pulseR{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══ PRODUCTS LIST HEADER ═══ */
+.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:sticky;top:52px;z-index:9;background:rgba(3,7,18,.92);backdrop-filter:blur(12px)}
+.prod-back{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.prod-title{font-size:14px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui;flex:1}
+.prod-cnt{font-size:10px;color:rgba(165,180,252,.5);font-weight:600;flex-shrink:0}
+.prod-sort{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.active-chips{display:flex;gap:5px;padding:6px 16px 0;flex-wrap:wrap}
+.act-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:600;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#a5b4fc}
+.act-chip .chip-x{width:14px;height:14px;border-radius:50%;background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#818cf8;font-weight:800}
+
+/* ═══ FLOATING AI BUTTON ═══ */
+.ai-float-btn{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 22px;border-radius:20px;background:rgba(15,15,40,.9);border:1px solid rgba(99,102,241,.2);backdrop-filter:blur(12px);cursor:pointer;z-index:41}
+.ai-float-btn span{font-size:13px;font-weight:600;color:#a5b4fc}
+.ai-waves{display:flex;align-items:flex-end;gap:2px;height:16px}
+.wbar{width:3px;border-radius:2px;animation:waveAI 1s ease-in-out infinite}
+@keyframes waveAI{0%,100%{height:35%}50%{height:100%}}
+
+/* ═══ BOTTOM NAV SVG ═══ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(3,7,18,.95);backdrop-filter:blur(12px);border-top:1px solid rgba(99,102,241,.08);padding:8px 0 env(safe-area-inset-bottom,8px);z-index:40}
+.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;font-size:9px;font-weight:600;color:rgba(165,180,252,.35);padding:4px 0}
+.bnav-tab svg{opacity:.35}
+.bnav-tab.active{color:#818cf8}
+.bnav-tab.active svg{opacity:1}
+
 </style>
 </head>
 <body>
@@ -1230,66 +1417,113 @@ input[type=file]{display:none}
 <!-- ═══ MAIN WRAP ═══ -->
 <div class="main-wrap">
 
-    <!-- HEADER -->
+    <!-- ═══ HEADER matching chat.php ═══ -->
     <div class="top-header">
-        <div class="header-row">
-            <h1 class="header-title">Артикули</h1><div class="info-ai-btn" onclick="toggleInfoPanel()">ℹ</div>
-            <select class="store-select" id="storeSelect" onchange="switchStore(this.value)">
-                <?php foreach ($stores as $st): ?>
-                <option value="<?= $st['id'] ?>" <?= $st['id'] == $store_id ? 'selected' : '' ?>><?= htmlspecialchars($st['name']) ?></option>
-                <?php endforeach; ?>
-            </select>
+        <div class="hdr-row1">
+            <div class="hdr-logo">RUNMYSTORE.AI</div>
+            <div class="hdr-right">
+                <?php if (count($stores) > 1): ?>
+                <select class="store-select" id="storeSelect" onchange="switchStore(this.value)">
+                    <?php foreach ($stores as $st): ?>
+                    <option value="<?= $st['id'] ?>" <?= $st['id'] == $store_id ? 'selected' : '' ?>><?= htmlspecialchars($st['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php endif; ?>
+                <div class="hdr-badge"><?= strtoupper(htmlspecialchars($tenant['plan'] ?? 'FREE')) ?></div>
+                <a href="settings.php" class="hdr-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+                <a href="logout.php" class="hdr-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>
+            </div>
         </div>
-    </div>
-
-    <!-- SEARCH BAR -->
-    <div class="search-wrap">
-        <div class="search-display" id="searchDisplay" onclick="focusSearch()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <span class="ph" id="searchPh">Търси артикул, код, баркод...</span>
+        <div class="hdr-row2">
+            <div class="hdr-page-title">Артикули</div>
+            <div class="hdr-count" id="hdrCount">— артикула</div>
         </div>
-        <button class="srch-btn" id="btnVoiceSearch" onclick="openVoiceSearch()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-        </button>
-        <button class="srch-btn" onclick="openDrawer('filter')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        </button>
     </div>
 
     <!-- ═══ SCREEN: HOME ═══ -->
     <section id="scrHome" class="screen-section active">
-        <div class="tabs-row">
-            <button class="tab-pill active" data-tab="all" onclick="setHomeTab('all',this)">Всички <span class="cnt" id="cntAll">-</span></button>
-            <button class="tab-pill" data-tab="low" onclick="setHomeTab('low',this)">Ниска нал. <span class="cnt" id="cntLow">-</span></button>
-            <button class="tab-pill" data-tab="out" onclick="setHomeTab('out',this)">Изчерпани <span class="cnt" id="cntOut">-</span></button>
+
+        <!-- ТЪРСЕНЕ -->
+        <div class="new-search-sec">
+            <div class="new-search-bar" onclick="focusSearch()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span class="new-search-ph" id="searchPh">Търси по име, код, баркод, цена...</span>
+                <div class="new-search-mic" onclick="event.stopPropagation();openVoiceSearch()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                </div>
+            </div>
+            <div class="new-info-btn" onclick="toggleInfoPanel()"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>
         </div>
-        <?php if ($can_see_margin): ?>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="st-label">Капитал</div><div class="st-value" id="stCapital">—</div><div class="st-icon">💰</div></div>
-            <div class="stat-card"><div class="st-label">Ср. марж</div><div class="st-value" id="stMargin">—</div><div class="st-icon">📊</div></div>
+
+        <!-- CASCADE: ДОСТАВЧИЦИ → КАТЕГОРИИ -->
+        <div class="fltr-label"><span>Доставчици</span><div class="fltr-info" onclick="showWizInfo('supplier')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
+        <div class="fltr-row" id="supFilterRow">
+            <div class="fltr-btn active" data-sup="0" onclick="setCascadeSup(0,this)">Всички</div>
+            <?php foreach ($all_suppliers as $sup): ?>
+            <div class="fltr-btn" data-sup="<?= $sup['id'] ?>" onclick="setCascadeSup(<?= $sup['id'] ?>,this)"><?= htmlspecialchars($sup['name']) ?></div>
+            <?php endforeach; ?>
         </div>
-        <?php else: ?>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="st-label">Артикули</div><div class="st-value" id="stProducts">—</div><div class="st-icon">📦</div></div>
-            <div class="stat-card"><div class="st-label">Общо бройки</div><div class="st-value" id="stUnits">—</div><div class="st-icon">📋</div></div>
+
+        <div class="fltr-label"><span>Категории</span><span class="fltr-hint" id="catHint">глобални</span><div class="fltr-info" onclick="showWizInfo('category')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
+        <div class="fltr-row" id="catFilterRow">
+            <div class="fltr-btn active" data-cat="0" onclick="setCascadeCat(0,this)">Всички</div>
+            <!-- Populated dynamically by JS based on selected supplier -->
+        </div>
+
+        <!-- БЪРЗИ ФИЛТРИ (pill стил) -->
+        <div class="fltr-label"><span>Филтри</span></div>
+        <div class="qfltr-row">
+            <div class="qfltr-pill" onclick="openQuickFilter('price')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</div>
+            <div class="qfltr-pill" onclick="openQuickFilter('stock')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</div>
+            <?php if ($can_see_margin): ?><div class="qfltr-pill" onclick="openQuickFilter('margin')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</div><?php endif; ?>
+            <div class="qfltr-pill" onclick="openQuickFilter('date')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</div>
+            <div class="qfltr-pill" onclick="openQuickFilter('sales')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Продажби</div>
+        </div>
+
+        <div class="indigo-sep"></div>
+
+        <!-- ДОБАВИ НОВ АРТИКУЛ -->
+        <?php if ($can_add): ?>
+        <div class="add-sec">
+            <div class="add-sec-hdr"><span class="add-sec-title">Добави нов артикул</span><div class="fltr-info" onclick="showWizInfo('photo')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
+            <div class="add-grid">
+                <div class="add-btn add-ai" onclick="openVoiceWizard()">
+                    <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+                    <span style="color:#a5b4fc">AI</span>
+                </div>
+                <div class="add-btn add-manual" onclick="openManualWizard()">
+                    <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+                    <span>Ръчно</span>
+                </div>
+                <div class="add-btn add-scan" onclick="openCamera('scan')">
+                    <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="4" y1="12" x2="20" y2="12"/></svg></div>
+                    <span>Скан</span>
+                </div>
+                <div class="add-btn add-file" onclick="openCSVImport()">
+                    <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                    <span>Файл</span>
+                </div>
+            </div>
         </div>
         <?php endif; ?>
-        <div id="collapseZombie" class="collapse-sec hidden"></div>
-        <div id="collapseLow" class="collapse-sec hidden"></div>
-        <div id="collapseTop" class="collapse-sec hidden"></div>
-        <div id="collapseSlow" class="collapse-sec hidden"></div>
-        <div class="sec-title">Всички артикули</div>
-        <div id="homeList" style="padding:0 16px"></div>
-        <div id="homePag" class="pagination"></div>
+
+        <div class="indigo-sep"></div>
+
+        <!-- СИГНАЛИ -->
+        <div class="signals-sec">
+            <div class="signals-hdr"><span class="signals-title">Сигнали</span><span class="signals-count" id="signalsCount"></span><div class="fltr-info" onclick="showWizInfo('description')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
+            <div id="signalsList"></div>
+        </div>
+
     </section>
 
-    <!-- ═══ SCREEN: SUPPLIERS ═══ -->
+    <!-- ═══ SCREEN: SUPPLIERS (preserved) ═══ -->
     <section id="scrSuppliers" class="screen-section">
         <div class="sec-title">Доставчици</div>
         <div class="swipe-row" id="supCards"></div>
     </section>
 
-    <!-- ═══ SCREEN: CATEGORIES ═══ -->
+    <!-- ═══ SCREEN: CATEGORIES (preserved) ═══ -->
     <section id="scrCategories" class="screen-section">
         <div class="sec-title">Категории</div>
         <div id="catContent" style="padding:0 16px"></div>
@@ -1297,24 +1531,40 @@ input[type=file]{display:none}
 
     <!-- ═══ SCREEN: PRODUCTS ═══ -->
     <section id="scrProducts" class="screen-section">
-        <div id="prodBreadcrumb"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 0">
-            <div class="sec-title" style="padding:0">Артикули</div>
-            <div class="sort-wrap">
-                <button class="sort-btn" onclick="toggleSort()">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/></svg>Сортирай
-                </button>
-                <div class="sort-dd" id="sortDD">
-                    <div class="sort-opt active" data-sort="name" onclick="setSort('name')">Име А→Я</div>
-                    <div class="sort-opt" data-sort="price_asc" onclick="setSort('price_asc')">Цена ↑</div>
-                    <div class="sort-opt" data-sort="price_desc" onclick="setSort('price_desc')">Цена ↓</div>
-                    <div class="sort-opt" data-sort="stock_asc" onclick="setSort('stock_asc')">Наличност ↑</div>
-                    <div class="sort-opt" data-sort="stock_desc" onclick="setSort('stock_desc')">Наличност ↓</div>
-                    <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
-                </div>
+        <!-- Back + title -->
+        <div class="prod-hdr">
+            <div class="prod-back" onclick="goScreen('home')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <div class="prod-title" id="prodTitle">Артикули</div>
+            <div class="prod-cnt" id="prodCnt"></div>
+            <div class="prod-sort" onclick="toggleSort()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
+            <div class="sort-dd" id="sortDD">
+                <div class="sort-opt active" data-sort="name" onclick="setSort('name')">Име А-Я</div>
+                <div class="sort-opt" data-sort="price_asc" onclick="setSort('price_asc')">Цена нагоре</div>
+                <div class="sort-opt" data-sort="price_desc" onclick="setSort('price_desc')">Цена надолу</div>
+                <div class="sort-opt" data-sort="stock_asc" onclick="setSort('stock_asc')">Наличност нагоре</div>
+                <div class="sort-opt" data-sort="stock_desc" onclick="setSort('stock_desc')">Наличност надолу</div>
+                <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
             </div>
         </div>
-        <div id="prodList" style="padding:0 16px;margin-top:6px"></div>
+        <!-- Active filters chips -->
+        <div class="active-chips" id="activeChips"></div>
+        <!-- Subcategory row (appears when category selected) -->
+        <div class="fltr-label" id="subcatLabel" style="display:none"><span>Подкатегория</span></div>
+        <div class="fltr-row" id="subcatFilterRow" style="display:none"></div>
+        <!-- Quick filters -->
+        <div class="fltr-label"><span>Филтри</span></div>
+        <div class="qfltr-row">
+            <div class="qfltr-pill" onclick="openQuickFilter('price')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</div>
+            <div class="qfltr-pill" onclick="openQuickFilter('stock')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</div>
+            <?php if ($can_see_margin): ?><div class="qfltr-pill" onclick="openQuickFilter('margin')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</div><?php endif; ?>
+            <div class="qfltr-pill" onclick="openQuickFilter('date')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</div>
+        </div>
+        <!-- Signal filter pills -->
+        <div class="fltr-label"><span>По сигнал</span></div>
+        <div class="qfltr-row" id="signalFilterRow"></div>
+        <div class="indigo-sep"></div>
+        <!-- Product list -->
+        <div id="prodList" style="padding:0 12px;margin-top:6px"></div>
         <div id="prodPag" class="pagination"></div>
     </section>
 
@@ -1336,57 +1586,21 @@ input[type=file]{display:none}
 </div>
 
 
-<!-- ═══ QUICK ACTIONS PILL BAR ═══ -->
-<?php if ($can_add): ?>
-<div style="position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:41;
-    font-size:8px;font-weight:800;color:rgba(165,180,252,0.5);text-transform:uppercase;letter-spacing:1.5px;
-    text-align:center;pointer-events:none">Добави артикул</div>
-<div class="qa-bar" id="qaBar">
-    <button class="qa-btn qa-ai" onclick="openVoiceWizard()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-        <span>С глас</span>
-    </button>
-    <button class="qa-btn qa-other qa-teal" onclick="openManualWizard()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        <span>Ръчно</span>
-    </button>
-    <button class="qa-btn qa-other qa-green" onclick="openCSVImport()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <span>Файл</span>
-    </button>
-    <button class="qa-btn qa-other qa-yellow" onclick="openCamera('scan')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
-        <span>Скан</span>
-    </button>
+<!-- Quick Actions now integrated into home screen add-sec -->
+
+
+<!-- ═══ FLOATING AI BUTTON ═══ -->
+<div class="ai-float-btn" id="aiFloatBtn" onclick="openAIChatOverlay()">
+    <div class="ai-waves"><div class="wbar" style="background:#6366f1;animation-delay:0s"></div><div class="wbar" style="background:#818cf8;animation-delay:.15s"></div><div class="wbar" style="background:#a5b4fc;animation-delay:.3s"></div><div class="wbar" style="background:#818cf8;animation-delay:.45s"></div><div class="wbar" style="background:#6366f1;animation-delay:.6s"></div></div>
+    <span>Попитай AI</span>
 </div>
-<?php endif; ?>
 
-<!-- ═══ SCREEN NAV ═══ -->
-<div class="screen-nav"><div class="screen-nav-inner">
-    <button class="sn-btn" data-scr="products" onclick="goScreenWithHistory('products')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        <span>Артикули</span>
-    </button>
-    <button class="sn-btn" data-scr="categories" onclick="goScreenWithHistory('categories')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        <span>Категории</span>
-    </button>
-    <button class="sn-btn" data-scr="suppliers" onclick="goScreenWithHistory('suppliers')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-        <span>Доставчици</span>
-    </button>
-    <button class="sn-btn active" data-scr="home" onclick="goScreenWithHistory('home')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>Начало</span>
-    </button>
-</div></div>
-
-<!-- ═══ BOTTOM NAV ═══ -->
+<!-- ═══ BOTTOM NAV — SVG matching chat.php ═══ -->
 <nav class="bottom-nav">
-    <a href="chat.php" class="bnav-tab"><span class="bn-icon">✦</span>AI</a>
-    <a href="warehouse.php" class="bnav-tab active"><span class="bn-icon">📦</span>Склад</a>
-    <a href="stats.php" class="bnav-tab"><span class="bn-icon">📊</span>Справки</a>
-    <a href="sale.php" class="bnav-tab"><span class="bn-icon">⚡</span>Въвеждане</a>
+    <a href="chat.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>AI</a>
+    <a href="warehouse.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Склад</a>
+    <a href="stats.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки</a>
+    <a href="sale.php" class="bnav-tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>Продажба</a>
 </nav>
 
 <!-- ═══ DRAWERS ═══ -->
@@ -1527,25 +1741,15 @@ function loadScreen(){
 
 // ─── HOME SCREEN ───
 async function loadHome(){
+    // New design: cascade filters + signals
     const d=await api(`products.php?ajax=home_stats&store_id=${CFG.storeId}`);
-    if(!d)return;
-    if(CFG.canSeeMargin){
-        document.getElementById('stCapital').textContent=fmtPrice(d.capital);
-        document.getElementById('stMargin').textContent=d.avg_margin!=null?d.avg_margin+'%':'—';
-    }else{
-        const sp=document.getElementById('stProducts'),su=document.getElementById('stUnits');
-        if(sp)sp.textContent=fmtNum(d.counts?.total_products);
-        if(su)su.textContent=fmtNum(d.counts?.total_units);
+    if(d && d.counts){
+        document.getElementById('hdrCount').textContent=(d.counts.total_products||0)+' артикула';
     }
-    document.getElementById('cntAll').textContent=d.counts?.total_products||0;
-    document.getElementById('cntLow').textContent=d.low_stock?.length||0;
-    document.getElementById('cntOut').textContent=d.out_of_stock?.length||0;
-
-    renderCollapse('collapseZombie','💀','Zombie стока',d.zombies,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar red"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'💀'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д без продажба</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock out">${p.qty} бр.</div></div></div>`);
-    renderCollapse('collapseLow','⚠️','Свършват скоро',d.low_stock,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'⚠️'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>Мин: ${p.min_quantity}</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
-    renderCollapse('collapseTop','🔥','Топ 5 хитове',d.top_sellers,(p,i)=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar green"></div><div class="p-thumb" style="font-size:13px;font-weight:800;color:var(--indigo-300)">#${i+1}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.sold_qty} продадени</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.revenue)}</div></div></div>`);
-    renderCollapse('collapseSlow','🐌','Бавни',d.slow_movers,p=>`<div class="p-card" onclick="openProductDetail(${p.id})" style="margin-bottom:4px"><div class="stock-bar yellow"></div><div class="p-thumb">${p.image_url?`<img src="${p.image_url}">`:'🐌'}</div><div class="p-info"><div class="p-name">${esc(p.name)}</div><div class="p-meta"><span>${p.days_stale}д</span></div></div><div class="p-right"><div class="p-price">${fmtPrice(p.retail_price)}</div><div class="p-stock low">${p.qty} бр.</div></div></div>`);
-    loadHomeProducts();
+    // Init cascade categories (all global)
+    setCascadeSup(0, null);
+    // Load signals
+    loadSignals();
 }
 
 function renderCollapse(id,icon,title,items,renderFn){
@@ -1606,14 +1810,36 @@ async function loadCategories(){
 
 // ─── PRODUCTS LIST ───
 async function loadProducts(){
+    // Update title and active chips
+    let titleParts = [];
+    let chipsHtml = '';
+    if(S.catId){
+        const cat = CFG.categories.find(c=>c.id===S.catId);
+        if(cat) { titleParts.push(cat.name); chipsHtml += `<div class="act-chip">${esc(cat.name)} <div class="chip-x" onclick="S.catId=null;loadProducts()">x</div></div>`; }
+    }
+    if(S.supId){
+        const sup = CFG.suppliers.find(s=>s.id===S.supId);
+        if(sup) { titleParts.push(sup.name); chipsHtml += `<div class="act-chip">${esc(sup.name)} <div class="chip-x" onclick="S.supId=null;loadProducts()">x</div></div>`; }
+    }
+    const titleEl = document.getElementById('prodTitle');
+    if(titleEl) titleEl.textContent = titleParts.length ? titleParts.join(' · ') : 'Артикули';
+    const chipsEl = document.getElementById('activeChips');
+    if(chipsEl) chipsEl.innerHTML = chipsHtml;
+
+    // Load subcategories if category selected
+    if(S.catId) loadSubcategories(S.catId);
+    else { const sr=document.getElementById('subcatFilterRow'); if(sr)sr.style.display='none'; const sl=document.getElementById('subcatLabel'); if(sl)sl.style.display='none'; }
+
     let p=`store_id=${CFG.storeId}&sort=${S.sort}&page=${S.page}`;
     if(S.supId)p+=`&sup=${S.supId}`;
     if(S.catId)p+=`&cat=${S.catId}`;
     if(S.filter!=='all')p+=`&filter=${S.filter}`;
     const d=await api(`products.php?ajax=products&${p}`);
     if(!d)return;
+    const cntEl = document.getElementById('prodCnt');
+    if(cntEl) cntEl.textContent = d.total + ' артикула';
     document.getElementById('prodList').innerHTML=d.products.length===0?
-        `<div class="empty-st"><div class="es-icon">📋</div><div class="es-text">Няма артикули</div></div>`:
+        `<div class="empty-st"><div class="es-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="es-text">Няма артикули</div></div>`:
         d.products.map(productCardHTML).join('');
     renderPag('prodPag',d.page,d.pages,pg=>{S.page=pg;loadProducts()});
 }
@@ -1652,14 +1878,15 @@ function focusSearch(){
 function updateSearchDisplay(){
     const el=document.getElementById('searchPh');
     if(S.searchText)el.textContent='🔍 '+S.searchText;
-    else el.textContent='Търси артикул, код, баркод...';
+    else el.textContent='Търси по име, код, баркод, цена...';
 }
 async function doSearch(q){
     const d=await api(`products.php?ajax=search&q=${encodeURIComponent(q)}&store_id=${CFG.storeId}`);
     if(!d)return;
-    const target=S.screen==='products'?'prodList':'homeList';
-    document.getElementById(target).innerHTML=d.length===0?
-        `<div class="empty-st"><div class="es-icon">🔍</div><div class="es-text">Нищо за "${esc(q)}"</div></div>`:
+    // Always show search results in products screen
+    if(S.screen!=='products') goScreen('products');
+    document.getElementById('prodList').innerHTML=d.length===0?
+        `<div class="empty-st"><div class="es-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.3)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><div class="es-text">Нищо за "${esc(q)}"</div></div>`:
         d.map(p=>productCardHTML({...p,store_stock:p.total_stock})).join('');
 }
 
@@ -1877,6 +2104,175 @@ document.addEventListener('touchend',e=>{
 });
 
 
+
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// CASCADE FILTERS + SIGNALS — New for redesign
+// ═══════════════════════════════════════════════════════════
+
+let _cascadeSup = 0;
+let _cascadeCat = 0;
+let _cascadeSubcat = 0;
+let _signalsData = [];
+
+// ─── CASCADE: Supplier selected ───
+async function setCascadeSup(supId, el) {
+    _cascadeSup = supId;
+    _cascadeCat = 0;
+    _cascadeSubcat = 0;
+    // Update active state
+    document.querySelectorAll('#supFilterRow .fltr-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.sup) === supId));
+    // Reload categories for this supplier
+    const catRow = document.getElementById('catFilterRow');
+    catRow.innerHTML = '<div class="fltr-btn active" data-cat="0" onclick="setCascadeCat(0,this)">Всички</div>';
+    const hint = document.getElementById('catHint');
+    if (supId === 0) {
+        hint.textContent = 'глобални';
+        // Show all global categories (parent_id IS NULL)
+        CFG.categories.filter(c => !c.parent_id).sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
+            catRow.innerHTML += `<div class="fltr-btn" data-cat="${c.id}" onclick="setCascadeCat(${c.id},this)">${esc(c.name)}</div>`;
+        });
+    } else {
+        const sup = CFG.suppliers.find(s => s.id === supId);
+        hint.textContent = sup ? sup.name : '';
+        // Fetch categories for this supplier
+        const cats = await api('products.php?ajax=categories&store_id=' + CFG.storeId + '&sup=' + supId);
+        if (cats && cats.length) {
+            cats.filter(c => !c.parent_id).sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
+                catRow.innerHTML += `<div class="fltr-btn" data-cat="${c.id}" onclick="setCascadeCat(${c.id},this)">${esc(c.name)}</div>`;
+            });
+        }
+    }
+}
+
+// ─── CASCADE: Category selected ───
+function setCascadeCat(catId, el) {
+    _cascadeCat = catId;
+    _cascadeSubcat = 0;
+    document.querySelectorAll('#catFilterRow .fltr-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.cat) === catId));
+}
+
+// ─── Navigate to product list with current cascade ───
+function goFilteredList() {
+    S.supId = _cascadeSup || null;
+    S.catId = _cascadeCat || null;
+    goScreen('products', { sup: S.supId, cat: S.catId });
+}
+
+// ─── Load subcategories for product list screen ───
+async function loadSubcategories(catId) {
+    const row = document.getElementById('subcatFilterRow');
+    const label = document.getElementById('subcatLabel');
+    if (!catId) { row.style.display = 'none'; label.style.display = 'none'; return; }
+    const subs = await api('products.php?ajax=subcategories&parent_id=' + catId);
+    if (subs && subs.length > 0) {
+        row.style.display = 'flex';
+        label.style.display = 'flex';
+        row.innerHTML = '<div class="fltr-btn active" data-subcat="0" onclick="setSubcat(0,this)">Всички</div>';
+        subs.forEach(s => {
+            row.innerHTML += `<div class="fltr-btn" data-subcat="${s.id}" onclick="setSubcat(${s.id},this)">${esc(s.name)}</div>`;
+        });
+    } else {
+        row.style.display = 'none';
+        label.style.display = 'none';
+    }
+}
+
+function setSubcat(id, el) {
+    _cascadeSubcat = id;
+    document.querySelectorAll('#subcatFilterRow .fltr-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.subcat) === id));
+    S.catId = id || _cascadeCat;
+    S.page = 1;
+    loadProducts();
+}
+
+// ─── SIGNALS ───
+async function loadSignals() {
+    const data = await api('products.php?ajax=signals&store_id=' + CFG.storeId);
+    if (!data) return;
+    _signalsData = data;
+    renderSignals(data);
+}
+
+function renderSignals(signals) {
+    const el = document.getElementById('signalsList');
+    const countEl = document.getElementById('signalsCount');
+    if (!signals || !signals.length) { el.innerHTML = ''; countEl.textContent = ''; return; }
+    countEl.textContent = '· ' + signals.length;
+
+    // Group by group
+    const groups = { critical: [], warning: [], positive: [], profit: [], info: [], data: [] };
+    const groupLabels = { critical: 'Критични', warning: 'Внимание', positive: 'Позитивни', profit: 'Печалба', info: 'Информация', data: 'Непълни данни' };
+    const groupColors = { critical: 'red', warning: 'yellow', positive: 'green', profit: 'purple', info: 'blue', data: 'orange' };
+
+    signals.forEach(s => { if (groups[s.group]) groups[s.group].push(s); });
+
+    let html = '';
+    for (const [gk, items] of Object.entries(groups)) {
+        if (!items.length) continue;
+        html += `<div class="sig-group"><div class="sig-group-label sg-${groupColors[gk]}">${groupLabels[gk]}</div>`;
+        items.forEach(s => {
+            html += `<div class="sig-card s-${s.color}" onclick="askAISignal('${esc(s.question)}')">
+                <div class="sig-dot"></div>
+                <div class="sig-info"><div class="sig-label">${esc(s.label)}</div><div class="sig-desc">${esc(s.desc)}</div></div>
+                <div class="sig-action">AI</div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+    el.innerHTML = html;
+
+    // Also populate signal filter pills on products list screen
+    const sfRow = document.getElementById('signalFilterRow');
+    if (sfRow) {
+        let pills = '';
+        signals.forEach(s => {
+            pills += `<div class="qfltr-pill sig-${s.color}" onclick="filterBySignal('${s.type}')">${esc(s.label)} <span style="opacity:.5;font-size:8px">${s.count}</span></div>`;
+        });
+        sfRow.innerHTML = pills;
+    }
+}
+
+function askAISignal(question) {
+    // Open AI chat overlay and send question
+    if (typeof openAIChatOverlay === 'function') openAIChatOverlay();
+    // If includes/ chat overlay exists, use sendAutoQuestion
+    if (typeof sendAutoQuestion === 'function') {
+        sendAutoQuestion(question);
+    } else {
+        showToast('AI чат: ' + question, '');
+    }
+}
+
+function filterBySignal(type) {
+    showToast('Филтър по сигнал: ' + type, '');
+    // TODO: implement signal-based product filtering
+}
+
+function openQuickFilter(type) {
+    showToast('Филтър: ' + type, '');
+    // TODO: implement quick filter dropdowns (price range, stock, margin, date)
+}
+
+function openAIChatOverlay() {
+    // Check if shared include exists
+    const ov = document.getElementById('aiChatOverlay');
+    if (ov) { ov.classList.add('open'); return; }
+    showToast('AI чат скоро...', '');
+}
+
+// ─── Override loadHome to use new design ───
+async function loadHomeNew() {
+    // Update header count
+    const stats = await api('products.php?ajax=home_stats&store_id=' + CFG.storeId);
+    if (stats && stats.counts) {
+        document.getElementById('hdrCount').textContent = (stats.counts.total_products || 0) + ' артикула';
+    }
+    // Init cascade categories (all global)
+    setCascadeSup(0, null);
+    // Load signals
+    loadSignals();
+}
 
 // ═══════════════════════════════════════════════════════════
 // WIZARD REWRITE — 8 стъпки, info бутони, voice-compatible
