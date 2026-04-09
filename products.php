@@ -1492,15 +1492,7 @@ input[type=file]{display:none}
             <!-- Populated dynamically by JS based on selected supplier -->
         </div>
 
-        <!-- БЪРЗИ ФИЛТРИ (pill стил) -->
-        <div class="fltr-label"><span>Филтри</span></div>
-        <div class="qfltr-row">
-            <div class="qfltr-pill" onclick="openQuickFilter('price')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</div>
-            <div class="qfltr-pill" onclick="openQuickFilter('stock')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</div>
-            <?php if ($can_see_margin): ?><div class="qfltr-pill" onclick="openQuickFilter('margin')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</div><?php endif; ?>
-            <div class="qfltr-pill" onclick="openQuickFilter('date')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</div>
-            <div class="qfltr-pill" onclick="openQuickFilter('sales')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Продажби</div>
-        </div>
+      <!-- БЪРЗИ ФИЛТРИ — ще се добавят в S42 с реални dropdown-ове -->
         <!-- БУТОН ТЪРСИ -->
 <div style="padding:14px 16px 0">
     <div class="abtn primary" onclick="goFilteredList()" style="font-size:14px;padding:13px;border-radius:14px">
