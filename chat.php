@@ -490,6 +490,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .sig-red{border:1px solid rgba(239,68,68,.2)!important}
 .sig-red .sig-name{color:#fca5a5}
 .sig-red .sig-dot{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)}
+.sig-card .sig-dot{display:none}
+.sig-card::before{content:'';flex-shrink:0;width:22px;height:22px;background-size:contain;background-repeat:no-repeat}
+.sig-red::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M15 9l-6 6M9 9l6 6'/%3E%3C/svg%3E")}
+.sig-yellow::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E")}
+.sig-blue::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E")}
 .sig-yellow{border:1px solid rgba(251,191,36,.2)!important}
 .sig-yellow .sig-name{color:#fcd34d}
 .sig-yellow .sig-dot{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6)}
@@ -498,7 +503,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .sig-blue .sig-dot{background:#818cf8;box-shadow:0 0 8px rgba(99,102,241,.6)}
 
 /* ── ASK AI ── */
-.ask-ai-wrap{padding:16px 14px 20px;display:flex;justify-content:center}
+.ask-ai-wrap{position:fixed;bottom:62px;left:0;right:0;display:flex;justify-content:center;z-index:90;pointer-events:none}.ask-ai-btn{pointer-events:all}
 .ask-ai-btn{display:flex;align-items:center;gap:12px;padding:10px 24px;border-radius:20px;
     background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.2);
     cursor:pointer;backdrop-filter:blur(12px);transition:all .25s}
@@ -603,6 +608,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 
 @keyframes cardin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes dotpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.chip::before{content:"";flex-shrink:0;width:14px;height:14px;display:block;background-size:contain;background-repeat:no-repeat}.chip-red::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2.5'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M15 9l-6 6M9 9l6 6'/%3E%3C/svg%3E")}.chip-yellow::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='2.5'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/%3E%3C/svg%3E")}.chip-blue::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E")}
 </style>
 </head>
 <body>

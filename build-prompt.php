@@ -191,7 +191,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
         [$store_id, $store_id, $store_id, $tenant_id]
     )->fetchAll(PDO::FETCH_ASSOC);
 
-    $products_dump = "name|code|category|supplier|retail|cost|qty|min_qty|last_sale|days_idle\n";
+    $products_dump = "name|code|category|supplier|retail|cost|qty|min_qty|last_sale|days_idle|status\n";
     $total_products = 0;
     $total_stock_value = 0;
     $zero_stock = 0;
@@ -217,7 +217,13 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
         if ($cost > 0 && $retail < $cost) $below_cost++;
         if ($min > 0 && $q <= $min && $q > 0) $low_stock++;
 
-        $products_dump .= "{$p['name']}|{$p['code']}|{$p['category']}|{$p['supplier']}|{$retail}|{$cost}|{$q}|{$min}|{$ls}|{$idle}\n";
+        $flags = [];
+        if ($q == 0) $flags[] = 'ZERO_STOCK';
+        if ($idle >= 45 && $q > 0) $flags[] = 'ZOMBIE';
+        if ($min > 0 && $q <= $min && $q > 0) $flags[] = 'LOW_STOCK';
+        if ($cost > 0 && $retail < $cost) $flags[] = 'SELLING_AT_LOSS';
+        $flag_str = empty($flags) ? 'OK' : implode(',', $flags);
+        $products_dump .= "{$p['name']}|{$p['code']}|{$p['category']}|{$p['supplier']}|{$retail}|{$cost}|{$q}|{$min}|{$ls}|{$idle}|{$flag_str}\n";
     }
 
     // ══════════════════════════════════════════════════════════
@@ -302,10 +308,6 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
     // ══════════════════════════════════════════════════════════
     $suppliers_data = DB::run(
         'SELECT sup.id, sup.name,
-                (SELECT COALESCE(SUM(inv.total_amount), 0) FROM invoices inv
-                 WHERE inv.supplier_id = sup.id AND inv.tenant_id = ? AND inv.status = "unpaid") AS owed,
-                (SELECT COUNT(*) FROM invoices inv
-                 WHERE inv.supplier_id = sup.id AND inv.tenant_id = ? AND inv.status = "unpaid") AS unpaid_count,
                 (SELECT DATE(MAX(d.created_at)) FROM deliveries d
                  WHERE d.supplier_id = sup.id AND d.tenant_id = ?) AS last_delivery,
                 (SELECT COUNT(*) FROM products p
@@ -313,15 +315,14 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
          FROM suppliers sup
          WHERE sup.tenant_id = ?
          ORDER BY sup.name',
-        [$tenant_id, $tenant_id, $tenant_id, $tenant_id, $tenant_id]
+        [$tenant_id, $tenant_id, $tenant_id]
     )->fetchAll(PDO::FETCH_ASSOC);
 
-    $suppliers_dump = "name|owed|unpaid_invoices|last_delivery|products_count\n";
+    $suppliers_dump = "name|last_delivery|products_count\n";
     $total_owed = 0;
     foreach ($suppliers_data as $sd) {
-        $total_owed += (float)$sd['owed'];
         $ld = $sd['last_delivery'] ?? '-';
-        $suppliers_dump .= "{$sd['name']}|{$sd['owed']}|{$sd['unpaid_count']}|{$ld}|{$sd['products_count']}\n";
+        $suppliers_dump .= "{$sd['name']}|{$ld}|{$sd['products_count']}\n";
     }
 
     // ══════════════════════════════════════════════════════════
@@ -331,13 +332,13 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
     $unpaid_invoices = [];
     if ($role !== 'seller') {
         $unpaid_invoices = DB::run(
-            'SELECT sup.name AS supplier,
-                    inv.total_amount AS amount,
+            'SELECT COALESCE(cust.name, "—") AS customer_name,
+                    inv.total AS amount,
                     inv.due_date,
                     GREATEST(0, DATEDIFF(CURDATE(), inv.due_date)) AS days_overdue
              FROM invoices inv
-             LEFT JOIN suppliers sup ON sup.id = inv.supplier_id
-             WHERE inv.tenant_id = ? AND inv.status = "unpaid"
+             LEFT JOIN customers cust ON cust.id = inv.customer_id
+             WHERE inv.tenant_id = ? AND inv.status IN ("sent","overdue")
              ORDER BY inv.due_date ASC',
             [$tenant_id]
         )->fetchAll(PDO::FETCH_ASSOC);
@@ -452,13 +453,13 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
 
     // ── AI MEMORY ─────────────────────────────────────────────
     $mem_rows = DB::run(
-        'SELECT `key`, `value` FROM tenant_ai_memory
+        'SELECT content FROM tenant_ai_memory
          WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 25',
         [$tenant_id]
     )->fetchAll(PDO::FETCH_ASSOC);
     $mem_str = '';
     foreach ($mem_rows as $m) {
-        $mem_str .= "  - {$m['key']}: {$m['value']}\n";
+        $mem_str .= "  - {$m['content']}\n";
     }
 
     // ── BUSINESS SIGNALS ──────────────────────────────────────
@@ -556,11 +557,11 @@ LAYER 2D — CATEGORIES SUMMARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {$categories_dump}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAYER 2E — SUPPLIERS ({$currency} {$total_owed} total owed)
+LAYER 2E — SUPPLIERS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {$suppliers_dump}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAYER 2F — UNPAID INVOICES
+LAYER 2F — UNPAID CUSTOMER INVOICES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {$invoices_dump}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
