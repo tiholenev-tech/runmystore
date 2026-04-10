@@ -290,12 +290,14 @@ if (isset($_GET['ajax'])) {
         $cat = $input['category'] ?? '';
         $sup = $input['supplier'] ?? '';
         $axes = $input['axes'] ?? '';
+        $composition = $input['composition'] ?? '';
         $lang_name = match($lang ?? 'bg') { 'en'=>'English', 'de'=>'German', 'fr'=>'French', 'es'=>'Spanish', default=>'Bulgarian' };
         $prompt = "You are an e-commerce copywriter. Write a short SEO product description.\n";
         $prompt .= "Product: {$name}\n";
         if ($cat) $prompt .= "Category: {$cat}\n";
         if ($sup) $prompt .= "Brand: {$sup}\n";
         if ($axes) $prompt .= "Available variations: {$axes}\n";
+        if ($composition) $prompt .= "Composition/Material: {$composition}\n";
         $prompt .= "\nRULES (MANDATORY - follow ALL):\n";
         $prompt .= "- Write in {$lang_name}\n";
         $prompt .= "- MINIMUM 3 sentences, MINIMUM 40 words. Never less than 40 words.\n";
@@ -500,6 +502,12 @@ if (isset($_GET['ajax'])) {
 // Biz-coefficients
 if (file_exists(__DIR__.'/biz-coefficients.php')) {
     require_once __DIR__.'/biz-coefficients.php';
+    if (file_exists(__DIR__.'/biz-compositions.php')) {
+        require_once __DIR__.'/biz-compositions.php';
+        $bizComps = getBizCompositions($business_type ?: 'магазин');
+    } else {
+        $bizComps = ['compositions' => [], 'countries' => []];
+    }
     $bizVars = findBizVariants($business_type ?: 'магазин');
     $allBizPresets = ['sizes'=>[],'colors'=>[],'other'=>[]];
     foreach ($BIZ_VARIANTS as $bv) {
@@ -1585,6 +1593,8 @@ const CFG = {
 };
 window._bizVariants=<?= json_encode($bizVars ?: [], JSON_UNESCAPED_UNICODE) ?>;
 window._allBizPresets=<?= json_encode($allBizPresets, JSON_UNESCAPED_UNICODE) ?>;
+window._bizCompositions=<?= json_encode($bizComps['compositions'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
+window._bizCountries=<?= json_encode($bizComps['countries'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
 window._sizePresets={clothing:['XS','S','M','L','XL','2XL','3XL','4XL'],shoes:['36','37','38','39','40','41','42','43','44','45','46'],clothing_eu:['34','36','38','40','42','44','46','48','50','52','54','56'],kids:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164'],pants:['W28','W29','W30','W31','W32','W33','W34','W36','W38'],rings:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'],socks:['35-38','39-42','43-46'],hats:['S/M','L/XL','One Size'],bra:['70A','70B','75A','75B','75C','80A','80B','80C','80D','85B','85C','85D']};
 
 // ═══════════════════════════════════════════════════════════
@@ -3264,7 +3274,7 @@ async function wizGenDescription(){
     var sup=sups?sups.name:'';
     var axes='';
     if(S.wizData.axes){S.wizData.axes.forEach(function(a){if(a.values.length)axes+=a.name+': '+a.values.join(', ')+'. '})}
-    var d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,supplier:sup,axes:axes})});
+    var d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,supplier:sup,axes:axes,composition:S.wizData.composition||''})});
     if(d&&d.description){
         if(descEl){descEl.value=d.description;descEl.removeAttribute('readonly')}
         S.wizData.description=d.description;
@@ -3443,6 +3453,60 @@ document.getElementById('recOv').addEventListener('click',function(e){
         else closeVoice();
     }
 });
+
+// ═══ S48: Composition + Country suggest (event delegation, no inline handlers) ═══
+(function(){
+    function createDropdown(inputId, listId, items) {
+        var inp = document.getElementById(inputId);
+        if (!inp) return;
+        var val = inp.value.toLowerCase();
+        var existing = document.getElementById(listId);
+        if (existing) existing.remove();
+        if (!val || val.length < 1) return;
+        var matches = items.filter(function(it){ return it.toLowerCase().indexOf(val) !== -1; });
+        if (!matches.length) return;
+        var dd = document.createElement('div');
+        dd.id = listId;
+        dd.style.cssText = 'position:absolute;left:0;right:0;top:100%;background:#1e1e2e;border:1px solid var(--border-subtle);border-radius:8px;max-height:180px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5)';
+        matches.slice(0, 8).forEach(function(m){
+            var opt = document.createElement('div');
+            opt.textContent = m;
+            opt.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:14px;color:#e2e8f0;border-bottom:1px solid rgba(255,255,255,0.05)';
+            opt.onmousedown = function(e){
+                e.preventDefault();
+                inp.value = m;
+                inp.dispatchEvent(new Event('input', {bubbles:true}));
+                if (inputId === 'wOrigin') S.wizData.origin_country = m;
+                if (inputId === 'wComposition') S.wizData.composition = m;
+                dd.remove();
+            };
+            opt.onmouseenter = function(){ this.style.background = 'rgba(99,102,241,0.2)'; };
+            opt.onmouseleave = function(){ this.style.background = 'transparent'; };
+            dd.appendChild(opt);
+        });
+        inp.parentElement.style.position = 'relative';
+        inp.parentElement.appendChild(dd);
+    }
+    function closeLists(except){
+        ['wOriginList','wCompositionList'].forEach(function(id){
+            if(id!==except){var e=document.getElementById(id);if(e)e.remove();}
+        });
+    }
+    document.addEventListener('input', function(e){
+        if (e.target.id === 'wOrigin') {
+            closeLists('wOriginList');
+            createDropdown('wOrigin', 'wOriginList', window._bizCountries || []);
+        }
+        if (e.target.id === 'wComposition') {
+            closeLists('wCompositionList');
+            createDropdown('wComposition', 'wCompositionList', window._bizCompositions || []);
+        }
+    });
+    document.addEventListener('click', function(e){
+        if (e.target.id !== 'wOrigin' && e.target.id !== 'wComposition') closeLists();
+    });
+})();
+// ═══ END S48 suggest ═══
 </script>
 
 <!-- Supplier Category Picker Modal -->
