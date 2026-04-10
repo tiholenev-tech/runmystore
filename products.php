@@ -287,10 +287,22 @@ if (isset($_GET['ajax'])) {
         $input = json_decode(file_get_contents('php://input'), true);
         $name = $input['name'] ?? '';
         if (!$name) { echo json_encode(['error'=>'no_name']); exit; }
-        $prompt = "Напиши кратко SEO описание (2-3 изречения) за: \"{$name}\".";
-        if (!empty($input['category'])) $prompt .= " Категория: {$input['category']}.";
-        if (!empty($input['supplier'])) $prompt .= " Марка: {$input['supplier']}.";
-        $prompt .= " Подходящо за Google и e-commerce. Само описанието.";
+        $cat = $input['category'] ?? '';
+        $sup = $input['supplier'] ?? '';
+        $axes = $input['axes'] ?? '';
+        $prompt = "Ти си копирайтър за онлайн магазин. Напиши SEO описание на български за продукт.\n";
+        $prompt .= "Продукт: {$name}\n";
+        if ($cat) $prompt .= "Категория: {$cat}\n";
+        if ($sup) $prompt .= "Марка/Доставчик: {$sup}\n";
+        if ($axes) $prompt .= "Вариации: {$axes}\n";
+        $prompt .= "\nПРАВИЛА:\n";
+        $prompt .= "- 2-3 изречения, максимум 50 думи\n";
+        $prompt .= "- Включи ключови думи за Google (продукт, категория, марка)\n";
+        $prompt .= "- Спомени налични размери/цветове ако са дадени\n";
+        $prompt .= "- Подходящо за e-commerce: описание на продукта, материал, стил, повод за носене\n";
+        $prompt .= "- Завърши с призив (перфектен избор за..., подходящ за...)\n";
+        $prompt .= "- Без емотикони, без кавички, без заглавие — само текста\n";
+        $prompt .= "- На български език\n";
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
         $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>200]];
         $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
@@ -478,7 +490,25 @@ if (isset($_GET['ajax'])) {
 }
 
 // Biz-coefficients
-if (file_exists(__DIR__.'/biz-coefficients.php')) { require_once __DIR__.'/biz-coefficients.php'; $bizVars = findBizVariants($business_type ?: 'магазин'); } else { $bizVars = []; }
+if (file_exists(__DIR__.'/biz-coefficients.php')) {
+    require_once __DIR__.'/biz-coefficients.php';
+    $bizVars = findBizVariants($business_type ?: 'магазин');
+    $allBizPresets = ['sizes'=>[],'colors'=>[],'other'=>[]];
+    foreach ($BIZ_VARIANTS as $bv) {
+        if (!empty($bv['variant_presets'])) {
+            foreach ($bv['variant_presets'] as $field => $vals) {
+                $fl = mb_strtolower($field);
+                if (mb_strpos($fl,'размер')!==false||mb_strpos($fl,'size')!==false||mb_strpos($fl,'ръст')!==false) {
+                    foreach ($vals as $v) { if (!in_array($v,$allBizPresets['sizes'])) $allBizPresets['sizes'][] = $v; }
+                } elseif (mb_strpos($fl,'цвят')!==false||mb_strpos($fl,'color')!==false||mb_strpos($fl,'десен')!==false) {
+                    foreach ($vals as $v) { if (!in_array($v,$allBizPresets['colors'])) $allBizPresets['colors'][] = $v; }
+                } else {
+                    foreach ($vals as $v) { if (!in_array($v,$allBizPresets['other'])) $allBizPresets['other'][] = $v; }
+                }
+            }
+        }
+    }
+} else { $bizVars = []; $allBizPresets = ['sizes'=>[],'colors'=>[],'other'=>[]]; }
 
 // Page data
 $all_suppliers = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
@@ -1079,6 +1109,10 @@ input[type=file]{display:none}
 /* ═══ WIZARD INFO SYSTEM ═══ */
 .wiz-info-btn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:rgba(99,102,241,0.15);border:1.5px solid rgba(99,102,241,0.4);align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;margin-left:6px;vertical-align:middle;transition:all 0.15s;flex-shrink:0;color:var(--indigo-300)}
 .wiz-info-btn:active{background:rgba(99,102,241,0.2);transform:scale(0.9)}
+.wiz-dd-list{position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#1a1f35;border:1px solid var(--border-subtle);border-radius:10px;z-index:100;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.wiz-dd-item{padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04)}
+.wiz-dd-item:hover,.wiz-dd-item:active{background:rgba(99,102,241,0.15)}
+.wiz-dd-item:last-child{border-bottom:none}
 .wiz-info-overlay{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
 .wiz-info-box{background:#080818;border:1px solid var(--border-glow);border-radius:16px;padding:16px;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(99,102,241,0.2)}
 
@@ -1542,6 +1576,7 @@ const CFG = {
     colors: <?= json_encode($COLOR_PALETTE, JSON_UNESCAPED_UNICODE) ?>,
 };
 window._bizVariants=<?= json_encode($bizVars ?: [], JSON_UNESCAPED_UNICODE) ?>;
+window._allBizPresets=<?= json_encode($allBizPresets, JSON_UNESCAPED_UNICODE) ?>;
 window._sizePresets={clothing:['XS','S','M','L','XL','2XL','3XL','4XL'],shoes:['36','37','38','39','40','41','42','43','44','45','46'],clothing_eu:['34','36','38','40','42','44','46','48','50','52','54','56'],kids:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164'],pants:['W28','W29','W30','W31','W32','W33','W34','W36','W38'],rings:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'],socks:['35-38','39-42','43-46'],hats:['S/M','L/XL','One Size'],bra:['70A','70B','75A','75B','75C','80A','80B','80C','80D','85B','85C','85D']};
 
 // ═══════════════════════════════════════════════════════════
@@ -2459,9 +2494,9 @@ function closeWizard(){
 
 function wizGo(step){
     wizCollectData();
-    if(step===2&&!S.wizData._hasPhoto){step=3;}
+    if(step===2&&!S.wizData._hasPhoto){step=6;}
     // Skip AI Studio if no photo
-    if(step===2&&!S.wizData._hasPhoto){step=3;}
+    if(step===2&&!S.wizData._hasPhoto){step=6;}
     S.wizStep=step;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
@@ -2548,9 +2583,9 @@ function renderWizPage(step){
         '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px;margin-bottom:14px;text-align:left"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Сложи на равна светла повърхност<br>✓ Без други предмети около<br>✓ Добро осветление<br>✓ Ясна, неразмазана снимка<br>✓ Максимално добро качество</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
         '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg><div style="font-size:11px;font-weight:600">Снимай</div></div>'+
-        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'photoInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
+        '<div style="flex:1;padding:16px;border-radius:14px;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer" onclick="document.getElementById(\'filePickerInput\').click()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5" style="margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="font-size:11px;font-weight:600">Галерия</div></div></div>'+
         '<div id="wizPhotoPreview">'+(S.wizData._photoDataUrl?'<img src="'+S.wizData._photoDataUrl+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">':'')+'</div><div id="wizScanResult"></div>'+
-        '<button class="abtn primary" onclick="wizGo(2)" style="margin-top:10px">Напред →</button>'+
+        '<button class="abtn primary" onclick="wizGo(3)" style="margin-top:10px">Напред →</button>'+
         '<button class="abtn" onclick="S.wizData._hasPhoto=false;wizGo(3)" style="margin-top:6px;color:var(--text-secondary)">Пропусни снимката →</button>'+
         '<button class="abtn" onclick="wizGo(0)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
@@ -2576,11 +2611,11 @@ function renderWizPage(step){
         '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<input type="number" step="0.01" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0,00"></div>'+
         '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00"></div></div>'+
         '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
-        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">Добави нов</span>')+'<select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value||null">'+supO+'</select><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
-        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">Добави нова</span>')+'<input type="text" class="fc" id="wCatSearch" placeholder="🔍 Търси категория..." style="margin-bottom:4px;font-size:12px" oninput="wizFilterSelect(\'wCat\',this.value)"><select class="fc" id="wCat" onchange="S.wizData.category_id=this.value||null">'+catO+'</select><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">Добави нов</span>')+'<div style="position:relative"><input type="text" class="fc" id="wSupDD" placeholder="Избери доставчик..." autocomplete="off" value="'+(S.wizData.supplier_id?(CFG.suppliers.find(ss=>ss.id==S.wizData.supplier_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.supplier_id=null;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wSupList\');if(l)l.style.display=\'none\'},200)"><div id="wSupList" class="wiz-dd-list" style="display:none"></div></div><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
+        '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">Добави нова</span>')+'<div style="position:relative"><input type="text" class="fc" id="wCatDD" placeholder="Избери категория..." autocomplete="off" value="'+(S.wizData.category_id?(CFG.categories.find(cc=>cc.id==S.wizData.category_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.category_id=null;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wCatList\');if(l)l.style.display=\'none\'},200)"><div id="wCatList" class="wiz-dd-list" style="display:none"></div></div><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">Добави нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
-        '<button class="abtn" onclick="wizGo(S.wizData._hasPhoto?2:1)" style="margin-top:6px">← Назад</button>'+
+        '<button class="abtn" onclick="wizGo(1)" style="margin-top:6px">← Назад</button>'+
         vskip+'</div>';
     }
     return renderWizPagePart2(step);
@@ -2590,7 +2625,7 @@ function renderWizPagePart2(step){
 
     // ═══ STEP 4: ВАРИАЦИИ ═══
     if(step===4){
-        if(S.wizType==='single')return '<div class="wiz-page active"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Единичен артикул — без вариации.</div><button class="abtn primary" onclick="wizGo(5)">Напред →</button><button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button></div>';
+        if(S.wizType==='single')return '<div class="wiz-page active"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Единичен артикул — без вариации.</div><button class="abtn primary" onclick="wizGoPreview()">Напред →</button><button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button></div>';
 
         // Pre-load from biz-coefficients if no axes yet
         if(!S.wizData.axes||S.wizData.axes.length===0){
@@ -2599,7 +2634,7 @@ function renderWizPagePart2(step){
             if(window._bizVariants&&window._bizVariants.variant_fields){
                 window._bizVariants.variant_fields.forEach(f=>{
                     const presets=window._bizVariants.variant_presets?.[f]||[];
-                    S.wizData.axes.push({name:f,values:[...presets]});
+                    S.wizData.axes.push({name:f,values:[]});
                 });
             }
             if(S.wizData.axes.length===0){
@@ -2620,8 +2655,8 @@ function renderWizPagePart2(step){
             (ax.values.length>0?'<span style="font-size:10px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600" onclick="S.wizData.axes['+i+'].values=[];renderWizard()">Изчисти</span>':'')+
             '<span style="font-size:10px;color:var(--danger);cursor:pointer;font-weight:600" onclick="if(confirm(\'Премахни вариация?\')){S.wizData.axes.splice('+i+',1);renderWizard()}">✕ Премахни</span></div></div>'+
             '<div style="margin-bottom:8px;min-height:24px">'+(vals||'<span style="font-size:11px;color:var(--text-secondary)">Няма избрани стойности</span>')+'</div>'+
-            (hasPresets?'<button type="button" class="abtn" style="width:100%;padding:10px;font-size:12px;font-weight:700;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06);margin-bottom:6px" onclick="openPresetPicker('+i+','+(isSize?'true':'false')+')">Избери от списък</button>':'')+
-            '<div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Или въведи ръчно..." style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div></div>';
+            (hasPresets?'<button type="button" class="abtn" style="width:100%;padding:10px;font-size:12px;font-weight:700;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06);margin-bottom:6px" onclick="openPresetPicker('+i+','+(isSize?'true':'false')+')">+ Добави няколко</button>':'')+
+            '<div style="position:relative"><div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Въведи или търси..." style="font-size:12px;padding:8px 10px" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}" oninput="wizAxisSuggest('+i+',this.value)" onfocus="wizAxisSuggest('+i+',this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'axSug'+i+'\');if(l)l.style.display=\'none\'},200)"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div><div id="axSug'+i+'" class="wiz-dd-list" style="display:none"></div></div></div>';
         });
 
         const combos=wizCountCombinations();
@@ -2633,7 +2668,7 @@ function renderWizPagePart2(step){
         '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Напр: Материал, Форма, Дължина, Модел...</div>'+
         '<div style="display:flex;gap:6px"><input type="text" class="fc" id="newAxisName" placeholder="Име на вариация" style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" onclick="wizAddAxis()">+ Добави</button></div></div>'+
         (combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;padding:8px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> комбинации</div>':'')+
-        '<button class="abtn primary" onclick="wizGo(5)">Напред →</button>'+
+        '<button class="abtn primary" onclick="wizGoPreview()">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button>'+vskip+'</div>';
     }
 
@@ -2650,63 +2685,81 @@ function renderWizPagePart2(step){
         '<button class="abtn" onclick="wizGo(4)" style="margin-top:6px">← Назад</button>'+vskip+'</div>';
     }
 
-    // ═══ STEP 6: ПРЕГЛЕД + AI ОПИСАНИЕ + ЗАПИС ═══
+    // ═══ STEP 6: ПРЕГЛЕД + НАЛИЧНОСТ + ЗАПИС ═══
     if(step===6){
         wizCollectData();
+        let unitO='';CFG.units.forEach(u=>unitO+='<option value="'+u+'" '+(S.wizData.unit===u?'selected':'')+'>'+u+'</option>');
+        let unitH='<div class="fg" style="margin-bottom:10px">'+fieldLabel('Мерна единица','unit','<span class="fl-add" onclick="toggleInl(\'inlUnit\')">Добави друга</span>')+
+        '<select class="fc" id="wUnit" onchange="S.wizData.unit=this.value">'+unitO+'</select>'+
+        '<div class="inline-add" id="inlUnit"><input type="text" placeholder="напр. метър, кг..." id="inlUnitName"><button onclick="wizAddUnit()">Запази</button></div></div>';
         const combos=wizBuildCombinations();
         let combosH='';
         if(combos.length<=1&&!combos[0]?.axisValues){
-            combosH='<div class="form-row"><div class="fg"><label class="fl">Начална наличност</label><input type="number" class="fc" id="wSingleQty" value="1"></div><div class="fg"><label class="fl">Мин. наличност</label><input type="number" class="fc" id="wSingleMin" value="'+(S.wizData.min_quantity||0)+'"></div></div>';
+            combosH='<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)"><div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:4px">Въведи наличности</div><div style="font-size:10px;color:var(--text-secondary);line-height:1.5"><b style="color:var(--indigo-300)">Бройка</b> — колко имаш в момента<br><b style="color:rgba(245,158,11,0.8)">Мін.</b> — под тази бройка ще те предупредим да заредиш</div></div>'+
+            '<div style="display:flex;gap:8px;margin-bottom:4px"><div style="flex:1;font-size:10px;font-weight:700;color:var(--indigo-300);text-transform:uppercase">Бройка в склада</div><div style="flex:1;font-size:10px;font-weight:700;color:rgba(245,158,11,0.8);text-transform:uppercase">Мін. наличност</div></div>'+
+            '<div style="display:flex;gap:8px"><input type="number" class="fc" id="wSingleQty" value="1" style="flex:1;text-align:center;font-size:14px;font-weight:700"><input type="number" class="fc" id="wSingleMin" value="1" style="flex:1;text-align:center;font-size:14px;font-weight:700"></div>';
         }else{
-            combosH='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:10px;color:var(--text-secondary);font-weight:700;text-transform:uppercase">'+combos.length+' вариации</div><div style="font-size:9px;color:var(--text-secondary)">БРОЙКА</div></div>';
+            combosH='<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)">'+
+            '<div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:4px">Въведи наличности</div>'+
+            '<div style="font-size:10px;color:var(--text-secondary);line-height:1.5">'+
+            '<b style="color:var(--indigo-300)">Бройка</b> — колко имаш в момента от всяка вариация<br>'+
+            '<b style="color:rgba(245,158,11,0.8)">Мін.</b> — под тази бройка ще те предупредим да заредиш</div></div>'+
+            '<div style="display:flex;align-items:center;padding:4px 10px;gap:4px;margin-bottom:4px">'+
+            '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text-secondary)">ВАРИАЦИЯ</div>'+
+            '<div style="width:80px;font-size:9px;font-weight:700;color:var(--indigo-300);text-align:center">БРОЙКА</div>'+
+            '<div style="width:52px;font-size:9px;font-weight:700;color:rgba(245,158,11,0.8);text-align:center">МІН.</div>'+
+            '<div style="width:20px"></div></div>';
             combos.forEach((v,i)=>{
-                const label=v.axisValues||v.label||'';
                 const parts=v.parts||[];
                 let labelH='';
                 parts.forEach(p=>{
                     const isSize=p.axis.toLowerCase().includes('размер')||p.axis.toLowerCase().includes('size');
                     const isColor=p.axis.toLowerCase().includes('цвят')||p.axis.toLowerCase().includes('color');
                     if(isColor){
-                        const c=CFG.colors.find(cc=>cc.name===p.value);
-                        const hex=c?c.hex:'#666';
-                        labelH+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:12px">'+esc(p.value)+'</span></span>';
+                        const cc=CFG.colors.find(x=>x.name===p.value);
+                        const hex=cc?cc.hex:'#666';
+                        labelH+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(p.value)+'</span></span>';
                     }else if(isSize){
-                        labelH+='<span style="font-size:13px;font-weight:800;margin-right:6px">'+esc(p.value)+'</span>';
+                        labelH+='<span style="font-size:12px;font-weight:800;margin-right:4px">'+esc(p.value)+'</span>';
                     }else{
-                        labelH+='<span style="font-size:12px;margin-right:6px">'+esc(p.value)+'</span>';
+                        labelH+='<span style="font-size:11px;margin-right:4px">'+esc(p.value)+'</span>';
                     }
                 });
-                if(!labelH)labelH='<span style="font-size:12px">'+esc(label)+'</span>';
-                combosH+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;padding:6px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+i+'">'+
+                if(!labelH)labelH='<span style="font-size:11px">'+esc(v.axisValues||'')+'</span>';
+                combosH+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;padding:5px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+i+'">'+
                 '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap">'+labelH+'</div>'+
-                '<div style="display:flex;align-items:center;gap:2px">'+
-                '<button type="button" onclick="wizComboQty('+i+',-1)" style="width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:6px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>'+
-                '<input type="number" class="fc" style="width:48px;padding:6px;text-align:center;font-size:14px;font-weight:700;border-radius:6px" value="1" min="0" data-combo="'+i+'">'+
-                '<button type="button" onclick="wizComboQty('+i+',1)" style="width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:6px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>'+
-                '</div>'+
-                '<button type="button" onclick="if(confirm(\'Премахни тази вариация?\')){document.getElementById(\'comboRow'+i+'\').remove()}" style="width:24px;height:24px;border:none;background:none;color:var(--danger);font-size:14px;cursor:pointer;padding:0" title="Премахни">✕</button>'+
+                '<div style="display:flex;align-items:center;gap:0"><button type="button" onclick="wizQtyAdj('+i+',-1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">\u2212</button><input type="number" class="fc" style="width:34px;padding:3px 0;text-align:center;font-size:13px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="1" min="0" data-combo="'+i+'" data-field="qty"><button type="button" onclick="wizQtyAdj('+i+',1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">+</button></div>'+
+                '<input type="number" class="fc" style="width:52px;padding:4px;text-align:center;font-size:12px;font-weight:600;border-radius:6px;border-color:rgba(245,158,11,0.3)" value="1" min="0" data-combo="'+i+'" data-field="min">'+
+                '<button type="button" onclick="if(confirm(\'Премахни?\'))document.getElementById(\'comboRow'+i+'\').remove()" style="width:24px;height:24px;border:none;background:none;color:var(--danger);font-size:14px;cursor:pointer;padding:0">\u2715</button>'+
                 '</div>';
             });
         }
-
-        // AI description
         let descH='<div class="fg" style="margin-top:10px">'+fieldLabel('AI SEO описание','description')+
-        '<textarea class="fc" id="wDesc" rows="3" placeholder="AI генерира...">'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
-        '<button class="abtn" onclick="wizGenDescription()" style="margin-top:4px;font-size:11px">✦ Генерирай AI описание</button></div>';
-
+        '<textarea class="fc" id="wDesc" rows="3" placeholder="AI генерира описание..." style="font-size:12px" '+(S.wizData.description?'':'readonly')+'>'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
+        (S.wizData.description?'<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:11px;color:var(--indigo-300);cursor:pointer;margin-top:4px;display:inline-block">Редактирай описание</span>':'')+'</div>';
+        if(!S.wizData.description)setTimeout(wizGenDescription,300);
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:2px">'+esc(S.wizData.name||'Артикул')+'</div>'+
         '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Цена: '+fmtPrice(S.wizData.retail_price)+' · Код: '+esc(S.wizData.code||'AI генерира')+'</div>'+
         (S.wizData.studioResult?'<div style="margin-bottom:10px;text-align:center"><img src="'+S.wizData.studioResult+'" style="max-width:120px;border-radius:10px;border:1px solid var(--border-subtle)"></div>':'')+
-        combosH+
-        descH+
+        unitH+combosH+descH+
         '<button class="abtn save" style="margin-top:14px;font-size:15px;padding:14px" onclick="wizSave()">✓ Запази артикула</button>'+
-        '<button class="abtn" onclick="wizGo(5)" style="margin-top:6px">← Назад</button></div>';
+        '<button class="abtn" onclick="wizGo(4)" style="margin-top:6px">← Назад</button></div>';
     }
 
-    // ═══ STEP 7: ЕТИКЕТИ ═══
+    // ═══ STEP 7: УСПЕШЕН ЗАПИС ═══
     if(step===7){
-        return '<div class="wiz-page active"><div style="text-align:center;padding:20px"><div style="font-size:18px;margin-bottom:6px">✓</div><div style="font-size:13px;font-weight:600;color:var(--success)">Артикулът е записан!</div><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Зареждам етикети...</div></div></div>';
+        const pid=S.wizSavedId||0;
+        return '<div class="wiz-page active"><div style="text-align:center;padding:30px 16px">'+
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>'+
+        '<div style="font-size:16px;font-weight:700;color:var(--success);margin-bottom:4px">Артикулът е записан!</div>'+
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:20px">'+esc(S.wizData.name||'')+' \u00b7 '+fmtPrice(S.wizData.retail_price)+'</div>'+
+        '</div>'+
+        '<div style="padding:0 16px">'+
+        '<div style="padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border-subtle);margin-bottom:8px;text-align:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="margin-right:4px;vertical-align:middle"><rect x="6" y="2" width="12" height="6" rx="1"/><rect x="3" y="14" width="18" height="8" rx="1"/><path d="M6 14v-4h12v4"/></svg><span style="font-size:12px;color:var(--text-secondary)">Печат на етикети \u2014 скоро</span></div>'+
+        '<button class="abtn" onclick="closeWizard();openManualWizard()" style="width:100%;font-size:13px;padding:11px;margin-bottom:8px;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="2" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави нов артикул</button>'+
+        '<button class="abtn" onclick="closeWizard()" style="width:100%;font-size:13px;padding:11px;color:var(--text-secondary)">Затвори</button>'+
+        '</div></div>';
     }
 
     return '';
@@ -2769,9 +2822,9 @@ function renderStudioStep(){
     '<button class="abtn" onclick="doStudioObjects()" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none;font-size:11px">Генерирай студийна снимка</button></div>'+
 
     // Skip
-    '<div style="padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(3)"><span style="font-size:11px;color:#4b5563">Пропусни →</span></div>'+
+    '<div style="padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(6)"><span style="font-size:11px;color:#4b5563">Пропусни →</span></div>'+
 
-    '<button class="abtn" onclick="wizGo(1)" style="margin-top:4px">← Назад</button>'+
+    '<button class="abtn" onclick="wizGo(5)" style="margin-top:4px">← Назад</button>'+
     vskip+'</div>';
 }
 
@@ -2807,7 +2860,7 @@ async function doStudioWhiteBg(){
     // TODO: fal.ai birefnet call via ai-image-processor.php
     const d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'bg_removal'})});
     if(d?.error)showToast(d.error,'error');
-    else{showToast('Бял фон приложен ✓','success');wizGo(3)}
+    else{showToast('Бял фон приложен ✓','success');wizGo(6)}
 }
 
 async function doStudioTryon(){
@@ -2815,7 +2868,7 @@ async function doStudioTryon(){
     showToast('AI генерира... 10-20 сек','');
     const d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'tryon_'+S.studioModel,prompt})});
     if(d?.error)showToast(d.error,'error');
-    else{showToast('Генерирано ✓','success');wizGo(3)}
+    else{showToast('Генерирано ✓','success');wizGo(6)}
 }
 
 async function doStudioObjects(){
@@ -2823,7 +2876,7 @@ async function doStudioObjects(){
     showToast('AI генерира... 10-20 сек','');
     const d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'object_studio',prompt})});
     if(d?.error)showToast(d.error,'error');
-    else{showToast('Генерирано ✓','success');wizGo(3)}
+    else{showToast('Генерирано ✓','success');wizGo(6)}
 }
 
 // ─── HELPERS ───
@@ -2925,6 +2978,50 @@ function wizAddAxis(){
     renderWizard();
 }
 
+function wizAxisSuggest(axIdx,q){
+    const ax=S.wizData.axes[axIdx];if(!ax)return;
+    const list=document.getElementById('axSug'+axIdx);if(!list)return;
+    const lq=q.toLowerCase().trim();
+    if(!lq){list.style.display='none';return}
+    const existing=new Set(ax.values.map(function(v){return v.toLowerCase()}));
+    const nm=ax.name.toLowerCase();
+    const isSize=nm.includes('размер')||nm.includes('size')||nm.includes('ръст')||nm.includes('бюст')||nm.includes('тяло');
+    const isColor=nm.includes('цвят')||nm.includes('color')||nm.includes('десен');
+    var allPresets=[];
+    var myPresets=[];
+    if(window._bizVariants&&window._bizVariants.variant_presets){
+        for(var k in window._bizVariants.variant_presets){
+            if(k===ax.name||k.toLowerCase()===nm){myPresets=window._bizVariants.variant_presets[k];break}
+            if(nm.includes(k.toLowerCase())||k.toLowerCase().includes(nm)){myPresets=window._bizVariants.variant_presets[k];break}
+        }
+    }
+    var globalPresets=[];
+    if(window._allBizPresets){
+        if(isSize)globalPresets=window._allBizPresets.sizes||[];
+        else if(isColor)globalPresets=window._allBizPresets.colors||[];
+        else globalPresets=window._allBizPresets.other||[];
+    }
+    myPresets.forEach(function(v){if(allPresets.indexOf(v)===-1)allPresets.push(v)});
+    globalPresets.forEach(function(v){if(allPresets.indexOf(v)===-1)allPresets.push(v)});
+    if(!allPresets.length&&isColor&&CFG.colors){allPresets=CFG.colors.map(function(cc){return cc.name})}
+    var filtered=allPresets.filter(function(v){return v.toLowerCase().indexOf(lq)!==-1&&!existing.has(v.toLowerCase())});
+    filtered.sort(function(a,b){var aM=myPresets.indexOf(a)!==-1?0:1;var bM=myPresets.indexOf(b)!==-1?0:1;return aM-bM});
+    if(!filtered.length){list.style.display='none';return}
+    list.innerHTML=filtered.slice(0,12).map(function(v){
+        var isMyPreset=myPresets.indexOf(v)!==-1;
+        var sw='';
+        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cc.hex+';margin-right:6px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+        return '<div class="wiz-dd-item" onmousedown="event.preventDefault()" onclick="wizPickAxisVal('+axIdx+',\''+v.replace(/'/g,"\\'")+'\')">'+sw+(isMyPreset?'<b>'+v+'</b>':v)+'</div>';
+    }).join('');
+    list.style.display='block';
+}
+function wizPickAxisVal(axIdx,val){
+    const ax=S.wizData.axes[axIdx];if(!ax)return;
+    if(!ax.values.includes(val))ax.values.push(val);
+    const inp=document.getElementById('axVal'+axIdx);if(inp)inp.value='';
+    const list=document.getElementById('axSug'+axIdx);if(list)list.style.display='none';
+    renderWizard();
+}
 function wizAddAxisValue(axIdx){
     const inp=document.getElementById('axVal'+axIdx);
     const val=inp?.value.trim();
@@ -3066,14 +3163,35 @@ async function saveSupCatModal() {
     renderWizard();
 }
 
-function wizFilterSelect(selId,q){
-    const sel=document.getElementById(selId);if(!sel)return;
-    const lq=q.toLowerCase().trim();
-    for(const o of sel.options){
-        if(!o.value){o.style.display='';continue}
-        o.style.display=(!lq||o.textContent.toLowerCase().includes(lq))?'':'none';
-    }
+function wizSearchDropdown(inputId,listId,items,onSelect){
+    const inp=document.getElementById(inputId);
+    const list=document.getElementById(listId);
+    if(!inp||!list)return;
+    const q=inp.value.toLowerCase().trim();
+    const filtered=q?items.filter(i=>i.name.toLowerCase().includes(q)):items;
+    if(!q&&!inp._focused){list.style.display='none';return}
+    list.innerHTML=filtered.slice(0,15).map(i=>{
+        const eName=i.name.replace(/'/g,"\\'");
+        return '<div class="wiz-dd-item" onmousedown="event.preventDefault()" onclick="wizPickDD(\''+inputId+'\',\''+listId+'\','+i.id+',\''+eName+'\')">'+i.name+'</div>';
+    }).join('')||(q?'<div style="padding:10px;font-size:11px;color:var(--text-secondary)">Няма резултат</div>':'');
+    list.style.display=(filtered.length||q)?'block':'none';
 }
+function wizPickDD(inputId,listId,id,name){
+    const inp=document.getElementById(inputId);
+    const list=document.getElementById(listId);
+    if(inp){inp.value=name;inp._selectedId=id}
+    if(list)list.style.display='none';
+    if(inputId==='wCatDD'){S.wizData.category_id=id;wizLoadSubcats(id)}
+    if(inputId==='wSupDD'){S.wizData.supplier_id=id}
+}
+function wizLoadSubcats(catId){
+    const sel=document.getElementById('wSubcat');if(!sel)return;
+    sel.innerHTML='<option value="">— Няма —</option>';
+    CFG.categories.filter(c=>c.parent_id==catId).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{
+        sel.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>';
+    });
+}
+function wizFilterSelect(selId,q){}
 
 function wizCollectData(){
     const el=id=>document.getElementById(id);
@@ -3082,14 +3200,24 @@ function wizCollectData(){
     if(el('wPrice')){const v=parseFloat(el('wPrice').value);if(v)S.wizData.retail_price=v}
     if(el('wWprice'))S.wizData.wholesale_price=parseFloat(el('wWprice').value)||0;
     if(el('wBarcode'))S.wizData.barcode=el('wBarcode').value.trim();
-    if(el('wSup'))S.wizData.supplier_id=el('wSup').value||null;
-    if(el('wCat'))S.wizData.category_id=el('wCat').value||null;
+    if(el('wSupDD'))S.wizData.supplier_id=el('wSupDD')._selectedId||S.wizData.supplier_id||null;
+    if(el('wCatDD'))S.wizData.category_id=el('wCatDD')._selectedId||S.wizData.category_id||null;
     if(el('wSubcat'))S.wizData.subcategory_id=el('wSubcat').value||null;
     if(el('wUnit'))S.wizData.unit=el('wUnit').value||'бр';
     if(el('wMinQty'))S.wizData.min_quantity=parseInt(el('wMinQty').value)||0;
     if(el('wDesc'))S.wizData.description=el('wDesc').value;
 }
 
+function wizQtyAdj(idx,delta){
+    var row=document.getElementById('comboRow'+idx);if(!row)return;
+    var qtyInp=row.querySelector('[data-field="qty"]');
+    var minInp=row.querySelector('[data-field="min"]');
+    if(!qtyInp)return;
+    var oldVal=parseInt(qtyInp.value)||0;
+    var nv=Math.max(0,oldVal+delta);
+    qtyInp.value=nv;
+    if(minInp&&parseInt(minInp.value||0)===oldVal){minInp.value=nv}
+}
 async function wizGoPreview(){
     wizCollectData();
     if(!S.wizData.name){showToast('Въведи наименование','error');wizGo(3);return}
@@ -3102,16 +3230,22 @@ async function wizGoPreview(){
 }
 
 async function wizGenDescription(){
-    const name=S.wizData.name||document.getElementById('wName')?.value||'';
-    if(!name){showToast('Въведи име първо','error');return}
-    showToast('AI генерира описание...','');
-    const cat=document.getElementById('wCat')?.selectedOptions[0]?.text||'';
-    const sup=document.getElementById('wSup')?.selectedOptions[0]?.text||'';
-    const d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat,supplier:sup})});
-    if(d?.description){
-        document.getElementById('wDesc').value=d.description;
+    const name=S.wizData.name||'';
+    if(!name)return;
+    var descEl=document.getElementById('wDesc');
+    if(descEl)descEl.placeholder='AI генерира описание...';
+    var cats=CFG.categories.find(function(c){return c.id==S.wizData.category_id});
+    var sups=CFG.suppliers.find(function(s){return s.id==S.wizData.supplier_id});
+    var cat=cats?cats.name:'';
+    var sup=sups?sups.name:'';
+    var axes='';
+    if(S.wizData.axes){S.wizData.axes.forEach(function(a){if(a.values.length)axes+=a.name+': '+a.values.join(', ')+'. '})}
+    var d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,supplier:sup,axes:axes})});
+    if(d&&d.description){
+        if(descEl){descEl.value=d.description;descEl.removeAttribute('readonly')}
         S.wizData.description=d.description;
-        showToast('Описание генерирано ✓','success');
+    }else{
+        if(descEl)descEl.placeholder='Описанието не можа да се генерира';
     }
 }
 
@@ -3160,8 +3294,6 @@ async function wizSave(){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;
             wizGo(7);
-            setTimeout(()=>openLabels(r.id),500);
-            setTimeout(()=>closeWizard(),600);
             loadScreen();
         }else{showToast(r?.error||'Грешка','error')}
     }catch(e){showToast('Мрежова грешка','error')}
@@ -3169,7 +3301,7 @@ async function wizSave(){
 
 function wizAddSubcat(){
     const name=document.getElementById('inlSubcatName')?.value.trim();
-    const parentId=document.getElementById('wCat')?.value;
+    const parentId=document.getElementById('wCatDD')?._selectedId||S.wizData.category_id;
     if(!name||!parentId){showToast('Избери категория и въведи име','error');return}
     api('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(name)+'&parent_id='+parentId}).then(d=>{
         if(d?.id){
@@ -3209,36 +3341,14 @@ document.getElementById('photoInput').addEventListener('change',async function()
     if(!this.files?.[0])return;
     const preview=document.getElementById('wizPhotoPreview');
     const result=document.getElementById('wizScanResult');
-    if(preview)preview.innerHTML='<div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Снимка заредена ✓</div>';
-    if(result)result.innerHTML='<div style="font-size:12px;color:var(--indigo-300);margin-top:6px">✦ AI анализира...</div>';
+    if(preview)preview.innerHTML='<div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Зареждам...</div>';
     const reader=new FileReader();
-    reader.onload=async e=>{
+    reader.onload=e=>{
         S.wizData._photoDataUrl=e.target.result;
         S.wizData._hasPhoto=true;
         if(document.getElementById('wizPhotoPreview'))document.getElementById('wizPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">';
-        const base64=e.target.result.split(',')[1];
-        const d=await api('products.php?ajax=ai_scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:base64})});
-        if(d&&!d.error){
-            S.wizData={...S.wizData,...d};
-            if(d.sizes?.length){
-                S.wizData.axes=S.wizData.axes||[];
-                if(!S.wizData.axes.find(a=>a.name.toLowerCase().includes('размер')))
-                    S.wizData.axes.push({name:'Размер',values:d.sizes});
-                if(!S.wizType)S.wizType='variant';
-            }
-            if(d.colors?.length){
-                S.wizData.axes=S.wizData.axes||[];
-                if(!S.wizData.axes.find(a=>a.name.toLowerCase().includes('цвят')))
-                    S.wizData.axes.push({name:'Цвят',values:d.colors});
-            }
-            S.wizData._hasPhoto=true;
-            if(result)result.innerHTML='<div style="font-size:12px;color:var(--success);margin-top:6px">✓ AI разпозна — данните попълнени</div>';
-            showToast('AI разпозна ✓','success');
-            setTimeout(()=>wizGo(2),800);
-        }else{
-            S.wizData._hasPhoto=true;
-            if(result)result.innerHTML='<div style="font-size:12px;color:var(--warning);margin-top:6px">AI не разпозна — продължи ръчно</div>';
-        }
+        if(result)result.innerHTML='<div style="font-size:12px;color:var(--success);margin-top:6px">Снимката е заредена</div>';
+        showToast('Снимка добавена','success');
     };
     reader.readAsDataURL(this.files[0]);
     this.value='';
