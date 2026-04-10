@@ -3506,38 +3506,40 @@ document.getElementById('recOv').addEventListener('click',function(e){
         if (e.target.id !== 'wOrigin' && e.target.id !== 'wComposition') closeLists();
     });
 })();
-// ═══ S48: Auto-scroll to next field on mobile wizard ═══
+// ═══ S48: Auto-scroll to next wizard field ═══
 (function(){
-    var wizFields=['wName','wCode','wRetailPrice','wWholesalePrice','wSupDD','wCatDD','wOrigin','wComposition','wDesc'];
-    function scrollNext(currentId){
-        var idx=wizFields.indexOf(currentId);
+    function scrollToNext(current){
+        var body=document.getElementById('wizBody');
+        var all=Array.from(body.querySelectorAll('input:not([type=hidden]),textarea,select'));
+        var idx=all.indexOf(current);
         if(idx<0)return;
-        var container=document.getElementById('wizBody');
-        for(var i=idx+1;i<wizFields.length;i++){
-            var nxt=document.getElementById(wizFields[i]);
-            if(nxt&&nxt.offsetParent!==null){
-                setTimeout(function(){
-                    var top=nxt.getBoundingClientRect().top-container.getBoundingClientRect().top+container.scrollTop-80;
-                    container.scrollTo({top:top,behavior:'smooth'});
-                    nxt.focus();
-                },200);
-                return;
-            }
+        var nxt=null;
+        for(var i=idx+1;i<all.length;i++){
         }
+        setTimeout(function(){
+            var top=nxt.getBoundingClientRect().top-body.getBoundingClientRect().top+body.scrollTop-60;
+            body.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+            nxt.focus();
+        },250);
     }
-    // Enter key in wizard inputs
-    document.addEventListener('keydown',function(e){
-        if(e.key==="Enter"&&e.target.tagName==="INPUT"&&e.target.closest('#wizBody')){
-            e.preventDefault();scrollNext(e.target.id);
-        }
-    });
-    // Suggest dropdown pick (composition, country)
+    // After picking from any wiz-dd dropdown
+    var origPick=window.wizPickDD;
+    window.wizPickDD=function(inputId,listId,id,name){
+        origPick(inputId,listId,id,name);
+        var inp=document.getElementById(inputId);
+        if(inp)scrollToNext(inp);
+    };
+    // After picking from composition/country suggest
     document.addEventListener('mousedown',function(e){
-        if(e.target.closest('#wOriginList'))setTimeout(function(){scrollNext('wOrigin');},250);
-        if(e.target.closest('#wCompositionList'))setTimeout(function(){scrollNext('wComposition');},250);
-        // Supplier/category dropdown pick
-        if(e.target.closest('#wSupList'))setTimeout(function(){scrollNext('wSupDD');},250);
-        if(e.target.closest('#wCatList'))setTimeout(function(){scrollNext('wCatDD');},250);
+        var t=e.target;
+        if(t.closest('#wOriginList')){var inp=document.getElementById('wOrigin');if(inp)setTimeout(function(){scrollToNext(inp);},300);}
+        if(t.closest('#wCompositionList')){var inp=document.getElementById('wComposition');if(inp)setTimeout(function(){scrollToNext(inp);},300);}
+    });
+    // Enter key
+    document.addEventListener('keydown',function(e){
+        if(e.key==='Enter'&&(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')&&e.target.closest('#wizBody')){
+            e.preventDefault();scrollToNext(e.target);
+        }
     });
 })();
 // ═══ END S48 suggest ═══
