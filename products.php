@@ -3506,43 +3506,36 @@ document.getElementById('recOv').addEventListener('click',function(e){
         if (e.target.id !== 'wOrigin' && e.target.id !== 'wComposition') closeLists();
     });
 })();
-// ═══ S48: Auto-scroll to next wizard field ═══
+// ═══ S48: Focus field → scroll to center ═══
 (function(){
-    function scrollToNext(current){
-        var body=document.getElementById('wizBody');
-        var all=Array.from(body.querySelectorAll('input:not([type=hidden]),textarea,select'));
-        var idx=all.indexOf(current);
-        if(idx<0)return;
-        var nxt=null;
-        for(var i=idx+1;i<all.length;i++){
-        }
-        setTimeout(function(){
-            var top=nxt.getBoundingClientRect().top-body.getBoundingClientRect().top+body.scrollTop-60;
-            body.scrollTo({top:Math.max(0,top),behavior:'smooth'});
-            nxt.focus();
-        },250);
-    }
-    // After picking from any wiz-dd dropdown
-    var origPick=window.wizPickDD;
-    window.wizPickDD=function(inputId,listId,id,name){
-        origPick(inputId,listId,id,name);
-        var inp=document.getElementById(inputId);
-        if(inp)scrollToNext(inp);
-    };
-    // After picking from composition/country suggest
-    document.addEventListener('mousedown',function(e){
+    var body=null;
+    document.addEventListener("focusin",function(e){
         var t=e.target;
-        if(t.closest('#wOriginList')){var inp=document.getElementById('wOrigin');if(inp)setTimeout(function(){scrollToNext(inp);},300);}
-        if(t.closest('#wCompositionList')){var inp=document.getElementById('wComposition');if(inp)setTimeout(function(){scrollToNext(inp);},300);}
+        if(t.tagName!=="INPUT"&&t.tagName!=="TEXTAREA"&&t.tagName!=="SELECT")return;
+        body=document.getElementById("wizBody");
+        if(!body||!body.contains(t))return;
+        setTimeout(function(){
+            var bRect=body.getBoundingClientRect();
+            var tRect=t.getBoundingClientRect();
+            var offset=tRect.top-bRect.top+body.scrollTop-(bRect.height/3);
+            body.scrollTo({top:Math.max(0,offset),behavior:"smooth"});
+        },350);
     });
-    // Enter key
-    document.addEventListener('keydown',function(e){
-        if(e.key==='Enter'&&(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')&&e.target.closest('#wizBody')){
-            e.preventDefault();scrollToNext(e.target);
-        }
-    });
+    if(window.visualViewport){
+        window.visualViewport.addEventListener("resize",function(){
+            if(!body||!document.activeElement)return;
+            var t=document.activeElement;
+            if(!body.contains(t))return;
+            setTimeout(function(){
+                var bRect=body.getBoundingClientRect();
+                var tRect=t.getBoundingClientRect();
+                var offset=tRect.top-bRect.top+body.scrollTop-(bRect.height/3);
+                body.scrollTo({top:Math.max(0,offset),behavior:"smooth"});
+            },100);
+        });
+    }
 })();
-// ═══ END S48 suggest ═══
+// ═══ END S48 suggest ═══// ═══ END S48 suggest ═══
 </script>
 
 <!-- Supplier Category Picker Modal -->
