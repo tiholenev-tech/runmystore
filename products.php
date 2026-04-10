@@ -305,7 +305,7 @@ if (isset($_GET['ajax'])) {
         $prompt .= "- End with a call to action (perfect choice for..., ideal for...)\n";
         $prompt .= "- No emoji, no quotes, no title - output ONLY the description text\n";
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
-        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>200]];
+        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>500]];
         $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
