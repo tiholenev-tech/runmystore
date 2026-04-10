@@ -123,6 +123,9 @@ $unit            = $data['unit'] ?? 'бр';
 $min_quantity    = (int)($data['min_quantity'] ?? 0);
 $location        = trim($data['location'] ?? '') ?: null;
 $description     = trim($data['description'] ?? '') ?: null;
+$origin_country  = trim($data['origin_country'] ?? '') ?: null;
+$composition     = trim($data['composition'] ?? '') ?: null;
+$is_domestic     = (int)($data['is_domestic'] ?? 0);
 $color_single    = trim($data['color'] ?? '') ?: null;
 $size_single     = trim($data['size'] ?? '') ?: null;
 
@@ -174,11 +177,12 @@ if ($action === 'edit' && $id > 0) {
                 name=?, code=?, barcode=?, category_id=?, supplier_id=?,
                 cost_price=?, retail_price=?, wholesale_price=?, unit=?,
                 min_quantity=?, location=?, description=?, size=?, color=?,
-                vat_rate=?, updated_at=NOW()
+                vat_rate=?, origin_country=?, composition=?, is_domestic=?, updated_at=NOW()
             WHERE id=? AND tenant_id=?
         ", [$name, $code, $barcode, $category_id, $supplier_id,
             $cost_price, $retail_price, $wholesale_price, $unit,
             $min_quantity, $location, $description, $size_single, $color_single, $vat_rate,
+            $origin_country, $composition, $is_domestic,
             $id, $tenant_id]);
 
         DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,new_values) VALUES (?,?,?,?,?,?)",
@@ -373,11 +377,13 @@ function insertProduct(
         INSERT INTO products
         (tenant_id, parent_id, category_id, supplier_id, code, name, barcode,
          unit, cost_price, retail_price, wholesale_price, vat_rate,
-         min_quantity, location, description, size, color, is_active)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+         min_quantity, location, description, size, color, is_active,
+         origin_country, composition, is_domestic)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)
     ", [$tenant_id, $parent_id, $category_id, $supplier_id, $code, $name, $barcode,
         $unit, $cost_price, $retail_price, $wholesale_price, $vat_rate,
-        $min_quantity, $location, $description, $size, $color]);
+        $min_quantity, $location, $description, $size, $color,
+        $origin_country, $composition, $is_domestic]);
     return (int)DB::get()->lastInsertId();
 }
 
