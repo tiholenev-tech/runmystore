@@ -2621,6 +2621,20 @@ function renderWizPage(step){
         '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button></div></div>'+
         '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">Добави нов</span>')+'<div style="position:relative"><input type="text" class="fc" id="wSupDD" placeholder="Избери доставчик..." autocomplete="off" value="'+(S.wizData.supplier_id?(CFG.suppliers.find(ss=>ss.id==S.wizData.supplier_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.supplier_id=null;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wSupList\');if(l)l.style.display=\'none\'},200)"><div id="wSupList" class="wiz-dd-list" style="display:none"></div></div><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">Добави нова</span>')+'<div style="position:relative"><input type="text" class="fc" id="wCatDD" placeholder="Избери категория..." autocomplete="off" value="'+(S.wizData.category_id?(CFG.categories.find(cc=>cc.id==S.wizData.category_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.category_id=null;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wCatList\');if(l)l.style.display=\'none\'},200)"><div id="wCatList" class="wiz-dd-list" style="display:none"></div></div><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
+        '<div class="fg" style="margin-bottom:12px">'+fieldLabel('Произход на стоката','name')+
+        '<div style="display:flex;gap:8px;margin-top:4px">'+
+        '<div style="flex:1;padding:12px;border-radius:10px;border:1px solid '+(S.wizData.is_domestic?'var(--indigo-500)':'var(--border-subtle)')+';background:'+(S.wizData.is_domestic?'rgba(99,102,241,0.1)':'transparent')+';text-align:center;cursor:pointer" onclick="S.wizData.is_domestic=true;S.wizData.origin_country=\'България\';renderWizard()"><div style="font-size:12px;font-weight:600">Българска</div></div>'+
+        '<div style="flex:1;padding:12px;border-radius:10px;border:1px solid '+(!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?'var(--indigo-500)':'var(--border-subtle)')+';background:'+(!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?'rgba(99,102,241,0.1)':'transparent')+';text-align:center;cursor:pointer" onclick="S.wizData.is_domestic=false;S.wizData.origin_country=\'\';renderWizard()"><div style="font-size:12px;font-weight:600">Чуждестранна</div></div></div></div>'+
+        (!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?
+        '<div class="fg">'+fieldLabel('Държава на произход','name')+
+        '<input type="text" class="fc" id="wOrigin" value="'+esc(S.wizData.origin_country||'')+'" placeholder="напр. Турция, Китай, Италия..." oninput="S.wizData.origin_country=this.value"></div>'+
+        '<div class="fg">'+fieldLabel('Състав / Материал','name')+
+        '<input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" oninput="S.wizData.composition=this.value"></div>'
+        :'')+
+        (S.wizData.is_domestic?
+        '<div class="fg">'+fieldLabel('Състав / Материал','name')+
+        '<input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" oninput="S.wizData.composition=this.value"></div>'
+        :'')+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">Добави нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(1)" style="margin-top:6px">← Назад</button>'+
@@ -3214,6 +3228,8 @@ function wizCollectData(){
     if(el('wUnit'))S.wizData.unit=el('wUnit').value||'бр';
     if(el('wMinQty'))S.wizData.min_quantity=parseInt(el('wMinQty').value)||0;
     if(el('wDesc'))S.wizData.description=el('wDesc').value;
+    if(el('wOrigin'))S.wizData.origin_country=el('wOrigin').value;
+    if(el('wComposition'))S.wizData.composition=el('wComposition').value;
 }
 
 function wizQtyAdj(idx,delta){
@@ -3290,6 +3306,9 @@ async function wizSave(){
         cost_price:0,supplier_id:S.wizData.supplier_id,category_id:S.wizData.category_id,
         code:S.wizData.code,unit:S.wizData.unit,min_quantity:S.wizData.min_quantity,
         description:S.wizData.description,
+        origin_country:S.wizData.origin_country||null,
+        composition:S.wizData.composition||null,
+        is_domestic:S.wizData.is_domestic?1:0,
         product_type:S.wizType==='variant'?'variant':'simple',
         sizes,colors,variants:S.wizType==='variant'?variants:[{size:null,color:null,qty:singleQty}],
         initial_qty:singleQty,
