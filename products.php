@@ -305,11 +305,18 @@ if (isset($_GET['ajax'])) {
         $prompt .= "- End with a call to action (perfect choice for..., ideal for...)\n";
         $prompt .= "- No emoji, no quotes, no title - output ONLY the description text\n";
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
-        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.7,'maxOutputTokens'=>500]];
-        $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
-        $resp = curl_exec($ch); curl_close($ch);
-        $data = json_decode($resp, true);
-        echo json_encode(['description'=>trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '')]); exit;
+        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.7,'maxOutputTokens'=>1024]];
+        $keys = [GEMINI_API_KEY, GEMINI_API_KEY_2];
+        $description = '';
+        foreach ($keys as $key) {
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.$key;
+            $ch = curl_init($url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
+            $resp = curl_exec($ch); curl_close($ch);
+            $data = json_decode($resp, true);
+            $txt = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
+            if ($txt && strlen($txt) > 10) { $description = $txt; break; }
+        }
+        echo json_encode(['description'=>$description]); exit;
     }
 
     // ─── AI CODE ───
