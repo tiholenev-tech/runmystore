@@ -3506,6 +3506,40 @@ document.getElementById('recOv').addEventListener('click',function(e){
         if (e.target.id !== 'wOrigin' && e.target.id !== 'wComposition') closeLists();
     });
 })();
+// ═══ S48: Auto-scroll to next field on mobile wizard ═══
+(function(){
+    var wizFields=['wName','wCode','wRetailPrice','wWholesalePrice','wSupDD','wCatDD','wOrigin','wComposition','wDesc'];
+    function scrollNext(currentId){
+        var idx=wizFields.indexOf(currentId);
+        if(idx<0)return;
+        var container=document.getElementById('wizBody');
+        for(var i=idx+1;i<wizFields.length;i++){
+            var nxt=document.getElementById(wizFields[i]);
+            if(nxt&&nxt.offsetParent!==null){
+                setTimeout(function(){
+                    var top=nxt.getBoundingClientRect().top-container.getBoundingClientRect().top+container.scrollTop-80;
+                    container.scrollTo({top:top,behavior:'smooth'});
+                    nxt.focus();
+                },200);
+                return;
+            }
+        }
+    }
+    // Enter key in wizard inputs
+    document.addEventListener('keydown',function(e){
+        if(e.key==="Enter"&&e.target.tagName==="INPUT"&&e.target.closest('#wizBody')){
+            e.preventDefault();scrollNext(e.target.id);
+        }
+    });
+    // Suggest dropdown pick (composition, country)
+    document.addEventListener('mousedown',function(e){
+        if(e.target.closest('#wOriginList'))setTimeout(function(){scrollNext('wOrigin');},250);
+        if(e.target.closest('#wCompositionList'))setTimeout(function(){scrollNext('wComposition');},250);
+        // Supplier/category dropdown pick
+        if(e.target.closest('#wSupList'))setTimeout(function(){scrollNext('wSupDD');},250);
+        if(e.target.closest('#wCatList'))setTimeout(function(){scrollNext('wCatDD');},250);
+    });
+})();
 // ═══ END S48 suggest ═══
 </script>
 
