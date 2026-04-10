@@ -792,6 +792,7 @@ function findBizVariants(string $bizText): array {
     $text = mb_strtolower(trim($bizText));
     $bestId = null;
     $bestLen = 0;
+    // Phase 1: exact or substring match (original)
     foreach ($BIZ_VARIANTS as $id => $v) {
         $bt = mb_strtolower($v['business_type']);
         if ($bt === $text) { $bestId = $id; break; }
@@ -801,6 +802,27 @@ function findBizVariants(string $bizText): array {
         if (mb_strpos($bt, $text) !== false && mb_strlen($bt) > $bestLen) {
             $bestId = $id; $bestLen = mb_strlen($bt);
         }
+    }
+    // Phase 2: keyword matching if no exact/substring match
+    if ($bestId === null) {
+        $stopWords = ['магазин','за','и','от','с','на','the','for','-','—','/','+'];
+        $inputWords = preg_split('/[\s\-—\/,]+/u', $text);
+        $inputWords = array_filter($inputWords, fn($w) => mb_strlen($w) > 1 && !in_array($w, $stopWords));
+        $bestScore = 0;
+        foreach ($BIZ_VARIANTS as $id => $v) {
+            $bt = mb_strtolower($v['business_type']);
+            $btWords = preg_split('/[\s\-—\/,]+/u', $bt);
+            $btWords = array_filter($btWords, fn($w) => mb_strlen($w) > 1 && !in_array($w, $stopWords));
+            $score = 0;
+            foreach ($inputWords as $iw) {
+                foreach ($btWords as $bw) {
+                    if ($iw === $bw) { $score += 3; }
+                    elseif (mb_strpos($bw, $iw) !== false || mb_strpos($iw, $bw) !== false) { $score += 2; }
+                }
+            }
+            if ($score > $bestScore) { $bestScore = $score; $bestId = $id; }
+        }
+        if ($bestScore < 2) $bestId = null;
     }
     if ($bestId !== null) {
         $v = $BIZ_VARIANTS[$bestId];
