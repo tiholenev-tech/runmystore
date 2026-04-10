@@ -273,7 +273,7 @@ if (isset($_GET['ajax'])) {
         $sups = DB::run("SELECT name FROM suppliers WHERE tenant_id=?", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN);
         $prompt = "Анализирай тази снимка на продукт. Върни САМО JSON без markdown:\n{\"name\":\"\",\"retail_price\":0,\"category\":\"\",\"supplier\":\"\",\"sizes\":[],\"colors\":[],\"code\":\"\",\"description\":\"\",\"unit\":\"бр\"}\nКатегории: ".implode(', ',$cats)."\nДоставчици: ".implode(', ',$sups)."\nНЕ измисляй цени. description = SEO. code = 6-8 символа. Само JSON.";
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
-        $payload = ['contents'=>[['parts'=>[['inlineData'=>['mimeType'=>'image/jpeg','data'=>$image_data]],['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.3,'maxOutputTokens'=>500]];
+        $payload = ['contents'=>[['parts'=>[['inlineData'=>['mimeType'=>'image/jpeg','data'=>$image_data]],['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.3,'maxOutputTokens'=>1024]];
         $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
@@ -298,14 +298,14 @@ if (isset($_GET['ajax'])) {
         if ($axes) $prompt .= "Available variations: {$axes}\n";
         $prompt .= "\nRULES (MANDATORY - follow ALL):\n";
         $prompt .= "- Write in {$lang_name}\n";
-        $prompt .= "- 2-3 sentences, 30-50 words\n";
+        $prompt .= "- MINIMUM 3 sentences, MINIMUM 40 words. Never less than 40 words.\n";
         $prompt .= "- MUST mention product name, category, brand in the text\n";
         $prompt .= "- If variations are given, MUST list the available sizes and colors explicitly\n";
         $prompt .= "- Describe material, style, occasion for wearing/using\n";
         $prompt .= "- End with a call to action (perfect choice for..., ideal for...)\n";
         $prompt .= "- No emoji, no quotes, no title - output ONLY the description text\n";
         $api_url = 'https://generativelanguage.googleapis.com/v1beta/models/'.GEMINI_MODEL.':generateContent?key='.GEMINI_API_KEY;
-        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.5,'maxOutputTokens'=>500]];
+        $payload = ['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['temperature'=>0.7,'maxOutputTokens'=>500]];
         $ch = curl_init($api_url); curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
         $resp = curl_exec($ch); curl_close($ch);
         $data = json_decode($resp, true);
