@@ -3475,7 +3475,7 @@ document.getElementById('recOv').addEventListener('click',function(e){
             opt.onmousedown = function(e){
                 e.preventDefault();
                 inp.value = m;
-                inp.dispatchEvent(new Event('input', {bubbles:true}));
+                _justPicked=true;inp.dispatchEvent(new Event('input', {bubbles:true}));
                 if (inputId === 'wOrigin') S.wizData.origin_country = m;
                 if (inputId === 'wComposition') S.wizData.composition = m;
                 dd.remove();
@@ -3492,7 +3492,9 @@ document.getElementById('recOv').addEventListener('click',function(e){
             if(id!==except){var e=document.getElementById(id);if(e)e.remove();}
         });
     }
+    var _justPicked=false;
     document.addEventListener('input', function(e){
+        if(_justPicked){_justPicked=false;return;}
         if (e.target.id === 'wOrigin') {
             closeLists('wOriginList');
             createDropdown('wOrigin', 'wOriginList', window._bizCountries || []);
@@ -3517,9 +3519,11 @@ document.getElementById('recOv').addEventListener('click',function(e){
         setTimeout(function(){
             var bRect=body.getBoundingClientRect();
             var tRect=t.getBoundingClientRect();
-            var offset=tRect.top-bRect.top+body.scrollTop-(bRect.height/3);
-            body.scrollTo({top:Math.max(0,offset),behavior:"smooth"});
-        },350);
+            var middle=tRect.top-bRect.top+body.scrollTop-(bRect.height*0.4);
+            var diff=Math.abs(tRect.top-bRect.top-bRect.height*0.4);
+            if(diff<80)return;
+            body.scrollTo({top:Math.max(0,middle),behavior:"smooth"});
+        },400);
     });
     if(window.visualViewport){
         window.visualViewport.addEventListener("resize",function(){
@@ -3529,9 +3533,11 @@ document.getElementById('recOv').addEventListener('click',function(e){
             setTimeout(function(){
                 var bRect=body.getBoundingClientRect();
                 var tRect=t.getBoundingClientRect();
-                var offset=tRect.top-bRect.top+body.scrollTop-(bRect.height/3);
-                body.scrollTo({top:Math.max(0,offset),behavior:"smooth"});
-            },100);
+                var middle=tRect.top-bRect.top+body.scrollTop-(bRect.height*0.4);
+                var diff=Math.abs(tRect.top-bRect.top-bRect.height*0.4);
+                if(diff<80)return;
+                body.scrollTo({top:Math.max(0,middle),behavior:"smooth"});
+            },150);
         });
     }
 })();
