@@ -3247,6 +3247,7 @@ async function wizGenDescription(){
     }else{
         if(descEl)descEl.placeholder='Описанието не можа да се генерира';
     }
+    renderWizard();
 }
 
 async function wizSave(){
