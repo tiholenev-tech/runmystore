@@ -2769,7 +2769,7 @@ function renderWizPagePart2(step){
         }
         let descH='<div class="fg" style="margin-top:10px">'+fieldLabel('AI SEO описание','description')+
         '<textarea class="fc" id="wDesc" rows="5" placeholder="Натисни бутона за AI описание..." style="font-size:12px" '+(S.wizData.description?'':'readonly')+'>'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
-        (S.wizData.description?'<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:11px;color:var(--indigo-300);cursor:pointer;margin-top:4px;display:inline-block">Редактирай описание</span>':'')+'</div>';
+        (S.wizData.description?'<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:11px;color:var(--indigo-300);cursor:pointer;margin-top:4px;display:inline-block">Редактирай описание</span>':'')+'<div style="margin-top:6px"><button type="button" class="abtn" onclick="wizGenDescription()" style="font-size:11px;padding:6px 14px;border-color:rgba(99,102,241,0.2)">AI генерирай описание</button></div></div>';
         
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:2px">'+esc(S.wizData.name||'Артикул')+'</div>'+
