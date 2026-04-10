@@ -2803,7 +2803,7 @@ function renderWizPagePart2(step){
         if(showDual&&pm==='dual')warnH='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="font-size:10px;color:#fbbf24">Двойно изписване до 08.08.2026. След тази дата тази опция ще изчезне автоматично.</span></div>';
 
         var totalQty=0;
-        var listH='<div style="font-size:11px;color:#64748b;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span>Вариации за печат:</span><button type="button" class="abtn" onclick="wizLabelsX2()" style="font-size:10px;padding:4px 10px;border-color:rgba(99,102,241,0.2)">x2 по 2</button></div>';
+        var listH='<div style="font-size:11px;color:#64748b;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span>Вариации за печат:</span><button type="button" class="abtn" onclick="wizLabelsX2()" style="font-size:10px;padding:4px 10px;border-color:rgba(99,102,241,0.2)">x2</button><button type="button" class="abtn" onclick="wizLabelsReset()" style="font-size:10px;padding:4px 10px;border-color:rgba(245,158,11,0.2);color:#fbbf24;margin-left:4px">1:1</button></div>';
         combos.forEach(function(c,i){
             var parts=c.parts||[];
             var labelH='';
@@ -2837,6 +2837,7 @@ function renderWizPagePart2(step){
         '<div style="font-size:15px;font-weight:700;color:var(--success)">Артикулът е записан!</div>'+
         '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">'+esc(S.wizData.name||'')+' \u00b7 '+fmtPrice(S.wizData.retail_price)+'</div></div>'+
         tabsH+warnH+listH+btnH+
+        '<button type="button" class="abtn" onclick="wizDownloadCSV()" style="margin-top:8px;font-size:12px;padding:10px;width:100%;border-color:rgba(99,102,241,0.15);color:var(--indigo-300)">Свали CSV за онлайн магазин</button>'+
         '<div style="display:flex;gap:8px;margin-top:10px">'+
         '<button class="abtn" onclick="closeWizard();openManualWizard()" style="flex:1;font-size:12px;padding:10px;border-color:rgba(99,102,241,0.2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="2" style="vertical-align:-1px;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави нов</button>'+
         '<button class="abtn" onclick="closeWizard()" style="flex:1;font-size:12px;padding:10px;color:var(--text-secondary)">Затвори</button></div></div>';
@@ -3731,6 +3732,49 @@ function wizPrintLabels(comboIdx){
     var w=window.open('','_blank','width=400,height=600');
     if(w){w.document.write(html);w.document.close();}
     else{showToast('Позволи pop-up прозорци','error');}
+}
+function wizLabelsReset(){
+    var combos=S.wizData._printCombos||[];
+    combos.forEach(function(c,i){
+        var inp=document.getElementById('lblQty'+i);
+        if(inp)inp.value=c.printQty||1;
+    });
+    wizLblRecalc();
+}
+function wizDownloadCSV(){
+    var combos=S.wizData._printCombos||[];
+    var name=S.wizData.name||'';
+    var price=S.wizData.retail_price||'';
+    var desc=(S.wizData.description||'').replace(/"/g,'""');
+    var pcode=S.wizData.code||'';
+    var barcode=S.wizData.barcode||'';
+    var composition=S.wizData.composition||'';
+    var origin=S.wizData.origin_country||'';
+    var sup=CFG.suppliers.find(function(s){return s.id==S.wizData.supplier_id});
+    var supName=sup?sup.name:'';
+    var cat=CFG.categories.find(function(c2){return c2.id==S.wizData.category_id});
+    var catName=cat?cat.name:'';
+    var esc2=function(v){return (v||'').toString().replace(/"/g,'""');};
+    var rows=['"Наименование","Код","Баркод","Размер","Цвят","Цена","Бройка","Категория","Доставчик","Състав","Произход","Описание"'];
+    if(!combos.length||(!combos[0].parts||!combos[0].parts.length)){
+        rows.push('"'+esc2(name)+'","'+esc2(pcode)+'","'+esc2(barcode)+'","","","'+price+'","1","'+esc2(catName)+'","'+esc2(supName)+'","'+esc2(composition)+'","'+esc2(origin)+'","'+esc2(desc)+'"');
+    }else{
+        combos.forEach(function(c){
+            var sz='',cl='';
+            (c.parts||[]).forEach(function(p){
+                var n=p.axis.toLowerCase();
+                if(n.indexOf('размер')!==-1||n.indexOf('size')!==-1)sz=p.value;
+                else if(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1)cl=p.value;
+            });
+            rows.push('"'+esc2(name)+'","'+esc2(pcode)+'","'+esc2(barcode)+'","'+esc2(sz)+'","'+esc2(cl)+'","'+price+'","'+(c.printQty||1)+'","'+esc2(catName)+'","'+esc2(supName)+'","'+esc2(composition)+'","'+esc2(origin)+'","'+esc2(desc)+'"');
+        });
+    }
+    var csv='\uFEFF'+rows.join('\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=(name||'product').replace(/[^a-zA-Z0-9\u0430-\u044f\u0410-\u042f]/g,'_')+'.csv';
+    a.click();
 }
 // ═══ END S48 suggest ═══// ═══ END S48 suggest ═══
 </script>
