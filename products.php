@@ -296,8 +296,6 @@ if (isset($_GET['ajax'])) {
         if ($cat) $prompt .= "Category: {$cat}\n";
         if ($sup) $prompt .= "Brand: {$sup}\n";
         if ($axes) $prompt .= "Available variations: {$axes}\n";
-        $composition = $input['composition'] ?? '';
-        if ($composition) $prompt .= "Composition/Material: {$composition}\n";
         $prompt .= "\nRULES (MANDATORY - follow ALL):\n";
         $prompt .= "- Write in {$lang_name}\n";
         $prompt .= "- MINIMUM 3 sentences, MINIMUM 40 words. Never less than 40 words.\n";
@@ -519,13 +517,6 @@ if (file_exists(__DIR__.'/biz-coefficients.php')) {
         }
     }
 } else { $bizVars = []; $allBizPresets = ['sizes'=>[],'colors'=>[],'other'=>[]]; }
-
-// S47: Biz compositions + countries
-$bizComps = ['compositions'=>[], 'countries'=>[]];
-if (file_exists(__DIR__ . '/biz-compositions.php')) {
-    require_once __DIR__ . '/biz-compositions.php';
-    $bizComps = getBizCompositions($business_type ?: 'Магазин за дамски дрехи');
-}
 
 // Page data
 $all_suppliers = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? AND is_active=1 ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
@@ -1594,8 +1585,6 @@ const CFG = {
 };
 window._bizVariants=<?= json_encode($bizVars ?: [], JSON_UNESCAPED_UNICODE) ?>;
 window._allBizPresets=<?= json_encode($allBizPresets, JSON_UNESCAPED_UNICODE) ?>;
-window._bizCompositions=<?= json_encode($bizComps['compositions'], JSON_UNESCAPED_UNICODE) ?>;
-window._bizCountries=<?= json_encode($bizComps['countries'], JSON_UNESCAPED_UNICODE) ?>;
 window._sizePresets={clothing:['XS','S','M','L','XL','2XL','3XL','4XL'],shoes:['36','37','38','39','40','41','42','43','44','45','46'],clothing_eu:['34','36','38','40','42','44','46','48','50','52','54','56'],kids:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164'],pants:['W28','W29','W30','W31','W32','W33','W34','W36','W38'],rings:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'],socks:['35-38','39-42','43-46'],hats:['S/M','L/XL','One Size'],bra:['70A','70B','75A','75B','75C','80A','80B','80C','80D','85B','85C','85D']};
 
 // ═══════════════════════════════════════════════════════════
@@ -2638,13 +2627,13 @@ function renderWizPage(step){
         '<div style="flex:1;padding:12px;border-radius:10px;border:1px solid '+(!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?'var(--indigo-500)':'var(--border-subtle)')+';background:'+(!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?'rgba(99,102,241,0.1)':'transparent')+';text-align:center;cursor:pointer" onclick="S.wizData.is_domestic=false;S.wizData.origin_country=\'\';renderWizard()"><div style="font-size:12px;font-weight:600">Чуждестранна</div></div></div></div>'+
         (!S.wizData.is_domestic&&S.wizData.is_domestic!==undefined?
         '<div class="fg">'+fieldLabel('Държава на произход','name')+
-        '<div style="position:relative"><input type="text" class="fc" id="wOrigin" value="'+esc(S.wizData.origin_country||'')+'" placeholder="напр. Турция, Китай..." autocomplete="off" oninput="S.wizData.origin_country=this.value;wizCountrySuggest(this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'wOriginList\');if(l)l.style.display=\'none\'},200)"><div id="wOriginList" class="wiz-dd-list" style="display:none"></div></div></div>'+
+        '<input type="text" class="fc" id="wOrigin" value="'+esc(S.wizData.origin_country||'')+'" placeholder="напр. Турция, Китай, Италия..." oninput="S.wizData.origin_country=this.value"></div>'+
         '<div class="fg">'+fieldLabel('Състав / Материал','name')+
-        '<div style="position:relative"><input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" autocomplete="off" oninput="S.wizData.composition=this.value;wizCompositionSuggest(this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'wCompositionList\');if(l)l.style.display=\'none\'},200)"><div id="wCompositionList" class="wiz-dd-list" style="display:none"></div></div>'
+        '<input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" oninput="S.wizData.composition=this.value"></div>'
         :'')+
         (S.wizData.is_domestic?
         '<div class="fg">'+fieldLabel('Състав / Материал','name')+
-        '<div style="position:relative"><input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" autocomplete="off" oninput="S.wizData.composition=this.value;wizCompositionSuggest(this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'wCompositionList\');if(l)l.style.display=\'none\'},200)"><div id="wCompositionList" class="wiz-dd-list" style="display:none"></div></div>'
+        '<input type="text" class="fc" id="wComposition" value="'+esc(S.wizData.composition||'')+'" placeholder="напр. 95% памук, 5% еластан" oninput="S.wizData.composition=this.value"></div>'
         :'')+
         '<div class="fg">'+fieldLabel('Подкатегория','subcategory','<span class="fl-add" onclick="toggleInl(\'inlSubcat\')">Добави нова</span>')+'<select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value||null"><option value="">— Няма —</option></select><div class="inline-add" id="inlSubcat"><input type="text" placeholder="Име" id="inlSubcatName"><button onclick="wizAddSubcat()">Запази</button></div></div>'+
         '<button class="abtn primary" onclick="wizGo(4)">Напред →</button>'+
@@ -3275,7 +3264,7 @@ async function wizGenDescription(){
     var sup=sups?sups.name:'';
     var axes='';
     if(S.wizData.axes){S.wizData.axes.forEach(function(a){if(a.values.length)axes+=a.name+': '+a.values.join(', ')+'. '})}
-    var d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,supplier:sup,axes:axes,composition:S.wizData.composition||''})});
+    var d=await api('products.php?ajax=ai_description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,supplier:sup,axes:axes})});
     if(d&&d.description){
         if(descEl){descEl.value=d.description;descEl.removeAttribute('readonly')}
         S.wizData.description=d.description;
@@ -3428,48 +3417,6 @@ async function editProduct(id){
     document.body.style.overflow='hidden';
 }
 
-
-// ─── COMPOSITION + COUNTRY SUGGEST (S47) ───
-function wizCompositionSuggest(q) {
-    var list = document.getElementById('wCompositionList');
-    if (!list) return;
-    var lq = q.toLowerCase().trim();
-    if (!lq) { list.style.display='none'; return; }
-    var all = window._bizCompositions || [];
-    var filtered = all.filter(function(v){ return v.toLowerCase().indexOf(lq) !== -1; });
-    if (!filtered.length) { list.style.display='none'; return; }
-    list.innerHTML = filtered.slice(0,10).map(function(v){
-        return '<div class="wiz-dd-item" onmousedown="event.preventDefault()" onclick="wizPickComposition(''+v.replace(/'/g,"\'")+'')">'+esc(v)+'</div>';
-    }).join('');
-    list.style.display = 'block';
-}
-function wizPickComposition(val) {
-    var inp = document.getElementById('wComposition');
-    if (inp) inp.value = val;
-    S.wizData.composition = val;
-    var list = document.getElementById('wCompositionList');
-    if (list) list.style.display = 'none';
-}
-function wizCountrySuggest(q) {
-    var list = document.getElementById('wOriginList');
-    if (!list) return;
-    var lq = q.toLowerCase().trim();
-    if (!lq) { list.style.display='none'; return; }
-    var all = window._bizCountries || [];
-    var filtered = all.filter(function(v){ return v.toLowerCase().indexOf(lq) !== -1; });
-    if (!filtered.length) { list.style.display='none'; return; }
-    list.innerHTML = filtered.slice(0,8).map(function(v){
-        return '<div class="wiz-dd-item" onmousedown="event.preventDefault()" onclick="wizPickCountry(''+v.replace(/'/g,"\'")+'')">'+esc(v)+'</div>';
-    }).join('');
-    list.style.display = 'block';
-}
-function wizPickCountry(val) {
-    var inp = document.getElementById('wOrigin');
-    if (inp) inp.value = val;
-    S.wizData.origin_country = val;
-    var list = document.getElementById('wOriginList');
-    if (list) list.style.display = 'none';
-}
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
