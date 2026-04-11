@@ -3551,14 +3551,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // S43: Back button support for drawers and screens
 window.addEventListener('popstate', function(e) {
+    // Close topmost overlay first, don't navigate
+    const wizModal = document.getElementById('wizModal');
+    if (wizModal && wizModal.classList.contains('open')) { closeWizard(); return; }
+    const recOv = document.getElementById('recOv');
+    if (recOv && recOv.classList.contains('open')) { closeVoice(); return; }
+    const drawers = ['detail','ai','filter','studio','labels','csv','qf'];
+    for (const n of drawers) {
+        const dr = document.getElementById(n+'Dr');
+        if (dr && dr.classList.contains('open')) { closeDrawer(n); return; }
+    }
+    // No overlay open — navigate
     const state = e.state;
     if (!state) { goScreen('home'); return; }
     if (state.scr) { goScreen(state.scr, state); return; }
-    // Close any open drawers/modals
-    ['detail','ai','filter','studio','labels','csv','qf'].forEach(n => closeDrawer(n));
-    closeWizard();
-    const recOv = document.getElementById('recOv');
-    if (recOv && recOv.classList.contains('open')) closeVoice();
 });
 
 // Override rec-ov backdrop click for wizard mode
