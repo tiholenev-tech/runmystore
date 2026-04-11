@@ -266,8 +266,16 @@ if (isset($_GET['ajax'])) {
         $product = DB::run("SELECT * FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
         if (!$product) { echo json_encode(['error'=>'not_found']); exit; }
         $sales_30d = DB::run("SELECT CAST(COALESCE(SUM(si.quantity),0) AS SIGNED) AS qty, ROUND(COALESCE(SUM(si.quantity*si.unit_price),0),2) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
-        $stock = DB::run("SELECT COALESCE(SUM(quantity),0) FROM inventory WHERE product_id=?", [$pid])->fetchColumn();
+        $child_count = DB::run("SELECT COUNT(*) FROM products WHERE parent_id=? AND tenant_id=? AND is_active=1", [$pid,$tenant_id])->fetchColumn();
+        if ($child_count > 0) {
+            $stock = DB::run("SELECT COALESCE(SUM(i.quantity),0) FROM inventory i JOIN products p ON p.id=i.product_id WHERE p.parent_id=? AND p.is_active=1", [$pid])->fetchColumn();
+        } else {
+            $stock = DB::run("SELECT COALESCE(SUM(quantity),0) FROM inventory WHERE product_id=?", [$pid])->fetchColumn();
+        }
         $days_supply = ($sales_30d['qty']>0) ? round(($stock/($sales_30d['qty']/30)),0) : 999;
+        $days_alive = (int)DB::run("SELECT DATEDIFF(NOW(), created_at) FROM products WHERE id=?", [$pid])->fetchColumn();
+        $last_sale_days = (int)DB::run("SELECT DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=?), NOW()))", [$pid])->fetchColumn();
+        $days_stale = min($days_alive, $sales_30d['qty'] > 0 ? $last_sale_days : $days_alive);
         // i18n texts per tenant language
         $t = match($lang ?? 'bg') {
             'en' => [
@@ -299,10 +307,10 @@ if (isset($_GET['ajax'])) {
             ],
         };
         $rep = fn($s, $vars) => str_replace(array_map(fn($k)=>'{'.$k.'}', array_keys($vars)), array_values($vars), $s);
-        $rv = ['days'=>$days_supply,'stock'=>(int)$stock,'min'=>$product['min_quantity']??0,'qty'=>$sales_30d['qty'],'revenue'=>number_format($sales_30d['revenue'],2,',','.'),'currency'=>$currency,'margin'=>''];
+        $rv = ['days'=>$days_stale,'stock'=>(int)$stock,'min'=>$product['min_quantity']??0,'qty'=>$sales_30d['qty'],'revenue'=>number_format($sales_30d['revenue'],2,',','.'),'currency'=>$currency,'margin'=>''];
         $analysis = [];
-        if ($days_supply>90 && $stock>0) $analysis[] = ['type'=>'zombie','icon'=>'','text'=>$rep($t['zombie'],$rv),'severity'=>'high'];
-        elseif ($days_supply>45 && $stock>0) $analysis[] = ['type'=>'slow','icon'=>'','text'=>$rep($t['slow'],$rv),'severity'=>'medium'];
+        if ($days_stale>90 && $stock>0) $analysis[] = ['type'=>'zombie','icon'=>'','text'=>$rep($t['zombie'],$rv),'severity'=>'high'];
+        elseif ($days_stale>45 && $stock>0) $analysis[] = ['type'=>'slow','icon'=>'','text'=>$rep($t['slow'],$rv),'severity'=>'medium'];
         if ($stock<=$product['min_quantity'] && $stock>0 && $product['min_quantity']>0) $analysis[] = ['type'=>'low','icon'=>'','text'=>$rep($t['low'],$rv),'severity'=>'high'];
         elseif ($stock==0) $analysis[] = ['type'=>'out','icon'=>'','text'=>$rep($t['out'],$rv),'severity'=>'critical'];
         if ($can_see_margin && $product['cost_price']>0) { $margin=round((($product['retail_price']-$product['cost_price'])/$product['retail_price'])*100,1); $rv['margin']=$margin; if($margin<20) $analysis[]=['type'=>'margin','icon'=>'','text'=>$rep($t['margin'],$rv),'severity'=>'medium']; }
