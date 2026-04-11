@@ -2095,7 +2095,7 @@ async function saveLabelsFromDrawer(pid) {
     else showToast('Грешка','error');
 }
 
-// S43+S50: openImageStudio — fetch product, show options or camera
+// S43+S50+S50b: openImageStudio — full AI Studio in drawer (same as wizard step 2)
 async function openImageStudio(productId) {
     openDrawer('studio');
     document.getElementById('studioBody').innerHTML='<div style="text-align:center;padding:20px;font-size:12px;color:var(--text-secondary)">Зареждам...</div>';
@@ -2104,38 +2104,75 @@ async function openImageStudio(productId) {
     const p = d.product;
     const hasImg = p.image_url && p.image_url.length > 5;
     S._studioProductId = productId;
-    let h = '<div style="padding:4px 8px">';
-    // Credits bar
-    h += '<div class="credits-bar" style="margin:0 0 12px"><div class="cr-item">Бял фон: <b>'+CFG.aiBg+'</b></div><div class="cr-sep"></div><div class="cr-item">AI Магия: <b>'+CFG.aiTryon+'</b></div></div>';
+    // If no photo — show upload first, then Studio
     if (!hasImg) {
-        // No image — prompt to take photo first
-        h += '<div style="text-align:center;padding:14px 0 8px">';
-        h += '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,.6)" stroke-width="1.5"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>';
-        h += '<div style="font-size:14px;font-weight:700;margin-top:8px">Няма снимка</div>';
-        h += '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Добави снимка, за да ползваш AI Studio</div></div>';
-        h += '<div style="display:flex;gap:8px;margin-top:12px">';
-        h += '<button class="abtn primary" onclick="studioTakePhoto()" style="flex:1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>Снимай</button>';
-        h += '<button class="abtn" onclick="studioPickPhoto()" style="flex:1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
+        S.wizData._photoDataUrl = null;
+        S.wizData._hasPhoto = false;
     } else {
-        // Has image — show preview + Studio options
-        h += '<div style="text-align:center;margin-bottom:12px"><img src="'+p.image_url+'" style="max-width:140px;max-height:120px;border-radius:10px;border:1px solid var(--border-subtle)"></div>';
-        h += '<button class="abtn" onclick="studioPickPhoto()" style="margin-bottom:10px;font-size:11px;padding:8px;border-color:rgba(99,102,241,.15)">Смени снимката</button>';
-        // White BG
-        h += '<div style="padding:10px;border-radius:12px;background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'bg_removal\')">';
-        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
-        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">Бял фон</div><div style="font-size:9px;color:var(--text-secondary)">Махва фона, чисто бяло</div></div>';
-        h += '<span style="font-size:11px;font-weight:600;color:#22c55e">0.05\u20ac</span></div></div>';
-        // Tryon
-        h += '<div style="padding:10px;border-radius:12px;background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'tryon\')">';
-        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
-        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — дрехи на модел</div><div style="font-size:9px;color:var(--text-secondary)">Облечи на модел</div></div>';
-        h += '<span style="font-size:11px;font-weight:600;color:#a78bfa">0.50\u20ac</span></div></div>';
-        // Objects
-        h += '<div style="padding:10px;border-radius:12px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'objects\')">';
-        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
-        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — предмети</div><div style="font-size:9px;color:var(--text-secondary)">Бижута, обувки, чанти</div></div>';
-        h += '<span style="font-size:11px;font-weight:600;color:#fbbf24">0.50\u20ac</span></div></div>';
+        S.wizData._photoDataUrl = p.image_url;
+        S.wizData._hasPhoto = true;
     }
+    renderStudioInDrawer(hasImg, p.image_url);
+}
+function renderStudioInDrawer(hasImg, imgUrl) {
+    let h = '<div style="padding:4px 8px">';
+    // Photo section
+    if (!hasImg) {
+        h += '<div style="text-align:center;padding:10px 0 8px">';
+        h += '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,.6)" stroke-width="1.5"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>';
+        h += '<div style="font-size:13px;font-weight:700;margin-top:6px">Първо добави снимка</div></div>';
+        h += '<div style="display:flex;gap:8px;margin-bottom:12px">';
+        h += '<button class="abtn primary" onclick="studioTakePhoto()" style="flex:1">Снимай</button>';
+        h += '<button class="abtn" onclick="studioPickPhoto()" style="flex:1">Галерия</button></div>';
+    } else {
+        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+        h += '<img src="'+imgUrl+'" style="width:60px;height:60px;border-radius:10px;object-fit:cover;border:1px solid var(--border-subtle)">';
+        h += '<button class="abtn" onclick="studioPickPhoto()" style="font-size:10px;padding:6px 12px">Смени снимката</button></div>';
+    }
+    // Credits
+    h += '<div class="credits-bar" style="margin:0 0 10px"><div class="cr-item">Бял фон: <b>'+CFG.aiBg+'</b> (0.05\u20ac)</div><div class="cr-sep"></div><div class="cr-item">AI Магия: <b>'+CFG.aiTryon+'</b> (0.50\u20ac)</div></div>';
+    if (!hasImg) {
+        h += '<div style="font-size:11px;color:var(--text-secondary);text-align:center;padding:10px">Добави снимка горе, за да отключиш AI обработките</div>';
+        h += '</div>';
+        document.getElementById('studioBody').innerHTML = h;
+        return;
+    }
+    // ─── OPTION 1: Бял фон ───
+    h += '<div style="padding:10px;border-radius:12px;background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'bg_removal\')">';
+    h += '<div style="display:flex;align-items:center;gap:8px">';
+    h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">Бял фон</div><div style="font-size:9px;color:var(--text-secondary)">Махва фона, чисто бяло</div></div>';
+    h += '<span style="font-size:11px;font-weight:600;color:#22c55e">0.05\u20ac</span></div></div>';
+    // ─── OPTION 2: Дрехи на модел ───
+    h += '<div style="padding:10px;border-radius:12px;background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.2);margin-bottom:6px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
+    h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — дрехи</div><div style="font-size:9px;color:var(--text-secondary)">Облечи на модел</div></div>';
+    h += '<span style="font-size:11px;font-weight:600;color:#a78bfa">0.50\u20ac</span></div>';
+    // 6 models
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px">';
+    var models=[['woman','Жена',true],['man','Мъж',false],['girl','Момиче',false],['boy','Момче',false],['teen_f','Тийн F',false],['teen_m','Тийн M',false]];
+    models.forEach(function(m){
+        var sel=S.studioModel===m[0];
+        var bg=sel?'rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35)':'rgba(99,102,241,.05);border:0.5px solid rgba(99,102,241,.15)';
+        h+='<div style="text-align:center;padding:7px 2px;border-radius:7px;background:'+bg+';cursor:pointer" onclick="S.studioModel=\''+m[0]+'\';renderStudioInDrawer(true,\''+imgUrl.replace(/'/g,"\\'")+'\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+(sel?'#c4b5fd':'#a5b4fc')+'" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg><div style="font-size:9px;color:'+(sel?'#c4b5fd':'#a5b4fc')+'">'+m[1]+'</div></div>';
+    });
+    h += '</div>';
+    h += '<div style="margin-bottom:6px"><input type="text" class="fc" id="studioPromptClothes" placeholder="допълни: стояща поза, профил..." style="font-size:11px;padding:6px 10px"></div>';
+    h += '<button class="abtn" onclick="studioAction(\'tryon_\'+(S.studioModel||\'woman\')" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:11px">Генерирай на модел</button></div>';
+    // ─── OPTION 3: Предмети ───
+    h += '<div style="padding:10px;border-radius:12px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.2);margin-bottom:6px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
+    h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — предмети</div><div style="font-size:9px;color:var(--text-secondary)">Бижута, обувки, чанти</div></div>';
+    h += '<span style="font-size:11px;font-weight:600;color:#fbbf24">0.50\u20ac</span></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">';
+    ['Бижу на ръка','На кадифе','На мрамор','Макро близък план','На дърво','Lifestyle сцена','Обувка на крак','Чанта на рамо'].forEach(function(label){
+        h+='<div style="padding:5px 8px;border-radius:6px;background:rgba(234,179,8,.06);border:0.5px solid rgba(234,179,8,.15);cursor:pointer;font-size:10px;color:#fcd34d" onclick="document.getElementById(\'studioPromptObjects\')||null;if(document.getElementById(\'studioPromptObjects\')){document.getElementById(\'studioPromptObjects\'). value=\''+label+'\';}">'+label+'</div>';
+    });
+    h += '</div>';
+    h += '<div style="margin-bottom:6px"><input type="text" class="fc" id="studioPromptObjects" placeholder="или опиши: пръстен в кутийка..." style="font-size:11px;padding:6px 10px"></div>';
+    h += '<button class="abtn" onclick="studioAction(\'object_studio\')" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none;font-size:11px">Генерирай студийна снимка</button></div>';
     h += '</div>';
     document.getElementById('studioBody').innerHTML = h;
 }
@@ -2156,6 +2193,14 @@ async function studioUploadPhoto(file, productId){
         const d=await api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:productId,image:base64})});
         if(d&&d.ok){
             showToast('Снимка добавена!','success');
+            // Refresh detail drawer if open
+            const detDr=document.getElementById('detailDr');
+            if(detDr&&detDr.classList.contains('open')&&detDr.dataset.productId==productId){
+                openProductDetail(productId);
+            }
+            // Update product card thumbnail in list
+            const card=document.querySelector('.rc-card[data-id="'+productId+'"] .rc-thumb');
+            if(card)card.innerHTML='<img src="'+d.image_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';
             openImageStudio(productId);
         }else{
             showToast(d?.error||'Грешка при качване','error');
@@ -2920,19 +2965,20 @@ function renderWizPagePart2(step){
         const combos=wizBuildCombinations();
         let combosH='';
         if(combos.length<=1&&!combos[0]?.axisValues){
-            combosH='<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)"><div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:4px">Въведи наличности</div><div style="font-size:10px;color:var(--text-secondary);line-height:1.5"><b style="color:var(--indigo-300)">Бройка</b> — колко имаш в момента<br><b style="color:rgba(245,158,11,0.8)">Мін.</b> — под тази бройка ще те предупредим да заредиш</div></div>'+
-            '<div style="display:flex;gap:8px;margin-bottom:4px"><div style="flex:1;font-size:10px;font-weight:700;color:var(--indigo-300);text-transform:uppercase">Бройка в склада</div><div style="flex:1;font-size:10px;font-weight:700;color:rgba(245,158,11,0.8);text-transform:uppercase">Мін. наличност</div></div>'+
+            combosH='<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)"><div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:4px">Въведи наличности</div><div style="font-size:10px;color:var(--text-secondary);line-height:1.5"><b style="color:var(--indigo-300)">Бройка</b> — колко имаш в момента<br><b style="color:rgba(245,158,11,0.8)">Мин.</b> — под тази бройка ще те предупредим да заредиш</div></div>'+
+            '<div style="display:flex;gap:8px;margin-bottom:4px"><div style="flex:1;font-size:10px;font-weight:700;color:var(--indigo-300);text-transform:uppercase">Бройка в склада</div><div style="flex:1;font-size:10px;font-weight:700;color:rgba(245,158,11,0.8);text-transform:uppercase">Мин. наличност</div></div>'+
             '<div style="display:flex;gap:8px"><input type="number" class="fc" id="wSingleQty" value="1" style="flex:1;text-align:center;font-size:14px;font-weight:700"><input type="number" class="fc" id="wSingleMin" value="1" style="flex:1;text-align:center;font-size:14px;font-weight:700"></div>';
         }else{
             combosH='<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)">'+
             '<div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:4px">Въведи наличности</div>'+
             '<div style="font-size:10px;color:var(--text-secondary);line-height:1.5">'+
             '<b style="color:var(--indigo-300)">Бройка</b> — колко имаш в момента от всяка вариация<br>'+
-            '<b style="color:rgba(245,158,11,0.8)">Мін.</b> — под тази бройка ще те предупредим да заредиш</div></div>'+
+            '<b style="color:rgba(245,158,11,0.8)">Мин.</b> — под тази бройка AI те предупреждава да заредиш</div>'+
+            '<div style="margin-top:6px"><button type="button" class="abtn" onclick="document.querySelectorAll(\'[data-field=min]\').forEach(i=>i.value=0);showToast(\'Всички минимуми = 0\',\'success\')" style="width:auto;padding:5px 12px;font-size:10px;font-weight:700;border-color:rgba(245,158,11,.25);color:#fbbf24">Не искам предупреждения? Натисни тук → Мин. = 0</button></div></div>'+
             '<div style="display:flex;align-items:center;padding:4px 10px;gap:4px;margin-bottom:4px">'+
             '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text-secondary)">ВАРИАЦИЯ</div>'+
             '<div style="width:80px;font-size:9px;font-weight:700;color:var(--indigo-300);text-align:center">БРОЙКА</div>'+
-            '<div style="width:44px;font-size:9px;font-weight:700;color:rgba(245,158,11,0.8);text-align:center;cursor:pointer" onclick="document.querySelectorAll(\'[data-field=min]\').forEach(i=>i.value=0)">МІН. ⓪</div>'+
+            '<div style="width:44px;font-size:9px;font-weight:700;color:rgba(245,158,11,0.8);text-align:center">Мин.</div>'+
             '<div style="width:20px"></div></div>';
             combos.forEach((v,i)=>{
                 const parts=v.parts||[];
