@@ -318,6 +318,35 @@ if (isset($_GET['ajax'])) {
         echo json_encode(['analysis'=>$analysis,'days_supply'=>$days_supply,'sales_30d'=>$sales_30d]); exit;
     }
 
+
+    // ─── UPLOAD IMAGE ───
+    if ($ajax === 'upload_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $pid = (int)($input['product_id'] ?? 0);
+        $image = $input['image'] ?? '';
+        if (!$pid || !$image) { echo json_encode(['error'=>'missing_data']); exit; }
+        // Verify product belongs to tenant
+        $exists = DB::run("SELECT id FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch();
+        if (!$exists) { echo json_encode(['error'=>'not_found']); exit; }
+        // Decode base64
+        if (preg_match('/^data:image\/(\w+);base64,/', $image, $m)) {
+            $ext = $m[1] === 'jpeg' ? 'jpg' : $m[1];
+            $image = preg_replace('/^data:image\/\w+;base64,/', '', $image);
+        } else { $ext = 'jpg'; }
+        $data = base64_decode($image);
+        if (!$data) { echo json_encode(['error'=>'invalid_image']); exit; }
+        // Save file
+        $dir = __DIR__ . '/uploads/products/' . $tenant_id;
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $filename = $pid . '_' . time() . '.' . $ext;
+        $filepath = $dir . '/' . $filename;
+        file_put_contents($filepath, $data);
+        $url = '/uploads/products/' . $tenant_id . '/' . $filename;
+        // Update DB
+        DB::run("UPDATE products SET image_url=? WHERE id=? AND tenant_id=?", [$url, $pid, $tenant_id]);
+        echo json_encode(['ok'=>true, 'image_url'=>$url]); exit;
+    }
+
     // ─── AI CREDITS ───
     if ($ajax === 'ai_credits') {
         echo json_encode(DB::run("SELECT ai_credits_bg, ai_credits_tryon FROM tenants WHERE id=?", [$tenant_id])->fetch(PDO::FETCH_ASSOC)); exit;
@@ -1756,6 +1785,7 @@ function productCardHTML(p){
 
 // S43: AI advice about specific product
 function askAIAboutProduct(id, name) {
+    S._returnToProductId = id;
     openAIChatOverlay();
     setTimeout(function(){
         if (typeof sendAutoQuestion === 'function') sendAutoQuestion('Анализирай артикул "'+name+'" — наличност, продажби, марж. Какво да направя?');
@@ -2065,16 +2095,73 @@ async function saveLabelsFromDrawer(pid) {
     else showToast('Грешка','error');
 }
 
-// S43: openImageStudio — was missing
-function openImageStudio(productId) {
+// S43+S50: openImageStudio — fetch product, show options or camera
+async function openImageStudio(productId) {
     openDrawer('studio');
-    document.getElementById('studioBody').innerHTML =
-        '<div style="padding:12px">' +
-        '<div style="text-align:center;margin-bottom:12px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><path d="M12 2L9 9H2l5.5 4-2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg></div>' +
-        '<div style="font-size:14px;font-weight:700;text-align:center;margin-bottom:4px">AI Image Studio</div>' +
-        '<div style="font-size:11px;color:var(--text-secondary);text-align:center;margin-bottom:14px">Отвори артикула с бутон Редактирай → Снимка → AI Studio</div>' +
-        '<div class="credits-bar"><div class="cr-item">Бял фон: <b>'+CFG.aiBg+'</b> кредита</div><div class="cr-sep"></div><div class="cr-item">AI Магия: <b>'+CFG.aiTryon+'</b> кредита</div></div>' +
-        '</div>';
+    document.getElementById('studioBody').innerHTML='<div style="text-align:center;padding:20px;font-size:12px;color:var(--text-secondary)">Зареждам...</div>';
+    const d = await api('products.php?ajax=product_detail&id='+productId);
+    if(!d||d.error){showToast('Грешка','error');return}
+    const p = d.product;
+    const hasImg = p.image_url && p.image_url.length > 5;
+    S._studioProductId = productId;
+    let h = '<div style="padding:4px 8px">';
+    // Credits bar
+    h += '<div class="credits-bar" style="margin:0 0 12px"><div class="cr-item">Бял фон: <b>'+CFG.aiBg+'</b></div><div class="cr-sep"></div><div class="cr-item">AI Магия: <b>'+CFG.aiTryon+'</b></div></div>';
+    if (!hasImg) {
+        // No image — prompt to take photo first
+        h += '<div style="text-align:center;padding:14px 0 8px">';
+        h += '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,.6)" stroke-width="1.5"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>';
+        h += '<div style="font-size:14px;font-weight:700;margin-top:8px">Няма снимка</div>';
+        h += '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Добави снимка, за да ползваш AI Studio</div></div>';
+        h += '<div style="display:flex;gap:8px;margin-top:12px">';
+        h += '<button class="abtn primary" onclick="studioTakePhoto()" style="flex:1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>Снимай</button>';
+        h += '<button class="abtn" onclick="studioPickPhoto()" style="flex:1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
+    } else {
+        // Has image — show preview + Studio options
+        h += '<div style="text-align:center;margin-bottom:12px"><img src="'+p.image_url+'" style="max-width:140px;max-height:120px;border-radius:10px;border:1px solid var(--border-subtle)"></div>';
+        h += '<button class="abtn" onclick="studioPickPhoto()" style="margin-bottom:10px;font-size:11px;padding:8px;border-color:rgba(99,102,241,.15)">Смени снимката</button>';
+        // White BG
+        h += '<div style="padding:10px;border-radius:12px;background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'bg_removal\')">';
+        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">Бял фон</div><div style="font-size:9px;color:var(--text-secondary)">Махва фона, чисто бяло</div></div>';
+        h += '<span style="font-size:11px;font-weight:600;color:#22c55e">0.05\u20ac</span></div></div>';
+        // Tryon
+        h += '<div style="padding:10px;border-radius:12px;background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'tryon\')">';
+        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
+        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — дрехи на модел</div><div style="font-size:9px;color:var(--text-secondary)">Облечи на модел</div></div>';
+        h += '<span style="font-size:11px;font-weight:600;color:#a78bfa">0.50\u20ac</span></div></div>';
+        // Objects
+        h += '<div style="padding:10px;border-radius:12px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'objects\')">';
+        h += '<div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
+        h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — предмети</div><div style="font-size:9px;color:var(--text-secondary)">Бижута, обувки, чанти</div></div>';
+        h += '<span style="font-size:11px;font-weight:600;color:#fbbf24">0.50\u20ac</span></div></div>';
+    }
+    h += '</div>';
+    document.getElementById('studioBody').innerHTML = h;
+}
+function studioTakePhoto(){closeDrawer('studio');document.getElementById('photoInput').setAttribute('data-studio','1');document.getElementById('photoInput').click()}
+function studioPickPhoto(){closeDrawer('studio');document.getElementById('filePickerInput').setAttribute('data-studio','1');document.getElementById('filePickerInput').click()}
+async function studioAction(type){
+    showToast('AI обработва... 5-15 сек','');
+    const d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:type,product_id:S._studioProductId})});
+    if(d&&d.error)showToast(d.error,'error');
+    else showToast('Готово!','success');
+}
+// Studio photo upload handler
+async function studioUploadPhoto(file, productId){
+    const reader=new FileReader();
+    reader.onload=async function(e){
+        const base64=e.target.result;
+        showToast('Качвам снимката...','');
+        const d=await api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:productId,image:base64})});
+        if(d&&d.ok){
+            showToast('Снимка добавена!','success');
+            openImageStudio(productId);
+        }else{
+            showToast(d?.error||'Грешка при качване','error');
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
 // ─── PRODUCT DETAIL ───
@@ -2123,8 +2210,7 @@ async function openProductDetail(id){
 
 // ─── AI ANALYSIS DRAWER ───
 async function openAIAnalysis(id){
-    closeDrawer('detail');
-    setTimeout(()=>openDrawer('ai'),300);
+    openDrawer('ai');
     document.getElementById('aiBody').innerHTML='<div style="text-align:center;padding:20px">✦ Анализирам...</div>';
     const d=await api(`products.php?ajax=ai_analyze&id=${id}`);
     if(!d)return;
@@ -3531,6 +3617,12 @@ function wizAddUnit(){
 // Photo handlers
 
 document.getElementById('filePickerInput').addEventListener('change',async function(){
+    if(this.getAttribute('data-studio')==='1'){
+        this.removeAttribute('data-studio');
+        if(this.files?.[0]) studioUploadPhoto(this.files[0], S._studioProductId);
+        this.value='';
+        return;
+    }
     document.getElementById('photoInput').files = this.files;
     document.getElementById('photoInput').dispatchEvent(new Event('change'));
     this.value='';
@@ -3538,6 +3630,13 @@ document.getElementById('filePickerInput').addEventListener('change',async funct
 // S43: removed duplicate filePickerInput listener
 document.getElementById('photoInput').addEventListener('change',async function(){
     if(!this.files?.[0])return;
+    // Studio mode — upload to product
+    if(this.getAttribute('data-studio')==='1'){
+        this.removeAttribute('data-studio');
+        studioUploadPhoto(this.files[0], S._studioProductId);
+        this.value='';
+        return;
+    }
     const preview=document.getElementById('wizPhotoPreview');
     const result=document.getElementById('wizScanResult');
     if(preview)preview.innerHTML='<div style="font-size:12px;color:var(--text-secondary);margin-top:8px">Зареждам...</div>';
