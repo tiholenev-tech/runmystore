@@ -1668,6 +1668,7 @@ const S = {
     homeTab: 'all', homePage: 1,
     supId: null, catId: null,
     searchText: '', searchTO: null,
+    detailStack: [],
     cameraMode: null, cameraStream: null, barcodeDetector: null, barcodeInterval: null,
     recognition: null, isListening: false, lastTranscript: '',
     wizStep: 0, wizData: {}, wizType: null, wizEditId: null,
@@ -2042,7 +2043,16 @@ function openImageStudio(productId) {
 
 // ─── PRODUCT DETAIL ───
 async function openProductDetail(id){
-    openDrawer('detail');
+    // If detail drawer already open, push current to stack
+    const detDr = document.getElementById('detailDr');
+    if (detDr && detDr.classList.contains('open')) {
+        const curId = detDr.dataset.productId;
+        if (curId && parseInt(curId) !== id) S.detailStack.push(parseInt(curId));
+    } else {
+        S.detailStack = [];
+        openDrawer('detail');
+    }
+    detDr.dataset.productId = id;
     document.getElementById('detailBody').innerHTML='<div style="text-align:center;padding:20px"><div class="skeleton" style="width:60%;height:18px;margin:0 auto 10px"></div></div>';
     const d=await api(`products.php?ajax=product_detail&id=${id}`);
     if(!d||d.error){showToast('Грешка','error');closeDrawer('detail');return}
@@ -3559,7 +3569,15 @@ window.addEventListener('popstate', function(e) {
     const drawers = ['detail','ai','filter','studio','labels','csv','qf'];
     for (const n of drawers) {
         const dr = document.getElementById(n+'Dr');
-        if (dr && dr.classList.contains('open')) { closeDrawer(n); return; }
+        if (dr && dr.classList.contains('open')) {
+            if (n === 'detail' && S.detailStack.length > 0) {
+                const parentId = S.detailStack.pop();
+                openProductDetail(parentId);
+            } else {
+                closeDrawer(n);
+            }
+            return;
+        }
     }
     // No overlay open — navigate
     const state = e.state;
