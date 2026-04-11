@@ -1090,6 +1090,7 @@ select.fc{
 .screen-section.active{display:block}
 .hidden{display:none!important}
 input[type=file]{display:none}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--text-primary)!important;-webkit-box-shadow:0 0 0 1000px rgba(30,35,50,0.9) inset!important;transition:background-color 5000s ease-in-out 0s;caret-color:var(--text-primary)}
 
 /* ═══ INFO AI BUTTON + PANEL ═══ */
 .info-ai-btn{
