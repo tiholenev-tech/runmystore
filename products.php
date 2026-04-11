@@ -265,16 +265,48 @@ if (isset($_GET['ajax'])) {
         $pid = (int)($_GET['id'] ?? 0);
         $product = DB::run("SELECT * FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
         if (!$product) { echo json_encode(['error'=>'not_found']); exit; }
-        $sales_30d = DB::run("SELECT COALESCE(SUM(si.quantity),0) AS qty, COALESCE(SUM(si.quantity*si.unit_price),0) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
+        $sales_30d = DB::run("SELECT CAST(COALESCE(SUM(si.quantity),0) AS SIGNED) AS qty, ROUND(COALESCE(SUM(si.quantity*si.unit_price),0),2) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
         $stock = DB::run("SELECT COALESCE(SUM(quantity),0) FROM inventory WHERE product_id=?", [$pid])->fetchColumn();
         $days_supply = ($sales_30d['qty']>0) ? round(($stock/($sales_30d['qty']/30)),0) : 999;
+        // i18n texts per tenant language
+        $t = match($lang ?? 'bg') {
+            'en' => [
+                'zombie' => "Sitting for {days} days. {stock} pcs locked — consider a discount or bundle.",
+                'slow' => "Slow movement — {days} days of supply. Check if there is demand.",
+                'low' => "{stock} pcs left, minimum is {min}. Consider restocking.",
+                'out' => "Out of stock. If there is demand, you lose sales every day.",
+                'margin' => "Net profit {margin}% — low. Check your cost price.",
+                'sales' => "30 days: {qty} pcs sold for {revenue} {currency}.",
+                'ok' => "Everything looks good.",
+            ],
+            'de' => [
+                'zombie' => "Liegt seit {days} Tagen. {stock} Stk. gebunden — Rabatt oder Paket erwaegen.",
+                'slow' => "Langsame Bewegung — Vorrat fuer {days} Tage. Nachfrage pruefen.",
+                'low' => "{stock} Stk. uebrig bei Minimum {min}. Nachbestellen erwaegen.",
+                'out' => "Ausverkauft. Bei Nachfrage verlierst du taeglich Umsatz.",
+                'margin' => "Reingewinn {margin}% — niedrig. Einkaufspreis pruefen.",
+                'sales' => "30 Tage: {qty} Stk. verkauft fuer {revenue} {currency}.",
+                'ok' => "Alles in Ordnung.",
+            ],
+            default => [
+                'zombie' => "Застоява от {days} дни. {stock} бр. заключени — обмисли намаление или пакетна оферта.",
+                'slow' => "Бавно движение — запас за {days} дни. Провери дали има търсене.",
+                'low' => "Остават {stock} бр. при минимум {min}. Помисли за зареждане.",
+                'out' => "Свърши. Ако има търсене, губиш продажби всеки ден.",
+                'margin' => "Чиста печалба {margin}% — ниска. Провери доставната цена.",
+                'sales' => "30 дни: {qty} бр. продадени за {revenue} {currency}.",
+                'ok' => "Всичко изглежда наред.",
+            ],
+        };
+        $rep = fn($s, $vars) => str_replace(array_map(fn($k)=>'{'.$k.'}', array_keys($vars)), array_values($vars), $s);
+        $rv = ['days'=>$days_supply,'stock'=>(int)$stock,'min'=>$product['min_quantity']??0,'qty'=>$sales_30d['qty'],'revenue'=>number_format($sales_30d['revenue'],2,',','.'),'currency'=>$currency,'margin'=>''];
         $analysis = [];
-        if ($days_supply>90 && $stock>0) $analysis[] = ['type'=>'zombie','icon'=>'💀','text'=>"Стока за {$days_supply} дни. Намали с 30% или пакет.",'severity'=>'high'];
-        elseif ($days_supply>45 && $stock>0) $analysis[] = ['type'=>'slow','icon'=>'🐌','text'=>"Бавно движеща се — {$days_supply} дни запас.",'severity'=>'medium'];
-        if ($stock<=$product['min_quantity'] && $stock>0 && $product['min_quantity']>0) $analysis[] = ['type'=>'low','icon'=>'⚠️','text'=>"Остават {$stock} бр. (мин. {$product['min_quantity']}). Поръчай!",'severity'=>'high'];
-        elseif ($stock==0) $analysis[] = ['type'=>'out','icon'=>'🔴','text'=>"ИЗЧЕРПАН! Губиш продажби.",'severity'=>'critical'];
-        if ($can_see_margin && $product['cost_price']>0) { $margin=round((($product['retail_price']-$product['cost_price'])/$product['retail_price'])*100,1); if($margin<20) $analysis[]=['type'=>'margin','icon'=>'💰','text'=>"Марж само {$margin}%.",'severity'=>'medium']; }
-        if ($sales_30d['qty']>0) $analysis[] = ['type'=>'sales','icon'=>'📊','text'=>"30 дни: {$sales_30d['qty']} бр. / ".number_format($sales_30d['revenue'],2,',','.')." {$currency}",'severity'=>'info'];
+        if ($days_supply>90 && $stock>0) $analysis[] = ['type'=>'zombie','icon'=>'','text'=>$rep($t['zombie'],$rv),'severity'=>'high'];
+        elseif ($days_supply>45 && $stock>0) $analysis[] = ['type'=>'slow','icon'=>'','text'=>$rep($t['slow'],$rv),'severity'=>'medium'];
+        if ($stock<=$product['min_quantity'] && $stock>0 && $product['min_quantity']>0) $analysis[] = ['type'=>'low','icon'=>'','text'=>$rep($t['low'],$rv),'severity'=>'high'];
+        elseif ($stock==0) $analysis[] = ['type'=>'out','icon'=>'','text'=>$rep($t['out'],$rv),'severity'=>'critical'];
+        if ($can_see_margin && $product['cost_price']>0) { $margin=round((($product['retail_price']-$product['cost_price'])/$product['retail_price'])*100,1); $rv['margin']=$margin; if($margin<20) $analysis[]=['type'=>'margin','icon'=>'','text'=>$rep($t['margin'],$rv),'severity'=>'medium']; }
+        if ($sales_30d['qty']>0) $analysis[] = ['type'=>'sales','icon'=>'','text'=>$rep($t['sales'],$rv),'severity'=>'info'];
         echo json_encode(['analysis'=>$analysis,'days_supply'=>$days_supply,'sales_30d'=>$sales_30d]); exit;
     }
 
