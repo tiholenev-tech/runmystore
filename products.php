@@ -97,20 +97,31 @@ if (isset($_GET['ajax'])) {
         ", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
         if (!$product) { echo json_encode(['error' => 'not_found']); exit; }
         if (!$can_see_cost) unset($product['cost_price']);
-        $stocks = DB::run("
-            SELECT st.id AS store_id, st.name AS store_name, COALESCE(i.quantity, 0) AS qty
-            FROM stores st LEFT JOIN inventory i ON i.store_id = st.id AND i.product_id = ?
-            WHERE st.company_id = (SELECT company_id FROM stores WHERE id = ?) ORDER BY st.name
-        ", [$pid, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+        // Check if product has children (variant parent)
+        $child_count = DB::run("SELECT COUNT(*) FROM products WHERE parent_id=? AND tenant_id=? AND is_active=1", [$pid,$tenant_id])->fetchColumn();
+        if ($child_count > 0) {
+            // Sum children stock per store
+            $stocks = DB::run("
+                SELECT st.id AS store_id, st.name AS store_name,
+                    CAST(COALESCE((SELECT SUM(i2.quantity) FROM inventory i2 JOIN products p2 ON p2.id=i2.product_id WHERE p2.parent_id=? AND i2.store_id=st.id),0) AS SIGNED) AS qty
+                FROM stores st WHERE st.company_id = (SELECT company_id FROM stores WHERE id = ?) ORDER BY st.name
+            ", [$pid, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $stocks = DB::run("
+                SELECT st.id AS store_id, st.name AS store_name, CAST(COALESCE(i.quantity, 0) AS SIGNED) AS qty
+                FROM stores st LEFT JOIN inventory i ON i.store_id = st.id AND i.product_id = ?
+                WHERE st.company_id = (SELECT company_id FROM stores WHERE id = ?) ORDER BY st.name
+            ", [$pid, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+        }
         $variations = DB::run("
             SELECT p.id, p.name, p.code, p.retail_price, p.barcode, p.size, p.color,
-                   COALESCE(SUM(i.quantity), 0) AS total_stock
+                   CAST(COALESCE(SUM(i.quantity), 0) AS SIGNED) AS total_stock
             FROM products p LEFT JOIN inventory i ON i.product_id = p.id
             WHERE p.parent_id = ? AND p.tenant_id = ? AND p.is_active = 1
             GROUP BY p.id ORDER BY p.name
         ", [$pid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $price_history = DB::run("
-            SELECT old_price, new_price, changed_at FROM price_history WHERE product_id = ? ORDER BY changed_at DESC LIMIT 10
+            SELECT retail_price, cost_price, created_at AS changed_at FROM price_history WHERE product_id = ? ORDER BY created_at DESC LIMIT 10
         ", [$pid])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['product'=>$product,'stocks'=>$stocks,'variations'=>$variations,'price_history'=>$price_history]);
         exit;
@@ -230,10 +241,18 @@ if (isset($_GET['ajax'])) {
 
         if ($needHaving) {
             $hSQL = implode(' AND ', str_replace('days_stale', $dse, $havingClauses));
-            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock,{$dse} AS days_stale FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,CAST(COALESCE(
+                CASE WHEN EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.is_active=1)
+                THEN (SELECT SUM(ci.quantity) FROM inventory ci JOIN products cp ON cp.id=ci.product_id WHERE cp.parent_id=p.id AND ci.store_id={$sid})
+                ELSE i.quantity END
+            ,0) AS SIGNED) AS store_stock,{$dse} AS days_stale FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
             $total = DB::run("SELECT COUNT(*) FROM (SELECT p.id,{$dse} AS days_stale FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL}) sub", array_merge([$sid], $params))->fetchColumn();
         } else {
-            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,COALESCE(i.quantity,0) AS store_stock, COALESCE((SELECT SUM(si99.quantity) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id WHERE si99.product_id=p.id AND s99.store_id={$sid} AND s99.status='completed' AND s99.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)),0) AS sold_30d FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
+            $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,CAST(COALESCE(
+                CASE WHEN EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.is_active=1)
+                THEN (SELECT SUM(ci.quantity) FROM inventory ci JOIN products cp ON cp.id=ci.product_id WHERE cp.parent_id=p.id AND ci.store_id={$sid})
+                ELSE i.quantity END
+            ,0) AS SIGNED) AS store_stock, COALESCE((SELECT SUM(si99.quantity) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id WHERE si99.product_id=p.id AND s99.store_id={$sid} AND s99.status='completed' AND s99.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)),0) AS sold_30d FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
             $total = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql}", array_merge([$sid], $params))->fetchColumn();
         }
         if (!$can_see_cost) { foreach ($products as &$pr) unset($pr['cost_price']); }
@@ -1637,7 +1656,7 @@ async function api(url, opts={}){
 }
 
 function productCardHTML(p){
-    const q=p.store_stock||p.qty||0;
+    const q=parseInt(p.store_stock||p.qty||0);
     const sc=stockClass(q,p.min_quantity||0);
     const bc=stockBar(q,p.min_quantity||0);
     const thumb=p.image_url?`<img src="${p.image_url}">`:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.25)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
@@ -2513,9 +2532,7 @@ function closeWizard(){
 
 function wizGo(step){
     wizCollectData();
-    if(step===2&&!S.wizData._hasPhoto){step=6;}
-    // Skip AI Studio if no photo
-    if(step===2&&!S.wizData._hasPhoto){step=6;}
+    if(step===2&&!S.wizData._hasPhoto){step=3;}
     S.wizStep=step;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
@@ -2577,6 +2594,8 @@ function renderWizard(){
             // Re-select saved subcategory
             if(S.wizData.subcategory_id)sel.value=S.wizData.subcategory_id;
         };if(S.wizData.category_id&&!S.wizData.supplier_id)wCat.onchange()}
+        // Always reload subcategories if category is selected
+        if(S.wizData.category_id)wizLoadSubcats(S.wizData.category_id);
     }
 }
 
@@ -2740,7 +2759,7 @@ function renderWizPagePart2(step){
             '<div style="display:flex;align-items:center;padding:4px 10px;gap:4px;margin-bottom:4px">'+
             '<div style="flex:1;font-size:10px;font-weight:700;color:var(--text-secondary)">ВАРИАЦИЯ</div>'+
             '<div style="width:80px;font-size:9px;font-weight:700;color:var(--indigo-300);text-align:center">БРОЙКА</div>'+
-            '<div style="width:52px;font-size:9px;font-weight:700;color:rgba(245,158,11,0.8);text-align:center">МІН.</div>'+
+            '<div style="width:44px;font-size:9px;font-weight:700;color:rgba(245,158,11,0.8);text-align:center;cursor:pointer" onclick="document.querySelectorAll(\'[data-field=min]\').forEach(i=>i.value=0)">МІН. ⓪</div>'+
             '<div style="width:20px"></div></div>';
             combos.forEach((v,i)=>{
                 const parts=v.parts||[];
@@ -2762,7 +2781,7 @@ function renderWizPagePart2(step){
                 combosH+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;padding:5px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+i+'">'+
                 '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap">'+labelH+'</div>'+
                 '<div style="display:flex;align-items:center;gap:0"><button type="button" onclick="wizQtyAdj('+i+',-1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">\u2212</button><input type="number" class="fc" style="width:34px;padding:3px 0;text-align:center;font-size:13px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="1" min="0" data-combo="'+i+'" data-field="qty"><button type="button" onclick="wizQtyAdj('+i+',1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">+</button></div>'+
-                '<input type="number" class="fc" style="width:52px;padding:4px;text-align:center;font-size:12px;font-weight:600;border-radius:6px;border-color:rgba(245,158,11,0.3)" value="1" min="0" data-combo="'+i+'" data-field="min">'+
+                '<input type="number" class="fc" style="width:44px;padding:4px;text-align:center;font-size:12px;font-weight:600;border-radius:6px;border-color:rgba(245,158,11,0.3)" value="1" min="0" data-combo="'+i+'" data-field="min">'+
                 '<button type="button" onclick="if(confirm(\'Премахни?\'))document.getElementById(\'comboRow'+i+'\').remove()" style="width:24px;height:24px;border:none;background:none;color:var(--danger);font-size:14px;cursor:pointer;padding:0">\u2715</button>'+
                 '</div>';
             });
@@ -3265,12 +3284,13 @@ function wizPickDD(inputId,listId,id,name){
     if(inputId==='wCatDD'){S.wizData.category_id=id;wizLoadSubcats(id)}
     if(inputId==='wSupDD'){S.wizData.supplier_id=id}
 }
-function wizLoadSubcats(catId){
+async function wizLoadSubcats(catId){
     const sel=document.getElementById('wSubcat');if(!sel)return;
+    sel.innerHTML='<option value="">— Зарежда... —</option>';
+    const subs=await api('products.php?ajax=subcategories&parent_id='+catId);
     sel.innerHTML='<option value="">— Няма —</option>';
-    CFG.categories.filter(c=>c.parent_id==catId).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{
-        sel.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>';
-    });
+    if(subs&&subs.length){subs.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});}
+    if(S.wizData.subcategory_id)sel.value=S.wizData.subcategory_id;
 }
 function wizFilterSelect(selId,q){}
 
@@ -3309,7 +3329,7 @@ async function wizGoPreview(){
         const d=await api('products.php?ajax=ai_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:S.wizData.name})});
         if(d?.code)S.wizData.code=d.code;
     }
-    wizGo(6);
+    wizGo(S.wizData._hasPhoto?2:6);
 }
 
 async function wizGenDescription(){
@@ -3330,7 +3350,6 @@ async function wizGenDescription(){
     }else{
         if(descEl)descEl.placeholder='Описанието не можа да се генерира';
     }
-    renderWizard();
 }
 
 async function wizSave(){
