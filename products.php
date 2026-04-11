@@ -1204,7 +1204,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .top-header{position:sticky;top:0;z-index:50;padding:10px 16px;backdrop-filter:blur(16px);background:rgba(3,7,18,.95);border-bottom:1px solid var(--border-subtle)}
 
 /* ═══ NEW SEARCH ═══ */
-.new-search-sec{display:flex;align-items:center;gap:6px;padding:12px 16px 0}
+.new-search-sec{display:flex;align-items:center;gap:6px;padding:12px 16px 0;position:relative}
 .new-search-bar{display:flex;align-items:center;gap:10px;background:rgba(15,15,40,.6);border:1px solid rgba(99,102,241,.12);border-radius:14px;padding:10px 14px;flex:1;cursor:pointer}
 .new-search-bar svg{flex-shrink:0;opacity:.5}
 .new-search-ph{font-size:13px;color:rgba(165,180,252,.4);font-weight:500;flex:1}
@@ -1431,13 +1431,15 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
         <!-- ТЪРСЕНЕ -->
         <div class="new-search-sec">
-            <div class="new-search-bar" onclick="focusSearch()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <span class="new-search-ph" id="searchPh">Търси по име, код, баркод, цена...</span>
+            <div class="new-search-bar" style="cursor:text">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="liveSearchInput" placeholder="Търси по име, код, баркод..." autocomplete="off" style="flex:1;background:transparent;border:none;outline:none;color:var(--text-primary);font-size:13px;font-family:inherit;font-weight:500" oninput="onLiveSearch(this.value)">
+                <div id="liveSearchClear" style="display:none;width:20px;height:20px;border-radius:50%;background:rgba(99,102,241,.15);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0" onclick="clearLiveSearch()"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
                 <div class="new-search-mic" onclick="event.stopPropagation();openVoiceSearch()">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
                 </div>
             </div>
+            <div id="liveSearchResults" style="display:none;position:absolute;left:16px;right:16px;top:100%;margin-top:4px;background:rgba(8,8,24,0.97);border:1px solid var(--border-glow);border-radius:14px;max-height:60vh;overflow-y:auto;z-index:60;box-shadow:0 12px 40px rgba(0,0,0,0.5);backdrop-filter:blur(12px)"><div id="liveSearchResultsInner"></div></div>
             <div class="new-info-btn" onclick="toggleInfoPanel()"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>
         </div>
 
@@ -1942,23 +1944,57 @@ function setSort(s){
 document.addEventListener('click',e=>{if(!e.target.closest('.sort-wrap'))document.getElementById('sortDD')?.classList.remove('open')});
 
 // ─── SEARCH ───
-function focusSearch(){
-    const text=prompt('Търси:','');
-    if(text===null)return;
-    S.searchText=text.trim();
-    if(!S.searchText){updateSearchDisplay();loadScreen();return}
-    updateSearchDisplay();doSearch(S.searchText);
+let _searchTO=null;
+function onLiveSearch(q){
+    q=q.trim();
+    const clear=document.getElementById('liveSearchClear');
+    const results=document.getElementById('liveSearchResults');
+    if(clear)clear.style.display=q?'flex':'none';
+    if(q.length<1){clearTimeout(_searchTO);results.style.display='none';return}
+    clearTimeout(_searchTO);
+    _searchTO=setTimeout(async()=>{
+        const d=await api('products.php?ajax=search&q='+encodeURIComponent(q)+'&store_id='+CFG.storeId);
+        if(!d){results.style.display='none';return}
+        if(!d.length){results.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12)"><span style="font-size:10px;font-weight:700;color:var(--text-secondary)">0 резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke=\x22#818cf8\x22 stroke-width=\x223\x22><path d=\x22M18 6L6 18M6 6l12 12\x22/></svg></div></div><div style="padding:16px;text-align:center;font-size:12px;color:var(--text-secondary)">Нищо за "'+esc(q)+'"</div>';results.style.display='block';return}
+        var closeH='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12);position:sticky;top:0;background:rgba(8,8,24,0.97);z-index:1"><span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">'+d.length+' резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>';
+        results.innerHTML=closeH+d.slice(0,15).map(p=>{
+            const q=parseInt(p.total_stock||0);
+            const sc=q>0?'var(--success)':'var(--danger)';
+            const thumb=p.image_url?'<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.25)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickSearchResult('+p.id+')">'+
+            '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+thumb+'</div>'+
+            '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</div>'+
+            '<div style="font-size:9px;color:var(--text-secondary)">'+esc(p.code||'')+' · '+esc(p.supplier_name||'')+'</div></div>'+
+            '<div style="text-align:right;flex-shrink:0"><div style="font-size:12px;font-weight:700;color:var(--indigo-300)">'+fmtPrice(p.retail_price)+'</div>'+
+            '<div style="font-size:9px;color:'+sc+'">'+q+' бр.</div></div></div>';
+        }).join('');
+        results.style.display='block';
+    },250);
 }
-function updateSearchDisplay(){
-    const el=document.getElementById('searchPh');
-    if(S.searchText)el.textContent='🔍 '+S.searchText;
-    else el.textContent='Търси по име, код, баркод, цена...';
+function clearLiveSearch(){
+    const inp=document.getElementById('liveSearchInput');
+    if(inp)inp.value='';
+    document.getElementById('liveSearchResults').style.display='none';
+    document.getElementById('liveSearchClear').style.display='none';
 }
+function pickSearchResult(id){
+    document.getElementById('liveSearchResults').style.display='none';
+    openProductDetail(id);
+}
+function focusSearch(){document.getElementById('liveSearchInput')?.focus()}
+function updateSearchDisplay(){}
 async function doSearch(q){
     const d=await api(`products.php?ajax=search&q=${encodeURIComponent(q)}&store_id=${CFG.storeId}`);
     if(!d)return;
-    // Always show search results in products screen
-    if(S.screen!=='products') goScreen('products');
+    // Show products screen without triggering loadProducts
+    if(S.screen!=='products'){
+        S.screen='products';
+        document.querySelectorAll('.screen-section').forEach(el=>el.classList.remove('active'));
+        document.getElementById('scrProducts').classList.add('active');
+    }
+    document.getElementById('prodTitle').textContent='Търсене: '+q;
+    document.getElementById('prodCnt').textContent=d.length+' резултата';
+    document.getElementById('prodPag').innerHTML='';
     document.getElementById('prodList').innerHTML=d.length===0?
         `<div class="empty-st"><div class="es-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.3)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><div class="es-text">Нищо за "${esc(q)}"</div></div>`:
         d.map(p=>productCardHTML({...p,store_stock:p.total_stock})).join('');
