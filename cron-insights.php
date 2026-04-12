@@ -4,7 +4,7 @@
  * S52 | 12.04.2026
  * 
  * Cron job: на всеки 15 минути.
- * Crontab: */15 * * * * php /var/www/runmystore/cron-insights.php >> /var/log/runmystore-insights.log 2>&1
+ * Crontab: every 15 min — * * * * php /var/www/runmystore/cron-insights.php >> /var/log/runmystore-insights.log 2>&1
  * 
  * Обхожда всички активни tenants и техните stores.
  * За всеки store извиква computeAllInsights() от compute-insights.php.
