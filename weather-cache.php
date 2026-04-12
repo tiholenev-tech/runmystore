@@ -11,6 +11,11 @@
  */
 require_once __DIR__ . '/config/database.php';
 
+// Only run cron when called directly (not via require)
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') !== 'weather-cache.php') {
+    return; // Just load functions, don't fetch
+}
+
 $start = microtime(true);
 $log = function($msg) { echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n"; };
 $log('=== Weather Cache Start ===');
