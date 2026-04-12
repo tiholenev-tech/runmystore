@@ -472,6 +472,25 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
     if ($total_owed > 0 && $role !== 'seller') $signals[] = "INFO: Total owed to suppliers: {$total_owed} {$currency}.";
     $signals_str = empty($signals) ? "No critical alerts." : implode("\n", $signals);
 
+    // ── ACTIVE SIGNALS (from ai_insights cron) ────────────────
+    $active_signals_str = '';
+    try {
+        $ai_rows = DB::run(
+            'SELECT urgency, title, body FROM ai_insights
+             WHERE tenant_id=? AND store_id=? AND urgency IN ("critical","warning","info")
+             ORDER BY FIELD(urgency,"critical","warning","info"), created_at DESC
+             LIMIT 15',
+            [$tenant_id, $store_id]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($ai_rows as $ar) {
+            $u = strtoupper($ar['urgency']);
+            $active_signals_str .= "- {$u}: {$ar['title']}";
+            if (!empty($ar['body'])) $active_signals_str .= " — {$ar['body']}";
+            $active_signals_str .= "\n";
+        }
+    } catch (Exception $e) {}
+    if (empty($active_signals_str)) $active_signals_str = 'No active insights.';
+
     // ── SEASONAL CONTEXT ──────────────────────────────────────
     $seasonal_str = getSeasonalContext($business_type, $country);
 
@@ -600,6 +619,12 @@ Use memory naturally — never say "According to my memory..."
 LAYER 4 — BUSINESS SIGNALS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {$signals_str}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYER 4B — ACTIVE SIGNALS (shown on user screen right now)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{$active_signals_str}
+The user sees these signals on their dashboard. When they ask about a signal topic, you already know the context — answer directly with specifics, don't repeat what they already read.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LAYER 5 — SEASONAL CONTEXT
