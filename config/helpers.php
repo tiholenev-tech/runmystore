@@ -379,3 +379,24 @@ function fmtMoney(float $amount, string $currency = '€'): string {
 function fmtQty(float $qty): string {
     return rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',');
 }
+
+// ═══════════════════════════════════════
+// S53: Auto-geolocate store from visitor IP (silent, no user interaction)
+// ═══════════════════════════════════════
+function autoGeolocateStore(int $storeId): void {
+    $check = DB::run("SELECT latitude FROM stores WHERE id = ? AND latitude IS NOT NULL", [$storeId])->fetch();
+    if ($check) return; // already has coordinates
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (!$ip || $ip === '127.0.0.1' || str_starts_with($ip, '192.168.')) return;
+
+    $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,city,lat,lon", false,
+        stream_context_create(['http' => ['timeout' => 3]]));
+    if (!$json) return;
+
+    $geo = json_decode($json, true);
+    if (($geo['status'] ?? '') !== 'success') return;
+
+    DB::run("UPDATE stores SET latitude = ?, longitude = ?, city = COALESCE(NULLIF(city,''), ?) WHERE id = ?",
+        [$geo['lat'], $geo['lon'], $geo['city'], $storeId]);
+}
