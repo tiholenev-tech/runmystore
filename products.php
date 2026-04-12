@@ -2070,29 +2070,121 @@ function openCSVImport() {
         '<button class="abtn primary" onclick="document.getElementById(\'csvInput\').click()">📄 Избери файл</button></div>';
 }
 
-// S43: openLabels — was missing
+// S50: openLabels — full print UI like wizard step 7
 async function openLabels(productId) {
     openDrawer('labels');
-    document.getElementById('labelsBody').innerHTML = '<div style="text-align:center;padding:20px">Зареждам...</div>';
-    const d = await api('products.php?ajax=export_labels&product_id='+productId+'&format=json');
-    if (!d||!d.length) { document.getElementById('labelsBody').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>'; return; }
-    let h = '<div style="padding:0 8px">';
-    d.forEach((v,i) => {
-        h += '<div class="label-var"><div class="lv-name">'+esc(v.name)+'</div><div class="lv-code">'+esc(v.code||'')+(v.size?' · '+esc(v.size):'')+(v.color?' · '+esc(v.color):'')+'</div>';
-        h += '<div class="lv-fields"><div class="lv-field"><label>Мин.кол.</label><input type="number" value="'+(v.min_quantity||0)+'" data-vid="'+v.id+'" data-field="min_quantity"></div>';
-        h += '<div class="lv-field"><label>Наличност</label><input type="number" value="'+(v.stock||0)+'" disabled style="opacity:0.5"></div></div></div>';
-    });
-    h += '<div style="display:flex;gap:6px;margin-top:12px"><button class="abtn primary" onclick="saveLabelsFromDrawer('+productId+')">✓ Запази</button>';
-    h += '<button class="abtn" onclick="location.href=\'products.php?ajax=export_labels&product_id='+productId+'&format=csv\'">📥 CSV</button></div></div>';
-    document.getElementById('labelsBody').innerHTML = h;
+    document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px">Зареждам...</div>';
+    const d=await api('products.php?ajax=export_labels&product_id='+productId+'&format=json');
+    const pd=await api('products.php?ajax=product_detail&id='+productId);
+    if(!d||!d.length){document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>';return}
+    const p=pd?.product||{};
+    S._labelProductId=productId;
+    S._labelData=d;
+    S._labelProduct=p;
+    if(!S._labelPrintMode)S._labelPrintMode='eur';
+    renderLabelsDrawer();
 }
-async function saveLabelsFromDrawer(pid) {
-    const inputs = document.querySelectorAll('#labelsBody [data-vid]');
-    const variations = [];
-    inputs.forEach(inp => { if(inp.dataset.field==='min_quantity') variations.push({id:parseInt(inp.dataset.vid),min_quantity:parseInt(inp.value)||0}); });
-    const d = await api('products.php?ajax=save_labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({variations})});
-    if (d?.ok) showToast('Запазено ✓','success');
-    else showToast('Грешка','error');
+function renderLabelsDrawer(){
+    var d=S._labelData||[];
+    var p=S._labelProduct||{};
+    var pm=S._labelPrintMode||'eur';
+    var isBG=(window._tenantCountry||'').toUpperCase()==='BG';
+    var beforeDL=new Date()<new Date('2026-08-08');
+    var showDual=isBG&&beforeDL;
+    var h='<div style="padding:0 4px">';
+    // Tabs
+    h+='<div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px">';
+    if(showDual)h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='dual'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'dual\';renderLabelsDrawer()">\u20ac + \u043b\u0432</div>';
+    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='eur'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'eur\';renderLabelsDrawer()">\u0421\u0430\u043c\u043e \u20ac</div>';
+    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='noprice'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'noprice\';renderLabelsDrawer()">\u0411\u0435\u0437 \u0446\u0435\u043d\u0430</div>';
+    h+='</div>';
+    // Warning dual
+    if(showDual&&pm==='dual')h+='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:10px;color:#fbbf24">\u0414\u0432\u043e\u0439\u043d\u043e \u0438\u0437\u043f\u0438\u0441\u0432\u0430\u043d\u0435 \u0434\u043e 08.08.2026</div>';
+    // Header
+    h+='<div style="display:flex;align-items:center;padding:4px 10px;gap:4px;margin-bottom:4px">';
+    h+='<div style="flex:1;font-size:10px;font-weight:700;color:var(--text-secondary)">\u0412\u0410\u0420\u0418\u0410\u0426\u0418\u042f</div>';
+    h+='<div style="width:80px;font-size:9px;font-weight:700;color:var(--indigo-300);text-align:center">\u0411\u0420\u041e\u0419\u041a\u0418</div>';
+    h+='<div style="width:30px"></div></div>';
+    // x2 / 1:1 buttons
+    h+='<div style="display:flex;gap:6px;margin-bottom:6px;padding:0 10px">';
+    h+='<button type="button" class="abtn" onclick="lblX2()" style="font-size:10px;padding:5px 12px;width:auto">x2</button>';
+    h+='<button type="button" class="abtn" onclick="lblReset()" style="font-size:10px;padding:5px 12px;width:auto;color:#fbbf24;border-color:rgba(245,158,11,.2)">1:1</button>';
+    h+='</div>';
+    // Rows
+    var totalQty=0;
+    d.forEach(function(v,i){
+        if(!v._printQty&&v._printQty!==0)v._printQty=1;
+        totalQty+=v._printQty;
+        var label=esc(v.name);
+        if(v.size)label='<span style="font-size:13px;font-weight:700;margin-right:4px">'+esc(v.size)+'</span>';
+        if(v.color){var cc=CFG.colors.find(function(x){return x.name===v.color});var hex=cc?cc.hex:'#666';label+='<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(v.color)+'</span></span>';}
+        if(!v.size&&!v.color)label='<span style="font-size:11px">'+esc(v.name)+'</span>';
+        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)">';
+        h+='<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+label+'</div>';
+        h+='<div style="display:flex;align-items:center;gap:0">';
+        h+='<button type="button" onclick="lblAdj('+i+',-1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">\u2212</button>';
+        h+='<input type="number" class="fc" id="lbl'+i+'" style="width:32px;padding:2px 0;text-align:center;font-size:12px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="'+v._printQty+'" min="0" onchange="lblRecalc()">';
+        h+='<button type="button" onclick="lblAdj('+i+',1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">+</button></div>';
+        h+='<div onclick="lblPrint('+i+')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
+    });
+
+    h+='<button type="button" class="abtn save" style="margin-top:10px;font-size:13px;padding:12px" onclick="lblPrint(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>\u041f\u0435\u0447\u0430\u0442\u0430\u0439 \u0432\u0441\u0438\u0447\u043a\u0438 (<span id="lblTot">'+totalQty+'</span> \u0435\u0442.)</button>';
+    h+='<button type="button" class="abtn" onclick="lblCSV()" style="margin-top:6px;font-size:11px;padding:8px;border-color:rgba(99,102,241,.15);color:var(--indigo-300)">\u0421\u0432\u0430\u043b\u0438 CSV</button>';
+    h+='</div>';
+    document.getElementById('labelsBody').innerHTML=h;
+}
+function lblAdj(i,delta){
+    var d=S._labelData;if(!d||!d[i])return;
+    d[i]._printQty=Math.max(0,(d[i]._printQty||1)+delta);
+    var inp=document.getElementById('lbl'+i);if(inp)inp.value=d[i]._printQty;
+    lblRecalc();
+}
+function lblRecalc(){
+    var total=0;(S._labelData||[]).forEach(function(v,i){var inp=document.getElementById('lbl'+i);v._printQty=parseInt(inp?.value)||0;total+=v._printQty});
+    var el=document.getElementById('lblTot');if(el)el.textContent=total;
+}
+function lblX2(){(S._labelData||[]).forEach(function(v,i){v._printQty=Math.max(1,(v._printQty||1)*2);var inp=document.getElementById('lbl'+i);if(inp)inp.value=v._printQty});lblRecalc()}
+function lblReset(){(S._labelData||[]).forEach(function(v,i){v._printQty=1;var inp=document.getElementById('lbl'+i);if(inp)inp.value=1});lblRecalc()}
+function lblCSV(){location.href='products.php?ajax=export_labels&product_id='+S._labelProductId+'&format=csv'}
+function lblPrint(idx){
+    var d=S._labelData||[];
+    var p=S._labelProduct||{};
+    var pm=S._labelPrintMode||'eur';
+    var items=[];
+    if(idx===-1){d.forEach(function(v,i){if(v._printQty>0)items.push({v:v,qty:v._printQty})})}
+    else if(d[idx]){items.push({v:d[idx],qty:d[idx]._printQty||1})}
+    if(!items.length){showToast('Няма етикети','error');return}
+    var price=parseFloat(p.retail_price)||0;
+    var priceBGN=(price*1.95583).toFixed(2);
+    var barcode=p.barcode||('200'+String(p.id||0).padStart(9,'0'));
+    var name=p.name||'';
+    var code=p.code||'';
+    var fmtEur=function(v){return v.toFixed(2).replace('.',',')+' \u20ac'};
+    var fmtBgn=function(v){return parseFloat(v).toFixed(2).replace('.',',')+' \u043b\u0432'};
+    var labels=[];
+    items.forEach(function(item){for(var q=0;q<item.qty;q++){labels.push({size:item.v.size||'',color:item.v.color||'',barcode:item.v.barcode||barcode})}});
+    var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Labels</title>';
+    html+='<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>';
+    html+='<style>@page{size:50mm 30mm;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;color:#000}.label{width:50mm;height:30mm;padding:1.5mm 2mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;overflow:hidden}.l-top{display:flex;gap:1.5mm;align-items:flex-start}.l-name{font-size:7pt;font-weight:700;line-height:1.15}.l-code{font-size:5pt;color:#555;margin-top:0.3mm}.l-mid{display:flex;align-items:center;gap:1.5mm}.l-sz{background:#000;color:#fff;font-size:10pt;font-weight:700;padding:0.5mm 2.5mm;border-radius:1mm}.l-clr{font-size:7pt;color:#333}.l-dash{border-top:0.3mm dashed #aaa;padding-top:0.8mm}.l-pr{display:flex;align-items:baseline;gap:1.5mm}.l-eur{font-size:12pt;font-weight:700}.l-bgn{font-size:8pt;font-weight:600;color:#444}.l-eur-only{font-size:14pt;font-weight:700;text-align:center}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>';
+    labels.forEach(function(lb,i){
+        html+='<div class="label"><div class="l-top"><svg id="bc'+i+'" style="width:18mm;height:8mm;flex-shrink:0"></svg><div><div class="l-name">'+name+'</div><div class="l-code">'+code+' \u00b7 '+lb.barcode+'</div></div></div>';
+        if(pm==='noprice'){
+            html+='<div style="display:flex;align-items:center;gap:2mm;justify-content:center;flex:1">';
+            if(lb.size)html+='<div class="l-sz" style="font-size:16pt;padding:1mm 4mm">'+lb.size+'</div>';
+            if(lb.color)html+='<span style="font-size:10pt">'+lb.color+'</span>';
+            html+='</div>';
+        }else{
+            html+='<div class="l-mid">';if(lb.size)html+='<div class="l-sz">'+lb.size+'</div>';if(lb.color)html+='<span class="l-clr">'+lb.color+'</span>';html+='</div>';
+            html+='<div class="l-dash">';
+            if(pm==='dual')html+='<div class="l-pr"><span class="l-eur">'+fmtEur(price)+'</span><span style="color:#aaa;font-size:6pt">|</span><span class="l-bgn">'+fmtBgn(priceBGN)+'</span></div>';
+            else html+='<div class="l-eur-only">'+fmtEur(price)+'</div>';
+            html+='</div>';
+        }
+        html+='</div>';
+    });
+    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script></body></html>';
+    var w=window.open('','_blank','width=400,height=600');
+    if(w){w.document.write(html);w.document.close()}else showToast('Позволи pop-up','error');
 }
 
 // S43+S50+S50b: openImageStudio — full AI Studio in drawer (same as wizard step 2)
