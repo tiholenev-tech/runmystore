@@ -204,13 +204,14 @@ function getInsightsForModule(int $tenantId, int $storeId, int $userId, string $
 function getGhostPills(int $tenantId, int $storeId, int $userId, string $plan): array {
     // FREE = 1 на седмица, START = 1 на ден
     $cooldownHours = ($plan === 'free') ? 168 : 24;
+    $cutoff = date('Y-m-d H:i:s', time() - $cooldownHours * 3600);
     
     // Проверка: имало ли е ghost pill скоро
     $recent = DB::run(
         "SELECT COUNT(*) FROM ai_shown 
          WHERE tenant_id=? AND user_id=? AND topic_id LIKE 'ghost:%' 
-         AND shown_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)",
-        [$tenantId, $userId, $cooldownHours]
+         AND shown_at >= ?",
+        [$tenantId, $userId, $cutoff]
     )->fetchColumn();
     
     if ($recent > 0) return [];
@@ -240,15 +241,15 @@ function getGhostPills(int $tenantId, int $storeId, int $userId, string $plan): 
  * 3 компонента:
  * - Stock accuracy (40%): % потвърдени артикули в последните 30 дни
  * - Data freshness (30%): обратно на avg дни от последен zone walk
- * - AI confidence (30%): средна confidence на всички продукти
+ * - AI confidence (30%): средна confidence_score на всички продукти
  * 
  * @return int 0-100
  */
 function storeHealth(int $tenantId, int $storeId): int {
     try {
         $totalProducts = DB::run(
-            "SELECT COUNT(*) FROM products WHERE store_id=? AND is_active=1",
-            [$storeId]
+            "SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1",
+            [$tenantId]
         )->fetchColumn();
         
         if ($totalProducts == 0) return 0;
@@ -264,7 +265,6 @@ function storeHealth(int $tenantId, int $storeId): int {
             )->fetchColumn();
             $accuracy = min(100, ($checkedRecently / $totalProducts) * 100);
         } catch (PDOException $e) {
-            // inventory_checks може да няма тези колони още
             $accuracy = 0;
         }
         
@@ -283,12 +283,12 @@ function storeHealth(int $tenantId, int $storeId): int {
             $freshness = 0;
         }
         
-        // 3. AI confidence: средна стойност
+        // 3. AI confidence: средна стойност на confidence_score (0-100)
         $confidence = 0;
         try {
             $avgConf = DB::run(
-                "SELECT AVG(COALESCE(confidence, 0)) FROM products WHERE store_id=? AND is_active=1",
-                [$storeId]
+                "SELECT AVG(COALESCE(confidence_score, 0)) FROM products WHERE tenant_id=? AND is_active=1",
+                [$tenantId]
             )->fetchColumn();
             $confidence = $avgConf ?: 0;
         } catch (PDOException $e) {
