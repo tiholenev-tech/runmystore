@@ -216,7 +216,7 @@ function postValidate(string $response): string
     );
 
     // ── 5. ЗАБРАНЕН ЖАРГОН ────────────────────────────────────
-    $response = preg_replace('/\b(брат|братле|машино)\b/ui', '', $response);
+    $response = preg_replace('/\b(брат|братле|братовчед|братко|бате|батко|шефе|бос|boss|приятел|приятелю|колега|друже|момче|готин си|яко бе|кеф|машино)\b/ui', '', $response);
     $response = preg_replace('/(разбихме ги|избихме рибата|сипи си едно|бачкаме за слава)/ui', '', $response);
     $response = preg_replace('/Как мога да помогна\??/ui', '', $response);
     $response = preg_replace('/Разбира се!/ui', '', $response);
@@ -407,7 +407,7 @@ function detectAppliedFilters(string $raw, string $filtered): array
     if (preg_match('/(данъчн|данъци|НАП|незаконно)/ui', $raw))                    $f[] = 'legal_replaced';
     if (preg_match('/([\-\x{2212}]\s*[3-9]\d)\s*%/u', $raw))                     $f[] = 'discount_capped';
     if (preg_match('/(\+\s*(?:1[6-9]|[2-9]\d))\s*%/u', $raw))                    $f[] = 'price_increase_capped';
-    if (preg_match('/\b(брат|братле|машино)\b/ui', $raw))                         $f[] = 'slang_removed';
+    if (preg_match('/\b(брат|братле|братовчед|братко|бате|батко|шефе|бос|boss|приятел|приятелю|колега|друже|момче|готин си|яко бе|кеф|машино)\b/ui', $raw))                         $f[] = 'slang_removed';
     if (empty($f)) $f[] = 'text_cleaned';
     return $f;
 }
