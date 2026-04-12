@@ -1,12 +1,17 @@
 <?php
 /**
- * chat.php — RunMyStore.ai Home Dashboard v5.3
- * S40 — Period tabs (Днес/7д/30д/365д) linked to big number
- *        Оборот/Печалба toggle works per period
- *        Loss chips per category + tap → AI chat
+ * chat.php — RunMyStore.ai Dashboard + AI Chat v7.0
+ * S56 — FULL REWRITE per CHAT_PHP_SPEC_v7.md
+ *
+ * Затворен: Revenue карта + AI ТОЧНОСТ + AI Брифинг bubble + input бар
+ * Отворен:  72% overlay, чист чат (WhatsApp стил), blur фон
+ *
+ * Закон №2: PHP смята, Gemini говори. Pills/Signals = чист PHP+SQL.
  */
 session_start();
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/helpers.php';
+
 if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
 $tenant_id = (int)$_SESSION['tenant_id'];
@@ -15,6 +20,7 @@ $store_id  = (int)($_SESSION['store_id'] ?? 0);
 $role      = $_SESSION['role'] ?? 'seller';
 $user_name = $_SESSION['user_name'] ?? '';
 
+// Store switch via GET
 if (!empty($_GET['store'])) {
     $chk = DB::run('SELECT id FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
         [(int)$_GET['store'], $tenant_id])->fetch();
@@ -22,303 +28,175 @@ if (!empty($_GET['store'])) {
     header('Location: chat.php'); exit;
 }
 
-// Fallback: if no store_id in session, pick first store
+// Fallback: pick first store
 if (!$store_id) {
     $first = DB::run('SELECT id FROM stores WHERE tenant_id=? ORDER BY id LIMIT 1', [$tenant_id])->fetch();
     if ($first) { $store_id = (int)$first['id']; $_SESSION['store_id'] = $store_id; }
 }
 
+// ══════════════════════════════════════════════
+// TENANT, PLAN, STORE
+// ══════════════════════════════════════════════
 $tenant = DB::run('SELECT * FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
 $cs = htmlspecialchars($tenant['currency'] ?? '€');
+$plan = effectivePlan($tenant);
 
-$plan = 'FREE';
-try {
-    $sub = DB::run('SELECT plan FROM subscriptions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 1',
-        [$tenant_id])->fetch();
-    if ($sub) $plan = strtoupper($sub['plan'] ?? 'FREE');
-} catch (Exception $e) {}
-if (!in_array($plan, ['FREE','BUSINESS','PRO','ENTERPRISE'])) $plan = 'FREE';
-
-$store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
-    [$store_id, $tenant_id])->fetch();
+$store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1', [$store_id, $tenant_id])->fetch();
 $store_name = $store['name'] ?? 'Магазин';
-$all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name',
-    [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+$all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name', [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
 
-function fmtMoney($v, $cs) { return number_format((float)$v, 0, ',', '.') . ($cs ? ' '.$cs : ''); }
+// S56: silent geolocation from IP
+autoGeolocateStore($store_id);
 
-$total_products = (int)DB::run(
-    'SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1', [$tenant_id])->fetchColumn();
-$with_cost = (int)DB::run(
-    'SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0',
-    [$tenant_id])->fetchColumn();
-$confidence_pct = $total_products > 0 ? round($with_cost / $total_products * 100) : 0;
+// Plan badge colors
+$plan_colors = match($plan) {
+    'pro'   => ['bg' => 'rgba(192,132,252,.15)', 'br' => 'rgba(192,132,252,.3)', 'tx' => '#c084fc'],
+    'start' => ['bg' => 'rgba(99,102,241,.15)',  'br' => 'rgba(99,102,241,.3)',  'tx' => '#818cf8'],
+    default => ['bg' => 'rgba(107,114,128,.15)', 'br' => 'rgba(107,114,128,.3)', 'tx' => '#9ca3af'],
+};
+$plan_label = strtoupper($plan);
 
 // ══════════════════════════════════════════════
-// REVENUE + PROFIT — ALL PERIODS
+// REVENUE — ALL PERIODS
 // ══════════════════════════════════════════════
-function periodData($tenant_id, $store_id, $role, $date_from, $date_to = null) {
-    $date_to = $date_to ?? date('Y-m-d');
+function periodData($tid, $sid, $r, $from, $to = null) {
+    $to = $to ?? date('Y-m-d');
     $rev = (float)DB::run(
-        'SELECT COALESCE(SUM(total),0) FROM sales
-         WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=?
-         AND DATE(created_at)<=? AND status!="canceled"',
-        [$tenant_id, $store_id, $date_from, $date_to])->fetchColumn();
+        'SELECT COALESCE(SUM(total),0) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
     $cnt = (int)DB::run(
-        'SELECT COUNT(*) FROM sales
-         WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=?
-         AND DATE(created_at)<=? AND status!="canceled"',
-        [$tenant_id, $store_id, $date_from, $date_to])->fetchColumn();
+        'SELECT COUNT(*) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
     $profit = 0;
-    if ($role === 'owner' && $cnt > 0) {
+    if ($r === 'owner' && $cnt > 0) {
         $profit = (float)DB::run(
-            'SELECT COALESCE(SUM(si.quantity*(si.unit_price-COALESCE(si.cost_price,0))),0)
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id
-             WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)>=?
-             AND DATE(s.created_at)<=? AND s.status!="canceled"',
-            [$tenant_id, $store_id, $date_from, $date_to])->fetchColumn();
+            'SELECT COALESCE(SUM(si.quantity*(si.unit_price - COALESCE(si.cost_price,0))),0) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)>=? AND DATE(s.created_at)<=? AND s.status!="canceled"',
+            [$tid, $sid, $from, $to])->fetchColumn();
     }
     return ['rev' => $rev, 'profit' => $profit, 'cnt' => $cnt];
 }
-
 function cmpPct($a, $b) { return $b > 0 ? round(($a - $b) / $b * 100) : ($a > 0 ? 100 : 0); }
+function mgn($p) { return $p['rev'] > 0 ? round($p['profit'] / $p['rev'] * 100) : 0; }
 
 $today = date('Y-m-d');
 $d0  = periodData($tenant_id, $store_id, $role, $today, $today);
-$d0p = periodData($tenant_id, $store_id, $role,
-    date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
-
+$d0p = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
 $d7  = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-6 days')), $today);
-$d7p = periodData($tenant_id, $store_id, $role,
-    date('Y-m-d', strtotime('-13 days')), date('Y-m-d', strtotime('-7 days')));
-
+$d7p = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-13 days')), date('Y-m-d', strtotime('-7 days')));
 $d30  = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-29 days')), $today);
-$d30p = periodData($tenant_id, $store_id, $role,
-    date('Y-m-d', strtotime('-59 days')), date('Y-m-d', strtotime('-30 days')));
-
+$d30p = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-59 days')), date('Y-m-d', strtotime('-30 days')));
 $d365  = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-364 days')), $today);
-$d365p = periodData($tenant_id, $store_id, $role,
-    date('Y-m-d', strtotime('-729 days')), date('Y-m-d', strtotime('-365 days')));
-
-function mgn($p) { return $p['rev'] > 0 ? round($p['profit'] / $p['rev'] * 100) : 0; }
-
-$dow_names = ['','понеделник','вторник','сряда','четвъртък','петък','събота','неделя'];
-$dow = (int)date('N');
-
-$top_product = DB::run(
-    'SELECT p.name, SUM(si.quantity) AS qty FROM sale_items si
-     JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id
-     WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)=CURDATE() AND s.status!="canceled"
-     GROUP BY si.product_id ORDER BY qty DESC LIMIT 1',
-    [$tenant_id, $store_id])->fetch();
+$d365p = periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-729 days')), date('Y-m-d', strtotime('-365 days')));
 
 $periods_json = json_encode([
     'today' => [
-        'rev'    => round($d0['rev']),   'profit' => round($d0['profit']),
-        'cnt'    => $d0['cnt'],          'margin' => mgn($d0),
-        'cmp_rev'  => cmpPct($d0['rev'],    $d0p['rev']),
-        'cmp_prof' => cmpPct($d0['profit'], $d0p['profit']),
-        'label'  => 'Спрямо вчера',
-        'sub_rev'  => fmtMoney(round($d0p['rev']),'') . ' → ' . fmtMoney(round($d0['rev']),''),
-        'sub_prof' => fmtMoney(round($d0p['profit']),'') . ' → ' . fmtMoney(round($d0['profit']),''),
+        'rev' => round($d0['rev']), 'profit' => round($d0['profit']), 'cnt' => $d0['cnt'], 'margin' => mgn($d0),
+        'cmp_rev' => cmpPct($d0['rev'], $d0p['rev']), 'cmp_prof' => cmpPct($d0['profit'], $d0p['profit']),
+        'label' => 'Спрямо вчера',
+        'sub_rev' => fmtMoney(round($d0p['rev']), '') . ' → ' . fmtMoney(round($d0['rev']), ''),
+        'sub_prof' => fmtMoney(round($d0p['profit']), '') . ' → ' . fmtMoney(round($d0['profit']), ''),
     ],
     '7d' => [
-        'rev'    => round($d7['rev']),   'profit' => round($d7['profit']),
-        'cnt'    => $d7['cnt'],          'margin' => mgn($d7),
-        'cmp_rev'  => cmpPct($d7['rev'],    $d7p['rev']),
-        'cmp_prof' => cmpPct($d7['profit'], $d7p['profit']),
-        'label'  => 'Спрямо предишните 7 дни',
-        'sub_rev'  => fmtMoney(round($d7p['rev']),'') . ' → ' . fmtMoney(round($d7['rev']),''),
-        'sub_prof' => fmtMoney(round($d7p['profit']),'') . ' → ' . fmtMoney(round($d7['profit']),''),
+        'rev' => round($d7['rev']), 'profit' => round($d7['profit']), 'cnt' => $d7['cnt'], 'margin' => mgn($d7),
+        'cmp_rev' => cmpPct($d7['rev'], $d7p['rev']), 'cmp_prof' => cmpPct($d7['profit'], $d7p['profit']),
+        'label' => 'Спрямо предишните 7 дни',
+        'sub_rev' => fmtMoney(round($d7p['rev']), '') . ' → ' . fmtMoney(round($d7['rev']), ''),
+        'sub_prof' => fmtMoney(round($d7p['profit']), '') . ' → ' . fmtMoney(round($d7['profit']), ''),
     ],
     '30d' => [
-        'rev'    => round($d30['rev']),  'profit' => round($d30['profit']),
-        'cnt'    => $d30['cnt'],         'margin' => mgn($d30),
-        'cmp_rev'  => cmpPct($d30['rev'],    $d30p['rev']),
-        'cmp_prof' => cmpPct($d30['profit'], $d30p['profit']),
-        'label'  => 'Спрямо предишните 30 дни',
-        'sub_rev'  => fmtMoney(round($d30p['rev']),'') . ' → ' . fmtMoney(round($d30['rev']),''),
-        'sub_prof' => fmtMoney(round($d30p['profit']),'') . ' → ' . fmtMoney(round($d30['profit']),''),
+        'rev' => round($d30['rev']), 'profit' => round($d30['profit']), 'cnt' => $d30['cnt'], 'margin' => mgn($d30),
+        'cmp_rev' => cmpPct($d30['rev'], $d30p['rev']), 'cmp_prof' => cmpPct($d30['profit'], $d30p['profit']),
+        'label' => 'Спрямо предишните 30 дни',
+        'sub_rev' => fmtMoney(round($d30p['rev']), '') . ' → ' . fmtMoney(round($d30['rev']), ''),
+        'sub_prof' => fmtMoney(round($d30p['profit']), '') . ' → ' . fmtMoney(round($d30['profit']), ''),
     ],
     '365d' => [
-        'rev'    => round($d365['rev']), 'profit' => round($d365['profit']),
-        'cnt'    => $d365['cnt'],        'margin' => mgn($d365),
-        'cmp_rev'  => cmpPct($d365['rev'],    $d365p['rev']),
-        'cmp_prof' => cmpPct($d365['profit'], $d365p['profit']),
-        'label'  => 'Спрямо предишните 365 дни',
-        'sub_rev'  => fmtMoney(round($d365p['rev']),'') . ' → ' . fmtMoney(round($d365['rev']),''),
-        'sub_prof' => fmtMoney(round($d365p['profit']),'') . ' → ' . fmtMoney(round($d365['profit']),''),
+        'rev' => round($d365['rev']), 'profit' => round($d365['profit']), 'cnt' => $d365['cnt'], 'margin' => mgn($d365),
+        'cmp_rev' => cmpPct($d365['rev'], $d365p['rev']), 'cmp_prof' => cmpPct($d365['profit'], $d365p['profit']),
+        'label' => 'Спрямо предишните 365 дни',
+        'sub_rev' => fmtMoney(round($d365p['rev']), '') . ' → ' . fmtMoney(round($d365['rev']), ''),
+        'sub_prof' => fmtMoney(round($d365p['profit']), '') . ' → ' . fmtMoney(round($d365['profit']), ''),
     ],
 ], JSON_UNESCAPED_UNICODE);
 
 // ══════════════════════════════════════════════
-// LOSS CHIPS — PER CATEGORY
+// CONFIDENCE (for revenue card warning)
 // ══════════════════════════════════════════════
-$loss_chips = [];
+$total_products = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1', [$tenant_id])->fetchColumn();
+$with_cost = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0', [$tenant_id])->fetchColumn();
+$confidence_pct = $total_products > 0 ? round($with_cost / $total_products * 100) : 0;
 
-// 1. Zero stock per category (had sales in last 30 days) → RED
-$zero_by_cat = DB::run(
-    'SELECT COALESCE(c.name,"Без категория") AS cat, COUNT(DISTINCT p.id) AS cnt
-     FROM products p
-     JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-     LEFT JOIN categories c ON c.id=p.category_id
-     WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0
-     AND p.id IN (
-         SELECT si.product_id FROM sale_items si JOIN sales s ON s.id=si.sale_id
-         WHERE s.tenant_id=? AND s.store_id=? AND s.status!="canceled"
-         AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-     )
-     GROUP BY c.id, c.name ORDER BY cnt DESC LIMIT 15',
-    [$store_id, $tenant_id, $tenant_id, $store_id])->fetchAll(PDO::FETCH_ASSOC);
+// ══════════════════════════════════════════════
+// STORE HEALTH (AI ТОЧНОСТ bar)
+// ══════════════════════════════════════════════
+$health = 0;
+try { $health = storeHealth($tenant_id, $store_id); } catch (Exception $e) {}
 
-$zero_stock_total = 0;
-foreach ($zero_by_cat as $row) {
-    $zero_stock_total += (int)$row['cnt'];
-    $cat = $row['cat'];
-    $q = 'Кои ' . mb_strtolower($cat) . ' са на нула наличност?';
-    $loss_chips[] = ['type'=>'red', 'num'=>(int)$row['cnt'], 'text'=>'на нула · '.$cat, 'q'=>$q];
+// ══════════════════════════════════════════════
+// AI INSIGHTS (Briefing bubble)
+// ══════════════════════════════════════════════
+$insights = [];
+$ghost_pills = [];
+try {
+    if (planAtLeast($plan, 'pro')) {
+        $insights = getInsightsForModule($tenant_id, $store_id, $user_id, 'home', $plan, $role);
+    } else {
+        $ghost_pills = getGhostPills($tenant_id, $store_id, $user_id, $plan);
+    }
+} catch (Exception $e) {}
+
+$briefing = array_slice($insights, 0, 3);
+$remaining = max(0, count($insights) - 3);
+
+// Generate action buttons from insights
+function insightBtns(array $insight): array {
+    $tid = $insight['topic_id'] ?? '';
+    $btns = [];
+    if (str_contains($tid, 'zero_stock')) $btns[] = ['t' => 'Покажи на нула', 'q' => 'Кои артикули са на нула?'];
+    if (str_contains($tid, 'below_cost')) $btns[] = ['t' => 'Коригирай цена', 'q' => 'Кои артикули се продават под себестойност?'];
+    if (str_contains($tid, 'zombie'))     $btns[] = ['t' => 'Покажи zombie', 'q' => 'Покажи zombie стоката'];
+    if (str_contains($tid, 'no_photo'))   $btns[] = ['t' => 'Без снимка', 'q' => 'Кои артикули нямат снимка?'];
+    if (str_contains($tid, 'top_profit')) $btns[] = ['t' => 'Топ печалба', 'q' => 'Най-печелившите артикули?'];
+    if (str_contains($tid, 'low_stock'))  $btns[] = ['t' => 'Ниски наличности', 'q' => 'Кои артикули са под минимума?'];
+    if (empty($btns)) $btns[] = ['t' => 'Разкажи повече', 'q' => $insight['title'] ?? 'Разкажи повече'];
+    return $btns;
 }
 
-// 2. Below cost per category → RED (owner only)
-$below_cost_total = 0;
-if ($role === 'owner') {
-    $below_by_cat = DB::run(
-        'SELECT COALESCE(c.name,"Без категория") AS cat, COUNT(*) AS cnt
-         FROM products p
-         LEFT JOIN categories c ON c.id=p.category_id
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.cost_price>0 AND p.retail_price < p.cost_price
-         GROUP BY c.id, c.name ORDER BY cnt DESC LIMIT 10',
-        [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($below_by_cat as $row) {
-        $below_cost_total += (int)$row['cnt'];
-        $cat = $row['cat'];
-        $q = 'Кои ' . mb_strtolower($cat) . ' се продават под себестойност?';
-        $loss_chips[] = ['type'=>'red', 'num'=>(int)$row['cnt'], 'text'=>'под цена · '.$cat, 'q'=>$q];
+// Collect unique action buttons (max 3)
+$action_btns = [];
+foreach ($briefing as $ins) {
+    foreach (insightBtns($ins) as $b) {
+        $key = $b['q'];
+        if (!isset($action_btns[$key]) && count($action_btns) < 3) {
+            $action_btns[$key] = $b;
+        }
     }
 }
 
-// 3. Zombie stock per category (45+ days) → YELLOW
-$zombie_by_cat = DB::run(
-    'SELECT COALESCE(c.name,"Без категория") AS cat,
-            COUNT(*) AS cnt,
-            COALESCE(SUM(i.quantity * COALESCE(p.cost_price, p.retail_price * 0.6)), 0) AS val
-     FROM inventory i
-     JOIN products p ON p.id = i.product_id
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE i.store_id=? AND p.tenant_id=? AND i.quantity>0 AND p.is_active=1 AND p.parent_id IS NULL
-     AND DATEDIFF(NOW(), COALESCE(
-         (SELECT MAX(s2.created_at) FROM sales s2
-          JOIN sale_items si2 ON si2.sale_id=s2.id
-          WHERE si2.product_id=p.id AND s2.store_id=i.store_id AND s2.status!="canceled"),
-         p.created_at
-     )) >= 45
-     GROUP BY c.id, c.name ORDER BY val DESC LIMIT 12',
-    [$store_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-
-$zombie_total = 0; $zombie_val_total = 0;
-foreach ($zombie_by_cat as $row) {
-    $zombie_total += (int)$row['cnt'];
-    $zombie_val_total += (float)$row['val'];
-    $cat = $row['cat'];
-    $q = 'Кои ' . mb_strtolower($cat) . ' са zombie стока?';
-    $loss_chips[] = ['type'=>'yellow',
-        'num' => fmtMoney(round((float)$row['val']), $cs),
-        'text'=> 'zombie · '.$cat, 'q'=>$q];
-}
-
-// 4. Low stock per category → YELLOW (min_quantity is on products table)
-$low_by_cat = DB::run(
-    'SELECT COALESCE(c.name,"Без категория") AS cat, COUNT(*) AS cnt
-     FROM inventory i
-     JOIN products p ON p.id = i.product_id
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE i.store_id=? AND p.tenant_id=? AND i.quantity <= p.min_quantity
-     AND p.min_quantity > 0 AND p.is_active=1
-     GROUP BY c.id, c.name ORDER BY cnt DESC LIMIT 10',
-    [$store_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-
-$low_stock_total = 0;
-foreach ($low_by_cat as $row) {
-    $low_stock_total += (int)$row['cnt'];
-    $cat = $row['cat'];
-    $q = 'Кои ' . mb_strtolower($cat) . ' са под минималното количество?';
-    $loss_chips[] = ['type'=>'yellow', 'num'=>(int)$row['cnt'], 'text'=>'ниски · '.$cat, 'q'=>$q];
-}
-
-// 5. Invoices due → BLUE (owner/manager)
-if ($role !== 'seller') {
-    try {
-        $due = DB::run(
-            'SELECT COUNT(*) AS cnt, COALESCE(SUM(total_amount),0) AS total
-             FROM invoices WHERE tenant_id=? AND status="unpaid"
-             AND due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)',
-            [$tenant_id])->fetch();
-        if ((int)$due['cnt'] > 0) {
-            $loss_chips[] = ['type'=>'blue',
-                'num'  => fmtMoney(round((float)$due['total']), $cs),
-                'text' => 'падеж фактури',
-                'q'    => 'Кои фактури падежират скоро?'];
-        }
-    } catch (Exception $e) {}
+// Urgency colors
+function urgencyClass(string $u): string {
+    return match($u) { 'critical' => 'sig-critical', 'warning' => 'sig-warning', default => 'sig-info' };
 }
 
 // ══════════════════════════════════════════════
-// BADGES FOR 4 BUTTONS
+// GREETING
 // ══════════════════════════════════════════════
-$badge_delivery = 0;
-try {
-    $badge_delivery = (int)DB::run(
-        'SELECT COUNT(*) FROM invoices WHERE tenant_id=? AND status="unpaid"',
-        [$tenant_id])->fetchColumn();
-} catch (Exception $e) {}
-$badge_products = $zero_stock_total;
-
-// ══════════════════════════════════════════════
-// SIGNAL CARDS
-// ══════════════════════════════════════════════
-$signals = [];
-if ($zero_stock_total > 0)
-    $signals[] = ['color'=>'red',    'title'=>'Нулева наличност',
-        'desc'=>$zero_stock_total.' топ артикула на 0 бр.', 'pulse'=>true,
-        'q'=>'Покажи артикулите с нулева наличност'];
-if ($role === 'owner' && $below_cost_total > 0)
-    $signals[] = ['color'=>'red',    'title'=>'Под себестойност',
-        'desc'=>$below_cost_total.' артикула се продават под цена.', 'pulse'=>true,
-        'q'=>'Кои артикули се продават под себестойност?'];
-if ($zombie_total > 0)
-    $signals[] = ['color'=>'yellow', 'title'=>'Zombie стока',
-        'desc'=>$zombie_total.' арт. стоят 45+ дни. '.fmtMoney(round($zombie_val_total), $cs).'.', 'pulse'=>false,
-        'q'=>'Покажи zombie стоката — артикули без продажба 45+ дни'];
-if ($low_stock_total > 0)
-    $signals[] = ['color'=>'yellow', 'title'=>'Ниски наличности',
-        'desc'=>$low_stock_total.' артикула под минимума.', 'pulse'=>false,
-        'q'=>'Кои артикули са под минималното количество за поръчка?'];
-if ($role !== 'seller') {
-    try {
-        $pend = (int)DB::run(
-            'SELECT COUNT(*) FROM deliveries WHERE tenant_id=? AND status="pending"',
-            [$tenant_id])->fetchColumn();
-        if ($pend > 0)
-            $signals[] = ['color'=>'blue', 'title'=>'Доставки в път',
-                'desc'=>$pend.' доставки чакат приемане.', 'pulse'=>false,
-                'q'=>'Кои доставки чакат приемане?'];
-    } catch (Exception $e) {}
-}
+$hour = (int)date('H');
+$greeting = match(true) {
+    $hour >= 5 && $hour < 12 => 'Добро утро',
+    $hour >= 12 && $hour < 18 => 'Добър ден',
+    default => 'Добър вечер'
+};
+if ($user_name) $greeting .= ', ' . htmlspecialchars($user_name);
+$greeting .= '!';
 
 // ══════════════════════════════════════════════
 // CHAT HISTORY
 // ══════════════════════════════════════════════
 $chat_messages = DB::run(
-    'SELECT role, content, created_at FROM chat_messages
-     WHERE tenant_id=? AND store_id=? ORDER BY created_at ASC LIMIT 50',
+    'SELECT role, content, created_at FROM chat_messages WHERE tenant_id=? AND store_id=? ORDER BY created_at ASC LIMIT 50',
     [$tenant_id, $store_id])->fetchAll(PDO::FETCH_ASSOC);
 
-$plan_colors = match($plan) {
-    'BUSINESS'   => ['bg'=>'rgba(99,102,241,.15)',  'br'=>'rgba(99,102,241,.3)',  'tx'=>'#818cf8'],
-    'PRO'        => ['bg'=>'rgba(168,85,247,.15)',  'br'=>'rgba(168,85,247,.3)',  'tx'=>'#c084fc'],
-    'ENTERPRISE' => ['bg'=>'rgba(234,179,8,.15)',   'br'=>'rgba(234,179,8,.3)',   'tx'=>'#fbbf24'],
-    default      => ['bg'=>'rgba(107,114,128,.15)', 'br'=>'rgba(107,114,128,.3)', 'tx'=>'#9ca3af'],
-};
 ?><!DOCTYPE html>
 <html lang="bg">
 <head>
@@ -327,776 +205,748 @@ $plan_colors = match($plan) {
 <meta name="theme-color" content="#030712">
 <title>RunMyStore.ai</title>
 <style>
-:root {
-    --bg:#030712; --card:rgba(15,15,40,.75); --bdr:rgba(99,102,241,.15);
-    --bglow:rgba(99,102,241,.4); --i6:#4f46e5; --i5:#6366f1; --i4:#818cf8;
-    --i3:#a5b4fc; --tx:#f1f5f9; --muted:#6b7280;
-    --red:#ef4444; --yellow:#fbbf24; --green:#22c55e; --nav:56px;
-}
+:root{--bg:#030712;--nav:52px}
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html{background:var(--bg)}
-body{background:var(--bg);color:var(--tx);font-family:'Montserrat',Inter,system-ui,sans-serif;
+body{background:var(--bg);color:#f1f5f9;font-family:'Montserrat',Inter,system-ui,sans-serif;
     height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:var(--nav)}
 body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
-    width:600px;height:350px;
-    background:radial-gradient(ellipse,rgba(99,102,241,.1) 0%,transparent 70%);
+    width:600px;height:350px;background:radial-gradient(ellipse,rgba(99,102,241,.07)0%,transparent 70%);
     pointer-events:none;z-index:0}
-.main-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;z-index:1;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none}
-.main-scroll::-webkit-scrollbar{display:none}
 
 /* ── HEADER ── */
-.hdr{position:sticky;top:0;z-index:50;padding:10px 14px 0;
-    background:rgba(3,7,18,.93);backdrop-filter:blur(16px)}
-.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.hdr-brand{font-size:11px;font-weight:700;color:rgba(165,180,252,.6);letter-spacing:.3px}
-.hdr-right{display:flex;align-items:center;gap:6px}
-.plan-pill{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:.5px;
+.header{position:sticky;top:0;z-index:50;padding:10px 14px 8px;
+    background:rgba(3,7,18,.96);border-bottom:1px solid rgba(99,102,241,.07)}
+.header-top{display:flex;align-items:center;justify-content:space-between}
+.header-brand{font-size:10px;font-weight:700;color:rgba(165,180,252,.5);letter-spacing:.6px}
+.header-right{display:flex;align-items:center;gap:6px}
+.plan-badge{padding:3px 8px;border-radius:10px;font-size:7px;font-weight:700;letter-spacing:.3px;
     background:<?= $plan_colors['bg'] ?>;border:1px solid <?= $plan_colors['br'] ?>;color:<?= $plan_colors['tx'] ?>}
-.hdr-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
-    cursor:pointer;transition:background .2s;position:relative}
-.hdr-btn:active{background:rgba(99,102,241,.3)}
-.hdr-btn svg{width:14px;height:14px;color:var(--i4)}
-.logout-drop{position:absolute;top:34px;right:0;background:#0f0f2a;
+.simple-toggle{font-size:7px;color:rgba(165,180,252,.35);border:1px solid rgba(99,102,241,.08);
+    border-radius:10px;padding:2px 7px;cursor:pointer;text-decoration:none}
+.header-icon{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.03);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.header-icon svg{width:12px;height:12px;stroke:rgba(165,180,252,.35);fill:none;stroke-width:1.8}
+.logout-dropdown{position:absolute;top:28px;right:0;background:#0f0f2a;
     border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:8px 14px;white-space:nowrap;
-    z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:12px;color:#fca5a5;
+    z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:11px;color:#fca5a5;
     font-weight:600;cursor:pointer;display:none;text-decoration:none}
-.logout-drop.show{display:block}
+.logout-dropdown.show{display:block}
 
-/* ── LOSS CHIPS ── */
-.chips-row{display:flex;gap:6px;padding:6px 14px 10px;overflow-x:auto;
-    scrollbar-width:none;flex-shrink:0}
-.chips-row::-webkit-scrollbar{display:none}
-.chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:10px;
-    flex-shrink:0;cursor:pointer;white-space:nowrap;transition:transform .1s;
-    border:none;background:none;font-family:inherit;text-align:left}
-.chip:active{transform:scale(.95)}
-.chip-num{font-size:12px;font-weight:800}
-.chip-txt{font-size:10px;font-weight:600}
-.chip-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25)!important}
-.chip-red .chip-num{color:#f87171}.chip-red .chip-txt{color:rgba(248,113,113,.7)}
-.chip-yellow{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25)!important}
-.chip-yellow .chip-num{color:#fbbf24}.chip-yellow .chip-txt{color:rgba(251,191,36,.7)}
-.chip-blue{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25)!important}
-.chip-blue .chip-num{color:#818cf8}.chip-blue .chip-txt{color:rgba(129,140,248,.7)}
+/* ── MAIN SCROLL ── */
+.main-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;z-index:1;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;transition:opacity .3s}
+.main-scroll::-webkit-scrollbar{display:none}
 
-/* ── BIG NUMBER ── */
-.bnum-wrap{text-align:center;padding:16px 14px 6px}
-.bnum-label{font-size:10px;font-weight:700;text-transform:uppercase;
-    color:var(--muted);letter-spacing:1.5px;margin-bottom:4px}
-.bnum-value{font-size:46px;font-weight:900;line-height:1;
-    background:linear-gradient(90deg,#818cf8,#c7d2fe,#818cf8);background-size:200% auto;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    animation:shimmer 3s linear infinite}
-@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-.bnum-sub{font-size:12px;color:var(--muted);margin-top:4px;min-height:18px}
-.mode-pills{display:flex;justify-content:center;gap:6px;margin-top:10px}
-.mode-pill{padding:5px 14px;border-radius:14px;font-size:11px;font-weight:700;color:#4b5563;
-    background:rgba(15,15,40,.4);border:1px solid rgba(99,102,241,.1);
-    cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:4px}
-.mode-pill.active{color:#e2e8f0;
-    background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.15));
-    border-color:rgba(99,102,241,.3)}
-.conf-warn{display:inline-flex;align-items:center;justify-content:center;
-    width:16px;height:16px;border-radius:50%;background:rgba(251,191,36,.15);
-    color:#fbbf24;font-size:10px;font-weight:900;border:1px solid rgba(251,191,36,.3);
-    animation:dotpulse 2s infinite}
-.conf-note{display:flex;align-items:center;gap:6px;margin:8px auto 0;padding:6px 10px;
-    border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);
-    font-size:10px;color:#fcd34d;max-width:320px;justify-content:center}
-
-/* ── COMPARISON CARD ── */
-.cmp-card{margin:10px 14px 12px;background:var(--card);border:1px solid var(--bdr);
-    border-radius:16px;padding:14px;backdrop-filter:blur(12px);position:relative;overflow:hidden}
-.cmp-card::before{content:'';position:absolute;inset:0;border-radius:inherit;
-    background:linear-gradient(135deg,rgba(99,102,241,.06),transparent);pointer-events:none}
-.cmp-hdr{display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:8px;position:relative}
-.cmp-title{font-size:9px;font-weight:700;color:var(--i4);text-transform:uppercase;letter-spacing:.5px}
-.cmp-store-name{font-size:10px;font-weight:600;color:rgba(165,180,252,.5)}
-.cmp-store select{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
-    border-radius:8px;color:#a5b4fc;font-size:10px;font-weight:600;padding:3px 8px;
+/* ── REVENUE CARD ── */
+.revenue-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+    border-radius:14px;padding:12px 14px 10px;margin:10px 12px 0}
+.revenue-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px}
+.revenue-period-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.2);
+    text-transform:uppercase;letter-spacing:.5px}
+.revenue-store-name{font-size:8px;color:rgba(165,180,252,.3)}
+.revenue-store-name select{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
+    border-radius:8px;color:#a5b4fc;font-size:8px;font-weight:600;padding:2px 6px;
     font-family:inherit;cursor:pointer;outline:none}
-.cmp-top{display:flex;align-items:center;gap:14px;margin-bottom:10px;position:relative}
-.cmp-pct{font-size:26px;font-weight:900;line-height:1;flex-shrink:0}
-.cmp-pct.up{color:#4ade80}.cmp-pct.down{color:#f87171}.cmp-pct.zero{color:var(--muted)}
-.cmp-info{flex:1;min-width:0}
-.cmp-label{font-size:11px;font-weight:600;color:#d1d5db}
-.cmp-sub{font-size:10px;color:var(--muted);margin-top:2px}
-.cmp-bar-track{height:5px;border-radius:3px;background:rgba(255,255,255,.06);
-    margin-bottom:10px;overflow:hidden}
-.cmp-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
-.cmp-bar-fill.up{background:linear-gradient(90deg,#22c55e,#4ade80)}
-.cmp-bar-fill.down{background:linear-gradient(90deg,#ef4444,#f87171)}
-.cmp-bar-fill.zero{background:var(--muted)}
-.cmp-ai{display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;position:relative}
-.cmp-ai-badge{flex-shrink:0;padding:2px 6px;border-radius:6px;font-size:8px;font-weight:800;
-    color:var(--i4);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
-    letter-spacing:.5px}
-.cmp-ai-text{font-size:11px;color:#d1d5db;line-height:1.5}
+.revenue-number-row{display:flex;align-items:baseline;gap:6px}
+.revenue-number{font-size:28px;font-weight:800;color:#f1f5f9;letter-spacing:-1px}
+.revenue-currency{font-size:11px;color:#4b5563;font-weight:600}
+.revenue-change{font-size:16px;font-weight:800}
+.revenue-change.up{color:#4ade80}
+.revenue-change.down{color:#f87171}
+.revenue-change.zero{color:#4b5563}
+.revenue-comparison{font-size:8px;color:#4b5563;margin:1px 0 0}
+.revenue-meta{font-size:9px;color:#4b5563;margin-top:3px}
+.revenue-pills{display:flex;gap:0;margin-top:9px;align-items:center}
+.revenue-pill-group{display:flex;gap:3px}
+.revenue-pill{font-size:8px;padding:4px 9px;border-radius:10px;cursor:pointer;white-space:nowrap;
+    border:1px solid transparent;transition:all .2s}
+.revenue-pill.active{color:#e2e8f0;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.18)}
+.revenue-pill.inactive{color:#4b5563}
+.revenue-divider{width:1px;height:16px;background:rgba(255,255,255,.06);margin:0 6px}
+.confidence-warning{display:flex;align-items:center;gap:6px;margin:6px 0 0;padding:5px 8px;
+    border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);
+    font-size:9px;color:#fcd34d}
+.confidence-warning svg{width:12px;height:12px;stroke:#fbbf24;fill:none;stroke-width:2.5;flex-shrink:0}
 
-/* ── PERIOD TABS (4 tabs) ── */
-.period-tabs{display:flex;position:relative;background:rgba(15,15,40,.4);
-    border:1px solid rgba(99,102,241,.1);border-radius:14px;overflow:hidden}
-.period-slider{position:absolute;top:2px;bottom:2px;left:2px;width:calc(25% - 4px);
-    border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.15));
-    border:1px solid rgba(99,102,241,.3);transition:left .35s cubic-bezier(.4,0,.2,1)}
-.period-tab{flex:1;text-align:center;padding:10px 0;font-size:10px;font-weight:700;
-    color:#4b5563;cursor:pointer;position:relative;z-index:1;
-    display:flex;align-items:center;justify-content:center;gap:4px;transition:color .3s}
-.period-tab.active{color:#e2e8f0}
-.period-tab svg{width:12px;height:12px;opacity:.5;transition:opacity .3s}
-.period-tab.active svg{opacity:1}
-
-/* ── 4 BUTTONS ── */
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px;margin-bottom:14px}
-.main-btn{background:var(--card);border:1px solid var(--bdr);border-radius:16px;
-    padding:20px 14px 16px;cursor:pointer;position:relative;overflow:hidden;
-    backdrop-filter:blur(12px);text-decoration:none;display:block;transition:all .25s}
-.main-btn:active{transform:scale(.97)}
-.main-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;
-    background:linear-gradient(135deg,rgba(99,102,241,.06),transparent);pointer-events:none}
-.btn-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;
-    justify-content:center;margin-bottom:10px}
-.btn-icon svg{width:20px;height:20px}
-.btn-name{font-size:13px;font-weight:700;color:var(--tx)}
-.btn-desc{font-size:10px;color:var(--muted);margin-top:2px}
-.btn-badge{position:absolute;top:8px;right:10px;background:rgba(239,68,68,.15);
-    color:#ef4444;font-size:10px;font-weight:800;border-radius:10px;min-width:18px;height:18px;
-    display:flex;align-items:center;justify-content:center;padding:0 5px;
-    animation:pulse-red 2s infinite;z-index:2}
-@keyframes pulse-red{0%,100%{opacity:1;box-shadow:0 0 4px rgba(239,68,68,.3)}
-    50%{opacity:.7;box-shadow:0 0 12px rgba(239,68,68,.6)}}
+/* ── STORE HEALTH BAR ── */
+.health-bar{margin:8px 12px 4px;display:flex;align-items:center;gap:8px}
+.health-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:.5px;
+    text-transform:uppercase;white-space:nowrap}
+.health-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
+.health-fill{height:100%;border-radius:3px;
+    background:linear-gradient(90deg,#ef4444 0%,#f97316 25%,#eab308 50%,#84cc16 75%,#22c55e 100%)}
+.health-percent{font-size:9px;font-weight:700}
+.health-link{font-size:7px;color:#818cf8;white-space:nowrap;cursor:pointer}
 
 /* ── SEPARATOR ── */
-.sep{height:1px;margin:0 14px;
-    background:linear-gradient(to right,transparent,rgba(99,102,241,.25),transparent)}
+.separator{height:1px;margin:6px 12px;background:rgba(255,255,255,.04)}
 
-/* ── SIGNALS ── */
-.sigs{padding:14px}
-.sigs-title{font-size:10px;font-weight:700;color:var(--i4);text-transform:uppercase;
-    letter-spacing:1px;margin-bottom:10px}
-.sig-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;
-    background:var(--card);backdrop-filter:blur(12px);margin-bottom:8px;
-    cursor:pointer;transition:transform .15s;border:none;width:100%;text-align:left;
-    font-family:inherit}
-.sig-card:active{transform:scale(.98)}
-.sig-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.sig-body{flex:1;min-width:0}
-.sig-name{font-size:12px;font-weight:700}
-.sig-desc{font-size:12px;color:#d1d5db;margin-top:2px}
-.sig-link{color:var(--i4);font-weight:600;white-space:nowrap}
-.sig-red{border:1px solid rgba(239,68,68,.2)!important}
-.sig-red .sig-name{color:#fca5a5}
-.sig-red .sig-dot{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)}
-.sig-card .sig-dot{display:none}
-.sig-card::before{content:'';flex-shrink:0;width:22px;height:22px;background-size:contain;background-repeat:no-repeat}
-.sig-red::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M15 9l-6 6M9 9l6 6'/%3E%3C/svg%3E")}
-.sig-yellow::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E")}
-.sig-blue::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E")}
-.sig-yellow{border:1px solid rgba(251,191,36,.2)!important}
-.sig-yellow .sig-name{color:#fcd34d}
-.sig-yellow .sig-dot{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6)}
-.sig-blue{border:1px solid rgba(99,102,241,.2)!important}
-.sig-blue .sig-name{color:#a5b4fc}
-.sig-blue .sig-dot{background:#818cf8;box-shadow:0 0 8px rgba(99,102,241,.6)}
+/* ── AI META ── */
+.ai-meta{display:flex;align-items:center;gap:4px;margin:10px 12px 5px}
+.ai-meta svg{width:13px;height:13px;fill:none;stroke:#818cf8;stroke-width:1.5}
+.ai-meta-label{font-size:10px;color:#818cf8;font-weight:600}
+.ai-meta-time{font-size:9px;color:#4b5563}
 
-/* ── ASK AI ── */
-.ask-ai-wrap{position:fixed;bottom:62px;left:0;right:0;display:flex;justify-content:center;z-index:90;pointer-events:none}.ask-ai-btn{pointer-events:all}
-.ask-ai-btn{display:flex;align-items:center;gap:12px;padding:10px 24px;border-radius:20px;
-    background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.2);
-    cursor:pointer;backdrop-filter:blur(12px);transition:all .25s}
-.ask-ai-btn:active{transform:scale(.97)}
-.ask-ai-btn span{font-size:13px;font-weight:600;color:#a5b4fc}
-.ai-waves{display:flex;align-items:flex-end;gap:2px;height:18px}
-.ai-wave-bar{width:3px;border-radius:2px;background:currentColor;
-    animation:wave 1s ease-in-out infinite}
-@keyframes wave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+/* ── AI BUBBLE ── */
+.ai-bubble{max-width:92%;margin:0 12px;background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.05);border-radius:14px 14px 14px 3px;padding:10px 12px}
+.ai-bubble-text{font-size:11px;color:#d1d5db;line-height:1.4}
+.ai-bubble-text.with-signals{margin-bottom:7px}
 
-/* ── CHAT OVERLAY ── */
-.chat-ov{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,.6);
-    backdrop-filter:blur(8px);display:none;flex-direction:column;
-    align-items:center;justify-content:flex-end}
-.chat-ov.open{display:flex}
-.chat-panel{width:100%;height:80vh;max-width:500px;background:rgba(10,12,28,.97);
-    border:1px solid var(--bglow);border-radius:22px 22px 0 0;
-    display:flex;flex-direction:column;box-shadow:0 -12px 50px rgba(99,102,241,.25);
-    animation:slideup .25s ease;overflow:hidden}
-@keyframes slideup{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
-.chat-ph{display:flex;align-items:center;justify-content:space-between;
-    padding:14px 16px 10px;flex-shrink:0;border-bottom:1px solid var(--bdr)}
-.chat-ph-title{display:flex;align-items:center;gap:8px}
-.chat-avatar{width:28px;height:28px;border-radius:50%;
-    background:linear-gradient(135deg,#4f46e5,#9333ea);
-    display:flex;align-items:center;justify-content:center}
-.chat-avatar svg{width:14px;height:14px}
-.chat-ph-name{font-size:14px;font-weight:700;color:var(--i3)}
-.chat-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;
-    cursor:pointer;color:var(--muted);transition:background .2s}
-.chat-close:active{background:rgba(239,68,68,.3)}
-.chat-close svg{width:16px;height:16px}
-.chat-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;
-    gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.chat-msgs::-webkit-scrollbar{display:none}
-.chat-mg{display:flex;flex-direction:column;gap:4px}
-.chat-meta{font-size:9px;color:#4b5563;display:flex;align-items:center;gap:4px}
-.chat-meta.r{justify-content:flex-end}
-.chat-msg{max-width:82%;padding:8px 12px;font-size:13px;line-height:1.5;word-break:break-word}
-.ai-msg{background:rgba(15,20,40,.8);border:.5px solid rgba(99,102,241,.15);
-    color:#e2e8f0;border-radius:4px 14px 14px 14px;white-space:pre-wrap}
-.usr-msg{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
-    border-radius:14px 14px 4px 14px;margin-left:auto;border:.5px solid rgba(255,255,255,.1)}
-.chat-typing{display:none;padding:8px 12px;background:rgba(15,20,40,.8);
-    border:.5px solid rgba(99,102,241,.15);border-radius:4px 14px 14px 14px;width:fit-content}
-.typing-dots{display:flex;gap:4px;align-items:center}
-.typing-dot{width:5px;height:5px;border-radius:50%;background:#818cf8;
-    animation:bounce 1.2s infinite}
-.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
-@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-.chat-input-area{padding:8px 12px 12px;flex-shrink:0;border-top:1px solid var(--bdr)}
-.chat-input-row{display:flex;gap:6px;align-items:center;background:rgba(10,14,28,.9);
-    border-radius:20px;padding:4px 4px 4px 12px;border:.5px solid rgba(99,102,241,.2)}
-.chat-txt{flex:1;background:transparent;border:none;color:var(--tx);font-size:13px;
-    padding:8px 0;font-family:inherit;outline:none;resize:none;max-height:80px;line-height:1.4}
-.chat-txt::placeholder{color:#374151}
-.chat-voice{width:36px;height:36px;border-radius:50%;flex-shrink:0;position:relative;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
-    background:linear-gradient(135deg,#4f46e5,#9333ea);
-    box-shadow:0 0 12px rgba(99,102,241,.3);transition:all .2s}
-.chat-voice.rec{background:linear-gradient(135deg,#ef4444,#dc2626);
-    box-shadow:0 0 18px rgba(239,68,68,.5)}
-.chat-voice svg{width:16px;height:16px;color:#fff;z-index:1}
-.vring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);opacity:0}
-.chat-voice.rec .vring{border-color:rgba(255,255,255,.5)}
-.vr1{width:20px;height:20px;animation:rpulse 2s 0s ease-in-out infinite}
-.vr2{width:32px;height:32px;animation:rpulse 2s .3s ease-in-out infinite}
-.vr3{width:44px;height:44px;animation:rpulse 2s .6s ease-in-out infinite}
-@keyframes rpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
-.chat-send{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);
-    border:.5px solid rgba(255,255,255,.1);color:#fff;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s}
-.chat-send:disabled{opacity:.2}
-.chat-send svg{width:16px;height:16px}
-.rec-bar{display:none;align-items:center;gap:8px;padding:6px 12px;margin-bottom:6px;
-    background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px}
-.rec-bar.on{display:flex}
-.rec-dot-s{width:10px;height:10px;border-radius:50%;background:#ef4444;
-    animation:dotpulse 1s ease infinite;box-shadow:0 0 8px rgba(239,68,68,.6)}
-.rec-lbl{font-size:11px;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.5px}
-.rec-tr{font-size:12px;color:#e2e8f0;flex:1}
+/* ── SIGNAL CARDS (inside bubble) ── */
+.signal-card{padding:7px 10px;margin:5px 0 3px;border-left:3px solid;border-radius:8px}
+.sig-critical{border-color:#ef4444;background:rgba(239,68,68,.04)}
+.sig-warning{border-color:#fbbf24;background:rgba(251,191,36,.03)}
+.sig-info{border-color:#4ade80;background:rgba(34,197,94,.03)}
+.signal-title{font-size:11px;font-weight:600;line-height:1.3}
+.sig-critical .signal-title{color:#fca5a5}
+.sig-warning .signal-title{color:#fcd34d}
+.sig-info .signal-title{color:#86efac}
+.signal-body{font-size:10px;color:#6b7280;line-height:1.3;margin-top:1px}
+
+/* ── ACTION BUTTONS ── */
+.action-buttons{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.action-button{padding:5px 11px;border-radius:8px;font-size:9px;font-weight:600;
+    color:#a5b4fc;border:1px solid rgba(99,102,241,.15);background:transparent;
+    cursor:pointer;font-family:inherit;transition:background .15s}
+.action-button:active{background:rgba(99,102,241,.08)}
+.action-button-more{color:#4b5563;border-color:rgba(255,255,255,.06)}
+
+/* ── GHOST PILL ── */
+.ghost-pill{padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;
+    color:rgba(168,85,247,.4);border:1px dashed rgba(168,85,247,.2);background:transparent;
+    cursor:pointer;font-family:inherit;margin-top:6px}
+
+/* ── USER BUBBLE (dashboard history) ── */
+.user-row{display:flex;justify-content:flex-end;margin:10px 12px 4px;flex-direction:column;align-items:flex-end}
+.user-time{font-size:8px;color:#4b5563;margin-bottom:3px}
+.user-bubble{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.1);
+    border-radius:14px 14px 3px 14px;padding:8px 12px;font-size:11px;color:#e2e8f0;
+    max-width:75%;line-height:1.4;word-break:break-word}
+
+/* ── AI RESPONSE BUBBLE (dashboard history) ── */
+.ai-response{max-width:88%;margin:0 12px;background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.05);border-radius:14px 14px 14px 3px;
+    padding:8px 12px;font-size:11px;color:#d1d5db;line-height:1.5;word-break:break-word;
+    white-space:pre-wrap}
+
+/* ── INPUT BAR (dashboard bottom) ── */
+.input-bar{padding:8px 12px 6px;position:relative;z-index:5;cursor:pointer}
+.input-bar-inner{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:7px 8px 7px 10px;
+    transition:border-color .2s}
+.input-bar-inner:active{border-color:rgba(99,102,241,.2)}
+.input-waves{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
+.input-wave-bar{width:2px;border-radius:1px}
+.input-placeholder{flex:1;font-size:11px;color:#374151}
+.mic-button{width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mic-button svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
+.send-button{width:30px;height:30px;border-radius:50%;
+    background:linear-gradient(135deg,#059669,#10b981);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.send-button svg{width:13px;height:13px;fill:#fff}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);
-    background:rgba(3,7,18,.95);backdrop-filter:blur(15px);
-    border-top:.5px solid rgba(99,102,241,.2);display:flex;z-index:100;
-    box-shadow:0 -4px 20px rgba(99,102,241,.1)}
-.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;font-size:9px;font-weight:600;color:rgba(165,180,252,.4);
-    text-decoration:none;transition:all .3s}
-.bnav-tab.active{color:#c7d2fe;text-shadow:0 0 10px rgba(129,140,248,.8)}
-.bnav-tab svg{width:18px;height:18px;transition:all .3s}
-.bnav-tab.active svg{filter:drop-shadow(0 0 7px rgba(129,140,248,.8))}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);
+    background:rgba(3,7,18,.97);border-top:1px solid rgba(255,255,255,.04);
+    display:flex;z-index:100}
+.bottom-nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;font-size:8px;font-weight:600;text-decoration:none;transition:all .2s}
+.bottom-nav-tab svg{width:18px;height:18px;stroke-width:1.5;fill:none}
+.bottom-nav-tab.active{color:#a5b4fc}
+.bottom-nav-tab.active svg{stroke:#a5b4fc}
+.bottom-nav-tab.inactive{color:rgba(255,255,255,.15)}
+.bottom-nav-tab.inactive svg{stroke:rgba(255,255,255,.15)}
+
+/* ── CHAT OVERLAY ── */
+.chat-overlay-bg{position:fixed;inset:0;background:rgba(3,7,18,.65);backdrop-filter:blur(8px);
+    z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.chat-overlay-bg.open{opacity:1;pointer-events:auto}
+.chat-overlay-panel{position:fixed;bottom:-100%;left:0;right:0;height:72vh;
+    background:rgba(8,10,24,.98);border-radius:20px 20px 0 0;z-index:210;
+    display:flex;flex-direction:column;
+    box-shadow:0 -8px 40px rgba(99,102,241,.12);transition:bottom .3s cubic-bezier(.32,0,.67,0)}
+.chat-overlay-panel.open{bottom:0}
+.chat-overlay-panel::before{content:'';position:absolute;inset:0;border-radius:20px 20px 0 0;
+    background:radial-gradient(ellipse at 20% 10%,rgba(99,102,241,.04)0%,transparent 55%),
+               radial-gradient(ellipse at 80% 90%,rgba(139,92,246,.03)0%,transparent 50%);
+    pointer-events:none}
+
+/* ── OVERLAY HEADER ── */
+.overlay-header{display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:1}
+.overlay-header-left{display:flex;align-items:center;gap:8px}
+.overlay-avatar{width:30px;height:30px;border-radius:50%;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 12px rgba(99,102,241,.3)}
+.overlay-avatar svg{width:14px;height:14px;fill:#fff}
+.overlay-title{font-size:13px;font-weight:600;color:#e2e8f0}
+.overlay-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.04);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+.overlay-close svg{width:14px;height:14px;stroke:rgba(255,255,255,.35);fill:none;stroke-width:2}
+
+/* ── OVERLAY CHAT MESSAGES ── */
+.overlay-messages{flex:1;overflow-y:auto;padding:10px 12px;position:relative;z-index:1;
+    display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.overlay-messages::-webkit-scrollbar{display:none}
+.chat-message-group{display:flex;flex-direction:column;gap:4px}
+.chat-meta-line{font-size:9px;color:#4b5563;display:flex;align-items:center;gap:4px}
+.chat-meta-line.right{justify-content:flex-end}
+.chat-ai-msg{max-width:85%;padding:8px 12px;font-size:12px;line-height:1.5;word-break:break-word;
+    background:rgba(15,20,40,.8);border:.5px solid rgba(99,102,241,.15);color:#e2e8f0;
+    border-radius:4px 14px 14px 14px;white-space:pre-wrap}
+.chat-user-msg{max-width:75%;padding:8px 12px;font-size:12px;line-height:1.5;word-break:break-word;
+    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.15);color:#e2e8f0;
+    border-radius:14px 14px 4px 14px;margin-left:auto}
+.chat-typing-indicator{display:none;padding:8px 12px;background:rgba(15,20,40,.8);
+    border:.5px solid rgba(99,102,241,.15);border-radius:4px 14px 14px 14px;width:fit-content}
+.typing-dots{display:flex;gap:4px;align-items:center}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:#818cf8;animation:dotbounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+
+/* ── OVERLAY REC BAR ── */
+.recording-bar{display:none;align-items:center;gap:8px;padding:6px 12px;
+    background:rgba(239,68,68,.06);border-top:1px solid rgba(239,68,68,.15);position:relative;z-index:1}
+.recording-bar.on{display:flex}
+.recording-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;
+    animation:recpulse 1s infinite;box-shadow:0 0 8px rgba(239,68,68,.6)}
+.recording-label{font-size:9px;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.5px}
+.recording-transcript{font-size:10px;color:#e2e8f0;flex:1}
+
+/* ── OVERLAY INPUT ── */
+.overlay-input{padding:6px 10px 8px;position:relative;z-index:1}
+.overlay-input-inner{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:6px 8px 6px 12px}
+.overlay-textarea{flex:1;background:transparent;border:none;color:#f1f5f9;font-size:12px;
+    padding:6px 0;font-family:inherit;outline:none;resize:none;max-height:80px;line-height:1.4}
+.overlay-textarea::placeholder{color:#374151}
+.overlay-mic{width:34px;height:34px;border-radius:50%;flex-shrink:0;position:relative;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    box-shadow:0 0 12px rgba(99,102,241,.3);transition:all .2s}
+.overlay-mic.recording{background:linear-gradient(135deg,#ef4444,#dc2626);
+    box-shadow:0 0 18px rgba(239,68,68,.5)}
+.overlay-mic svg{width:16px;height:16px;color:#fff;z-index:1;stroke:#fff;fill:none;stroke-width:2}
+.voice-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);opacity:0}
+.overlay-mic.recording .voice-ring{border-color:rgba(255,255,255,.5)}
+.vr1{width:20px;height:20px;animation:vrpulse 2s 0s ease-in-out infinite}
+.vr2{width:32px;height:32px;animation:vrpulse 2s .3s ease-in-out infinite}
+.vr3{width:44px;height:44px;animation:vrpulse 2s .6s ease-in-out infinite}
+.overlay-send{width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#059669,#10b981);
+    border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;transition:opacity .2s}
+.overlay-send:disabled{opacity:.2}
+.overlay-send svg{width:14px;height:14px;fill:#fff}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);
+.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
     background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
     padding:7px 16px;border-radius:20px;font-size:11px;font-weight:600;z-index:500;
     opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
 
+/* ── KEYFRAMES ── */
+@keyframes dotbounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+@keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+@keyframes vrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
 @keyframes cardin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes dotpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
-.chip::before{content:"";flex-shrink:0;width:14px;height:14px;display:block;background-size:contain;background-repeat:no-repeat}.chip-red::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2.5'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M15 9l-6 6M9 9l6 6'/%3E%3C/svg%3E")}.chip-yellow::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='2.5'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/%3E%3C/svg%3E")}.chip-blue::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E")}
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- HEADER                                        -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-top">
+    <span class="header-brand">RUNMYSTORE.AI</span>
+    <div class="header-right">
+      <span class="plan-badge"><?= htmlspecialchars($plan_label) ?></span>
+      <a href="simple.php" class="simple-toggle">&larr; Опростен</a>
+      <div class="header-icon" onclick="location.href='settings.php'">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3c.4-1.8 2.9-1.8 3.4 0a1.7 1.7 0 002.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 001 2.6c1.8.4 1.8 2.9 0 3.3a1.7 1.7 0 00-1 2.6c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 00-2.6 1c-.4 1.8-2.9 1.8-3.3 0a1.7 1.7 0 00-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 1.7 0 00-1-2.6c-1.8-.4-1.8-2.9 0-3.3a1.7 1.7 0 001-2.6c-.9-1.5.9-3.3 2.4-2.4 1 .6 2.3.1 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="header-icon" id="logoutWrap" onclick="toggleLogout()" style="position:relative">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <a href="logout.php" class="logout-dropdown" id="logoutDrop">Изход &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- MAIN SCROLL AREA                              -->
+<!-- ══════════════════════════════════════════════ -->
 <div class="main-scroll" id="mainScroll">
 
-<!-- HEADER -->
-<div class="hdr">
-  <div class="hdr-top">
-    <span class="hdr-brand">RUNMYSTORE.AI</span>
-    <div class="hdr-right">
-      <span class="plan-pill"><?= $plan ?></span>
-      <div class="hdr-btn" onclick="location.href='settings.php'">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-          <circle cx="12" cy="12" r="3"/></svg>
+  <!-- REVENUE CARD -->
+  <div class="revenue-card" style="animation:cardin .5s ease both">
+    <div class="revenue-top">
+      <span class="revenue-period-label" id="revLabel">ДНЕС</span>
+      <?php if (count($all_stores) > 1): ?>
+      <span class="revenue-store-name">
+        <select onchange="location.href='?store='+this.value">
+          <?php foreach ($all_stores as $st): ?>
+          <option value="<?= $st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </span>
+      <?php else: ?>
+      <span class="revenue-store-name"><?= htmlspecialchars($store_name) ?></span>
+      <?php endif; ?>
+    </div>
+    <div class="revenue-number-row">
+      <span class="revenue-number" id="revNum">0</span>
+      <span class="revenue-currency"><?= $cs ?></span>
+      <span class="revenue-change up" id="revPct">+0%</span>
+    </div>
+    <div class="revenue-comparison" id="revCmp"></div>
+    <div class="revenue-meta" id="revMeta">0 продажби</div>
+    <?php if ($role === 'owner' && $confidence_pct < 100): ?>
+    <div class="confidence-warning" id="confWarn" style="display:none">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      Данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>)
+    </div>
+    <?php endif; ?>
+    <div class="revenue-pills">
+      <div class="revenue-pill-group">
+        <span class="revenue-pill active" onclick="setPeriod('today',this)">Днес</span>
+        <span class="revenue-pill inactive" onclick="setPeriod('7d',this)">7 дни</span>
+        <span class="revenue-pill inactive" onclick="setPeriod('30d',this)">30 дни</span>
+        <span class="revenue-pill inactive" onclick="setPeriod('365d',this)">365 дни</span>
       </div>
-      <div class="hdr-btn" onclick="toggleLogout()" id="logoutWrap" style="position:relative">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-        <a href="logout.php" class="logout-drop" id="logoutDrop">Изход →</a>
+      <?php if ($role === 'owner'): ?>
+      <div class="revenue-divider"></div>
+      <div class="revenue-pill-group">
+        <span class="revenue-pill active" id="modeRev" onclick="setMode('rev')">Оборот</span>
+        <span class="revenue-pill inactive" id="modeProfit" onclick="setMode('profit')">Печалба</span>
       </div>
+      <?php endif; ?>
     </div>
   </div>
 
-  <!-- LOSS CHIPS PER CATEGORY — tap opens AI chat -->
-  <?php if (!empty($loss_chips)): ?>
-  <div class="chips-row">
-    <?php foreach ($loss_chips as $chip): ?>
-    <button class="chip chip-<?= $chip['type'] ?>"
-        onclick="openChatWithQuestion(<?= htmlspecialchars(json_encode($chip['q']), ENT_QUOTES) ?>)">
-      <span class="chip-num"><?= htmlspecialchars((string)$chip['num']) ?></span>
-      <span class="chip-txt"><?= htmlspecialchars($chip['text']) ?></span>
-    </button>
+  <!-- STORE HEALTH BAR -->
+  <div class="health-bar">
+    <span class="health-label">Точност</span>
+    <div class="health-track"><div class="health-fill" style="width:<?= $health ?>%"></div></div>
+    <span class="health-percent" style="color:<?= $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171') ?>"><?= $health ?>%</span>
+    <span class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй &rarr;</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- AI BRIEFING BUBBLE -->
+  <div class="ai-meta">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <span class="ai-meta-label">AI</span>
+    <span class="ai-meta-time">&middot; <?= date('H:i') ?></span>
+  </div>
+
+  <?php if (!empty($briefing)): ?>
+  <!-- PRO: Real insights -->
+  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
+    <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
+    <?php foreach ($briefing as $ins): ?>
+    <div class="signal-card <?= urgencyClass($ins['urgency']) ?>">
+      <div class="signal-title"><?= htmlspecialchars($ins['title']) ?></div>
+      <?php if (!empty($ins['body'])): ?>
+      <div class="signal-body"><?= htmlspecialchars($ins['body']) ?></div>
+      <?php endif; ?>
+    </div>
     <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-</div>
-
-<!-- BIG NUMBER -->
-<div class="bnum-wrap" style="animation:cardin .5s ease both">
-  <div class="bnum-label" id="bnumLabel">ДНЕС</div>
-  <div class="bnum-value" id="bnumValue">0 <?= htmlspecialchars($cs) ?></div>
-  <div class="bnum-sub" id="bnumSub">
-    <?= $d0['cnt'] ?> продажби<?php if ($role==='owner' && $d0['cnt']>0): ?> · <?= mgn($d0) ?>% марж<?php endif; ?>
-  </div>
-  <?php if ($role === 'owner'): ?>
-  <div class="mode-pills">
-    <div class="mode-pill active" id="modeRev" onclick="setMode('rev')">Оборот</div>
-    <div class="mode-pill" id="modePro" onclick="setMode('profit')">
-      Печалба<?php if ($confidence_pct < 100): ?><span class="conf-warn">!</span><?php endif; ?>
+    <?php if (!empty($action_btns) || $remaining > 0): ?>
+    <div class="action-buttons">
+      <?php foreach ($action_btns as $ab): ?>
+      <button class="action-button" onclick="openChatQ(<?= htmlspecialchars(json_encode($ab['q']), ENT_QUOTES) ?>)"><?= htmlspecialchars($ab['t']) ?></button>
+      <?php endforeach; ?>
+      <?php if ($remaining > 0): ?>
+      <button class="action-button action-button-more" onclick="openChat()">Още <?= $remaining ?> сигнала</button>
+      <?php endif; ?>
     </div>
-  </div>
-  <?php if ($confidence_pct < 100): ?>
-  <div class="conf-note" id="confNote" style="display:none">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5">
-      <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-    Сумата е за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?> с доставна цена)
-  </div>
-  <?php endif; ?>
-  <?php endif; ?>
-</div>
-
-<!-- COMPARISON CARD -->
-<div class="cmp-card" style="animation:cardin .5s .15s ease both">
-  <div class="cmp-hdr">
-    <span class="cmp-title">СРАВНЕНИЕ</span>
-    <?php if (count($all_stores) > 1): ?>
-    <div class="cmp-store">
-      <select onchange="location.href='?store='+this.value">
-        <?php foreach ($all_stores as $st): ?>
-        <option value="<?= $st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-    <?php else: ?>
-    <span class="cmp-store-name"><?= htmlspecialchars($store_name) ?></span>
     <?php endif; ?>
   </div>
-  <div class="cmp-top">
-    <div class="cmp-pct" id="cmpPct">—</div>
-    <div class="cmp-info">
-      <div class="cmp-label" id="cmpLabel">Спрямо вчера</div>
-      <div class="cmp-sub" id="cmpSub"></div>
-    </div>
+
+  <?php elseif (!empty($ghost_pills)): ?>
+  <!-- START/FREE: Ghost pill teaser -->
+  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
+    <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> AI има съвет за теб...</div>
+    <button class="ghost-pill" onclick="showToast('Включи PRO за AI съвети')">PRO</button>
   </div>
-  <div class="cmp-bar-track">
-    <div class="cmp-bar-fill" id="cmpBar" style="width:0%"></div>
-  </div>
-  <?php if ($top_product): ?>
-  <div class="cmp-ai">
-    <span class="cmp-ai-badge">AI</span>
-    <div class="cmp-ai-text"><?= htmlspecialchars($top_product['name']) ?> дърпа — <?= (int)$top_product['qty'] ?> продажби днес.</div>
+
+  <?php else: ?>
+  <!-- No insights / 1/4 silence -->
+  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
+    <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Попитай каквото искаш — говори или пиши.</div>
   </div>
   <?php endif; ?>
 
-  <!-- 4 PERIOD TABS -->
-  <div class="period-tabs">
-    <div class="period-slider" id="perSlider"></div>
-    <div class="period-tab active" onclick="setPeriod('today',0)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-      Днес
+  <!-- CHAT HISTORY (on dashboard) -->
+  <?php foreach ($chat_messages as $m): ?>
+    <?php if ($m['role'] === 'user'): ?>
+    <div class="user-row">
+      <span class="user-time"><?= date('H:i', strtotime($m['created_at'])) ?></span>
+      <div class="user-bubble"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
     </div>
-    <div class="period-tab" onclick="setPeriod('7d',1)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      7 дни
+    <?php else: ?>
+    <div class="ai-meta">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="ai-meta-label">AI</span>
+      <span class="ai-meta-time">&middot; <?= date('H:i', strtotime($m['created_at'])) ?></span>
     </div>
-    <div class="period-tab" onclick="setPeriod('30d',2)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      30 дни
-    </div>
-    <div class="period-tab" onclick="setPeriod('365d',3)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg>
-      365 дни
-    </div>
-  </div>
-</div>
-
-<!-- 4 BUTTONS -->
-<div class="btn-grid">
-  <a href="sale.php" class="main-btn" style="animation:cardin .4s .25s ease both">
-    <div class="btn-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.2)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round">
-        <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20M6 14h4"/></svg>
-    </div>
-    <div class="btn-name">Продажба</div><div class="btn-desc">Каса и скенер</div>
-  </a>
-  <a href="#" class="main-btn" style="animation:cardin .4s .35s ease both">
-    <div class="btn-icon" style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.2)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-    </div>
-    <div class="btn-name">Поръчка</div><div class="btn-desc">Към доставчици</div>
-  </a>
-  <a href="#" class="main-btn" style="animation:cardin .4s .45s ease both">
-    <?php if ($badge_delivery>0): ?><div class="btn-badge"><?= $badge_delivery ?></div><?php endif; ?>
-    <div class="btn-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.2)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round">
-        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-        <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
-    </div>
-    <div class="btn-name">Доставка</div><div class="btn-desc">Приемане на стока</div>
-  </a>
-  <a href="products.php" class="main-btn" style="animation:cardin .4s .55s ease both">
-    <?php if ($badge_products>0): ?><div class="btn-badge"><?= $badge_products ?></div><?php endif; ?>
-    <div class="btn-icon" style="background:linear-gradient(135deg,rgba(192,132,252,.12),rgba(192,132,252,.04));border:1px solid rgba(192,132,252,.2)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round">
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
-        <circle cx="7" cy="7" r="1.5" fill="#c084fc"/></svg>
-    </div>
-    <div class="btn-name">Артикули</div><div class="btn-desc">Добави и редактирай</div>
-  </a>
-</div>
-
-<!-- SIGNALS — tap opens AI chat -->
-<?php if (!empty($signals)): ?>
-<div class="sep"></div>
-<div class="sigs">
-  <div class="sigs-title">СИГНАЛИ</div>
-  <?php foreach ($signals as $si => $sig): ?>
-  <button class="sig-card sig-<?= $sig['color'] ?>"
-      style="animation:cardin .4s <?= $si*80 ?>ms ease both"
-      onclick="openChatWithQuestion(<?= htmlspecialchars(json_encode($sig['q']), ENT_QUOTES) ?>)">
-    <div class="sig-dot" <?= $sig['pulse']?'style="animation:dotpulse 2s infinite"':'' ?>></div>
-    <div class="sig-body">
-      <div class="sig-name"><?= htmlspecialchars($sig['title']) ?></div>
-      <div class="sig-desc"><?= htmlspecialchars($sig['desc']) ?> <span class="sig-link">Попитай AI →</span></div>
-    </div>
-  </button>
+    <div class="ai-response"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
+    <?php endif; ?>
   <?php endforeach; ?>
-</div>
-<?php endif; ?>
 
-<!-- ASK AI -->
-<div class="ask-ai-wrap">
-  <div class="ask-ai-btn" onclick="openChat()">
-    <div class="ai-waves">
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:0s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.15s"></div>
-      <div class="ai-wave-bar" style="color:#a5b4fc;height:18px;animation-delay:.3s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.45s"></div>
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:.6s"></div>
+  <div style="height:14px"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- INPUT BAR (tap → opens overlay)               -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="input-bar" id="dashboardInput" onclick="openChat()">
+  <div class="input-bar-inner">
+    <div class="input-waves">
+      <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
+      <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
+      <div class="input-wave-bar" style="height:14px;background:#818cf8"></div>
+      <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
+      <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
     </div>
-    <span>Попитай AI</span>
+    <span class="input-placeholder">Кажи или напиши...</span>
+    <div class="mic-button"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg></div>
+    <div class="send-button"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
   </div>
 </div>
-<div style="height:20px"></div>
-</div><!-- /.main-scroll -->
 
-<!-- CHAT OVERLAY -->
-<div class="chat-ov" id="chatOv">
-  <div class="chat-panel">
-    <div class="chat-ph">
-      <div class="chat-ph-title">
-        <div class="chat-avatar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </div>
-        <span class="chat-ph-name">AI Асистент</span>
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAT OVERLAY (72%, blur bg, clean chat)       -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chat-overlay-bg" id="chatOverlayBg" onclick="closeChat()"></div>
+<div class="chat-overlay-panel" id="chatOverlayPanel">
+  <div class="overlay-header">
+    <div class="overlay-header-left">
+      <div class="overlay-avatar">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       </div>
-      <div class="chat-close" onclick="closeChat()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-      </div>
+      <span class="overlay-title">AI Асистент</span>
     </div>
-    <div class="chat-msgs" id="chatMsgs">
-      <?php if (empty($chat_messages)): ?>
-      <div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">
-        <div style="font-size:16px;font-weight:700;margin-bottom:6px;
-            background:linear-gradient(135deg,#e5e7eb,#c7d2fe);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent">
-          Здравей<?= $user_name ? ', '.htmlspecialchars($user_name) : '' ?>!
-        </div>
-        Попитай каквото искаш — говори или пиши.
+    <button class="overlay-close" onclick="closeChat()">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="overlay-messages" id="chatMessages">
+    <?php if (empty($chat_messages)): ?>
+    <div style="text-align:center;padding:30px 10px;color:#4b5563;font-size:12px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;color:#a5b4fc">
+        Здравей<?= $user_name ? ', '.htmlspecialchars($user_name) : '' ?>!
       </div>
+      Попитай каквото искаш — говори или пиши.
+    </div>
+    <?php else: ?>
+    <?php foreach ($chat_messages as $m): ?>
+    <div class="chat-message-group">
+      <?php if ($m['role'] === 'assistant'): ?>
+      <div class="chat-meta-line">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        AI &middot; <?= date('H:i', strtotime($m['created_at'])) ?>
+      </div>
+      <div class="chat-ai-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
       <?php else: ?>
-      <?php foreach ($chat_messages as $m): ?>
-      <div class="chat-mg">
-        <?php if ($m['role']==='assistant'): ?>
-        <div class="chat-meta">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          AI · <?= date('H:i', strtotime($m['created_at'])) ?>
-        </div>
-        <div class="chat-msg ai-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
-        <?php else: ?>
-        <div class="chat-meta r"><?= date('H:i', strtotime($m['created_at'])) ?></div>
-        <div class="chat-msg usr-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php endforeach; ?>
+      <div class="chat-meta-line right"><?= date('H:i', strtotime($m['created_at'])) ?></div>
+      <div class="chat-user-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
       <?php endif; ?>
-      <div class="chat-typing" id="chatTyping">
-        <div class="typing-dots">
-          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
-        </div>
+    </div>
+    <?php endforeach; ?>
+    <?php endif; ?>
+    <div class="chat-typing-indicator" id="chatTyping">
+      <div class="typing-dots">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
       </div>
     </div>
-    <div class="rec-bar" id="recBar">
-      <div class="rec-dot-s"></div>
-      <span class="rec-lbl">ЗАПИСВА</span>
-      <span class="rec-tr" id="recTr">Слушам...</span>
-    </div>
-    <div class="chat-input-area">
-      <div class="chat-input-row">
-        <textarea class="chat-txt" id="chatIn" placeholder="Кажи или пиши..." rows="1"
-          oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';
-                   document.getElementById('chatSend').disabled=!this.value.trim()"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
-        <div class="chat-voice" id="chatVoice" onclick="toggleVoice()">
-          <div class="vring vr1"></div><div class="vring vr2"></div><div class="vring vr3"></div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-            <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-        </div>
-        <button class="chat-send" id="chatSend" onclick="sendMsg()" disabled>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+  </div>
+
+  <div class="recording-bar" id="recBar">
+    <div class="recording-dot"></div>
+    <span class="recording-label">ЗАПИСВА</span>
+    <span class="recording-transcript" id="recTranscript">Слушам...</span>
+  </div>
+
+  <div class="overlay-input">
+    <div class="overlay-input-inner">
+      <textarea class="overlay-textarea" id="chatInput" placeholder="Кажи или пиши..." rows="1"
+        oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';document.getElementById('chatSendBtn').disabled=!this.value.trim()"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <div class="overlay-mic" id="voiceBtn" onclick="toggleVoice()">
+        <div class="voice-ring vr1"></div><div class="voice-ring vr2"></div><div class="voice-ring vr3"></div>
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
       </div>
+      <button class="overlay-send" id="chatSendBtn" onclick="sendMsg()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- BOTTOM NAV -->
-<nav class="bnav">
-  <a href="chat.php" class="bnav-tab active">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
+<!-- ══════════════════════════════════════════════ -->
+<!-- BOTTOM NAV                                    -->
+<!-- ══════════════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <a href="chat.php" class="bottom-nav-tab active">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
   </a>
-  <a href="warehouse.php" class="bnav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-      <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>Склад
+  <a href="warehouse.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Склад
   </a>
-  <a href="stats.php" class="bnav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+  <a href="stats.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24" stroke-linecap="round">
       <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
   </a>
-  <a href="sale.php" class="bnav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+  <a href="sale.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
   </a>
 </nav>
 
 <div class="toast" id="toast"></div>
 
+<!-- ══════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                    -->
+<!-- ══════════════════════════════════════════════ -->
 <script>
-// ── CONFIG ──
 const P = <?= $periods_json ?>;
 const CS = <?= json_encode($cs) ?>;
-const IS_OWNER = <?= $role==='owner'?'true':'false' ?>;
+const IS_OWNER = <?= $role === 'owner' ? 'true' : 'false' ?>;
 
-function $(id){return document.getElementById(id)}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function fmt(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
-function showToast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function showToast(m) { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
-// ── STATE ──
+// ══════════════════════════════════════════════
+// REVENUE — Period & Mode switching
+// ══════════════════════════════════════════════
 let curPeriod = 'today';
-let curMode   = 'rev';
-let firstLoad = true;
+let curMode = 'rev';
 
-// ── COUNT-UP ──
-function countUp(target) {
-    const el = $('bnumValue');
-    if (target===0){el.textContent='0 '+CS;return}
-    const dur=1000, t0=performance.now();
-    function step(now){
-        const p=Math.min((now-t0)/dur,1);
-        const e=1-Math.pow(2,-10*p);
-        el.textContent=fmt(target*e)+' '+CS;
-        if(p<1)requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-}
-
-// ── UPDATE BIG NUMBER ──
-function updateBigNum() {
+function updateRevenue() {
     const d = P[curPeriod];
-    const val = curMode==='rev' ? d.rev : d.profit;
+    const val = curMode === 'rev' ? d.rev : d.profit;
+    const pct = curMode === 'rev' ? d.cmp_rev : d.cmp_prof;
+    const sub = curMode === 'rev' ? d.sub_rev : d.sub_prof;
 
-    if (firstLoad) {
-        countUp(val);
-        firstLoad = false;
-    } else {
-        $('bnumValue').textContent = fmt(val) + ' ' + CS;
-    }
+    $('revNum').textContent = fmt(val);
+    $('revPct').textContent = (pct >= 0 ? '+' : '') + pct + '%';
+    $('revPct').className = 'revenue-change ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'zero');
+    $('revCmp').textContent = sub + ' ' + CS;
 
-    const labels = {today:'ДНЕС', '7d':'7 ДНИ', '30d':'30 ДНИ', '365d':'365 ДНИ'};
-    $('bnumLabel').textContent = labels[curPeriod];
+    const labels = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
+    $('revLabel').textContent = labels[curPeriod];
 
-    let sub = d.cnt + ' продажби';
-    if (IS_OWNER && d.cnt>0) sub += ' · ' + d.margin + '% марж';
-    $('bnumSub').textContent = sub;
+    let meta = d.cnt + ' продажби';
+    if (IS_OWNER && d.cnt > 0) meta += ' \u00b7 ' + d.margin + '% марж';
+    $('revMeta').textContent = meta;
 
-    const cn = $('confNote');
-    if (cn) cn.style.display = curMode==='profit' ? 'flex' : 'none';
-
-    const mr=$('modeRev'), mp=$('modePro');
-    if(mr) mr.classList.toggle('active', curMode==='rev');
-    if(mp) mp.classList.toggle('active', curMode==='profit');
+    const cw = $('confWarn');
+    if (cw) cw.style.display = curMode === 'profit' ? 'flex' : 'none';
 }
 
-// ── UPDATE COMPARISON ──
-function updateCmp() {
-    const d = P[curPeriod];
-    const pct  = curMode==='rev' ? d.cmp_rev  : d.cmp_prof;
-    const sub  = curMode==='rev' ? d.sub_rev  : d.sub_prof;
-
-    const pctEl = $('cmpPct');
-    pctEl.textContent = (pct>=0?'+':'')+pct+'%';
-    pctEl.className = 'cmp-pct ' + (pct>0?'up':pct<0?'down':'zero');
-
-    $('cmpLabel').textContent = d.label;
-    $('cmpSub').textContent   = sub + ' ' + CS;
-
-    const bar = $('cmpBar');
-    bar.className = 'cmp-bar-fill ' + (pct>0?'up':pct<0?'down':'zero');
-    const w = 50 + (pct>=0 ? Math.min(pct,100)/2 : -Math.min(-pct,100)/2);
-    setTimeout(()=>{bar.style.width=Math.max(5,Math.min(95,w))+'%'},50);
-}
-
-// ── PERIOD TAB ──
-function setPeriod(period, idx) {
+function setPeriod(period, el) {
     curPeriod = period;
-    $('perSlider').style.left = 'calc(' + idx + ' * 25% + 2px)';
-    document.querySelectorAll('.period-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
-    updateBigNum();
-    updateCmp();
+    document.querySelectorAll('.revenue-pill-group:first-child .revenue-pill').forEach(p => {
+        p.className = 'revenue-pill ' + (p === el ? 'active' : 'inactive');
+    });
+    updateRevenue();
 }
 
-// ── MODE TOGGLE ──
 function setMode(mode) {
     curMode = mode;
-    updateBigNum();
-    updateCmp();
+    const mr = $('modeRev'), mp = $('modeProfit');
+    if (mr) { mr.className = 'revenue-pill ' + (mode === 'rev' ? 'active' : 'inactive'); }
+    if (mp) { mp.className = 'revenue-pill ' + (mode === 'profit' ? 'active' : 'inactive'); }
+    updateRevenue();
 }
 
-// ── INIT ──
-window.addEventListener('DOMContentLoaded', () => {
-    setPeriod('today', 0);
+// ══════════════════════════════════════════════
+// LOGOUT
+// ══════════════════════════════════════════════
+function toggleLogout() { $('logoutDrop').classList.toggle('show'); }
+document.addEventListener('click', e => {
+    if (!$('logoutWrap').contains(e.target)) $('logoutDrop').classList.remove('show');
 });
 
-// ── LOGOUT ──
-function toggleLogout(){$('logoutDrop').classList.toggle('show')}
-document.addEventListener('click',e=>{
-    if(!$('logoutWrap').contains(e.target))$('logoutDrop').classList.remove('show')
-})
+// ══════════════════════════════════════════════
+// CHAT OVERLAY
+// ══════════════════════════════════════════════
+let chatOpen = false;
 
-// ── CHAT OVERLAY ──
 function openChat() {
-    $('chatOv').classList.add('open');
-    history.pushState({chat:true},'');
-    scrollBottom();
-    setTimeout(()=>$('chatIn').focus(),300);
+    if (chatOpen) return;
+    chatOpen = true;
+    $('chatOverlayBg').classList.add('open');
+    $('chatOverlayPanel').classList.add('open');
+    $('mainScroll').style.opacity = '.15';
+    $('dashboardInput').style.opacity = '0';
+    $('dashboardInput').style.pointerEvents = 'none';
+    document.querySelector('.header').style.opacity = '.2';
+    history.pushState({ chat: true }, '');
+    scrollChatBottom();
+    setTimeout(() => $('chatInput').focus(), 300);
 }
-function closeChat() { $('chatOv').classList.remove('open'); stopVoice(); }
-function scrollBottom() { const a=$('chatMsgs'); a.scrollTop=a.scrollHeight; }
 
-// ── OPEN CHAT + AUTO-SEND ──
-function openChatWithQuestion(q) {
+function closeChat() {
+    chatOpen = false;
+    $('chatOverlayBg').classList.remove('open');
+    $('chatOverlayPanel').classList.remove('open');
+    $('mainScroll').style.opacity = '1';
+    $('dashboardInput').style.opacity = '1';
+    $('dashboardInput').style.pointerEvents = 'auto';
+    document.querySelector('.header').style.opacity = '1';
+    stopVoice();
+}
+
+function openChatQ(question) {
     openChat();
     setTimeout(() => {
-        $('chatIn').value = q;
-        $('chatSend').disabled = false;
+        $('chatInput').value = question;
+        $('chatSendBtn').disabled = false;
         sendMsg();
     }, 350);
 }
 
-// ── SEND MESSAGE ──
+function scrollChatBottom() {
+    const el = $('chatMessages');
+    el.scrollTop = el.scrollHeight;
+}
+
+// ══════════════════════════════════════════════
+// SEND MESSAGE
+// ══════════════════════════════════════════════
 async function sendMsg() {
-    const inp = $('chatIn');
+    const inp = $('chatInput');
     const txt = inp.value.trim();
     if (!txt) return;
+
     addUserBubble(txt);
-    inp.value=''; inp.style.height='';
-    $('chatSend').disabled=true;
-    $('chatTyping').style.display='block';
-    scrollBottom();
+    inp.value = '';
+    inp.style.height = '';
+    $('chatSendBtn').disabled = true;
+    $('chatTyping').style.display = 'block';
+    scrollChatBottom();
+
     try {
-        const r = await fetch('chat-send.php',{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({message:txt})
+        const r = await fetch('chat-send.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: txt })
         });
-        const d = await r.json();
-        $('chatTyping').style.display='none';
+        const raw = await r.text();
+        let d;
+        try { d = JSON.parse(raw); } catch(e) {
+            $('chatTyping').style.display = 'none';
+            addAIBubble('Грешка: ' + raw.substring(0, 200));
+            return;
+        }
+        $('chatTyping').style.display = 'none';
         addAIBubble(d.reply || d.error || 'Грешка при обработка.');
-    } catch(e) {
-        $('chatTyping').style.display='none';
+    } catch (e) {
+        $('chatTyping').style.display = 'none';
         addAIBubble('Грешка при свързване. Опитай пак.');
     }
 }
 
 function addUserBubble(txt) {
-    const g=document.createElement('div'); g.className='chat-mg';
-    const t=new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'});
-    g.innerHTML=`<div class="chat-meta r">${t}</div><div class="chat-msg usr-msg">${esc(txt)}</div>`;
-    $('chatMsgs').insertBefore(g,$('chatTyping')); scrollBottom();
+    const g = document.createElement('div');
+    g.className = 'chat-message-group';
+    const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+    g.innerHTML = '<div class="chat-meta-line right">' + t + '</div><div class="chat-user-msg">' + esc(txt) + '</div>';
+    $('chatMessages').insertBefore(g, $('chatTyping'));
+    scrollChatBottom();
 }
+
 function addAIBubble(txt) {
-    const g=document.createElement('div'); g.className='chat-mg';
-    const t=new Date().toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'});
-    g.innerHTML=`<div class="chat-meta"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI · ${t}</div><div class="chat-msg ai-msg">${esc(txt)}</div>`;
-    $('chatMsgs').insertBefore(g,$('chatTyping')); scrollBottom();
+    const g = document.createElement('div');
+    g.className = 'chat-message-group';
+    const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+    g.innerHTML = '<div class="chat-meta-line"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI \u00b7 ' + t + '</div><div class="chat-ai-msg">' + esc(txt) + '</div>';
+    $('chatMessages').insertBefore(g, $('chatTyping'));
+    scrollChatBottom();
 }
 
-// ── VOICE ──
-let vr=null, recording=false, vtr='';
-function toggleVoice(){if(recording){stopVoice();return}
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){showToast('Браузърът не поддържа гласов вход');return}
-    recording=true; vtr='';
-    $('chatVoice').classList.add('rec'); $('recBar').classList.add('on');
-    $('recTr').innerText='Слушам...';
-    vr=new SR(); vr.lang='bg-BG'; vr.continuous=false; vr.interimResults=true;
-    vr.onresult=e=>{
-        let fin='',int_='';
-        for(let i=e.resultIndex;i<e.results.length;i++){
-            if(e.results[i].isFinal) fin+=e.results[i][0].transcript;
-            else int_+=e.results[i][0].transcript;
+// ══════════════════════════════════════════════
+// VOICE
+// ══════════════════════════════════════════════
+let voiceRec = null, isRecording = false, voiceText = '';
+
+function toggleVoice() {
+    if (isRecording) { stopVoice(); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Браузърът не поддържа гласов вход'); return; }
+    isRecording = true;
+    voiceText = '';
+    $('voiceBtn').classList.add('recording');
+    $('recBar').classList.add('on');
+    $('recTranscript').innerText = 'Слушам...';
+    voiceRec = new SR();
+    voiceRec.lang = 'bg-BG';
+    voiceRec.continuous = false;
+    voiceRec.interimResults = true;
+    voiceRec.onresult = e => {
+        let fin = '', interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) fin += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
         }
-        if(fin) vtr=fin;
-        $('recTr').innerText=vtr||int_||'Слушам...';
+        if (fin) voiceText = fin;
+        $('recTranscript').innerText = voiceText || interim || 'Слушам...';
     };
-    vr.onend=()=>{
-        recording=false;
-        $('chatVoice').classList.remove('rec'); $('recBar').classList.remove('on');
-        if(vtr){$('chatIn').value=vtr;$('chatSend').disabled=false;sendMsg();}
+    voiceRec.onend = () => {
+        isRecording = false;
+        $('voiceBtn').classList.remove('recording');
+        $('recBar').classList.remove('on');
+        if (voiceText) {
+            $('chatInput').value = voiceText;
+            $('chatSendBtn').disabled = false;
+            sendMsg();
+        }
     };
-    vr.onerror=e=>{
+    voiceRec.onerror = e => {
         stopVoice();
-        if(e.error==='no-speech') showToast('Не чух — опитай пак');
-        else if(e.error==='not-allowed') showToast('Разреши микрофона');
-        else showToast('Грешка: '+e.error);
+        if (e.error === 'no-speech') showToast('Не чух — опитай пак');
+        else if (e.error === 'not-allowed') showToast('Разреши микрофона');
+        else showToast('Грешка: ' + e.error);
     };
-    try{vr.start()}catch(e){stopVoice()}
-}
-function stopVoice(){
-    recording=false; vtr='';
-    $('chatVoice').classList.remove('rec'); $('recBar').classList.remove('on');
-    if(vr){try{vr.stop()}catch(e){}; vr=null}
+    try { voiceRec.start(); } catch (e) { stopVoice(); }
 }
 
-window.addEventListener('popstate',()=>{
-    if($('chatOv').classList.contains('open')){closeChat();}
+function stopVoice() {
+    isRecording = false;
+    voiceText = '';
+    $('voiceBtn').classList.remove('recording');
+    $('recBar').classList.remove('on');
+    if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; }
+}
+
+// ══════════════════════════════════════════════
+// BACK BUTTON + INIT
+// ══════════════════════════════════════════════
+window.addEventListener('popstate', () => {
+    if (chatOpen) closeChat();
 });
-$('chatOv').addEventListener('click',e=>{if(e.target===$('chatOv'))closeChat()});
-window.addEventListener('DOMContentLoaded',scrollBottom);
+
+window.addEventListener('DOMContentLoaded', () => {
+    updateRevenue();
+    scrollChatBottom();
+});
 </script>
 </body>
 </html>
