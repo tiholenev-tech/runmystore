@@ -10,6 +10,9 @@
  * ~350 products = ~15K tokens. Gemini 2.5 Flash 1M context = no problem.
  */
 
+require_once __DIR__ . '/ai-topics.php';
+require_once __DIR__ . '/weather-cache.php';
+
 function getSeasonalContext(string $business_type, string $country): string {
     static $data = null;
     if ($data === null) {
@@ -643,6 +646,60 @@ THE ONE LAW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Пешо не пише. Пешо говори. Когато пита — давай КОНКРЕТНИ имена, числа, стойности. Никога "имаш N артикула" без да ги изброиш. AI е управителят — докладва с факти, предлага меко.
 REST;
+
+
+    // ═══════════════════════════════════════
+    // LAYER 7 — AI TOPICS (1000 topics, pick 5-8)
+    // ═══════════════════════════════════════
+    $plan = 'pro';
+    try {
+        $sub = DB::run('SELECT plan FROM subscriptions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 1', [$tenant_id])->fetch();
+        if ($sub) $plan = strtolower($sub['plan'] ?? 'free');
+    } catch (Exception $e) {}
+
+    $days_of_data = 0;
+    try {
+        $fs = DB::run('SELECT MIN(created_at) FROM sales WHERE tenant_id=? AND status!="canceled"', [$tenant_id])->fetchColumn();
+        if ($fs) $days_of_data = (int)((time() - strtotime($fs)) / 86400);
+    } catch (Exception $e) {}
+
+    $total_customers = 0;
+    try { $total_customers = (int)DB::run('SELECT COUNT(DISTINCT customer_id) FROM sales WHERE tenant_id=? AND customer_id IS NOT NULL AND status!="canceled"', [$tenant_id])->fetchColumn(); } catch (Exception $e) {}
+
+    $sellers_count = 0;
+    try { $sellers_count = (int)DB::run('SELECT COUNT(*) FROM users WHERE tenant_id=? AND role="seller" AND is_active=1', [$tenant_id])->fetchColumn(); } catch (Exception $e) {}
+
+    $has_multi_store = false;
+    try { $has_multi_store = (int)DB::run('SELECT COUNT(*) FROM stores WHERE tenant_id=?', [$tenant_id])->fetchColumn() > 1; } catch (Exception $e) {}
+
+    $dataStats = [
+        'days_of_data' => $days_of_data,
+        'total_products' => $total_products,
+        'total_sales' => 0,
+        'total_customers' => $total_customers,
+        'has_cost_price' => ($total_products > 0 && $below_cost >= 0),
+        'has_wholesale' => false,
+        'has_returns' => false,
+        'has_invoices' => false,
+        'has_deliveries' => false,
+        'has_multi_store' => $has_multi_store,
+        'sellers_count' => $sellers_count,
+        'has_variations' => false,
+    ];
+
+    $topicsBlock = selectRelevantTopics($tenant_id, $store_id, $role, $plan, $country, $dataStats);
+    if ($topicsBlock) {
+        $prompt .= $topicsBlock;
+    }
+
+    // ═══════════════════════════════════════
+    // LAYER 8 — WEATHER FORECAST
+    // ═══════════════════════════════════════
+    $weatherBlock = getWeatherSummary($store_id, $tenant_id, 14);
+    if ($weatherBlock) {
+        $prompt .= "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nLAYER 8 — WEATHER FORECAST\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" . $weatherBlock;
+    }
+
 
     return $prompt;
 }
