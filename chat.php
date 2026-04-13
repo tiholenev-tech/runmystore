@@ -794,10 +794,10 @@ function openChat() {
     chatOpen = true;
     $('chatOverlayBg').classList.add('open');
     $('chatOverlayPanel').classList.add('open');
-    $('mainScroll').style.opacity = '.15';
+    $('mainScroll').style.opacity = '.4';
     $('dashboardInput').style.opacity = '0';
     $('dashboardInput').style.pointerEvents = 'none';
-    document.querySelector('.header').style.opacity = '.2';
+    document.querySelector('.header').style.opacity = '.4';
     history.pushState({ chat: true }, '');
     scrollChatBottom();
     setTimeout(() => $('chatInput').focus(), 300);
