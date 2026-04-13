@@ -498,12 +498,13 @@ if (preg_match('/нов.*артикул.*тази|добавен.*наскоро
     $auto_actions[] = ['label' => 'Виж нови артикули', 'url' => 'products.php?filter=new_week'];
 }
 
-// Max 2 auto-actions, deduplicate by url
-$seen_urls = [];
+// Max 2 auto-actions, deduplicate by BASE url (ignore query params for products.php)
+$seen_bases = [];
 $unique_actions = [];
 foreach ($auto_actions as $aa) {
-    if (!in_array($aa['url'], $seen_urls)) {
-        $seen_urls[] = $aa['url'];
+    $base = strtok($aa['url'], '?');
+    if (!in_array($base, $seen_bases)) {
+        $seen_bases[] = $base;
         $unique_actions[] = $aa;
     }
 }

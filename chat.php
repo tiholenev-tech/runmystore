@@ -1161,7 +1161,7 @@ function addAIBubble(txt, actions) {
     if (actions && actions.length) {
         h += '<div class="action-buttons" style="margin:6px 0 0">';
         actions.forEach(function(a) {
-            h += '<button class="action-button" onclick="location.href=\'' + esc(a.url || '#') + '\'">' + esc(a.label) + ' \u2192</button>';
+            h += '<button class="action-button" onclick="window.open(\'' + esc(a.url || '#') + '\',\'_blank\')">' + esc(a.label) + ' \u2192</button>';
         });
         h += '</div>';
     }
