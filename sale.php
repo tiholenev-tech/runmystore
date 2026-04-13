@@ -702,7 +702,7 @@ body::before{
 }
 .bnav-tab{
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;font-size:10px;font-weight:600;
+    gap:3px;font-size:13px;font-weight:600;
     color:rgba(165,180,252,0.5);text-decoration:none;
     transition:all 0.3s;height:100%;
 }

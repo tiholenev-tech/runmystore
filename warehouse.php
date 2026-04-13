@@ -68,7 +68,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             --danger: #ef4444;
             --warning: #f59e0b;
             --success: #22c55e;
-            --bottom-nav-h: 64px;
+            --bottom-nav-h: 56px;
             --nav-h: 64px;
         }
 
@@ -237,7 +237,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             min-width: 22px; 
             height: 22px; 
             border-radius: 11px; 
-            font-size: 10px; 
+            font-size: 13px; 
             font-weight: 800; 
             display: flex; 
             align-items: center; 
@@ -271,7 +271,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             color: var(--indigo-300);
             text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
-        .stat-lbl { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .stat-lbl { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
         /* ═══ BOTTOM NAV — Unified across all modules ═══ */
         .bottom-nav { 
@@ -296,7 +296,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             align-items: center; 
             justify-content: center; 
             gap: 3px; 
-            font-size: 10px; 
+            font-size: 13px; 
             font-weight: 600; 
             color: rgba(165, 180, 252, 0.5); 
             text-decoration: none; 

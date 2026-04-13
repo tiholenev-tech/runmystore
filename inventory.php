@@ -245,7 +245,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 .inv-toast.ok{border-color:rgba(34,197,94,.4)}
 /* ── BOTTOM NAV ── */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(3,7,18,.97);border-top:1px solid rgba(255,255,255,.04);display:flex;z-index:100}
-.bottom-nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:8px;font-weight:600;text-decoration:none;transition:all .2s}
+.bottom-nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s}
 .bottom-nav-tab svg{width:18px;height:18px;stroke-width:1.5;fill:none}
 .bottom-nav-tab.active{color:#a5b4fc}
 .bottom-nav-tab.active svg{stroke:#a5b4fc}
