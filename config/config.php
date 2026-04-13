@@ -4,3 +4,5 @@ define('GEMINI_API_KEY', '***REMOVED_GEMINI_KEY_1***');
 define('GEMINI_API_KEY_2', '***REMOVED_GEMINI_KEY_2***');
 define('GEMINI_MODEL', 'gemini-2.5-flash');
 define('CLAUDE_API_KEY', '');
+define('OPENAI_API_KEY', '***REMOVED_OPENAI_KEY***');
+define('OPENAI_MODEL', 'gpt-4o-mini');
