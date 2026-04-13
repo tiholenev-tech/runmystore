@@ -1816,6 +1816,13 @@ function goScreen(scr, params={}){
     const map={home:'scrHome',suppliers:'scrSuppliers',categories:'scrCategories',products:'scrProducts'};
     document.getElementById(map[scr])?.classList.add('active');
     document.querySelectorAll('.sn-btn').forEach(b=>b.classList.toggle('active',b.dataset.scr===scr));
+    // A4: Read ?filter= from URL (chat action buttons)
+    const _urlFilter = new URLSearchParams(window.location.search).get('filter');
+    if(_urlFilter){
+        const _filterMap = {zero:'out',below_cost:'at_loss'};
+        S.filter = _filterMap[_urlFilter] || _urlFilter;
+        S.screen = 'products';
+    }
     loadScreen();
 }
 function switchStore(id){CFG.storeId=parseInt(id);loadScreen()}
@@ -1917,6 +1924,13 @@ async function loadProducts(){
     if(S.supId){
         const sup = CFG.suppliers.find(s=>s.id===S.supId);
         if(sup) { titleParts.push(sup.name); chipsHtml += `<div class="act-chip">${esc(sup.name)} <div class="chip-x" onclick="S.supId=null;loadProducts()">x</div></div>`; }
+    }
+    // Filter label chip
+    const _filterLabels={zombie:'Zombie 45+ дни',out:'Нулева наличност',zero:'Нулева наличност',at_loss:'Под себестойност',below_cost:'Под себестойност',low_margin:'Нисък марж',no_photo:'Без снимка',no_cost:'Без себестойност',low:'Под минимум',top_profit:'Най-печеливши',top_sales:'Топ продажби',new_week:'Нови тази седмица',aging:'90+ дни без продажба',slow_mover:'Бавно движещи',critical_low:'Критично ниски',no_barcode:'Без баркод',no_supplier:'Без доставчик',below_min:'Под минимум'};
+    if(S.filter!=='all'){
+        const fl=_filterLabels[S.filter]||S.filter;
+        titleParts.unshift(fl);
+        chipsHtml=`<div class="act-chip" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.25);color:#fca5a5">${fl} <div class="chip-x" onclick="S.filter='all';loadProducts()">x</div></div>`+chipsHtml;
     }
     const titleEl = document.getElementById('prodTitle');
     if(titleEl) titleEl.textContent = titleParts.length ? titleParts.join(' · ') : 'Артикули';
@@ -3099,7 +3113,7 @@ function renderWizPagePart2(step){
         }
         let descH='<div class="fg" style="margin-top:10px">'+fieldLabel('AI SEO описание','description')+
         '<textarea class="fc" id="wDesc" rows="5" placeholder="Натисни бутона за AI описание..." style="font-size:12px" '+(S.wizData.description?'':'readonly')+'>'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
-        (S.wizData.description?'<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:11px;color:var(--indigo-300);cursor:pointer;margin-top:4px;display:inline-block">Редактирай описание</span>':'')+'<div style="margin-top:6px"><button type="button" class="abtn" onclick="wizGenDescription()" style="font-size:11px;padding:6px 14px;border-color:rgba(99,102,241,0.2)">AI генерирай описание</button></div></div>';
+        '<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:13px;color:#818cf8;cursor:pointer;margin-top:6px;display:inline-block">✎ Редактирай описание</span>'+'<div style="margin-top:6px"><button type="button" class="abtn" onclick="wizGenDescription()" style="font-size:11px;padding:6px 14px;border-color:rgba(99,102,241,0.2)">AI генерирай описание</button></div></div>';
         
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:2px">'+esc(S.wizData.name||'Артикул')+'</div>'+
@@ -3710,6 +3724,9 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;
+            if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
+                api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
+            }
             var _pc=wizBuildCombinations();
             document.querySelectorAll('[data-combo][data-field="qty"]').forEach(function(inp){var ci=parseInt(inp.dataset.combo);if(_pc[ci])_pc[ci].printQty=parseInt(inp.value)||1;});
             if(!_pc.length||(!_pc[0]?.parts?.length&&!_pc[0]?.axisValues)){
