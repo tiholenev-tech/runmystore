@@ -243,7 +243,11 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 .inv-toast.show{opacity:1}
 .inv-toast.err{border-color:rgba(239,68,68,.4)}
 .inv-toast.ok{border-color:rgba(34,197,94,.4)}
-/* Bottom nav (from main style) */
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(3,7,18,.96);backdrop-filter:blur(12px);border-top:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:space-around;z-index:200;padding:0}
+.bottom-nav-tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:#64748b;font-size:10px;font-weight:600;text-decoration:none;padding:8px 16px;transition:color .2s}
+.bottom-nav-tab.active{color:#c7d2fe}
+.bottom-nav-tab svg{width:18px;height:18px}
 </style>
 </head>
 <body>
