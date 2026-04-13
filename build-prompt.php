@@ -10,6 +10,7 @@
  * ~350 products = ~15K tokens. Gemini 2.5 Flash 1M context = no problem.
  */
 
+require_once __DIR__ . '/config/helpers.php';
 require_once __DIR__ . '/ai-topics.php';
 require_once __DIR__ . '/weather-cache.php';
 
