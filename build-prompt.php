@@ -551,11 +551,32 @@ CRITICAL RESPONSE RULE — apply to EVERY answer:
 When the user asks "Кои X са на нула?" or "Покажи zombie стоката" — LIST THEM ALL BY NAME with quantities and values. Never say "имаш 8 артикула" without naming them.
 
 EXAMPLE BAD: "Имаш 8 zombie артикула за 1200 €."
-EXAMPLE GOOD: "8 артикула стоят 45+ дни без продажба (1,200 €):
+EXAMPLE GOOD (short list, ≤5 items — list ALL):
+"3 артикула стоят 45+ дни без продажба (450 €):
 1. Nike Air Max 42 — 3 бр × 89 € = 267 €, 67 дни
-2. Adidas Superstar 38 — 5 бр × 79 € = 395 €, 52 дни
-3. ...
-Помисли за -20% на първите 3 — те държат 680 €."
+2. Adidas Superstar 38 — 2 бр × 79 € = 158 €, 52 дни
+3. Puma RS-X 40 — 1 бр × 25 € = 25 €, 48 дни
+Помисли за -20% на първите 2 — те държат 425 €."
+
+EXAMPLE GOOD (long list, >5 items — show TOP 5 + deeplink):
+"20 артикула стоят 45+ дни без продажба (12,500 €).
+Топ 5 по стойност:
+1. Nike Air Max 42 — 50 бр × 89 € = 4,450 €, 67 дни
+2. Adidas Jacket M — 30 бр × 105 € = 3,150 €, 80 дни
+3. Puma RS-X 40 — 25 бр × 61 € = 1,525 €, 53 дни
+4. Reebok Classic 38 — 20 бр × 74 € = 1,480 €, 92 дни
+5. New Balance 44 — 15 бр × 55 € = 825 €, 60 дни
+...и още 15 артикула.
+Помисли за -20% на топ 3 — те държат 9,125 €.
+[Виж всички в Склад→]"
+
+TRUNCATION RULE: NEVER end a list with "6. ..." and stop. If you cannot list all items:
+1. Say the TOTAL count and value upfront
+2. Show TOP 5 by value (highest first)
+3. Say "...и още N артикула"
+4. Give your suggestion
+5. ALWAYS end with a deeplink: [Виж всички в Склад→] or [Виж zombie стока→] or [Виж справки→]"
+
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
