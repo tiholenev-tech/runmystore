@@ -1072,6 +1072,7 @@ let chatOpen = false;
 function openChat() {
     if (chatOpen) return;
     chatOpen = true;
+    try { sessionStorage.setItem('rms_chat_open','1'); } catch(e) {}
     $('chatOverlayBg').classList.add('open');
     $('chatOverlayPanel').classList.add('open');
     $('mainScroll').style.opacity = '.4';
@@ -1085,6 +1086,7 @@ function openChat() {
 
 function closeChat() {
     chatOpen = false;
+    try { sessionStorage.removeItem('rms_chat_open'); } catch(e) {}
     $('chatOverlayBg').classList.remove('open');
     $('chatOverlayPanel').classList.remove('open');
     $('mainScroll').style.opacity = '1';
@@ -1386,7 +1388,12 @@ window.addEventListener('popstate', () => {
 
 window.addEventListener('DOMContentLoaded', () => {
     updateRevenue();
-    scrollChatBottom();
+    // S58: Auto-reopen chat if was open before navigation
+    try {
+        if (sessionStorage.getItem('rms_chat_open') === '1') {
+            setTimeout(() => openChat(), 300);
+        }
+    } catch(e) {}
 });
 </script>
 </body>
