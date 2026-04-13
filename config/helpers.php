@@ -156,10 +156,7 @@ function updateInsightAction(int $shownId, string $action): void {
  * @return array Масив от insights, готови за показване
  */
 function getInsightsForModule(int $tenantId, int $storeId, int $userId, string $module, string $effectivePlan, string $userRole): array {
-    // 1/4 отваряния = тишина (Addictive UX правило)
-    if (rand(1, 4) === 1) {
-        return [];
-    }
+    // S58: 1/4 silence rule REMOVED — Пешо иска сигнали винаги
     
     $all = DB::run(
         "SELECT * FROM ai_insights 
