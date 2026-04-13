@@ -44,8 +44,8 @@ if (isset($_GET['ajax'])) {
         $d = json_decode(file_get_contents('php://input'), true) ?? [];
         $zone_id    = (int)($d['id'] ?? 0);
         $name       = trim($d['name'] ?? '');
-        $valid_types = ['shop','storage','cashier','customer','other'];
-        $zone_type  = in_array($d['zone_type'] ?? '', $valid_types) ? $d['zone_type'] : 'shop';
+        $zone_type  = trim($d['zone_type'] ?? 'other');
+        if (!$zone_type) $zone_type = 'other';
         $photo_url  = $d['photo_url'] ?? null;
         $sort_order = (int)($d['sort_order'] ?? 99);
         if (!$name) { echo json_encode(['ok'=>false,'error'=>'Липсва име']); exit; }
@@ -56,8 +56,8 @@ if (isset($_GET['ajax'])) {
                 DB::run("UPDATE store_zones SET photo_url=? WHERE id=? AND store_id=?",
                     [$photo_url, $zone_id, $store_id]);
         } else {
-            DB::run("INSERT INTO store_zones (store_id,name,zone_type,photo_url,sort_order) VALUES (?,?,?,?,?)",
-                [$store_id, $name, $zone_type, $photo_url, $sort_order]);
+            DB::run("INSERT INTO store_zones (store_id,tenant_id,name,zone_type,photo_url,sort_order) VALUES (?,?,?,?,?,?)",
+                [$store_id, $tenant_id, $name, $zone_type, $photo_url, $sort_order]);
             $zone_id = (int)$pdo->lastInsertId();
         }
         echo json_encode(['ok'=>true,'id'=>$zone_id]);
@@ -231,7 +231,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 .czc-arr{display:flex;align-items:center;padding:0 12px;color:#6366f1}
 .czc-arr svg{width:18px;height:18px}
 .sess-banner{margin:12px 16px;background:rgba(99,102,241,.14);border:1px solid rgba(99,102,241,.28);border-radius:14px;padding:14px}
-.camera-ov{position:fixed;inset:0;z-index:350;background:#000;display:none;flex-direction:column}
+.camera-ov{position:fixed;inset:0;z-index:700;background:#000;display:none;flex-direction:column}
 .camera-ov.open{display:flex}
 .camera-video{flex:1;object-fit:cover}
 .cam-controls{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:20px}
@@ -376,7 +376,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
         <span id="zmPhotoLabel" style="font-size:13px;font-weight:600;color:#6366f1">Добави снимка</span>
         <img id="zmPhotoImg" src="" alt="" style="display:none">
       </div>
-      <input type="file" id="zmPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
+      <input type="file" id="zmPhotoInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
       <input type="file" id="zmGalleryInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
     </div>
     <div style="margin-bottom:16px">
@@ -486,7 +486,7 @@ function renderOnbZones() {
 function zoneCard(z) {
     const hasPh = !!z.photo_url;
     const phHtml = hasPh ? `<img src="${esc(z.photo_url)}">` : `<div class="zp-inner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Снимка</span></div>`;
-    return `<div class="zone-card"><div class="zone-card-photo${hasPh?'':' no-ph'}" onclick="addPhotoToZone(${z.id})">${phHtml}</div><div class="zone-card-body"><div class="zone-card-name">${esc(z.name)}</div><div class="zone-card-type">${ztLabel(z.zone_type)}</div>${!hasPh?'<div style="font-size:10px;color:#f59e0b;margin-top:4px">Без снимка</div>':''}</div><div class="zone-card-acts"><button class="zact" onclick="editZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="zact del" onclick="delZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>`;
+    return `<div class="zone-card"><div class="zone-card-photo${hasPh?'':' no-ph'}" onclick="addPhotoToZone(${z.id})">${phHtml}</div><div class="zone-card-body"><div class="zone-card-name">${esc(z.name)}</div>${!hasPh?'<div style="font-size:10px;color:#f59e0b;margin-top:4px">Без снимка</div>':''}</div><div class="zone-card-acts"><button class="zact" onclick="editZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="zact del" onclick="delZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>`;
 }
 
 // ── ONBOARDING ──
@@ -501,19 +501,12 @@ function goConfirm() { renderConfirmZones(); showScreen('screen-confirm'); }
 
 function renderConfirmZones() {
     const w = document.getElementById('confirmZones');
-    const groups = {shop:[],storage:[],cashier:[],customer:[],other:[]};
-    INV.zones.forEach(z => { const t = groups[z.zone_type]?z.zone_type:'other'; groups[t].push(z); });
-    const labels = {cashier:'КАСОВА ЗОНА',customer:'ЗОНА КЛИЕНТИ',storage:'СКЛАДОВО ПОМЕЩЕНИЕ',shop:'МАГАЗИН',other:'ДРУГО'};
     let html = '';
-    for (const [t, arr] of Object.entries(groups)) {
-        if (!arr.length) continue;
-        html += `<div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.08em;text-transform:uppercase;margin:12px 0 6px">${labels[t]} (${arr.length})</div>`;
-        arr.forEach(z => {
-            const ph = z.photo_url ? `<img src="${esc(z.photo_url)}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0">` : `<div style="width:44px;height:44px;background:rgba(99,102,241,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:18px;height:18px;color:#4f46e5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
-            const warn = !z.photo_url ? '<span style="font-size:10px;color:#f59e0b;margin-left:6px">Без снимка</span>' : '';
-            html += `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(15,23,42,.6);border-radius:10px;margin-bottom:6px">${ph}<div style="flex:1;font-size:14px;font-weight:600">${esc(z.name)}${warn}</div><button onclick="editZone(${z.id});showScreen('screen-zones')" style="background:none;border:none;color:#6366f1;cursor:pointer;padding:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`;
-        });
-    }
+    INV.zones.forEach(z => {
+        const ph = z.photo_url ? `<img src="${esc(z.photo_url)}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0">` : `<div style="width:44px;height:44px;background:rgba(99,102,241,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:18px;height:18px;color:#4f46e5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
+        const warn = !z.photo_url ? '<span style="font-size:10px;color:#f59e0b;margin-left:6px">Без снимка</span>' : '';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(15,23,42,.6);border-radius:10px;margin-bottom:6px">${ph}<div style="flex:1;font-size:14px;font-weight:600">${esc(z.name)}${warn}</div><button onclick="editZone(${z.id});showScreen('screen-zones')" style="background:none;border:none;color:#6366f1;cursor:pointer;padding:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`;
+    });
     w.innerHTML = html || '<div style="color:#64748b;text-align:center;padding:16px">Няма добавени места</div>';
 }
 
@@ -522,7 +515,7 @@ function renderStartZones() {
     document.getElementById('startZones').innerHTML = sorted.map(z => {
         const ph = z.photo_url ? `<img src="${esc(z.photo_url)}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;color:#4f46e5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>`;
         const rec = z.zone_type==='storage' ? '<span style="font-size:10px;background:rgba(99,102,241,.2);color:#a5b4fc;padding:2px 8px;border-radius:10px;font-weight:700">ПРЕПОРЪЧАНО</span>' : '';
-        return `<div style="background:rgba(15,23,42,.7);border:1px solid rgba(99,102,241,.2);border-radius:14px;overflow:hidden;display:flex;align-items:stretch"><div style="width:78px;flex-shrink:0;position:relative;min-height:76px;background:rgba(99,102,241,.08)">${ph}</div><div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:4px"><div style="font-size:14px;font-weight:700">${esc(z.name)}</div><div style="font-size:11px;color:#94a3b8">${ztLabel(z.zone_type)}</div>${rec}</div></div>`;
+        return `<div style="background:rgba(15,23,42,.7);border:1px solid rgba(99,102,241,.2);border-radius:14px;overflow:hidden;display:flex;align-items:stretch"><div style="width:78px;flex-shrink:0;position:relative;min-height:76px;background:rgba(99,102,241,.08)">${ph}</div><div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:4px"><div style="font-size:14px;font-weight:700">${esc(z.name)}</div>${rec}</div></div>`;
     }).join('');
 }
 
@@ -551,7 +544,7 @@ function renderCountingZones() {
     document.getElementById('cntBar').style.width = total>0?(done/total*100)+'%':'0%';
     document.getElementById('cntZones').innerHTML = INV.zones.map(z => {
         const ph = z.photo_url ? `<img src="${esc(z.photo_url)}">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(99,102,241,.08)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;color:#4f46e5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>`;
-        return `<div class="czc" onclick="enterZone(${z.id})"><div class="czc-photo">${ph}</div><div class="czc-body"><div class="czc-name">${esc(z.name)}</div><div class="czc-sub">${ztLabel(z.zone_type)}</div></div><div class="czc-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
+        return `<div class="czc" onclick="enterZone(${z.id})"><div class="czc-photo">${ph}</div><div class="czc-body"><div class="czc-name">${esc(z.name)}</div></div><div class="czc-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
     }).join('');
 }
 function enterZone(zId) { toast('Броене по артикул — следваща стъпка'); }
@@ -623,10 +616,12 @@ async function saveZone() {
     const name=INV.zm.name||document.getElementById('zmNameInput').value.trim();INV.zm.name=name;
     if(!name){toast('Кажи или напиши името на мястото','err');return;}
     const existingPhoto=INV.zm.id>0?INV.zones.find(z=>z.id===INV.zm.id)?.photo_url:null;
-    const res=await api('save_zone',{id:INV.zm.id,name,zone_type:INV.zm.type,photo_url:INV.zm.photo||existingPhoto,sort_order:INV.zones.length},'POST');
+    try{
+    const res=await api('save_zone',{id:INV.zm.id,name,zone_type:INV.zm.type||'other',photo_url:INV.zm.photo||existingPhoto||null,sort_order:INV.zones.length},'POST');
     if(!res.ok){toast(res.error||'Грешка','err');return;}
     closeZoneModal();toast('Запазено','ok');await loadZones();
     document.getElementById('screen-hub').classList.contains('active')?renderHubZones():renderOnbZones();
+    }catch(e){toast('Грешка: '+e.message,'err');}
 }
 async function delZone(id){if(!confirm('Изтрий това място?'))return;await api('delete_zone',{id},'POST');INV.zones=INV.zones.filter(z=>z.id!==id);document.getElementById('screen-hub').classList.contains('active')?renderHubZones():renderOnbZones();toast('Изтрито')}
 
