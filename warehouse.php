@@ -309,16 +309,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             text-shadow: 0 0 12px rgba(129, 140, 248, 0.9); 
         }
         
-        .bnav-tab .bnav-icon { 
-            font-size: 20px; 
-            transition: all 0.3s; 
-            filter: drop-shadow(0 0 4px rgba(99,102,241,0.3));
-        }
-        
-        .bnav-tab.active .bnav-icon { 
-            transform: translateY(-2px); 
-            filter: drop-shadow(0 0 12px rgba(129, 140, 248, 0.8)); 
-        }
+        .bnav-tab svg { width:18px; height:18px; }
 
         /* ═══ Animations from stats.php ═══ */
         @keyframes cardIn {
@@ -505,10 +496,10 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
 </div>
 
 <nav class="bottom-nav">
-    <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
-    <a href="warehouse.php" class="bnav-tab active"><span class="bnav-icon">📦</span>Склад</a>
-    <a href="stats.php" class="bnav-tab"><span class="bnav-icon">📊</span>Справки</a>
-    <a href="actions.php" class="bnav-tab"><span class="bnav-icon">⚡</span>Въвеждане</a>
+  <a href="chat.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI</a>
+  <a href="warehouse.php" class="bnav-tab active"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="#a5b4fc" width="18" height="18" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Склад</a>
+  <a href="stats.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки</a>
+  <a href="sale.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба</a>
 </nav>
 
 <script>
