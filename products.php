@@ -1342,7 +1342,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .bottom-nav-tab {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 3px;
-    font-size: 9px; font-weight: 600; color: rgba(165,180,252,0.4);
+    font-size: 13px; font-weight: 600; color: rgba(165,180,252,0.4);
     text-decoration: none;
 }
 .bottom-nav-tab.active { color: #c7d2fe; }
