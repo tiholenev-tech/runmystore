@@ -39,6 +39,38 @@ if ($message === '') {
 }
 $message = mb_substr(strip_tags($message), 0, 2000);
 
+// S58: Strip LEARN tags from user input (anti-injection)
+$message = preg_replace('/\[LEARN:[^\]]*\]/', '', $message);
+$message = trim($message);
+if ($message === '') {
+    echo json_encode(['error' => 'Празно съобщение']);
+    exit;
+}
+
+// ── S58: RATE LIMIT (max 30 msg/hour per user) ───────────────
+$msg_count_hour = (int)DB::run(
+    'SELECT COUNT(*) FROM chat_messages WHERE tenant_id=? AND store_id=? AND user_id=? AND role="user" AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+    [$tenant_id, $store_id, $user_id]
+)->fetchColumn();
+if ($msg_count_hour >= 30) {
+    echo json_encode(['reply' => 'Твърде много съобщения. Изчакай малко и опитай пак.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── S58: PROMPT INJECTION DETECTION ──────────────────────────
+$injection_patterns = ['system prompt','ignore all','forget instructions','ignore instructions',
+    'системен промпт','покажи промпт','забрави правилата','забрави инструкциите',
+    'ти си вече','pretend you are','act as if','you are now','reveal your'];
+$msg_lower = mb_strtolower($message);
+$is_suspicious = false;
+foreach ($injection_patterns as $pat) {
+    if (mb_strpos($msg_lower, $pat) !== false) { $is_suspicious = true; break; }
+}
+if ($is_suspicious) {
+    $message = preg_replace('/системен промпт|system prompt|ignore all|forget instructions/iu', '[blocked]', $message);
+    error_log("S58 injection attempt tenant={$tenant_id} msg=" . mb_substr($message, 0, 100));
+}
+
 // ── "ЗАПОМНИ" КОМАНДА (бърз път, без Gemini) ─────────────────
 if (preg_match('/^запомни[\s:,]+(.+)/iu', $message, $m)) {
     $remember_text = trim($m[1]);
@@ -183,6 +215,114 @@ if (!$raw_reply) {
 
 // ── SAFETY СЛОЙ 2: POST-VALIDATION ────────────────────────────
 $reply = postValidate($raw_reply);
+
+// ── S58: LEARN TAG PARSING (biz_learned_data) ─────────────────
+$learn_whitelist = ['size_demand','supplier_issue','product_trend','traffic_pattern',
+                    'customer_pref','competitor_info','seasonal_note','pricing_insight'];
+$learn_blacklist = ['болен','болна','здраве','семейств','жена ми','мъж ми','дете ми',
+                    'егн','ЕГН','телефон','адрес','парола','пароли','кредит','дълг',
+                    'банка','сметка','лично','личен','болница','лекар','бременна',
+                    'password','credit card','ssn'];
+
+if (preg_match_all('/\[LEARN:([^|]+)\|([^|]+)\|([^\]]*)\]/', $reply, $lm, PREG_SET_ORDER)) {
+    $learn_count = 0;
+    $max_per_response = 2;
+
+    // Rate limit: max 10 new records per day per tenant
+    $today_learns = (int)DB::run(
+        'SELECT COUNT(*) FROM biz_learned_data WHERE tenant_id=? AND DATE(created_at)=CURDATE()',
+        [$tenant_id]
+    )->fetchColumn();
+
+    foreach ($lm as $match) {
+        if ($learn_count >= $max_per_response) break;
+        if ($today_learns >= 10) break;
+
+        $ft  = trim($match[1]);
+        $val = trim($match[2]);
+        $ctx = trim($match[3]);
+
+        // Validate field_type
+        if (!in_array($ft, $learn_whitelist)) continue;
+
+        // Validate length
+        if (mb_strlen($val) < 3 || mb_strlen($val) > 200) continue;
+        if (mb_strlen($ctx) > 50) $ctx = mb_substr($ctx, 0, 50);
+
+        // Blacklist personal data
+        $blocked = false;
+        foreach ($learn_blacklist as $bw) {
+            if (mb_stripos($val, $bw) !== false) { $blocked = true; break; }
+        }
+        if ($blocked) continue;
+
+        // Anti-hallucination: at least 1 word from value must appear in user message
+        $val_words = preg_split('/\s+/u', mb_strtolower($val));
+        $msg_lower = mb_strtolower($message);
+        $found_word = false;
+        foreach ($val_words as $w) {
+            if (mb_strlen($w) >= 3 && mb_strpos($msg_lower, $w) !== false) {
+                $found_word = true;
+                break;
+            }
+        }
+        if (!$found_word) continue;
+
+        // Deduplication: if similar value exists, increment usage_count
+        $existing = DB::run(
+            'SELECT id, value FROM biz_learned_data WHERE tenant_id=? AND field_type=? AND context=? ORDER BY created_at DESC LIMIT 5',
+            [$tenant_id, $ft, $ctx]
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        $is_dup = false;
+        foreach ($existing as $ex) {
+            // Simple fuzzy: if 60%+ of words overlap, it's a duplicate
+            $ex_words = preg_split('/\s+/u', mb_strtolower($ex['value']));
+            $overlap = count(array_intersect($val_words, $ex_words));
+            $total = max(count($val_words), count($ex_words), 1);
+            if ($overlap / $total >= 0.6) {
+                DB::run('UPDATE biz_learned_data SET usage_count = usage_count + 1 WHERE id=?', [$ex['id']]);
+                $is_dup = true;
+                break;
+            }
+        }
+
+        if (!$is_dup) {
+            // FIFO: keep max 200 rows per tenant
+            $total_rows = (int)DB::run(
+                'SELECT COUNT(*) FROM biz_learned_data WHERE tenant_id=?', [$tenant_id]
+            )->fetchColumn();
+            if ($total_rows >= 200) {
+                DB::run(
+                    'DELETE FROM biz_learned_data WHERE tenant_id=? AND usage_count=0 ORDER BY created_at ASC LIMIT 5',
+                    [$tenant_id]
+                );
+            }
+
+            DB::run(
+                'INSERT INTO biz_learned_data (tenant_id, store_id, field_type, value, context, source) VALUES (?,?,?,?,?,?)',
+                [$tenant_id, $store_id, $ft, $val, $ctx, 'chat']
+            );
+            $today_learns++;
+        }
+        $learn_count++;
+    }
+
+    // Strip all LEARN tags from visible reply
+    $reply = trim(preg_replace('/\[LEARN:[^\]]*\]/', '', $reply));
+}
+
+// ── S58: Strip Markdown from reply ────────────────────────────
+$reply = preg_replace('/\*\*([^*]+)\*\*/', '$1', $reply);  // **bold** → bold
+$reply = preg_replace('/^#{1,6}\s+/m', '', $reply);            // ## headers → plain
+$reply = preg_replace('/```[\s\S]*?```/', '', $reply);         // code blocks
+$reply = preg_replace('/`([^`]+)`/', '$1', $reply);              // inline code
+$reply = trim($reply);
+
+// ── S58: Empty reply safeguard ─────────────────────────────────
+if (trim($reply) === '') {
+    $reply = 'Обработих заявката. Имаш ли друг въпрос?';
+}
 
 // ── ПАРСВАНЕ НА DEEPLINKS ─────────────────────────────────────
 $deeplink_map = [
