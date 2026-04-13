@@ -370,17 +370,13 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
       <button onclick="closeZoneModal()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;line-height:1;width:32px">&#x2715;</button>
     </div>
     <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;display:flex;align-items:center;gap:6px">СНИМКА <span style="color:#f59e0b;font-size:10px">силно препоръчителна</span></div>
-      <div class="photo-preview" id="zmPhotoPreview">
+      <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;display:flex;align-items:center;gap:6px">СНИМКА <span style="color:#f59e0b;font-size:10px">препоръчителна</span></div>
+      <div class="photo-preview" id="zmPhotoPreview" onclick="document.getElementById('zmPhotoInput').click()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;color:#4f46e5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
         <span id="zmPhotoLabel" style="font-size:13px;font-weight:600;color:#6366f1">Добави снимка</span>
         <img id="zmPhotoImg" src="" alt="" style="display:none">
       </div>
-      <div class="photo-btns">
-        <button class="photo-btn cam" onclick="openZoneCamera()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Камера</button>
-        <button class="photo-btn gal" onclick="openZoneGallery()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>
-      </div>
-      <input type="file" id="zmCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
+      <input type="file" id="zmPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(this)">
       <input type="file" id="zmGalleryInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
     </div>
     <div style="margin-bottom:16px">
@@ -393,11 +389,9 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
     <div style="margin-bottom:20px">
       <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px">ВИД МЯСТО</div>
       <div class="zt-tabs">
-        <button class="zt-tab active" data-type="shop" onclick="selZoneType('shop',this)">Магазин</button>
-        <button class="zt-tab" data-type="storage" onclick="selZoneType('storage',this)">Склад</button>
-        <button class="zt-tab" data-type="cashier" onclick="selZoneType('cashier',this)">Каса</button>
-        <button class="zt-tab" data-type="customer" onclick="selZoneType('customer',this)">Клиенти</button>
-        <button class="zt-tab" data-type="other" onclick="selZoneType('other',this)">Друго</button>
+        <button class="zt-tab active" data-type="cashier" onclick="selZoneType('cashier',this)">Касова зона</button>
+        <button class="zt-tab" data-type="customer" onclick="selZoneType('customer',this)">Зона клиенти</button>
+        <button class="zt-tab" data-type="storage" onclick="selZoneType('storage',this)">Складово помещение</button>
       </div>
     </div>
     <button onclick="saveZone()" class="inv-btn-primary">Запази</button>
@@ -441,7 +435,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
 
 <script>
-const INV = { approxCount:0, hasVar:false, mode:'quick', zones:[], session:null, zm:{id:0,name:'',type:'shop',photo:null,ctx:'hub'}, cameraStream:null };
+const INV = { approxCount:0, hasVar:false, mode:'quick', zones:[], session:null, zm:{id:0,name:'',type:'cashier',photo:null,ctx:'hub'}, cameraStream:null };
 const PHP = { zonesCount:<?=$zones_count?>, hasSession:<?=$active_session?'true':'false'?>, session:<?=json_encode($active_session?:null)?> };
 if (PHP.session) INV.session = PHP.session;
 
@@ -509,7 +503,7 @@ function renderConfirmZones() {
     const w = document.getElementById('confirmZones');
     const groups = {shop:[],storage:[],cashier:[],customer:[],other:[]};
     INV.zones.forEach(z => { const t = groups[z.zone_type]?z.zone_type:'other'; groups[t].push(z); });
-    const labels = {shop:'МАГАЗИН',storage:'СКЛАД',cashier:'КАСА',customer:'КЛИЕНТИ',other:'ДРУГО'};
+    const labels = {cashier:'КАСОВА ЗОНА',customer:'ЗОНА КЛИЕНТИ',storage:'СКЛАДОВО ПОМЕЩЕНИЕ',shop:'МАГАЗИН',other:'ДРУГО'};
     let html = '';
     for (const [t, arr] of Object.entries(groups)) {
         if (!arr.length) continue;
@@ -564,13 +558,13 @@ function enterZone(zId) { toast('Броене по артикул — следв
 
 // ── ZONE MODAL ──
 function openZoneModal(ctx) {
-    INV.zm={id:0,name:'',type:'shop',photo:null,ctx:ctx||'hub'};
+    INV.zm={id:0,name:'',type:'cashier',photo:null,ctx:ctx||'hub'};
     document.getElementById('zmTitle').textContent='Добави място';
     document.getElementById('zmNameInput').value='';
     document.getElementById('zmPhotoImg').style.display='none';
     document.getElementById('zmPhotoImg').src='';
     document.getElementById('zmPhotoLabel').textContent='Добави снимка';
-    document.querySelectorAll('.zt-tab').forEach(t=>t.classList.toggle('active',t.dataset.type==='shop'));
+    document.querySelectorAll('.zt-tab').forEach(t=>t.classList.toggle('active',t.dataset.type==='cashier'));
     document.getElementById('zoneModal').classList.add('open');
 }
 function editZone(id) {
@@ -629,7 +623,6 @@ async function saveZone() {
     const name=INV.zm.name||document.getElementById('zmNameInput').value.trim();INV.zm.name=name;
     if(!name){toast('Кажи или напиши името на мястото','err');return;}
     const existingPhoto=INV.zm.id>0?INV.zones.find(z=>z.id===INV.zm.id)?.photo_url:null;
-    if(!INV.zm.photo&&!existingPhoto) toast('Снимката помага на AI да запомни мястото','warn');
     const res=await api('save_zone',{id:INV.zm.id,name,zone_type:INV.zm.type,photo_url:INV.zm.photo||existingPhoto,sort_order:INV.zones.length},'POST');
     if(!res.ok){toast(res.error||'Грешка','err');return;}
     closeZoneModal();toast('Запазено','ok');await loadZones();
@@ -661,7 +654,7 @@ const INFO={hub:{title:'Скрити пари',body:'Системата след
 function showInfo(k){const c=INFO[k];if(!c)return;document.getElementById('infoTitle').textContent=c.title;document.getElementById('infoBody').innerHTML=c.body;document.getElementById('infoModal').classList.add('open')}
 
 // ── HELPERS ──
-function ztLabel(t){return{shop:'Магазин',storage:'Склад',cashier:'Каса',customer:'Клиенти',other:'Друго'}[t]||t}
+function ztLabel(t){return{cashier:'Касова зона',customer:'Зона клиенти',storage:'Складово помещение',shop:'Магазин',other:'Друго'}[t]||t}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 async function api(endpoint,body,method){if(!method||method==='GET')return fetch(`inventory.php?ajax=${endpoint}`).then(r=>r.json());return fetch(`inventory.php?ajax=${endpoint}`,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json())}
 function toast(msg,type){const t=document.getElementById('iToast');t.textContent=msg;t.className='inv-toast show'+(type?' '+type:'');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500)}
