@@ -291,7 +291,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
     <button class="back-btn" onclick="location.href='warehouse.php'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
     <h1>Скрити пари</h1>
   </div>
-  <div class="onb-steps"><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div></div>
+  <div class="onb-steps"><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div><strong>Мисля, че имаш пари скрити в магазина.</strong><br><br>Стока, за която не знаеш точно колко имаш. Артикули, забравени на рафта. Неща, дадени на кредит без запис.<br><br>Искаш ли да видим заедно?</div></div>
   <div class="choice-chips">
     <div class="choice-chip" onclick="step1('start')"><div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="chip-text">Да, да започваме<small>Обхождаме магазина стъпка по стъпка</small></div></div>
@@ -322,8 +322,8 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 
 <!-- ZONES (step 3) -->
 <div id="screen-zones" class="inv-screen">
-  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-size')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Места в магазина</h1><button class="info-btn" style="margin-left:auto" onclick="showInfo('zones')">i</button></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div></div>
+  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-welcome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Места в магазина</h1><button class="info-btn" style="margin-left:auto" onclick="showInfo('zones')">i</button></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>Сега ще обходим магазина заедно. Снимай <strong>ВСЯКО отделно място</strong> — щендер, рафт, витрина, маса, кука, кашон.<br><br>Кръсти го <strong>както ти му казваш.</strong></div></div>
   <div id="onbZones"></div>
   <button class="add-zone-btn" onclick="openZoneModal('onb')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави място</button>
@@ -333,7 +333,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <!-- CONFIRM (step 4) -->
 <div id="screen-confirm" class="inv-screen">
   <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-zones')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Потвърди местата</h1></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>Ето всички места. Всичко ли е точно?</div></div>
   <div id="confirmZones" style="padding:0 16px"></div>
   <div class="choice-chips" style="padding-top:8px">
@@ -346,7 +346,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <!-- START (step 5) -->
 <div id="screen-start" class="inv-screen">
   <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-confirm')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Откъде да започнем</h1></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div><strong>Препоръчвам: Започни от склада.</strong><br><br>Там е масата от стоката и се брои по-лесно — без клиенти, без разсейване. Когато стигнеш магазина, повечето артикули вече ще са преброени.</div></div>
   <div id="startZones" style="padding:0 16px;display:flex;flex-direction:column;gap:10px"></div>
   <div style="padding:16px"><button onclick="doStartCounting()" class="inv-btn-primary">Да започваме!</button><button onclick="skipToHub()" style="width:100%;margin-top:10px;background:transparent;border:none;color:#64748b;font-size:13px;cursor:pointer;padding:8px">Ще започна по-късно</button></div>
@@ -354,7 +354,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 
 <!-- COUNTING -->
 <div id="screen-counting" class="inv-screen">
-  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-hub');loadHub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Броене</h1><div id="cntModeTag" style="margin-left:auto;font-size:11px;padding:4px 10px;background:rgba(99,102,241,.2);border-radius:20px;color:#a5b4fc;font-weight:700"></div></div>
+  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-hub');loadHub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Броене</h1></div>
   <div style="padding:12px 16px"><div class="prog-bar"><div class="prog-fill" id="cntBar" style="width:0%"></div></div><div class="prog-lbl" id="cntLbl">0 от 0 места преброени</div></div>
   <div class="ai-bwrap" style="padding-top:0"><div class="ai-bubble" style="font-size:13px">Избери от кое място да започнеш.</div></div>
   <div id="cntZones"></div>
@@ -491,7 +491,7 @@ function zoneCard(z) {
 
 // ── ONBOARDING ──
 function step1(c) {
-    if (c==='start') showScreen('screen-size');
+    if (c==='start') { showScreen('screen-zones'); loadZones().then(renderOnbZones); }
     else if (c==='csv') toast('CSV импорт — скоро');
     else { toast('Можеш да се върнеш от Склад'); setTimeout(()=>location.href='warehouse.php',1600); }
 }
@@ -537,8 +537,7 @@ async function goCountingScreen() {
     showScreen('screen-counting'); renderCountingZones();
 }
 function renderCountingZones() {
-    const mode = INV.session?.mode||INV.mode||'quick';
-    document.getElementById('cntModeTag').textContent = mode==='full'?'ПЪЛЕН РЕЖИМ':'БЪРЗ РЕЖИМ';
+
     const done=INV.session?.zones_completed||0, total=INV.zones.length;
     document.getElementById('cntLbl').textContent = `${done} от ${total} места преброени`;
     document.getElementById('cntBar').style.width = total>0?(done/total*100)+'%':'0%';
