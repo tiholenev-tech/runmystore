@@ -422,6 +422,93 @@ if (preg_match_all('/SAVE_MEMORY\|([^|]+)\|([^\n]+)/u', $reply, $mm, PREG_SET_OR
     $reply = trim(preg_replace('/SAVE_MEMORY\|[^\n]+\n?/u', '', $reply));
 }
 
+// ── S58: Auto-inject action buttons based on reply content ────
+$reply_lower = mb_strtolower($reply);
+$auto_actions = [];
+
+// ZOMBIE / СТОЯЩА СТОКА → Склад (zombie филтър)
+if (preg_match('/zombie|зомби|зомбі|стоят.*дни|стои.*дни|idle|без продажба|замразен|замразена|замръзнал|мъртва стока|мъртъв.*запас|не се продава.*дни|остаряващ|стар.*стока|бавно движещ|slow.?mov|не мърда|залежал|залежала|стока.*прах|60.*дни|90.*дни|45.*дни|лежи.*склад/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж в Склад', 'url' => 'products.php?filter=zombie'];
+}
+
+// НУЛЕВА НАЛИЧНОСТ → Склад (нула филтър)
+if (preg_match('/на нула|нулев|нулева|без наличност|zero.?stock|свършил|свършен|изчерпан|няма.*бройки|0 бр|наличност.*0|out.?of.?stock|липсва.*наличност|празен.*склад/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж в Склад', 'url' => 'products.php?filter=zero'];
+}
+
+// ПОД СЕБЕСТОЙНОСТ / ЗАГУБА → Корекция на цени
+if (preg_match('/под себестойност|на загуба|below.?cost|губиш.*от|продава.*загуба|отрицателен марж|отрицателна печалба|цена.*под.*доставна|cost.*price.*higher|retail.*less.*cost/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Коригирай цени', 'url' => 'products.php?filter=below_cost'];
+}
+
+// НИСЪК МАРЖ → Склад (low margin филтър)
+if (preg_match('/нисък марж|марж.*под.*15|нисък.*печалба|слаб.*марж|thin.*margin|low.*margin|малка печалба/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж нисък марж', 'url' => 'products.php?filter=low_margin'];
+}
+
+// БЕЗ СНИМКА → Склад (без снимка филтър)
+if (preg_match('/без снимка|no.?photo|няма снимка|липсва снимка|без изображение|без картинк/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Добави снимки', 'url' => 'products.php?filter=no_photo'];
+}
+
+// БЕЗ СЕБЕСТОЙНОСТ / ДОСТАВНА ЦЕНА → Склад (no cost филтър)
+if (preg_match('/без себестойност|без доставна|no.?cost|няма.*доставна цена|липсва.*себестойност|без покупна/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Добави доставни цени', 'url' => 'products.php?filter=no_cost'];
+}
+
+// НИСКА НАЛИЧНОСТ / ПОД МИНИМУМ → Склад (low stock)
+if (preg_match('/под минимум|ниска наличност|low.?stock|малко.*наличност|свършва|под.*мин.*количество|критичн.*наличност|дозареди|зареди отново/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж ниска наличност', 'url' => 'products.php?filter=low'];
+}
+
+// ТОП ПЕЧАЛБА / НАЙ-ПЕЧЕЛИВШИ → Склад (top profit)
+if (preg_match('/най-печеливш|топ печалба|top.?profit|топ.*марж|най-голям.*марж|носят.*печалба|печалба.*лидер/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж топ печалба', 'url' => 'products.php?filter=top_profit'];
+}
+
+// ТОП ПРОДАЖБИ / БЕСТСЕЛЪРИ → Склад (top sales)
+if (preg_match('/топ продажб|най-продаван|бестселър|bestsell|best.?sell|топ.*артикул|най-търсен|хит|върв.*добре|продава.*най-добре/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж топ продажби', 'url' => 'products.php?filter=top_sales'];
+}
+
+// ОБОРОТ / ПРИХОД / ФИНАНСИ / СТАТИСТИКИ → Справки
+if (preg_match('/оборот|приход|revenue|справк|статистик|графика|тренд|сравнен|период|месечн.*отчет|седмичн.*отчет|анализ.*продажб|печалба.*период|марж.*период/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж Справки', 'url' => 'stats.php'];
+}
+
+// ПРОДАЖБА / КАСА → Нова продажба
+if (preg_match('/нова продажба|открий.*каса|sale|направи.*продажба|пусни.*каса|касов|продай/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Нова продажба', 'url' => 'sale.php'];
+}
+
+// ДОСТАВКА / ПРАТКА → Доставки
+if (preg_match('/доставк|delivery|пратка|получи.*стока|нова.*пратка|очакван.*доставка|чакам.*стока|зарежда/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Доставки', 'url' => 'deliveries.php'];
+}
+
+// ДОСТАВЧИК / SUPPLIER → Склад (по доставчик)
+if (preg_match('/доставчик|supplier|иватекс|фактур.*доставчик|дължим.*на|задължен.*към/u', $reply_lower)) {
+    if (!in_array('products.php?filter=zombie', array_column($auto_actions, 'url'))) {
+        $auto_actions[] = ['label' => 'Виж доставчици', 'url' => 'products.php'];
+    }
+}
+
+// НОВИ АРТИКУЛИ → Склад (new)
+if (preg_match('/нов.*артикул.*тази|добавен.*наскоро|нов.*продукт.*тази.*седмиц|последно добавен/u', $reply_lower)) {
+    $auto_actions[] = ['label' => 'Виж нови артикули', 'url' => 'products.php?filter=new_week'];
+}
+
+// Max 2 auto-actions, deduplicate by url
+$seen_urls = [];
+$unique_actions = [];
+foreach ($auto_actions as $aa) {
+    if (!in_array($aa['url'], $seen_urls)) {
+        $seen_urls[] = $aa['url'];
+        $unique_actions[] = $aa;
+    }
+}
+$auto_actions = array_slice($unique_actions, 0, 2);
+
 // ── S58: Strip deeplink markers from visible reply ───────────
 $reply = preg_replace('/\[([^\]]+?)\x{2192}\]/u', '', $reply);
 $reply = trim($reply);
@@ -463,8 +550,9 @@ if ($cutoff_msg) {
 logAdvice($tenant_id, $store_id, $user_id, $message, $raw_reply, $reply);
 
 // ── RESPONSE ──────────────────────────────────────────────────
+$all_actions = array_merge($actions, $auto_actions ?? []);
 $out = ['reply' => $reply];
-if (!empty($actions)) $out['actions'] = $actions;
+if (!empty($all_actions)) $out['actions'] = $all_actions;
 if ($action_data)     $out['action']  = $action_data;
 
 echo json_encode($out, JSON_UNESCAPED_UNICODE);
