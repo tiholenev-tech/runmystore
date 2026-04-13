@@ -243,11 +243,14 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 .inv-toast.show{opacity:1}
 .inv-toast.err{border-color:rgba(239,68,68,.4)}
 .inv-toast.ok{border-color:rgba(34,197,94,.4)}
-/* Bottom nav */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(3,7,18,.96);backdrop-filter:blur(12px);border-top:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:space-around;z-index:200;padding:0}
-.bottom-nav-tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:#64748b;font-size:10px;font-weight:600;text-decoration:none;padding:8px 16px;transition:color .2s}
-.bottom-nav-tab.active{color:#c7d2fe}
-.bottom-nav-tab svg{width:18px;height:18px}
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(3,7,18,.97);border-top:1px solid rgba(255,255,255,.04);display:flex;z-index:100}
+.bottom-nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:8px;font-weight:600;text-decoration:none;transition:all .2s}
+.bottom-nav-tab svg{width:18px;height:18px;stroke-width:1.5;fill:none}
+.bottom-nav-tab.active{color:#a5b4fc}
+.bottom-nav-tab.active svg{stroke:#a5b4fc}
+.bottom-nav-tab.inactive{color:rgba(165,180,252,.45)}
+.bottom-nav-tab.inactive svg{stroke:rgba(165,180,252,.45)}
 </style>
 </head>
 <body>
@@ -577,19 +580,22 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <!-- Toast -->
 <div class="inv-toast" id="iToast"></div>
 
-<!-- Bottom Nav -->
 <nav class="bottom-nav">
-  <a href="chat.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
+  <a href="chat.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
   </a>
   <a href="warehouse.php" class="bottom-nav-tab active">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>Склад
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Склад
   </a>
-  <a href="stats.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
+  <a href="stats.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24" stroke-linecap="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
   </a>
-  <a href="sale.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
+  <a href="sale.php" class="bottom-nav-tab inactive">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
   </a>
 </nav>
 
