@@ -48,6 +48,78 @@ $all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY na
 // S56: silent geolocation from IP
 autoGeolocateStore($store_id);
 
+// WEATHER FORECAST
+$weather_today = null;
+$weather_week = [];
+$weather_suggestion = '';
+try {
+    $weather_today = DB::run(
+        'SELECT temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date=CURDATE() LIMIT 1',
+        [$store_id])->fetch(PDO::FETCH_ASSOC);
+    $weather_week = DB::run(
+        'SELECT forecast_date, temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 13 DAY) ORDER BY forecast_date',
+        [$store_id])->fetchAll(PDO::FETCH_ASSOC);
+    if ($weather_today) {
+        $tmax = (float)$weather_today['temp_max'];
+        $rain = (int)$weather_today['precipitation_prob'];
+        $btype = mb_strtolower($tenant['business_type'] ?? '');
+        $fashion_kw = ['дрех','рокл','блуз','обувк','панталон','яке','палт','бельо','чорап','спорт','мод','fashion','cloth','shoe','sport','wear','бански','шал','ръкавиц','чант','аксесоар','бижут'];
+        $is_fashion = false;
+        foreach ($fashion_kw as $kw) {
+            if (mb_strpos($btype, $kw) !== false) { $is_fashion = true; break; }
+        }
+        // Витрина + сезонност (за мода/дрехи/обувки)
+        if ($is_fashion) {
+            if ($tmax > 30) $weather_suggestion = 'Витрина: летни артикули отпред — рокли, сандали, шапки. Пуснати ли са зимните на намаление?';
+            elseif ($tmax > 25) $weather_suggestion = 'Витрина: леки рокли и сандали. Ако имаш пролетни остатъци — време за намаление';
+            elseif ($tmax > 20) $weather_suggestion = 'Витрина: тениски, къси панталони. Преходен период — миксирай сезони на витрината';
+            elseif ($tmax > 15) $weather_suggestion = 'Витрина: леки якета, дънки. Зимните трябва да са на намаление или прибрани';
+            elseif ($tmax > 10) $weather_suggestion = 'Витрина: якета и преходни обувки. Летните на разпродажба ако са останали';
+            elseif ($tmax > 5) $weather_suggestion = 'Витрина: палта, пуловери, зимни обувки. Есенните артикули — намали или прибери';
+            else $weather_suggestion = 'Витрина: пуховки, ботуши, шалове. Пълна зима — сезонните артикули отпред';
+            if ($rain > 60) $weather_suggestion .= '. Дъжд — сложи чадъри или дъждобрани на витрината';
+        } else {
+            // Универсално за всеки тип магазин — само трафик
+            if ($rain > 75) $weather_suggestion = 'Силен дъжд — очаквай 25-35% по-малко хора, но по-голяма кошница';
+            elseif ($rain > 50) $weather_suggestion = 'Вероятен дъжд — възможно 15-25% по-малко хора';
+            elseif ($tmax > 33) $weather_suggestion = 'Много горещо — хората избягват разходки, по-слаб трафик';
+            elseif ($tmax > 25) $weather_suggestion = 'Хубаво време — добър ден за разходки и пазаруване';
+            elseif ($tmax > 15) $weather_suggestion = 'Приятно време — нормален трафик';
+            elseif ($tmax > 5) $weather_suggestion = 'Хладно — хората пазаруват по-целенасочено';
+            else $weather_suggestion = 'Студено — по-малко разходки, но сериозни купувачи';
+            if ($rain > 60) $weather_suggestion .= '. Дъждовен ден — обмисли промоция за онлайн или по-атрактивна витрина';
+        }
+        if (count($weather_week) >= 7) {
+            $t0 = (float)$weather_week[0]['temp_max'];
+            $t7 = (float)$weather_week[6]['temp_max'];
+            $diff = round($t7 - $t0);
+            if ($diff >= 5) $weather_suggestion .= '. Затопляне идва (+' . $diff . '\xC2\xB0C за 7 дни) — сезонна смяна наближава';
+            elseif ($diff <= -5) $weather_suggestion .= '. Застудяване идва (' . $diff . '\xC2\xB0C за 7 дни) — сезонна смяна наближава';
+        }
+        $rainy_days = 0;
+        foreach (array_slice($weather_week, 0, 7) as $d) {
+            if ((int)$d['precipitation_prob'] > 50) $rainy_days++;
+        }
+        if ($rainy_days >= 4) $weather_suggestion .= '. ' . $rainy_days . ' дъждовни дни от 7 — планирай по-слаба седмица';
+    }
+} catch (Exception $e) {}
+
+function wmoSvg($code) {
+    if ($code <= 3) return '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    if ($code <= 48) return '<path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>';
+    return '<path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/><line x1="8" y1="24" x2="10" y2="18"/><line x1="12" y1="24" x2="14" y2="18"/><line x1="16" y1="24" x2="18" y2="18"/>';
+}
+
+function wmoText($code) {
+    if ($code <= 3) return 'Ясно';
+    if ($code <= 48) return 'Облачно';
+    if ($code <= 57) return 'Ръми';
+    if ($code <= 67) return 'Дъжд';
+    if ($code <= 77) return 'Сняг';
+    if ($code <= 82) return 'Порой';
+    return 'Буря';
+}
+
 // Plan badge colors
 $plan_colors = match($plan) {
     'pro'   => ['bg' => 'rgba(192,132,252,.15)', 'br' => 'rgba(192,132,252,.3)', 'tx' => '#c084fc'],
@@ -468,7 +540,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     transition:border-color .2s}
 .input-bar-inner:active{border-color:rgba(99,102,241,.2)}
 .input-waves{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
-.input-wave-bar{width:2px;border-radius:1px}
+.input-wave-bar{width:2px;border-radius:1px;animation:waveAnim .8s ease-in-out infinite alternate}
+.input-wave-bar:nth-child(1){animation-delay:0s}
+.input-wave-bar:nth-child(2){animation-delay:.15s}
+.input-wave-bar:nth-child(3){animation-delay:.3s}
+.input-wave-bar:nth-child(4){animation-delay:.45s}
+.input-wave-bar:nth-child(5){animation-delay:.6s}
 .input-placeholder{flex:1;font-size:11px;color:#374151}
 .mic-button{width:32px;height:32px;border-radius:50%;
     background:linear-gradient(135deg,#4f46e5,#7c3aed);
@@ -488,8 +565,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .bottom-nav-tab svg{width:18px;height:18px;stroke-width:1.5;fill:none}
 .bottom-nav-tab.active{color:#a5b4fc}
 .bottom-nav-tab.active svg{stroke:#a5b4fc}
-.bottom-nav-tab.inactive{color:rgba(255,255,255,.15)}
-.bottom-nav-tab.inactive svg{stroke:rgba(255,255,255,.15)}
+.bottom-nav-tab.inactive{color:rgba(165,180,252,.45)}
+.bottom-nav-tab.inactive svg{stroke:rgba(165,180,252,.45)}
 
 /* ── CHAT OVERLAY ── */
 .chat-overlay-bg{position:fixed;inset:0;background:rgba(3,7,18,.65);backdrop-filter:blur(8px);
@@ -582,6 +659,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
 
 /* ── KEYFRAMES ── */
+@keyframes waveAnim{0%{transform:scaleY(.4)}100%{transform:scaleY(1.6)}}
 @keyframes dotbounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
 @keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
 @keyframes vrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
@@ -679,6 +757,32 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 
   <div class="separator"></div>
+
+  <!-- WEATHER CARD -->
+  <?php if ($weather_today): ?>
+  <div style="margin:6px 12px;padding:10px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:14px;animation:cardin .5s .05s ease both">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:#a5b4fc;stroke-width:1.5"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg>
+        <span style="font-size:11px;font-weight:700;color:#e2e8f0"><?= wmoText((int)$weather_today['weather_code']) ?></span>
+      </div>
+      <span style="font-size:18px;font-weight:800;color:#a5b4fc"><?= round($weather_today['temp_max']) ?>°</span>
+    </div>
+    <div style="font-size:9px;color:#94a3b8;margin-bottom:6px"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° &middot; Дъжд <?= $weather_today['precipitation_prob'] ?>%</div>
+    <div style="font-size:10px;color:#d1d5db;line-height:1.4"><?= htmlspecialchars($weather_suggestion) ?></div>
+    <?php if (count($weather_week) >= 7): ?>
+    <div style="display:flex;gap:4px;margin-top:8px;overflow-x:auto">
+      <?php foreach (array_slice($weather_week, 1, 7) as $wd): ?>
+      <div style="flex:1;min-width:36px;text-align:center;padding:4px 2px;background:rgba(255,255,255,.03);border-radius:8px">
+        <div style="font-size:7px;color:#6b7280"><?= mb_substr(['Нд','Пн','Вт','Ср','Чт','Пт','Сб'][date('w',strtotime($wd['forecast_date']))], 0, 2) ?></div>
+        <div style="font-size:10px;font-weight:700;color:#e2e8f0;margin:2px 0"><?= round($wd['temp_max']) ?>°</div>
+        <div style="font-size:7px;color:<?= (int)$wd['precipitation_prob'] > 50 ? '#60a5fa' : '#4b5563' ?>"><?= $wd['precipitation_prob'] ?>%</div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <!-- AI BRIEFING BUBBLE -->
   <div class="ai-meta">
@@ -805,6 +909,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 
   <div class="overlay-input">
     <div class="overlay-input-inner">
+      <div style="display:flex;align-items:center;gap:2px;padding:0 4px;flex-shrink:0">
+        <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
+        <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
+        <div class="input-wave-bar" style="height:14px;background:#818cf8"></div>
+        <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
+        <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
+      </div>
       <textarea class="overlay-textarea" id="chatInput" placeholder="Кажи или пиши..." rows="1"
         oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';document.getElementById('chatSendBtn').disabled=!this.value.trim()"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
