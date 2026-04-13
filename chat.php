@@ -148,30 +148,75 @@ try {
 $briefing = array_slice($insights, 0, 3);
 $remaining = max(0, count($insights) - 3);
 
-// Generate action buttons from insights
-function insightBtns(array $insight): array {
-    $tid = $insight['topic_id'] ?? '';
-    $btns = [];
-    if (str_contains($tid, 'zero_stock')) $btns[] = ['t' => 'Покажи на нула', 'q' => 'Кои артикули са на нула?'];
-    if (str_contains($tid, 'below_cost')) $btns[] = ['t' => 'Коригирай цена', 'q' => 'Кои артикули се продават под себестойност?'];
-    if (str_contains($tid, 'zombie'))     $btns[] = ['t' => 'Покажи zombie', 'q' => 'Покажи zombie стоката'];
-    if (str_contains($tid, 'no_photo'))   $btns[] = ['t' => 'Без снимка', 'q' => 'Кои артикули нямат снимка?'];
-    if (str_contains($tid, 'top_profit')) $btns[] = ['t' => 'Топ печалба', 'q' => 'Най-печелившите артикули?'];
-    if (str_contains($tid, 'low_stock'))  $btns[] = ['t' => 'Ниски наличности', 'q' => 'Кои артикули са под минимума?'];
-    if (empty($btns)) $btns[] = ['t' => 'Разкажи повече', 'q' => $insight['title'] ?? 'Разкажи повече'];
-    return $btns;
+// Generate action button from insight — DB columns first, fallback to topic_id
+function insightAction(array $ins): array {
+    // DB action columns (from compute-insights.php, populated by next session)
+    if (!empty($ins['action_label'])) {
+        return [
+            'label' => $ins['action_label'],
+            'type'  => $ins['action_type'] ?? 'chat',
+            'url'   => $ins['action_url'] ?? null,
+            'data'  => $ins['action_data'] ? json_decode($ins['action_data'], true) : null,
+        ];
+    }
+    // Fallback: derive from topic_id (works with current 30 functions)
+    $tid = $ins['topic_id'] ?? '';
+    if (str_contains($tid, 'zero_stock') || str_contains($tid, 'low_stock'))
+        return ['label' => 'Добави за поръчка', 'type' => 'order_draft', 'url' => null, 'data' => null];
+    if (str_contains($tid, 'below_cost'))
+        return ['label' => 'Коригирай цена', 'type' => 'deeplink', 'url' => 'products.php?filter=below_cost', 'data' => null];
+    if (str_contains($tid, 'zombie'))
+        return ['label' => 'Виж zombie стока', 'type' => 'deeplink', 'url' => 'products.php?filter=zombie', 'data' => null];
+    if (str_contains($tid, 'no_photo'))
+        return ['label' => 'Снимай сега', 'type' => 'deeplink', 'url' => 'products.php?filter=no_photo', 'data' => null];
+    if (str_contains($tid, 'top_profit'))
+        return ['label' => 'Виж артикулите', 'type' => 'deeplink', 'url' => 'products.php?filter=top_profit', 'data' => null];
+    return ['label' => 'Разкажи повече', 'type' => 'chat', 'url' => null, 'data' => null];
 }
 
-// Collect unique action buttons (max 3)
-$action_btns = [];
-foreach ($briefing as $ins) {
-    foreach (insightBtns($ins) as $b) {
-        $key = $b['q'];
-        if (!isset($action_btns[$key]) && count($action_btns) < 3) {
-            $action_btns[$key] = $b;
-        }
-    }
+// Map module to UI category for Signal Browser
+function insightUICategory(array $ins): string {
+    $m = $ins['module'] ?? 'home';
+    $cat = $ins['category'] ?? '';
+    if (in_array($cat, ['profit','price','price_change','cash','tax'])) return 'finance';
+    if (in_array($cat, ['wh','xfer','data_quality'])) return 'warehouse';
+    if (in_array($cat, ['promo','fashion','shoes','acc','lingerie','sport','size','new'])) return 'products';
+    if ($cat === 'expense') return 'expenses';
+    if ($m === 'warehouse') return 'warehouse';
+    if ($m === 'products') return 'products';
+    if ($m === 'stats') return 'finance';
+    return 'sales';
 }
+
+$ui_categories = [
+    'sales'     => ['label' => 'Продажби',  'color' => '#ef4444', 'items' => []],
+    'warehouse' => ['label' => 'Склад',     'color' => '#818cf8', 'items' => []],
+    'products'  => ['label' => 'Продукти',  'color' => '#c084fc', 'items' => []],
+    'finance'   => ['label' => 'Финанси',   'color' => '#fbbf24', 'items' => []],
+    'expenses'  => ['label' => 'Разходи',   'color' => '#6b7280', 'items' => []],
+];
+
+// Build JSON for all insights (Signal Detail + Browser)
+$all_insights_for_js = [];
+foreach ($insights as $idx => $ins) {
+    $action = insightAction($ins);
+    $uiCat = insightUICategory($ins);
+    $ui_categories[$uiCat]['items'][] = $idx;
+    $all_insights_for_js[] = [
+        'title'      => $ins['title'],
+        'detail'     => $ins['detail_text'] ?? '',
+        'urgency'    => $ins['urgency'],
+        'category'   => $ins['category'] ?? '',
+        'uiCat'      => $uiCat,
+        'value'      => (float)($ins['value_numeric'] ?? 0),
+        'count'      => (int)($ins['product_count'] ?? 0),
+        'data'       => $ins['data_json'] ? json_decode($ins['data_json'], true) : null,
+        'action'     => $action,
+        'topicId'    => $ins['topic_id'] ?? '',
+    ];
+}
+$all_insights_json = json_encode($all_insights_for_js, JSON_UNESCAPED_UNICODE);
+$ui_categories_json = json_encode($ui_categories, JSON_UNESCAPED_UNICODE);
 
 // Urgency colors
 function urgencyClass(string $u): string {
@@ -294,16 +339,92 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .ai-bubble-text{font-size:11px;color:#d1d5db;line-height:1.4}
 .ai-bubble-text.with-signals{margin-bottom:7px}
 
-/* ── SIGNAL CARDS (inside bubble) ── */
-.signal-card{padding:7px 10px;margin:5px 0 3px;border-left:3px solid;border-radius:8px}
-.sig-critical{border-color:#ef4444;background:rgba(239,68,68,.04)}
-.sig-warning{border-color:#fbbf24;background:rgba(251,191,36,.03)}
-.sig-info{border-color:#4ade80;background:rgba(34,197,94,.03)}
+/* ── SIGNAL CARDS (inside bubble) — bubble style ── */
+.signal-card{padding:9px 11px;margin:5px 0;border-radius:14px;cursor:pointer;
+    display:flex;align-items:flex-start;gap:8px;transition:all .15s}
+.signal-card:active{transform:scale(.98)}
+.sig-critical{background:rgba(239,68,68,.03);border:.5px solid rgba(239,68,68,.15)}
+.sig-warning{background:rgba(251,191,36,.02);border:.5px solid rgba(251,191,36,.12)}
+.sig-info{background:rgba(34,197,94,.02);border:.5px solid rgba(34,197,94,.12)}
+.signal-stripe{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:20px}
+.sig-critical-stripe{background:#ef4444}
+.sig-warning-stripe{background:#fbbf24}
+.sig-info-stripe{background:#4ade80}
+.signal-content{flex:1;min-width:0}
 .signal-title{font-size:11px;font-weight:600;line-height:1.3}
 .sig-critical .signal-title{color:#fca5a5}
 .sig-warning .signal-title{color:#fcd34d}
 .sig-info .signal-title{color:#86efac}
 .signal-body{font-size:10px;color:#6b7280;line-height:1.3;margin-top:1px}
+.signal-arrow{color:rgba(255,255,255,.12);font-size:16px;flex-shrink:0;align-self:center}
+
+/* ── SIGNAL DETAIL OVERLAY ── */
+.signal-detail-bg{position:fixed;inset:0;background:rgba(3,7,18,.92);backdrop-filter:blur(10px);
+    z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+.signal-detail-bg.open{opacity:1;pointer-events:auto}
+.signal-detail-panel{position:fixed;bottom:-100%;left:0;right:0;height:85vh;
+    background:rgba(5,8,20,.98);border-radius:20px 20px 0 0;z-index:310;
+    display:flex;flex-direction:column;transition:bottom .3s cubic-bezier(.32,0,.67,0)}
+.signal-detail-panel.open{bottom:0}
+.signal-detail-header{display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.signal-detail-header-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.signal-detail-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.signal-detail-dot-critical{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.5)}
+.signal-detail-dot-warning{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.5)}
+.signal-detail-dot-info{background:#4ade80;box-shadow:0 0 8px rgba(34,197,94,.5)}
+.signal-detail-title{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.signal-detail-body{flex:1;overflow-y:auto;padding:0 14px 14px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.signal-detail-body::-webkit-scrollbar{display:none}
+.detail-hero{text-align:center;padding:16px 0 12px}
+.detail-hero-num{font-size:34px;font-weight:800;letter-spacing:-1px}
+.detail-hero-unit{font-size:10px;color:#6b7280;margin-top:2px}
+.detail-why{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+    border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.detail-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.15);
+    text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.detail-text{font-size:11px;color:#d1d5db;line-height:1.5}
+.detail-suggestion{background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);
+    border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.detail-suggestion-text{font-size:11px;color:#a5b4fc;line-height:1.5;margin-bottom:10px}
+.detail-actions{display:flex;gap:6px}
+.detail-action-primary{flex:1;padding:11px 8px;border-radius:10px;font-size:11px;font-weight:600;
+    text-align:center;cursor:pointer;border:none;font-family:inherit;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
+.detail-action-primary:active{transform:scale(.98)}
+.detail-action-secondary{flex:1;padding:11px 8px;border-radius:10px;font-size:11px;font-weight:600;
+    text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,.06);font-family:inherit;
+    background:rgba(255,255,255,.03);color:#a5b4fc}
+.detail-action-hint{font-size:8px;color:#4b5563;text-align:center;margin-top:5px}
+.detail-section{font-size:7px;font-weight:700;color:rgba(255,255,255,.15);
+    text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;
+    background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+    border-radius:8px;margin-bottom:3px}
+.detail-row-name{font-size:10px;color:#d1d5db}
+.detail-row-value{font-size:10px;font-weight:700}
+
+/* ── SIGNAL BROWSER OVERLAY ── */
+.signal-browser-bg{position:fixed;inset:0;background:rgba(3,7,18,.92);backdrop-filter:blur(10px);
+    z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+.signal-browser-bg.open{opacity:1;pointer-events:auto}
+.signal-browser-panel{position:fixed;bottom:-100%;left:0;right:0;height:90vh;
+    background:rgba(5,8,20,.98);border-radius:20px 20px 0 0;z-index:310;
+    display:flex;flex-direction:column;transition:bottom .3s cubic-bezier(.32,0,.67,0)}
+.signal-browser-panel.open{bottom:0}
+.browser-body{flex:1;overflow-y:auto;padding:8px 12px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.browser-body::-webkit-scrollbar{display:none}
+.browser-cat-header{display:flex;align-items:center;gap:6px;margin:12px 0 6px}
+.browser-cat-dot{width:8px;height:8px;border-radius:50%}
+.browser-cat-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.browser-cat-count{font-size:8px;color:#4b5563;font-weight:600}
+.browser-signal{padding:9px 11px;margin:4px 0;border-radius:14px;cursor:pointer;
+    display:flex;align-items:flex-start;gap:8px;transition:all .15s}
+.browser-signal:active{transform:scale(.98)}
+.browser-future{padding:10px;font-size:9px;color:#4b5563;
+    border:.5px dashed rgba(255,255,255,.08);border-radius:14px;text-align:center;margin:4px 0}
 
 /* ── ACTION BUTTONS ── */
 .action-buttons{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
@@ -552,22 +673,21 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <!-- PRO: Real insights -->
   <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
     <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
-    <?php foreach ($briefing as $ins): ?>
-    <div class="signal-card <?= urgencyClass($ins['urgency']) ?>">
-      <div class="signal-title"><?= htmlspecialchars($ins['title']) ?></div>
-      <?php if (!empty($ins['body'])): ?>
-      <div class="signal-body"><?= htmlspecialchars($ins['body']) ?></div>
-      <?php endif; ?>
+    <?php foreach ($briefing as $bidx => $ins): ?>
+    <div class="signal-card <?= urgencyClass($ins['urgency']) ?>" onclick="openSignalDetail(<?= $bidx ?>)">
+      <div class="signal-stripe <?= urgencyClass($ins['urgency']) ?>-stripe"></div>
+      <div class="signal-content">
+        <div class="signal-title"><?= htmlspecialchars($ins['title']) ?></div>
+        <?php if (!empty($ins['detail_text'])): ?>
+        <div class="signal-body"><?= htmlspecialchars(mb_substr($ins['detail_text'], 0, 80)) ?></div>
+        <?php endif; ?>
+      </div>
+      <span class="signal-arrow">&rsaquo;</span>
     </div>
     <?php endforeach; ?>
-    <?php if (!empty($action_btns) || $remaining > 0): ?>
+    <?php if (count($insights) > 3): ?>
     <div class="action-buttons">
-      <?php foreach ($action_btns as $ab): ?>
-      <button class="action-button" onclick="openChatQ(<?= htmlspecialchars(json_encode($ab['q']), ENT_QUOTES) ?>)"><?= htmlspecialchars($ab['t']) ?></button>
-      <?php endforeach; ?>
-      <?php if ($remaining > 0): ?>
-      <button class="action-button action-button-more" onclick="openChat()">Още <?= $remaining ?> сигнала</button>
-      <?php endif; ?>
+      <button class="action-button action-button-more" onclick="openSignalBrowser()">Виж още <?= count($insights) - 3 ?> сигнала &rarr;</button>
     </div>
     <?php endif; ?>
   </div>
@@ -717,6 +837,41 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </a>
 </nav>
 
+<!-- ══════════════════════════════════════════════ -->
+<!-- SIGNAL DETAIL OVERLAY                         -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="signal-detail-bg" id="sigDetailBg" onclick="closeSignalDetail()"></div>
+<div class="signal-detail-panel" id="sigDetailPanel">
+  <div class="signal-detail-header">
+    <div class="signal-detail-header-left">
+      <div class="signal-detail-dot" id="sigDetailDot"></div>
+      <span class="signal-detail-title" id="sigDetailTitle"></span>
+    </div>
+    <button class="overlay-close" onclick="closeSignalDetail()">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="signal-detail-body" id="sigDetailBody"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SIGNAL BROWSER OVERLAY                        -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="signal-browser-bg" id="sigBrowserBg" onclick="closeSignalBrowser()"></div>
+<div class="signal-browser-panel" id="sigBrowserPanel">
+  <div class="overlay-header">
+    <div class="overlay-header-left">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:#a5b4fc;stroke-width:1.5">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="overlay-title">Всички сигнали</span>
+    </div>
+    <button class="overlay-close" onclick="closeSignalBrowser()">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="browser-body" id="sigBrowserBody"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ══════════════════════════════════════════════ -->
@@ -726,6 +881,14 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 const P = <?= $periods_json ?>;
 const CS = <?= json_encode($cs) ?>;
 const IS_OWNER = <?= $role === 'owner' ? 'true' : 'false' ?>;
+const ALL_INSIGHTS = <?= $all_insights_json ?>;
+const UI_CATS = <?= $ui_categories_json ?>;
+const CAT_LABELS = {sales:'Продажби',warehouse:'Склад',products:'Продукти',finance:'Финанси',expenses:'Разходи'};
+const CAT_COLORS = {sales:'#ef4444',warehouse:'#818cf8',products:'#c084fc',finance:'#fbbf24',expenses:'#6b7280'};
+const URG_COLORS = {critical:'#ef4444',warning:'#fbbf24',info:'#4ade80'};
+const URG_TITLE = {critical:'#fca5a5',warning:'#fcd34d',info:'#86efac'};
+const URG_BG = {critical:'rgba(239,68,68,.03)',warning:'rgba(251,191,36,.02)',info:'rgba(34,197,94,.02)'};
+const URG_BORDER = {critical:'rgba(239,68,68,.15)',warning:'rgba(251,191,36,.12)',info:'rgba(34,197,94,.12)'};
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -794,10 +957,10 @@ function openChat() {
     chatOpen = true;
     $('chatOverlayBg').classList.add('open');
     $('chatOverlayPanel').classList.add('open');
-    $('mainScroll').style.opacity = '.15';
+    $('mainScroll').style.opacity = '.4';
     $('dashboardInput').style.opacity = '0';
     $('dashboardInput').style.pointerEvents = 'none';
-    document.querySelector('.header').style.opacity = '.2';
+    document.querySelector('.header').style.opacity = '.4';
     history.pushState({ chat: true }, '');
     scrollChatBottom();
     setTimeout(() => $('chatInput').focus(), 300);
@@ -937,9 +1100,160 @@ function stopVoice() {
 }
 
 // ══════════════════════════════════════════════
+// SIGNAL DETAIL
+// ══════════════════════════════════════════════
+let sigDetailOpen = false;
+
+function openSignalDetail(idx) {
+    const s = ALL_INSIGHTS[idx];
+    if (!s) return;
+    sigDetailOpen = true;
+    const u = s.urgency;
+    const dot = $('sigDetailDot');
+    dot.className = 'signal-detail-dot signal-detail-dot-' + u;
+    const ttl = $('sigDetailTitle');
+    ttl.textContent = s.title;
+    ttl.style.color = URG_TITLE[u] || '#e2e8f0';
+
+    const body = $('sigDetailBody');
+    let h = '';
+
+    // Hero number
+    if (s.value) {
+        const sign = u === 'info' ? '+' : '\u2212';
+        const color = u === 'info' ? '#4ade80' : (u === 'critical' ? '#f87171' : '#fbbf24');
+        h += '<div class="detail-hero"><div class="detail-hero-num" style="color:' + color + '">'
+           + sign + fmt(Math.abs(s.value)) + ' ' + CS + '</div>'
+           + '<div class="detail-hero-unit">' + (u === 'info' ? 'печалба/период' : 'пропуснати приходи/период') + '</div></div>';
+    }
+
+    // Why box
+    if (s.detail) {
+        h += '<div class="detail-why"><div class="detail-label">Защо</div>'
+           + '<div class="detail-text">' + esc(s.detail) + '</div></div>';
+    }
+
+    // Suggestion box with action buttons inside
+    h += '<div class="detail-suggestion"><div class="detail-label">Предложение</div>';
+    if (s.detail) {
+        h += '<div class="detail-suggestion-text">Обмисли действие по този сигнал.</div>';
+    }
+    h += '<div class="detail-actions">';
+    if (s.action && s.action.label) {
+        if (s.action.type === 'deeplink' && s.action.url) {
+            h += '<button class="detail-action-primary" onclick="location.href=\'' + esc(s.action.url) + '\'">' + esc(s.action.label) + '</button>';
+        } else if (s.action.type === 'order_draft') {
+            h += '<button class="detail-action-primary" onclick="addToOrderDraft(' + idx + ')">' + esc(s.action.label) + '</button>';
+        } else {
+            h += '<button class="detail-action-primary" onclick="closeSignalDetail();openChatQ(\'' + esc(s.title) + '\')">' + esc(s.action.label) + '</button>';
+        }
+    }
+    h += '<button class="detail-action-secondary" onclick="closeSignalDetail();openChatQ(\'' + esc(s.title) + '\')">Попитай AI</button>';
+    h += '</div>';
+    if (s.action && s.action.type === 'order_draft') {
+        h += '<div class="detail-action-hint">Прибавя към чернова поръчка</div>';
+    }
+    h += '</div>';
+
+    // Data rows if available
+    if (s.data && s.data.products && s.data.products.length) {
+        h += '<div class="detail-section">Засегнати артикули</div>';
+        s.data.products.forEach(function(p) {
+            const vc = p.qty === 0 ? 'color:#f87171' : (p.qty <= 2 ? 'color:#fbbf24' : 'color:#4ade80');
+            h += '<div class="detail-row"><span class="detail-row-name">' + esc(p.name) + '</span>'
+               + '<span class="detail-row-value" style="' + vc + '">' + p.qty + ' бр</span></div>';
+        });
+    }
+
+    if (s.count > 0) {
+        h += '<div class="detail-section">Обобщение</div>';
+        h += '<div class="detail-row"><span class="detail-row-name">Засегнати артикули</span>'
+           + '<span class="detail-row-value" style="color:#a5b4fc">' + s.count + '</span></div>';
+    }
+
+    body.innerHTML = h;
+    $('sigDetailBg').classList.add('open');
+    $('sigDetailPanel').classList.add('open');
+    history.pushState({ sigDetail: true }, '');
+}
+
+function closeSignalDetail() {
+    if (!sigDetailOpen) return;
+    sigDetailOpen = false;
+    $('sigDetailBg').classList.remove('open');
+    $('sigDetailPanel').classList.remove('open');
+}
+
+function addToOrderDraft(idx) {
+    const s = ALL_INSIGHTS[idx];
+    showToast('Добавено към чернова поръчка');
+    closeSignalDetail();
+}
+
+// ══════════════════════════════════════════════
+// SIGNAL BROWSER
+// ══════════════════════════════════════════════
+let sigBrowserOpen = false;
+
+function openSignalBrowser() {
+    sigBrowserOpen = true;
+    const body = $('sigBrowserBody');
+    let h = '';
+    const catOrder = ['sales', 'warehouse', 'products', 'finance', 'expenses'];
+
+    catOrder.forEach(function(catKey) {
+        const cat = UI_CATS[catKey];
+        const items = cat.items || [];
+        const label = CAT_LABELS[catKey];
+        const color = CAT_COLORS[catKey];
+
+        h += '<div class="browser-cat-header">'
+           + '<div class="browser-cat-dot" style="background:' + color + '"></div>'
+           + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
+           + '<span class="browser-cat-count">' + (items.length || '\u2014') + '</span></div>';
+
+        if (catKey === 'expenses' && items.length === 0) {
+            h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div>';
+            return;
+        }
+
+        if (items.length === 0) {
+            h += '<div class="browser-future">Няма сигнали за тази категория</div>';
+            return;
+        }
+
+        items.forEach(function(idx) {
+            const s = ALL_INSIGHTS[idx];
+            if (!s) return;
+            const u = s.urgency;
+            h += '<div class="browser-signal" style="background:' + URG_BG[u] + ';border:.5px solid ' + URG_BORDER[u] + '"'
+               + ' onclick="closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},300)">'
+               + '<div class="signal-stripe" style="background:' + URG_COLORS[u] + '"></div>'
+               + '<div class="signal-content"><div class="sig-t" style="color:' + URG_TITLE[u] + '">' + esc(s.title) + '</div>'
+               + (s.detail ? '<div class="sig-d" style="font-size:9px;color:#6b7280;margin-top:1px">' + esc(s.detail.substring(0, 60)) + '</div>' : '')
+               + '</div><span class="signal-arrow">\u203A</span></div>';
+        });
+    });
+
+    body.innerHTML = h;
+    $('sigBrowserBg').classList.add('open');
+    $('sigBrowserPanel').classList.add('open');
+    history.pushState({ sigBrowser: true }, '');
+}
+
+function closeSignalBrowser() {
+    if (!sigBrowserOpen) return;
+    sigBrowserOpen = false;
+    $('sigBrowserBg').classList.remove('open');
+    $('sigBrowserPanel').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
 // BACK BUTTON + INIT
 // ══════════════════════════════════════════════
 window.addEventListener('popstate', () => {
+    if (sigDetailOpen) { closeSignalDetail(); return; }
+    if (sigBrowserOpen) { closeSignalBrowser(); return; }
     if (chatOpen) closeChat();
 });
 
