@@ -422,6 +422,10 @@ if (preg_match_all('/SAVE_MEMORY\|([^|]+)\|([^\n]+)/u', $reply, $mm, PREG_SET_OR
     $reply = trim(preg_replace('/SAVE_MEMORY\|[^\n]+\n?/u', '', $reply));
 }
 
+// ── S58: Strip deeplink markers from visible reply ───────────
+$reply = preg_replace('/\[([^\]]+?)\x{2192}\]/u', '', $reply);
+$reply = trim($reply);
+
 // ── ПАРСВАНЕ НА JSON ACTION ───────────────────────────────────
 $action_data = null;
 if (preg_match('/\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/u', $reply, $aj)) {
