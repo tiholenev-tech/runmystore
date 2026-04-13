@@ -1137,7 +1137,7 @@ async function sendMsg() {
             return;
         }
         $('chatTyping').style.display = 'none';
-        addAIBubble(d.reply || d.error || 'Грешка при обработка.');
+        addAIBubble(d.reply || d.error || 'Грешка при обработка.', d.actions || null);
     } catch (e) {
         $('chatTyping').style.display = 'none';
         addAIBubble('Грешка при свързване. Опитай пак.');
@@ -1153,11 +1153,19 @@ function addUserBubble(txt) {
     scrollChatBottom();
 }
 
-function addAIBubble(txt) {
+function addAIBubble(txt, actions) {
     const g = document.createElement('div');
     g.className = 'chat-message-group';
     const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
-    g.innerHTML = '<div class="chat-meta-line"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI \u00b7 ' + t + '</div><div class="chat-ai-msg">' + esc(txt) + '</div>';
+    let h = '<div class="chat-meta-line"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI \u00b7 ' + t + '</div><div class="chat-ai-msg">' + esc(txt) + '</div>';
+    if (actions && actions.length) {
+        h += '<div class="action-buttons" style="margin:6px 0 0">';
+        actions.forEach(function(a) {
+            h += '<button class="action-button" onclick="location.href=\'' + esc(a.url || '#') + '\'">' + esc(a.label) + ' \u2192</button>';
+        });
+        h += '</div>';
+    }
+    g.innerHTML = h;
     $('chatMessages').insertBefore(g, $('chatTyping'));
     scrollChatBottom();
 }
