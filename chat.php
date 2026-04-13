@@ -284,7 +284,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .main-scroll::-webkit-scrollbar{display:none}
 
 /* ── REVENUE CARD ── */
-.revenue-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+.revenue-card{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
     border-radius:14px;padding:12px 14px 10px;margin:10px 12px 0}
 .revenue-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px}
 .revenue-period-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.2);
@@ -294,7 +294,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     border-radius:8px;color:#a5b4fc;font-size:8px;font-weight:600;padding:2px 6px;
     font-family:inherit;cursor:pointer;outline:none}
 .revenue-number-row{display:flex;align-items:baseline;gap:6px}
-.revenue-number{font-size:28px;font-weight:800;color:#f1f5f9;letter-spacing:-1px}
+.revenue-number{font-size:28px;font-weight:800;color:#a5b4fc;letter-spacing:-1px}
 .revenue-currency{font-size:11px;color:#4b5563;font-weight:600}
 .revenue-change{font-size:16px;font-weight:800}
 .revenue-change.up{color:#4ade80}
@@ -302,7 +302,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .revenue-change.zero{color:#4b5563}
 .revenue-comparison{font-size:8px;color:#4b5563;margin:1px 0 0}
 .revenue-meta{font-size:9px;color:#4b5563;margin-top:3px}
-.revenue-pills{display:flex;gap:0;margin-top:9px;align-items:center}
+.revenue-pills{display:flex;gap:0;margin-top:9px;align-items:center;flex-wrap:wrap;row-gap:6px}
 .revenue-pill-group{display:flex;gap:3px}
 .revenue-pill{font-size:8px;padding:4px 9px;border-radius:10px;cursor:pointer;white-space:nowrap;
     border:1px solid transparent;transition:all .2s}
@@ -315,7 +315,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .confidence-warning svg{width:12px;height:12px;stroke:#fbbf24;fill:none;stroke-width:2.5;flex-shrink:0}
 
 /* ── STORE HEALTH BAR ── */
-.health-bar{margin:8px 12px 4px;display:flex;align-items:center;gap:8px}
+.health-bar{margin:8px 12px 4px;display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:10px 14px}
 .health-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:.5px;
     text-transform:uppercase;white-space:nowrap}
 .health-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
@@ -323,6 +323,14 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     background:linear-gradient(90deg,#ef4444 0%,#f97316 25%,#eab308 50%,#84cc16 75%,#22c55e 100%)}
 .health-percent{font-size:9px;font-weight:700}
 .health-link{font-size:7px;color:#818cf8;white-space:nowrap;cursor:pointer}
+
+/* ── HEALTH INFO ── */
+.health-info-btn{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s}
+.health-info-btn:active{transform:scale(.9)}
+.health-info-btn svg{width:12px;height:12px;stroke:#a5b4fc;fill:none;stroke-width:2}
+.health-tooltip{display:none;margin:6px 12px 0;padding:12px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:12px;font-size:11px;color:#d1d5db;line-height:1.5}
+.health-tooltip.open{display:block;animation:cardin .3s ease both}
+.health-tooltip b{color:#a5b4fc;font-weight:600}
 
 /* ── SEPARATOR ── */
 .separator{height:1px;margin:6px 12px;background:rgba(255,255,255,.04)}
@@ -334,8 +342,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .ai-meta-time{font-size:9px;color:#4b5563}
 
 /* ── AI BUBBLE ── */
-.ai-bubble{max-width:92%;margin:0 12px;background:rgba(255,255,255,.025);
-    border:1px solid rgba(255,255,255,.05);border-radius:14px 14px 14px 3px;padding:10px 12px}
+.ai-bubble{max-width:92%;margin:0 12px;background:rgba(99,102,241,.12);
+    border:1px solid rgba(99,102,241,.2);border-radius:14px 14px 14px 3px;padding:10px 12px}
 .ai-bubble-text{font-size:11px;color:#d1d5db;line-height:1.4}
 .ai-bubble-text.with-signals{margin-bottom:7px}
 
@@ -343,10 +351,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .signal-card{padding:9px 11px;margin:5px 0;border-radius:14px;cursor:pointer;
     display:flex;align-items:flex-start;gap:8px;transition:all .15s}
 .signal-card:active{transform:scale(.98)}
-.sig-critical{background:rgba(239,68,68,.03);border:.5px solid rgba(239,68,68,.15)}
-.sig-warning{background:rgba(251,191,36,.02);border:.5px solid rgba(251,191,36,.12)}
-.sig-info{background:rgba(34,197,94,.02);border:.5px solid rgba(34,197,94,.12)}
-.signal-stripe{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:20px}
+.sig-critical{background:rgba(239,68,68,.03);border:.5px solid rgba(239,68,68,.15);border-left:4px solid #ef4444}
+.sig-warning{background:rgba(251,191,36,.02);border:.5px solid rgba(251,191,36,.12);border-left:4px solid #fbbf24}
+.sig-info{background:rgba(34,197,94,.02);border:.5px solid rgba(34,197,94,.12);border-left:4px solid #4ade80}
+.signal-stripe{display:none}
 .sig-critical-stripe{background:#ef4444}
 .sig-warning-stripe{background:#fbbf24}
 .sig-info-stripe{background:#4ade80}
@@ -413,14 +421,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     background:rgba(5,8,20,.98);border-radius:20px 20px 0 0;z-index:310;
     display:flex;flex-direction:column;transition:bottom .3s cubic-bezier(.32,0,.67,0)}
 .signal-browser-panel.open{bottom:0}
-.browser-body{flex:1;overflow-y:auto;padding:8px 12px;
+.browser-body{flex:1;overflow-y:auto;padding:8px 12px;background:rgba(99,102,241,.06);
     -webkit-overflow-scrolling:touch;scrollbar-width:none}
 .browser-body::-webkit-scrollbar{display:none}
-.browser-cat-header{display:flex;align-items:center;gap:6px;margin:12px 0 6px}
+.browser-cat-wrap{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);border-radius:14px;padding:8px;margin-bottom:10px}
+.browser-cat-header{display:flex;align-items:center;gap:6px;margin:0 4px 6px;padding:0}
 .browser-cat-dot{width:8px;height:8px;border-radius:50%}
 .browser-cat-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
 .browser-cat-count{font-size:8px;color:#4b5563;font-weight:600}
-.browser-signal{padding:9px 11px;margin:4px 0;border-radius:14px;cursor:pointer;
+.browser-signal{padding:9px 11px;margin:4px 0;border-radius:10px;cursor:pointer;border-left:4px solid transparent;background:transparent;border:1px solid rgba(255,255,255,.06);
     display:flex;align-items:flex-start;gap:8px;transition:all .15s}
 .browser-signal:active{transform:scale(.98)}
 .browser-future{padding:10px;font-size:9px;color:#4b5563;
@@ -432,7 +441,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     color:#a5b4fc;border:1px solid rgba(99,102,241,.15);background:transparent;
     cursor:pointer;font-family:inherit;transition:background .15s}
 .action-button:active{background:rgba(99,102,241,.08)}
-.action-button-more{color:#4b5563;border-color:rgba(255,255,255,.06)}
+.action-button-more{color:#818cf8;border-color:rgba(99,102,241,.25);background:rgba(99,102,241,.1)}
 
 /* ── GHOST PILL ── */
 .ghost-pill{padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;
@@ -609,7 +618,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <!-- REVENUE CARD -->
   <div class="revenue-card" style="animation:cardin .5s ease both">
     <div class="revenue-top">
-      <span class="revenue-period-label" id="revLabel">ДНЕС</span>
+      <span style="display:flex;align-items:center;gap:6px"><span class="revenue-period-label" id="revLabel">ДНЕС</span><a href="stats.php" style="font-size:7px;color:#818cf8;text-decoration:none">Справки &rarr;</a></span>
       <?php if (count($all_stores) > 1): ?>
       <span class="revenue-store-name">
         <select onchange="location.href='?store='+this.value">
@@ -625,7 +634,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <div class="revenue-number-row">
       <span class="revenue-number" id="revNum">0</span>
       <span class="revenue-currency"><?= $cs ?></span>
-      <span class="revenue-change up" id="revPct">+0%</span>
+      <span class="revenue-change up" id="revPct">+0%</span><span id="revVs" style="font-size:8px;color:#4b5563;margin-left:4px"></span>
     </div>
     <div class="revenue-comparison" id="revCmp"></div>
     <div class="revenue-meta" id="revMeta">0 продажби</div>
@@ -658,6 +667,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <div class="health-track"><div class="health-fill" style="width:<?= $health ?>%"></div></div>
     <span class="health-percent" style="color:<?= $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171') ?>"><?= $health ?>%</span>
     <span class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй &rarr;</span>
+    <span class="health-info-btn" onclick="document.querySelector('.health-tooltip').classList.toggle('open')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+  </div>
+  <div class="health-tooltip">
+    <b>Какво е AI Точност?</b><br>
+    Колко добре AI познава магазина ти. Расте когато:<br>
+    &bull; Въведеш <b>доставни цени</b> на артикулите<br>
+    &bull; <b>Преброиш</b> стоката по рафтовете<br>
+    &bull; Получиш <b>доставка</b> с фактура<br><br>
+    По-висока точност = по-умни съвети от AI.
   </div>
 
   <div class="separator"></div>
@@ -684,6 +702,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       </div>
       <span class="signal-arrow">&rsaquo;</span>
     </div>
+    <div style="text-align:right;margin:-2px 0 4px"><span style="font-size:9px;color:#818cf8;cursor:pointer" onclick="event.stopPropagation();openSignalDetail(<?= $bidx ?>)">Виж &rarr;</span></div>
     <?php endforeach; ?>
     <?php if (count($insights) > 3): ?>
     <div class="action-buttons">
@@ -706,22 +725,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
   <?php endif; ?>
 
-  <!-- CHAT HISTORY (on dashboard) -->
-  <?php foreach ($chat_messages as $m): ?>
-    <?php if ($m['role'] === 'user'): ?>
-    <div class="user-row">
-      <span class="user-time"><?= date('H:i', strtotime($m['created_at'])) ?></span>
-      <div class="user-bubble"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
-    </div>
-    <?php else: ?>
-    <div class="ai-meta">
-      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span class="ai-meta-label">AI</span>
-      <span class="ai-meta-time">&middot; <?= date('H:i', strtotime($m['created_at'])) ?></span>
-    </div>
-    <div class="ai-response"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
-    <?php endif; ?>
-  <?php endforeach; ?>
+  <!-- Chat history is in overlay only -->
 
   <div style="height:14px"></div>
 </div>
@@ -913,6 +917,8 @@ function updateRevenue() {
     $('revCmp').textContent = sub + ' ' + CS;
 
     const labels = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
+    const vsLabels = { today: 'спрямо вчера', '7d': 'спрямо предните 7 дни', '30d': 'спрямо предните 30 дни', '365d': 'спрямо предната година' };
+    $('revVs').textContent = vsLabels[curPeriod];
     $('revLabel').textContent = labels[curPeriod];
 
     let meta = d.cnt + ' продажби';
@@ -1207,18 +1213,19 @@ function openSignalBrowser() {
         const label = CAT_LABELS[catKey];
         const color = CAT_COLORS[catKey];
 
-        h += '<div class="browser-cat-header">'
+        h += '<div class="browser-cat-wrap">'
+           + '<div class="browser-cat-header">'
            + '<div class="browser-cat-dot" style="background:' + color + '"></div>'
            + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
            + '<span class="browser-cat-count">' + (items.length || '\u2014') + '</span></div>';
 
         if (catKey === 'expenses' && items.length === 0) {
-            h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div>';
+            h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div></div>';
             return;
         }
 
         if (items.length === 0) {
-            h += '<div class="browser-future">Няма сигнали за тази категория</div>';
+            h += '<div class="browser-future">Няма сигнали за тази категория</div></div>';
             return;
         }
 
@@ -1226,13 +1233,14 @@ function openSignalBrowser() {
             const s = ALL_INSIGHTS[idx];
             if (!s) return;
             const u = s.urgency;
-            h += '<div class="browser-signal" style="background:' + URG_BG[u] + ';border:.5px solid ' + URG_BORDER[u] + '"'
+            h += '<div class="browser-signal" style="background:' + URG_BG[u] + ';border:.5px solid ' + URG_BORDER[u] + ';border-left:4px solid ' + URG_COLORS[u] + '"'
                + ' onclick="closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},300)">'
-               + '<div class="signal-stripe" style="background:' + URG_COLORS[u] + '"></div>'
                + '<div class="signal-content"><div class="sig-t" style="color:' + URG_TITLE[u] + '">' + esc(s.title) + '</div>'
                + (s.detail ? '<div class="sig-d" style="font-size:9px;color:#6b7280;margin-top:1px">' + esc(s.detail.substring(0, 60)) + '</div>' : '')
                + '</div><span class="signal-arrow">\u203A</span></div>';
+            h += '<div style="text-align:right;margin:-2px 11px 4px"><span style="font-size:9px;color:#818cf8;cursor:pointer" onclick="event.stopPropagation();closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},300)">Виж \u2192</span></div>';
         });
+        h += '</div>';
     });
 
     body.innerHTML = h;
