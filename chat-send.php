@@ -209,8 +209,58 @@ foreach ($keys_to_try as $api_key) {
     }
 }
 
+if (!$raw_reply && defined('OPENAI_API_KEY') && OPENAI_API_KEY) {
+    // S58: OpenAI GPT-4o-mini fallback when Gemini is down
+    try {
+        $oai_messages = [];
+        $oai_messages[] = ['role' => 'system', 'content' => $system_prompt];
+        foreach ($history_rows as $row) {
+            $oai_messages[] = [
+                'role' => $row['role'] === 'assistant' ? 'assistant' : 'user',
+                'content' => $row['content']
+            ];
+        }
+        $oai_messages[] = ['role' => 'user', 'content' => $message];
+
+        $oai_payload = json_encode([
+            'model' => defined('OPENAI_MODEL') ? OPENAI_MODEL : 'gpt-4o-mini',
+            'messages' => $oai_messages,
+            'max_tokens' => 4096,
+            'temperature' => 0.7,
+        ]);
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $oai_payload,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . OPENAI_API_KEY,
+            ],
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 5,
+        ]);
+        $oai_res = curl_exec($ch);
+        $oai_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($oai_code === 200) {
+            $oai_data = json_decode($oai_res, true);
+            $raw_reply = $oai_data['choices'][0]['message']['content'] ?? null;
+            if ($raw_reply) {
+                error_log('S58: OpenAI fallback used (Gemini was down)');
+            }
+        } else {
+            error_log('S58: OpenAI failed HTTP ' . $oai_code . ' body=' . substr($oai_res, 0, 200));
+        }
+    } catch (Throwable $e) {
+        error_log('S58: OpenAI error: ' . $e->getMessage());
+    }
+}
+
 if (!$raw_reply) {
-    $raw_reply = 'AI обработва друга заявка — опитай след 30 секунди.';
+    $raw_reply = 'AI е временно недостъпен. Опитай отново след минута.';
 }
 
 // ── SAFETY СЛОЙ 2: POST-VALIDATION ────────────────────────────
