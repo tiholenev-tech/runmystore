@@ -511,7 +511,7 @@ function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string 
             'SELECT sup.name, d.created_at
              FROM deliveries d
              LEFT JOIN suppliers sup ON sup.id = d.supplier_id
-             WHERE d.tenant_id = ? AND d.status = "pending"
+             WHERE d.tenant_id = ? AND d.delivered_at IS NULL
              ORDER BY d.created_at ASC LIMIT 10',
             [$tenant_id]
         )->fetchAll(PDO::FETCH_ASSOC);
@@ -758,11 +758,7 @@ REST;
     // ═══════════════════════════════════════
     // LAYER 7 — AI TOPICS (1000 topics, pick 5-8)
     // ═══════════════════════════════════════
-    $plan = 'pro';
-    try {
-        $sub = DB::run('SELECT plan FROM subscriptions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 1', [$tenant_id])->fetch();
-        if ($sub) $plan = strtolower($sub['plan'] ?? 'free');
-    } catch (Exception $e) {}
+    $plan = effectivePlan($tenant);
 
     $days_of_data = 0;
     try {
