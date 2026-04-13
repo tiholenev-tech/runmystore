@@ -886,7 +886,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         AI &middot; <?= date('H:i', strtotime($m['created_at'])) ?>
       </div>
-      <div class="chat-ai-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
+      <div class="chat-ai-msg"><?= nl2br(htmlspecialchars(preg_replace(['/\*\*(.+?)\*\*/u','/^#{1,3}\s*/mu','/```[\s\S]*?```/u','/`([^`]+)`/u'],['$1','','','$1'],$m['content']))) ?></div>
       <?php else: ?>
       <div class="chat-meta-line right"><?= date('H:i', strtotime($m['created_at'])) ?></div>
       <div class="chat-user-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
