@@ -26,19 +26,19 @@ if($ajax==='get_stats'){$tot=(int)DB::run("SELECT COUNT(DISTINCT p.id) FROM prod
 if($ajax==='start_session'){$ex=DB::run("SELECT id,status,mode,items_counted,items_total,zones_completed,zones_total FROM inventory_count_sessions WHERE store_id=? AND status IN('in_progress','paused') ORDER BY created_at DESC LIMIT 1",[$store_id])->fetch(PDO::FETCH_ASSOC);if($ex){echo json_encode(['ok'=>true,'session_id'=>(int)$ex['id'],'mode'=>$ex['mode'],'existing'=>true]);exit;}$d=json_decode(file_get_contents('php://input'),true)??[];$m=($d['mode']??'quick')==='full'?'full':'quick';$zt=(int)DB::run("SELECT COUNT(*) FROM store_zones WHERE store_id=? AND is_active=1",[$store_id])->fetchColumn();$it=(int)DB::run("SELECT COUNT(DISTINCT p.id) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1",[$store_id,$tenant_id])->fetchColumn();DB::run("INSERT INTO inventory_count_sessions(store_id,tenant_id,status,mode,baseline_at,started_at,zones_total,items_total)VALUES(?,?,'in_progress',?,NOW(),NOW(),?,?)",[$store_id,$tenant_id,$m,$zt,$it]);echo json_encode(['ok'=>true,'session_id'=>(int)$pdo->lastInsertId(),'mode'=>$m]);exit;}
 
 // S63: get_zone_lines
-if($ajax==='get_zone_lines'){$zid=(int)($_GET['zone_id']??0);$sid=(int)($_GET['session_id']??0);if(!$zid||!$sid){echo json_encode(['ok'=>false]);exit;}$lines=DB::run("SELECT cl.product_id,cl.variation_id,cl.counted_qty,p.name,p.code,p.barcode,p.image_url,p.parent_id,p.size,p.color FROM inventory_count_lines cl JOIN products p ON p.id=COALESCE(cl.variation_id,cl.product_id) WHERE cl.session_id=? AND cl.zone_id=? AND cl.tenant_id=? ORDER BY cl.created_at DESC",[$sid,$zid,$tenant_id])->fetchAll(PDO::FETCH_ASSOC);echo json_encode(['ok'=>true,'lines'=>$lines]);exit;}
+if($ajax==='get_zone_lines'){$zid=(int)($_GET['zone_id']??0);$sid=(int)($_GET['session_id']??0);if(!$zid||!$sid){echo json_encode(['ok'=>false]);exit;}$lines=DB::run("SELECT cl.product_id,cl.variation_id,cl.quantity_counted AS counted_qty,p.name,p.code,p.barcode,p.image_url,p.parent_id,p.size,p.color FROM inventory_count_lines cl JOIN products p ON p.id=COALESCE(cl.variation_id,cl.product_id) WHERE cl.session_id=? AND cl.zone_id=? ORDER BY cl.created_at DESC",[$sid,$zid])->fetchAll(PDO::FETCH_ASSOC);echo json_encode(['ok'=>true,'lines'=>$lines]);exit;}
 
 // S63: save_count_line (single)
 if($ajax==='save_count_line'){$d=json_decode(file_get_contents('php://input'),true)??[];$sid=(int)($d['session_id']??0);$zid=(int)($d['zone_id']??0);$pid=(int)($d['product_id']??0);$vid=($d['variation_id']??null)?(int)$d['variation_id']:null;$qty=(int)($d['counted_qty']??0);if(!$sid||!$zid||!$pid){echo json_encode(['ok'=>false,'error'=>'Missing data']);exit;}
 $ipid=$vid?:$pid;$exp=(int)(DB::run("SELECT COALESCE(quantity,0) FROM inventory WHERE product_id=? AND store_id=?",[$ipid,$store_id])->fetchColumn()?:0);$disc=$qty-$exp;
-$el=DB::run("SELECT id FROM inventory_count_lines WHERE session_id=? AND zone_id=? AND product_id=? AND (variation_id=? OR(variation_id IS NULL AND ? IS NULL)) AND tenant_id=?",[$sid,$zid,$pid,$vid,$vid,$tenant_id])->fetchColumn();
-if($el)DB::run("UPDATE inventory_count_lines SET counted_qty=?,expected_qty=?,discrepancy=?,updated_at=NOW() WHERE id=?",[$qty,$exp,$disc,$el]);
-else DB::run("INSERT INTO inventory_count_lines(session_id,zone_id,product_id,variation_id,tenant_id,store_id,expected_qty,counted_qty,discrepancy,created_at)VALUES(?,?,?,?,?,?,?,?,?,NOW())",[$sid,$zid,$pid,$vid,$tenant_id,$store_id,$exp,$qty,$disc]);
+$el=DB::run("SELECT id FROM inventory_count_lines WHERE session_id=? AND zone_id=? AND product_id=? AND (variation_id=? OR(variation_id IS NULL AND ? IS NULL))",[$sid,$zid,$pid,$vid,$vid])->fetchColumn();
+if($el)DB::run("UPDATE inventory_count_lines SET quantity_counted=?,quantity_expected=? WHERE id=?",[$qty,$exp,$el]);
+else DB::run("INSERT INTO inventory_count_lines(session_id,zone_id,product_id,variation_id,quantity_expected,quantity_counted)VALUES(?,?,?,?,?,?)",[$sid,$zid,$pid,$vid,$exp,$qty]);
 $ie=DB::run("SELECT id FROM inventory WHERE product_id=? AND store_id=?",[$ipid,$store_id])->fetchColumn();
 if($ie)DB::run("UPDATE inventory SET quantity=?,is_counted=1,last_verified_at=NOW() WHERE product_id=? AND store_id=?",[$qty,$ipid,$store_id]);
 else DB::run("INSERT INTO inventory(product_id,store_id,tenant_id,quantity,is_counted,last_verified_at)VALUES(?,?,?,?,1,NOW())",[$ipid,$store_id,$tenant_id,$qty]);
 DB::run("UPDATE products SET last_counted_at=NOW(),counted_via='zone_walk' WHERE id=? AND tenant_id=?",[$ipid,$tenant_id]);
-$tc=(int)DB::run("SELECT COUNT(DISTINCT COALESCE(variation_id,product_id)) FROM inventory_count_lines WHERE session_id=? AND tenant_id=?",[$sid,$tenant_id])->fetchColumn();
+$tc=(int)DB::run("SELECT COUNT(DISTINCT COALESCE(variation_id,product_id)) FROM inventory_count_lines WHERE session_id=?",[$sid])->fetchColumn();
 DB::run("UPDATE inventory_count_sessions SET items_counted=? WHERE id=?",[$tc,$sid]);
 echo json_encode(['ok'=>true,'counted_qty'=>$qty,'expected'=>$exp,'discrepancy'=>$disc]);exit;}
 
@@ -46,13 +46,13 @@ echo json_encode(['ok'=>true,'counted_qty'=>$qty,'expected'=>$exp,'discrepancy'=
 if($ajax==='save_count_batch'){$d=json_decode(file_get_contents('php://input'),true)??[];$sid=(int)($d['session_id']??0);$zid=(int)($d['zone_id']??0);$pid=(int)($d['product_id']??0);$items=$d['items']??[];if(!$sid||!$zid||!$pid||!count($items)){echo json_encode(['ok'=>false]);exit;}
 $tq=0;foreach($items as $it){$vid=($it['variation_id']??null)?(int)$it['variation_id']:null;$qty=(int)($it['counted_qty']??0);$tq+=$qty;$ipid=$vid?:$pid;$exp=(int)(DB::run("SELECT COALESCE(quantity,0) FROM inventory WHERE product_id=? AND store_id=?",[$ipid,$store_id])->fetchColumn()?:0);$disc=$qty-$exp;
 $el=DB::run("SELECT id FROM inventory_count_lines WHERE session_id=? AND zone_id=? AND product_id=? AND(variation_id=? OR(variation_id IS NULL AND ? IS NULL)) AND tenant_id=?",[$sid,$zid,$pid,$vid,$vid,$tenant_id])->fetchColumn();
-if($el)DB::run("UPDATE inventory_count_lines SET counted_qty=?,expected_qty=?,discrepancy=?,updated_at=NOW() WHERE id=?",[$qty,$exp,$disc,$el]);
-else DB::run("INSERT INTO inventory_count_lines(session_id,zone_id,product_id,variation_id,tenant_id,store_id,expected_qty,counted_qty,discrepancy,created_at)VALUES(?,?,?,?,?,?,?,?,?,NOW())",[$sid,$zid,$pid,$vid,$tenant_id,$store_id,$exp,$qty,$disc]);
+if($el)DB::run("UPDATE inventory_count_lines SET quantity_counted=?,quantity_expected=? WHERE id=?",[$qty,$exp,$el]);
+else DB::run("INSERT INTO inventory_count_lines(session_id,zone_id,product_id,variation_id,quantity_expected,quantity_counted)VALUES(?,?,?,?,?,?)",[$sid,$zid,$pid,$vid,$exp,$qty]);
 $ie=DB::run("SELECT id FROM inventory WHERE product_id=? AND store_id=?",[$ipid,$store_id])->fetchColumn();
 if($ie)DB::run("UPDATE inventory SET quantity=?,is_counted=1,last_verified_at=NOW() WHERE product_id=? AND store_id=?",[$qty,$ipid,$store_id]);
 else DB::run("INSERT INTO inventory(product_id,store_id,tenant_id,quantity,is_counted,last_verified_at)VALUES(?,?,?,?,1,NOW())",[$ipid,$store_id,$tenant_id,$qty]);
 DB::run("UPDATE products SET last_counted_at=NOW(),counted_via='zone_walk' WHERE id=? AND tenant_id=?",[$ipid,$tenant_id]);}
-$tc=(int)DB::run("SELECT COUNT(DISTINCT COALESCE(variation_id,product_id)) FROM inventory_count_lines WHERE session_id=? AND tenant_id=?",[$sid,$tenant_id])->fetchColumn();
+$tc=(int)DB::run("SELECT COUNT(DISTINCT COALESCE(variation_id,product_id)) FROM inventory_count_lines WHERE session_id=?",[$sid])->fetchColumn();
 DB::run("UPDATE inventory_count_sessions SET items_counted=? WHERE id=?",[$tc,$sid]);
 echo json_encode(['ok'=>true,'total_qty'=>$tq,'items_saved'=>count($items)]);exit;}
 
@@ -60,7 +60,7 @@ echo json_encode(['ok'=>true,'total_qty'=>$tq,'items_saved'=>count($items)]);exi
 if($ajax==='finish_zone'){$d=json_decode(file_get_contents('php://input'),true)??[];$sid=(int)($d['session_id']??0);$zid=(int)($d['zone_id']??0);if(!$sid||!$zid){echo json_encode(['ok'=>false]);exit;}
 $zi=(int)DB::run("SELECT COUNT(DISTINCT COALESCE(variation_id,product_id)) FROM inventory_count_lines WHERE session_id=? AND zone_id=?",[$sid,$zid])->fetchColumn();
 DB::run("UPDATE store_zones SET last_walked_at=NOW() WHERE id=? AND store_id=?",[$zid,$store_id]);
-$zd=(int)DB::run("SELECT COUNT(DISTINCT cl.zone_id) FROM inventory_count_lines cl WHERE cl.session_id=? AND cl.tenant_id=?",[$sid,$tenant_id])->fetchColumn();
+$zd=(int)DB::run("SELECT COUNT(DISTINCT cl.zone_id) FROM inventory_count_lines cl WHERE cl.session_id=?",[$sid])->fetchColumn();
 DB::run("UPDATE inventory_count_sessions SET zones_completed=? WHERE id=?",[$zd,$sid]);
 echo json_encode(['ok'=>true,'zone_items'=>$zi,'zones_completed'=>$zd]);exit;}
 
