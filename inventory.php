@@ -291,7 +291,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
     <button class="back-btn" onclick="location.href='warehouse.php'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
     <h1>Скрити пари</h1>
   </div>
-  <div class="onb-steps"><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div></div>
+  <div class="onb-steps"><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div><strong>Мисля, че имаш пари скрити в магазина.</strong><br><br>Стока, за която не знаеш точно колко имаш. Артикули, забравени на рафта. Неща, дадени на кредит без запис.<br><br>Искаш ли да видим заедно?</div></div>
   <div class="choice-chips">
     <div class="choice-chip" onclick="step1('start')"><div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="chip-text">Да, да започваме<small>Обхождаме магазина стъпка по стъпка</small></div></div>
@@ -322,8 +322,8 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 
 <!-- ZONES (step 3) -->
 <div id="screen-zones" class="inv-screen">
-  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-welcome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Места в магазина</h1><button class="info-btn" style="margin-left:auto" onclick="showInfo('zones')">i</button></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div></div>
+  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-size')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Места в магазина</h1><button class="info-btn" style="margin-left:auto" onclick="showInfo('zones')">i</button></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>Сега ще обходим магазина заедно. Снимай <strong>ВСЯКО отделно място</strong> — щендер, рафт, витрина, маса, кука, кашон.<br><br>Кръсти го <strong>както ти му казваш.</strong></div></div>
   <div id="onbZones"></div>
   <button class="add-zone-btn" onclick="openZoneModal('onb')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави място</button>
@@ -333,7 +333,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <!-- CONFIRM (step 4) -->
 <div id="screen-confirm" class="inv-screen">
   <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-zones')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Потвърди местата</h1></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div><div class="onb-step"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>Ето всички места. Всичко ли е точно?</div></div>
   <div id="confirmZones" style="padding:0 16px"></div>
   <div class="choice-chips" style="padding-top:8px">
@@ -346,7 +346,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 <!-- START (step 5) -->
 <div id="screen-start" class="inv-screen">
   <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-confirm')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Откъде да започнем</h1></div>
-  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div></div>
+  <div class="onb-steps"><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step done"></div><div class="onb-step active"></div></div>
   <div class="ai-bwrap"><div class="ai-bubble"><div class="ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div><strong>Препоръчвам: Започни от склада.</strong><br><br>Там е масата от стоката и се брои по-лесно — без клиенти, без разсейване. Когато стигнеш магазина, повечето артикули вече ще са преброени.</div></div>
   <div id="startZones" style="padding:0 16px;display:flex;flex-direction:column;gap:10px"></div>
   <div style="padding:16px"><button onclick="doStartCounting()" class="inv-btn-primary">Да започваме!</button><button onclick="skipToHub()" style="width:100%;margin-top:10px;background:transparent;border:none;color:#64748b;font-size:13px;cursor:pointer;padding:8px">Ще започна по-късно</button></div>
@@ -354,7 +354,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
 
 <!-- COUNTING -->
 <div id="screen-counting" class="inv-screen">
-  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-hub');loadHub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Броене</h1></div>
+  <div class="inv-header"><button class="back-btn" onclick="showScreen('screen-hub');loadHub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button><h1>Броене</h1><div id="cntModeTag" style="margin-left:auto;font-size:11px;padding:4px 10px;background:rgba(99,102,241,.2);border-radius:20px;color:#a5b4fc;font-weight:700"></div></div>
   <div style="padding:12px 16px"><div class="prog-bar"><div class="prog-fill" id="cntBar" style="width:0%"></div></div><div class="prog-lbl" id="cntLbl">0 от 0 места преброени</div></div>
   <div class="ai-bwrap" style="padding-top:0"><div class="ai-bubble" style="font-size:13px">Избери от кое място да започнеш.</div></div>
   <div id="cntZones"></div>
@@ -371,7 +371,7 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
     </div>
     <div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;display:flex;align-items:center;gap:6px">СНИМКА <span style="color:#f59e0b;font-size:10px">препоръчителна</span></div>
-      <div class="photo-preview" id="zmPhotoPreview" onclick="document.getElementById('zmPhotoInput').click()">
+      <div class="photo-preview" id="zmPhotoPreview" onclick="openZoneCamera()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;color:#4f46e5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
         <span id="zmPhotoLabel" style="font-size:13px;font-weight:600;color:#6366f1">Добави снимка</span>
         <img id="zmPhotoImg" src="" alt="" style="display:none">
@@ -393,6 +393,10 @@ body{background:#030712;font-family:'Montserrat',sans-serif;color:#e2e8f0;margin
         <button class="zt-tab" data-type="customer" onclick="selZoneType('customer',this)">Зона клиенти</button>
         <button class="zt-tab" data-type="storage" onclick="selZoneType('storage',this)">Складово помещение</button>
       </div>
+    </div>
+    <div style="margin-bottom:16px;padding:12px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px">
+      <div style="font-size:12px;font-weight:700;color:#a5b4fc;margin-bottom:6px">Как да наименуваш?</div>
+      <div style="font-size:11px;color:#94a3b8;line-height:1.7">Кръсти всяко място както <strong style="color:#c7d2fe">ТИ</strong> му казваш.<br><strong style="color:#c7d2fe">Примери:</strong> Рафт зад каса, Рафт пред каса, Витрина лява, Витрина дясна, Щендер до входа, Зона пуловери, Зона панталони, Склад рафт 1...</div>
     </div>
     <button onclick="saveZone()" class="inv-btn-primary">Запази</button>
   </div>
@@ -444,11 +448,32 @@ document.addEventListener('DOMContentLoaded', () => {
     else showScreen('screen-welcome');
 });
 
-function showScreen(id) {
+function showScreen(id, noPush) {
     document.querySelectorAll('.inv-screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+    if (!noPush) history.pushState({screen:id}, '', '#'+id);
 }
+
+window.addEventListener('popstate', function(e) {
+    if (document.getElementById('zoneModal').classList.contains('open')) {
+        closeZoneModal(); return;
+    }
+    if (document.getElementById('cameraOv').classList.contains('open')) {
+        closeCamera(); return;
+    }
+    if (document.getElementById('infoModal').classList.contains('open')) {
+        document.getElementById('infoModal').classList.remove('open'); return;
+    }
+    if (document.getElementById('recOv').classList.contains('active')) {
+        recCancel(); return;
+    }
+    if (e.state && e.state.screen) {
+        showScreen(e.state.screen, true);
+    } else {
+        location.href = 'warehouse.php';
+    }
+});
 
 // ── HUB ──
 async function loadHub() {
@@ -486,12 +511,12 @@ function renderOnbZones() {
 function zoneCard(z) {
     const hasPh = !!z.photo_url;
     const phHtml = hasPh ? `<img src="${esc(z.photo_url)}">` : `<div class="zp-inner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Снимка</span></div>`;
-    return `<div class="zone-card"><div class="zone-card-photo${hasPh?'':' no-ph'}" onclick="addPhotoToZone(${z.id})">${phHtml}</div><div class="zone-card-body"><div class="zone-card-name">${esc(z.name)}</div>${!hasPh?'<div style="font-size:10px;color:#f59e0b;margin-top:4px">Без снимка</div>':''}</div><div class="zone-card-acts"><button class="zact" onclick="editZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="zact del" onclick="delZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>`;
+    return `<div class="zone-card"><div class="zone-card-photo${hasPh?'':' no-ph'}" onclick="addPhotoToZone(${z.id})">${phHtml}</div><div class="zone-card-body"><div class="zone-card-name">${esc(z.name)}</div><div style="font-size:11px;color:#94a3b8">${ztLabel(z.zone_type)}</div>${!hasPh?'<div style="font-size:10px;color:#f59e0b;margin-top:4px">Без снимка</div>':''}</div><div class="zone-card-acts"><button class="zact" onclick="editZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="zact del" onclick="delZone(${z.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button></div></div>`;
 }
 
 // ── ONBOARDING ──
 function step1(c) {
-    if (c==='start') { showScreen('screen-zones'); loadZones().then(renderOnbZones); }
+    if (c==='start') showScreen('screen-size');
     else if (c==='csv') toast('CSV импорт — скоро');
     else { toast('Можеш да се върнеш от Склад'); setTimeout(()=>location.href='warehouse.php',1600); }
 }
@@ -537,7 +562,8 @@ async function goCountingScreen() {
     showScreen('screen-counting'); renderCountingZones();
 }
 function renderCountingZones() {
-
+    const mode = INV.session?.mode||INV.mode||'quick';
+    document.getElementById('cntModeTag').textContent = mode==='full'?'ПЪЛЕН РЕЖИМ':'БЪРЗ РЕЖИМ';
     const done=INV.session?.zones_completed||0, total=INV.zones.length;
     document.getElementById('cntLbl').textContent = `${done} от ${total} места преброени`;
     document.getElementById('cntBar').style.width = total>0?(done/total*100)+'%':'0%';
@@ -574,6 +600,7 @@ function selZoneType(t,el){INV.zm.type=t;document.querySelectorAll('.zt-tab').fo
 
 // ── PHOTO ──
 function openZoneCamera() {
+    document.getElementById('zoneModal').style.display='none';
     if (navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}})
         .then(stream=>{INV.cameraStream=stream;document.getElementById('camVideo').srcObject=stream;document.getElementById('cameraOv').classList.add('open');})
@@ -581,7 +608,7 @@ function openZoneCamera() {
     } else document.getElementById('zmCameraInput').click();
 }
 function openZoneGallery(){document.getElementById('zmGalleryInput').click()}
-function closeCamera(){document.getElementById('cameraOv').classList.remove('open');if(INV.cameraStream){INV.cameraStream.getTracks().forEach(t=>t.stop());INV.cameraStream=null}}
+function closeCamera(){document.getElementById('cameraOv').classList.remove('open');document.getElementById('zoneModal').style.display='';if(INV.cameraStream){INV.cameraStream.getTracks().forEach(t=>t.stop());INV.cameraStream=null}}
 async function captureZonePhoto() {
     const v=document.getElementById('camVideo'),c=document.getElementById('camCanvas');
     c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);closeCamera();
