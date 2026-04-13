@@ -265,7 +265,7 @@ if (isset($_GET['ajax'])) {
         $pid = (int)($_GET['id'] ?? 0);
         $product = DB::run("SELECT * FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
         if (!$product) { echo json_encode(['error'=>'not_found']); exit; }
-        $sales_30d = DB::run("SELECT CAST(COALESCE(SUM(si.quantity),0) AS SIGNED) AS qty, ROUND(COALESCE(SUM(si.quantity*si.unit_price),0),2) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid])->fetch(PDO::FETCH_ASSOC);
+        $sales_30d = DB::run("SELECT CAST(COALESCE(SUM(si.quantity),0) AS SIGNED) AS qty, ROUND(COALESCE(SUM(si.quantity*si.unit_price),0),2) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.store_id=? AND s.status!='canceled' AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid, $sid])->fetch(PDO::FETCH_ASSOC);
         $child_count = DB::run("SELECT COUNT(*) FROM products WHERE parent_id=? AND tenant_id=? AND is_active=1", [$pid,$tenant_id])->fetchColumn();
         if ($child_count > 0) {
             $stock = DB::run("SELECT COALESCE(SUM(i.quantity),0) FROM inventory i JOIN products p ON p.id=i.product_id WHERE p.parent_id=? AND p.is_active=1", [$pid])->fetchColumn();
@@ -1822,6 +1822,7 @@ function goScreen(scr, params={}){
         const _filterMap = {zero:'out',below_cost:'at_loss'};
         S.filter = _filterMap[_urlFilter] || _urlFilter;
         S.screen = 'products';
+        history.replaceState(null,'',location.pathname);
     }
     loadScreen();
 }
