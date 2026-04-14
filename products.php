@@ -3037,18 +3037,52 @@ function renderWizPagePart2(step){
 
         let axesH='';
         S.wizData.axes.forEach((ax,i)=>{
-            const isSize=ax.name.toLowerCase().includes('размер')||ax.name.toLowerCase().includes('size');
-            const isColor=ax.name.toLowerCase().includes('цвят')||ax.name.toLowerCase().includes('color');
-            const hasPresets=isSize||isColor;
-            const vals=ax.values.map((v,vi)=>'<span style="display:inline-block;padding:4px 10px;border-radius:8px;background:rgba(99,102,241,0.15);color:var(--indigo-300);font-size:12px;font-weight:600;margin:2px;cursor:pointer" onclick="S.wizData.axes['+i+'].values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>').join('');
-            axesH+='<div style="margin-bottom:10px;padding:12px;border-radius:12px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle)">'+
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--indigo-300)">'+esc(ax.name)+'</span>'+
-            '<div style="display:flex;gap:8px;align-items:center">'+
-            (ax.values.length>0?'<span style="font-size:10px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600" onclick="S.wizData.axes['+i+'].values=[];renderWizard()">Изчисти</span>':'')+
-            '<span style="font-size:10px;color:var(--danger);cursor:pointer;font-weight:600" onclick="if(confirm(\'Премахни вариация?\')){S.wizData.axes.splice('+i+',1);renderWizard()}">✕ Премахни</span></div></div>'+
-            '<div style="margin-bottom:8px;min-height:24px">'+(vals||'<span style="font-size:11px;color:var(--text-secondary)">Няма избрани стойности</span>')+'</div>'+
-            (hasPresets?'<button type="button" class="abtn" style="width:100%;padding:10px;font-size:12px;font-weight:700;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06);margin-bottom:6px" onclick="openPresetPicker('+i+','+(isSize?'true':'false')+')">+ Добави няколко</button>':'')+
-            '<div style="position:relative"><div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Въведи или търси..." style="font-size:12px;padding:8px 10px" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}" oninput="wizAxisSuggest('+i+',this.value)" onfocus="wizAxisSuggest('+i+',this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'axSug'+i+'\');if(l)l.style.display=\'none\'},200)"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div><div id="axSug'+i+'" class="wiz-dd-list" style="display:none"></div></div></div>';
+            const isSize=ax.name.toLowerCase().includes('размер')||ax.name.toLowerCase().includes('size')||ax.name.toLowerCase().includes('ръст');
+            const isColor=ax.name.toLowerCase().includes('цвят')||ax.name.toLowerCase().includes('color')||ax.name.toLowerCase().includes('десен');
+            
+            // Selected values as chips
+            const vals=ax.values.map((v,vi)=>{
+                var sw='';
+                if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+cc.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+                return '<span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.3);color:var(--indigo-300);font-size:12px;font-weight:600;margin:2px;cursor:pointer" onclick="S.wizData.axes['+i+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' ✕</span>';
+            }).join('');
+            
+            axesH+='<div style="margin-bottom:12px;padding:12px;border-radius:12px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle)">';
+            // Header
+            axesH+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:14px;font-weight:700;color:var(--indigo-300)">'+esc(ax.name)+(ax.values.length?' <span style="font-size:11px;color:var(--text-secondary);font-weight:500">('+ax.values.length+')</span>':'')+'</span>';
+            axesH+='<div style="display:flex;gap:8px;align-items:center">';
+            if(ax.values.length>0)axesH+='<span style="font-size:10px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600" onclick="S.wizData.axes['+i+'].values=[];renderWizard()">Изчисти</span>';
+            axesH+='<span style="font-size:10px;color:var(--danger);cursor:pointer;font-weight:600" onclick="if(confirm(\'Премахни?\')){S.wizData.axes.splice('+i+',1);renderWizard()}">✕</span></div></div>';
+            
+            // Selected chips
+            if(vals)axesH+='<div style="margin-bottom:8px;display:flex;flex-wrap:wrap">'+vals+'</div>';
+            
+            // Inline preset groups
+            if(isSize||isColor){
+                var groups=isSize?_getSizePresetsOrdered():[{label:'Основни цветове',vals:CFG.colors.map(function(c){return c.name})}];
+                var existingSet=new Set(ax.values);
+                groups.forEach(function(g,gi){
+                    var hasUnselected=g.vals.some(function(v){return !existingSet.has(v)});
+                    if(!hasUnselected)return;
+                    var availCount=g.vals.filter(function(v){return !existingSet.has(v)}).length;
+                    axesH+='<div style="margin-top:4px">';
+                    axesH+='<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="var el=document.getElementById(\'pg'+i+'_'+gi+'\');el.style.display=el.style.display===\'none\'?\'flex\':\'none\'">';
+                    axesH+='<span style="font-size:8px">▶</span> '+esc(g.label)+' <span style="font-size:9px;color:rgba(99,102,241,0.4)">'+availCount+'</span></div>';
+                    axesH+='<div id="pg'+i+'_'+gi+'" style="display:none;flex-wrap:wrap;gap:3px;margin-bottom:4px">';
+                    g.vals.forEach(function(v){
+                        var isSel=existingSet.has(v);
+                        var sw='';
+                        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cc.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+                        axesH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:6px 12px;font-size:12px" onclick="wizTogglePresetInline('+i+',\''+v.replace(/'/g,"\\'")+'\',this)">'+sw+esc(v)+'</span>';
+                    });
+                    axesH+='</div></div>';
+                });
+            }
+            
+            // Manual input
+            axesH+='<div style="position:relative;margin-top:8px"><div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Или въведи ръчно..." style="font-size:12px;padding:8px 10px" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}" oninput="wizAxisSuggest('+i+',this.value)" onfocus="wizAxisSuggest('+i+',this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'axSug'+i+'\');if(l)l.style.display=\'none\'},200)"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div><div id="axSug'+i+'" class="wiz-dd-list" style="display:none"></div></div>';
+            
+            axesH+='</div>';
         });
 
         const combos=wizCountCombinations();
