@@ -4514,115 +4514,157 @@ function _voiceProcessAxis(text,axisName,existingValues){
 }
 
 function _splitSizes(raw){
-    // Strategy: scan text for known patterns, extract sizes
-    var results=[];
-    var t=' '+raw+' '; // pad for easier boundary matching
+    // Simple approach: get ALL size presets, match speech words against them
+    var allPresets=_getAllSizePresets();
     
-    // XL variants the speech API might produce
-    var xlWords=['икс ел','хикс ел','икс ел','хл','xl','ексел','иксел','хиксел','икс-ел'];
-    // Number prefixes for 2XL, 3XL, 4XL
-    var numPrefixes={
-        'два пъти':2,'двойно':2,'двоен':2,'двойна':2,'два':2,'дъбъл':2,'дабъл':2,'double':2,'2':2,
-        'три пъти':3,'тройно':3,'троен':3,'тройна':3,'три':3,'triple':3,'3':3,
-        'четири пъти':4,'четворно':4,'четири':4,'4':4
-    };
-    // Single size words
-    var singleMap={
-        'ес':'S','es':'S','с':'S','s':'S',
-        'ем':'M','em':'M','м':'M','m':'M',
-        'ел':'L','el':'L','л':'L','l':'L',
-        'екс ес':'XS','икс ес':'XS','xs':'XS','extra small':'XS',
-        'уан сайз':'One Size','един размер':'One Size','универсален':'One Size'
-    };
+    // Build voice→preset map (lowercase→preset value)
+    var voiceMap={};
+    allPresets.forEach(function(p){
+        voiceMap[p.toLowerCase()]=p;
+    });
     
-    // Sort prefixes longest first
-    var prefixKeys=Object.keys(numPrefixes).sort(function(a,b){return b.length-a.length});
-    var xlKeys=xlWords.sort(function(a,b){return b.length-a.length});
-    var singleKeys=Object.keys(singleMap).sort(function(a,b){return b.length-a.length});
+    // Add voice aliases (spoken Bulgarian → standard)
+    var lang=_vl();
+    var sizeAliases=lang.sizes||{};
+    for(var k in sizeAliases){
+        var v=sizeAliases[k];
+        if(v.includes(',')){v.split(',').forEach(function(sv){voiceMap[k]=sv})}
+        else voiceMap[k]=v;
+    }
     
-    // Step 1: Extract numbered XL (2XL, 3XL...) — find XL markers, look back for number
-    var processed=t;
+    // Split raw text into candidate tokens
+    // Try multiple split strategies and pick the one with most matches
+    var strategies=[
+        // Strategy 1: split by " и " and comma
+        raw.split(/\s+и\s+|,\s*/).map(function(v){return v.trim()}).filter(Boolean),
+        // Strategy 2: split by spaces
+        raw.split(/\s+/).filter(Boolean),
+        // Strategy 3: whole text as one
+        [raw.trim()]
+    ];
     
-    xlKeys.forEach(function(xlWord){
-        var searchFrom=0;
-        while(true){
-            var pos=processed.toLowerCase().indexOf(xlWord,searchFrom);
-            if(pos===-1)break;
-            // Check what's before it
-            var before=processed.substring(0,pos).trimRight();
-            var foundPrefix=0;
-            var prefixLen=0;
-            for(var p=0;p<prefixKeys.length;p++){
-                var pk=prefixKeys[p];
-                if(before.toLowerCase().endsWith(pk)){
-                    foundPrefix=numPrefixes[pk];
-                    prefixLen=pk.length;
-                    break;
+    var bestResult=[];
+    var bestScore=0;
+    
+    strategies.forEach(function(tokens){
+        var result=[];
+        var score=0;
+        tokens.forEach(function(tok){
+            var t=tok.toLowerCase().trim();
+            if(!t)return;
+            // Exact match in voiceMap
+            if(voiceMap[t]){
+                var val=voiceMap[t];
+                if(result.indexOf(val)===-1){result.push(val);score+=2}
+                return;
+            }
+            // Try combining with next token (for "икс ел" split as ["икс","ел"])
+            // Already handled by strategy 1 (not split by space)
+            
+            // Fuzzy: first 2-3 chars match against presets
+            var matched=_fuzzyMatchPreset(t,allPresets);
+            if(matched){
+                if(result.indexOf(matched)===-1){result.push(matched);score+=1}
+                return;
+            }
+            // Pure number
+            if(/^\d+$/.test(t)){
+                if(allPresets.indexOf(t)!==-1){
+                    if(result.indexOf(t)===-1){result.push(t);score+=2}
+                }else{
+                    // Number not in presets — try _bgPrice
+                    if(result.indexOf(t)===-1)result.push(t);
                 }
+                return;
             }
-            if(foundPrefix>0){
-                // Replace prefix+xl with marker
-                var startPos=before.length-prefixLen;
-                var endPos=pos+xlWord.length;
-                results.push(foundPrefix+'XL');
-                processed=processed.substring(0,startPos)+'§'.repeat(endPos-startPos)+processed.substring(endPos);
+            // Word number → digit (четиридесет → 40)
+            var n=_bgPrice(t);
+            if(n!==null&&n>0&&n===Math.round(n)){
+                var ns=String(Math.round(n));
+                if(result.indexOf(ns)===-1)result.push(ns);
+                return;
+            }
+            // Skip noise (пъти, моля, размер...)
+        });
+        if(score>bestScore){bestScore=score;bestResult=result}
+    });
+    
+    // Strategy 4: try joining adjacent words to match multi-word aliases
+    // e.g. ["два","пъти","икс","ел"] → try "два пъти", "два пъти икс", "два пъти икс ел"
+    var words=raw.toLowerCase().split(/\s+/).filter(Boolean);
+    var multiResult=[];
+    var i=0;
+    while(i<words.length){
+        var found=false;
+        // Try longest possible phrase starting at i (max 5 words)
+        for(var len=Math.min(5,words.length-i);len>=1;len--){
+            var phrase=words.slice(i,i+len).join(' ');
+            if(voiceMap[phrase]){
+                var val=voiceMap[phrase];
+                if(multiResult.indexOf(val)===-1)multiResult.push(val);
+                i+=len;found=true;break;
+            }
+        }
+        if(!found){
+            // Try single word fuzzy match
+            var w=words[i];
+            if(voiceMap[w]){
+                var val=voiceMap[w];
+                if(multiResult.indexOf(val)===-1)multiResult.push(val);
             }else{
-                // Plain XL
-                results.push('XL');
-                processed=processed.substring(0,pos)+'§'.repeat(xlWord.length)+processed.substring(pos+xlWord.length);
+                var fm=_fuzzyMatchPreset(w,allPresets);
+                if(fm&&multiResult.indexOf(fm)===-1)multiResult.push(fm);
+                else if(/^\d+$/.test(w)&&multiResult.indexOf(w)===-1)multiResult.push(w);
             }
-            searchFrom=pos+xlWord.length;
+            i++;
         }
-    });
+    }
     
-    // Step 2: Extract XS and other multi-word singles
-    singleKeys.forEach(function(sk){
-        if(sk.length<3)return; // skip single letters for now
-        var pos=processed.toLowerCase().indexOf(sk);
-        while(pos!==-1){
-            var val=singleMap[sk];
-            if(results.indexOf(val)===-1)results.push(val);
-            processed=processed.substring(0,pos)+'§'.repeat(sk.length)+processed.substring(pos+sk.length);
-            pos=processed.toLowerCase().indexOf(sk);
+    // Pick the result with more matches
+    return multiResult.length>=bestResult.length?multiResult:bestResult;
+}
+
+function _getAllSizePresets(){
+    var all=[];
+    // From _sizePresets (hardcoded in page)
+    if(window._sizePresets){
+        for(var k in window._sizePresets){
+            window._sizePresets[k].forEach(function(v){if(all.indexOf(v)===-1)all.push(v)});
         }
-    });
-    
-    // Step 3: Extract single letter sizes (ес, ем, ел) — as separate words only
-    var remaining=processed.replace(/§/g,' ').replace(/\s+/g,' ').trim();
-    var words=remaining.split(/[\s,]+/).filter(function(w){return w.trim().length>0});
-    
-    words.forEach(function(w){
-        var wl=w.toLowerCase().trim();
-        // Remove connectors
-        if(['и','пъти','and','ve','und','dhe','și','και',''].indexOf(wl)!==-1)return;
-        // Single size alias
-        if(singleMap[wl]){
-            var val=singleMap[wl];
-            if(results.indexOf(val)===-1)results.push(val);
-            return;
+    }
+    // From biz variants
+    if(window._bizVariants&&window._bizVariants.variant_presets){
+        for(var k in window._bizVariants.variant_presets){
+            var kl=k.toLowerCase();
+            if(kl.includes('размер')||kl.includes('size')||kl.includes('ръст')){
+                window._bizVariants.variant_presets[k].forEach(function(v){if(all.indexOf(v)===-1)all.push(v)});
+            }
         }
-        // Pure number
-        if(/^\d+$/.test(wl)){
-            if(results.indexOf(wl)===-1)results.push(wl);
-            return;
+    }
+    // From global presets
+    if(window._allBizPresets&&window._allBizPresets.sizes){
+        window._allBizPresets.sizes.forEach(function(v){if(all.indexOf(v)===-1)all.push(v)});
+    }
+    // Standard sizes always included
+    ['XS','S','M','L','XL','2XL','3XL','4XL','One Size'].forEach(function(v){if(all.indexOf(v)===-1)all.push(v)});
+    return all;
+}
+
+function _fuzzyMatchPreset(word,presets){
+    if(!word||word.length<1)return null;
+    var wl=word.toLowerCase();
+    // Exact case-insensitive
+    for(var i=0;i<presets.length;i++){
+        if(presets[i].toLowerCase()===wl)return presets[i];
+    }
+    // Starts with same 2+ chars (for short values like S, M, L skip this)
+    if(wl.length>=2){
+        for(var i=0;i<presets.length;i++){
+            var pl=presets[i].toLowerCase();
+            if(pl.length>=2&&(pl.indexOf(wl)===0||wl.indexOf(pl)===0))return presets[i];
         }
-        // Try _bgPrice for word-numbers
-        var n=_bgPrice(wl);
-        if(n!==null&&n>0&&n===Math.round(n)){
-            var ns=String(Math.round(n));
-            if(results.indexOf(ns)===-1)results.push(ns);
-            return;
-        }
-        // Skip noise words (пъти, etc)
-        if(['пъти','двойно','тройно','двоен','троен','double','triple'].indexOf(wl)!==-1)return;
-        // Unknown — add uppercase if short
-        if(wl.length<=3){
-            var up=w.toUpperCase();
-            if(results.indexOf(up)===-1)results.push(up);
-        }
-    });
-    
-    return results;
+    }
+    return null;
 }
 
 function _splitColors(raw){
