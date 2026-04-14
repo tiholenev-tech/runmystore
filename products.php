@@ -2972,9 +2972,9 @@ function renderWizPage(step){
         return '<div class="wiz-page active">'+
         '<div class="fg">'+fieldLabel('Наименование *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Nike Air Max 90 Черни" style="flex:1"><button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
         '<div class="fg">'+fieldLabel('Артикулен номер *','code','<span class="hint">(AI генерира ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" oninput="S.wizData.code=this.value.trim()" value="'+esc(S.wizData.code||'')+'" placeholder="автоматично" style="flex:1"><button type="button" class="wiz-mic" onclick="wizMic(\'code\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
-        '<div class="form-row">'+
-        '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0,00" style="flex:1"><button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
-        '<div class="fg" style="'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00" style="flex:1"><button type="button" class="wiz-mic" onclick="wizMic(\'wholesale_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div></div>'+
+        '<div style="display:flex;gap:8px">'+
+        '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0,00" style="flex:1;min-width:0"><button type="button" class="wiz-mic" style="width:36px;min-width:36px;height:36px" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
+        '<div class="fg" style="flex:1;min-width:0;'+wpHidden+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+wp+'" placeholder="0,00" style="flex:1;min-width:0"><button type="button" class="wiz-mic" style="width:36px;min-width:36px;height:36px" onclick="wizMic(\'wholesale_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div></div>'+
         '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(автоматично ако е празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" style="flex:1"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" title="Сканирай"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-300)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="14"/><line x1="16" y1="7" x2="16" y2="17"/></svg></button><button type="button" class="wiz-mic" onclick="wizMic(\'barcode\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
         '<div class="fg">'+fieldLabel('Доставчик','supplier','<span class="fl-add" onclick="toggleInl(\'inlSup\')">Добави нов</span>')+'<div style="position:relative"><input type="text" class="fc" id="wSupDD" placeholder="Избери доставчик..." autocomplete="off" value="'+(S.wizData.supplier_id?(CFG.suppliers.find(ss=>ss.id==S.wizData.supplier_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.supplier_id=null;wizSearchDropdown(\'wSupDD\',\'wSupList\',CFG.suppliers.slice().sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wSupList\');if(l)l.style.display=\'none\'},200)"><div id="wSupList" class="wiz-dd-list" style="display:none"></div><button type="button" class="wiz-mic" onclick="wizMic(\'supplier\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div><div class="inline-add" id="inlSup"><input type="text" placeholder="Име" id="inlSupName"><button onclick="wizAddInline(\'supplier\')">Запази</button></div></div>'+
         '<div class="fg">'+fieldLabel('Категория','category','<span class="fl-add" onclick="toggleInl(\'inlCat\')">Добави нова</span>')+'<div style="position:relative"><input type="text" class="fc" id="wCatDD" placeholder="Избери категория..." autocomplete="off" value="'+(S.wizData.category_id?(CFG.categories.find(cc=>cc.id==S.wizData.category_id)||{}).name||'':'')+'" onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" oninput="this._selectedId=null;S.wizData.category_id=null;wizSearchDropdown(\'wCatDD\',\'wCatList\',CFG.categories.filter(cc=>!cc.parent_id).sort((a,b)=>a.name.localeCompare(b.name,\'bg\')),null)" onblur="this._focused=false;setTimeout(()=>{var l=document.getElementById(\'wCatList\');if(l)l.style.display=\'none\'},200)"><div id="wCatList" class="wiz-dd-list" style="display:none"></div><button type="button" class="wiz-mic" onclick="wizMic(\'category\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div><div class="inline-add" id="inlCat"><input type="text" placeholder="Име" id="inlCatName"><button onclick="wizAddInline(\'category\')">Запази</button></div></div>'+
@@ -3035,7 +3035,7 @@ function renderWizPagePart2(step){
             '<span style="font-size:10px;color:var(--danger);cursor:pointer;font-weight:600" onclick="if(confirm(\'Премахни вариация?\')){S.wizData.axes.splice('+i+',1);renderWizard()}">✕ Премахни</span></div></div>'+
             '<div style="margin-bottom:8px;min-height:24px">'+(vals||'<span style="font-size:11px;color:var(--text-secondary)">Няма избрани стойности</span>')+'</div>'+
             (hasPresets?'<button type="button" class="abtn" style="width:100%;padding:10px;font-size:12px;font-weight:700;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.06);margin-bottom:6px" onclick="openPresetPicker('+i+','+(isSize?'true':'false')+')">+ Добави няколко</button>':'')+
-            '<div style="position:relative"><div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Въведи или търси..." style="font-size:12px;padding:8px 10px" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}" oninput="wizAxisSuggest('+i+',this.value)" onfocus="wizAxisSuggest('+i+',this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'axSug'+i+'\');if(l)l.style.display=\'none\'},200)"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button></div><div id="axSug'+i+'" class="wiz-dd-list" style="display:none"></div></div></div>';
+            '<div style="position:relative"><div style="display:flex;gap:6px"><input type="text" class="fc" id="axVal'+i+'" placeholder="Въведи или търси..." style="font-size:12px;padding:8px 10px" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+i+')}" oninput="wizAxisSuggest('+i+',this.value)" onfocus="wizAxisSuggest('+i+',this.value)" onblur="setTimeout(()=>{var l=document.getElementById(\'axSug'+i+'\');if(l)l.style.display=\'none\'},200)"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px" onclick="wizAddAxisValue('+i+')">+</button><button type="button" class="wiz-mic" style="width:36px;min-width:36px;height:36px" onclick="wizMicAxis('+i+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div><div id="axSug'+i+'" class="wiz-dd-list" style="display:none"></div></div></div>';
         });
 
         const combos=wizCountCombinations();
@@ -3045,7 +3045,7 @@ function renderWizPagePart2(step){
         '<div style="padding:12px;border-radius:12px;border:1px dashed var(--border-subtle);margin-bottom:12px">'+
         '<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">ДОБАВИ НОВА ВАРИАЦИЯ</div>'+
         '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Напр: Материал, Форма, Дължина, Модел...</div>'+
-        '<div style="display:flex;gap:6px"><input type="text" class="fc" id="newAxisName" placeholder="Име на вариация" style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" onclick="wizAddAxis()">+ Добави</button></div></div>'+
+        '<div style="display:flex;gap:6px"><input type="text" class="fc" id="newAxisName" placeholder="Име на вариация" style="font-size:12px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:8px 14px;font-size:12px;background:rgba(99,102,241,0.1);border-color:var(--indigo-500)" onclick="wizAddAxis()">+ Добави</button><button type="button" class="wiz-mic" style="width:36px;min-width:36px;height:36px" onclick="wizMicNewAxis()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div></div>'+
         (combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;padding:8px 12px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> комбинации</div>':'')+
         '<button class="abtn primary" onclick="wizGoPreview()">Напред →</button>'+
         '<button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button>'+vskip+'</div>';
@@ -4199,7 +4199,58 @@ function _wizMicApply(field,text){
     else if(field==='origin'){var el=document.getElementById('wOrigin');el.value=text;el.style.color='';S.wizData.origin_country=text;showToast('Записано ✓','success')}
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
 }
-function _bgNum(t){var w=t.trim().toLowerCase();var ones={'нула':0,'един':1,'една':1,'едно':1,'два':2,'две':2,'три':3,'четири':4,'пет':5,'шест':6,'седем':7,'осем':8,'девет':9,'десет':10,'единадесет':11,'единайсет':11,'дванадесет':12,'дванайсет':12,'тринадесет':13,'тринайсет':13,'четиринадесет':14,'четиринайсет':14,'петнадесет':15,'петнайсет':15,'шестнадесет':16,'шестнайсет':16,'седемнадесет':17,'седемнайсет':17,'осемнадесет':18,'осемнайсет':18,'деветнадесет':19,'деветнайсет':19,'двадесет':20,'двайсет':20,'тридесет':30,'трийсет':30,'четиридесет':40,'четирийсет':40,'петдесет':50,'шестдесет':60,'седемдесет':70,'осемдесет':80,'деветдесет':90,'сто':100};var n=parseInt(w);if(!isNaN(n))return n;if(ones[w]!==undefined)return ones[w];var m=w.match(/^(.+?)\s+и\s+(.+)$/);if(m){var a=ones[m[1].trim()];var b=ones[m[2].trim()];if(a!==undefined&&b!==undefined)return a+b}return null}
+function _bgNum(t){return _bgPrice(t)}
+function _bgPrice(t){
+    var raw=t.trim().toLowerCase();
+    var hasStotinki=(/стотинки|стот\.|цент[аи]?|cents?|пени|пфениг|сантим|копейк/i).test(raw);
+    raw=raw.replace(/лева|лв|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|крон[аи]?|злот[аи]?|динар[аи]?|форинт[аи]?|франк[аи]?|стотинки|стот\.|цент[аи]?|cents?|пени|penny|pence|пфениг[аи]?|pfennig|сантим[аи]?|копейк[аи]?/gi,' ').replace(/\s+/g,' ').trim();
+    var dn=raw.replace(',','.');var pf=parseFloat(dn);if(!isNaN(pf)&&/^\d+\.?\d*$/.test(dn))return pf;
+    var ones={'нула':0,'един':1,'една':1,'едно':1,'два':2,'две':2,'три':3,'четири':4,'пет':5,'шест':6,'седем':7,'осем':8,'девет':9,'десет':10,'единадесет':11,'единайсет':11,'дванадесет':12,'дванайсет':12,'тринадесет':13,'тринайсет':13,'четиринадесет':14,'четиринайсет':14,'петнадесет':15,'петнайсет':15,'шестнадесет':16,'шестнайсет':16,'седемнадесет':17,'седемнайсет':17,'осемнадесет':18,'осемнайсет':18,'деветнадесет':19,'деветнайсет':19,'двадесет':20,'двайсет':20,'тридесет':30,'трийсет':30,'четиридесет':40,'четирийсет':40,'петдесет':50,'шестдесет':60,'седемдесет':70,'осемдесет':80,'деветдесет':90,'сто':100};
+    var tens=[10,20,30,40,50,60,70,80,90];
+    function word(w){w=w.trim();var n=parseInt(w);if(!isNaN(n))return n;if(ones[w]!==undefined)return ones[w];return null}
+    var parts=raw.split(/\s+и\s+/);
+    if(parts.length===1){return word(parts[0])}
+    if(parts.length===2){var a=word(parts[0]);var b=word(parts[1]);
+        if(a!==null&&b!==null){
+            if(hasStotinki&&tens.indexOf(b)!==-1)return parseFloat(a+'.'+String(b).padStart(2,'0'));
+            if(a>=0&&a<=9&&tens.indexOf(b)!==-1)return parseFloat(a+'.'+String(b).padStart(2,'0'));
+            return a+b}}
+    if(parts.length===3){var a=word(parts[0]);var b=word(parts[1]);var c=word(parts[2]);
+        if(a!==null&&b!==null&&c!==null){var leva=a+b;return parseFloat(leva+'.'+String(c).padStart(2,'0'))}}
+    return null}
+
+// S68 fix: voice for variation values + new axis name
+function wizMicAxis(axIdx){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){showToast('Гласът не се поддържа','error');return}
+    if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
+    _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=false;
+    _wizMicRec.onresult=function(e){
+        var text=e.results[0][0].transcript.trim();
+        // Split by comma/space and add each as value
+        var vals=text.split(/[,\s]+/).filter(function(v){return v.length>0});
+        var ax=S.wizData.axes[axIdx];if(!ax)return;
+        var added=0;
+        vals.forEach(function(v){if(!ax.values.includes(v)){ax.values.push(v);added++}});
+        if(added>0){showToast(added+' добавени ✓','success');renderWizard()}
+        else showToast('Вече са добавени','');
+    };
+    _wizMicRec.onerror=function(){showToast('Грешка с микрофона','error')};
+    _wizMicRec.start();showToast('Кажи стойности...','success');
+}
+function wizMicNewAxis(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){showToast('Гласът не се поддържа','error');return}
+    if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
+    _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=false;
+    _wizMicRec.onresult=function(e){
+        var text=e.results[0][0].transcript.trim();
+        var inp=document.getElementById('newAxisName');
+        if(inp){inp.value=text;showToast('Записано: '+text,'success')}
+    };
+    _wizMicRec.onerror=function(){showToast('Грешка с микрофона','error')};
+    _wizMicRec.start();showToast('Кажи име на вариация...','success');
+}
 // ═══ END S68 ═══
 </script>
 
