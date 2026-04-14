@@ -4514,38 +4514,114 @@ function _voiceProcessAxis(text,axisName,existingValues){
 }
 
 function _splitSizes(raw){
-    var lang=_vl();var sizeMap=lang.sizes||{};
-    // Exact full match
-    if(sizeMap[raw]){var v=sizeMap[raw];return v.includes(',')?v.split(','):[v]}
-    // Greedy token consumption
-    var keys=Object.keys(sizeMap).sort(function(a,b){return b.length-a.length});
-    var results=[],remaining=raw,safety=0;
-    while(remaining.trim()&&safety<20){
-        safety++;remaining=remaining.trim().replace(/^(и|,|and|și|και|ve|und|dhe)\s*/,'');
-        if(!remaining.trim())break;
-        var found=false;
-        for(var i=0;i<keys.length;i++){
-            if(remaining.indexOf(keys[i])===0){
-                var after=remaining.substring(keys[i].length);
-                if(after===''||/^[\s,]/.test(after)||/^(и|and|și|και|ve|und|dhe)/.test(after)){
-                    var val=sizeMap[keys[i]];
-                    if(val.includes(','))val.split(',').forEach(function(v){results.push(v)});
-                    else results.push(val);
-                    remaining=after;found=true;break;
+    // Strategy: scan text for known patterns, extract sizes
+    var results=[];
+    var t=' '+raw+' '; // pad for easier boundary matching
+    
+    // XL variants the speech API might produce
+    var xlWords=['икс ел','хикс ел','икс ел','хл','xl','ексел','иксел','хиксел','икс-ел'];
+    // Number prefixes for 2XL, 3XL, 4XL
+    var numPrefixes={
+        'два пъти':2,'двойно':2,'двоен':2,'двойна':2,'два':2,'дъбъл':2,'дабъл':2,'double':2,'2':2,
+        'три пъти':3,'тройно':3,'троен':3,'тройна':3,'три':3,'triple':3,'3':3,
+        'четири пъти':4,'четворно':4,'четири':4,'4':4
+    };
+    // Single size words
+    var singleMap={
+        'ес':'S','es':'S','с':'S','s':'S',
+        'ем':'M','em':'M','м':'M','m':'M',
+        'ел':'L','el':'L','л':'L','l':'L',
+        'екс ес':'XS','икс ес':'XS','xs':'XS','extra small':'XS',
+        'уан сайз':'One Size','един размер':'One Size','универсален':'One Size'
+    };
+    
+    // Sort prefixes longest first
+    var prefixKeys=Object.keys(numPrefixes).sort(function(a,b){return b.length-a.length});
+    var xlKeys=xlWords.sort(function(a,b){return b.length-a.length});
+    var singleKeys=Object.keys(singleMap).sort(function(a,b){return b.length-a.length});
+    
+    // Step 1: Extract numbered XL (2XL, 3XL...) — find XL markers, look back for number
+    var processed=t;
+    
+    xlKeys.forEach(function(xlWord){
+        var searchFrom=0;
+        while(true){
+            var pos=processed.toLowerCase().indexOf(xlWord,searchFrom);
+            if(pos===-1)break;
+            // Check what's before it
+            var before=processed.substring(0,pos).trimRight();
+            var foundPrefix=0;
+            var prefixLen=0;
+            for(var p=0;p<prefixKeys.length;p++){
+                var pk=prefixKeys[p];
+                if(before.toLowerCase().endsWith(pk)){
+                    foundPrefix=numPrefixes[pk];
+                    prefixLen=pk.length;
+                    break;
                 }
             }
-        }
-        if(!found){
-            var numMatch=remaining.match(/^(\d+)/);
-            if(numMatch){results.push(numMatch[1]);remaining=remaining.substring(numMatch[1].length)}
-            else{
-                var parts=remaining.split(/\s*,\s*|\s+и\s+|\s+and\s+|\s+și\s+/);
-                var numVal=_bgPrice(parts[0]);
-                if(numVal!==null&&numVal>0&&numVal===Math.round(numVal)){results.push(String(Math.round(numVal)));remaining=remaining.substring(parts[0].length)}
-                else{var word=remaining.match(/^(\S+)/);if(word){results.push(word[1].toUpperCase());remaining=remaining.substring(word[1].length)}else break}
+            if(foundPrefix>0){
+                // Replace prefix+xl with marker
+                var startPos=before.length-prefixLen;
+                var endPos=pos+xlWord.length;
+                results.push(foundPrefix+'XL');
+                processed=processed.substring(0,startPos)+'§'.repeat(endPos-startPos)+processed.substring(endPos);
+            }else{
+                // Plain XL
+                results.push('XL');
+                processed=processed.substring(0,pos)+'§'.repeat(xlWord.length)+processed.substring(pos+xlWord.length);
             }
+            searchFrom=pos+xlWord.length;
         }
-    }
+    });
+    
+    // Step 2: Extract XS and other multi-word singles
+    singleKeys.forEach(function(sk){
+        if(sk.length<3)return; // skip single letters for now
+        var pos=processed.toLowerCase().indexOf(sk);
+        while(pos!==-1){
+            var val=singleMap[sk];
+            if(results.indexOf(val)===-1)results.push(val);
+            processed=processed.substring(0,pos)+'§'.repeat(sk.length)+processed.substring(pos+sk.length);
+            pos=processed.toLowerCase().indexOf(sk);
+        }
+    });
+    
+    // Step 3: Extract single letter sizes (ес, ем, ел) — as separate words only
+    var remaining=processed.replace(/§/g,' ').replace(/\s+/g,' ').trim();
+    var words=remaining.split(/[\s,]+/).filter(function(w){return w.trim().length>0});
+    
+    words.forEach(function(w){
+        var wl=w.toLowerCase().trim();
+        // Remove connectors
+        if(['и','пъти','and','ve','und','dhe','și','και',''].indexOf(wl)!==-1)return;
+        // Single size alias
+        if(singleMap[wl]){
+            var val=singleMap[wl];
+            if(results.indexOf(val)===-1)results.push(val);
+            return;
+        }
+        // Pure number
+        if(/^\d+$/.test(wl)){
+            if(results.indexOf(wl)===-1)results.push(wl);
+            return;
+        }
+        // Try _bgPrice for word-numbers
+        var n=_bgPrice(wl);
+        if(n!==null&&n>0&&n===Math.round(n)){
+            var ns=String(Math.round(n));
+            if(results.indexOf(ns)===-1)results.push(ns);
+            return;
+        }
+        // Skip noise words (пъти, etc)
+        if(['пъти','двойно','тройно','двоен','троен','double','triple'].indexOf(wl)!==-1)return;
+        // Unknown — add uppercase if short
+        if(wl.length<=3){
+            var up=w.toUpperCase();
+            if(results.indexOf(up)===-1)results.push(up);
+        }
+    });
+    
     return results;
 }
 
