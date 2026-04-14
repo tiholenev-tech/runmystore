@@ -4514,114 +4514,43 @@ function _voiceProcessAxis(text,axisName,existingValues){
 }
 
 function _splitSizes(raw){
-    // Simple approach: get ALL size presets, match speech words against them
-    var allPresets=_getAllSizePresets();
-    
-    // Build voice→preset map (lowercase→preset value)
-    var voiceMap={};
-    allPresets.forEach(function(p){
-        voiceMap[p.toLowerCase()]=p;
-    });
-    
-    // Add voice aliases (spoken Bulgarian → standard)
-    var lang=_vl();
-    var sizeAliases=lang.sizes||{};
-    for(var k in sizeAliases){
-        var v=sizeAliases[k];
-        if(v.includes(',')){v.split(',').forEach(function(sv){voiceMap[k]=sv})}
-        else voiceMap[k]=v;
-    }
-    
-    // Split raw text into candidate tokens
-    // Try multiple split strategies and pick the one with most matches
-    var strategies=[
-        // Strategy 1: split by " и " and comma
-        raw.split(/\s+и\s+|,\s*/).map(function(v){return v.trim()}).filter(Boolean),
-        // Strategy 2: split by spaces
-        raw.split(/\s+/).filter(Boolean),
-        // Strategy 3: whole text as one
-        [raw.trim()]
-    ];
-    
-    var bestResult=[];
-    var bestScore=0;
-    
-    strategies.forEach(function(tokens){
-        var result=[];
-        var score=0;
-        tokens.forEach(function(tok){
-            var t=tok.toLowerCase().trim();
-            if(!t)return;
-            // Exact match in voiceMap
-            if(voiceMap[t]){
-                var val=voiceMap[t];
-                if(result.indexOf(val)===-1){result.push(val);score+=2}
-                return;
-            }
-            // Try combining with next token (for "икс ел" split as ["икс","ел"])
-            // Already handled by strategy 1 (not split by space)
-            
-            // Fuzzy: first 2-3 chars match against presets
-            var matched=_fuzzyMatchPreset(t,allPresets);
-            if(matched){
-                if(result.indexOf(matched)===-1){result.push(matched);score+=1}
-                return;
-            }
-            // Pure number
-            if(/^\d+$/.test(t)){
-                if(allPresets.indexOf(t)!==-1){
-                    if(result.indexOf(t)===-1){result.push(t);score+=2}
-                }else{
-                    // Number not in presets — try _bgPrice
-                    if(result.indexOf(t)===-1)result.push(t);
-                }
-                return;
-            }
-            // Word number → digit (четиридесет → 40)
-            var n=_bgPrice(t);
-            if(n!==null&&n>0&&n===Math.round(n)){
-                var ns=String(Math.round(n));
-                if(result.indexOf(ns)===-1)result.push(ns);
-                return;
-            }
-            // Skip noise (пъти, моля, размер...)
-        });
-        if(score>bestScore){bestScore=score;bestResult=result}
-    });
-    
-    // Strategy 4: try joining adjacent words to match multi-word aliases
-    // e.g. ["два","пъти","икс","ел"] → try "два пъти", "два пъти икс", "два пъти икс ел"
     var words=raw.toLowerCase().split(/\s+/).filter(Boolean);
-    var multiResult=[];
+    var results=[];
+    var lang=_vl();
+    var aliases=lang.sizes||{};
+    // Sort alias keys longest first
+    var akeys=Object.keys(aliases).sort(function(a,b){return b.split(' ').length-a.split(' ').length||b.length-a.length});
+    
     var i=0;
     while(i<words.length){
+        // Skip noise
+        if(['и','пъти','and','ve','und','dhe','și','και'].indexOf(words[i])!==-1){i++;continue}
+        
         var found=false;
-        // Try longest possible phrase starting at i (max 5 words)
-        for(var len=Math.min(5,words.length-i);len>=1;len--){
+        // Try joining 4,3,2,1 words and match alias
+        for(var len=Math.min(4,words.length-i);len>=1;len--){
             var phrase=words.slice(i,i+len).join(' ');
-            if(voiceMap[phrase]){
-                var val=voiceMap[phrase];
-                if(multiResult.indexOf(val)===-1)multiResult.push(val);
+            if(aliases[phrase]){
+                var val=aliases[phrase];
+                if(val.includes(','))val.split(',').forEach(function(v){if(results.indexOf(v)===-1)results.push(v)});
+                else if(results.indexOf(val)===-1)results.push(val);
                 i+=len;found=true;break;
             }
         }
-        if(!found){
-            // Try single word fuzzy match
-            var w=words[i];
-            if(voiceMap[w]){
-                var val=voiceMap[w];
-                if(multiResult.indexOf(val)===-1)multiResult.push(val);
-            }else{
-                var fm=_fuzzyMatchPreset(w,allPresets);
-                if(fm&&multiResult.indexOf(fm)===-1)multiResult.push(fm);
-                else if(/^\d+$/.test(w)&&multiResult.indexOf(w)===-1)multiResult.push(w);
-            }
-            i++;
-        }
+        if(found)continue;
+        
+        // Pure number
+        var w=words[i];
+        if(/^\d+$/.test(w)){if(results.indexOf(w)===-1)results.push(w);i++;continue}
+        
+        // Word-number via _bgPrice
+        var n=_bgPrice(w);
+        if(n!==null&&n>0&&n===Math.round(n)){var ns=String(Math.round(n));if(results.indexOf(ns)===-1)results.push(ns);i++;continue}
+        
+        // Skip unknown
+        i++;
     }
-    
-    // Pick the result with more matches
-    return multiResult.length>=bestResult.length?multiResult:bestResult;
+    return results;
 }
 
 function _getAllSizePresets(){
