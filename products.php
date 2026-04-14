@@ -4242,6 +4242,403 @@ function _bgPrice(t){
     return null}
 
 // S68 fix: voice for variation values + new axis name
+// ═══ S69: Voice Processing Pipeline (i18n) ═══
+// Supports: bg, en, ro, el, sr, hr, mk, sq, tr, sl, de
+// Entry: _voiceProcessAxis(text, axisName, existingValues) → {values:[], confirmNeeded:[]}
+
+var _VOICE_LANG = {
+bg: {
+    sizes: {
+        'ес':'S','с':'S','ем':'M','м':'M','ел':'L','л':'L',
+        'хл':'XL','икс ел':'XL','иксел':'XL','екс ел':'XL',
+        'екс ес':'XS','икс ес':'XS',
+        'два пъти икс ел':'2XL','два пъти хл':'2XL','двойно хл':'2XL','два икс ел':'2XL','дъбъл хл':'2XL','дабъл хл':'2XL','двойно икс ел':'2XL',
+        'три пъти икс ел':'3XL','три пъти хл':'3XL','тройно хл':'3XL','три икс ел':'3XL','тройно икс ел':'3XL',
+        'четири пъти икс ел':'4XL','четири пъти хл':'4XL',
+        'уан сайз':'One Size','един размер':'One Size','универсален':'One Size',
+        'есемел':'S,M,L','есемелхл':'S,M,L,XL','емел':'M,L','елхл':'L,XL','есем':'S,M','емелхл':'M,L,XL'
+    },
+    colorPlural: {
+        'черни':'Черен','бели':'Бял','сиви':'Сив','червени':'Червен','сини':'Син',
+        'зелени':'Зелен','жълти':'Жълт','розови':'Розов','оранжеви':'Оранжев',
+        'лилави':'Лилав','кафяви':'Кафяв','бежови':'Бежов',
+        'черно':'Черен','бяло':'Бял','сиво':'Сив','червено':'Червен','синьо':'Син',
+        'зелено':'Зелен','жълто':'Жълт','розово':'Розов','оранжево':'Оранжев',
+        'лилаво':'Лилав','кафяво':'Кафяв','бежово':'Бежов',
+        'черна':'Черен','бяла':'Бял','сива':'Сив','червена':'Червен','синя':'Син',
+        'зелена':'Зелен','жълта':'Жълт','розова':'Розов','оранжева':'Оранжев',
+        'лилава':'Лилав','кафява':'Кафяв','бежова':'Бежов'
+    },
+    colorAlias: {
+        'нейви':'Navy','навй':'Navy','бордо':'Бордо','марсала':'Бордо',
+        'крем':'Екрю','кремав':'Екрю','кремаво':'Екрю',
+        'пудра':'Пудра','пудров':'Пудра','пудрово':'Пудра',
+        'графит':'Графит','графитен':'Графит','графитено':'Графит',
+        'тюркоаз':'Тюркоаз','тюркоазен':'Тюркоаз','тюркоазено':'Тюркоаз',
+        'маслина':'Маслинен','маслинен':'Маслинен','маслинено':'Маслинен',
+        'корал':'Корал','коралов':'Корал','коралово':'Корал',
+        'екрю':'Екрю'
+    },
+    modifiers: ['тъмно','светло','бледо','ярко','пастелно','мръсно','прашно','неоново','кралско','бебешко','нежно','наситено','матово','перлено'],
+    fillers: ['моля','сложи','запиши','добави','размер','размери','размера','размерите','цвят','цветове','цвета','благодаря']
+},
+en: {
+    sizes: {
+        'small':'S','medium':'M','large':'L','extra large':'XL','extra small':'XS',
+        'double xl':'2XL','double extra large':'2XL','triple xl':'3XL',
+        'one size':'One Size','free size':'One Size'
+    },
+    colorPlural: {
+        'blacks':'Black','whites':'White','greys':'Grey','reds':'Red','blues':'Blue',
+        'greens':'Green','yellows':'Yellow','pinks':'Pink','oranges':'Orange',
+        'purples':'Purple','browns':'Brown'
+    },
+    colorAlias: {
+        'navy':'Navy','maroon':'Maroon','burgundy':'Burgundy','cream':'Cream',
+        'coral':'Coral','teal':'Teal','olive':'Olive','ivory':'Ivory',
+        'charcoal':'Charcoal','turquoise':'Turquoise','beige':'Beige'
+    },
+    modifiers: ['dark','light','pale','bright','pastel','neon','royal','baby','matte','pearl','dusty'],
+    fillers: ['please','put','add','save','size','sizes','color','colors','colour','thanks']
+},
+ro: {
+    sizes: {
+        'es':'S','em':'M','el':'L','ix el':'XL','ics el':'XL',
+        'dublu xl':'2XL','dublu ics el':'2XL','triplu xl':'3XL',
+        'extra small':'XS','extra es':'XS',
+        'marime unica':'One Size','o marime':'One Size'
+    },
+    colorPlural: {
+        'negru':'Negru','neagra':'Negru','negri':'Negru','alb':'Alb','alba':'Alb','albi':'Alb',
+        'gri':'Gri','rosu':'Roșu','rosie':'Roșu','rosii':'Roșu','albastru':'Albastru','albastra':'Albastru','albastri':'Albastru',
+        'verde':'Verde','verzi':'Verde','galben':'Galben','galbena':'Galben','galbeni':'Galben',
+        'roz':'Roz','portocaliu':'Portocaliu','portocalie':'Portocaliu','portocalii':'Portocaliu',
+        'mov':'Mov','maro':'Maro','bej':'Bej'
+    },
+    colorAlias: {
+        'bleumarin':'Bleumarin','grena':'Grena','crem':'Crem','coral':'Coral',
+        'turcoaz':'Turcoaz','masliniu':'Masliniu','bordo':'Bordo','kaki':'Kaki'
+    },
+    modifiers: ['inchis','deschis','pastel','neon','aprins'],
+    fillers: ['te rog','pune','adauga','salveaza','marime','marimi','culoare','culori','multumesc']
+},
+el: {
+    sizes: {
+        'ες':'S','σμολ':'S','εμ':'M','μιντιουμ':'M','ελ':'L','λαρτζ':'L',
+        'ξλ':'XL','εξτρα λαρτζ':'XL','εξτρα σμολ':'XS',
+        'διπλο ξλ':'2XL','τριπλο ξλ':'3XL',
+        'ενα μεγεθος':'One Size'
+    },
+    colorPlural: {
+        'μαυρο':'Μαύρο','μαυρα':'Μαύρο','μαυρη':'Μαύρο',
+        'ασπρο':'Λευκό','ασπρα':'Λευκό','ασπρη':'Λευκό','λευκο':'Λευκό','λευκα':'Λευκό',
+        'γκρι':'Γκρι','κοκκινο':'Κόκκινο','κοκκινα':'Κόκκινο',
+        'μπλε':'Μπλε','πρασινο':'Πράσινο','πρασινα':'Πράσινο',
+        'κιτρινο':'Κίτρινο','κιτρινα':'Κίτρινο','ροζ':'Ροζ',
+        'πορτοκαλι':'Πορτοκαλί','μωβ':'Μωβ','καφε':'Καφέ','μπεζ':'Μπεζ'
+    },
+    colorAlias: {
+        'μπορντο':'Μπορντό','κοραλι':'Κοράλι','τιρκουαζ':'Τιρκουάζ',
+        'ναυτικο μπλε':'Navy','λαδι':'Λαδί','κρεμ':'Κρεμ','εκρου':'Εκρού'
+    },
+    modifiers: ['σκουρο','ανοιχτο','παστελ','εντονο','νεον'],
+    fillers: ['παρακαλω','βαλε','προσθεσε','μεγεθος','μεγεθη','χρωμα','χρωματα','ευχαριστω']
+},
+sr: {
+    sizes: {
+        'ес':'S','ем':'M','ел':'L','икс ел':'XL','екс ес':'XS',
+        'дупло икс ел':'2XL','трипло икс ел':'3XL',
+        'једна величина':'One Size','универзална':'One Size'
+    },
+    colorPlural: {
+        'црна':'Црна','црно':'Црна','црни':'Црна','бела':'Бела','бело':'Бела','бели':'Бела',
+        'сива':'Сива','сиво':'Сива','сиви':'Сива','црвена':'Црвена','црвено':'Црвена','црвени':'Црвена',
+        'плава':'Плава','плаво':'Плава','плави':'Плава','зелена':'Зелена','зелено':'Зелена','зелени':'Зелена',
+        'жута':'Жута','жуто':'Жута','жути':'Жута','розе':'Розе',
+        'наранџаста':'Наранџаста','наранџасто':'Наранџаста',
+        'љубичаста':'Љубичаста','љубичасто':'Љубичаста',
+        'браон':'Браон','беж':'Беж'
+    },
+    colorAlias: {'тегет':'Тегет','бордо':'Бордо','крем':'Крем','корал':'Корал','тиркиз':'Тиркиз','маслинаста':'Маслинаста'},
+    modifiers: ['тамно','светло','пастелно','неон','јарко'],
+    fillers: ['молим','стави','додај','сачувај','величина','величине','боја','боје','хвала']
+},
+tr: {
+    sizes: {
+        'es':'S','small':'S','em':'M','medium':'M','el':'L','large':'L',
+        'ekstra large':'XL','iki ekstra large':'2XL','üç ekstra large':'3XL',
+        'ekstra small':'XS','tek beden':'One Size'
+    },
+    colorPlural: {
+        'siyah':'Siyah','beyaz':'Beyaz','gri':'Gri','kırmızı':'Kırmızı','mavi':'Mavi',
+        'yeşil':'Yeşil','sarı':'Sarı','pembe':'Pembe','turuncu':'Turuncu',
+        'mor':'Mor','kahverengi':'Kahverengi','bej':'Bej'
+    },
+    colorAlias: {
+        'lacivert':'Lacivert','bordo':'Bordo','krem':'Krem','mercan':'Mercan',
+        'turkuaz':'Turkuaz','haki':'Haki','ekru':'Ekru'
+    },
+    modifiers: ['koyu','açık','pastel','neon','canlı','mat'],
+    fillers: ['lütfen','ekle','kaydet','beden','bedenler','renk','renkler','teşekkürler']
+},
+mk: {
+    sizes: {
+        'ес':'S','ем':'M','ел':'L','икс ел':'XL','екс ес':'XS',
+        'двојно икс ел':'2XL','тројно икс ел':'3XL','универзална':'One Size'
+    },
+    colorPlural: {
+        'црна':'Црна','црно':'Црна','црни':'Црна','бела':'Бела','бело':'Бела','бели':'Бела',
+        'сива':'Сива','сиво':'Сива','црвена':'Црвена','црвено':'Црвена',
+        'сина':'Сина','сино':'Сина','зелена':'Зелена','зелено':'Зелена',
+        'жолта':'Жолта','жолто':'Жолта','розева':'Розева','розево':'Розева',
+        'портокалова':'Портокалова','виолетова':'Виолетова','кафеава':'Кафеава','беж':'Беж'
+    },
+    colorAlias: {'тегет':'Тегет','бордо':'Бордо','крем':'Крем','корал':'Корал','тиркиз':'Тиркиз'},
+    modifiers: ['темно','светло','пастелно','неон'],
+    fillers: ['те молам','стави','додади','зачувај','големина','големини','боја','бои','благодарам']
+},
+hr: {
+    sizes: {
+        'es':'S','em':'M','el':'L','iks el':'XL','eks es':'XS',
+        'duplo iks el':'2XL','triplo iks el':'3XL','jedna veličina':'One Size','univerzalna':'One Size'
+    },
+    colorPlural: {
+        'crna':'Crna','crno':'Crna','crni':'Crna','bijela':'Bijela','bijelo':'Bijela',
+        'siva':'Siva','sivo':'Siva','crvena':'Crvena','crveno':'Crvena',
+        'plava':'Plava','plavo':'Plava','zelena':'Zelena','zeleno':'Zelena',
+        'žuta':'Žuta','žuto':'Žuta','roza':'Roza',
+        'narančasta':'Narančasta','ljubičasta':'Ljubičasta','smeđa':'Smeđa','bež':'Bež'
+    },
+    colorAlias: {'tamnoplava':'Tamnoplava','bordo':'Bordo','krem':'Krem','koraljna':'Koraljna','tirkizna':'Tirkizna'},
+    modifiers: ['tamno','svijetlo','pastelno','neon','jarko'],
+    fillers: ['molim','stavi','dodaj','spremi','veličina','veličine','boja','boje','hvala']
+},
+sq: {
+    sizes: {
+        'es':'S','em':'M','el':'L','iks el':'XL','eks es':'XS',
+        'dyfishi xl':'2XL','trefishi xl':'3XL','një masë':'One Size'
+    },
+    colorPlural: {
+        'e zezë':'E zezë','i zi':'I zi','e bardhë':'E bardhë','i bardhë':'I bardhë',
+        'gri':'Gri','e kuqe':'E kuqe','i kuq':'I kuq','blu':'Blu',
+        'e gjelbër':'E gjelbër','i gjelbër':'I gjelbër',
+        'e verdhë':'E verdhë','rozë':'Rozë','portokalli':'Portokalli',
+        'vjollcë':'Vjollcë','kafe':'Kafe','bezhë':'Bezhë'
+    },
+    colorAlias: {'bordo':'Bordo','krem':'Krem','koral':'Koral'},
+    modifiers: ['e errët','e çelët','pastel','neon'],
+    fillers: ['ju lutem','vendos','shto','ruaj','masë','masa','ngjyrë','ngjyra','faleminderit']
+},
+sl: {
+    sizes: {
+        'es':'S','em':'M','el':'L','iks el':'XL','eks es':'XS',
+        'dvojni xl':'2XL','trojni xl':'3XL','ena velikost':'One Size'
+    },
+    colorPlural: {
+        'črna':'Črna','črno':'Črna','bela':'Bela','belo':'Bela',
+        'siva':'Siva','sivo':'Siva','rdeča':'Rdeča','rdeče':'Rdeča',
+        'modra':'Modra','modro':'Modra','zelena':'Zelena','zeleno':'Zelena',
+        'rumena':'Rumena','roza':'Roza','oranžna':'Oranžna',
+        'vijolična':'Vijolična','rjava':'Rjava','bež':'Bež'
+    },
+    colorAlias: {'bordo':'Bordo','krem':'Krem','turkizna':'Turkizna','olivna':'Olivna'},
+    modifiers: ['temno','svetlo','pastelno','neon'],
+    fillers: ['prosim','dodaj','shrani','velikost','velikosti','barva','barve','hvala']
+},
+de: {
+    sizes: {
+        'es':'S','klein':'S','em':'M','mittel':'M','el':'L','groß':'L','gross':'L',
+        'extra groß':'XL','extra gross':'XL','doppel xl':'2XL','dreifach xl':'3XL',
+        'extra klein':'XS','einheitsgröße':'One Size','einheitsgroesse':'One Size'
+    },
+    colorPlural: {
+        'schwarz':'Schwarz','schwarze':'Schwarz','schwarzer':'Schwarz',
+        'weiß':'Weiß','weiss':'Weiß','weiße':'Weiß',
+        'grau':'Grau','graue':'Grau','rot':'Rot','rote':'Rot','roter':'Rot',
+        'blau':'Blau','blaue':'Blau','grün':'Grün','gruen':'Grün','grüne':'Grün',
+        'gelb':'Gelb','gelbe':'Gelb','rosa':'Rosa','pink':'Pink',
+        'orange':'Orange','lila':'Lila','braun':'Braun','braune':'Braun','beige':'Beige'
+    },
+    colorAlias: {
+        'marine':'Marine','bordeaux':'Bordeaux','creme':'Creme','koralle':'Koralle',
+        'türkis':'Türkis','tuerkis':'Türkis','oliv':'Oliv','anthrazit':'Anthrazit'
+    },
+    modifiers: ['dunkel','hell','pastell','neon','matt'],
+    fillers: ['bitte','setze','füge','speichere','größe','groesse','groessen','farbe','farben','danke']
+}
+};
+
+// Standard size order for sorting
+var _SIZE_ORDER=['XS','S','M','L','XL','2XL','3XL','4XL',
+    '34','36','38','40','42','44','46','48','50','52','54','56',
+    '35-38','39-42','43-46',
+    '80','86','92','98','104','110','116','122','128','134','140','146','152','158','164',
+    'W28','W29','W30','W31','W32','W33','W34','W36','W38','S/M','L/XL','One Size'];
+
+function _vl(){return _VOICE_LANG[CFG.lang]||_VOICE_LANG.en}
+
+function _voiceNormalize(text){
+    var t=text.trim().toLowerCase();
+    var fl=_vl().fillers||[];
+    fl.forEach(function(f){t=t.replace(new RegExp('^'+f+'\\s+','g'),'');t=t.replace(new RegExp('\\s+'+f+'$','g'),'')});
+    return t.trim();
+}
+
+function _voiceProcessAxis(text,axisName,existingValues){
+    var raw=_voiceNormalize(text);
+    if(!raw)return{values:[],confirmNeeded:[]};
+    var nm=axisName.toLowerCase();
+    var isSize=nm.includes('размер')||nm.includes('size')||nm.includes('ръст')||nm.includes('бюст')||nm.includes('mărime')||nm.includes('beden')||nm.includes('μέγεθος')||nm.includes('величина')||nm.includes('velikost')||nm.includes('größe')||nm.includes('masë');
+    var isColor=nm.includes('цвят')||nm.includes('color')||nm.includes('colour')||nm.includes('десен')||nm.includes('culoare')||nm.includes('χρώμα')||nm.includes('боја')||nm.includes('boja')||nm.includes('barva')||nm.includes('ngjyrë')||nm.includes('renk')||nm.includes('farbe');
+    var tokens=isSize?_splitSizes(raw):isColor?_splitColors(raw):raw.split(/\s+и\s+|\s+and\s+|\s+și\s+|\s+και\s+|\s+ve\s+|\s+und\s+|\s+dhe\s+|,\s*/).map(function(v){return v.trim()}).filter(Boolean);
+    var lang=_vl();
+    var mapped=[];
+    tokens.forEach(function(tok){
+        var result=isSize?_mapSize(tok,lang):isColor?_mapColor(tok,lang):tok;
+        if(typeof result==='string'&&result.includes(','))result.split(',').forEach(function(v){if(v.trim())mapped.push(v.trim())});
+        else if(result)mapped.push(result);
+    });
+    var presetList=_getPresetsForAxis(axisName,isSize,isColor);
+    var final=[],confirmNeeded=[];
+    mapped.forEach(function(val){
+        var matched=_matchPreset(val,presetList,isSize,isColor);
+        if(matched)final.push(matched);
+        else{confirmNeeded.push(val);final.push(val)}
+    });
+    var seen={};
+    var existingNorm=(existingValues||[]).map(function(v){return v.toLowerCase()});
+    var deduped=[];
+    final.forEach(function(v){var key=v.toLowerCase();if(!seen[key]&&existingNorm.indexOf(key)===-1){seen[key]=true;deduped.push(v)}});
+    if(isSize)deduped.sort(function(a,b){var ai=_SIZE_ORDER.indexOf(a);if(ai===-1)ai=999;var bi=_SIZE_ORDER.indexOf(b);if(bi===-1)bi=999;return ai-bi});
+    return{values:deduped,confirmNeeded:confirmNeeded};
+}
+
+function _splitSizes(raw){
+    var lang=_vl();var sizeMap=lang.sizes||{};
+    // Exact full match
+    if(sizeMap[raw]){var v=sizeMap[raw];return v.includes(',')?v.split(','):[v]}
+    // Greedy token consumption
+    var keys=Object.keys(sizeMap).sort(function(a,b){return b.length-a.length});
+    var results=[],remaining=raw,safety=0;
+    while(remaining.trim()&&safety<20){
+        safety++;remaining=remaining.trim().replace(/^(и|,|and|și|και|ve|und|dhe)\s*/,'');
+        if(!remaining.trim())break;
+        var found=false;
+        for(var i=0;i<keys.length;i++){
+            if(remaining.indexOf(keys[i])===0){
+                var after=remaining.substring(keys[i].length);
+                if(after===''||/^[\s,]/.test(after)||/^(и|and|și|και|ve|und|dhe)/.test(after)){
+                    var val=sizeMap[keys[i]];
+                    if(val.includes(','))val.split(',').forEach(function(v){results.push(v)});
+                    else results.push(val);
+                    remaining=after;found=true;break;
+                }
+            }
+        }
+        if(!found){
+            var numMatch=remaining.match(/^(\d+)/);
+            if(numMatch){results.push(numMatch[1]);remaining=remaining.substring(numMatch[1].length)}
+            else{
+                var parts=remaining.split(/\s*,\s*|\s+и\s+|\s+and\s+|\s+și\s+/);
+                var numVal=_bgPrice(parts[0]);
+                if(numVal!==null&&numVal>0&&numVal===Math.round(numVal)){results.push(String(Math.round(numVal)));remaining=remaining.substring(parts[0].length)}
+                else{var word=remaining.match(/^(\S+)/);if(word){results.push(word[1].toUpperCase());remaining=remaining.substring(word[1].length)}else break}
+            }
+        }
+    }
+    return results;
+}
+
+function _splitColors(raw){
+    var lang=_vl();var mods=lang.modifiers||[];
+    var parts=raw.split(/\s+и\s+|\s+and\s+|\s+și\s+|\s+και\s+|\s+ve\s+|\s+und\s+|\s+dhe\s+|,\s*/).map(function(v){return v.trim()}).filter(Boolean);
+    var results=[];
+    parts.forEach(function(part){
+        var words=part.split(/\s+/);var current='';
+        for(var i=0;i<words.length;i++){
+            var w=words[i];
+            if(mods.indexOf(w)!==-1){
+                if(current&&!mods.some(function(m){return current===m})){results.push(current.trim());current=''}
+                current=(current?current+' ':'')+w;
+            }else{
+                if(current){
+                    var lastWord=current.split(/\s+/).pop();
+                    if(mods.indexOf(lastWord)!==-1)current+=' '+w;
+                    else{results.push(current.trim());current=w}
+                }else current=w;
+            }
+        }
+        if(current)results.push(current.trim());
+    });
+    return results;
+}
+
+function _mapSize(tok,lang){
+    var t=tok.trim().toLowerCase();
+    var sizeMap=lang.sizes||{};
+    if(sizeMap[t])return sizeMap[t];
+    if(/^\d+$/.test(t))return t;
+    if(/^[smlSML]$/.test(t))return t.toUpperCase();
+    var n=_bgPrice(t);
+    if(n!==null&&n>0&&n===Math.round(n))return String(Math.round(n));
+    return tok.toUpperCase();
+}
+
+function _mapColor(tok,lang){
+    var t=tok.trim().toLowerCase();
+    if((lang.colorAlias||{})[t])return lang.colorAlias[t];
+    if((lang.colorPlural||{})[t])return lang.colorPlural[t];
+    var mods=lang.modifiers||[];
+    var words=t.split(/\s+/);
+    if(words.length>=2&&mods.indexOf(words[0])!==-1){
+        var base=words.slice(1).join(' ');
+        var mapped=(lang.colorPlural||{})[base]||(lang.colorAlias||{})[base]||_stemMatchColor(base);
+        if(mapped)return words[0].charAt(0).toUpperCase()+words[0].slice(1)+' '+mapped.toLowerCase();
+    }
+    var stemResult=_stemMatchColor(t);
+    if(stemResult)return stemResult;
+    return tok.charAt(0).toUpperCase()+tok.slice(1);
+}
+
+function _stemMatchColor(word){
+    var w=word.toLowerCase();if(w.length<2)return null;
+    var stem=w.substring(0,Math.min(w.length,4));
+    for(var i=0;i<CFG.colors.length;i++){
+        var cn=CFG.colors[i].name.toLowerCase();
+        if(cn.indexOf(stem)===0||stem.indexOf(cn.substring(0,3))===0)return CFG.colors[i].name;
+    }
+    var lang=_vl();
+    for(var key in(lang.colorPlural||{})){if(key.indexOf(stem)===0)return lang.colorPlural[key]}
+    return null;
+}
+
+function _getPresetsForAxis(axisName,isSize,isColor){
+    var presets=[];var nm=axisName.toLowerCase();
+    if(window._bizVariants&&window._bizVariants.variant_presets){
+        for(var k in window._bizVariants.variant_presets){
+            if(k===axisName||k.toLowerCase()===nm||nm.includes(k.toLowerCase())){presets=window._bizVariants.variant_presets[k];break}
+        }
+    }
+    if(window._allBizPresets){
+        var gp=isSize?(window._allBizPresets.sizes||[]):isColor?(window._allBizPresets.colors||[]):(window._allBizPresets.other||[]);
+        gp.forEach(function(v){if(presets.indexOf(v)===-1)presets.push(v)});
+    }
+    if(isColor&&CFG.colors)CFG.colors.forEach(function(c){if(presets.indexOf(c.name)===-1)presets.push(c.name)});
+    return presets;
+}
+
+function _matchPreset(val,presets,isSize,isColor){
+    if(!presets.length)return null;
+    for(var i=0;i<presets.length;i++){if(presets[i]===val)return presets[i]}
+    var vl=val.toLowerCase();
+    for(var i=0;i<presets.length;i++){if(presets[i].toLowerCase()===vl)return presets[i]}
+    if(isColor){
+        var stem=vl.substring(0,Math.min(vl.length,4));
+        for(var i=0;i<presets.length;i++){var ps=presets[i].toLowerCase();if(ps.indexOf(stem)===0||stem.indexOf(ps.substring(0,3))===0)return presets[i]}
+    }
+    return null;
+}
+
 function wizMicAxis(axIdx){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
@@ -4253,13 +4650,19 @@ function wizMicAxis(axIdx){
     _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=false;
     _wizMicRec.onresult=function(e){if(micBtn)micBtn.classList.remove('recording');
         var text=e.results[0][0].transcript.trim();
-        // Split by comma/space and add each as value
-        var vals=text.split(/[,\s]+/).filter(function(v){return v.length>0});
         var ax=S.wizData.axes[axIdx];if(!ax)return;
+        var result=_voiceProcessAxis(text,ax.name,ax.values);
         var added=0;
-        vals.forEach(function(v){if(!ax.values.includes(v)){ax.values.push(v);added++}});
-        if(added>0){showToast(added+' добавени ✓','success');renderWizard()}
-        else showToast('Вече са добавени','');
+        result.values.forEach(function(v){if(!ax.values.includes(v)){ax.values.push(v);added++}});
+        if(added>0){
+            var nm=ax.name.toLowerCase();
+            if(nm.includes('размер')||nm.includes('size')||nm.includes('mărime')||nm.includes('beden')||nm.includes('größe')){
+                ax.values.sort(function(a,b){var ai=_SIZE_ORDER.indexOf(a);if(ai===-1)ai=999;var bi=_SIZE_ORDER.indexOf(b);if(bi===-1)bi=999;return ai-bi});
+            }
+            showToast(added+' добавени ✓','success');
+            if(result.confirmNeeded.length>0)showToast(result.confirmNeeded.join(', ')+' — нови','');
+            renderWizard();
+        } else showToast('Вече са добавени','');
     };
     _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
     _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
