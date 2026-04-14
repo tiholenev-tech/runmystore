@@ -218,7 +218,7 @@ try {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, $barcode, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description,
-            $size_single, $color_single);
+            $size_single, $color_single, $origin_country, $composition, $is_domestic);
 
         // Initial inventory for each store
         foreach ($all_stores as $st) {
@@ -246,7 +246,7 @@ try {
         // Parent product
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
-            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null);
+            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
 
         DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,new_values) VALUES (?,?,?,?,?,?)",
             [$tenant_id, $user_id, 'products', $pid, 'create', json_encode(['name'=>$name,'type'=>'variant'])]);
@@ -280,7 +280,7 @@ try {
 
             $cid = insertProduct($tenant_id, $pid, $category_id, $supplier_id,
                 $v_code, $v_name, $v_barcode, $unit, $cost_price, $retail_price,
-                $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color);
+                $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color, $origin_country, $composition, $is_domestic);
 
             foreach ($all_stores as $st) {
                 $qty_to_set = ($st['id'] == ($_SESSION['store_id'] ?? 0)) ? $v_qty : 0;
@@ -299,7 +299,7 @@ try {
     if ($has_variants && !empty($variants_json)) {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
-            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null);
+            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
 
         foreach ($variants_json as $v) {
             $v_size    = trim($v['size'] ?? '') ?: null;
@@ -313,7 +313,7 @@ try {
 
             $cid = insertProduct($tenant_id, $pid, $category_id, $supplier_id,
                 $v_code, $v_name, $v_barcode, $unit, $cost_price, $v_price,
-                $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color);
+                $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color, $origin_country, $composition, $is_domestic);
 
             foreach ($all_stores as $st) {
                 DB::run("INSERT IGNORE INTO inventory (tenant_id,store_id,product_id,quantity) VALUES (?,?,?,0)",
@@ -330,7 +330,7 @@ try {
     if (!empty($variants_raw)) {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
-            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null);
+            $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
 
         $parsed = parseVariantsRaw($variants_raw);
         foreach ($parsed as $v) {
@@ -371,7 +371,8 @@ function insertProduct(
     string $code, string $name, ?string $barcode, string $unit,
     float $cost_price, float $retail_price, float $wholesale_price,
     float $vat_rate, int $min_quantity, ?string $location, ?string $description,
-    ?string $size, ?string $color
+    ?string $size, ?string $color,
+    ?string $p_origin_country = null, ?string $p_composition = null, int $p_is_domestic = 0
 ): int {
     DB::run("
         INSERT INTO products
@@ -383,7 +384,7 @@ function insertProduct(
     ", [$tenant_id, $parent_id, $category_id, $supplier_id, $code, $name, $barcode,
         $unit, $cost_price, $retail_price, $wholesale_price, $vat_rate,
         $min_quantity, $location, $description, $size, $color,
-        $origin_country, $composition, $is_domestic]);
+        $p_origin_country, $p_composition, $p_is_domestic]);
     return (int)DB::get()->lastInsertId();
 }
 
