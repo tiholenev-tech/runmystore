@@ -4692,10 +4692,17 @@ function _matchPreset(val,presets,isSize,isColor){
 }
 
 function wizMicAxis(axIdx){
+    // For size/color axes → open preset picker (more reliable than voice)
+    var ax=S.wizData.axes[axIdx];
+    if(ax){
+        var nm=ax.name.toLowerCase();
+        var isSize=nm.includes('размер')||nm.includes('size')||nm.includes('ръст');
+        var isColor=nm.includes('цвят')||nm.includes('color')||nm.includes('десен');
+        if(isSize||isColor){openPresetPicker(axIdx,isSize);return}
+    }
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
     if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
-    // Find mic button for this axis and mark recording
     var axInput=document.getElementById('axVal'+axIdx);
     var micBtn=axInput?axInput.closest('div').querySelector('.wiz-mic'):null;
     if(micBtn)micBtn.classList.add('recording');
