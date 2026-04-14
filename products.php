@@ -3450,6 +3450,24 @@ function _getSizePresetsOrdered(){
     return groups;
 }
 
+// S69: Toggle preset value inline (no overlay)
+function wizTogglePresetInline(axIdx,val,chip){
+    var ax=S.wizData.axes[axIdx];if(!ax)return;
+    var idx=ax.values.indexOf(val);
+    if(idx>=0){
+        ax.values.splice(idx,1);
+        chip.classList.remove('sel');
+    }else{
+        ax.values.push(val);
+        chip.classList.add('sel');
+    }
+    // Update selected chips display and count without full re-render
+    var countEl=document.querySelector('[data-ax-count="'+axIdx+'"]');
+    // Just re-render to keep it simple and correct
+    renderWizard();
+}
+
+
 function openPresetPicker(axIdx,isSize){
     const ax=S.wizData.axes[axIdx];if(!ax)return;
     const existing=new Set(ax.values);
