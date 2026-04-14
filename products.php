@@ -3354,29 +3354,108 @@ function closeBarcodeScan(){
     ov.remove();
 }
 
+
+// ═══ S69: Size Preset Groups — ordered by business type ═══
+var _SIZE_GROUPS=[
+{id:'letters',label:'Дрехи — букви',values:['XS','S','M','L','XL','2XL','3XL','4XL','5XL']},
+{id:'eu_clothing',label:'Дрехи — EU номера',values:['34','36','38','40','42','44','46','48','50','52','54','56','58','60']},
+{id:'shoes_eu',label:'Обувки — EU',values:['35','36','37','38','39','40','41','42','43','44','45','46','47']},
+{id:'shoes_kids',label:'Детски обувки',values:['19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35']},
+{id:'kids_height',label:'Детски — ръст (cm)',values:['50','56','62','68','74','80','86','92','98','104','110','116','122','128','134','140','146','152','158','164','170']},
+{id:'kids_age',label:'Детски — възраст',values:['0-3м','3-6м','6-9м','9-12м','12-18м','18-24м','2-3г','3-4г','4-5г','5-6г','6-7г','7-8г','8-9г','9-10г','10-11г','11-12г','13-14г','15-16г']},
+{id:'pants_waist',label:'Панталони — талия',values:['W26','W27','W28','W29','W30','W31','W32','W33','W34','W36','W38','W40']},
+{id:'pants_length',label:'Панталони — дължина',values:['L28','L30','L32','L34','L36']},
+{id:'jeans',label:'Дънки (талия/дължина)',values:['26/30','27/30','28/30','28/32','29/32','30/30','30/32','30/34','31/32','32/30','32/32','32/34','33/32','34/32','34/34','36/32','36/34','38/32']},
+{id:'bra',label:'Сутиени',values:['70A','70B','70C','75A','75B','75C','75D','80A','80B','80C','80D','85A','85B','85C','85D','90B','90C','90D','95B','95C','95D']},
+{id:'underwear',label:'Бельо',values:['XS','S','M','L','XL','2XL','3XL']},
+{id:'socks',label:'Чорапи',values:['35-38','39-42','43-46']},
+{id:'socks_num',label:'Чорапи — номера',values:['36-38','39-41','42-44','45-47']},
+{id:'tights',label:'Чорапогащи',values:['1','2','3','4','5','S','M','L','XL']},
+{id:'hats',label:'Шапки',values:['S/M','L/XL','One Size','54','55','56','57','58','59','60']},
+{id:'gloves',label:'Ръкавици',values:['XS','S','M','L','XL','6','6.5','7','7.5','8','8.5','9','9.5','10']},
+{id:'belts',label:'Колани',values:['80','85','90','95','100','105','110','115','120','S','M','L','XL']},
+{id:'rings',label:'Пръстени',values:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX']},
+{id:'rings_mm',label:'Пръстени — мм',values:['14','14.5','15','15.5','16','16.5','17','17.5','18','18.5','19','19.5','20','20.5','21']},
+{id:'bracelets',label:'Гривни',values:['15cm','16cm','17cm','18cm','19cm','20cm','21cm','S','M','L']},
+{id:'necklaces',label:'Колиета',values:['40cm','42cm','45cm','50cm','55cm','60cm','70cm','80cm']},
+{id:'one_size',label:'Универсален',values:['One Size']},
+{id:'bedding',label:'Спално бельо',values:['Единичен','Двоен','Полуторен','Кралски','70x140','90x200','140x200','160x200','180x200','200x200']},
+{id:'towels',label:'Кърпи',values:['30x50','50x90','70x140','100x150']},
+{id:'volume_ml',label:'Обем (мл)',values:['30ml','50ml','75ml','100ml','150ml','200ml','250ml','300ml','500ml','750ml','1000ml']},
+{id:'weight_g',label:'Тегло (гр)',values:['50г','100г','150г','200г','250г','300г','500г','750г','1000г']}
+];
+
+var _BIZ_SIZE_ORDER={
+'дрехи':['letters','eu_clothing','pants_waist','jeans','underwear','bra','socks','shoes_eu','kids_height','kids_age','hats','belts','gloves','one_size'],
+'дрехи — луксозни':['letters','eu_clothing','pants_waist','jeans','underwear','bra','socks','belts','shoes_eu','hats','gloves','one_size'],
+'дрехи — дамски':['letters','eu_clothing','bra','underwear','tights','pants_waist','jeans','socks','shoes_eu','hats','belts','gloves','one_size'],
+'дрехи — мъжки':['letters','eu_clothing','pants_waist','jeans','underwear','socks','shoes_eu','belts','hats','gloves','one_size'],
+'дрехи — детски':['kids_height','kids_age','letters','shoes_kids','socks','hats','gloves','underwear','one_size'],
+'дрехи — спортни':['letters','eu_clothing','shoes_eu','socks','pants_waist','underwear','hats','gloves','one_size'],
+'обувки':['shoes_eu','shoes_kids','socks','letters','one_size'],
+'обувки — дамски':['shoes_eu','socks','tights','letters','one_size'],
+'обувки — мъжки':['shoes_eu','socks','belts','letters','one_size'],
+'обувки — детски':['shoes_kids','kids_height','socks','one_size'],
+'бельо':['bra','underwear','tights','socks','letters','one_size'],
+'бижута':['rings','rings_mm','bracelets','necklaces','one_size'],
+'бижута и аксесоари':['rings','rings_mm','bracelets','necklaces','belts','hats','gloves','socks','one_size'],
+'аксесоари':['belts','hats','gloves','socks','rings','bracelets','necklaces','one_size'],
+'чанти':['one_size','letters'],
+'козметика':['volume_ml','weight_g','one_size'],
+'парфюми':['volume_ml','one_size'],
+'домашни потреби':['bedding','towels','one_size','volume_ml','weight_g'],
+'домашен текстил':['bedding','towels','one_size'],
+'спортни стоки':['letters','eu_clothing','shoes_eu','socks','pants_waist','gloves','hats','one_size'],
+'бански':['letters','eu_clothing','bra','one_size'],
+'магазин':['letters','eu_clothing','shoes_eu','pants_waist','underwear','bra','socks','kids_height','hats','belts','rings','one_size']
+};
+
+function _getSizePresetsOrdered(){
+    var bt=CFG.businessType.toLowerCase();
+    // Find best matching business type
+    var order=_BIZ_SIZE_ORDER[bt];
+    if(!order){
+        // Fuzzy match: find key that contains or is contained in bt
+        for(var k in _BIZ_SIZE_ORDER){
+            if(bt.indexOf(k)!==-1||k.indexOf(bt)!==-1){order=_BIZ_SIZE_ORDER[k];break}
+        }
+    }
+    // Fallback: show all
+    if(!order)order=_SIZE_GROUPS.map(function(g){return g.id});
+    
+    var groups=[];
+    var usedIds={};
+    
+    // First: biz-coefficients preset (tenant-specific)
+    if(window._bizVariants&&window._bizVariants.variant_presets){
+        for(var k in window._bizVariants.variant_presets){
+            if(k.toLowerCase().includes('размер')||k.toLowerCase().includes('size')){
+                var v=window._bizVariants.variant_presets[k];
+                if(v&&v.length)groups.push({label:'За твоя бизнес ⭐',vals:v});
+            }
+        }
+    }
+    
+    // Then: ordered groups for this business type
+    order.forEach(function(gid){
+        var g=_SIZE_GROUPS.find(function(sg){return sg.id===gid});
+        if(g){groups.push({label:g.label,vals:g.values});usedIds[gid]=true}
+    });
+    
+    // Finally: all remaining groups not yet shown
+    _SIZE_GROUPS.forEach(function(g){
+        if(!usedIds[g.id])groups.push({label:g.label,vals:g.values});
+    });
+    
+    return groups;
+}
+
 function openPresetPicker(axIdx,isSize){
     const ax=S.wizData.axes[axIdx];if(!ax)return;
     const existing=new Set(ax.values);
     let presets=[];
     if(isSize){
-        const groups=[
-            {label:'Букви (XS-4XL)',vals:['XS','S','M','L','XL','2XL','3XL','4XL']},
-            {label:'EU номера (дрехи)',vals:['34','36','38','40','42','44','46','48','50','52','54','56']},
-            {label:'Обувки (36-46)',vals:['36','37','38','39','40','41','42','43','44','45','46']},
-            {label:'Детски',vals:['80','86','92','98','104','110','116','122','128','134','140','146','152','158','164']},
-            {label:'Панталони',vals:['W28','W29','W30','W31','W32','W33','W34','W36','W38']},
-            {label:'Чорапи',vals:['35-38','39-42','43-46']},
-            {label:'Шапки',vals:['S/M','L/XL','One Size']},
-            {label:'Пръстени',vals:['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII']},
-        ];
-        if(window._bizVariants?.variant_presets){
-            for(const[k,v] of Object.entries(window._bizVariants.variant_presets)){
-                if(k.toLowerCase().includes('размер')||k.toLowerCase().includes('size')){
-                    if(v.length)groups.unshift({label:'За твоя бизнес ⭐',vals:v});
-                }
-            }
-        }
-        presets=groups;
+        presets=_getSizePresetsOrdered();
     }else{
         presets=[{label:'Основни цветове',vals:CFG.colors.map(c=>c.name)}];
     }
