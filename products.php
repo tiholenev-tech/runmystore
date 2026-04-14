@@ -4253,9 +4253,14 @@ bg: {
         'хл':'XL','икс ел':'XL','иксел':'XL','екс ел':'XL',
         'екс ес':'XS','икс ес':'XS',
         'два пъти икс ел':'2XL','два пъти хл':'2XL','двойно хл':'2XL','два икс ел':'2XL','дъбъл хл':'2XL','дабъл хл':'2XL','двойно икс ел':'2XL',
+        'два пъти хикс ел':'2XL','два пъти хел':'2XL','2 пъти икс ел':'2XL','2 пъти хикс ел':'2XL','2 пъти хел':'2XL','2 пъти хл':'2XL',
         'три пъти икс ел':'3XL','три пъти хл':'3XL','тройно хл':'3XL','три икс ел':'3XL','тройно икс ел':'3XL',
         'четири пъти икс ел':'4XL','четири пъти хл':'4XL',
         'уан сайз':'One Size','един размер':'One Size','универсален':'One Size',
+        'хел':'XL','хикс ел':'XL','хикс':'XL','хиксел':'XL',
+        'два хикс ел':'2XL','два хел':'2XL','2 хикс ел':'2XL','2 хел':'2XL','2 икс ел':'2XL','2 хл':'2XL',
+        'три хикс ел':'3XL','три хел':'3XL','3 хикс ел':'3XL','3 хел':'3XL','3 икс ел':'3XL','3 хл':'3XL',
+        '4 хикс ел':'4XL','4 хел':'4XL','4 икс ел':'4XL','4 хл':'4XL',
         'есемел':'S,M,L','есемелхл':'S,M,L,XL','емел':'M,L','елхл':'L,XL','есем':'S,M','емелхл':'M,L,XL'
     },
     colorPlural: {
@@ -4514,7 +4519,7 @@ function _voiceProcessAxis(text,axisName,existingValues){
 }
 
 function _splitSizes(raw){
-    var words=raw.toLowerCase().split(/\s+/).filter(Boolean);
+    var words=raw.toLowerCase().replace(/[.,!?;:]+/g,'').split(/\s+/).filter(Boolean);
     var results=[];
     var lang=_vl();
     var aliases=lang.sizes||{};
@@ -4524,7 +4529,7 @@ function _splitSizes(raw){
     var i=0;
     while(i<words.length){
         // Skip noise
-        if(['и','пъти','and','ve','und','dhe','și','και'].indexOf(words[i])!==-1){i++;continue}
+        if(['и','and','ve','und','dhe','și','και'].indexOf(words[i])!==-1){i++;continue}
         
         var found=false;
         // Try joining 4,3,2,1 words and match alias
