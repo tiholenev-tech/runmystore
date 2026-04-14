@@ -1025,6 +1025,13 @@ select.fc{
 .fg.wiz-next .wiz-mic{background:rgba(99,102,241,.25);border-color:#6366f1;animation:wizNextPulse 1.5s infinite}
 @keyframes wizNextPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.2)}50%{box-shadow:0 0 14px 4px rgba(99,102,241,.2)}}
 .fg.wiz-done .fl::after{content:' \2713';color:#4ade80;font-weight:700}
+.wiz-mic.recording{background:rgba(239,68,68,.3)!important;border-color:#ef4444!important;color:#fff!important;animation:micRecPulse .8s infinite!important;position:relative}
+.wiz-mic.recording::after{content:'REC';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 8px rgba(239,68,68,.6)}
+.wiz-mic.recording::before{content:'';position:absolute;top:-8px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.5);animation:micRecDot .6s infinite}
+@keyframes micRecPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 16px 4px rgba(239,68,68,.3)}}
+@keyframes micRecDot{0%,100%{opacity:1}50%{opacity:.3}}
+.fg.wiz-active{background:rgba(99,102,241,.06);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.25);transition:all .2s}
+.fg.wiz-active .wiz-mic{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.12)}
 
 /* ═══ ACTION BUTTONS ═══ */
 .abtn{
@@ -4177,16 +4184,25 @@ function wizMic(field){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
     if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
+    // Clear all highlights, set active on current field
+    _wizClearHighlights();
+    var fieldMap={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat'};
+    var targetEl=document.getElementById(fieldMap[field]);
+    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    if(targetFg)targetFg.classList.add('wiz-active');
+    // Find and mark the mic button as recording
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    if(micBtn)micBtn.classList.add('recording');
     _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
     _wizMicRec.onresult=function(e){
         var final='',interim='';
         for(var i=0;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}
         if(interim)_wizMicInterim(field,interim);
-        if(final)_wizMicApply(field,final.trim());
+        if(final){if(micBtn)micBtn.classList.remove('recording');_wizMicApply(field,final.trim())}
     };
-    _wizMicRec.onend=function(){};
-    _wizMicRec.onerror=function(){showToast('Грешка с микрофона','error')};
-    _wizMicRec.start();showToast('Слушам...','success');
+    _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
+    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
+    _wizMicRec.start();
 }
 function _wizMicInterim(field,text){
     var map={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',barcode:'wBarcode',origin:'wOrigin',composition:'wComposition'};
@@ -4230,8 +4246,12 @@ function wizMicAxis(axIdx){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
     if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
+    // Find mic button for this axis and mark recording
+    var axInput=document.getElementById('axVal'+axIdx);
+    var micBtn=axInput?axInput.closest('div').querySelector('.wiz-mic'):null;
+    if(micBtn)micBtn.classList.add('recording');
     _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=false;
-    _wizMicRec.onresult=function(e){
+    _wizMicRec.onresult=function(e){if(micBtn)micBtn.classList.remove('recording');
         var text=e.results[0][0].transcript.trim();
         // Split by comma/space and add each as value
         var vals=text.split(/[,\s]+/).filter(function(v){return v.length>0});
@@ -4241,8 +4261,9 @@ function wizMicAxis(axIdx){
         if(added>0){showToast(added+' добавени ✓','success');renderWizard()}
         else showToast('Вече са добавени','');
     };
-    _wizMicRec.onerror=function(){showToast('Грешка с микрофона','error')};
-    _wizMicRec.start();showToast('Кажи стойности...','success');
+    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
+    _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
+    _wizMicRec.start();
 }
 function wizMicNewAxis(){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -4264,8 +4285,12 @@ function wizMarkDone(field){
     var el=document.getElementById(map[field]);
     if(el){var fg=el.closest('.fg');if(fg){fg.classList.remove('wiz-next');fg.classList.add('wiz-done')}}
 }
+function _wizClearHighlights(){
+    document.querySelectorAll('#wizBody .fg').forEach(function(f){f.classList.remove('wiz-next','wiz-active')});
+    document.querySelectorAll('#wizBody .wiz-mic.recording').forEach(function(m){m.classList.remove('recording')});
+}
 function wizHighlightNext(){
-    document.querySelectorAll('#wizBody .fg').forEach(function(f){f.classList.remove('wiz-next')});
+    _wizClearHighlights();
     var fields=[
         {id:'wName',key:'name',check:function(){return !!S.wizData.name}},
         {id:'wCode',key:'code',check:function(){return !!S.wizData.code}},
