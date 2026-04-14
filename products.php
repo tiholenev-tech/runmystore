@@ -4193,8 +4193,8 @@ function _wizMicInterim(field,text){
     if(el){el.value=text;el.style.color='#64748b'}
 }
 function _wizMicApply(field,text){
-    if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;showToast('Записано ✓','success')}
-    else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success')}
+    if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;showToast('Записано ✓','success');wizMarkDone('name');wizHighlightNext()}
+    else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
     else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_bgNum(text);if(n!==null){el.value=n;S.wizData.retail_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.retail_price=parseFloat(el.value)||0}el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}
     else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_bgNum(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.wholesale_price=parseFloat(el.value)||0}el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
