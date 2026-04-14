@@ -49,6 +49,12 @@ if (isset($_GET['ajax'])) {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         if (strlen($q) < 1) { echo json_encode([]); exit; }
         $like = "%{$q}%";
+        $supF = isset($_GET['supplier_id']) ? (int)$_GET['supplier_id'] : 0;
+        $catF = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
+        $extraWhere = '';
+        $params = [$sid, $tenant_id, $like, $like, $like];
+        if ($supF > 0) { $extraWhere .= ' AND p.supplier_id = ?'; $params[] = $supF; }
+        if ($catF > 0) { $extraWhere .= ' AND p.category_id = ?'; $params[] = $catF; }
         $rows = DB::run("
             SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image_url, p.supplier_id,
                    p.parent_id, s.name AS supplier_name, c.name AS category_name,
@@ -59,8 +65,9 @@ if (isset($_GET['ajax'])) {
             LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1
               AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
+              {$extraWhere}
             GROUP BY p.id ORDER BY p.name LIMIT 30
-        ", [$sid, $tenant_id, $like, $like, $like])->fetchAll(PDO::FETCH_ASSOC);
+        ", $params)->fetchAll(PDO::FETCH_ASSOC);
         if (!$can_see_cost) { foreach ($rows as &$r) unset($r['cost_price']); }
         echo json_encode($rows); exit;
     }
