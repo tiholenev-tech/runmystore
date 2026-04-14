@@ -51,7 +51,7 @@ if (isset($_GET['ajax'])) {
         $like = "%{$q}%";
         $rows = DB::run("
             SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image_url, p.supplier_id,
-                   s.name AS supplier_name, c.name AS category_name,
+                   p.parent_id, s.name AS supplier_name, c.name AS category_name,
                    COALESCE(SUM(i.quantity), 0) AS total_stock
             FROM products p
             LEFT JOIN suppliers s ON s.id = p.supplier_id
