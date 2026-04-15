@@ -2893,6 +2893,8 @@ function renderWizard(){
     document.getElementById('wizLabel').innerHTML=(S.wizStep+1)+' · <b>'+WIZ_LABELS[S.wizStep]+'</b>';
     document.getElementById('wizBody').innerHTML=renderWizPage(S.wizStep);
     if(S._lastWizStep!==S.wizStep){document.getElementById('wizBody').scrollTop=0;S._lastWizStep=S.wizStep;}
+    // S70: Init HSL picker if on color tab
+    setTimeout(function(){if(document.getElementById('wizHslCanvas'))wizInitHslPicker()},50);
     // Subcategory loader + Supplier→Category filter for step 3
     if(S.wizStep===3){
         // Force restore all fields from saved data (belt-and-suspenders)
@@ -3158,12 +3160,15 @@ function renderWizPagePart2(step){
             pinnedH+='</div>';
             // HEX Color Picker
             pinnedH+='<div style="padding:8px;border-top:1px solid rgba(99,102,241,0.08)">';
-            pinnedH+='<div style="display:flex;align-items:center;gap:8px">';
-            pinnedH+='<input type="color" id="wizHexPicker" value="#ff0000" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;background:transparent;padding:0">';
-            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име на цвета..." style="font-size:11px;padding:7px 10px;flex:1">';
-            pinnedH+='<button class="abtn" style="width:auto;padding:7px 12px;font-size:11px" onclick="wizAddHexColor()">+</button>';
+            pinnedH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">ИЗБЕРИ ОТ ПАЛИТРА</div>';
+            pinnedH+='<canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid var(--border-subtle)"></canvas>';
+            pinnedH+='<input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()">';
+            pinnedH+='<div style="display:flex;align-items:center;gap:6px;margin-top:4px">';
+            pinnedH+='<div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div>';
+            pinnedH+='<div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div>';
+            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:90px">';
+            pinnedH+='<button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddHexColor()">+</button>';
             pinnedH+='</div>';
-            pinnedH+='<div style="font-size:9px;color:var(--text-secondary);margin-top:4px">Избери цвят от палитрата и дай име</div>';
             pinnedH+='</div>';
             pinnedH+='</div>';
         }
@@ -4195,26 +4200,129 @@ function _wizApplyMatrixItems(items,sizeAxis,colorAxis){
 
 
 
-// S70: Add color from HEX picker
+// S70: HSL Color Picker + HEX display + name suggestion
+var _wizPickedHex='#FF0000';
+
+function wizDrawHsl(){
+    var canvas=document.getElementById('wizHslCanvas');
+    if(!canvas)return;
+    var ctx=canvas.getContext('2d');
+    var w=canvas.width,h=canvas.height;
+    var hue=parseInt(document.getElementById('wizHueSlider')?.value||0);
+    // Draw saturation (x) x lightness (y) grid for current hue
+    for(var x=0;x<w;x++){
+        for(var y=0;y<h;y++){
+            var s=x/w*100;
+            var l=100-y/h*100;
+            ctx.fillStyle='hsl('+hue+','+s+'%,'+l+'%)';
+            ctx.fillRect(x,y,1,1);
+        }
+    }
+}
+
+function wizInitHslPicker(){
+    var canvas=document.getElementById('wizHslCanvas');
+    if(!canvas)return;
+    wizDrawHsl();
+    // Touch/mouse events
+    function pickColor(e){
+        e.preventDefault();
+        var rect=canvas.getBoundingClientRect();
+        var touch=e.touches?e.touches[0]:e;
+        var x=Math.max(0,Math.min(touch.clientX-rect.left,rect.width-1));
+        var y=Math.max(0,Math.min(touch.clientY-rect.top,rect.height-1));
+        var ctx=canvas.getContext('2d');
+        var px=ctx.getImageData(x*canvas.width/rect.width,y*canvas.height/rect.height,1,1).data;
+        var hex='#'+((1<<24)+(px[0]<<16)+(px[1]<<8)+px[2]).toString(16).slice(1).toUpperCase();
+        _wizPickedHex=hex;
+        var prev=document.getElementById('wizColorPreview');
+        if(prev)prev.style.background=hex;
+        var val=document.getElementById('wizHexVal');
+        if(val)val.textContent=hex;
+        var sug=document.getElementById('wizColorSuggest');
+        if(sug)sug.textContent=_wizSuggestColorName(px[0],px[1],px[2]);
+        // Auto-fill name if empty
+        var nameInp=document.getElementById('wizHexName');
+        if(nameInp&&!nameInp.value.trim()){nameInp.value=_wizSuggestColorName(px[0],px[1],px[2])}
+    }
+    canvas.addEventListener('touchstart',pickColor,{passive:false});
+    canvas.addEventListener('touchmove',pickColor,{passive:false});
+    canvas.addEventListener('mousedown',function(e){pickColor(e);canvas._dragging=true});
+    canvas.addEventListener('mousemove',function(e){if(canvas._dragging)pickColor(e)});
+    canvas.addEventListener('mouseup',function(){canvas._dragging=false});
+}
+
+function _wizSuggestColorName(r,g,b){
+    // Simple nearest-color matching
+    var colors=[
+        {n:'Бял',r:255,g:255,b:255},{n:'Черен',r:0,g:0,b:0},
+        {n:'Червен',r:220,g:38,b:38},{n:'Син',r:37,g:99,b:235},
+        {n:'Зелен',r:22,g:163,b:74},{n:'Жълт',r:234,g:179,b:8},
+        {n:'Розов',r:236,g:72,b:153},{n:'Оранжев',r:249,g:115,b:22},
+        {n:'Лилав',r:139,g:92,b:246},{n:'Сив',r:120,g:113,b:108},
+        {n:'Кафяв',r:146,g:64,b:14},{n:'Бежов',r:212,g:184,b:150},
+        {n:'Тъмносин',r:30,g:58,b:95},{n:'Бордо',r:127,g:29,b:29},
+        {n:'Тюркоаз',r:20,g:184,b:166},{n:'Корал',r:249,g:113,b:113},
+        {n:'Маслинен',r:107,g:120,b:33},{n:'Пудра',r:232,g:196,b:184},
+        {n:'Графит',r:55,g:65,b:81},{n:'Сребрист',r:192,g:192,b:192},
+        {n:'Златист',r:212,g:169,b:68},{n:'Екрю',r:254,g:243,b:199},
+        {n:'Крем',r:255,g:253,b:208},{n:'Тъмнозелен',r:21,g:71,b:52},
+        {n:'Небесно синьо',r:135,g:206,b:235},{n:'Пастелно розов',r:255,g:209,b:220}
+    ];
+    var best=null,bestDist=Infinity;
+    colors.forEach(function(c){
+        var d=Math.sqrt(Math.pow(r-c.r,2)+Math.pow(g-c.g,2)+Math.pow(b-c.b,2));
+        if(d<bestDist){bestDist=d;best=c.n}
+    });
+    return best||'Цвят';
+}
+
 function wizAddHexColor(){
-    var hex=document.getElementById('wizHexPicker')?.value||'#000000';
-    var name=document.getElementById('wizHexName')?.value.trim();
-    if(!name){showToast('Дай име на цвета','error');return}
+    var hex=_wizPickedHex||'#000000';
+    var nameInp=document.getElementById('wizHexName');
+    var name=nameInp?.value.trim();
+    if(!name){
+        name=document.getElementById('wizColorSuggest')?.textContent||'';
+        if(!name){showToast('Дай име на цвета','error');return}
+    }
     var ax=S.wizData.axes[S._wizActiveTab];
     if(!ax){showToast('Няма активна вариация','error');return}
     if(ax.values.indexOf(name)===-1){
         ax.values.push(name);
-        // Also add to CFG.colors for display
         if(!CFG.colors.find(function(c){return c.name===name})){
             CFG.colors.push({name:name,hex:hex});
         }
+        // Save custom colors to localStorage
+        _wizSaveCustomColors();
         showToast(name+' добавен','success');
-        document.getElementById('wizHexName').value='';
+        if(nameInp)nameInp.value='';
         renderWizard();
     }else{
         showToast('Вече е добавен','error');
     }
 }
+
+function _wizSaveCustomColors(){
+    try{
+        var custom=CFG.colors.filter(function(c){return c._custom});
+        localStorage.setItem('_rms_customColors_'+CFG.storeId,JSON.stringify(custom));
+    }catch(e){}
+}
+
+function _wizLoadCustomColors(){
+    try{
+        var saved=JSON.parse(localStorage.getItem('_rms_customColors_'+CFG.storeId));
+        if(saved&&saved.length){
+            saved.forEach(function(c){
+                if(!CFG.colors.find(function(x){return x.name===c.name})){
+                    c._custom=true;
+                    CFG.colors.push(c);
+                }
+            });
+        }
+    }catch(e){}
+}
+_wizLoadCustomColors();
 
 function wizTogglePresetInline(axIdx,val,chip){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
