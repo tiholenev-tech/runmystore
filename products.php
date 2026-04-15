@@ -3258,7 +3258,7 @@ function renderWizPagePart2(step){
             var colors=colorAxis.values;
             matrixH+='<div style="margin-bottom:10px">';
             matrixH+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:var(--indigo-300)">Матрица: '+sizes.length+' размера \u00d7 '+colors.length+' цвята = '+sizes.length*colors.length+' варианта</div>';
-            </div>';
+            matrixH+='</div>';
             matrixH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Tap клетка: въведи бройка. Празна = не съществува. С глас: "S черно 2 червено 3"</div>';
 
             // Scrollable matrix
