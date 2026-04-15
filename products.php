@@ -3342,10 +3342,8 @@ function renderWizPagePart2(step){
         vskip+'</div>';
     }
 
-    // ═══ STEP 6: ПЕЧАТ НА ЕТИКЕТИ (was step 7) ═══
+    // ═══ STEP 6: ПЕЧАТ НА ЕТИКЕТИ ═══
     if(step===6){
-    // ═══ STEP 7: ПЕЧАТ НА ЕТИКЕТИ ═══
-    if(step===7){
         var pid=S.wizSavedId||0;
         var combos=S.wizData._printCombos||[];
         var isBG=(window._tenantCountry||'').toUpperCase()==='BG';
