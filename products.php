@@ -3045,7 +3045,7 @@ function renderWizPagePart2(step){
             }
         }
         // Init editing state
-        if(!S._wizEditingGroup)S._wizEditingGroup=null;
+        if(S._wizEditingGroup===undefined)S._wizEditingGroup=null;
 
         // Tabs
         var tabsH='<div style="display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:6px;overflow-x:auto;scrollbar-width:none">';
