@@ -3022,44 +3022,41 @@ function renderWizPage(step){
 function renderWizPagePart2(step){
     const vskip=S.wizVoiceMode?'<button class="abtn" onclick="wizGo('+(step+1)+')" style="margin-top:6px;border-color:rgba(245,158,11,0.2);color:#fbbf24">⏭ Пропусни</button>':'';
 
-    // ═══ STEP 4: ВАРИАЦИИ (S70v2 — persistent groups, search, edit values) ═══
+    // ═══ STEP 4: ВАРИАЦИИ (S70v3 — final picker) ═══
     if(step===4){
         if(S.wizType==='single')return '<div class="wiz-page active"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Единичен артикул — без вариации.</div><button class="abtn primary" onclick="wizGoPreview()">Напред →</button><button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button></div>';
 
-        // Init axes if empty
-        if(!S.wizData.axes||S.wizData.axes.length===0){
+        // Init axes
+        if(!S.wizData.axes||!S.wizData.axes.length){
             S.wizData.axes=[];
             if(window._bizVariants&&window._bizVariants.variant_fields){
                 window._bizVariants.variant_fields.forEach(function(f){S.wizData.axes.push({name:f,values:[]})});
             }
-            if(S.wizData.axes.length===0){
-                S.wizData.axes.push({name:'Размер',values:[]});
-                S.wizData.axes.push({name:'Цвят',values:[]});
-            }
+            if(!S.wizData.axes.length){S.wizData.axes.push({name:'Размер',values:[]});S.wizData.axes.push({name:'Цвят',values:[]})}
         }
-        if(!S._wizActiveTab)S._wizActiveTab=0;
+        if(S._wizActiveTab===undefined)S._wizActiveTab=0;
 
-        // Load persistent pinned groups (per tenant from localStorage)
+        // Load pinned groups
         if(!S._wizPinnedGroups){
             try{S._wizPinnedGroups=JSON.parse(localStorage.getItem('_rms_pinnedGroups_'+CFG.storeId))}catch(e){}
             if(!S._wizPinnedGroups){
-                // Default: top 3 from business type
-                var defGroups=_getSizePresetsOrdered().slice(0,3);
-                S._wizPinnedGroups=defGroups.map(function(g){return{id:g.id,label:g.label,vals:g.vals.slice()}});
+                var def=_getSizePresetsOrdered().slice(0,3);
+                S._wizPinnedGroups=def.map(function(g){return{id:g.id,label:g.label,vals:g.vals.slice(),_origVals:g.vals.slice()}});
             }
         }
+        // Init editing state
+        if(!S._wizEditingGroup)S._wizEditingGroup=null;
 
-        // Build tabs
-        var tabsH='<div style="display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">';
+        // Tabs
+        var tabsH='<div style="display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:6px;overflow-x:auto;scrollbar-width:none">';
         S.wizData.axes.forEach(function(ax,ti){
             var isAct=S._wizActiveTab===ti;
             var cnt=ax.values.length?'<span style="font-size:9px;background:rgba(99,102,241,0.2);padding:1px 5px;border-radius:8px;margin-left:4px">'+ax.values.length+'</span>':'';
-            tabsH+='<div style="padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:2px solid '+(isAct?'var(--indigo-400)':'transparent')+';color:'+(isAct?'var(--indigo-300)':'var(--text-secondary)')+'" onclick="S._wizActiveTab='+ti+';renderWizard()">'+esc(ax.name)+cnt+'</div>';
+            tabsH+='<div style="padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:2px solid '+(isAct?'var(--indigo-400)':'transparent')+';color:'+(isAct?'var(--indigo-300)':'var(--text-secondary)')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+esc(ax.name)+cnt+'</div>';
         });
-        tabsH+='<div style="padding:9px 10px;cursor:pointer;color:var(--indigo-400);font-size:16px;border-bottom:2px solid transparent" onclick="wizAddAxisFromTab()" title="Добави нова вариация">+</div>';
+        tabsH+='<div style="padding:9px 10px;cursor:pointer;color:var(--indigo-400);font-size:16px;border-bottom:2px solid transparent" onclick="wizAddAxisFromTab()">+</div>';
         tabsH+='</div>';
 
-        // Active tab
         var ax=S.wizData.axes[S._wizActiveTab];
         if(!ax){S._wizActiveTab=0;ax=S.wizData.axes[0]}
         var ai=S._wizActiveTab;
@@ -3069,8 +3066,8 @@ function renderWizPagePart2(step){
 
         // Summary bar
         var sumH='';
-        if(ax.values.length>0){
-            sumH='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:8px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.1)">';
+        if(ax.values.length){
+            sumH='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:6px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.1)">';
             ax.values.forEach(function(v,vi){
                 var sw='';
                 if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
@@ -3079,35 +3076,72 @@ function renderWizPagePart2(step){
             sumH+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+ai+'].values=[];renderWizard()">Изчисти</span>';
             sumH+='</div>';
         }else{
-            sumH='<div style="padding:8px 10px;margin-bottom:8px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
+            sumH='<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
 
-        // Copy from previous
-        var copyH='<div style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.04);border:1px dashed rgba(99,102,241,0.2);border-radius:10px;padding:8px 12px;margin-bottom:8px;cursor:pointer;color:var(--indigo-400);font-size:11px;font-weight:600" onclick="wizCopyPrevProduct()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1H7a2 2 0 00-2 2v16l7-3 7 3V3a2 2 0 00-2-2z"/></svg>Както предния продукт</div>';
+        // Copy prev
+        var copyH='<div style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.04);border:1px dashed rgba(99,102,241,0.2);border-radius:10px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--indigo-400);font-size:11px;font-weight:600" onclick="wizCopyPrevProduct()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1H7a2 2 0 00-2 2v16l7-3 7 3V3a2 2 0 00-2-2z"/></svg>Както предния продукт</div>';
 
-        // Pinned groups (only for size/color tabs)
+        // "+ Добави група" button (ГОРЕ, преди групите)
+        var addGrpBtnH='';
+        if(isSize){
+            addGrpBtnH='<div style="display:flex;align-items:center;gap:6px;padding:8px 12px;margin-bottom:6px;border-radius:10px;border:1px solid rgba(99,102,241,0.15);background:rgba(99,102,241,0.03);cursor:pointer" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-400)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span style="font-size:11px;color:var(--indigo-400);font-weight:600">Добави група от списъка</span></div>';
+        }
+
+        // Pinned groups
         var pinnedH='';
         if(isSize){
             var existingSet=new Set(ax.values);
             var pinned=S._wizPinnedGroups||[];
             pinned.forEach(function(pg,pgi){
+                var maxShow=15;
+                var isEditing=S._wizEditingGroup!==null&&S._wizEditingGroup!==undefined&&S._wizEditingGroup===pgi;
                 var availCount=pg.vals.filter(function(v){return !existingSet.has(v)}).length;
+                var showAll=pg._showAll||false;
+                var valsToShow=showAll?pg.vals:pg.vals.slice(0,maxShow);
+                var hasMore=pg.vals.length>maxShow&&!showAll;
+
                 pinnedH+='<div style="margin-bottom:6px;border:1px solid rgba(99,102,241,0.1);border-radius:10px;overflow:hidden">';
                 // Header
                 pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(15,15,40,0.4)">';
                 pinnedH+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:var(--text-secondary)">'+esc(pg.label)+'</span><span style="font-size:9px;color:rgba(99,102,241,0.4)">'+availCount+'/'+pg.vals.length+'</span></div>';
-                pinnedH+='<div style="display:flex;gap:6px;align-items:center">';
-                pinnedH+='<span style="font-size:9px;color:var(--indigo-400);font-weight:600;cursor:pointer" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
-                pinnedH+='<span style="font-size:9px;color:rgba(245,158,11,0.7);cursor:pointer" onclick="wizPinnedEditGroup('+pgi+')" title="Редактирай стойности">\u270E</span>';
-                pinnedH+='<span style="font-size:9px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни групата">\u2715</span>';
+                pinnedH+='<div style="display:flex;gap:4px;align-items:center">';
+                // Reorder buttons
+                if(pgi>0)pinnedH+='<span style="font-size:11px;color:var(--indigo-400);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizMovePinnedGroup('+pgi+',-1)" title="Премести нагоре">\u25B2</span>';
+                if(pgi<pinned.length-1)pinnedH+='<span style="font-size:11px;color:var(--indigo-400);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizMovePinnedGroup('+pgi+',1)" title="Премести надолу">\u25BC</span>';
+                pinnedH+='<span style="font-size:9px;color:var(--indigo-400);cursor:pointer;font-weight:600" onclick="event.stopPropagation();wizPinnedSelectAll('+pgi+')">всички</span>';
+                pinnedH+='<span style="font-size:9px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600;padding:2px 6px;border:1px solid rgba(245,158,11,0.2);border-radius:6px;background:rgba(245,158,11,0.06)" onclick="event.stopPropagation();S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'\u2713 Готово':'\u270E Редактирай')+'</span>';
+                pinnedH+='<span style="font-size:11px;color:rgba(239,68,68,0.5);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizPinnedRemoveGroup('+pgi+')" title="Премахни групата">\u2715</span>';
                 pinnedH+='</div></div>';
-                // Chips
-                pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
-                pg.vals.forEach(function(v){
-                    var isSel=existingSet.has(v);
-                    pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+v.replace(/'/g,"\\'")+'\',this)">'+esc(v)+'</span>';
-                });
-                pinnedH+='</div></div>';
+
+                if(isEditing){
+                    // EDIT MODE: chips with ✕ to remove + input to add + reset
+                    pinnedH+='<div style="padding:8px;background:rgba(245,158,11,0.03)">';
+                    pinnedH+='<div style="font-size:9px;color:rgba(245,158,11,0.7);margin-bottom:4px;font-weight:600">РЕЖИМ РЕДАКЦИЯ — натисни \u2715 за махане, полето за добавяне</div>';
+                    pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
+                    pg.vals.forEach(function(v,vi){
+                        pinnedH+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:#fcd34d;font-size:10px;font-weight:500;cursor:pointer" onclick="wizPinnedRemoveValue('+pgi+','+vi+')">'+esc(v)+' <span style="margin-left:3px;opacity:0.6">\u2715</span></span>';
+                    });
+                    pinnedH+='</div>';
+                    pinnedH+='<div style="display:flex;gap:4px;margin-bottom:6px"><input type="text" class="fc" id="editGrpVal'+pgi+'" placeholder="Добави стойност..." style="font-size:11px;padding:6px 10px;flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizPinnedAddValue('+pgi+')}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizPinnedAddValue('+pgi+')">+</button></div>';
+                    pinnedH+='<div style="text-align:right"><span style="font-size:9px;color:rgba(245,158,11,0.5);cursor:pointer" onclick="wizPinnedResetGroup('+pgi+')">Фабрични настройки</span></div>';
+                    pinnedH+='</div>';
+                }else{
+                    // NORMAL MODE: selection chips
+                    pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
+                    valsToShow.forEach(function(v){
+                        var isSel=existingSet.has(v);
+                        pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+v.replace(/'/g,"\\'")+'\',this)">'+esc(v)+'</span>';
+                    });
+                    if(hasMore){
+                        pinnedH+='<span style="padding:5px 10px;font-size:11px;color:var(--indigo-400);cursor:pointer;font-weight:600;border:1px dashed rgba(99,102,241,0.3);border-radius:8px" onclick="S._wizPinnedGroups['+pgi+']._showAll=true;renderWizard()">+още '+(pg.vals.length-maxShow)+'</span>';
+                    }
+                    if(showAll&&pg.vals.length>maxShow){
+                        pinnedH+='<span style="padding:5px 10px;font-size:11px;color:var(--text-secondary);cursor:pointer;font-weight:600;border:1px dashed var(--border-subtle);border-radius:8px" onclick="S._wizPinnedGroups['+pgi+']._showAll=false;renderWizard()">Прибери</span>';
+                    }
+                    pinnedH+='</div>';
+                }
+                pinnedH+='</div>';
             });
         }
         if(isColor){
@@ -3119,56 +3153,58 @@ function renderWizPagePart2(step){
             pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
             CFG.colors.forEach(function(c){
                 var isSel=existingSet.has(c.name);
-                var brd=c.name==='Бял'?'border-color:rgba(255,255,255,0.3);':'';
-                pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px;'+brd+'" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+c.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.15)"></span>'+esc(c.name)+'</span>';
+                pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+c.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.15)"></span>'+esc(c.name)+'</span>';
             });
             pinnedH+='</div></div>';
         }
 
         // Search
-        var searchH='<div style="position:relative;margin:6px 0"><svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-secondary)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" class="fc" id="wizSearch'+ai+'" placeholder="Търси размер, група или цвят..." style="font-size:11px;padding:8px 10px 8px 30px" oninput="wizSearchPresets('+ai+',this.value)" autocomplete="off"></div><div id="wizSearchRes'+ai+'" style="margin-bottom:4px"></div>';
+        var searchH='<div style="position:relative;margin:6px 0"><svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-secondary)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" class="fc" id="wizSearch'+ai+'" placeholder="Търси размер, група или цвят..." style="font-size:11px;padding:8px 10px 8px 30px" oninput="wizSearchPresets('+ai+',this.value)" autocomplete="off"></div><div id="wizSearchRes'+ai+'"></div>';
 
-        // "Още групи" dropdown button (hidden groups)
-        var moreH='';
-        if(isSize){
-            moreH='<div style="text-align:center;margin:6px 0"><span style="font-size:10px;color:var(--indigo-400);cursor:pointer;font-weight:600" onclick="wizShowMoreGroups('+ai+')">+ Добави група от списъка</span></div>';
-        }
+        var manualH='';
 
-        // Manual + voice
-        var manualH='<div style="display:flex;gap:4px;align-items:center;margin:8px 0">';
-        manualH+='<input type="text" class="fc" id="axVal'+ai+'" placeholder="Ръчно добави стойност..." style="font-size:11px;padding:8px 10px;flex:1" autocomplete="off" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+ai+')}" oninput="wizAxisSuggest('+ai+',this.value)" onfocus="wizAxisSuggest('+ai+',this.value)" onblur="setTimeout(function(){var l=document.getElementById(\'axSug'+ai+'\');if(l)l.style.display=\'none\'},200)">';
-        manualH+='<button class="abtn" style="width:auto;padding:8px 12px;font-size:14px" onclick="wizAddAxisValue('+ai+')">+</button>';
-        manualH+='<button class="wiz-mic" onclick="wizMicAxis('+ai+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
-        manualH+='<div id="axSug'+ai+'" class="wiz-dd-list" style="display:none"></div></div>';
-
-        // Remove variation + Reset
+        // Remove custom variation
         var removeH='';
         if(!isSize&&!isColor){
-            removeH='<div style="text-align:center;margin-top:6px"><span style="font-size:10px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="if(confirm(\'Премахни вариация \\\''+esc(ax.name).replace(/'/g,"\\'")+'\\\' ?\')){{S.wizData.axes.splice('+ai+',1);S._wizActiveTab=0;renderWizard()}}">Премахни вариацията "'+esc(ax.name)+'"</span></div>';
-        }
-        if(isSize){
-            removeH='<div style="display:flex;justify-content:center;gap:12px;margin-top:8px"><span style="font-size:10px;color:rgba(245,158,11,0.6);cursor:pointer" onclick="wizResetPinnedGroups()">Фабрични настройки</span></div>';
+            removeH='<div style="text-align:center;margin-top:6px"><span style="font-size:10px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="if(confirm(\'Премахни вариацията?\')){{S.wizData.axes.splice('+ai+',1);S._wizActiveTab=0;renderWizard()}}">Премахни "'+esc(ax.name)+'"</span></div>';
         }
 
-        // Add new variation
-        var newAxisH='<div style="padding:8px;border-radius:10px;border:1px dashed var(--border-subtle);margin-top:10px">';
-        newAxisH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">ДОБАВИ НОВА ВАРИАЦИЯ (Модел, Материал, Серия...)</div>';
-        newAxisH+='<div style="display:flex;gap:4px"><input type="text" class="fc" id="newAxisName" placeholder="Име на вариация..." style="font-size:11px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxis()}"><button class="abtn" style="width:auto;padding:8px 12px;font-size:11px;background:rgba(99,102,241,0.08);border-color:var(--indigo-500)" onclick="wizAddAxis()">+</button></div></div>';
+        // Add new group
+        var newGrpH='<div style="padding:8px;border-radius:10px;border:1px dashed var(--border-subtle);margin-top:8px">';
+        newGrpH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">ДОБАВИ ГРУПА</div>';
+        newGrpH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Създай собствена група с произволни стойности (Модел, Материал, Серия...)</div>';
+        newGrpH+='<div style="display:flex;gap:4px"><input type="text" class="fc" id="newGrpName" placeholder="Име на група..." style="font-size:11px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="abtn" style="width:auto;padding:8px 12px;font-size:11px;background:rgba(99,102,241,0.08);border-color:var(--indigo-500)" onclick="wizCreateCustomGroup()">+ Създай</button></div>';
+        // Show pending custom group if just created
+        if(S._wizNewCustomGroup){
+            var ncg=S._wizNewCustomGroup;
+            newGrpH+='<div style="margin-top:8px;padding:8px;border-radius:8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)">';
+            newGrpH+='<div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Групата добавена: '+esc(ncg.name)+'</div>';
+            newGrpH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Добави стойности (разделени със запетая или една по една):</div>';
+            newGrpH+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px" id="ncgChips">';
+            (ncg.values||[]).forEach(function(v,vi){
+                newGrpH+='<span style="display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#86efac;font-size:10px;cursor:pointer" onclick="S._wizNewCustomGroup.values.splice('+vi+',1);renderWizard()">'+esc(v)+' \u2715</span>';
+            });
+            newGrpH+='</div>';
+            newGrpH+='<div style="display:flex;gap:4px;margin-bottom:6px"><input type="text" class="fc" id="ncgValInput" placeholder="Стойност..." style="font-size:11px;padding:6px 10px;flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddCustomGroupValue()}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddCustomGroupValue()">+</button></div>';
+            newGrpH+='<button class="abtn save" style="font-size:11px;padding:8px" onclick="wizSaveCustomGroupToAxes()">Запамети и добави към началния екран</button>';
+            newGrpH+='</div>';
+        }
+        newGrpH+='</div>';
 
-        // Combos count
+        // Combos
         var combos=wizCountCombinations();
-        var combosH=combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin:10px 0 6px;padding:6px 10px;border-radius:8px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> варианта</div>':'';
+        var combosH=combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin:8px 0 4px;padding:6px 10px;border-radius:8px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> варианта</div>':'';
 
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:2px">Вариации</div>'+
-        '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Избери размери, цветове или създай свои. Напр: S, M, L + Черен, Бял</div>'+
-        copyH+tabsH+sumH+pinnedH+searchH+moreH+manualH+removeH+newAxisH+combosH+
+        '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px">Избери размери, цветове или създай свои. Напр: S, M, L + Черен, Бял</div>'+
+        copyH+tabsH+sumH+addGrpBtnH+pinnedH+searchH+manualH+removeH+newGrpH+combosH+
         '<button class="abtn primary" onclick="wizGoPreview()" style="margin-top:10px">Напред \u2192</button>'+
         '<button class="abtn" onclick="wizGo(3)" style="margin-top:6px">\u2190 Назад</button>'+
         vskip+'</div>';
     }
 
-// ═══ STEP 5: ДЕТАЙЛИ ═══
+    // ═══ STEP 5: ДЕТАЙЛИ ═══
     if(step===5){
         let unitO='';CFG.units.forEach(u=>unitO+='<option value="'+u+'" '+(S.wizData.unit===u?'selected':'')+'>'+u+'</option>');
         return '<div class="wiz-page active">'+
@@ -3653,6 +3689,168 @@ function wizAddPinnedGroup(groupId,groupLabel){
     _wizSavePinnedGroups();
     renderWizard();
     showToast('"'+g.label+'" добавена','success');
+}
+
+// S70v3: Pinned groups + edit + reorder + custom groups
+
+function _wizSavePinnedGroups(){
+    try{localStorage.setItem('_rms_pinnedGroups_'+CFG.storeId,JSON.stringify(S._wizPinnedGroups||[]))}catch(e){}
+}
+
+function wizPinnedSelectAll(pgi){
+    var pg=S._wizPinnedGroups[pgi];if(!pg)return;
+    var ax=S.wizData.axes[S._wizActiveTab];if(!ax)return;
+    var allSel=pg.vals.every(function(v){return ax.values.indexOf(v)!==-1});
+    if(allSel){pg.vals.forEach(function(v){var idx=ax.values.indexOf(v);if(idx!==-1)ax.values.splice(idx,1)})}
+    else{pg.vals.forEach(function(v){if(ax.values.indexOf(v)===-1)ax.values.push(v)})}
+    renderWizard();
+}
+
+function wizColorSelectAll(){
+    var ax=S.wizData.axes[S._wizActiveTab];if(!ax)return;
+    var allSel=CFG.colors.every(function(c){return ax.values.indexOf(c.name)!==-1});
+    if(allSel){CFG.colors.forEach(function(c){var idx=ax.values.indexOf(c.name);if(idx!==-1)ax.values.splice(idx,1)})}
+    else{CFG.colors.forEach(function(c){if(ax.values.indexOf(c.name)===-1)ax.values.push(c.name)})}
+    renderWizard();
+}
+
+function wizPinnedRemoveGroup(pgi){
+    var pg=S._wizPinnedGroups[pgi];if(!pg)return;
+    if(!confirm('Премахни групата "'+pg.label+'" от бързия достъп?\n\nМожеш да я добавиш отново по всяко време.'))return;
+    var ax=S.wizData.axes[S._wizActiveTab];
+    if(ax){pg.vals.forEach(function(v){var idx=ax.values.indexOf(v);if(idx!==-1)ax.values.splice(idx,1)})}
+    S._wizPinnedGroups.splice(pgi,1);
+    S._wizEditingGroup=null;
+    _wizSavePinnedGroups();
+    renderWizard();
+}
+
+function wizPinnedRemoveValue(pgi,vi){
+    var pg=S._wizPinnedGroups[pgi];if(!pg)return;
+    var removed=pg.vals.splice(vi,1)[0];
+    // Also remove from selected if present
+    var ax=S.wizData.axes[S._wizActiveTab];
+    if(ax&&removed){var idx=ax.values.indexOf(removed);if(idx!==-1)ax.values.splice(idx,1)}
+    _wizSavePinnedGroups();
+    renderWizard();
+}
+
+function wizPinnedAddValue(pgi){
+    var inp=document.getElementById('editGrpVal'+pgi);
+    if(!inp)return;
+    var raw=inp.value.trim();
+    if(!raw)return;
+    var pg=S._wizPinnedGroups[pgi];if(!pg)return;
+    // Support comma-separated
+    var vals=raw.split(',').map(function(v){return v.trim()}).filter(function(v){return v.length>0});
+    vals.forEach(function(v){if(pg.vals.indexOf(v)===-1)pg.vals.push(v)});
+    inp.value='';
+    _wizSavePinnedGroups();
+    renderWizard();
+    showToast(vals.length+' добавени','success');
+}
+
+function wizPinnedResetGroup(pgi){
+    var pg=S._wizPinnedGroups[pgi];if(!pg)return;
+    if(!confirm('Върни оригиналните стойности на "'+pg.label+'"?'))return;
+    // Find original from _SIZE_GROUPS or _getSizePresetsOrdered
+    var orig=null;
+    var allGrp=_getSizePresetsOrdered();
+    for(var j=0;j<allGrp.length;j++){if(allGrp[j].id===pg.id){orig=allGrp[j].vals.slice();break}}
+    if(!orig){
+        var sg=_SIZE_GROUPS.find(function(g){return g.id===pg.id});
+        if(sg)orig=sg.values.slice();
+    }
+    if(orig){pg.vals=orig;pg._origVals=orig.slice();_wizSavePinnedGroups();renderWizard();showToast('Възстановено','success')}
+    else{showToast('Не намерих оригиналните стойности','error')}
+}
+
+function wizMovePinnedGroup(pgi,dir){
+    var pinned=S._wizPinnedGroups;if(!pinned)return;
+    var newIdx=pgi+dir;
+    if(newIdx<0||newIdx>=pinned.length)return;
+    var tmp=pinned[pgi];pinned[pgi]=pinned[newIdx];pinned[newIdx]=tmp;
+    _wizSavePinnedGroups();
+    renderWizard();
+}
+
+function wizShowMoreGroups(axIdx){
+    var allGroups=_getSizePresetsOrdered();
+    var pinned=S._wizPinnedGroups||[];
+    var pinnedIds=pinned.map(function(p){return p.id});
+    var available=allGroups.filter(function(g){return pinnedIds.indexOf(g.id)===-1});
+    if(!available.length){showToast('Всички групи вече са добавени','');return}
+    var html='<div style="max-height:60vh;overflow-y:auto;padding:8px">';
+    html+='<div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:8px">Избери група:</div>';
+    available.forEach(function(g){
+        html+='<div style="padding:10px 12px;margin-bottom:4px;border-radius:8px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="wizAddPinnedGroup(\''+g.id.replace(/'/g,"\\'")+'\');closePresetPicker()">';
+        html+='<div><div style="font-size:12px;font-weight:600;color:var(--text-primary)">'+esc(g.label)+'</div><div style="font-size:9px;color:var(--text-secondary)">'+g.vals.length+' стойности</div></div>';
+        html+='<span style="font-size:10px;color:var(--indigo-400);font-weight:600">+ Добави</span></div>';
+    });
+    html+='</div>';
+    var ov=document.createElement('div');ov.className='preset-ov';ov.id='presetPickerOv';
+    ov.innerHTML='<div class="preset-box"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 10px"><span style="font-size:15px;font-weight:700">Добави група</span><span style="font-size:22px;cursor:pointer" onclick="closePresetPicker()">\u2715</span></div>'+html+'</div>';
+    ov.addEventListener('click',function(e){if(e.target===ov)closePresetPicker()});
+    document.body.appendChild(ov);
+}
+
+function wizAddPinnedGroup(groupId){
+    var allGroups=_getSizePresetsOrdered();
+    var g=allGroups.find(function(gg){return gg.id===groupId});
+    if(!g){var sg=_SIZE_GROUPS.find(function(s){return s.id===groupId});if(sg)g={id:sg.id,label:sg.label,vals:sg.values}}
+    if(!g){showToast('Не е намерена','error');return}
+    if(!S._wizPinnedGroups)S._wizPinnedGroups=[];
+    if(S._wizPinnedGroups.find(function(p){return p.id===groupId})){showToast('Вече е добавена','');return}
+    S._wizPinnedGroups.push({id:g.id,label:g.label,vals:g.vals.slice(),_origVals:g.vals.slice()});
+    _wizSavePinnedGroups();
+    renderWizard();
+    showToast('"'+g.label+'" добавена','success');
+}
+
+function wizResetPinnedGroups(){
+    if(!confirm('Върни всички групи към фабричните настройки?'))return;
+    S._wizPinnedGroups=null;
+    try{localStorage.removeItem('_rms_pinnedGroups_'+CFG.storeId)}catch(e){}
+    renderWizard();
+    showToast('Възстановено','success');
+}
+
+// Custom group creation flow
+function wizCreateCustomGroup(){
+    var inp=document.getElementById('newGrpName');
+    if(!inp)return;
+    var name=inp.value.trim();
+    if(!name){showToast('Напиши име на групата','error');return}
+    S._wizNewCustomGroup={name:name,values:[]};
+    inp.value='';
+    renderWizard();
+    showToast('Групата "'+name+'" е създадена. Добави стойности.','success');
+}
+
+function wizAddCustomGroupValue(){
+    var inp=document.getElementById('ncgValInput');
+    if(!inp||!S._wizNewCustomGroup)return;
+    var raw=inp.value.trim();
+    if(!raw)return;
+    var vals=raw.split(',').map(function(v){return v.trim()}).filter(function(v){return v.length>0});
+    vals.forEach(function(v){if(S._wizNewCustomGroup.values.indexOf(v)===-1)S._wizNewCustomGroup.values.push(v)});
+    inp.value='';
+    renderWizard();
+}
+
+function wizSaveCustomGroupToAxes(){
+    if(!S._wizNewCustomGroup||!S._wizNewCustomGroup.values.length){showToast('Добави поне една стойност','error');return}
+    var ncg=S._wizNewCustomGroup;
+    // Add as new axis
+    S.wizData.axes.push({name:ncg.name,values:[]});
+    // Also add as pinned group
+    if(!S._wizPinnedGroups)S._wizPinnedGroups=[];
+    S._wizPinnedGroups.push({id:'custom_'+Date.now(),label:ncg.name,vals:ncg.values.slice(),_origVals:ncg.values.slice()});
+    _wizSavePinnedGroups();
+    S._wizNewCustomGroup=null;
+    S._wizActiveTab=S.wizData.axes.length-1;
+    renderWizard();
+    showToast('"'+ncg.name+'" добавена към екрана','success');
 }
 
 // S70: New Step 4 helper functions
