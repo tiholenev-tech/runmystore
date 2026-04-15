@@ -3155,7 +3155,17 @@ function renderWizPagePart2(step){
                 var isSel=existingSet.has(c.name);
                 pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+c.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.15)"></span>'+esc(c.name)+'</span>';
             });
-            pinnedH+='</div></div>';
+            pinnedH+='</div>';
+            // HEX Color Picker
+            pinnedH+='<div style="padding:8px;border-top:1px solid rgba(99,102,241,0.08)">';
+            pinnedH+='<div style="display:flex;align-items:center;gap:8px">';
+            pinnedH+='<input type="color" id="wizHexPicker" value="#ff0000" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;background:transparent;padding:0">';
+            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име на цвета..." style="font-size:11px;padding:7px 10px;flex:1">';
+            pinnedH+='<button class="abtn" style="width:auto;padding:7px 12px;font-size:11px" onclick="wizAddHexColor()">+</button>';
+            pinnedH+='</div>';
+            pinnedH+='<div style="font-size:9px;color:var(--text-secondary);margin-top:4px">Избери цвят от палитрата и дай име</div>';
+            pinnedH+='</div>';
+            pinnedH+='</div>';
         }
 
         // Search
@@ -3248,7 +3258,7 @@ function renderWizPagePart2(step){
             var colors=colorAxis.values;
             matrixH+='<div style="margin-bottom:10px">';
             matrixH+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:var(--indigo-300)">Матрица: '+sizes.length+' размера \u00d7 '+colors.length+' цвята = '+sizes.length*colors.length+' варианта</div>';
-            matrixH+='<button class="wiz-mic" style="width:34px;height:34px;min-width:34px" onclick="wizVoiceMatrix()" title="Попълни с глас"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button></div>';
+            </div>';
             matrixH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Tap клетка: въведи бройка. Празна = не съществува. С глас: "S черно 2 червено 3"</div>';
 
             // Scrollable matrix
@@ -4183,6 +4193,28 @@ function _wizApplyMatrixItems(items,sizeAxis,colorAxis){
     }
 }
 
+
+
+// S70: Add color from HEX picker
+function wizAddHexColor(){
+    var hex=document.getElementById('wizHexPicker')?.value||'#000000';
+    var name=document.getElementById('wizHexName')?.value.trim();
+    if(!name){showToast('Дай име на цвета','error');return}
+    var ax=S.wizData.axes[S._wizActiveTab];
+    if(!ax){showToast('Няма активна вариация','error');return}
+    if(ax.values.indexOf(name)===-1){
+        ax.values.push(name);
+        // Also add to CFG.colors for display
+        if(!CFG.colors.find(function(c){return c.name===name})){
+            CFG.colors.push({name:name,hex:hex});
+        }
+        showToast(name+' добавен','success');
+        document.getElementById('wizHexName').value='';
+        renderWizard();
+    }else{
+        showToast('Вече е добавен','error');
+    }
+}
 
 function wizTogglePresetInline(axIdx,val,chip){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
