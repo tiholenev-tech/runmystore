@@ -3051,7 +3051,7 @@ function renderWizPagePart2(step){
         var tabsH='<div style="display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:6px;overflow-x:auto;scrollbar-width:none">';
         S.wizData.axes.forEach(function(ax,ti){
             var isAct=S._wizActiveTab===ti;
-            var cnt=ax.values.length?'<span style="font-size:9px;background:rgba(99,102,241,0.2);padding:1px 5px;border-radius:8px;margin-left:4px">'+ax.values.length+'</span>':'';
+            var cnt='<span data-tabc="'+ti+'" style="font-size:9px;background:rgba(99,102,241,0.2);padding:1px 5px;border-radius:8px;margin-left:4px">'+(ax.values.length||'')+'</span>';
             tabsH+='<div style="padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:2px solid '+(isAct?'var(--indigo-400)':'transparent')+';color:'+(isAct?'var(--indigo-300)':'var(--text-secondary)')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+esc(ax.name)+cnt+'</div>';
         });
         tabsH+='<div style="padding:9px 10px;cursor:pointer;color:var(--indigo-400);font-size:16px;border-bottom:2px solid transparent" onclick="wizAddAxisFromTab()">+</div>';
@@ -3067,7 +3067,7 @@ function renderWizPagePart2(step){
         // Summary bar
         var sumH='';
         if(ax.values.length){
-            sumH='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:6px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.1)">';
+            sumH='<div id="wizSumBar" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:6px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.1)">';
             ax.values.forEach(function(v,vi){
                 var sw='';
                 if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
@@ -3076,7 +3076,7 @@ function renderWizPagePart2(step){
             sumH+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+ai+'].values=[];renderWizard()">Изчисти</span>';
             sumH+='</div>';
         }else{
-            sumH='<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
+            sumH='<div id="wizSumBar" style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
 
         // Copy prev
@@ -4194,10 +4194,34 @@ function wizTogglePresetInline(axIdx,val,chip){
         ax.values.push(val);
         chip.classList.add('sel');
     }
-    // Update selected chips display and count without full re-render
-    var countEl=document.querySelector('[data-ax-count="'+axIdx+'"]');
-    // Just re-render to keep it simple and correct
-    renderWizard();
+    // Update summary bar without full re-render (no flicker)
+    _wizUpdateSummaryBar(axIdx);
+    // Update tab count
+    _wizUpdateTabCount(axIdx);
+}
+function _wizUpdateSummaryBar(axIdx){
+    var ax=S.wizData.axes[axIdx];if(!ax)return;
+    var nm=ax.name.toLowerCase();
+    var isColor=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1||nm.indexOf('десен')!==-1;
+    var bar=document.getElementById('wizSumBar');
+    if(!bar)return;
+    if(!ax.values.length){
+        bar.innerHTML='<div style="padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
+        return;
+    }
+    var h='';
+    ax.values.forEach(function(v,vi){
+        var sw='';
+        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+        h+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:3px;opacity:0.5;font-size:9px">\u2715</span></span>';
+    });
+    h+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values=[];renderWizard()">Изчисти</span>';
+    bar.innerHTML=h;
+}
+function _wizUpdateTabCount(axIdx){
+    var ax=S.wizData.axes[axIdx];if(!ax)return;
+    var tabEl=document.querySelector('[data-tabc="'+axIdx+'"]');
+    if(tabEl)tabEl.textContent=ax.values.length||'';
 }
 
 
@@ -4542,7 +4566,25 @@ async function wizSave(){
         else extraAxes.push(ax);
     });
 
-    const variants=combos.map(c=>{
+    // S70: Read matrix quantities into combos
+        if(S.wizData._matrix&&Object.keys(S.wizData._matrix).length){
+            var _sAxis=null,_cAxis=null;
+            (S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!_sAxis&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))_sAxis=ax;else if(!_cAxis&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))_cAxis=ax});
+            if(_sAxis&&_cAxis){
+                combos=[];
+                _sAxis.values.forEach(function(sz,si){_cAxis.values.forEach(function(cl,ci){
+                    var cellId='mx_'+si+'_'+ci;
+                    var qty=S.wizData._matrix[cellId];
+                    if(qty!==undefined&&qty!==null&&qty!==''){
+                        combos.push({parts:[{axis:'Размер',value:sz},{axis:'Цвят',value:cl}],qty:parseInt(qty)||0,axisValues:sz+' / '+cl});
+                    }
+                })});
+            }
+        }else{
+            document.querySelectorAll('[data-combo][data-field="qty"]').forEach(function(inp){var ci=parseInt(inp.dataset.combo);if(combos[ci])combos[ci].qty=parseInt(inp.value)||0});
+        }
+
+        const variants=combos.map(c=>{
         const sizeVal=c.parts?.find(p=>p.axis.toLowerCase().includes('размер')||p.axis.toLowerCase().includes('size'))?.value||null;
         const colorVal=c.parts?.find(p=>p.axis.toLowerCase().includes('цвят')||p.axis.toLowerCase().includes('color'))?.value||null;
         const extras=c.parts?.filter(p=>{const n=p.axis.toLowerCase();return !n.includes('размер')&&!n.includes('size')&&!n.includes('цвят')&&!n.includes('color')}).map(p=>p.value)||[];
