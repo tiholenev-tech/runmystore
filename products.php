@@ -4616,9 +4616,24 @@ async function wizSave(){
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
             }
-            var _pc=wizBuildCombinations();
-            document.querySelectorAll('[data-combo][data-field="qty"]').forEach(function(inp){var ci=parseInt(inp.dataset.combo);if(_pc[ci])_pc[ci].printQty=parseInt(inp.value)||1;});
-            if(!_pc.length||(!_pc[0]?.parts?.length&&!_pc[0]?.axisValues)){
+            var _pc=[];
+            if(S.wizData._matrix&&Object.keys(S.wizData._matrix).length){
+                var _sAx=null,_cAx=null;
+                (S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!_sAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))_sAx=ax;else if(!_cAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))_cAx=ax});
+                if(_sAx&&_cAx){
+                    _sAx.values.forEach(function(sz,si){_cAx.values.forEach(function(cl,ci){
+                        var cellId='mx_'+si+'_'+ci;
+                        var qty=S.wizData._matrix[cellId];
+                        if(qty!==undefined&&qty!==null&&qty!==''){
+                            _pc.push({parts:[{axis:'Размер',value:sz},{axis:'Цвят',value:cl}],printQty:parseInt(qty)||1});
+                        }
+                    })});
+                }
+            }else{
+                _pc=wizBuildCombinations();
+                document.querySelectorAll('[data-combo][data-field="qty"]').forEach(function(inp){var ci=parseInt(inp.dataset.combo);if(_pc[ci])_pc[ci].printQty=parseInt(inp.value)||1;});
+            }
+            if(!_pc.length){
                 _pc=[{parts:[],printQty:parseInt(document.getElementById('wSingleQty')?.value)||1}];
             }
             S.wizData._printCombos=_pc;
