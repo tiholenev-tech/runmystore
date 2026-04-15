@@ -3160,13 +3160,14 @@ function renderWizPagePart2(step){
             pinnedH+='</div>';
             // HEX Color Picker
             pinnedH+='<div style="padding:8px;border-top:1px solid rgba(99,102,241,0.08)">';
-            pinnedH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">ИЗБЕРИ ОТ ПАЛИТРА</div>';
+            pinnedH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">ИЗБЕРИ ОТ ПАЛИТРА</div>';
+            pinnedH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div>';
             pinnedH+='<canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid var(--border-subtle)"></canvas>';
             pinnedH+='<input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()">';
             pinnedH+='<div style="display:flex;align-items:center;gap:6px;margin-top:4px">';
             pinnedH+='<div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div>';
             pinnedH+='<div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div>';
-            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:90px">';
+            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:100px" oninput="wizNameToHex(this.value)">';
             pinnedH+='<button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddHexColor()">+</button>';
             pinnedH+='</div>';
             pinnedH+='</div>';
@@ -4241,9 +4242,9 @@ function wizInitHslPicker(){
         if(val)val.textContent=hex;
         var sug=document.getElementById('wizColorSuggest');
         if(sug)sug.textContent=_wizSuggestColorName(px[0],px[1],px[2]);
-        // Auto-fill name if empty
+        // Auto-fill name from suggestion always
         var nameInp=document.getElementById('wizHexName');
-        if(nameInp&&!nameInp.value.trim()){nameInp.value=_wizSuggestColorName(px[0],px[1],px[2])}
+        if(nameInp){nameInp.value=_wizSuggestColorName(px[0],px[1],px[2])}
     }
     canvas.addEventListener('touchstart',pickColor,{passive:false});
     canvas.addEventListener('touchmove',pickColor,{passive:false});
@@ -4277,20 +4278,75 @@ function _wizSuggestColorName(r,g,b){
     return best||'Цвят';
 }
 
+
+// S70: Name -> HEX reverse lookup
+function wizNameToHex(name){
+    if(!name||name.length<2)return;
+    var nl=name.toLowerCase().trim();
+    // Check known colors
+    var knownColors=[
+        {n:'бял',h:'#FFFFFF'},{n:'черен',h:'#1A1A1A'},{n:'червен',h:'#DC2626'},{n:'син',h:'#2563EB'},
+        {n:'зелен',h:'#16A34A'},{n:'жълт',h:'#EAB308'},{n:'розов',h:'#EC4899'},{n:'оранжев',h:'#F97316'},
+        {n:'лилав',h:'#8B5CF6'},{n:'сив',h:'#6B7280'},{n:'кафяв',h:'#92400E'},{n:'бежов',h:'#D4B896'},
+        {n:'тъмносин',h:'#1E3A5F'},{n:'бордо',h:'#7F1D1D'},{n:'тюркоаз',h:'#14B8A6'},
+        {n:'корал',h:'#FB923C'},{n:'маслинен',h:'#65A30D'},{n:'пудра',h:'#F9A8D4'},
+        {n:'графит',h:'#374151'},{n:'екрю',h:'#FEF3C7'},{n:'крем',h:'#FFFDD0'},
+        {n:'сребрист',h:'#C0C0C0'},{n:'златист',h:'#D4A944'},
+        {n:'шампанско',h:'#F7E7CE'},{n:'пепел от рози',h:'#C9A9A6'},
+        {n:'тъмнозелен',h:'#15472D'},{n:'небесно',h:'#87CEEB'},
+        {n:'мента',h:'#98FB98'},{n:'лавандула',h:'#E6E6FA'},{n:'индиго',h:'#4B0082'},
+        {n:'бургунди',h:'#800020'},{n:'марсала',h:'#986868'},{n:'праскова',h:'#FFDAB9'},
+        {n:'слонова кост',h:'#FFFFF0'},{n:'охра',h:'#CC7722'},{n:'теракота',h:'#E2725B'},
+        {n:'петрол',h:'#006D6F'},{n:'малина',h:'#E30B5C'},{n:'сьомга',h:'#FA8072'},
+        {n:'карамел',h:'#FFD59A'},{n:'мока',h:'#967969'},{n:'капучино',h:'#A58D7F'},
+        {n:'navy',h:'#1E40AF'},{n:'olive',h:'#808000'},{n:'teal',h:'#008080'},
+        {n:'khaki',h:'#C3B091'},{n:'ivory',h:'#FFFFF0'},{n:'charcoal',h:'#36454F'}
+    ];
+    // Also check CFG.colors
+    for(var i=0;i<CFG.colors.length;i++){
+        if(CFG.colors[i].name.toLowerCase()===nl){
+            _wizUpdatePickerFromHex(CFG.colors[i].hex);
+            return;
+        }
+    }
+    // Fuzzy match
+    var best=null,bestLen=0;
+    knownColors.forEach(function(c){
+        if(nl.indexOf(c.n)!==-1||c.n.indexOf(nl)!==-1){
+            if(c.n.length>bestLen){bestLen=c.n.length;best=c}
+        }
+    });
+    if(best){
+        _wizUpdatePickerFromHex(best.h);
+    }
+}
+
+function _wizUpdatePickerFromHex(hex){
+    _wizPickedHex=hex;
+    var prev=document.getElementById('wizColorPreview');
+    if(prev)prev.style.background=hex;
+    var val=document.getElementById('wizHexVal');
+    if(val)val.textContent=hex.toUpperCase();
+    var sug=document.getElementById('wizColorSuggest');
+    if(sug){
+        var r=parseInt(hex.slice(1,3),16)||0;
+        var g=parseInt(hex.slice(3,5),16)||0;
+        var b=parseInt(hex.slice(5,7),16)||0;
+        sug.textContent=_wizSuggestColorName(r,g,b);
+    }
+}
+
 function wizAddHexColor(){
     var hex=_wizPickedHex||'#000000';
     var nameInp=document.getElementById('wizHexName');
     var name=nameInp?.value.trim();
-    if(!name){
-        name=document.getElementById('wizColorSuggest')?.textContent||'';
-        if(!name){showToast('Дай име на цвета','error');return}
-    }
+    if(!name){showToast('Дай име на цвета','error');return}
     var ax=S.wizData.axes[S._wizActiveTab];
     if(!ax){showToast('Няма активна вариация','error');return}
     if(ax.values.indexOf(name)===-1){
         ax.values.push(name);
         if(!CFG.colors.find(function(c){return c.name===name})){
-            CFG.colors.push({name:name,hex:hex});
+            CFG.colors.push({name:name,hex:hex,_custom:true});
         }
         // Save custom colors to localStorage
         _wizSaveCustomColors();
