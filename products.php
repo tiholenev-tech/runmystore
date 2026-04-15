@@ -4551,7 +4551,7 @@ async function wizGenDescription(){
 async function wizSave(){
     wizCollectData();
     if(!S.wizData.name){showToast('Въведи наименование','error');return}
-    const combos=wizBuildCombinations();
+    let combos=wizBuildCombinations();
     document.querySelectorAll('[data-combo][data-field="qty"]').forEach(inp=>{
         const idx=parseInt(inp.dataset.combo);
         if(combos[idx])combos[idx].qty=parseInt(inp.value)||0;
