@@ -108,6 +108,7 @@ if ($isJSON) {
 
 header('Content-Type: application/json; charset=utf-8');
 
+
 // ── Common fields ─────────────────────────────────────────
 $action          = $data['action'] ?? 'create';
 $id              = (int)($data['id'] ?? 0);
