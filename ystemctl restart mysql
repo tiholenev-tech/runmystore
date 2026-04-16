@@ -1,0 +1,19 @@
+● mysql.service - MySQL Community Server
+     Loaded: loaded (]8;;file://runmystore/usr/lib/systemd/system/mysql.service/usr/lib/systemd/system/mysql.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: activating (start) since Wed 2026-04-15 21:45:01 UTC; 52s ago
+    Process: 521180 ExecStartPre=/usr/share/mysql/mysql-systemd-start pre (code=exited, status=0/SUCCESS)
+   Main PID: 521254 (mysqld)
+     Status: "[0;1;36mServer startup in progress[0m"
+      Tasks: 25 (limit: 1110)
+     Memory: 347.1M (peak: 352.3M)
+        CPU: 9.609s
+     CGroup: /system.slice/mysql.service
+             └─[0;38;5;245m521254 /usr/sbin/mysqld[0m
+
+Apr 15 21:45:00 runmystore systemd[1]: [0;1;39m[0;1;31m[0;1;39mmysql.service: A process of this unit has been killed by the OOM killer.[0m
+Apr 15 21:45:01 runmystore systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmysql.service: Main process exited, code=killed, status=9/KILL[0m
+Apr 15 21:45:01 runmystore systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmysql.service: Failed with result 'oom-kill'.[0m
+Apr 15 21:45:01 runmystore systemd[1]: [0;1;31m[0;1;39m[0;1;31mFailed to start mysql.service - MySQL Community Server.[0m
+Apr 15 21:45:01 runmystore systemd[1]: mysql.service: Consumed 55.014s CPU time.
+Apr 15 21:45:01 runmystore systemd[1]: mysql.service: Scheduled restart job, restart counter is at 27.
+Apr 15 21:45:01 runmystore systemd[1]: Starting mysql.service - MySQL Community Server...
