@@ -4931,9 +4931,20 @@ async function editProduct(id){
     if(!d||d.error)return;
     const p=d.product;
     S.wizEditId=id;S.wizType='single';S.wizStep=3;
-    S.wizData={name:p.name,code:p.code,retail_price:p.retail_price,wholesale_price:p.wholesale_price,
-        barcode:p.barcode,supplier_id:p.supplier_id,category_id:p.category_id,
-        description:p.description,unit:p.unit,min_quantity:p.min_quantity,axes:[]};
+    S.wizData={name:p.name,code:p.code,
+        retail_price:parseFloat(p.retail_price)||0,
+        wholesale_price:parseFloat(p.wholesale_price)||0,
+        cost_price:parseFloat(p.cost_price)||0,
+        barcode:p.barcode||'',
+        supplier_id:p.supplier_id,category_id:p.category_id,
+        subcategory_id:p.subcategory_id||null,
+        description:p.description||'',
+        unit:p.unit||'бр',
+        min_quantity:parseInt(p.min_quantity)||0,
+        origin_country:p.origin_country||'',
+        composition:p.composition||'',
+        is_domestic:parseInt(p.is_domestic)||0,
+        axes:[]};
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Редактирай';
     renderWizard();
