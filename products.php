@@ -2886,7 +2886,7 @@ function wizGo(step){
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
 }
 
-function renderWizard(){
+async function renderWizard(){
     let sb='';
     for(let i=0;i<7;i++){
         let cls=i<S.wizStep?'done':i===S.wizStep?'active':'';
@@ -2933,7 +2933,7 @@ function renderWizard(){
             if(S.wizData.category_id)sel.value=S.wizData.category_id;
             // Trigger subcategory load for saved category
             if(sel.value&&wCat)wCat.onchange();
-        };if(S.wizData.supplier_id)wSup.onchange()}
+        };if(S.wizData.supplier_id)await wSup.onchange()}
         // When category changes → reload subcategories
         if(wCat){wCat.onchange=async function(){
             const id=this.value;const sel=document.getElementById('wSubcat');
@@ -2943,9 +2943,10 @@ function renderWizard(){
             if(d&&d.length)d.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
             // Re-select saved subcategory
             if(S.wizData.subcategory_id)sel.value=S.wizData.subcategory_id;
-        };if(S.wizData.category_id&&!S.wizData.supplier_id)wCat.onchange()}
-        // Always reload subcategories if category is selected
-        if(S.wizData.category_id)wizLoadSubcats(S.wizData.category_id);
+        };
+        // S73: always trigger subcategory load if category selected (after supplier rebuild)
+        if(S.wizData.category_id)await wCat.onchange();
+        }
     }
 }
 
@@ -4933,7 +4934,21 @@ async function editProduct(id){
     const d=await api('products.php?ajax=product_detail&id='+id);
     if(!d||d.error)return;
     const p=d.product;
-    S.wizEditId=id;S.wizType='single';S.wizStep=3;
+    // S73: reconstruct axes from variations
+    let reAxes=[];
+    let reType='single';
+    const vars=(d.variations||[]);
+    if(vars.length>0){
+        reType='variant';
+        const sizes=[],colors=[];
+        vars.forEach(v=>{
+            if(v.size&&!sizes.includes(v.size))sizes.push(v.size);
+            if(v.color&&!colors.includes(v.color))colors.push(v.color);
+        });
+        if(sizes.length)reAxes.push({name:'Размер',values:sizes});
+        if(colors.length)reAxes.push({name:'Цвят',values:colors});
+    }
+    S.wizEditId=id;S.wizType=reType;S.wizStep=3;
     S.wizData={name:p.name,code:p.code,
         retail_price:parseFloat(p.retail_price)||0,
         wholesale_price:parseFloat(p.wholesale_price)||0,
@@ -4947,7 +4962,8 @@ async function editProduct(id){
         origin_country:p.origin_country||'',
         composition:p.composition||'',
         is_domestic:parseInt(p.is_domestic)||0,
-        axes:[]};
+        axes:reAxes,
+        _editVariations:vars};
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Редактирай';
     renderWizard();
