@@ -58,9 +58,12 @@ if (isset($_GET['ajax'])) {
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1
+              AND p.parent_id IS NULL
               AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
-            GROUP BY p.id ORDER BY p.name LIMIT 30
-        ", [$sid, $tenant_id, $like, $like, $like])->fetchAll(PDO::FETCH_ASSOC);
+            GROUP BY p.id
+            ORDER BY (p.name LIKE ?) DESC, p.name ASC
+            LIMIT 30
+        ", [$sid, $tenant_id, $like, $like, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
         if (!$can_see_cost) { foreach ($rows as &$r) unset($r['cost_price']); }
         echo json_encode($rows); exit;
     }
