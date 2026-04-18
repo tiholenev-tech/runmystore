@@ -853,8 +853,11 @@ foreach ($_custom_colors as $cc) {
 .v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
 .v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
 .v-pgroup-actions{display:flex;gap:4px;align-items:center}
-.v-pgroup-footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 12px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.25)}
-.v-pgroup-footer .v-pgroup-act{padding:8px 0;font-size:11px;min-height:36px;display:flex;align-items:center;justify-content:center;text-align:center}
+.v-pgroup-footer{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:8px 10px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.25)}
+.v-pgroup-footer .v-pgroup-act{padding:6px 0;font-size:9.5px;min-height:32px;display:flex;align-items:center;justify-content:center;text-align:center;gap:3px;line-height:1;letter-spacing:0.01em}
+.v-pgroup-footer .v-pgroup-act svg{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.v-pgroup-footer .v-pgroup-act.warn{background:linear-gradient(135deg,hsl(var(--hue1) 55% 32%),hsl(var(--hue2) 55% 28%));border-color:hsl(var(--hue1) 60% 50%);color:#fff;box-shadow:0 2px 8px hsl(var(--hue1) 60% 35% / 0.3),inset 0 1px 0 rgba(255,255,255,0.15);font-weight:700}
+.v-pgroup-footer .v-pgroup-act.warn:hover{box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.45)}
 .v-pgroup-act{padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
 .v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
 .v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
@@ -3794,11 +3797,18 @@ function renderWizPagePart2(step){
                 // Actions footer — ПОД chips
                 pickH+='</div>';
                 pickH+='<div class="v-pgroup-footer" onclick="event.stopPropagation()">';
-                pickH+=pgi>0?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>':'<span style="visibility:hidden"></span>';
-                pickH+=pgi<pinned.length-1?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>':'<span style="visibility:hidden"></span>';
-                pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
-                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓ готово':'✎ добави')+'</span>';
-                pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
+                var _icArrUp='<svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>';
+                var _icArrDn='<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+                var _icAll='<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+                var _icEdit='<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+                var _icAdd='<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+                var _icDone='<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+                var _icDel='<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+                pickH+=pgi>0?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">'+_icArrUp+'</span>':'<span style="visibility:hidden"></span>';
+                pickH+=pgi<pinned.length-1?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">'+_icArrDn+'</span>':'<span style="visibility:hidden"></span>';
+                pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">'+_icAll+'всички</span>';
+                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?_icDone+'готово':_icAdd+'добави')+'</span>';
+                pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">'+_icDel+'</span>';
                 pickH+='</div></div>';
             });
         }
@@ -3821,9 +3831,9 @@ function renderWizPagePart2(step){
             pickH+='<div class="v-pgroup-footer" onclick="event.stopPropagation()">';
             pickH+='<span style="visibility:hidden"></span>';
             pickH+='<span style="visibility:hidden"></span>';
-            pickH+='<span class="v-pgroup-act" onclick="wizColorSelectAll()">всички</span>';
-            pickH+='<span class="v-pgroup-act warn" onclick="wizColorAddPrompt()">\u002B добави</span>';
-            pickH+='<span class="v-pgroup-act'+(_colorEditMode?' danger':'')+'" onclick="S._wizEditingColors='+(_colorEditMode?'false':'true')+';renderWizard()">'+(_colorEditMode?'\u2713 готово':'\u270E редакт.')+'</span>';
+            pickH+='<span class="v-pgroup-act" onclick="wizColorSelectAll()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>всички</span>';
+            pickH+='<span class="v-pgroup-act warn" onclick="wizColorAddPrompt()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави</span>';
+            pickH+='<span class="v-pgroup-act'+(_colorEditMode?' danger':'')+'" onclick="S._wizEditingColors='+(_colorEditMode?'false':'true')+';renderWizard()">'+(_colorEditMode?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>готово':'<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>редакт.')+'</span>';
             pickH+='</div></div>';
             // HEX picker
             pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1;min-width:0"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div></div><div style="display:flex;align-items:stretch;gap:6px;margin-top:8px;width:100%"><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име на цвят (напр. шампанско)..." style="flex:1;font-size:12px;padding:10px 14px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()" style="flex-shrink:0"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div></div></div>';
