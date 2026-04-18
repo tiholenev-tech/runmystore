@@ -3587,8 +3587,8 @@ function renderWizPage(step){
 
         const mic=(f)=>'<button type="button" class="wiz-mic" onclick="wizMic(\''+f+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
 
-        const units=['бр','сет','кг','м','л'];
-        const unitChips=units.map(u=>'<button type="button" onclick="S.wizData.unit=\''+u+'\';renderWizard()" style="padding:8px 14px;border-radius:100px;background:'+(u===un?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)')+';border:1px solid '+(u===un?'#6366f1':'rgba(255,255,255,0.08)')+';font-size:11px;font-weight:500;color:'+(u===un?'#fff':'rgba(255,255,255,0.6)')+';cursor:pointer;box-shadow:'+(u===un?'0 0 10px rgba(99,102,241,0.3)':'none')+'">'+u+'</button>').join('');
+        const units=(CFG&&CFG.units&&CFG.units.length)?CFG.units:['бр','сет','кг','м','л'];
+        const unitChips=units.map(u=>'<button type="button" onclick="S.wizData.unit=\''+u+'\';renderWizard()" style="padding:8px 14px;border-radius:100px;background:'+(u===un?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)')+';border:1px solid '+(u===un?'#6366f1':'rgba(255,255,255,0.08)')+';font-size:11px;font-weight:500;color:'+(u===un?'#fff':'rgba(255,255,255,0.6)')+';cursor:pointer;box-shadow:'+(u===un?'0 0 10px rgba(99,102,241,0.3)':'none')+'">'+u+'</button>').join('')+'<button type="button" onclick="wizAddUnitPrompt()" style="padding:8px 12px;border-radius:100px;background:rgba(99,102,241,0.08);border:1px dashed rgba(99,102,241,0.4);font-size:11px;font-weight:600;color:#a5b4fc;cursor:pointer">+ Добави</button>';
 
         const photoPreview=S.wizData._photoDataUrl
             ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;height:180px;object-fit:cover;border-radius:14px;cursor:pointer">'
@@ -5554,6 +5554,15 @@ function wizAddSubcat(){
     });
 }
 
+function wizAddUnitPrompt(){
+    var unit=prompt('Нова мерна единица (напр. чифт, комплект, оп., бутилка):');
+    if(!unit)return;
+    unit=unit.trim();if(!unit)return;
+    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
+        if(d&&d.units){CFG.units=d.units;S.wizData.unit=d.added||unit;renderWizard();showToast('"'+unit+'" добавена ✓','success');}
+        else{showToast('Грешка при запис','error');}
+    }).catch(function(){showToast('Грешка при запис','error');});
+}
 function wizAddUnit(){
     const unit=document.getElementById('inlUnitName')?.value.trim();
     if(!unit)return;
