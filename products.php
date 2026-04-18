@@ -5609,6 +5609,8 @@ document.getElementById('photoInput').addEventListener('change',async function()
         if(document.getElementById('wizPhotoPreview'))document.getElementById('wizPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">';
         if(result)result.innerHTML='<div style="font-size:12px;color:var(--success);margin-top:6px">Снимката е заредена</div>';
         showToast('Снимка добавена','success');
+        // S73.B.35: Rerender за да се покаже снимката в photo zone на Step 1
+        renderWizard();
     };
     reader.readAsDataURL(this.files[0]);
     this.value='';
