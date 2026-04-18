@@ -2174,7 +2174,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 <!-- S73.B.6: Fullscreen Matrix Overlay -->
 <div class="mx-overlay" id="mxOverlay">
   <div class="mx-header">
-    <button class="mx-close" onclick="closeMxOverlay()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <button class="mx-close" onclick="mxCancel()" title="Откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
   <div style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
@@ -3406,6 +3406,7 @@ function wizGo(step){
 // ═══ S73.B.6: Matrix Overlay Functions ═══
 function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
 function openMxOverlay(){
+  S._mxSnapshot=JSON.stringify(S.wizData._matrix||{});
   var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
   var hasSize=szAx&&szAx.values.length>0;
   var hasColor=clAx&&clAx.values.length>0;
@@ -3460,6 +3461,7 @@ function openMxOverlay(){
   document.body.style.overflow='hidden';
 }
 function closeMxOverlay(){document.getElementById('mxOverlay').classList.remove('open');document.body.style.overflow=''}
+function mxCancel(){if(S._mxSnapshot!==undefined){S.wizData._matrix=JSON.parse(S._mxSnapshot);S._mxSnapshot=undefined}closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate(5)}
 function mxStepMin(key,dir){var inp=document.querySelector('.mx-cell-min[data-key="'+key+'"]');if(!inp)return;var v=Math.max(0,(parseInt(inp.value)||0)+dir);inp.value=v;if(!S.wizData._matrix)S.wizData._matrix={};if(!S.wizData._matrix[key])S.wizData._matrix[key]={};S.wizData._matrix[key].min=v>0?v:'';mxUpdateStats();if(navigator.vibrate)navigator.vibrate(3)}
 function mxFillAll(qty){
   var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
@@ -3471,7 +3473,7 @@ function mxFillAll(qty){
 }
 function mxClear(){S.wizData._matrix={};openMxOverlay();if(navigator.vibrate)navigator.vibrate(12)}
 function mxUpdateStats(){var f=0,t=0,ms=0;var m=S.wizData._matrix||{};Object.keys(m).forEach(function(k){var c=m[k]||{};var q=parseInt(c.qty)||0;var mn=parseInt(c.min)||0;if(q>0)f++;t+=q;ms+=mn});document.getElementById('mxStatCells').textContent=f;document.getElementById('mxStatTotal').textContent=t;document.getElementById('mxStatMin').textContent=ms}
-function mxDone(){closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate([5,30,10])}
+function mxDone(){S._mxSnapshot=undefined;closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate([5,30,10])}
 
 async function renderWizard(){
     let sb='';
@@ -3800,31 +3802,12 @@ function renderWizPagePart2(step){
             }
         }
 
-''; // S73.B.12: заменя старите CTA и nav bar
-        var _ax=S.wizData.axes[S._wizActiveTab]||{name:''};
-        var _isColor=/цвят|color/i.test(_ax.name);
-        var _hasVals=_ax.values&&_ax.values.length>0;
-        var _otherIdx=-1;
-        for(var _i=0;_i<S.wizData.axes.length;_i++){if(_i!==S._wizActiveTab&&/цвят|color|размер|size/i.test(S.wizData.axes[_i].name)){_otherIdx=_i;break}}
-        var _otherName=_otherIdx>=0?S.wizData.axes[_otherIdx].name:'';
-        var _ftBack='<button type="button" onclick="wizGo(3)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
-        var _ftMid;
-        if(!_hasVals){
-            _ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+(_isColor?'цвят':'размер')+' за да продължиш</div>';
-        }else{
-            var _b1='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Запиши бройки</button>';
-            var _b2;
-            if(_isColor||_otherIdx<0){
-                _b2='<button type="button" onclick="wizSave()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши</button>';
-            }else{
-                _b2='<button type="button" onclick="S._wizActiveTab='+_otherIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">Избери '+esc(_otherName.toLowerCase())+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
-            }
-            _ftMid=_b1+_b2;
-        }
+''; // S73.B.13: footer via helper
+        var _footer=_v4ComputeFooter(S._wizActiveTab);
         return '<div class="wiz-page active" style="padding-bottom:80px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
-            '<div style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_ftBack+_ftMid+'</div>'+
+            '<div id="v4Footer" style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_footer+'</div>'+
             vskip+'</div>';
     }
 
@@ -4996,10 +4979,39 @@ function wizTogglePresetInline(axIdx,val,chip){
     if(navigator.vibrate)navigator.vibrate(5);
     _v4UpdateAfterToggle(axIdx);
 }
+function _v4ComputeFooter(axIdx){
+    var ax=S.wizData.axes[axIdx]||{name:'',values:[]};
+    var isColor=/цвят|color/i.test(ax.name);
+    var hasVals=ax.values&&ax.values.length>0;
+    var otherIdx=-1;
+    for(var i=0;i<S.wizData.axes.length;i++){if(i!==axIdx&&/цвят|color|размер|size/i.test(S.wizData.axes[i].name)){otherIdx=i;break}}
+    var otherAx=otherIdx>=0?S.wizData.axes[otherIdx]:null;
+    var otherHas=otherAx&&otherAx.values&&otherAx.values.length>0;
+    var ftBack='<button type="button" onclick="wizGo(3)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
+    var ftMid;
+    if(!hasVals){
+        ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+(isColor?'цвят':'размер')+' за да продължиш</div>';
+    }else{
+        var b1='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бройки?</button>';
+        var b2;
+        if(otherIdx<0||otherHas){
+            // Другият axis също има стойности (или липсва) → Запиши
+            b2='<button type="button" onclick="wizSave()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши</button>';
+        }else{
+            // Другият axis няма стойности → "Избери [другия]"
+            b2='<button type="button" onclick="S._wizActiveTab='+otherIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">Избери '+esc(otherAx.name.toLowerCase())+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        }
+        ftMid=b1+b2;
+    }
+    return ftBack+ftMid;
+}
 function _v4UpdateAfterToggle(axIdx){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
     var nm=ax.name.toLowerCase();
     var isColor=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1;
+    // Refresh footer
+    var ft=document.getElementById('v4Footer');
+    if(ft)ft.innerHTML=_v4ComputeFooter(axIdx);
     // Tab count
     var tabs=document.querySelectorAll('.v-axis-tab');
     if(tabs[axIdx]){var cn=tabs[axIdx].querySelector('.v-axis-tab-count');if(cn)cn.textContent=ax.values.length||0}
