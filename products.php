@@ -3680,7 +3680,7 @@ function renderWizPagePart2(step){
             var isSz=nm.indexOf('размер')!==-1||nm.indexOf('size')!==-1;
             var isCl=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1;
             var isDef=/^вариация\s*\d+$/i.test(ax.name);var icn=isSz?'<svg viewBox="0 0 24 24"><path d="M3 3h18v6H3zM3 15h18v6H3z"/></svg>':(isCl?'<svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/></svg>':(isDef?'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>':'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'));
-            tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+icn+esc(ax.name)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></button>';
+            var _tabLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(ti+1)):ax.name;tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+icn+esc(_tabLbl)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></button>';
         });
         tabsH+='<button class="v-axis-tab-add" onclick="wizAddAxisFromTab()">+</button>';
         tabsH+='</div>';
