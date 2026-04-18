@@ -2188,7 +2188,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   <div class="mx-body-wrap"><table class="mx-table" id="mxTable"><thead id="mxThead"></thead><tbody id="mxTbody"></tbody></table></div>
   <div class="mx-bottom">
     <div class="mx-stats"><div class="mx-stat"><div class="mx-stat-v" id="mxStatCells">0</div><div class="mx-stat-l">Попълнени</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatTotal">0</div><div class="mx-stat-l">Общо бр</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatMin">0</div><div class="mx-stat-l">Мин. сума</div></div></div>
-    <button class="mx-done" onclick="mxDone()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>
+    <div style="display:flex;gap:8px"><button type="button" onclick="mxCancel()" style="flex:1;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Откажи</button><button class="mx-done" onclick="mxDone()" style="flex:2"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button></div>
   </div>
 </div>
 <input type="file" id="filePickerInput" accept="image/*,*/*">
