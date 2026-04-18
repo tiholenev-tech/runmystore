@@ -3780,6 +3780,9 @@ function renderWizPagePart2(step){
         // Custom add row (за всеки axis)
         pickH+='<div class="v-custom-row"><input type="text" class="v-custom-input" id="newGrpVal'+ai+'" placeholder="Друга стойност..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();var v=this.value.trim();if(v){S.wizData.axes['+ai+'].values.push(v);this.value=\'\';renderWizard()}}"><button class="v-custom-btn" onclick="var e=document.getElementById(\'newGrpVal'+ai+'\');var v=e.value.trim();if(v){S.wizData.axes['+ai+'].values.push(v);e.value=\'\';renderWizard()}"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div>';
 
+        // Добави още preset групи (EU облекло, Дънки, Обувки...)
+        pickH+='<div style="margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Още групи за твоя бизнес</div>';
+
         // Remove custom axis
         if(!isSize&&!isColor){
             pickH+='<div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="if(confirm(\'Премахни вариацията?\')){S.wizData.axes.splice('+ai+',1);S._wizActiveTab=0;renderWizard()}">Премахни "'+esc(ax.name)+'"</span></div>';
