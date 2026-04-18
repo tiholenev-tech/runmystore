@@ -3407,16 +3407,23 @@ function wizGo(step){
 function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
 function openMxOverlay(){
   S._mxSnapshot=JSON.stringify(S.wizData._matrix||{});
-  var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
-  var hasSize=szAx&&szAx.values.length>0;
-  var hasColor=clAx&&clAx.values.length>0;
-  if(!hasSize&&!hasColor){showToast('Избери размери или цветове първо','error');return}
-  var sizes=hasSize?szAx.values:['—'];
-  var colors=hasColor?clAx.values:['—'];
-  document.getElementById('mxSubtitle').innerHTML='<b>'+sizes.length+'</b> размера × <b>'+colors.length+'</b> цвята = <b>'+(sizes.length*colors.length)+'</b> клетки';
+  // Намираме axes с стойности — първите 2 с данни стават rows × cols
+  var activeAxes=(S.wizData.axes||[]).filter(function(a){return a.values&&a.values.length>0});
+  if(!activeAxes.length){showToast('Избери стойности първо','error');return}
+  var rowAx=activeAxes[0];
+  var colAx=activeAxes[1]||null;
+  // Ако axes са "размер" + "цвят" — правилен ред (размер=rows, цвят=cols)
+  var hasSize=activeAxes.find(function(a){return /размер|size|ръст/i.test(a.name)});
+  var hasColor=activeAxes.find(function(a){return /цвят|color|десен/i.test(a.name)});
+  if(hasSize&&hasColor){rowAx=hasSize;colAx=hasColor}
+  var sizes=rowAx.values;
+  var colors=colAx?colAx.values:['—'];
+  var isColorCol=colAx&&/цвят|color|десен/i.test(colAx.name);
+  var _rowLbl=esc(rowAx.name);var _colLbl=colAx?esc(colAx.name):'';
+  document.getElementById('mxSubtitle').innerHTML=colAx?('<b>'+sizes.length+'</b> '+_rowLbl+' × <b>'+colors.length+'</b> '+_colLbl+' = <b>'+(sizes.length*colors.length)+'</b> клетки'):('<b>'+sizes.length+'</b> '+_rowLbl);
   // Build thead
   var thead='<tr><th class="mx-corner"></th>';
-  colors.forEach(function(c){var cc=CFG.colors.find(function(x){return x.name===c});var dot=cc?'<span class="v-dot" style="background:'+cc.hex+'"></span>':'';thead+='<th class="mx-head-cell">'+dot+esc(c)+'</th>'});
+  colors.forEach(function(c){var dot='';if(isColorCol){var cc=CFG.colors.find(function(x){return x.name===c});if(cc)dot='<span class="v-dot" style="background:'+cc.hex+'"></span>'}thead+='<th class="mx-head-cell">'+dot+esc(c==='—'?'':c)+'</th>'});
   thead+='</tr>';
   document.getElementById('mxThead').innerHTML=thead;
   // Build tbody
