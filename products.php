@@ -654,7 +654,126 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
     --success: #22c55e;
     --purple: #8b5cf6;
     --teal: #14b8a6;
+    --hue1: 255;
+    --hue2: 222;
+    --border: 1px;
+    --border-color: hsl(var(--hue2), 12%, 20%);
+    --radius: 22px;
+    --radius-sm: 14px;
+    --radius-lg: 28px;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
 }
+
+/* ═══ NEON GLASS (S73.B.5 — 1:1 from add-product.html) ═══ */
+.glass {
+    position: relative;
+    border-radius: var(--radius);
+    border: var(--border) solid var(--border-color);
+    background:
+        linear-gradient(235deg, hsl(var(--hue1) 50% 10% / 0.8), hsl(var(--hue1) 50% 10% / 0) 33%),
+        linear-gradient(45deg, hsl(var(--hue2) 50% 10% / 0.8), hsl(var(--hue2) 50% 10% / 0) 33%),
+        linear-gradient(hsl(220deg 25% 4.8% / 0.78));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+        hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
+        hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    isolation: isolate;
+}
+.glass .shine,
+.glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom,
+.glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+.glass .shine,
+.glass .shine::before,
+.glass .shine::after {
+    pointer-events: none;
+    border-radius: 0;
+    border-top-right-radius: inherit;
+    border-bottom-left-radius: inherit;
+    border: 1px solid transparent;
+    width: 75%;
+    aspect-ratio: 1;
+    display: block;
+    position: absolute;
+    right: calc(var(--border) * -1);
+    top: calc(var(--border) * -1);
+    left: auto;
+    z-index: 1;
+    --start: 12%;
+    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 80%), var(--lit, 60%)), transparent var(--end, 50%)) border-box;
+    mask: linear-gradient(transparent), linear-gradient(black);
+    mask-repeat: no-repeat;
+    mask-clip: padding-box, border-box;
+    mask-composite: subtract;
+}
+.glass .shine::before,
+.glass .shine::after { content: ""; width: auto; inset: -2px; mask: none; }
+.glass .shine::after {
+    z-index: 2;
+    --start: 17%; --end: 33%;
+    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 80%), var(--lit, 85%)), transparent var(--end, 50%));
+}
+.glass .shine-bottom {
+    top: auto;
+    bottom: calc(var(--border) * -1);
+    left: calc(var(--border) * -1);
+    right: auto;
+}
+.glass .glow {
+    pointer-events: none;
+    border-top-right-radius: calc(var(--radius) * 2.5);
+    border-bottom-left-radius: calc(var(--radius) * 2.5);
+    border: calc(var(--radius) * 1.25) solid transparent;
+    inset: calc(var(--radius) * -2);
+    width: 75%;
+    aspect-ratio: 1;
+    display: block;
+    position: absolute;
+    left: auto;
+    bottom: auto;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mask-mode: luminance;
+    mask-size: 29%;
+    opacity: 1;
+    filter: blur(12px) saturate(1.25) brightness(0.5);
+    mix-blend-mode: plus-lighter;
+    z-index: 3;
+}
+.glass .glow.glow-bottom { inset: calc(var(--radius) * -2); top: auto; right: auto; }
+.glass .glow::before,
+.glass .glow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: inherit;
+    border-radius: inherit;
+    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 95%), var(--lit, 60%)), transparent var(--end, 50%)) border-box;
+    mask: linear-gradient(transparent), linear-gradient(black);
+    mask-repeat: no-repeat;
+    mask-clip: padding-box, border-box;
+    mask-composite: subtract;
+    filter: saturate(2) brightness(1);
+}
+.glass .glow::after {
+    --lit: 70%; --sat: 100%; --start: 15%; --end: 35%;
+    border-width: calc(var(--radius) * 1.75);
+    border-radius: calc(var(--radius) * 2.75);
+    inset: calc(var(--radius) * -0.25);
+    z-index: 4;
+    opacity: 0.75;
+}
+.glass .glow-bright {
+    --lit: 80%; --sat: 100%; --start: 13%; --end: 37%;
+    border-width: 5px;
+    border-radius: calc(var(--radius) + 2px);
+    inset: -7px;
+    left: auto;
+    filter: blur(2px) brightness(0.66);
+}
+.glass .glow-bright::after { content: none; }
+.glass .glow-bright.glow-bottom { inset: -7px; right: auto; top: auto; }
+.glass.sm { --radius: var(--radius-sm); }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{
     background:var(--bg-main);color:var(--text-primary);
@@ -3261,21 +3380,31 @@ function renderWizPage(step){
 
         const stickyFooter='<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 12px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);backdrop-filter:blur(12px);z-index:100;display:flex;gap:8px;max-width:480px;margin:0 auto"><button type="button" onclick="wizGo(0)" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGo('+nextStep+')" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
 
-        return '<div class="wiz-page active" style="padding-bottom:70px">'+
+        return '<div class="wiz-page active">'+
             copyPrev+
             aiHint+
-            photoBlock+
-            '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div></div>'+
-            '<div style="display:flex;gap:8px">'+
-            '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+'</div></div>'+
-            '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div></div>'+
+            '<div class="glass" style="padding:18px 16px 16px;margin-bottom:14px">'+
+              '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+              '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
+              '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
+              photoBlock+
+              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div></div>'+
+              '<div style="display:flex;gap:8px">'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div></div>'+
+              '</div>'+
+              qtyBlock+
+              '<div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px"><div style="height:1px;flex:1;background:linear-gradient(to right,transparent,rgba(99,102,241,0.3))"></div><div style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase">Пожелателно</div><div style="height:1px;flex:1;background:linear-gradient(to left,transparent,rgba(59,130,246,0.3))"></div></div>'+
+              '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+              '<div class="fg">'+fieldLabel('Състав / Материя','name','<span class="hint">(за AI)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" value="'+esc(cm)+'" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1">'+mic('composition')+'</div></div>'+
+              '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
             '</div>'+
-            qtyBlock+
-            '<div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px"><div style="height:1px;flex:1;background:linear-gradient(to right,transparent,rgba(99,102,241,0.3))"></div><div style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase">Пожелателно</div><div style="height:1px;flex:1;background:linear-gradient(to left,transparent,rgba(59,130,246,0.3))"></div></div>'+
-            '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
-            '<div class="fg">'+fieldLabel('Състав / Материя','name','<span class="hint">(за AI)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" value="'+esc(cm)+'" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1">'+mic('composition')+'</div></div>'+
-            '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
-            stickyFooter+
+            '<div style="display:flex;gap:8px;margin-top:14px">'+
+              '<button type="button" onclick="wizGo(0)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+              '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
+              '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
+              '<button type="button" onclick="wizGo('+nextStep+')" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+            '</div>'+
             vskip+
             '</div>';
     }
@@ -3329,25 +3458,25 @@ function renderWizPagePart2(step){
         // Summary bar
         var sumH='';
         if(ax.values.length){
-            sumH='<div id="wizSumBar" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:6px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.1)">';
+            sumH='<div id="wizSumBar" style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;margin-bottom:8px;border-radius:14px;background:linear-gradient(235deg,rgba(99,102,241,0.08),transparent 50%),rgba(15,17,26,0.5);border:0.5px solid rgba(99,102,241,0.2)">';
             ax.values.forEach(function(v,vi){
                 var sw='';
                 if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
-                sumH+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer" onclick="S.wizData.axes['+ai+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:3px;opacity:0.5;font-size:9px">\u2715</span></span>';
+                sumH+='<span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:100px;background:linear-gradient(135deg,#4338ca,#3730a3);color:#fff;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 0 8px rgba(99,102,241,0.3),inset 0 1px 0 rgba(255,255,255,0.15)" onclick="S.wizData.axes['+ai+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:4px;opacity:0.7;font-size:9px">\u2715</span></span>';
             });
             sumH+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+ai+'].values=[];renderWizard()">Изчисти</span>';
             sumH+='</div>';
         }else{
-            sumH='<div id="wizSumBar" style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
+            sumH='<div id="wizSumBar" style="padding:10px 12px;margin-bottom:8px;border-radius:14px;background:rgba(255,255,255,0.02);border:0.5px dashed rgba(99,102,241,0.25);color:rgba(255,255,255,0.5);font-size:11px;text-align:center">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
 
         // Copy prev
-        var copyH='<div style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.04);border:1px dashed rgba(99,102,241,0.2);border-radius:10px;padding:8px 12px;margin-bottom:6px;cursor:pointer;color:var(--indigo-400);font-size:11px;font-weight:600" onclick="wizCopyPrevProduct()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1H7a2 2 0 00-2 2v16l7-3 7 3V3a2 2 0 00-2-2z"/></svg>Както предния продукт</div>';
+        var copyH='<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:9px 13px;margin-bottom:8px;cursor:pointer" onclick="wizCopyPrevProduct()"><div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:0.5px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 00-2 2v16l7-3 7 3V3a2 2 0 00-2-2z"/></svg></div><div style="flex:1"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния продукт</div><div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:1px">Копирай вариациите</div></div><div style="color:#818cf8;font-size:15px">›</div></div>';
 
         // "+ Добави група" button (ГОРЕ, преди групите)
         var addGrpBtnH='';
         if(isSize){
-            addGrpBtnH='<div style="display:flex;align-items:center;gap:6px;padding:8px 12px;margin-bottom:6px;border-radius:10px;border:1px solid rgba(99,102,241,0.15);background:rgba(99,102,241,0.03);cursor:pointer" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-400)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span style="font-size:11px;color:var(--indigo-400);font-weight:600">Добави група от списъка</span></div>';
+            addGrpBtnH='<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;margin-bottom:8px;border-radius:14px;border:0.5px solid rgba(99,102,241,0.35);background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(59,130,246,0.06));cursor:pointer;box-shadow:0 0 12px rgba(99,102,241,0.15)" onclick="wizShowMoreGroups('+ai+')"><div style="width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(99,102,241,0.4)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span style="font-size:12px;color:#c7d2fe;font-weight:600">Добави група от списъка</span></div>';
         }
 
         // Pinned groups
@@ -3363,9 +3492,9 @@ function renderWizPagePart2(step){
                 var valsToShow=showAll?pg.vals:pg.vals.slice(0,maxShow);
                 var hasMore=pg.vals.length>maxShow&&!showAll;
 
-                pinnedH+='<div style="margin-bottom:6px;border:1px solid rgba(99,102,241,0.1);border-radius:10px;overflow:hidden">';
+                pinnedH+='<div style="margin-bottom:8px;border:0.5px solid rgba(99,102,241,0.2);border-radius:14px;overflow:hidden;background:linear-gradient(235deg,rgba(99,102,241,0.04),transparent 60%),rgba(15,17,26,0.4)">';
                 // Header
-                pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(15,15,40,0.4)">';
+                pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(15,17,26,0.5);border-bottom:0.5px solid rgba(99,102,241,0.1)">';
                 pinnedH+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:var(--text-secondary)">'+esc(pg.label)+'</span><span style="font-size:9px;color:rgba(99,102,241,0.4)">'+availCount+'/'+pg.vals.length+'</span></div>';
                 pinnedH+='<div style="display:flex;gap:4px;align-items:center">';
                 // Reorder buttons
@@ -3408,8 +3537,8 @@ function renderWizPagePart2(step){
         }
         if(isColor){
             var existingSet=new Set(ax.values);
-            pinnedH+='<div style="margin-bottom:6px;border:1px solid rgba(99,102,241,0.1);border-radius:10px;overflow:hidden">';
-            pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(15,15,40,0.4)">';
+            pinnedH+='<div style="margin-bottom:8px;border:0.5px solid rgba(99,102,241,0.2);border-radius:14px;overflow:hidden;background:linear-gradient(235deg,rgba(99,102,241,0.04),transparent 60%),rgba(15,17,26,0.4)">';
+            pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(15,17,26,0.5);border-bottom:0.5px solid rgba(99,102,241,0.1)">';
             pinnedH+='<span style="font-size:11px;font-weight:600;color:var(--text-secondary)">Цветове</span>';
             pinnedH+='<span style="font-size:9px;color:var(--indigo-400);font-weight:600;cursor:pointer" onclick="wizColorSelectAll()">всички</span></div>';
             pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
@@ -3469,14 +3598,17 @@ function renderWizPagePart2(step){
 
         // Combos
         var combos=wizCountCombinations();
-        var combosH=combos>0?'<div style="font-size:11px;color:var(--text-secondary);margin:8px 0 4px;padding:6px 10px;border-radius:8px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08)">Кръстоска: <b style="color:var(--indigo-300)">'+combos+'</b> варианта</div>':'';
+        var combosH=combos>0?'<div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;padding:10px 13px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(59,130,246,0.08));border:0.5px solid rgba(99,102,241,0.3);box-shadow:0 0 12px rgba(99,102,241,0.15)"><div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">'+combos+'</div><div style="flex:1;font-size:11px;color:#e2e8f0;font-weight:500">Кръстоска от <b style="color:#c7d2fe">'+combos+' варианта</b></div></div>':'';
 
-        return '<div class="wiz-page active">'+
-        '<div style="font-size:14px;font-weight:700;margin-bottom:2px">Вариации</div>'+
-        '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px">Избери размери, цветове или създай свои. Напр: S, M, L + Черен, Бял</div>'+
+        return '<div class="wiz-page active" style="padding-bottom:70px">'+
+        '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px"><div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#f1f5f9 30%,#a5b4fc 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Вариации</div><div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:500">размери, цветове, модели</div></div>'+
         copyH+tabsH+sumH+addGrpBtnH+pinnedH+searchH+manualH+removeH+newGrpH+combosH+
-        '<button class="abtn primary" onclick="wizGoPreview()" style="margin-top:10px">Напред \u2192</button>'+
-        '<button class="abtn" onclick="wizGo(3)" style="margin-top:6px">\u2190 Назад</button>'+
+        '<div style="display:flex;gap:8px;margin-top:14px">'+
+          '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+          '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
+          '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
+          '<button type="button" onclick="wizGoPreview()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+        '</div>'+
         vskip+'</div>';
     }
 
