@@ -828,7 +828,9 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-chip.selected{background:linear-gradient(135deg,hsl(var(--hue1) 70% 45%),hsl(var(--hue1) 80% 35%));border-color:hsl(var(--hue1) 80% 70%);color:#fff;box-shadow:0 0 18px hsl(var(--hue1) 70% 55% / 0.6),0 4px 12px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.35);font-weight:800;transform:scale(1.03)}
 .v-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
 
-.v-custom-row{display:flex;gap:8px;margin-top:10px;align-items:center}
+.v-custom-row{display:flex;gap:8px;margin-top:12px;align-items:stretch;flex-wrap:nowrap}
+.v-custom-input{min-width:0}
+.v-custom-btn{flex-shrink:0}
 .v-custom-input{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .v-custom-input:focus{border-style:solid;border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
 .v-custom-btn{padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 45%),hsl(var(--hue1) 75% 38%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.4),0 0 16px hsl(var(--hue1) 60% 50% / 0.3),inset 0 1px 0 rgba(255,255,255,0.3);font-family:inherit;text-shadow:0 0 8px rgba(255,255,255,0.2);white-space:nowrap}
@@ -3798,10 +3800,10 @@ function renderWizPagePart2(step){
             }
         }
 
-        return '<div class="wiz-page active" style="padding-bottom:90px">'+
+        return '<div class="wiz-page active">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
-            (mcH?'<div style="position:sticky;bottom:60px;z-index:50;margin:14px -4px 0;padding:0 4px">'+mcH+'</div>':'')+
+            (mcH?'<div style="margin:14px 0 0">'+mcH+'</div>':'')+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
               '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
               '<button type="button" onclick="showToast(\'Печат — скоро\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
