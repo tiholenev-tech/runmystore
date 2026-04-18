@@ -816,7 +816,7 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
 .v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
 .v-pgroup-actions{display:flex;gap:4px;align-items:center}
-.v-pgroup-act{padding:3px 7px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-family:inherit}
+.v-pgroup-act{padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
 .v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
 .v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
 .v-pgroup-act.danger{color:rgba(239,68,68,0.7);border-color:rgba(239,68,68,0.2)}
@@ -825,7 +825,7 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 
 .v-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;user-select:none;-webkit-user-select:none;font-family:inherit}
 .v-chip:hover{background:hsl(var(--hue1) 30% 20% / 0.4);border-color:hsl(var(--hue1) 40% 40% / 0.5);color:hsl(var(--hue1) 60% 85%)}
-.v-chip.selected{background:linear-gradient(135deg,hsl(var(--hue1) 60% 32%),hsl(var(--hue1) 70% 26%));border-color:hsl(var(--hue1) 60% 55%);color:#fff;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.4),inset 0 1px 0 hsl(var(--hue1) 60% 65% / 0.3);font-weight:700}
+.v-chip.selected{background:linear-gradient(135deg,hsl(var(--hue1) 70% 45%),hsl(var(--hue1) 80% 35%));border-color:hsl(var(--hue1) 80% 70%);color:#fff;box-shadow:0 0 18px hsl(var(--hue1) 70% 55% / 0.6),0 4px 12px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.35);font-weight:800;transform:scale(1.03)}
 .v-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
 
 .v-custom-row{display:flex;gap:8px;margin-top:10px;align-items:center}
@@ -876,8 +876,9 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .mx-head-cell{top:0;z-index:3;padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:hsl(var(--hue1) 60% 85%);min-width:110px;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3)}
 .mx-head-cell .v-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,0.1)}
 .mx-row-head{left:0;z-index:2;padding:8px 14px;text-align:left;font-size:13px;font-weight:800;color:hsl(var(--hue1) 60% 88%);min-width:80px;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);background:linear-gradient(to right,hsl(var(--hue1) 30% 16% / 0.7),hsl(var(--hue1) 20% 12% / 0.6))}
-.mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle}
-.mx-cell.has-value{background:hsl(var(--hue1) 30% 14% / 0.35)}
+.mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle;animation:mxPulse 2.4s ease-in-out infinite}
+@keyframes mxPulse{0%,100%{background:rgba(0,0,0,0.15)}50%{background:hsl(var(--hue1) 40% 15% / 0.35)}}
+.mx-cell.has-value{background:hsl(var(--hue1) 40% 18% / 0.45);animation:none;box-shadow:inset 0 0 0 1px hsl(var(--hue1) 60% 45% / 0.3)}
 .mx-cell-inputs{display:flex;flex-direction:column;gap:4px;align-items:center}
 .mx-cell-qty{width:54px;height:34px;padding:4px 2px;border-radius:8px;border:1px solid hsl(var(--hue2) 15% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(var(--hue1) 60% 90%);font-size:14px;font-weight:800;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
 .mx-cell-qty::-webkit-outer-spin-button,.mx-cell-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -3703,7 +3704,7 @@ function renderWizPagePart2(step){
                 var valsToShow=showAll?pg.vals:pg.vals.slice(0,maxShow);
                 var hasMore=pg.vals.length>maxShow&&!showAll;
                 var starred=pgi===0?' starred':'';
-                var isOpen=pgi===0||selCount>0;
+                var isOpen=true;
                 pickH+='<div class="v-pgroup'+(isOpen?' open':'')+'">';
                 pickH+='<div class="v-pgroup-head" onclick="this.parentElement.classList.toggle(\'open\')">';
                 pickH+='<div class="v-pgroup-title'+starred+'">'+esc(pg.label)+'</div>';
@@ -3712,7 +3713,7 @@ function renderWizPagePart2(step){
                 if(pgi>0)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>';
                 if(pgi<pinned.length-1)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>';
                 pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
-                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓':'✎')+'</span>';
+                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓ готово':'✎ добави')+'</span>';
                 pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
                 pickH+='</div><span class="v-pgroup-arr">▶</span></div>';
                 pickH+='<div class="v-pgroup-body">';
@@ -3732,8 +3733,6 @@ function renderWizPagePart2(step){
                 }
                 pickH+='</div></div>';
             });
-            // +Добави група
-            pickH+='<div style="margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави група от списъка</div>';
         }
 
         // COLORS: chips + HEX picker
@@ -4965,17 +4964,10 @@ _wizLoadCustomColors();
 function wizTogglePresetInline(axIdx,val,chip){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
     var idx=ax.values.indexOf(val);
-    if(idx>=0){
-        ax.values.splice(idx,1);
-        chip.classList.remove('sel');
-    }else{
-        ax.values.push(val);
-        chip.classList.add('sel');
-    }
-    // Update summary bar without full re-render (no flicker)
-    _wizUpdateSummaryBar(axIdx);
-    // Update tab count
-    _wizUpdateTabCount(axIdx);
+    if(idx>=0)ax.values.splice(idx,1);
+    else ax.values.push(val);
+    if(navigator.vibrate)navigator.vibrate(5);
+    renderWizard();
 }
 function _wizUpdateSummaryBar(axIdx){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
