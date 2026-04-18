@@ -4528,7 +4528,7 @@ function wizSaveCustomGroupToAxes(){
     // Ако активният таб е празен (Вариация 1/2 без стойности) — ЗАМЕСТИ го
     var active=S.wizData.axes[S._wizActiveTab];
     var isEmpty=active&&(!active.values||active.values.length===0);
-    var isDefault=active&&/^вариация\s*\d+$/i.test(active.name);
+    var isDefault=active&&/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(active.name);
     if(isEmpty&&isDefault){
         // Замести името + стойностите на текущия таб
         active.name=ncg.name;
