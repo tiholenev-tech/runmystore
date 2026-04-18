@@ -831,7 +831,7 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-custom-row{display:flex;gap:8px;margin-top:10px;align-items:center}
 .v-custom-input{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .v-custom-input:focus{border-style:solid;border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
-.v-custom-btn{padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 60% 35%),hsl(var(--hue1) 70% 28%));border:1px solid hsl(var(--hue1) 60% 50%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 rgba(255,255,255,0.2);font-family:inherit}
+.v-custom-btn{padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 45%),hsl(var(--hue1) 75% 38%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.4),0 0 16px hsl(var(--hue1) 60% 50% / 0.3),inset 0 1px 0 rgba(255,255,255,0.3);font-family:inherit;text-shadow:0 0 8px rgba(255,255,255,0.2);white-space:nowrap}
 .v-custom-btn svg{width:14px;height:14px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
 
 .v-matrix-cta-wrap{padding:16px;margin-bottom:12px}
@@ -877,12 +877,14 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .mx-corner{left:0;top:0;z-index:4;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
 .mx-head-cell{top:0;z-index:3;padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:hsl(var(--hue1) 60% 85%);min-width:110px;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3)}
 .mx-head-cell .v-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,0.1)}
-.mx-row-head{left:0;z-index:2;padding:8px 14px;text-align:left;font-size:13px;font-weight:800;color:hsl(var(--hue1) 60% 88%);min-width:80px;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);background:linear-gradient(to right,hsl(var(--hue1) 30% 16% / 0.7),hsl(var(--hue1) 20% 12% / 0.6))}
-.mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle;animation:mxPulse 2.4s ease-in-out infinite}
-@keyframes mxPulse{0%,100%{background:rgba(0,0,0,0.15)}50%{background:hsl(var(--hue1) 40% 15% / 0.35)}}
+.mx-row-head{left:0;z-index:2;padding:8px 10px;text-align:center;font-size:13px;font-weight:800;color:hsl(var(--hue1) 60% 88%);min-width:52px;width:52px;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);background:linear-gradient(to right,hsl(var(--hue1) 30% 16% / 0.7),hsl(var(--hue1) 20% 12% / 0.6))}
+.mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle;animation:mxPulse 1.8s ease-in-out infinite}
+@keyframes mxPulse{0%,100%{background:rgba(0,0,0,0.15);box-shadow:inset 0 0 0 0 hsl(var(--hue1) 60% 50% / 0)}50%{background:hsl(var(--hue1) 50% 20% / 0.55);box-shadow:inset 0 0 0 2px hsl(var(--hue1) 60% 50% / 0.35)}}
 .mx-cell.has-value{background:hsl(var(--hue1) 40% 18% / 0.45);animation:none;box-shadow:inset 0 0 0 1px hsl(var(--hue1) 60% 45% / 0.3)}
 .mx-cell-inputs{display:flex;flex-direction:column;gap:4px;align-items:center}
 .mx-cell-qty{width:54px;height:34px;padding:4px 2px;border-radius:8px;border:1px solid hsl(var(--hue2) 15% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(var(--hue1) 60% 90%);font-size:14px;font-weight:800;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
+.mx-cell-qty::placeholder{color:rgba(255,255,255,0.18);font-weight:500;font-size:10px}
+.mx-cell-min::placeholder{color:rgba(245,158,11,0.25);font-weight:500}
 .mx-cell-qty::-webkit-outer-spin-button,.mx-cell-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-cell-qty:focus{border-color:hsl(var(--hue1) 60% 55%);background:hsl(var(--hue1) 40% 15% / 0.6);box-shadow:0 0 0 2px hsl(var(--hue1) 60% 50% / 0.2)}
 .mx-cell-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase;line-height:1}
@@ -3403,8 +3405,11 @@ function wizGo(step){
 function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
 function openMxOverlay(){
   var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
-  if(!szAx||!szAx.values.length||!clAx||!clAx.values.length){showToast('Избери размери и цветове първо','error');return}
-  var sizes=szAx.values,colors=clAx.values;
+  var hasSize=szAx&&szAx.values.length>0;
+  var hasColor=clAx&&clAx.values.length>0;
+  if(!hasSize&&!hasColor){showToast('Избери размери или цветове първо','error');return}
+  var sizes=hasSize?szAx.values:['—'];
+  var colors=hasColor?clAx.values:['—'];
   document.getElementById('mxSubtitle').innerHTML='<b>'+sizes.length+'</b> размера × <b>'+colors.length+'</b> цвята = <b>'+(sizes.length*colors.length)+'</b> клетки';
   // Build thead
   var thead='<tr><th class="mx-corner"></th>';
@@ -3724,7 +3729,7 @@ function renderWizPagePart2(step){
                     pg.vals.forEach(function(v,vi){
                         pickH+='<span class="v-chip" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2);color:#fcd34d" onclick="wizPinnedRemoveValue('+pgi+','+vi+')">'+esc(v)+' ✕</span>';
                     });
-                    pickH+='<div style="width:100%;display:flex;gap:4px;margin-top:6px"><input type="text" class="v-custom-input" id="editGrpVal'+pgi+'" placeholder="Добави..." style="font-size:12px;padding:8px 12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizPinnedAddValue('+pgi+')}"><button class="v-custom-btn" onclick="wizPinnedAddValue('+pgi+')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>';
+                    pickH+='<div style="width:100%;display:flex;gap:4px;margin-top:6px"><input type="text" class="v-custom-input" id="editGrpVal'+pgi+'" placeholder="Добави..." style="font-size:12px;padding:8px 12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizPinnedAddValue('+pgi+')}"><button class="v-custom-btn" onclick="wizPinnedAddValue('+pgi+')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div>';
                     pickH+='<div style="width:100%;text-align:right;margin-top:4px"><span style="font-size:10px;color:rgba(245,158,11,0.5);cursor:pointer" onclick="wizPinnedResetGroup('+pgi+')">Фабрични настройки</span></div>';
                 }else{
                     valsToShow.forEach(function(v){
@@ -3750,7 +3755,7 @@ function renderWizPagePart2(step){
             });
             pickH+='</div></div>';
             // HEX picker
-            pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:100px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div></div></div>';
+            pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:90px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div></div></div>';
         }
 
         // Custom add row (за всеки axis)
@@ -3762,7 +3767,7 @@ function renderWizPagePart2(step){
         }
 
         // Create new group
-        pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:14px;border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова група</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Модел, Материал, Серия...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>';
+        pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:14px;border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова група</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Модел, Материал, Серия...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Създай</button></div>';
         if(S._wizNewCustomGroup){
             var ncg=S._wizNewCustomGroup;
             pickH+='<div style="margin-top:8px;padding:8px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Групата добавена: '+esc(ncg.name)+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
@@ -3779,7 +3784,9 @@ function renderWizPagePart2(step){
         var combos=wizCountCombinations();
         var hasMatrix=S.wizData._matrix&&Object.keys(S.wizData._matrix).filter(function(k){return S.wizData._matrix[k]&&S.wizData._matrix[k].qty>0}).length>0;
         var mcH='';
-        if(combos>0){
+        // S73.B.9: Матрица винаги когато има поне една стойност
+        var totalValues=0;(S.wizData.axes||[]).forEach(function(a){totalValues+=a.values.length});
+        if(totalValues>0){
             if(hasMatrix){
                 var filled=0,total=0,minSum=0;
                 Object.keys(S.wizData._matrix).forEach(function(k){var c=S.wizData._matrix[k]||{};var q=parseInt(c.qty)||0;var mn=parseInt(c.min)||0;if(q>0)filled++;total+=q;minSum+=mn});
@@ -3791,10 +3798,10 @@ function renderWizPagePart2(step){
             }
         }
 
-        return '<div class="wiz-page active">'+
+        return '<div class="wiz-page active" style="padding-bottom:90px">'+
             previewH+
-            mcH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
+            (mcH?'<div style="position:sticky;bottom:60px;z-index:50;margin:14px -4px 0;padding:0 4px">'+mcH+'</div>':'')+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
               '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
               '<button type="button" onclick="showToast(\'Печат — скоро\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
