@@ -842,7 +842,8 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-mc-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
 .v-mc-sub{font-size:11px;color:rgba(255,255,255,0.4);line-height:1.4}
 .v-mc-sub b{color:hsl(var(--hue1) 60% 85%);font-weight:700}
-.v-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 55% 30% / 0.7),hsl(var(--hue2) 55% 26% / 0.7));border:1px solid hsl(var(--hue1) 60% 55% / 0.6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px hsl(var(--hue1) 70% 30% / 0.35),0 0 20px hsl(var(--hue1) 60% 45% / 0.2),inset 0 1px 0 rgba(255,255,255,0.2);text-shadow:0 0 12px rgba(255,255,255,0.2);width:100%;font-family:inherit}
+.v-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 55% 30% / 0.7),hsl(var(--hue2) 55% 26% / 0.7));border:1px solid hsl(var(--hue1) 60% 55% / 0.6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;text-shadow:0 0 12px rgba(255,255,255,0.2);width:100%;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
+@keyframes vCtaPulse{0%,100%{box-shadow:0 8px 24px hsl(var(--hue1) 70% 30% / 0.35),0 0 20px hsl(var(--hue1) 60% 45% / 0.2),inset 0 1px 0 rgba(255,255,255,0.2)}50%{box-shadow:0 12px 32px hsl(var(--hue1) 70% 40% / 0.55),0 0 40px hsl(var(--hue1) 60% 55% / 0.5),inset 0 1px 0 rgba(255,255,255,0.3)}}
 .v-matrix-cta-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
 .v-matrix-cta-pill{padding:3px 8px;border-radius:8px;background:rgba(0,0,0,0.3);font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,0.15)}
 .v-matrix-cta-arrow{font-size:18px;flex-shrink:0}
@@ -869,7 +870,8 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
 .mx-qchip:hover{background:hsl(var(--hue1) 40% 22% / 0.4);border-color:hsl(var(--hue1) 50% 45% / 0.5);color:hsl(var(--hue1) 60% 88%)}
 .mx-qchip.danger{border-color:rgba(239,68,68,0.25);color:#fca5a5}
-.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative}
+.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative;animation:mxFlash 0.7s ease-out}
+@keyframes mxFlash{0%{opacity:0;transform:scale(0.97);filter:brightness(2)}40%{opacity:1;filter:brightness(1.3)}100%{opacity:1;transform:scale(1);filter:brightness(1)}}
 .mx-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 .mx-head-cell,.mx-row-head,.mx-corner{position:sticky;background:rgba(8,9,13,0.98);backdrop-filter:blur(8px);z-index:2}
 .mx-corner{left:0;top:0;z-index:4;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
@@ -2171,7 +2173,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     <button class="mx-close" onclick="closeMxOverlay()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
-  <div class="mx-quick">
+  <div style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
+<div class="mx-quick">
     <button class="mx-qchip" onclick="mxFillAll(1)">Всички = 1</button>
     <button class="mx-qchip" onclick="mxFillAll(2)">Всички = 2</button>
     <button class="mx-qchip" onclick="mxFillAll(5)">Всички = 5</button>
@@ -3418,7 +3421,7 @@ function openMxOverlay(){
       var q=cell.qty!==undefined?cell.qty:'';
       var m=cell.min!==undefined?cell.min:'';
       var has=q!==''&&q!==null&&q>0;
-      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="—"><div class="mx-cell-lbl">мин.</div><div class="mx-cell-min-row"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',-1)">▼</button><input type="number" class="mx-cell-min" data-key="'+key+'" data-t="min" value="'+m+'" min="0" inputmode="numeric" placeholder="—"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',1)">▲</button></div></div></td>';
+      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="0 бр."><div class="mx-cell-lbl">мин.</div><div class="mx-cell-min-row"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',-1)">▼</button><input type="number" class="mx-cell-min" data-key="'+key+'" data-t="min" value="'+m+'" min="0" inputmode="numeric" placeholder="0"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',1)">▲</button></div></div></td>';
     });
     tb+='</tr>';
   });
@@ -3784,14 +3787,14 @@ function renderWizPagePart2(step){
             }else{
                 var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(a){var n=a.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=a;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=a});
                 var szN=szAx?szAx.values.length:0,clN=clAx?clAx.values.length:0;
-                mcH='<div class="glass sm v-matrix-cta-wrap"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><div class="v-mc-row"><div class="v-mc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="v-mc-text"><div class="v-mc-title">Матрица размер × цвят</div><div class="v-mc-sub"><b>'+szN+' размера</b> × <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b></div></div></div><button class="v-matrix-cta" onclick="openMxOverlay()"><div class="v-matrix-cta-info"><div class="v-matrix-cta-pill">'+combos+'</div><span>Въведи бройки и мин. нива</span></div><span class="v-matrix-cta-arrow">→</span></button></div>';
+                mcH='<div class="glass sm v-matrix-cta-wrap"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><div class="v-mc-row"><div class="v-mc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="v-mc-text"><div class="v-mc-title">Матрица размер × цвят</div><div class="v-mc-sub"><b>'+szN+' размера</b> × <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b></div></div></div><button class="v-matrix-cta" onclick="openMxOverlay()"><div class="v-matrix-cta-info"><div class="v-matrix-cta-pill">'+combos+'</div><span>Въведи колко бройки имаш и мин. количества за поръчки</span></div><span class="v-matrix-cta-arrow">→</span></button></div>';
             }
         }
 
         return '<div class="wiz-page active">'+
             previewH+
-            '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             mcH+
+            '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
               '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
               '<button type="button" onclick="showToast(\'Печат — скоро\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
@@ -4964,10 +4967,55 @@ _wizLoadCustomColors();
 function wizTogglePresetInline(axIdx,val,chip){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
     var idx=ax.values.indexOf(val);
-    if(idx>=0)ax.values.splice(idx,1);
-    else ax.values.push(val);
+    if(idx>=0){ax.values.splice(idx,1);chip.classList.remove('selected')}
+    else{ax.values.push(val);chip.classList.add('selected')}
     if(navigator.vibrate)navigator.vibrate(5);
-    renderWizard();
+    _v4UpdateAfterToggle(axIdx);
+}
+function _v4UpdateAfterToggle(axIdx){
+    var ax=S.wizData.axes[axIdx];if(!ax)return;
+    var nm=ax.name.toLowerCase();
+    var isColor=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1;
+    // Tab count
+    var tabs=document.querySelectorAll('.v-axis-tab');
+    if(tabs[axIdx]){var cn=tabs[axIdx].querySelector('.v-axis-tab-count');if(cn)cn.textContent=ax.values.length||0}
+    // Selected bar
+    var sb=document.querySelector('.v-sel-bar');
+    if(sb){
+        var h='';
+        if(ax.values.length){
+            ax.values.forEach(function(v,vi){
+                var dot='';
+                if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)dot='<span class="v-dot" style="background:'+cc.hex+'"></span>';}
+                h+='<div class="v-sel-chip" onclick="S.wizData.axes['+axIdx+'].values.splice('+vi+',1);renderWizard()">'+dot+'<span>'+esc(v)+'</span><span class="v-sel-chip-x">\u2715</span></div>';
+            });
+            h+='<button class="v-clear-btn" onclick="event.stopPropagation();S.wizData.axes['+axIdx+'].values=[];renderWizard()">Изчисти</button>';
+        }else{
+            h='<div class="v-sel-empty">Избери от групите, търси, въведи ръчно или с глас</div>';
+        }
+        sb.innerHTML=h;
+    }
+    // Preset group counts (only for size axis)
+    if(!isColor){
+        document.querySelectorAll('.v-pgroup').forEach(function(g,pgi){
+            var pg=S._wizPinnedGroups&&S._wizPinnedGroups[pgi];if(!pg)return;
+            var sel=pg.vals.filter(function(v){return ax.values.indexOf(v)>=0}).length;
+            var cn=g.querySelector('.v-pgroup-count');
+            if(cn){cn.textContent=sel+'/'+pg.vals.length;if(sel>0)cn.classList.add('has');else cn.classList.remove('has');}
+        });
+    }
+    // Matrix CTA — need full re-render ако combos threshold се пресече
+    _v4RefreshMatrixCta();
+}
+function _v4RefreshMatrixCta(){
+    var wrap=document.querySelector('.v-matrix-cta-wrap, .v-matrix-summary');
+    if(!wrap)return;
+    // Trigger light re-render of matrix CTA section
+    var combos=wizCountCombinations();
+    var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(a){var n=a.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=a;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=a});
+    var szN=szAx?szAx.values.length:0,clN=clAx?clAx.values.length:0;
+    var pillEl=wrap.querySelector('.v-matrix-cta-pill');if(pillEl)pillEl.textContent=combos;
+    var subEl=wrap.querySelector('.v-mc-sub');if(subEl)subEl.innerHTML='<b>'+szN+' размера</b> \u00d7 <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b>';
 }
 function _wizUpdateSummaryBar(axIdx){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
