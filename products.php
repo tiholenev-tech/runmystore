@@ -3708,11 +3708,22 @@ function renderWizPagePart2(step){
         // Search
         pickH+='<div class="v-picker-search"><span class="v-picker-search-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" id="wizSearch'+ai+'" placeholder="Търси размер или група..." oninput="wizSearchPresets('+ai+',this.value)" autocomplete="off"></div><div id="wizSearchRes'+ai+'"></div>';
 
-        // SIZE: pinned groups
-        if(isSize){
+        // Pinned groups показваме само на таба според axisHint (или на първия ако няма hint)
+        if(true){
             var existingSet=new Set(ax.values);
-            var pinned=S._wizPinnedGroups||[];
-            pinned.forEach(function(pg,pgi){
+            var allPinned=S._wizPinnedGroups||[];
+            var pinned=allPinned.filter(function(pg){
+                var hint=(pg.axisHint===undefined||pg.axisHint===null)?0:pg.axisHint;
+                return hint===ai;
+            });
+            // Map filtered индекси към оригиналните за правилно премахване/редакция
+            var _pgIdxMap=[];
+            allPinned.forEach(function(pg,origIdx){
+                var hint=(pg.axisHint===undefined||pg.axisHint===null)?0:pg.axisHint;
+                if(hint===ai)_pgIdxMap.push(origIdx);
+            });
+            pinned.forEach(function(pg,pgLocalIdx){
+                var pgi=_pgIdxMap[pgLocalIdx]; // реалния index в S._wizPinnedGroups
                 var maxShow=15;
                 var isEditing=S._wizEditingGroup!==null&&S._wizEditingGroup===pgi;
                 var selCount=pg.vals.filter(function(v){return existingSet.has(v)}).length;
@@ -4526,17 +4537,17 @@ function wizSaveCustomGroupToAxes(){
     var active=S.wizData.axes[S._wizActiveTab];
     var isEmpty=active&&(!active.values||active.values.length===0);
     var isDefault=active&&/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(active.name);
+    var axisHint=S._wizActiveTab; // Запомняме кой таб (0/1) е ползван при създаване
     if(isEmpty&&isDefault){
-        // Замести името + стойностите на текущия таб
         active.name=ncg.name;
         active.values=ncg.values.slice();
     }else{
-        // Add as new axis
         S.wizData.axes.push({name:ncg.name,values:ncg.values.slice()});
         S._wizActiveTab=S.wizData.axes.length-1;
+        axisHint=S._wizActiveTab;
     }
     if(!S._wizPinnedGroups)S._wizPinnedGroups=[];
-    S._wizPinnedGroups.push({id:'custom_'+Date.now(),label:ncg.name,vals:ncg.values.slice(),_origVals:ncg.values.slice()});
+    S._wizPinnedGroups.push({id:'custom_'+Date.now(),label:ncg.name,vals:ncg.values.slice(),_origVals:ncg.values.slice(),axisHint:axisHint});
     _wizSavePinnedGroups();
     S._wizNewCustomGroup=null;
     renderWizard();
