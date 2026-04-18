@@ -3412,10 +3412,7 @@ function openMxOverlay(){
   if(!activeAxes.length){showToast('Избери стойности първо','error');return}
   var rowAx=activeAxes[0];
   var colAx=activeAxes[1]||null;
-  // Ако axes са "размер" + "цвят" — правилен ред (размер=rows, цвят=cols)
-  var hasSize=activeAxes.find(function(a){return /размер|size|ръст/i.test(a.name)});
-  var hasColor=activeAxes.find(function(a){return /цвят|color|десен/i.test(a.name)});
-  if(hasSize&&hasColor){rowAx=hasSize;colAx=hasColor}
+  // Редът на axes в S.wizData.axes е приоритет — първият = rows, вторият = cols
   var sizes=rowAx.values;
   var colors=colAx?colAx.values:['—'];
   var isColorCol=colAx&&/цвят|color|десен/i.test(colAx.name);
