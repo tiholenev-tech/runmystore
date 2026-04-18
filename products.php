@@ -4534,8 +4534,6 @@ function wizSaveCustomGroupToAxes(){
     S._wizActiveTab=S.wizData.axes.length-1;
     renderWizard();
     showToast('"'+ncg.name+'" добавена ✓','success');
-    // Auto-open grid за попълване на бройки
-    setTimeout(function(){openMxOverlay()},300);
 }
 
 // S70: New Step 4 helper functions
