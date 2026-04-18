@@ -3774,7 +3774,7 @@ function renderWizPagePart2(step){
         pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:14px;border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова група</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Модел, Материал, Серия...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Създай</button></div>';
         if(S._wizNewCustomGroup){
             var ncg=S._wizNewCustomGroup;
-            pickH+='<div style="margin-top:8px;padding:8px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Групата добавена: '+esc(ncg.name)+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
+            pickH+='<div style="margin-top:8px;padding:8px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:3px">Нова група: <b>'+esc(ncg.name)+'</b></div><div style="font-size:10px;color:rgba(134,239,172,0.7);margin-bottom:6px">Стойности: '+(ncg.values||[]).map(esc).join(', ')+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
             (ncg.values||[]).forEach(function(v,vi){
                 pickH+='<span class="v-chip" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2);color:#86efac;cursor:pointer" onclick="S._wizNewCustomGroup.values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>';
             });
@@ -4494,6 +4494,10 @@ function wizCreateCustomGroup(){
     inp.value='';
     renderWizard();
     showToast('Групата "'+name+'" е създадена. Добави стойности.','success');
+    setTimeout(function(){
+        var el=document.getElementById('ncgValInput');
+        if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}
+    },100);
 }
 
 function wizAddCustomGroupValue(){
