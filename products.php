@@ -774,6 +774,128 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .glass .glow-bright::after { content: none; }
 .glass .glow-bright.glow-bottom { inset: -7px; right: auto; top: auto; }
 .glass.sm { --radius: var(--radius-sm); }
+
+/* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
+.v-var-card{padding:0;margin-bottom:12px;overflow:hidden}
+.v-preview-pill{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)}
+.v-preview-thumb{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,hsl(var(--hue1) 40% 25%),hsl(var(--hue2) 40% 22%));border:1px solid hsl(var(--hue1) 40% 35% / 0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.v-preview-thumb svg{width:18px;height:18px;stroke:hsl(var(--hue1) 60% 80%);stroke-width:1.5;fill:none}
+.v-preview-info{flex:1;min-width:0}
+.v-preview-name{font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v-preview-meta{font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px}
+
+.v-axis-tabs{display:flex;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8);padding:0 14px;gap:4px;overflow-x:auto;scrollbar-width:none}
+.v-axis-tabs::-webkit-scrollbar{display:none}
+.v-axis-tab{position:relative;padding:14px 18px 12px;font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;margin-bottom:-1px;font-family:inherit;white-space:nowrap}
+.v-axis-tab.active{color:hsl(var(--hue1) 60% 85%);border-bottom-color:hsl(var(--hue1) 70% 55%);text-shadow:0 0 12px hsl(var(--hue1) 60% 50% / 0.4)}
+.v-axis-tab svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.v-axis-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:100px;background:hsl(var(--hue1) 40% 25% / 0.7);color:hsl(var(--hue1) 60% 88%);font-size:10px;font-weight:800;border:1px solid hsl(var(--hue1) 50% 40% / 0.5)}
+.v-axis-tab.active .v-axis-tab-count{background:hsl(var(--hue1) 60% 45%);color:#fff;box-shadow:0 0 10px hsl(var(--hue1) 60% 50% / 0.5)}
+.v-axis-tab-add{padding:14px 14px 12px;color:hsl(var(--hue1) 60% 70%);font-size:18px;cursor:pointer;border:none;background:transparent;font-family:inherit}
+
+.v-sel-bar{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px 10px;align-items:center;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.5);min-height:56px}
+.v-sel-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 11px;border-radius:100px;background:linear-gradient(135deg,hsl(var(--hue1) 50% 28%),hsl(var(--hue1) 60% 22%));border:1px solid hsl(var(--hue1) 60% 50%);color:#fff;font-size:12px;font-weight:700;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 hsl(var(--hue1) 60% 60% / 0.3);cursor:pointer}
+.v-sel-chip-x{opacity:0.65;font-size:10px;font-weight:400;padding-left:2px}
+.v-sel-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);flex-shrink:0}
+.v-sel-empty{font-size:11px;color:rgba(255,255,255,0.4);font-style:italic;line-height:1.4}
+.v-clear-btn{margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.02em;text-transform:uppercase;font-family:inherit}
+
+.v-picker-body{padding:12px 14px 14px;max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.v-picker-search{position:relative;margin-bottom:12px}
+.v-picker-search input{width:100%;padding:10px 14px 10px 38px;border-radius:12px;border:1px solid hsl(var(--hue2) 15% 20% / 0.6);background:linear-gradient(to bottom,hsl(var(--hue1) 20% 15% / 0.2),hsl(var(--hue1) 30% 10% / 0.4));color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
+.v-picker-search input:focus{border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
+.v-picker-search-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.4);pointer-events:none}
+.v-picker-search-ic svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
+
+.v-pgroup{border:1px solid hsl(var(--hue1) 20% 18% / 0.4);border-radius:14px;margin-bottom:10px;overflow:hidden;background:rgba(0,0,0,0.15)}
+.v-pgroup-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:linear-gradient(90deg,hsl(var(--hue1) 25% 15% / 0.5),hsl(var(--hue1) 15% 10% / 0.2) 80%,transparent)}
+.v-pgroup-title{flex:1;font-size:11px;font-weight:800;color:hsl(var(--hue1) 50% 80%);letter-spacing:0.05em;text-transform:uppercase}
+.v-pgroup-title.starred::before{content:'★ ';color:hsl(45 90% 65%);font-size:10px;text-shadow:0 0 8px hsl(45 90% 50% / 0.5)}
+.v-pgroup-count{font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);padding:2px 7px;border-radius:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}
+.v-pgroup-count.has{color:hsl(var(--hue1) 60% 85%);background:hsl(var(--hue1) 40% 25% / 0.6);border-color:hsl(var(--hue1) 50% 40% / 0.6)}
+.v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
+.v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
+.v-pgroup-actions{display:flex;gap:4px;align-items:center}
+.v-pgroup-act{padding:3px 7px;border-radius:6px;font-size:9px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-family:inherit}
+.v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
+.v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
+.v-pgroup-act.danger{color:rgba(239,68,68,0.7);border-color:rgba(239,68,68,0.2)}
+.v-pgroup-body{display:none;padding:8px 10px 12px;flex-wrap:wrap;gap:6px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.2)}
+.v-pgroup.open .v-pgroup-body{display:flex}
+
+.v-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;user-select:none;-webkit-user-select:none;font-family:inherit}
+.v-chip:hover{background:hsl(var(--hue1) 30% 20% / 0.4);border-color:hsl(var(--hue1) 40% 40% / 0.5);color:hsl(var(--hue1) 60% 85%)}
+.v-chip.selected{background:linear-gradient(135deg,hsl(var(--hue1) 60% 32%),hsl(var(--hue1) 70% 26%));border-color:hsl(var(--hue1) 60% 55%);color:#fff;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.4),inset 0 1px 0 hsl(var(--hue1) 60% 65% / 0.3);font-weight:700}
+.v-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
+
+.v-custom-row{display:flex;gap:8px;margin-top:10px;align-items:center}
+.v-custom-input{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
+.v-custom-input:focus{border-style:solid;border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
+.v-custom-btn{padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 60% 35%),hsl(var(--hue1) 70% 28%));border:1px solid hsl(var(--hue1) 60% 50%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 rgba(255,255,255,0.2);font-family:inherit}
+.v-custom-btn svg{width:14px;height:14px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
+
+.v-matrix-cta-wrap{padding:16px;margin-bottom:12px}
+.v-mc-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.v-mc-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 50% 30%),hsl(var(--hue2) 50% 25%));border:1px solid hsl(var(--hue1) 50% 45% / 0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px hsl(var(--hue1) 60% 40% / 0.25);flex-shrink:0}
+.v-mc-icon svg{width:20px;height:20px;stroke:hsl(var(--hue1) 60% 85%);stroke-width:1.8;fill:none}
+.v-mc-text{flex:1}
+.v-mc-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
+.v-mc-sub{font-size:11px;color:rgba(255,255,255,0.4);line-height:1.4}
+.v-mc-sub b{color:hsl(var(--hue1) 60% 85%);font-weight:700}
+.v-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 55% 30% / 0.7),hsl(var(--hue2) 55% 26% / 0.7));border:1px solid hsl(var(--hue1) 60% 55% / 0.6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px hsl(var(--hue1) 70% 30% / 0.35),0 0 20px hsl(var(--hue1) 60% 45% / 0.2),inset 0 1px 0 rgba(255,255,255,0.2);text-shadow:0 0 12px rgba(255,255,255,0.2);width:100%;font-family:inherit}
+.v-matrix-cta-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
+.v-matrix-cta-pill{padding:3px 8px;border-radius:8px;background:rgba(0,0,0,0.3);font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,0.15)}
+.v-matrix-cta-arrow{font-size:18px;flex-shrink:0}
+.v-matrix-summary{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);margin-bottom:12px}
+.v-ms-check{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(34,197,94,0.5);flex-shrink:0}
+.v-ms-check svg{width:14px;height:14px;stroke:#fff;stroke-width:3;fill:none}
+.v-ms-text{flex:1}
+.v-ms-title{font-size:12px;font-weight:700;color:#86efac;margin-bottom:1px}
+.v-ms-sub{font-size:10px;color:rgba(134,239,172,0.7)}
+.v-ms-edit{padding:5px 12px;border-radius:100px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:#86efac;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;font-family:inherit}
+
+/* ═══ MATRIX FULLSCREEN OVERLAY ═══ */
+.mx-overlay{position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.25) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.25) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);display:none;flex-direction:column;opacity:0;transition:opacity 0.25s var(--ease)}
+.mx-overlay.open{display:flex;opacity:1}
+.mx-header{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 16px 12px;background:rgba(3,7,18,0.9);backdrop-filter:blur(12px);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.6)}
+.mx-close{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.mx-close svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
+.mx-title-wrap{flex:1;min-width:0}
+.mx-title{font-size:15px;font-weight:800;background:linear-gradient(135deg,#f1f5f9 30%,hsl(var(--hue1) 60% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+.mx-subtitle{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-top:2px}
+.mx-subtitle b{color:hsl(var(--hue1) 60% 85%);font-weight:700}
+.mx-quick{flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.5);background:rgba(3,7,18,0.6)}
+.mx-quick::-webkit-scrollbar{display:none}
+.mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.mx-qchip:hover{background:hsl(var(--hue1) 40% 22% / 0.4);border-color:hsl(var(--hue1) 50% 45% / 0.5);color:hsl(var(--hue1) 60% 88%)}
+.mx-qchip.danger{border-color:rgba(239,68,68,0.25);color:#fca5a5}
+.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative}
+.mx-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+.mx-head-cell,.mx-row-head,.mx-corner{position:sticky;background:rgba(8,9,13,0.98);backdrop-filter:blur(8px);z-index:2}
+.mx-corner{left:0;top:0;z-index:4;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
+.mx-head-cell{top:0;z-index:3;padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:hsl(var(--hue1) 60% 85%);min-width:110px;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3)}
+.mx-head-cell .v-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,0.1)}
+.mx-row-head{left:0;z-index:2;padding:8px 14px;text-align:left;font-size:13px;font-weight:800;color:hsl(var(--hue1) 60% 88%);min-width:80px;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);background:linear-gradient(to right,hsl(var(--hue1) 30% 16% / 0.7),hsl(var(--hue1) 20% 12% / 0.6))}
+.mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle}
+.mx-cell.has-value{background:hsl(var(--hue1) 30% 14% / 0.35)}
+.mx-cell-inputs{display:flex;flex-direction:column;gap:4px;align-items:center}
+.mx-cell-qty{width:54px;height:34px;padding:4px 2px;border-radius:8px;border:1px solid hsl(var(--hue2) 15% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(var(--hue1) 60% 90%);font-size:14px;font-weight:800;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
+.mx-cell-qty::-webkit-outer-spin-button,.mx-cell-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mx-cell-qty:focus{border-color:hsl(var(--hue1) 60% 55%);background:hsl(var(--hue1) 40% 15% / 0.6);box-shadow:0 0 0 2px hsl(var(--hue1) 60% 50% / 0.2)}
+.mx-cell-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase;line-height:1}
+.mx-cell-min-row{display:flex;align-items:center;gap:2px;justify-content:center}
+.mx-cell-min{width:36px;height:26px;padding:0;border-radius:6px;border:1px solid hsl(45 40% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(45 80% 70%);font-size:11px;font-weight:700;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
+.mx-cell-min::-webkit-outer-spin-button,.mx-cell-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mx-cell-min:focus{border-color:hsl(45 70% 55%);box-shadow:0 0 0 2px hsl(45 70% 50% / 0.2)}
+.mx-min-step{width:18px;height:26px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
+.mx-min-step:hover{background:hsl(45 30% 20% / 0.5);border-color:hsl(45 40% 40% / 0.5)}
+.mx-bottom{flex-shrink:0;padding:14px 16px 20px;background:rgba(3,7,18,0.95);backdrop-filter:blur(12px);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
+.mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
+.mx-stat{text-align:center;flex:1}
+.mx-stat-v{font-size:20px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.mx-stat-l{font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-top:4px}
+.mx-done{width:100%;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 70% 52%),hsl(var(--hue1) 80% 42%));border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;box-shadow:0 8px 24px hsl(var(--hue1) 70% 40% / 0.4),0 0 24px hsl(var(--hue1) 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);text-shadow:0 0 12px rgba(255,255,255,0.3)}
+.mx-done svg{width:16px;height:16px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{
     background:var(--bg-main);color:var(--text-primary);
@@ -2041,6 +2163,26 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 <!-- Hidden file inputs -->
 <input type="file" id="photoInput" accept="image/*" capture="environment">
+
+<!-- S73.B.6: Fullscreen Matrix Overlay -->
+<div class="mx-overlay" id="mxOverlay">
+  <div class="mx-header">
+    <button class="mx-close" onclick="closeMxOverlay()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
+  </div>
+  <div class="mx-quick">
+    <button class="mx-qchip" onclick="mxFillAll(1)">Всички = 1</button>
+    <button class="mx-qchip" onclick="mxFillAll(2)">Всички = 2</button>
+    <button class="mx-qchip" onclick="mxFillAll(5)">Всички = 5</button>
+    <button class="mx-qchip" onclick="mxFillAll(10)">Всички = 10</button>
+    <button class="mx-qchip danger" onclick="mxClear()">Изчисти</button>
+  </div>
+  <div class="mx-body-wrap"><table class="mx-table" id="mxTable"><thead id="mxThead"></thead><tbody id="mxTbody"></tbody></table></div>
+  <div class="mx-bottom">
+    <div class="mx-stats"><div class="mx-stat"><div class="mx-stat-v" id="mxStatCells">0</div><div class="mx-stat-l">Попълнени</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatTotal">0</div><div class="mx-stat-l">Общо бр</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatMin">0</div><div class="mx-stat-l">Мин. сума</div></div></div>
+    <button class="mx-done" onclick="mxDone()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>
+  </div>
+</div>
 <input type="file" id="filePickerInput" accept="image/*,*/*">
 <!-- S43: removed dup filePickerInput -->
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
@@ -3252,6 +3394,74 @@ function wizGo(step){
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
 }
 
+
+// ═══ S73.B.6: Matrix Overlay Functions ═══
+function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
+function openMxOverlay(){
+  var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
+  if(!szAx||!szAx.values.length||!clAx||!clAx.values.length){showToast('Избери размери и цветове първо','error');return}
+  var sizes=szAx.values,colors=clAx.values;
+  document.getElementById('mxSubtitle').innerHTML='<b>'+sizes.length+'</b> размера × <b>'+colors.length+'</b> цвята = <b>'+(sizes.length*colors.length)+'</b> клетки';
+  // Build thead
+  var thead='<tr><th class="mx-corner"></th>';
+  colors.forEach(function(c){var cc=CFG.colors.find(function(x){return x.name===c});var dot=cc?'<span class="v-dot" style="background:'+cc.hex+'"></span>':'';thead+='<th class="mx-head-cell">'+dot+esc(c)+'</th>'});
+  thead+='</tr>';
+  document.getElementById('mxThead').innerHTML=thead;
+  // Build tbody
+  var tb='';
+  sizes.forEach(function(sz,si){
+    tb+='<tr><th class="mx-row-head">'+esc(sz)+'</th>';
+    colors.forEach(function(c,ci){
+      var key='mx_'+si+'_'+ci;
+      var cell=(S.wizData._matrix&&S.wizData._matrix[key])||{};
+      var q=cell.qty!==undefined?cell.qty:'';
+      var m=cell.min!==undefined?cell.min:'';
+      var has=q!==''&&q!==null&&q>0;
+      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="—"><div class="mx-cell-lbl">мин.</div><div class="mx-cell-min-row"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',-1)">▼</button><input type="number" class="mx-cell-min" data-key="'+key+'" data-t="min" value="'+m+'" min="0" inputmode="numeric" placeholder="—"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',1)">▲</button></div></div></td>';
+    });
+    tb+='</tr>';
+  });
+  document.getElementById('mxTbody').innerHTML=tb;
+  // Attach handlers
+  document.querySelectorAll('.mx-cell-qty').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var key=inp.dataset.key;var v=parseInt(inp.value)||0;
+      if(!S.wizData._matrix)S.wizData._matrix={};
+      if(!S.wizData._matrix[key])S.wizData._matrix[key]={};
+      S.wizData._matrix[key].qty=v>0?v:'';
+      if(v>0){var mn=autoMin(v);S.wizData._matrix[key].min=mn;var mi=document.querySelector('.mx-cell-min[data-key="'+key+'"]');if(mi)mi.value=mn;}
+      else{S.wizData._matrix[key].min='';var mi2=document.querySelector('.mx-cell-min[data-key="'+key+'"]');if(mi2)mi2.value='';}
+      var td=inp.closest('.mx-cell');if(v>0)td.classList.add('has-value');else td.classList.remove('has-value');
+      mxUpdateStats();
+    });
+  });
+  document.querySelectorAll('.mx-cell-min').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var key=inp.dataset.key;var v=parseInt(inp.value)||0;
+      if(!S.wizData._matrix)S.wizData._matrix={};
+      if(!S.wizData._matrix[key])S.wizData._matrix[key]={};
+      S.wizData._matrix[key].min=v>0?v:'';
+      mxUpdateStats();
+    });
+  });
+  mxUpdateStats();
+  document.getElementById('mxOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeMxOverlay(){document.getElementById('mxOverlay').classList.remove('open');document.body.style.overflow=''}
+function mxStepMin(key,dir){var inp=document.querySelector('.mx-cell-min[data-key="'+key+'"]');if(!inp)return;var v=Math.max(0,(parseInt(inp.value)||0)+dir);inp.value=v;if(!S.wizData._matrix)S.wizData._matrix={};if(!S.wizData._matrix[key])S.wizData._matrix[key]={};S.wizData._matrix[key].min=v>0?v:'';mxUpdateStats();if(navigator.vibrate)navigator.vibrate(3)}
+function mxFillAll(qty){
+  var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=ax;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=ax});
+  if(!szAx||!clAx)return;
+  if(!S.wizData._matrix)S.wizData._matrix={};
+  szAx.values.forEach(function(_,si){clAx.values.forEach(function(_,ci){var key='mx_'+si+'_'+ci;S.wizData._matrix[key]={qty:qty,min:autoMin(qty)}})});
+  openMxOverlay();
+  if(navigator.vibrate)navigator.vibrate(10);
+}
+function mxClear(){S.wizData._matrix={};openMxOverlay();if(navigator.vibrate)navigator.vibrate(12)}
+function mxUpdateStats(){var f=0,t=0,ms=0;var m=S.wizData._matrix||{};Object.keys(m).forEach(function(k){var c=m[k]||{};var q=parseInt(c.qty)||0;var mn=parseInt(c.min)||0;if(q>0)f++;t+=q;ms+=mn});document.getElementById('mxStatCells').textContent=f;document.getElementById('mxStatTotal').textContent=t;document.getElementById('mxStatMin').textContent=ms}
+function mxDone(){closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate([5,30,10])}
+
 async function renderWizard(){
     let sb='';
     const uiIdx=WIZ_UI_INDEX[S.wizStep];
@@ -3413,7 +3623,7 @@ function renderWizPage(step){
 function renderWizPagePart2(step){
     const vskip=S.wizVoiceMode?'<button class="abtn" onclick="wizGo('+(step+1)+')" style="margin-top:6px;border-color:rgba(245,158,11,0.2);color:#fbbf24">⏭ Пропусни</button>':'';
 
-    // ═══ STEP 4: ВАРИАЦИИ (S70v3 — final picker) ═══
+    // ═══ STEP 4: ВАРИАЦИИ (S73.B.6 — 1:1 от add-product-variations.html) ═══
     if(step===4){
         if(S.wizType==='single')return '<div class="wiz-page active"><div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Единичен артикул — без вариации.</div><button class="abtn primary" onclick="wizGoPreview()">Напред →</button><button class="abtn" onclick="wizGo(3)" style="margin-top:6px">← Назад</button></div>';
 
@@ -3435,17 +3645,24 @@ function renderWizPagePart2(step){
                 S._wizPinnedGroups=def.map(function(g){return{id:g.id,label:g.label,vals:g.vals.slice(),_origVals:g.vals.slice()}});
             }
         }
-        // Init editing state
         if(S._wizEditingGroup===undefined)S._wizEditingGroup=null;
 
+        // Preview pill
+        var prodName=S.wizData.name||'Нов артикул';
+        var prodPrice=S.wizData.retail_price?(parseFloat(S.wizData.retail_price).toFixed(2)+' лв'):'—';
+        var previewH='<div class="v-preview-pill"><div class="v-preview-thumb"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="v-preview-info"><div class="v-preview-name">'+esc(prodName)+'</div><div class="v-preview-meta">'+prodPrice+'</div></div></div>';
+
         // Tabs
-        var tabsH='<div style="display:flex;gap:0;border-bottom:1px solid var(--border-subtle);margin-bottom:6px;overflow-x:auto;scrollbar-width:none">';
+        var tabsH='<div class="v-axis-tabs">';
         S.wizData.axes.forEach(function(ax,ti){
             var isAct=S._wizActiveTab===ti;
-            var cnt='<span data-tabc="'+ti+'" style="font-size:9px;background:rgba(99,102,241,0.2);padding:1px 5px;border-radius:8px;margin-left:4px">'+(ax.values.length||'')+'</span>';
-            tabsH+='<div style="padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:2px solid '+(isAct?'var(--indigo-400)':'transparent')+';color:'+(isAct?'var(--indigo-300)':'var(--text-secondary)')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+esc(ax.name)+cnt+'</div>';
+            var nm=ax.name.toLowerCase();
+            var isSz=nm.indexOf('размер')!==-1||nm.indexOf('size')!==-1;
+            var isCl=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1;
+            var icn=isSz?'<svg viewBox="0 0 24 24"><path d="M3 3h18v6H3zM3 15h18v6H3z"/></svg>':(isCl?'<svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/></svg>':'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>');
+            tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+icn+esc(ax.name)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></button>';
         });
-        tabsH+='<div style="padding:9px 10px;cursor:pointer;color:var(--indigo-400);font-size:16px;border-bottom:2px solid transparent" onclick="wizAddAxisFromTab()">+</div>';
+        tabsH+='<button class="v-axis-tab-add" onclick="wizAddAxisFromTab()">+</button>';
         tabsH+='</div>';
 
         var ax=S.wizData.axes[S._wizActiveTab];
@@ -3455,161 +3672,134 @@ function renderWizPagePart2(step){
         var isSize=nm.indexOf('размер')!==-1||nm.indexOf('size')!==-1||nm.indexOf('ръст')!==-1;
         var isColor=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1||nm.indexOf('десен')!==-1;
 
-        // Summary bar
-        var sumH='';
+        // Selected bar
+        var selH='<div class="v-sel-bar">';
         if(ax.values.length){
-            sumH='<div id="wizSumBar" style="display:flex;flex-wrap:wrap;gap:5px;padding:10px;margin-bottom:8px;border-radius:14px;background:linear-gradient(235deg,rgba(99,102,241,0.08),transparent 50%),rgba(15,17,26,0.5);border:0.5px solid rgba(99,102,241,0.2)">';
             ax.values.forEach(function(v,vi){
-                var sw='';
-                if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
-                sumH+='<span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:100px;background:linear-gradient(135deg,#4338ca,#3730a3);color:#fff;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 0 8px rgba(99,102,241,0.3),inset 0 1px 0 rgba(255,255,255,0.15)" onclick="S.wizData.axes['+ai+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:4px;opacity:0.7;font-size:9px">\u2715</span></span>';
+                var dot='';
+                if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)dot='<span class="v-dot" style="background:'+cc.hex+'"></span>';}
+                selH+='<div class="v-sel-chip" onclick="S.wizData.axes['+ai+'].values.splice('+vi+',1);renderWizard()">'+dot+'<span>'+esc(v)+'</span><span class="v-sel-chip-x">✕</span></div>';
             });
-            sumH+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+ai+'].values=[];renderWizard()">Изчисти</span>';
-            sumH+='</div>';
+            selH+='<button class="v-clear-btn" onclick="event.stopPropagation();S.wizData.axes['+ai+'].values=[];renderWizard()">Изчисти</button>';
         }else{
-            sumH='<div id="wizSumBar" style="padding:10px 12px;margin-bottom:8px;border-radius:14px;background:rgba(255,255,255,0.02);border:0.5px dashed rgba(99,102,241,0.25);color:rgba(255,255,255,0.5);font-size:11px;text-align:center">Избери от групите, търси, въведи ръчно или с глас</div>';
+            selH+='<div class="v-sel-empty">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
+        selH+='</div>';
 
-        // Copy prev
-        var copyH='<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:9px 13px;margin-bottom:8px;cursor:pointer" onclick="wizCopyPrevProduct()"><div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:0.5px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 00-2 2v16l7-3 7 3V3a2 2 0 00-2-2z"/></svg></div><div style="flex:1"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния продукт</div><div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:1px">Копирай вариациите</div></div><div style="color:#818cf8;font-size:15px">›</div></div>';
+        // Picker body
+        var pickH='<div class="v-picker-body">';
+        // Search
+        pickH+='<div class="v-picker-search"><span class="v-picker-search-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" id="wizSearch'+ai+'" placeholder="Търси размер или група..." oninput="wizSearchPresets('+ai+',this.value)" autocomplete="off"></div><div id="wizSearchRes'+ai+'"></div>';
 
-        // "+ Добави група" button (ГОРЕ, преди групите)
-        var addGrpBtnH='';
-        if(isSize){
-            addGrpBtnH='<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;margin-bottom:8px;border-radius:14px;border:0.5px solid rgba(99,102,241,0.35);background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(59,130,246,0.06));cursor:pointer;box-shadow:0 0 12px rgba(99,102,241,0.15)" onclick="wizShowMoreGroups('+ai+')"><div style="width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(99,102,241,0.4)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span style="font-size:12px;color:#c7d2fe;font-weight:600">Добави група от списъка</span></div>';
-        }
-
-        // Pinned groups
-        var pinnedH='';
+        // SIZE: pinned groups
         if(isSize){
             var existingSet=new Set(ax.values);
             var pinned=S._wizPinnedGroups||[];
             pinned.forEach(function(pg,pgi){
                 var maxShow=15;
-                var isEditing=S._wizEditingGroup!==null&&S._wizEditingGroup!==undefined&&S._wizEditingGroup===pgi;
-                var availCount=pg.vals.filter(function(v){return !existingSet.has(v)}).length;
+                var isEditing=S._wizEditingGroup!==null&&S._wizEditingGroup===pgi;
+                var selCount=pg.vals.filter(function(v){return existingSet.has(v)}).length;
                 var showAll=pg._showAll||false;
                 var valsToShow=showAll?pg.vals:pg.vals.slice(0,maxShow);
                 var hasMore=pg.vals.length>maxShow&&!showAll;
-
-                pinnedH+='<div style="margin-bottom:8px;border:0.5px solid rgba(99,102,241,0.2);border-radius:14px;overflow:hidden;background:linear-gradient(235deg,rgba(99,102,241,0.04),transparent 60%),rgba(15,17,26,0.4)">';
-                // Header
-                pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(15,17,26,0.5);border-bottom:0.5px solid rgba(99,102,241,0.1)">';
-                pinnedH+='<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;font-weight:600;color:var(--text-secondary)">'+esc(pg.label)+'</span><span style="font-size:9px;color:rgba(99,102,241,0.4)">'+availCount+'/'+pg.vals.length+'</span></div>';
-                pinnedH+='<div style="display:flex;gap:4px;align-items:center">';
-                // Reorder buttons
-                if(pgi>0)pinnedH+='<span style="font-size:11px;color:var(--indigo-400);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizMovePinnedGroup('+pgi+',-1)" title="Премести нагоре">\u25B2</span>';
-                if(pgi<pinned.length-1)pinnedH+='<span style="font-size:11px;color:var(--indigo-400);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizMovePinnedGroup('+pgi+',1)" title="Премести надолу">\u25BC</span>';
-                pinnedH+='<span style="font-size:9px;color:var(--indigo-400);cursor:pointer;font-weight:600" onclick="event.stopPropagation();wizPinnedSelectAll('+pgi+')">всички</span>';
-                pinnedH+='<span style="font-size:9px;color:rgba(245,158,11,0.8);cursor:pointer;font-weight:600;padding:2px 6px;border:1px solid rgba(245,158,11,0.2);border-radius:6px;background:rgba(245,158,11,0.06)" onclick="event.stopPropagation();S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'\u2713 Готово':'\u270E Редактирай')+'</span>';
-                pinnedH+='<span style="font-size:11px;color:rgba(239,68,68,0.5);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();wizPinnedRemoveGroup('+pgi+')" title="Премахни групата">\u2715</span>';
-                pinnedH+='</div></div>';
-
+                var starred=pgi===0?' starred':'';
+                var isOpen=pgi===0||selCount>0;
+                pickH+='<div class="v-pgroup'+(isOpen?' open':'')+'">';
+                pickH+='<div class="v-pgroup-head" onclick="this.parentElement.classList.toggle(\'open\')">';
+                pickH+='<div class="v-pgroup-title'+starred+'">'+esc(pg.label)+'</div>';
+                pickH+='<div class="v-pgroup-count'+(selCount>0?' has':'')+'">'+selCount+'/'+pg.vals.length+'</div>';
+                pickH+='<div class="v-pgroup-actions" onclick="event.stopPropagation()">';
+                if(pgi>0)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>';
+                if(pgi<pinned.length-1)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>';
+                pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
+                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓':'✎')+'</span>';
+                pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
+                pickH+='</div><span class="v-pgroup-arr">▶</span></div>';
+                pickH+='<div class="v-pgroup-body">';
                 if(isEditing){
-                    // EDIT MODE: chips with ✕ to remove + input to add + reset
-                    pinnedH+='<div style="padding:8px;background:rgba(245,158,11,0.03)">';
-                    pinnedH+='<div style="font-size:9px;color:rgba(245,158,11,0.7);margin-bottom:4px;font-weight:600">РЕЖИМ РЕДАКЦИЯ — натисни \u2715 за махане, полето за добавяне</div>';
-                    pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
                     pg.vals.forEach(function(v,vi){
-                        pinnedH+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:#fcd34d;font-size:10px;font-weight:500;cursor:pointer" onclick="wizPinnedRemoveValue('+pgi+','+vi+')">'+esc(v)+' <span style="margin-left:3px;opacity:0.6">\u2715</span></span>';
+                        pickH+='<span class="v-chip" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2);color:#fcd34d" onclick="wizPinnedRemoveValue('+pgi+','+vi+')">'+esc(v)+' ✕</span>';
                     });
-                    pinnedH+='</div>';
-                    pinnedH+='<div style="display:flex;gap:4px;margin-bottom:6px"><input type="text" class="fc" id="editGrpVal'+pgi+'" placeholder="Добави стойност..." style="font-size:11px;padding:6px 10px;flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizPinnedAddValue('+pgi+')}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizPinnedAddValue('+pgi+')">+</button></div>';
-                    pinnedH+='<div style="text-align:right"><span style="font-size:9px;color:rgba(245,158,11,0.5);cursor:pointer" onclick="wizPinnedResetGroup('+pgi+')">Фабрични настройки</span></div>';
-                    pinnedH+='</div>';
+                    pickH+='<div style="width:100%;display:flex;gap:4px;margin-top:6px"><input type="text" class="v-custom-input" id="editGrpVal'+pgi+'" placeholder="Добави..." style="font-size:12px;padding:8px 12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizPinnedAddValue('+pgi+')}"><button class="v-custom-btn" onclick="wizPinnedAddValue('+pgi+')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>';
+                    pickH+='<div style="width:100%;text-align:right;margin-top:4px"><span style="font-size:10px;color:rgba(245,158,11,0.5);cursor:pointer" onclick="wizPinnedResetGroup('+pgi+')">Фабрични настройки</span></div>';
                 }else{
-                    // NORMAL MODE: selection chips
-                    pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
                     valsToShow.forEach(function(v){
                         var isSel=existingSet.has(v);
-                        pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+v.replace(/'/g,"\\'")+'\',this)">'+esc(v)+'</span>';
+                        pickH+='<span class="v-chip'+(isSel?' selected':'')+'" onclick="wizTogglePresetInline('+ai+',\''+v.replace(/'/g,"\\'")+'\',this)">'+esc(v)+'</span>';
                     });
-                    if(hasMore){
-                        pinnedH+='<span style="padding:5px 10px;font-size:11px;color:var(--indigo-400);cursor:pointer;font-weight:600;border:1px dashed rgba(99,102,241,0.3);border-radius:8px" onclick="S._wizPinnedGroups['+pgi+']._showAll=true;renderWizard()">+още '+(pg.vals.length-maxShow)+'</span>';
-                    }
-                    if(showAll&&pg.vals.length>maxShow){
-                        pinnedH+='<span style="padding:5px 10px;font-size:11px;color:var(--text-secondary);cursor:pointer;font-weight:600;border:1px dashed var(--border-subtle);border-radius:8px" onclick="S._wizPinnedGroups['+pgi+']._showAll=false;renderWizard()">Прибери</span>';
-                    }
-                    pinnedH+='</div>';
+                    if(hasMore)pickH+='<span class="v-chip" style="border-style:dashed;color:var(--indigo-400)" onclick="S._wizPinnedGroups['+pgi+']._showAll=true;renderWizard()">+още '+(pg.vals.length-maxShow)+'</span>';
+                    if(showAll&&pg.vals.length>maxShow)pickH+='<span class="v-chip" style="border-style:dashed" onclick="S._wizPinnedGroups['+pgi+']._showAll=false;renderWizard()">Прибери</span>';
                 }
-                pinnedH+='</div>';
+                pickH+='</div></div>';
             });
+            // +Добави група
+            pickH+='<div style="margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави група от списъка</div>';
         }
+
+        // COLORS: chips + HEX picker
         if(isColor){
             var existingSet=new Set(ax.values);
-            pinnedH+='<div style="margin-bottom:8px;border:0.5px solid rgba(99,102,241,0.2);border-radius:14px;overflow:hidden;background:linear-gradient(235deg,rgba(99,102,241,0.04),transparent 60%),rgba(15,17,26,0.4)">';
-            pinnedH+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(15,17,26,0.5);border-bottom:0.5px solid rgba(99,102,241,0.1)">';
-            pinnedH+='<span style="font-size:11px;font-weight:600;color:var(--text-secondary)">Цветове</span>';
-            pinnedH+='<span style="font-size:9px;color:var(--indigo-400);font-weight:600;cursor:pointer" onclick="wizColorSelectAll()">всички</span></div>';
-            pinnedH+='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px">';
+            pickH+='<div class="v-pgroup open">';
+            pickH+='<div class="v-pgroup-head"><div class="v-pgroup-title">Цветове</div><div class="v-pgroup-count">'+existingSet.size+'/'+CFG.colors.length+'</div><div class="v-pgroup-actions" onclick="event.stopPropagation()"><span class="v-pgroup-act" onclick="wizColorSelectAll()">всички</span></div></div>';
+            pickH+='<div class="v-pgroup-body">';
             CFG.colors.forEach(function(c){
                 var isSel=existingSet.has(c.name);
-                pinnedH+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:5px 10px;font-size:11px" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+c.hex+';margin-right:4px;border:1px solid rgba(255,255,255,0.15)"></span>'+esc(c.name)+'</span>';
+                pickH+='<span class="v-chip'+(isSel?' selected':'')+'" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span class="v-dot" style="background:'+c.hex+'"></span>'+esc(c.name)+'</span>';
             });
-            pinnedH+='</div>';
-            // HEX Color Picker
-            pinnedH+='<div style="padding:8px;border-top:1px solid rgba(99,102,241,0.08)">';
-            pinnedH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">ИЗБЕРИ ОТ ПАЛИТРА</div>';
-            pinnedH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div>';
-            pinnedH+='<canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid var(--border-subtle)"></canvas>';
-            pinnedH+='<input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()">';
-            pinnedH+='<div style="display:flex;align-items:center;gap:6px;margin-top:4px">';
-            pinnedH+='<div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div>';
-            pinnedH+='<div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div>';
-            pinnedH+='<input type="text" class="fc" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:100px" oninput="wizNameToHex(this.value)">';
-            pinnedH+='<button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddHexColor()">+</button>';
-            pinnedH+='</div>';
-            pinnedH+='</div>';
-            pinnedH+='</div>';
+            pickH+='</div></div>';
+            // HEX picker
+            pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име..." style="font-size:11px;padding:6px 8px;width:100px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div></div></div>';
         }
 
-        // Search
-        var searchH='<div style="position:relative;margin:6px 0"><svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-secondary)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" class="fc" id="wizSearch'+ai+'" placeholder="Търси размер, група или цвят..." style="font-size:11px;padding:8px 10px 8px 30px" oninput="wizSearchPresets('+ai+',this.value)" autocomplete="off"></div><div id="wizSearchRes'+ai+'"></div>';
+        // Custom add row (за всеки axis)
+        pickH+='<div class="v-custom-row"><input type="text" class="v-custom-input" id="newGrpVal'+ai+'" placeholder="Друга стойност..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();var v=this.value.trim();if(v){S.wizData.axes['+ai+'].values.push(v);this.value=\'\';renderWizard()}}"><button class="v-custom-btn" onclick="var e=document.getElementById(\'newGrpVal'+ai+'\');var v=e.value.trim();if(v){S.wizData.axes['+ai+'].values.push(v);e.value=\'\';renderWizard()}"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div>';
 
-        var manualH='';
-
-        // Remove custom variation
-        var removeH='';
+        // Remove custom axis
         if(!isSize&&!isColor){
-            removeH='<div style="text-align:center;margin-top:6px"><span style="font-size:10px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="if(confirm(\'Премахни вариацията?\')){{S.wizData.axes.splice('+ai+',1);S._wizActiveTab=0;renderWizard()}}">Премахни "'+esc(ax.name)+'"</span></div>';
+            pickH+='<div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(239,68,68,0.6);cursor:pointer" onclick="if(confirm(\'Премахни вариацията?\')){S.wizData.axes.splice('+ai+',1);S._wizActiveTab=0;renderWizard()}">Премахни "'+esc(ax.name)+'"</span></div>';
         }
 
-        // Add new group
-        var newGrpH='<div style="padding:8px;border-radius:10px;border:1px dashed var(--border-subtle);margin-top:8px">';
-        newGrpH+='<div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">ДОБАВИ ГРУПА</div>';
-        newGrpH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Създай собствена група с произволни стойности (Модел, Материал, Серия...)</div>';
-        newGrpH+='<div style="display:flex;gap:4px"><input type="text" class="fc" id="newGrpName" placeholder="Име на група..." style="font-size:11px;padding:8px 10px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="abtn" style="width:auto;padding:8px 12px;font-size:11px;background:rgba(99,102,241,0.08);border-color:var(--indigo-500)" onclick="wizCreateCustomGroup()">+ Създай</button></div>';
-        // Show pending custom group if just created
+        // Create new group
+        pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:14px;border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова група</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Модел, Материал, Серия...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>';
         if(S._wizNewCustomGroup){
             var ncg=S._wizNewCustomGroup;
-            newGrpH+='<div style="margin-top:8px;padding:8px;border-radius:8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)">';
-            newGrpH+='<div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Групата добавена: '+esc(ncg.name)+'</div>';
-            newGrpH+='<div style="font-size:9px;color:var(--text-secondary);margin-bottom:6px">Добави стойности (разделени със запетая или една по една):</div>';
-            newGrpH+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px" id="ncgChips">';
+            pickH+='<div style="margin-top:8px;padding:8px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Групата добавена: '+esc(ncg.name)+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
             (ncg.values||[]).forEach(function(v,vi){
-                newGrpH+='<span style="display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#86efac;font-size:10px;cursor:pointer" onclick="S._wizNewCustomGroup.values.splice('+vi+',1);renderWizard()">'+esc(v)+' \u2715</span>';
+                pickH+='<span class="v-chip" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2);color:#86efac;cursor:pointer" onclick="S._wizNewCustomGroup.values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>';
             });
-            newGrpH+='</div>';
-            newGrpH+='<div style="display:flex;gap:4px;margin-bottom:6px"><input type="text" class="fc" id="ncgValInput" placeholder="Стойност..." style="font-size:11px;padding:6px 10px;flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddCustomGroupValue()}"><button class="abtn" style="width:auto;padding:6px 12px;font-size:11px" onclick="wizAddCustomGroupValue()">+</button></div>';
-            newGrpH+='<button class="abtn save" style="font-size:11px;padding:8px" onclick="wizSaveCustomGroupToAxes()">Запамети и добави към началния екран</button>';
-            newGrpH+='</div>';
+            pickH+='</div><div style="display:flex;gap:4px;margin-bottom:6px"><input type="text" class="v-custom-input" id="ncgValInput" placeholder="Стойност..." style="font-size:11px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddCustomGroupValue()}"><button class="v-custom-btn" onclick="wizAddCustomGroupValue()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><button class="abtn" style="width:100%;font-size:11px;padding:8px" onclick="wizSaveCustomGroupToAxes()">Запамети групата</button></div>';
         }
-        newGrpH+='</div>';
+        pickH+='</div>';
 
-        // Combos
+        pickH+='</div>';
+
+        // Matrix CTA / Summary
         var combos=wizCountCombinations();
-        var combosH=combos>0?'<div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;padding:10px 13px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(59,130,246,0.08));border:0.5px solid rgba(99,102,241,0.3);box-shadow:0 0 12px rgba(99,102,241,0.15)"><div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">'+combos+'</div><div style="flex:1;font-size:11px;color:#e2e8f0;font-weight:500">Кръстоска от <b style="color:#c7d2fe">'+combos+' варианта</b></div></div>':'';
+        var hasMatrix=S.wizData._matrix&&Object.keys(S.wizData._matrix).filter(function(k){return S.wizData._matrix[k]&&S.wizData._matrix[k].qty>0}).length>0;
+        var mcH='';
+        if(combos>0){
+            if(hasMatrix){
+                var filled=0,total=0,minSum=0;
+                Object.keys(S.wizData._matrix).forEach(function(k){var c=S.wizData._matrix[k]||{};var q=parseInt(c.qty)||0;var mn=parseInt(c.min)||0;if(q>0)filled++;total+=q;minSum+=mn});
+                mcH='<div class="v-matrix-summary"><div class="v-ms-check"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="v-ms-text"><div class="v-ms-title">'+filled+' комбинации · общо '+total+' бр</div><div class="v-ms-sub">Мин. нива: '+minSum+' бр</div></div><button class="v-ms-edit" onclick="openMxOverlay()">Редактирай</button></div>';
+            }else{
+                var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(a){var n=a.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=a;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=a});
+                var szN=szAx?szAx.values.length:0,clN=clAx?clAx.values.length:0;
+                mcH='<div class="glass sm v-matrix-cta-wrap"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><div class="v-mc-row"><div class="v-mc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="v-mc-text"><div class="v-mc-title">Матрица размер × цвят</div><div class="v-mc-sub"><b>'+szN+' размера</b> × <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b></div></div></div><button class="v-matrix-cta" onclick="openMxOverlay()"><div class="v-matrix-cta-info"><div class="v-matrix-cta-pill">'+combos+'</div><span>Въведи бройки и мин. нива</span></div><span class="v-matrix-cta-arrow">→</span></button></div>';
+            }
+        }
 
-        return '<div class="wiz-page active" style="padding-bottom:70px">'+
-        '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px"><div style="font-size:17px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#f1f5f9 30%,#a5b4fc 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Вариации</div><div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:500">размери, цветове, модели</div></div>'+
-        copyH+tabsH+sumH+addGrpBtnH+pinnedH+searchH+manualH+removeH+newGrpH+combosH+
-        '<div style="display:flex;gap:8px;margin-top:14px">'+
-          '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
-          '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-          '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
-          '<button type="button" onclick="wizGoPreview()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
-        '</div>'+
-        vskip+'</div>';
+        return '<div class="wiz-page active">'+
+            previewH+
+            '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
+            mcH+
+            '<div style="display:flex;gap:8px;margin-top:14px">'+
+              '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+              '<button type="button" onclick="showToast(\'Печат — скоро\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
+              '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
+              '<button type="button" onclick="wizGoPreview()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+            '</div>'+
+            vskip+'</div>';
     }
 
     // ═══ STEP 5: МАТРИЦА + БРОЙКИ + ЗАПИС (S70 — replaces old step 5+6) ═══
