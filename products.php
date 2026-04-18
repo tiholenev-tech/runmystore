@@ -4531,7 +4531,8 @@ function wizSaveCustomGroupToAxes(){
     S._wizPinnedGroups.push({id:'custom_'+Date.now(),label:ncg.name,vals:ncg.values.slice(),_origVals:ncg.values.slice()});
     _wizSavePinnedGroups();
     S._wizNewCustomGroup=null;
-    // НЕ сменяме таба — новата група се появява като нов axis tab до другите
+    // Превключи на новия axis (иначе footer-ът гледа празен таб)
+    S._wizActiveTab=S.wizData.axes.length-1;
     renderWizard();
     showToast('"'+ncg.name+'" добавена ✓','success');
 }
