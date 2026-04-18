@@ -816,8 +816,8 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
 .v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
 .v-pgroup-actions{display:flex;gap:4px;align-items:center}
-.v-pgroup-footer{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.25);justify-content:flex-end;align-items:center}
-.v-pgroup-footer .v-pgroup-act{padding:7px 14px;font-size:12px;min-width:44px;min-height:36px;display:flex;align-items:center;justify-content:center}
+.v-pgroup-footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 12px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.25)}
+.v-pgroup-footer .v-pgroup-act{padding:8px 0;font-size:11px;min-height:36px;display:flex;align-items:center;justify-content:center;text-align:center}
 .v-pgroup-act{padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
 .v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
 .v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
@@ -3757,8 +3757,8 @@ function renderWizPagePart2(step){
                 // Actions footer — ПОД chips
                 pickH+='</div>';
                 pickH+='<div class="v-pgroup-footer" onclick="event.stopPropagation()">';
-                if(pgi>0)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>';
-                if(pgi<pinned.length-1)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>';
+                pickH+=pgi>0?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>':'<span style="visibility:hidden"></span>';
+                pickH+=pgi<pinned.length-1?'<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>':'<span style="visibility:hidden"></span>';
                 pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
                 pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓ готово':'✎ добави')+'</span>';
                 pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
