@@ -2983,7 +2983,8 @@ async function loadHomeNew() {
 // WIZARD REWRITE — 8 стъпки, info бутони, voice-compatible
 // ═══════════════════════════════════════════════════════════
 
-const WIZ_LABELS=['Вид','Снимка','AI обработка','Основна информация','Вариации','Бройки и запис','Етикети'];
+const WIZ_LABELS=['Вид','Основни','Варианти','Бизнес','AI Studio'];
+const WIZ_UI_INDEX=[0, null, 4, 1, 2, 3, null];
 
 const WIZ_INFO={
     type_single:'Единичен артикул без варианти — например една чанта, едно бижу, или артикул който се продава само в един вид.',
@@ -3134,12 +3135,15 @@ function wizGo(step){
 
 async function renderWizard(){
     let sb='';
-    for(let i=0;i<7;i++){
-        let cls=i<S.wizStep?'done':i===S.wizStep?'active':'';
+    const uiIdx=WIZ_UI_INDEX[S.wizStep];
+    for(let i=0;i<5;i++){
+        let cls=uiIdx!==null&&i<uiIdx?'done':(i===uiIdx?'active':'');
         sb+='<div class="wiz-step '+cls+'"></div>';
     }
     document.getElementById('wizSteps').innerHTML=sb;
-    document.getElementById('wizLabel').innerHTML=(S.wizStep+1)+' · <b>'+WIZ_LABELS[S.wizStep]+'</b>';
+    const _lbl=uiIdx!==null?WIZ_LABELS[uiIdx]:'';
+    const _num=uiIdx!==null?(uiIdx+1)+' · ':'';
+    document.getElementById('wizLabel').innerHTML=_num+'<b>'+_lbl+'</b>';
     document.getElementById('wizBody').innerHTML=renderWizPage(S.wizStep);
     if(S._lastWizStep!==S.wizStep){document.getElementById('wizBody').scrollTop=0;S._lastWizStep=S.wizStep;}
     // S70: Init HSL picker if on color tab
