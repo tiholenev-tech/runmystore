@@ -5581,8 +5581,8 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;showToast('Записано ✓','success');wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_bgNum(text);if(n!==null){el.value=n;S.wizData.retail_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.retail_price=parseFloat(el.value)||0}el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_bgNum(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.wholesale_price=parseFloat(el.value)||0}el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_bgPrice(text,true);if(n!==null){el.value=n;S.wizData.retail_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.retail_price=parseFloat(el.value)||0}el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_bgPrice(text,true);if(n!==null){el.value=n;S.wizData.wholesale_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.wholesale_price=parseFloat(el.value)||0}el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
@@ -5591,7 +5591,7 @@ function _wizMicApply(field,text){
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
 }
 function _bgNum(t){return _bgPrice(t)}
-function _bgPrice(t){
+function _bgPrice(t,forcePrice){
     var raw=t.trim().toLowerCase();
     var hasStotinki=(/стотинки|стот\.|цент[аи]?|cents?|пени|пфениг|сантим|копейк/i).test(raw);
     raw=raw.replace(/лева|лв|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|крон[аи]?|злот[аи]?|динар[аи]?|форинт[аи]?|франк[аи]?|стотинки|стот\.|цент[аи]?|cents?|пени|penny|pence|пфениг[аи]?|pfennig|сантим[аи]?|копейк[аи]?/gi,' ').replace(/\s+/g,' ').trim();
@@ -5603,6 +5603,7 @@ function _bgPrice(t){
     if(parts.length===1){return word(parts[0])}
     if(parts.length===2){var a=word(parts[0]);var b=word(parts[1]);
         if(a!==null&&b!==null){
+            if(forcePrice)return parseFloat(a+'.'+String(b).padStart(2,'0'));
             if(hasStotinki&&tens.indexOf(b)!==-1)return parseFloat(a+'.'+String(b).padStart(2,'0'));
             if(a>=0&&a<=9&&tens.indexOf(b)!==-1)return parseFloat(a+'.'+String(b).padStart(2,'0'));
             return a+b}}
