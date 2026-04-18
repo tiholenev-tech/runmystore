@@ -13,6 +13,8 @@ require_once 'config/database.php';
 require_once 'config/config.php';
 
 $pdo = DB::get();
+// S73.B.37: ensure colors_config column exists
+try { DB::run("ALTER TABLE tenants ADD COLUMN colors_config TEXT NULL"); } catch(Exception $e) {}
 $user_id    = $_SESSION['user_id'];
 $tenant_id  = $_SESSION['tenant_id'];
 $store_id   = $_SESSION['store_id'] ?? null;
@@ -492,6 +494,31 @@ if (isset($_GET['ajax'])) {
         echo json_encode(['units'=>$units,'added'=>$unit]); exit;
     }
 
+    // S73.B.37: Tenant-specific колорит
+    if ($ajax === 'add_color' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $name = trim($_POST['name'] ?? '');
+        $hex = trim($_POST['hex'] ?? '');
+        if (!$name || !preg_match('/^#[0-9a-fA-F]{6}$/',$hex)) { echo json_encode(['error'=>'Невалидни данни']); exit; }
+        $t = DB::run("SELECT colors_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+        $custom = json_decode($t['colors_config'] ?? '[]', true) ?: [];
+        // Replace ако съществува
+        $found = false;
+        foreach ($custom as &$c) { if (mb_strtolower($c['name']) === mb_strtolower($name)) { $c['hex']=$hex; $found=true; break; } }
+        unset($c);
+        if (!$found) $custom[] = ['name'=>$name,'hex'=>$hex];
+        DB::run("UPDATE tenants SET colors_config=? WHERE id=?", [json_encode($custom, JSON_UNESCAPED_UNICODE), $tenant_id]);
+        echo json_encode(['ok'=>true, 'custom'=>$custom, 'added'=>['name'=>$name,'hex'=>$hex]]); exit;
+    }
+    if ($ajax === 'delete_color' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $name = trim($_POST['name'] ?? '');
+        if (!$name) { echo json_encode(['error'=>'Липсва име']); exit; }
+        $t = DB::run("SELECT colors_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+        $custom = json_decode($t['colors_config'] ?? '[]', true) ?: [];
+        $custom = array_values(array_filter($custom, function($c) use($name){ return mb_strtolower($c['name']) !== mb_strtolower($name); }));
+        DB::run("UPDATE tenants SET colors_config=? WHERE id=?", [json_encode($custom, JSON_UNESCAPED_UNICODE), $tenant_id]);
+        echo json_encode(['ok'=>true, 'custom'=>$custom]); exit;
+    }
+
     // ─── SKIP WHOLESALE ───
     if ($ajax === 'skip_wholesale' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         DB::run("UPDATE tenants SET skip_wholesale_price=1 WHERE id=?", [$tenant_id]);
@@ -623,6 +650,16 @@ $all_categories = DB::run("SELECT id, name, parent_id FROM categories WHERE tena
 $tenant_cfg = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
 $onboarding_units = json_decode($tenant_cfg['units_config'] ?? '[]', true) ?: ['бр','чифт','к-кт'];
 $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex'=>'#f5f5f5'],['name'=>'Сив','hex'=>'#6b7280'],['name'=>'Червен','hex'=>'#ef4444'],['name'=>'Син','hex'=>'#3b82f6'],['name'=>'Зелен','hex'=>'#22c55e'],['name'=>'Жълт','hex'=>'#eab308'],['name'=>'Розов','hex'=>'#ec4899'],['name'=>'Оранжев','hex'=>'#f97316'],['name'=>'Лилав','hex'=>'#8b5cf6'],['name'=>'Кафяв','hex'=>'#92400e'],['name'=>'Navy','hex'=>'#1e40af'],['name'=>'Бежов','hex'=>'#d4b896'],['name'=>'Бордо','hex'=>'#7f1d1d'],['name'=>'Тюркоаз','hex'=>'#14b8a6'],['name'=>'Графит','hex'=>'#374151'],['name'=>'Пудра','hex'=>'#f9a8d4'],['name'=>'Маслинен','hex'=>'#65a30d'],['name'=>'Корал','hex'=>'#fb923c'],['name'=>'Екрю','hex'=>'#fef3c7']];
+// S73.B.37: append tenant custom colors
+$_tenantColors = DB::run("SELECT colors_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+$_custom_colors = json_decode($_tenantColors['colors_config'] ?? '[]', true) ?: [];
+$_existing_names = array_map(function($c){return mb_strtolower($c['name']);}, $COLOR_PALETTE);
+foreach ($_custom_colors as $cc) {
+    $lower = mb_strtolower($cc['name']);
+    $idx = array_search($lower, $_existing_names);
+    if ($idx === false) { $COLOR_PALETTE[] = $cc; }
+    else { $COLOR_PALETTE[$idx] = $cc; } // override default ако има override
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>">
@@ -3770,12 +3807,23 @@ function renderWizPagePart2(step){
         if(isColor){
             var existingSet=new Set(ax.values);
             pickH+='<div class="v-pgroup open">';
-            pickH+='<div class="v-pgroup-head"><div class="v-pgroup-title">Цветове</div><div class="v-pgroup-count">'+existingSet.size+'/'+CFG.colors.length+'</div><div class="v-pgroup-actions" onclick="event.stopPropagation()"><span class="v-pgroup-act" onclick="wizColorSelectAll()">всички</span></div></div>';
+            pickH+='<div class="v-pgroup-head"><div class="v-pgroup-title">Цветове</div><div class="v-pgroup-count">'+existingSet.size+'/'+CFG.colors.length+'</div><span class="v-pgroup-arr">\u25BC</span></div>';
             pickH+='<div class="v-pgroup-body">';
+            var _colorEditMode=S._wizEditingColors||false;
             CFG.colors.forEach(function(c){
                 var isSel=existingSet.has(c.name);
-                pickH+='<span class="v-chip'+(isSel?' selected':'')+'" onclick="wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)"><span class="v-dot" style="background:'+c.hex+'"></span>'+esc(c.name)+'</span>';
+                var chipCls=_colorEditMode?' v-chip':' v-chip'+(isSel?' selected':'');
+                var chipStyle=_colorEditMode?'background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);color:#fcd34d':'';
+                var chipClick=_colorEditMode?'wizColorEditPrompt(\''+c.name.replace(/'/g,"\\'")+'\',\''+c.hex+'\')':'wizTogglePresetInline('+ai+',\''+c.name.replace(/'/g,"\\'")+'\',this)';
+                pickH+='<span class="'+chipCls+'" style="'+chipStyle+'" onclick="'+chipClick+'"><span class="v-dot" style="background:'+c.hex+'"></span>'+esc(c.name)+(_colorEditMode?' \u270E':'')+'</span>';
             });
+            pickH+='</div>';
+            pickH+='<div class="v-pgroup-footer" onclick="event.stopPropagation()">';
+            pickH+='<span style="visibility:hidden"></span>';
+            pickH+='<span style="visibility:hidden"></span>';
+            pickH+='<span class="v-pgroup-act" onclick="wizColorSelectAll()">всички</span>';
+            pickH+='<span class="v-pgroup-act warn" onclick="wizColorAddPrompt()">\u002B добави</span>';
+            pickH+='<span class="v-pgroup-act'+(_colorEditMode?' danger':'')+'" onclick="S._wizEditingColors='+(_colorEditMode?'false':'true')+';renderWizard()">'+(_colorEditMode?'\u2713 готово':'\u270E редакт.')+'</span>';
             pickH+='</div></div>';
             // HEX picker
             pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1;min-width:0"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div></div><div style="display:flex;align-items:stretch;gap:6px;margin-top:8px;width:100%"><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име на цвят (напр. шампанско)..." style="flex:1;font-size:12px;padding:10px 14px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()" style="flex-shrink:0"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div></div></div>';
@@ -4300,6 +4348,54 @@ function wizPinnedSelectAll(pgi){
     renderWizard();
 }
 
+function wizColorAddPrompt(){
+    var name=prompt('Име на цвят:');if(!name)return;name=name.trim();if(!name)return;
+    var hex=prompt('HEX код (напр. #FF5733):','#');if(!hex)return;hex=hex.trim();
+    if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
+    var fd=new FormData();fd.append('name',name);fd.append('hex',hex);
+    fetch('products.php?ajax=add_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+        if(d.error){showToast(d.error,'error');return}
+        // Update CFG.colors — merge с custom
+        if(d.added){
+            var existing=CFG.colors.findIndex(function(c){return c.name.toLowerCase()===d.added.name.toLowerCase()});
+            if(existing>=0)CFG.colors[existing]=d.added;
+            else CFG.colors.push(d.added);
+        }
+        renderWizard();
+        showToast('"'+name+'" добавен \u2713','success');
+    }).catch(function(){showToast('Грешка','error')});
+}
+function wizColorEditPrompt(oldName,oldHex){
+    var name=prompt('Ново име (празно = премахване):',oldName);
+    if(name===null)return; // cancel
+    name=name.trim();
+    if(!name){
+        // Delete
+        if(!confirm('Премахни цвят "'+oldName+'"?'))return;
+        var fd=new FormData();fd.append('name',oldName);
+        fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+            if(d.error){showToast(d.error,'error');return}
+            CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
+            renderWizard();
+            showToast('Премахнат \u2713','success');
+        });
+        return;
+    }
+    var hex=prompt('HEX:',oldHex);
+    if(!hex)return;hex=hex.trim();
+    if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
+    // Delete + add (name може да се е променило)
+    var fd=new FormData();fd.append('name',oldName);
+    fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(){
+        var fd2=new FormData();fd2.append('name',name);fd2.append('hex',hex);
+        return fetch('products.php?ajax=add_color',{method:'POST',body:fd2}).then(function(r){return r.json()});
+    }).then(function(d){
+        CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
+        if(d.added)CFG.colors.push(d.added);
+        renderWizard();
+        showToast('Обновен \u2713','success');
+    });
+}
 function wizColorSelectAll(){
     var ax=S.wizData.axes[S._wizActiveTab];if(!ax)return;
     var allSel=CFG.colors.every(function(c){return ax.values.indexOf(c.name)!==-1});
