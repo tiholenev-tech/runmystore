@@ -3800,16 +3800,31 @@ function renderWizPagePart2(step){
             }
         }
 
-        return '<div class="wiz-page active" style="padding-bottom:170px">'+
+''; // S73.B.12: заменя старите CTA и nav bar
+        var _ax=S.wizData.axes[S._wizActiveTab]||{name:''};
+        var _isColor=/цвят|color/i.test(_ax.name);
+        var _hasVals=_ax.values&&_ax.values.length>0;
+        var _otherIdx=-1;
+        for(var _i=0;_i<S.wizData.axes.length;_i++){if(_i!==S._wizActiveTab&&/цвят|color|размер|size/i.test(S.wizData.axes[_i].name)){_otherIdx=_i;break}}
+        var _otherName=_otherIdx>=0?S.wizData.axes[_otherIdx].name:'';
+        var _ftBack='<button type="button" onclick="wizGo(3)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
+        var _ftMid;
+        if(!_hasVals){
+            _ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+(_isColor?'цвят':'размер')+' за да продължиш</div>';
+        }else{
+            var _b1='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Запиши бройки</button>';
+            var _b2;
+            if(_isColor||_otherIdx<0){
+                _b2='<button type="button" onclick="wizSave()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши</button>';
+            }else{
+                _b2='<button type="button" onclick="S._wizActiveTab='+_otherIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">Избери '+esc(_otherName.toLowerCase())+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+            }
+            _ftMid=_b1+_b2;
+        }
+        return '<div class="wiz-page active" style="padding-bottom:80px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
-            (mcH?'<div id="v4MxCta" style="position:fixed;left:12px;right:12px;bottom:78px;z-index:200;max-width:480px;margin:0 auto">'+mcH+'</div>':'')+
-            '<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:8px;max-width:480px;margin:0 auto">'+
-              '<button type="button" onclick="wizGo(3)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
-              '<button type="button" onclick="showToast(\'Печат — скоро\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-              '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
-              '<button type="button" onclick="wizGoPreview()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
-            '</div>'+
+            '<div style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_ftBack+_ftMid+'</div>'+
             vskip+'</div>';
     }
 
