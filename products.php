@@ -816,6 +816,8 @@ $COLOR_PALETTE = [['name'=>'Черен','hex'=>'#1a1a1a'],['name'=>'Бял','hex
 .v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
 .v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
 .v-pgroup-actions{display:flex;gap:4px;align-items:center}
+.v-pgroup-footer{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.25);justify-content:flex-end;align-items:center}
+.v-pgroup-footer .v-pgroup-act{padding:7px 14px;font-size:12px;min-width:44px;min-height:36px;display:flex;align-items:center;justify-content:center}
 .v-pgroup-act{padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
 .v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
 .v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
@@ -3736,13 +3738,7 @@ function renderWizPagePart2(step){
                 pickH+='<div class="v-pgroup-head" onclick="this.parentElement.classList.toggle(\'open\')">';
                 pickH+='<div class="v-pgroup-title'+starred+'">'+esc(pg.label)+'</div>';
                 pickH+='<div class="v-pgroup-count'+(selCount>0?' has':'')+'">'+selCount+'/'+pg.vals.length+'</div>';
-                pickH+='<div class="v-pgroup-actions" onclick="event.stopPropagation()">';
-                if(pgi>0)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>';
-                if(pgi<pinned.length-1)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>';
-                pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
-                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓ готово':'✎ добави')+'</span>';
-                pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
-                pickH+='</div><span class="v-pgroup-arr">▶</span></div>';
+                pickH+='<span class="v-pgroup-arr">▶</span></div>';
                 pickH+='<div class="v-pgroup-body">';
                 if(isEditing){
                     pg.vals.forEach(function(v,vi){
@@ -3758,6 +3754,14 @@ function renderWizPagePart2(step){
                     if(hasMore)pickH+='<span class="v-chip" style="border-style:dashed;color:var(--indigo-400)" onclick="S._wizPinnedGroups['+pgi+']._showAll=true;renderWizard()">+още '+(pg.vals.length-maxShow)+'</span>';
                     if(showAll&&pg.vals.length>maxShow)pickH+='<span class="v-chip" style="border-style:dashed" onclick="S._wizPinnedGroups['+pgi+']._showAll=false;renderWizard()">Прибери</span>';
                 }
+                // Actions footer — ПОД chips
+                pickH+='</div>';
+                pickH+='<div class="v-pgroup-footer" onclick="event.stopPropagation()">';
+                if(pgi>0)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',-1)" title="Нагоре">▲</span>';
+                if(pgi<pinned.length-1)pickH+='<span class="v-pgroup-act" onclick="wizMovePinnedGroup('+pgi+',1)" title="Надолу">▼</span>';
+                pickH+='<span class="v-pgroup-act" onclick="wizPinnedSelectAll('+pgi+')">всички</span>';
+                pickH+='<span class="v-pgroup-act warn" onclick="S._wizEditingGroup='+(isEditing?'null':String(pgi))+';renderWizard()">'+(isEditing?'✓ готово':'✎ добави')+'</span>';
+                pickH+='<span class="v-pgroup-act danger" onclick="wizPinnedRemoveGroup('+pgi+')" title="Премахни">✕</span>';
                 pickH+='</div></div>';
             });
         }
