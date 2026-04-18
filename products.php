@@ -4518,16 +4518,17 @@ function wizAddCustomGroupValue(){
 function wizSaveCustomGroupToAxes(){
     if(!S._wizNewCustomGroup||!S._wizNewCustomGroup.values.length){showToast('Добави поне една стойност','error');return}
     var ncg=S._wizNewCustomGroup;
-    // Add as new axis
-    S.wizData.axes.push({name:ncg.name,values:[]});
-    // Also add as pinned group
+    // Add as new axis — всички стойности веднага маркирани
+    S.wizData.axes.push({name:ncg.name,values:ncg.values.slice()});
     if(!S._wizPinnedGroups)S._wizPinnedGroups=[];
     S._wizPinnedGroups.push({id:'custom_'+Date.now(),label:ncg.name,vals:ncg.values.slice(),_origVals:ncg.values.slice()});
     _wizSavePinnedGroups();
     S._wizNewCustomGroup=null;
     S._wizActiveTab=S.wizData.axes.length-1;
     renderWizard();
-    showToast('"'+ncg.name+'" добавена към екрана','success');
+    showToast('"'+ncg.name+'" добавена ✓','success');
+    // Auto-open grid за попълване на бройки
+    setTimeout(function(){openMxOverlay()},300);
 }
 
 // S70: New Step 4 helper functions
