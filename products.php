@@ -4509,6 +4509,10 @@ function wizAddCustomGroupValue(){
     vals.forEach(function(v){if(S._wizNewCustomGroup.values.indexOf(v)===-1)S._wizNewCustomGroup.values.push(v)});
     inp.value='';
     renderWizard();
+    setTimeout(function(){
+        var el=document.getElementById('ncgValInput');
+        if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}
+    },100);
 }
 
 function wizSaveCustomGroupToAxes(){
