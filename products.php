@@ -2049,14 +2049,15 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 #wizModal .fc{
   background:linear-gradient(180deg,rgba(17,24,44,0.5),rgba(8,11,24,0.7)) !important;
   border:1px solid rgba(99,102,241,0.22) !important;
-  border-bottom:1.5px solid rgba(99,102,241,0.4) !important;
-  border-radius:10px 10px 4px 4px !important;
+  border-bottom:2.5px solid rgba(139,92,246,0.55) !important;
+  border-radius:10px 10px 3px 3px !important;
+  box-shadow:0 3px 10px rgba(99,102,241,0.18),0 0 14px rgba(139,92,246,0.12) !important;
   transition:all .25s !important;
 }
 #wizModal .fc:focus{
-  border-color:rgba(139,92,246,0.5) !important;
-  border-bottom:2px solid #8b5cf6 !important;
-  box-shadow:0 4px 20px rgba(139,92,246,0.15),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  border-color:rgba(139,92,246,0.6) !important;
+  border-bottom:3px solid #a855f7 !important;
+  box-shadow:0 4px 14px rgba(139,92,246,0.35),0 0 24px rgba(139,92,246,0.25),0 -1px 8px rgba(217,70,239,0.15),inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
 
 
