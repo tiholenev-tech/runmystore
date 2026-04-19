@@ -494,6 +494,16 @@ if (isset($_GET['ajax'])) {
         echo json_encode(['units'=>$units,'added'=>$unit]); exit;
     }
 
+    if ($ajax === 'delete_unit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $unit = trim($_POST['unit'] ?? '');
+        if (!$unit) { echo json_encode(['error'=>'Липсва']); exit; }
+        $t = DB::run("SELECT units_config FROM tenants WHERE id=?", [$tenant_id])->fetch();
+        $units = json_decode($t['units_config'] ?? '[]', true) ?: [];
+        $units = array_values(array_filter($units, function($u) use($unit){ return $u !== $unit; }));
+        DB::run("UPDATE tenants SET units_config=? WHERE id=?", [json_encode($units, JSON_UNESCAPED_UNICODE), $tenant_id]);
+        echo json_encode(['units'=>$units]); exit;
+    }
+
     // S73.B.37: Tenant-specific колорит
     if ($ajax === 'add_color' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
@@ -2021,7 +2031,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   box-shadow:0 0 10px rgba(139,92,246,0.6),0 0 20px rgba(99,102,241,0.4);
   transform:scaleX(0.3);transition:transform .4s;transform-origin:center;
 }
-.v4-inpC-wrap:focus-within::after{transform:scaleX(1)}
+.v4-inpC-wrap:focus-within::after{opacity:1;transform:scaleX(1);box-shadow:0 0 14px rgba(139,92,246,0.9),0 0 28px rgba(99,102,241,0.55)}
 .v4-inpC-wrap input.fc{
   background:transparent !important;border:none !important;
   border-radius:0 !important;padding:13px 14px !important;
@@ -2053,6 +2063,26 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   border-bottom:2px solid #8b5cf6 !important;
   box-shadow:0 4px 20px rgba(139,92,246,0.15),inset 0 1px 0 rgba(255,255,255,0.04) !important;
 }
+
+
+/* ═══ S74.3 FOOTER NEON ═══ */
+.v4-foot-save::after,.v4-foot-next::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;
+  opacity:0.8;transition:all 0.3s;
+}
+.v4-foot-save::after{
+  background:linear-gradient(90deg,transparent,#22c55e,#4ade80,#22c55e,transparent);
+  box-shadow:0 0 8px rgba(34,197,94,0.6);
+}
+.v4-foot-next::after{
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 8px rgba(139,92,246,0.6);
+}
+.v4-foot-save:hover::after,.v4-foot-next:hover::after{
+  opacity:1;box-shadow:0 0 14px rgba(139,92,246,0.9);
+}
+.v4-foot-save:hover{border-color:rgba(34,197,94,0.7);box-shadow:0 0 22px rgba(34,197,94,0.3),inset 0 1px 0 rgba(255,255,255,0.06)}
+.v4-foot-next:hover{border-color:rgba(139,92,246,0.8);box-shadow:0 0 22px rgba(139,92,246,0.35),inset 0 1px 0 rgba(255,255,255,0.06)}
 
 </style>
 </head>
@@ -3779,10 +3809,10 @@ function renderWizPage(step){
               '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
             '</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
-              '<button type="button" onclick="wizGo(0)" style="flex:1;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+              '<button type="button" onclick="wizGo(0)" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
               '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-              '<button type="button" onclick="wizSave()" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(22,163,74,0.35),0 0 24px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
-              '<button type="button" onclick="wizGo('+nextStep+')" style="flex:1.3;height:48px;border-radius:14px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px hsl(255 70% 40% / 0.4),0 0 24px hsl(255 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;text-shadow:0 0 12px rgba(255,255,255,0.3)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+              '<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
+              '<button type="button" onclick="wizGo('+nextStep+')" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
             '</div>'+
             vskip+
             '</div>';
@@ -5781,27 +5811,47 @@ function wizAddUnitFromChip(){
         else{showToast('Грешка при запис','error');}
     }).catch(function(){showToast('Грешка при запис','error');});
 }
-function wizAddUnitPrompt(){
-    var unit=prompt('Нова мерна единица (напр. чифт, комплект, оп., бутилка):');
-    if(!unit)return;
-    unit=unit.trim();if(!unit)return;
-    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
-        if(d&&d.units){CFG.units=d.units;S.wizData.unit=d.added||unit;renderWizard();showToast('"'+unit+'" добавена ✓','success');}
-        else{showToast('Грешка при запис','error');}
-    }).catch(function(){showToast('Грешка при запис','error');});
-}
-function wizAddUnit(){
-    const unit=document.getElementById('inlUnitName')?.value.trim();
-    if(!unit)return;
-    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(d=>{
-        if(d?.units){
-            CFG.units=d.units;
-            S.wizData.unit=d.added;
-            renderWizard();
-            showToast('Мерна единица добавена ✓','success');
-        }
+function wizSelectUnit(btn,unit){
+    S.wizData.unit=unit;
+    document.querySelectorAll('.v4-unit-chip').forEach(function(c){
+        c.style.background='rgba(255,255,255,0.03)';
+        c.style.border='1px solid rgba(255,255,255,0.08)';
+        c.style.color='rgba(255,255,255,0.6)';
+        c.style.boxShadow='none';
     });
+    btn.style.background='linear-gradient(135deg,#4338ca,#3730a3)';
+    btn.style.border='1px solid #6366f1';
+    btn.style.color='#fff';
+    btn.style.boxShadow='0 0 10px rgba(99,102,241,0.3)';
+    if(navigator.vibrate)navigator.vibrate(5);
 }
+function wizAddUnitFromChip(){
+    var inp=document.getElementById('wNewUnit');
+    if(!inp)return;
+    var unit=(inp.value||'').trim();
+    if(!unit){inp.focus();return;}
+    if(CFG.units&&CFG.units.indexOf(unit)>=0){
+        S.wizData.unit=unit;inp.value='';renderWizard();
+        showToast('"'+unit+'" вече съществува','info');return;
+    }
+    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
+        if(d&&d.units){CFG.units=d.units;S.wizData.unit=d.added||unit;inp.value='';renderWizard();showToast('"'+unit+'" добавена','success');}
+        else{showToast('Грешка','error');}
+    }).catch(function(){showToast('Грешка','error');});
+}
+function wizDeleteUnit(unit){
+    if(!confirm('Изтрий "'+unit+'"?'))return;
+    api('products.php?ajax=delete_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
+        if(d&&d.units){
+            CFG.units=d.units;
+            if(S.wizData.unit===unit)S.wizData.unit=d.units[0]||'бр';
+            renderWizard();
+            showToast('"'+unit+'" изтрита','success');
+        }else{showToast('Грешка','error');}
+    }).catch(function(){showToast('Грешка','error');});
+}
+function wizAddUnitPrompt(){wizAddUnitFromChip()}
+function wizAddUnit(){wizAddUnitFromChip()}
 
 // Photo handlers
 
