@@ -4310,6 +4310,7 @@ function mxUpdateStats(){var f=0,t=0,ms=0;var m=S.wizData._matrix||{};Object.key
 function mxDone(){S._mxSnapshot=undefined;closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate([5,30,10])}
 
 async function renderWizard(){
+    if(S.wizStep===6)wizCollectData();
     let sb='';
     const uiIdx=WIZ_UI_INDEX[S.wizStep];
     for(let i=0;i<5;i++){
@@ -6308,6 +6309,12 @@ function wizCollectData(){
     if(el('wDesc'))S.wizData.description=el('wDesc').value;
     if(el('wOrigin'))S.wizData.origin_country=el('wOrigin').value;
     if(el('wComposition'))S.wizData.composition=el('wComposition').value;
+    if(S.wizStep===6&&S.wizData._printCombos){
+        S.wizData._printCombos.forEach(function(c,i){
+            var inp=document.getElementById('lblQty'+i);
+            if(inp)c.printQty=parseInt(inp.value)||0;
+        });
+    }
 }
 
 function wizQtyAdj(idx,delta){
