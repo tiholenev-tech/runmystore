@@ -11,6 +11,7 @@ session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
+require_once 'compute-insights.php';
 
 $pdo = DB::get();
 // S73.B.37: ensure colors_config column exists
@@ -44,6 +45,14 @@ $stores = DB::run("SELECT s.id, s.name FROM stores s WHERE s.company_id = (SELEC
 if (isset($_GET['ajax'])) {
     header('Content-Type: application/json; charset=utf-8');
     $ajax = $_GET['ajax'];
+
+    // ─── S78: Trigger product insights compute (skeleton — S79 fills logic) ───
+    if ($ajax === 'compute_insights') {
+        $cur = $tenant['currency'] ?? 'EUR';
+        computeProductInsights((int)$tenant_id, (int)$store_id, $cur);
+        echo json_encode(['ok' => true, 'computed' => 19]);
+        exit;
+    }
 
     // ─── SEARCH ───
     if ($ajax === 'search') {
