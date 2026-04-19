@@ -3899,6 +3899,7 @@ function renderWizPage(step){
               '</div>'+
               qtyBlock+
               '<div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px"><div style="height:1px;flex:1;background:linear-gradient(to right,transparent,rgba(99,102,241,0.3))"></div><div style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase">Пожелателно</div><div style="height:1px;flex:1;background:linear-gradient(to left,transparent,rgba(59,130,246,0.3))"></div></div>'+
+              '<div class="fg">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(колко плащаш на доставчик)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1">'+mic('cost_price')+'</div></div>'+
               '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
               '<div class="fg">'+fieldLabel('Състав / Материя','name','<span class="hint">(за AI)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" value="'+esc(cm)+'" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1">'+mic('composition')+'</div></div>'+
               '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
@@ -5726,6 +5727,7 @@ function wizCollectData(){
     if(el('wCode'))S.wizData.code=el('wCode').value.trim();
     if(el('wPrice')){const v=parseFloat(el('wPrice').value);if(v)S.wizData.retail_price=v}
     if(el('wWprice'))S.wizData.wholesale_price=parseFloat(el('wWprice').value)||0;
+    if(el('wCostPrice'))S.wizData.cost_price=parseFloat(el('wCostPrice').value)||0;
     if(el('wBarcode'))S.wizData.barcode=el('wBarcode').value.trim();
     if(el('wSupDD'))S.wizData.supplier_id=el('wSupDD')._selectedId||S.wizData.supplier_id||null;
     if(el('wCatDD'))S.wizData.category_id=el('wCatDD')._selectedId||S.wizData.category_id||null;
@@ -5827,7 +5829,7 @@ async function wizSave(){
     const payload={
         name:S.wizData.name,barcode:S.wizData.barcode,
         retail_price:S.wizData.retail_price,wholesale_price:S.wizData.wholesale_price,
-        cost_price:0,supplier_id:S.wizData.supplier_id,category_id:S.wizData.category_id,
+        cost_price:parseFloat(S.wizData.cost_price)||0,supplier_id:S.wizData.supplier_id,category_id:S.wizData.category_id,
         code:S.wizData.code,unit:S.wizData.unit,min_quantity:S.wizData.min_quantity,
         description:S.wizData.description,
         origin_country:S.wizData.origin_country||null,
