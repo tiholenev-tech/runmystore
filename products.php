@@ -2454,6 +2454,227 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 /* S76.3 end */
 
+/* S76.4: Variants full refresh */
+/* ═══ По-неонов контейнер .v-var-card ═══ */
+#wizModal .v-var-card{
+  padding:16px 12px 14px !important;
+  border-radius:22px !important;
+  border:1px solid rgba(139,92,246,0.32) !important;
+  background:
+    linear-gradient(235deg, rgba(99,102,241,0.12), transparent 35%),
+    linear-gradient(45deg, rgba(139,92,246,0.10), transparent 35%),
+    linear-gradient(145deg,rgba(17,24,44,0.78),rgba(10,13,30,0.92)) !important;
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.45),
+    0 0 40px rgba(99,102,241,0.22),
+    0 0 80px rgba(139,92,246,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    inset 0 0 40px rgba(99,102,241,0.05) !important;
+}
+#wizModal .v-var-card::before{
+  content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(165,180,252,0.7),transparent);
+  pointer-events:none;
+}
+#wizModal .v-var-card::after{
+  content:''; position:absolute; bottom:0; left:25%; right:25%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(217,70,239,0.5),transparent);
+  pointer-events:none;
+}
+
+/* ═══ Tabs с 2 реда label (S76.4: „Вариация 1" + „Размер") ═══ */
+#wizModal .v-axis-tab{
+  flex-direction:column !important;
+  height:auto !important;
+  padding:8px 14px !important;
+  min-height:48px !important;
+  gap:2px !important;
+  line-height:1.2 !important;
+  white-space:nowrap !important;
+}
+#wizModal .v-axis-tab .v-tab-top{
+  font-size:8.5px !important;
+  font-weight:700 !important;
+  letter-spacing:0.08em !important;
+  text-transform:uppercase !important;
+  opacity:0.55 !important;
+  line-height:1 !important;
+}
+#wizModal .v-axis-tab.active .v-tab-top{opacity:0.9 !important; color:#c4b5fd !important}
+#wizModal .v-axis-tab .v-tab-bottom{
+  font-size:12px !important;
+  font-weight:700 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:5px !important;
+  line-height:1.2 !important;
+}
+
+/* Tab add бутон + v4 стил */
+#wizModal .v-axis-tab-add{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:48px !important;
+  width:auto !important;
+  padding:0 14px !important;
+  border-radius:10px !important;
+  background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08)) !important;
+  border:1px solid rgba(139,92,246,0.5) !important;
+  color:#c4b5fd !important;
+  font-weight:700 !important;
+  font-size:11px !important;
+  box-shadow:0 0 10px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  gap:4px !important;
+}
+#wizModal .v-axis-tab-add::before{
+  content:'+ Добави';
+  font-family:inherit;
+  letter-spacing:0.03em;
+}
+#wizModal .v-axis-tab-add{font-size:0 !important}
+#wizModal .v-axis-tab-add::before{font-size:11px}
+
+/* ═══ Chips — по-красиви + padding fix ═══ */
+#wizModal .v-chip{
+  padding:8px 14px !important;
+  min-height:32px !important;
+  border-radius:100px !important;
+  background:linear-gradient(180deg,rgba(99,102,241,0.08),rgba(67,56,202,0.02)) !important;
+  border:1px solid rgba(139,92,246,0.28) !important;
+  color:rgba(226,232,240,0.8) !important;
+  font-size:11.5px !important;
+  font-weight:600 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 6px rgba(99,102,241,0.08) !important;
+  transition:all .2s !important;
+}
+#wizModal .v-chip:hover{
+  border-color:rgba(139,92,246,0.5) !important;
+  color:#fff !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 0 14px rgba(139,92,246,0.2) !important;
+}
+#wizModal .v-chip.selected{
+  background:linear-gradient(135deg,rgba(99,102,241,0.4),rgba(139,92,246,0.28)) !important;
+  border-color:rgba(139,92,246,0.75) !important;
+  color:#fff !important;
+  box-shadow:
+    0 0 16px rgba(99,102,241,0.4),
+    0 0 30px rgba(139,92,246,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.15) !important;
+  font-weight:700 !important;
+}
+#wizModal .v-sel-chip{
+  padding:7px 11px 7px 13px !important;
+  font-size:11.5px !important;
+  font-weight:700 !important;
+  white-space:nowrap !important;
+  line-height:1 !important;
+}
+
+/* ═══ Footer (Back/Колко бройки/Избери/Запиши) v4 ═══ */
+#wizModal #v4Footer{
+  padding:10px 12px !important;
+  gap:8px !important;
+}
+#wizModal #v4Footer > button{
+  height:42px !important;
+  border-radius:12px !important;
+  font-size:12px !important;
+  font-weight:700 !important;
+  letter-spacing:0.02em !important;
+  font-family:inherit !important;
+  cursor:pointer;
+  transition:all .25s;
+  position:relative;
+  overflow:hidden;
+}
+/* Назад (първи бутон) */
+#wizModal #v4Footer > button:first-child{
+  background:rgba(255,255,255,0.04) !important;
+  border:1px solid rgba(255,255,255,0.1) !important;
+  color:#cbd5e1 !important;
+  box-shadow:none !important;
+  width:42px !important;
+  flex:0 0 42px !important;
+}
+/* Колко бройки (indigo glass + underline) */
+#wizModal #v4Footer > button[onclick*="openMxOverlay"]{
+  flex:1.3 !important;
+  background:linear-gradient(180deg,rgba(99,102,241,0.22),rgba(67,56,202,0.08)) !important;
+  border:1px solid rgba(139,92,246,0.55) !important;
+  color:#c4b5fd !important;
+  box-shadow:0 0 16px rgba(139,92,246,0.28),inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  animation:none !important;
+  text-shadow:none !important;
+}
+#wizModal #v4Footer > button[onclick*="openMxOverlay"]::after{
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#d946ef,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 10px rgba(139,92,246,0.7);
+  opacity:0.85;
+}
+/* Запиши (зелен v4-foot-save) */
+#wizModal #v4Footer > button[onclick*="wizSave"]{
+  flex:1.3 !important;
+  background:linear-gradient(180deg,rgba(34,197,94,0.18),rgba(22,163,74,0.06)) !important;
+  border:1px solid rgba(34,197,94,0.5) !important;
+  color:#86efac !important;
+  box-shadow:0 0 16px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  text-shadow:none !important;
+}
+#wizModal #v4Footer > button[onclick*="wizSave"]::after{
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg,transparent,#22c55e,#4ade80,#22c55e,transparent);
+  box-shadow:0 0 10px rgba(34,197,94,0.7);
+  opacity:0.85;
+}
+/* „Избери размер/цвят" (следващ axis) */
+#wizModal #v4Footer > button[onclick*="_wizActiveTab"]{
+  flex:1.3 !important;
+  background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08)) !important;
+  border:1px solid rgba(139,92,246,0.5) !important;
+  color:#c4b5fd !important;
+  box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  text-shadow:none !important;
+}
+#wizModal #v4Footer > button[onclick*="_wizActiveTab"]::after{
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 8px rgba(139,92,246,0.6);
+  opacity:0.8;
+}
+
+/* ═══ Matrix grid — по-малки клетки + hide помощ при keyboard ═══ */
+#wizModal .v4-mx-cell{
+  min-width:78px !important;
+  padding:4px 3px !important;
+}
+#wizModal .v4-mx-head, #wizModal .v4-mx-rowh{
+  min-width:78px !important;
+  font-size:10px !important;
+  padding:6px 3px !important;
+}
+#wizModal .v4-cell-input{width:46px !important; height:30px !important; font-size:12px !important}
+#wizModal .v4-mx-sub{font-size:9.5px !important; line-height:1.35}
+/* Когато има focus на клетка → скрий sub text */
+#wizModal .v4-matrix-ov.open:has(.v4-cell-input:focus) .v4-mx-sub,
+#wizModal .v4-matrix-ov.open:has(.v4-cell-input:focus) .v4-mx-quick{
+  display:none !important;
+}
+/* Matrix footer buttons в v4 стил */
+#wizModal .v4-mx-bottom button,
+#wizModal .v4-mx-bottom .abtn{
+  height:42px !important;
+  border-radius:12px !important;
+  font-size:12px !important;
+  font-weight:700 !important;
+  letter-spacing:0.02em !important;
+}
+/* S76.4 end */
+
+
 </style>
 </head>
 <body>
@@ -4241,7 +4462,10 @@ function renderWizPagePart2(step){
             var isSz=nm.indexOf('размер')!==-1||nm.indexOf('size')!==-1;
             var isCl=nm.indexOf('цвят')!==-1||nm.indexOf('color')!==-1;
             var isDef=/^вариация\s*\d+$/i.test(ax.name);var icn=isSz?'<svg viewBox="0 0 24 24"><path d="M3 3h18v6H3zM3 15h18v6H3z"/></svg>':(isCl?'<svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/></svg>':(isDef?'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>':'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'));
-            var _tabLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(ti+1)):ax.name;tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()">'+icn+esc(_tabLbl)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></button>';
+            var _nmL=ax.name.toLowerCase();
+            var _tabSemantic=(_nmL.indexOf('размер')!==-1||_nmL.indexOf('size')!==-1)?'Размер':((_nmL.indexOf('цвят')!==-1||_nmL.indexOf('color')!==-1)?'Цвят':(/^вариация\s*\d+$/i.test(ax.name)?'—':ax.name));
+            var _tabTop='Вариация '+(ti+1);
+            tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()"><span class="v-tab-top">'+esc(_tabTop)+'</span><span class="v-tab-bottom">'+icn+esc(_tabSemantic)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></span></button>';
         });
         tabsH+='<button class="v-axis-tab-add" onclick="wizAddAxisFromTab()">+</button>';
         tabsH+='</div>';
