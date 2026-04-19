@@ -2047,17 +2047,27 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-chipInput::placeholder{color:#a5b4fc;font-weight:600}
 /* S74: усилване на .fc в wizard модала */
 #wizModal .fc{
-  background:linear-gradient(180deg,rgba(17,24,44,0.5),rgba(8,11,24,0.7)) !important;
-  border:1px solid rgba(99,102,241,0.22) !important;
-  border-bottom:2.5px solid rgba(139,92,246,0.55) !important;
-  border-radius:10px 10px 3px 3px !important;
-  box-shadow:0 3px 10px rgba(99,102,241,0.18),0 0 14px rgba(139,92,246,0.12) !important;
+  background:linear-gradient(180deg,rgba(17,24,44,0.55),rgba(8,11,24,0.8)) !important;
+  border:1px solid rgba(99,102,241,0.2) !important;
+  border-bottom:none !important;
+  border-radius:10px !important;
+  box-shadow:
+    inset 0 -3px 0 rgba(139,92,246,0.55),
+    inset 0 -4px 10px rgba(139,92,246,0.2),
+    0 3px 8px rgba(99,102,241,0.15),
+    0 0 14px rgba(139,92,246,0.1) !important;
   transition:all .25s !important;
+  position:relative !important;
 }
 #wizModal .fc:focus{
-  border-color:rgba(139,92,246,0.6) !important;
-  border-bottom:3px solid #a855f7 !important;
-  box-shadow:0 4px 14px rgba(139,92,246,0.35),0 0 24px rgba(139,92,246,0.25),0 -1px 8px rgba(217,70,239,0.15),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  border-color:rgba(139,92,246,0.4) !important;
+  box-shadow:
+    inset 0 -4px 0 #a855f7,
+    inset 0 -6px 14px rgba(217,70,239,0.35),
+    0 4px 14px rgba(139,92,246,0.4),
+    0 0 24px rgba(139,92,246,0.3),
+    0 0 0 1px rgba(139,92,246,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
 
 
