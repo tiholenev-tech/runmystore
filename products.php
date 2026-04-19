@@ -2548,6 +2548,18 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   padding-bottom:0 !important;
   border-bottom-width:0 !important;
 }
+/* S76.7 applied: Matrix focus mode */
+#mxOverlay.mx-focused .mx-header,
+#mxOverlay.mx-focused #mxInstruction,
+#mxOverlay.mx-focused .mx-quick,
+#mxOverlay.mx-focused .mx-bottom{
+  display:none !important;
+}
+#mxOverlay.mx-focused .mx-body-wrap{
+  flex:1 !important;
+  max-height:none !important;
+  padding-top:8px !important;
+}
 /* S76.5 applied */
 /* S76.6 applied */
 
@@ -4192,19 +4204,18 @@ function wizGo(step){
 function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
 function openMxOverlay(){
   setTimeout(function(){
-    var ov=document.querySelector('.v4-matrix-ov.open');
-    if(!ov)return;
-    var instr=document.getElementById('mxInstruction');
-    if(!instr)return;
+    var ov=document.getElementById('mxOverlay');
+    if(!ov||ov._mxFocusInit)return;
+    ov._mxFocusInit=true;
     ov.addEventListener('focusin',function(e){
-      if(e.target&&e.target.tagName==='INPUT'){instr.style.maxHeight='0';instr.style.opacity='0';instr.style.paddingTop='0';instr.style.paddingBottom='0';instr.style.borderBottomWidth='0';}
+      if(e.target&&e.target.tagName==='INPUT'){ov.classList.add('mx-focused');}
     });
     ov.addEventListener('focusout',function(){
       setTimeout(function(){
-        if(!ov.querySelector('input:focus')){instr.style.maxHeight='120px';instr.style.opacity='1';instr.style.paddingTop='10px';instr.style.paddingBottom='10px';instr.style.borderBottomWidth='1px';}
-      },100);
+        if(!ov.querySelector('input:focus')){ov.classList.remove('mx-focused');}
+      },80);
     });
-  },100);
+  },120);
 
   S._mxSnapshot=JSON.stringify(S.wizData._matrix||{});
   // Намираме axes с стойности — първите 2 с данни стават rows × cols
