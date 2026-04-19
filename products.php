@@ -4138,8 +4138,7 @@ function renderWizPagePart2(step){
     // ═══ STEP 5: МАТРИЦА + БРОЙКИ + ЗАПИС (S70 — replaces old step 5+6) ═══
     if(step===5){
         wizCollectData();
-        if(!S.wizData.name){showToast('Въведи наименование','error');wizGo(3);return''}
-        if(!S.wizData.retail_price){showToast('Въведи цена','error');wizGo(3);return''}
+        if(!S.wizData.name||!S.wizData.retail_price){setTimeout(function(){S.wizStep=3;renderWizard();setTimeout(function(){var el=document.getElementById(!S.wizData.name?'wName':'wPrice');if(el){el.focus();el.classList.add('wiz-flash-err')}showToast(!S.wizData.name?'Въведи наименование':'Въведи цена','error')},50)},0);return'<div class="wiz-page active" style="padding:20px;color:#fca5a5;text-align:center">Връщане към основни...</div>'}
 
         var combos=wizBuildCombinations();
         var hasCombos=combos.length>1||(combos[0]&&combos[0].parts&&combos[0].parts.length>0);
@@ -6287,7 +6286,9 @@ function wizPrintLabels(comboIdx){
     html+='.l-clr-big{font-size:10pt;font-weight:500}';
     html+='.l-bot{border-top:0.3mm dashed #aaa;padding-top:0.5mm;display:flex;justify-content:space-between;font-size:4.5pt;color:#444}';
     html+='@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
-    html+='</style></head><body>';
+    html+='
+.wiz-flash-err{animation:wizFlashErr 0.4s ease 3!important;box-shadow:inset 0 -4px 0 #ef4444,inset 0 -6px 14px rgba(239,68,68,0.45),0 0 24px rgba(239,68,68,0.5)!important;border-color:rgba(239,68,68,0.6)!important}@keyframes wizFlashErr{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+</style></head><body>';
 
     labels.forEach(function(lb,idx){
         html+='<div class="label">';
