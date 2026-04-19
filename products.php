@@ -1596,7 +1596,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .add-sec{padding:0 16px 8px}
 .add-sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .add-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#818cf8}
-.add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .add-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px 12px;border-radius:14px;background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.08);cursor:pointer;position:relative}
 .add-btn span{font-size:10px;font-weight:600;color:#9ca3af}
 .add-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
@@ -3004,40 +3004,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             <div class="new-info-btn" onclick="toggleInfoPanel()"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>
         </div>
 
-        <!-- CASCADE: ДОСТАВЧИЦИ → КАТЕГОРИИ -->
-        <div class="fltr-label"><span>Доставчици</span><div class="fltr-info" onclick="showWizInfo('supplier')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
-        <div class="fltr-row" id="supFilterRow">
-            <div class="fltr-btn active" data-sup="0" onclick="setCascadeSup(0,this)">Всички</div>
-            <?php foreach ($all_suppliers as $sup): ?>
-            <div class="fltr-btn" data-sup="<?= $sup['id'] ?>" onclick="setCascadeSup(<?= $sup['id'] ?>,this)"><?= htmlspecialchars($sup['name']) ?></div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="fltr-label"><span>Категории</span><span class="fltr-hint" id="catHint">глобални</span><div class="fltr-info" onclick="showWizInfo('category')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
-        <div class="fltr-row" id="catFilterRow">
-            <div class="fltr-btn active" data-cat="0" onclick="setCascadeCat(0,this)">Всички</div>
-            <!-- Populated dynamically by JS based on selected supplier -->
-        </div>
-
-      <!-- БЪРЗИ ФИЛТРИ — ще се добавят в S42 с реални dropdown-ове -->
-        <!-- БУТОН ТЪРСИ -->
-<div style="padding:14px 16px 0">
-    <div class="abtn primary" onclick="goFilteredList()" style="font-size:14px;padding:13px;border-radius:14px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        Търси артикули
-    </div>
-</div>
-        <div class="indigo-sep"></div>
-
         <!-- ДОБАВИ НОВ АРТИКУЛ -->
         <?php if ($can_add): ?>
         <div class="add-sec">
             <div class="add-sec-hdr"><span class="add-sec-title">Добави нов артикул</span><div class="fltr-info" onclick="showWizInfo('photo')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
             <div class="add-grid">
-                <div class="add-btn add-ai" onclick="openVoiceWizard()">
-                    <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
-                    <span style="color:#a5b4fc">AI</span>
-                </div>
                 <div class="add-btn add-manual" onclick="openManualWizard()">
                     <div class="add-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
                     <span>Ръчно</span>
@@ -3053,14 +3024,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             </div>
         </div>
         <?php endif; ?>
-
-        <div class="indigo-sep"></div>
-
-        <!-- СИГНАЛИ -->
-        <div class="signals-sec">
-            <div class="signals-hdr"><span class="signals-title">Сигнали</span><span class="signals-count" id="signalsCount"></span><div class="fltr-info" onclick="showWizInfo('description')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
-            <div id="signalsList"></div>
-        </div>
 
         <!-- ═══ S79A1 SECTIONS HTML START ═══ -->
 <div class="q-sections-wrap" id="qSectionsWrap">
