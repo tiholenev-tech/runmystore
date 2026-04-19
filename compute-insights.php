@@ -23,23 +23,30 @@ require_once __DIR__ . '/config/helpers.php';
 
 function upsertInsight(int $tid, int $sid, string $topicId, array $d): void {
     DB::run(
-        "INSERT INTO ai_insights 
-            (tenant_id, store_id, topic_id, category, grp, module, urgency, plan_gate, role_gate, 
-             title, detail_text, data_json, value_numeric, product_count, created_at, expires_at)
-         VALUES 
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 MINUTE))
+        "INSERT INTO ai_insights
+            (tenant_id, store_id, topic_id, category, grp, module, urgency, plan_gate, role_gate,
+             title, detail_text, data_json, value_numeric, product_count,
+             fundamental_question, product_id, supplier_id,
+             created_at, expires_at)
+         VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 MINUTE))
          ON DUPLICATE KEY UPDATE
             category=VALUES(category), grp=VALUES(grp), module=VALUES(module), urgency=VALUES(urgency),
-            plan_gate=VALUES(plan_gate), role_gate=VALUES(role_gate), title=VALUES(title), 
+            plan_gate=VALUES(plan_gate), role_gate=VALUES(role_gate), title=VALUES(title),
             detail_text=VALUES(detail_text), data_json=VALUES(data_json), value_numeric=VALUES(value_numeric),
-            product_count=VALUES(product_count), created_at=NOW(), expires_at=DATE_ADD(NOW(), INTERVAL 30 MINUTE)",
+            product_count=VALUES(product_count),
+            fundamental_question=VALUES(fundamental_question),
+            product_id=VALUES(product_id), supplier_id=VALUES(supplier_id),
+            created_at=NOW(), expires_at=DATE_ADD(NOW(), INTERVAL 30 MINUTE)",
         [
             $tid, $sid, $topicId,
             $d['category'], $d['grp'] ?? 1, $d['module'] ?? 'home', $d['urgency'] ?? 'info',
             $d['plan_gate'] ?? 'pro', $d['role_gate'] ?? 'owner,manager',
             $d['title'], $d['detail_text'] ?? null,
             isset($d['data']) ? json_encode($d['data'], JSON_UNESCAPED_UNICODE) : null,
-            $d['value'] ?? null, $d['count'] ?? null
+            $d['value'] ?? null, $d['count'] ?? null,
+            $d['fundamental_question'] ?? null,
+            $d['product_id'] ?? null, $d['supplier_id'] ?? null
         ]
     );
 }
@@ -86,6 +93,7 @@ function computeAllInsights(int $tid, int $sid, string $currency): void {
     computeTopCategoryRevenue($tid, $sid, $currency);
     computeTopSupplierRevenue($tid, $sid, $currency);
     computeUncounted30d($tid, $sid);
+    computeProductInsights($tid, $sid, $currency);
     cleanExpiredInsights($tid, $sid);
 }
 
@@ -930,4 +938,146 @@ function computeUncounted30d(int $tid, int $sid): void {
         'title' => $count . ' артикула непреброени 30+ дни — преброй за по-точен склад',
         'count' => $count
     ]);
+}
+
+// ══════════════════════════════════════
+// S78 — PRODUCTS 6-QUESTIONS SKELETON
+// ══════════════════════════════════════
+// Всяка функция задължително upsert-ва с fundamental_question.
+// Логика = TODO S79. Тук само скелет + правилен tag.
+
+/** PF#1 — zero stock + продажби в 30д (LOSS) */
+function pfZeroStockWithSales(int $tid, int $sid, string $cur): void {
+    // TODO S79: SELECT products with quantity=0 AND sold_30d>0
+    // fundamental_question = 'loss'
+}
+
+/** PF#2 — under min quantity с реални продажби (LOSS) */
+function pfBelowMinUrgent(int $tid, int $sid, string $cur): void {
+    // TODO S79: i.quantity <= p.min_quantity AND sold_30d>0
+    // fundamental_question = 'loss'
+}
+
+/** PF#3 — ще свършат днес по темпо (LOSS) */
+function pfRunningOutToday(int $tid, int $sid, string $cur): void {
+    // TODO S79: i.quantity / (sold_30d/30) < 1
+    // fundamental_question = 'loss'
+}
+
+/** PF#4 — продажби под cost_price (LOSS_CAUSE) */
+function pfSellingAtLossFQ(int $tid, int $sid, string $cur): void {
+    // TODO S79: retail_price < cost_price — per-product list
+    // fundamental_question = 'loss_cause'
+}
+
+/** PF#5 — липсваща cost_price (LOSS_CAUSE) */
+function pfNoCostPriceFQ(int $tid, int $sid, string $cur): void {
+    // TODO S79: cost_price IS NULL OR 0 — за артикули които са активно продаващи
+    // fundamental_question = 'loss_cause'
+}
+
+/** PF#6 — марж < 15% (LOSS_CAUSE) */
+function pfMarginBelow15(int $tid, int $sid, string $cur): void {
+    // TODO S79: (retail-cost)/retail*100 < 15
+    // fundamental_question = 'loss_cause'
+}
+
+/** PF#7 — продавач дава отстъпка която убива маржа (LOSS_CAUSE) */
+function pfSellerDiscountKiller(int $tid, int $sid, string $cur): void {
+    // TODO S79: sale_items.discount_pct correlated с ниска крайна маржа
+    // fundamental_question = 'loss_cause'
+}
+
+/** PF#8 — топ профит 30д (GAIN) */
+function pfTopProfit30d(int $tid, int $sid, string $cur): void {
+    // TODO S79: SUM((unit_price-cost_price)*quantity) DESC LIMIT 8
+    // fundamental_question = 'gain'
+}
+
+/** PF#9 — профит расте (GAIN) */
+function pfProfitGrowth(int $tid, int $sid, string $cur): void {
+    // TODO S79: profit_30d > profit_prev_30d * 1.15
+    // fundamental_question = 'gain'
+}
+
+/** PF#10 — най-висок марж (GAIN_CAUSE) */
+function pfHighestMargin(int $tid, int $sid, string $cur): void {
+    // TODO S79: margin_pct DESC LIMIT 8 за продаващи артикули
+    // fundamental_question = 'gain_cause'
+}
+
+/** PF#11 — тренд нагоре (GAIN_CAUSE) */
+function pfTrendingUp(int $tid, int $sid, string $cur): void {
+    // TODO S79: sold_last_7d > sold_prev_7d * 1.5
+    // fundamental_question = 'gain_cause'
+}
+
+/** PF#12 — лоялни клиенти го купуват (GAIN_CAUSE) */
+function pfLoyalCustomers(int $tid, int $sid, string $cur): void {
+    // TODO S79: COUNT(DISTINCT returning customer_id) на артикул
+    // fundamental_question = 'gain_cause'
+}
+
+/** PF#13 — basket driver (GAIN_CAUSE) */
+function pfBasketDriver(int $tid, int $sid, string $cur): void {
+    // TODO S79: артикули присъстващи в касови бележки с >3 артикула
+    // fundamental_question = 'gain_cause'
+}
+
+/** PF#14 — лидер по размер (GAIN_CAUSE) */
+function pfSizeLeader(int $tid, int $sid, string $cur): void {
+    // TODO S79: размер с най-много продажби в категория
+    // fundamental_question = 'gain_cause'
+}
+
+/** PF#15 — бестселър с ниска наличност → поръчай (ORDER) */
+function pfBestsellerLowStock(int $tid, int $sid, string $cur): void {
+    // TODO S79: top_sales 30д AND i.quantity <= min_quantity
+    // fundamental_question = 'order'
+}
+
+/** PF#16 — lost_demand съвпадение с доставчик (ORDER) */
+function pfLostDemandMatch(int $tid, int $sid, string $cur): void {
+    // TODO S79: lost_demand rows със suggested_supplier_id → агрегация
+    // fundamental_question = 'order'
+}
+
+/** PF#17 — zombie 45+ дни (ANTI_ORDER) */
+function pfZombie45d(int $tid, int $sid, string $cur): void {
+    // TODO S79: days_stale > 45 AND quantity > 0
+    // fundamental_question = 'anti_order'
+}
+
+/** PF#18 — тренд надолу (ANTI_ORDER) */
+function pfDecliningTrend(int $tid, int $sid, string $cur): void {
+    // TODO S79: sold_last_30d < sold_prev_30d * 0.5
+    // fundamental_question = 'anti_order'
+}
+
+/** PF#19 — висок процент връщания (ANTI_ORDER) */
+function pfHighReturnRate(int $tid, int $sid, string $cur): void {
+    // TODO S79: returned_qty / sold_qty > 0.15
+    // fundamental_question = 'anti_order'
+}
+
+function computeProductInsights(int $tid, int $sid, string $cur): void {
+    pfZeroStockWithSales($tid, $sid, $cur);
+    pfBelowMinUrgent($tid, $sid, $cur);
+    pfRunningOutToday($tid, $sid, $cur);
+    pfSellingAtLossFQ($tid, $sid, $cur);
+    pfNoCostPriceFQ($tid, $sid, $cur);
+    pfMarginBelow15($tid, $sid, $cur);
+    pfSellerDiscountKiller($tid, $sid, $cur);
+    pfTopProfit30d($tid, $sid, $cur);
+    pfProfitGrowth($tid, $sid, $cur);
+    pfHighestMargin($tid, $sid, $cur);
+    pfTrendingUp($tid, $sid, $cur);
+    pfLoyalCustomers($tid, $sid, $cur);
+    pfBasketDriver($tid, $sid, $cur);
+    pfSizeLeader($tid, $sid, $cur);
+    pfBestsellerLowStock($tid, $sid, $cur);
+    pfLostDemandMatch($tid, $sid, $cur);
+    pfZombie45d($tid, $sid, $cur);
+    pfDecliningTrend($tid, $sid, $cur);
+    pfHighReturnRate($tid, $sid, $cur);
 }
