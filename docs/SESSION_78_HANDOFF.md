@@ -1,139 +1,107 @@
 # SESSION 78 HANDOFF
-## RunMyStore.ai | 19.04.2026
-## Тип: IMPLEMENTATION — DB фундамент + P0 бъгове + compute-insights skeleton
-## Модел: Claude Opus 4.7 (1M context)
+## RunMyStore.ai · 19.04.2026 · Claude Opus 4.7 (1M context)
 
 ---
 
-# 🎯 ОБОБЩЕНИЕ
+## S78 обобщение
 
-S78 = фундамент за products.php пълно завършване (S78 → S82 план).
-
-**Deliverables:**
-1. S77 DB миграция пусната и верифицирана (7/7 обекта стоят).
-2. P0 бъгове #5, #6, #7 от products.php затворени.
-3. Wizard step 4 UX fix — празен axis позволява Запиши.
-4. compute-insights.php разширен с 19 skeleton функции по 6-те фундаментални въпроса + hook в products.php.
+S78 постави фундамента за пълното завършване на products.php. Пусната и верифицирана е цялата S77 DB миграция, поправени са P0 бъговете #7 и частично #6, създаден е skeleton-ът на compute-insights.php с 19 продуктови функции по 6-те фундаментални въпроса, и е оправена навигацията на wizard step 4 според опция В (избор на Пешо, не натрапване).
 
 ---
 
-# 📦 DB СТАТУС (след миграция)
+## Готово
 
-**Backup преди миграция:** `/root/backup_s78_20260419_1829.sql` (1.37 MB)
+**DB миграция** — 3 нови таблици (supplier_orders, supplier_order_items, supplier_order_events), 3 нови колони в ai_insights (fundamental_question ENUM, product_id, supplier_id), 2 нови колони в lost_demand (suggested_supplier_id, resolved_order_id). Backup: `/root/backup_s78_20260419_1829.sql` (1.37 MB). Верификация: SHOW TABLES и DESCRIBE потвърдени, 37 записа в ai_insights остават непокътнати.
 
-## Нови таблици (3)
-- `supplier_orders`
-- `supplier_order_items`
-- `supplier_order_events`
+**Бъг #7 — sold_30d child aggregation** — correlated subquery в listProducts смени `si99.product_id=p.id` с JOIN към products + `(cp2.id=p.id OR cp2.parent_id=p.id)`, така че parent артикулът сумира и собствените си продажби и тези на child-варианти. Първият опит (CASE WHEN EXISTS children THEN child ELSE parent) беше регресивен — refine-нат в commit `ba4ff1d`. Верификация чрез SQL срещу референтна заявка: 5 от 5 топ артикула съвпадат 1:1.
 
-## Обновени таблици
-- `ai_insights` +3 колони:
-  - `fundamental_question` ENUM('loss','loss_cause','gain','gain_cause','order','anti_order') NULL
-  - `product_id` INT NULL (index `idx_product`)
-  - `supplier_id` INT NULL
-  - + `idx_question` на fundamental_question
-- `lost_demand` +2 колони:
-  - `suggested_supplier_id` INT NULL (index `idx_supplier`)
-  - `resolved_order_id` INT NULL
+**compute-insights.php skeleton** — 19 празни `pf*()` функции, групирани по fundamental_question (loss 3, loss_cause 4, gain 2, gain_cause 5, order 2, anti_order 3). Wrapper-ът `computeProductInsights()` е закачен в `computeAllInsights()`. upsertInsight разширен с новите колони. AJAX endpoint `ajax=compute_insights` добавен в products.php. Commit `20736b2`.
 
-## Верификация на дата 2026-04-19 19:35 UTC
-
-| Проверка | Резултат |
-|---|---|
-| SHOW TABLES LIKE 'supplier%' | supplier_orders, supplier_order_items, supplier_order_events (и трите) ✅ |
-| DESCRIBE ai_insights колони | fundamental_question ENUM ✅ · product_id INT MUL ✅ · supplier_id INT ✅ |
-| DESCRIBE lost_demand колони | suggested_supplier_id MUL ✅ · resolved_order_id ✅ |
-| SELECT COUNT(*) FROM ai_insights | 37 реда ✅ |
+**Wizard step 4 footer — опция В** — default wizard-ът слага 2 axes (Вариация 1 + Вариация 2). Когато текущият axis има стойности, а другият е празен, footer-ът показва трите бутона паралелно: "Колко бр.?", "Вариация 2" и "Запиши". Пешо сам избира кое да направи. Когато всички axes са попълнени, средният бутон изчезва и остават Колко бр. + Запиши. Font size и SVG dimensions намалени за да се съберат три бутона на тесни екрани. Commit `c65cdef`.
 
 ---
 
-# 🔴 P0 БЪГОВЕ — затворени
+## За S79 (не готово, чака UI тест)
 
-## Бъг #7 — sold_30d винаги = 0 за артикули с варианти ✅
+**Бъг #5 — AI Studio `_hasPhoto`** — анализът на кода показа че `S.wizData._hasPhoto=true` вече се сетва правилно на ред 6554 (photoInput change handler, вътре в FileReader onload). Тихол не потвърди в UI дали симптомът все още се проявява. Ако да — значи има друг code path, който не сме видели, и трябва повторен разглед в S79 със сценарий от реалния UI.
 
-**Симптом:** списъкът на артикули показваше 0 продажби за parent артикули с варианти, дори когато варианти се продават.
+**Бъг #6 — renderWizard нулира бройки** — първият fix (commit `18efa48`) защити print qty на step 6 (Печат) чрез wizCollectData/renderWizard hook, ограничен с `S.wizStep===6`. За сценарий с 2 вариации (Размер + Цвят) — където бройките се въвеждат на step 5 матрица — fix-ът не покрива нулирането при re-render. Чака реален UI тест с matrix + 2 axes преди да се реши дали има отделен бъг.
 
-**Причина:** correlated subquery `WHERE si99.product_id = p.id` — parent-ите имат `parent_id IS NULL` и продажбите се пишат в `sale_items.product_id = child.id`.
+---
 
-**Fix (финална версия — commit `ba4ff1d`):** замяна с JOIN + UNION условие:
-```sql
-(SELECT SUM(si99.quantity) 
- FROM sale_items si99 
- JOIN sales s99 ON s99.id = si99.sale_id 
- JOIN products cp2 ON cp2.id = si99.product_id 
- WHERE (cp2.id = p.id OR cp2.parent_id = p.id)
-   AND s99.store_id = {$sid} 
-   AND s99.status != 'canceled' 
-   AND s99.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))
+## Закони от S78
+
+**1. Commit ≠ готово.** Готово е когато е тестван. Push не затваря задачата — потвърждение затваря задачата.
+
+**2. Frontend → UI тест от Тихол преди done.** Claude не може сам да кликне през UI. Всяка JS/HTML промяна чака ръчно потвърждение. Task остава in_progress докато Тихол каже "работи".
+
+**3. Backend → SQL query преди done.** Всяка промяна в SQL заявка или DB схема се тества с реален query срещу tenant 7/store 47, сравнено с референтна заявка. "Syntax OK" не е тест.
+
+**4. Git log преди обвинение на регресия.** Когато се съмнява за регресия, Claude първо чете `git show <commit>` + `git blame` на релевантния код. Много "регресии" са съществуващо поведение на непроменян код от по-ранна сесия.
+
+**5. Паралелна работа само за несвързани задачи.** DB миграция + PHP бъг fix → може паралелно. Два fix-а на същата функция → задължително последователно, с тест между тях.
+
+---
+
+## S79 стартов prompt (copy-paste готов)
+
 ```
+Продължаваме S79 от /var/www/runmystore.
 
-**Първият опит** (CASE WHEN EXISTS children → children ELSE parent) беше регресивен — връщаше 0 за parent-и с children когато продажбите още са записани на parent ID. Refine-нат в commit `ba4ff1d`.
+ЗАДЪЛЖИТЕЛНО ПРОЧЕТИ ПО РЕД:
+1. NARACHNIK_TIHOL_v1_1.md
+2. docs/BIBLE_v3_0_APPENDIX.md
+3. DESIGN_SYSTEM.md
+4. docs/ROADMAP.md
+5. docs/PRODUCTS_DESIGN_LOGIC.md
+6. docs/SESSION_78_HANDOFF.md
 
-**Верификация:** 5 топ артикула тествани срещу reference query — 1:1 съвпадение.
+СТАТУС S78:
+- DB миграцията верифицирана, всички 7 обекта стоят.
+- Бъг #7 затворен и верифициран със SQL тест.
+- compute-insights.php skeleton с 19 pf() функции, hook-нат.
+- Wizard step 4 footer работи с 3 бутона (Колко бр. + Вариация 2 + Запиши).
+- Pending UI тестове: Бъг #5 AI Studio _hasPhoto, Бъг #6 renderWizard бройки.
 
-## Бъг #6 — renderWizard нулира бройки (step 6 Печат) ✅
+ПРАВИЛА (от NARACHNIK + S78 закони):
+- Тихол НЕ е developer. Само български. Кратко. Без "може би".
+- ТЕХНИЧЕСКИ решения (скриптове, имена, git flow, backup) = ти сам.
+- ЛОГИЧЕСКИ/UX решения = ЗАДЪЛЖИТЕЛНО питай Тихол.
+- sed забранен. Python скриптове в /tmp/s79_*.py.
+- Backup ПРЕДИ всяка DB промяна: mysqldump → /root/backup_s79_YYYYMMDD_HHMM.sql.
+- След успешен fix → git add + commit + push АВТОМАТИЧНО, без питане.
+- Commit ≠ готово. Готово = тестван (UI от Тихол или SQL от теб).
+- Frontend промяна остава pending докато Тихол потвърди в UI.
+- Backend промяна се тества с реален SQL срещу tenant 7/store 47.
+- Git log преди обвинение на регресия.
+- Пълен код винаги, никога частичен.
+- Макс 2 команди наведнъж, чакай резултат.
+- Никога "Gemini" в UI — винаги "AI".
+- i18n: никога hardcoded BG; винаги tenant.lang + priceFormat.
 
-**Симптом:** при смяна на tab (€+лв / само € / Без цена) на step 6 бройките за печат се нулираха.
+ПЪРВА ЗАДАЧА: UI тестове на pending от S78.
 
-**Причина:** tab onclick викаше `renderWizard()` директно → `innerHTML` се пренаписваше → input values в `lblQty*` се губеха, защото `S.wizData._printCombos[i].printQty` не беше синхронизирана с inputs.
+1. Бъг #5 AI Studio — Тихол тества в UI:
+   - Отвори wizard, качи снимка през 'photoInput'
+   - Провери дали AI Image Studio вижда _hasPhoto като true
+   - Ако работи → маркирай done. Ако не → сценарий, Claude разглежда code path.
 
-**Fix (commit `18efa48`):**
-1. `wizCollectData()` разширена — при `S.wizStep===6` копира `lblQty*` → `_printCombos[i].printQty`.
-2. `renderWizard()` вика `wizCollectData()` в началото при `S.wizStep===6`.
+2. Бъг #6 renderWizard (сценарий 2 вариации) — Тихол тества:
+   - Създай артикул с Размер + Цвят (2 axes)
+   - Попълни матрица с бройки
+   - Смени tab/tab, редактирай axis, re-render
+   - Ако бройките се губят → Claude прави fix. Ако остават → done.
 
-## Бъг #5 — AI Studio `_hasPhoto` не се сетва ✅
+СЛЕД UI ТЕСТОВЕТЕ: започни S79 по ROADMAP — products главна rewrite (6 секции h-scroll) + напълване на 19-те pf() функции с реален SQL.
 
-**Статус:** beше вече поправен преди S78 (ред 6554 на products.php). Не изисква нов code — tasks маркирани completed.
-
----
-
-# 🎨 WIZARD UX FIX
-
-## Step 4 — празен axis третиран като несъществуващ (commit `e8ef499`)
-
-**Симптом:** default wizard създава 2 axes (Вариация 1 + Вариация 2) с празни values. Ако user избере стойности само в axis 1, footer-ът показваше "Избери вариация 2" вместо "Запиши" — user се блокираше.
-
-**Fix:** `_v4ComputeFooter` — премахната логиката за търсене на `nextEmptyIdx`. Празен axis се игнорира. Save button се показва веднага щом активният axis има стойности. User все още може да добави стойности в други axes чрез tab-овете.
-
----
-
-# 🧩 COMPUTE-INSIGHTS.PHP — SKELETON
-
-**Commit:** `20736b2`
-
-## Нови функции по S77 6-те въпроса (19 skeleton)
-
-| Категория | Функции | fundamental_question |
-|---|---|---|
-| LOSS (3) | pfZeroStockWithSales, pfBelowMinUrgent, pfRunningOutToday | `loss` |
-| LOSS_CAUSE (4) | pfSellingAtLossFQ, pfNoCostPriceFQ, pfMarginBelow15, pfSellerDiscountKiller | `loss_cause` |
-| GAIN (2) | pfTopProfit30d, pfProfitGrowth | `gain` |
-| GAIN_CAUSE (5) | pfHighestMargin, pfTrendingUp, pfLoyalCustomers, pfBasketDriver, pfSizeLeader | `gain_cause` |
-| ORDER (2) | pfBestsellerLowStock, pfLostDemandMatch | `order` |
-| ANTI_ORDER (3) | pfZombie45d, pfDecliningTrend, pfHighReturnRate | `anti_order` |
-
-Всяка е **празна skeleton** с TODO коментар за S79. Тялото (SQL + upsertInsight) се напълва в S79.
-
-## Wrapper
-
-`computeProductInsights(int $tid, int $sid, string $cur)` — извиква всички 19. Добавен в `computeAllInsights()`.
-
-## upsertInsight разширен
-
-Добавени колони в INSERT/UPDATE: `fundamental_question`, `product_id`, `supplier_id`. Съвместим със старите викове — всички нови параметри са default NULL.
-
-## Hook в products.php
-
-Нов AJAX endpoint:
-```
-GET products.php?ajax=compute_insights
-→ извиква computeProductInsights()
-→ връща {"ok":true,"computed":19}
+Команди за старт:
+cd /var/www/runmystore && git pull origin main
+git log --oneline | head -8
 ```
 
 ---
 
-# 📝 COMMITS (S78, по ред)
+## Commits в S78 (по ред, всички в origin/main)
 
 ```
 8fe8584  S78: Fix Bug #7 — sold_30d aggregates child variations to parent
@@ -141,73 +109,8 @@ GET products.php?ajax=compute_insights
 20736b2  S78: compute-insights.php skeleton (19 product functions, 6 questions)
 ba4ff1d  S78: Refine Bug #7 fix — union parent + child sales instead of either/or
 e8ef499  S78: Wizard step 4 — empty axis treated as non-existent (allow Save)
+3f45b93  S78 docs: session handoff
+c65cdef  S78: Wizard step 4 footer — show all 3 actions when other axis is empty
 ```
-
-Всички push-нати в `origin/main`.
-
----
-
-# 🚀 S79 СТАРТ
-
-## Контекст
-
-След S78 DB фундаментът е напълно готов. compute-insights.php има структура и hook-ове, но тялото е празно. products.php запазва старата главна (списък с филтри) — НЕ е rewrite-нат по S77 6-секции дизайн.
-
-## Приоритети в S79 (според S77 ROADMAP)
-
-### 1. products главна rewrite (6 секции h-scroll)
-- Нов HTML layout: 6 секции по 162px карти с horizontal scroll
-- Neon Glass CSS за 6 hue (q1-q6): red/violet/green/teal/amber/grey
-- Q-head badge + total pill per секция
-- Контекстни text-ове на divider (число + защо + profit)
-- Tap артикул → edit flow
-
-### 2. AJAX endpoint `ajax=sections`
-- Зарежда данни per секция от `ai_insights` WHERE `fundamental_question=?`
-- Pagination/limit 8 артикула per секция
-- JOIN products за кoмплектен card data
-
-### 3. Напълване на 19-те pf функции
-Реален SQL за всяка от 19-те skeleton функции:
-- Всяка задължително извиква `upsertInsight` с правилно `fundamental_question` + `product_id` (където е релевантно) + `supplier_id`
-- `expires_at` = NOW() + 30 MINUTE (вече default в upsertInsight)
-
-### 4. Reference HTML mockup
-`products-home-6-questions.html` (от S77 design session) — 1:1 стилове.
-
-## Ред на имплементация (препоръка)
-
-1. Backup-ни DB (MYSQL_PWD env, `/root/backup_s79_YYYYMMDD_HHMM.sql`)
-2. Напълни pf функции (по две-три на commit, verify SQL срещу данните на tenant 7)
-3. Добави `ajax=sections` endpoint
-4. Rewrite на главния HTML view (запази стария като fallback зад query param `?legacy=1` ако е необходимо)
-5. CSS: новите Neon Glass 6-hue класове в DESIGN_SYSTEM.md
-6. Test срещу localhost tenant=7, store=47
-
-## Важни референции
-
-- `docs/SESSION_77_HANDOFF.md` — пълна спецификация на 6-те секции
-- `docs/BIBLE_v3_0_APPENDIX.md` §6 — фундаменталните въпроси закон
-- `docs/PRODUCTS_DESIGN_LOGIC.md` — UX детайли
-- `DESIGN_SYSTEM.md` — Neon Glass компоненти
-- **BIBLE_v3_0_CORE.md и BIBLE_v3_0_TECH.md ЛИПСВАТ** в /docs — NARACHNIK_TIHOL_v1_1.md ги посочва като задължителни. Ако са необходими в S79, трябва да се създадат/възстановят.
-
-## Test данни
-
-- tenant_id=7, store_id=47
-- Parents с children: 32
-- Sale items last 30d: 219 (всички на parent ID, 0 на child ID — данни модел за вариант продажби още не съществува в тест средата)
-
----
-
-# ⚠ ОТВОРЕНИ ВЪПРОСИ ЗА S79
-
-1. **BIBLE_v3_0_CORE.md / TECH.md** — липсват в репото. Трябват ли? Ако да — кой ги пише: Claude ги възстановява от appendix + NARACHNIK, или Тихол ги предоставя?
-
-2. **days_stale subquery** — на ред 254 products.php `$dse` има същия parent-only проблем като бившия sold_30d: `WHERE si99.product_id=p.id`. Не е в S78 scope, но заслужава fix в S79 (същия pattern — UNION по children). Тихол да потвърди.
-
-3. **Бъг #5 UI тест** — Тихол не потвърди дали "_hasPhoto не се сетва" все още се проявява в реалния UI. Кодът според S78 анализа вече е коректен. Ако UI проблем остане — не е този бъг, а friend бъг за друг code path.
-
----
 
 **КРАЙ НА SESSION 78 HANDOFF**
