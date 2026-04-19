@@ -2168,6 +2168,292 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-foot-save:hover{border-color:rgba(34,197,94,0.7);box-shadow:0 0 22px rgba(34,197,94,0.3),inset 0 1px 0 rgba(255,255,255,0.06)}
 .v4-foot-next:hover{border-color:rgba(139,92,246,0.8);box-shadow:0 0 22px rgba(139,92,246,0.35),inset 0 1px 0 rgba(255,255,255,0.06)}
 
+/* S76.3: Variants neon refresh */
+/* ═══ Var Card = v4-glass-pro ═══ */
+#wizModal .v-var-card{
+  padding:18px 14px 14px !important;
+  border-radius:20px !important;
+  border:1px solid rgba(99,102,241,0.28) !important;
+  background:linear-gradient(145deg,rgba(17,24,44,0.75),rgba(10,13,30,0.9)) !important;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.4),
+    0 0 30px rgba(99,102,241,0.18),
+    0 0 60px rgba(139,92,246,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* ═══ Preview Pill = Glass Mini Card ═══ */
+#wizModal .v-preview-pill{
+  padding:12px 14px !important;
+  margin-bottom:14px !important;
+  border-radius:16px !important;
+  background:linear-gradient(145deg,rgba(99,102,241,0.12),rgba(139,92,246,0.04)) !important;
+  border:1px solid rgba(139,92,246,0.28) !important;
+  box-shadow:
+    0 0 18px rgba(99,102,241,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  position:relative; overflow:hidden;
+}
+#wizModal .v-preview-pill::before{
+  content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(165,180,252,0.55),transparent);
+}
+#wizModal .v-preview-thumb{
+  width:40px !important; height:40px !important;
+  border-radius:12px !important;
+  background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15)) !important;
+  border:1px solid rgba(139,92,246,0.4) !important;
+  box-shadow:0 0 14px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+#wizModal .v-preview-thumb svg{stroke:#c4b5fd !important; width:20px !important; height:20px !important}
+#wizModal .v-preview-name{
+  font-size:13px !important; font-weight:700 !important;
+  background:linear-gradient(135deg,#fff,#a5b4fc);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+#wizModal .v-preview-meta{
+  font-size:10.5px !important; color:rgba(226,232,240,0.6) !important;
+  margin-top:1px;
+}
+
+/* ═══ Axis Tabs = Pill Toggle (DESIGN_SYSTEM 4.14) ═══ */
+#wizModal .v-axis-tabs{
+  border-bottom:none !important;
+  padding:4px !important;
+  margin:0 0 12px !important;
+  gap:4px !important;
+  border-radius:14px !important;
+  background:linear-gradient(145deg,rgba(17,24,44,0.65),rgba(10,13,30,0.85)) !important;
+  border:1px solid rgba(99,102,241,0.18) !important;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  position:relative; overflow:hidden;
+}
+#wizModal .v-axis-tabs::before{
+  content:''; position:absolute; top:0; left:20%; right:20%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);
+}
+#wizModal .v-axis-tab{
+  height:38px !important;
+  padding:0 14px !important;
+  border-radius:10px !important;
+  background:transparent !important;
+  border:1px solid transparent !important;
+  border-bottom:1px solid transparent !important;
+  color:rgba(255,255,255,0.55) !important;
+  font-weight:600 !important;
+  font-size:12px !important;
+  letter-spacing:0.01em !important;
+  margin-bottom:0 !important;
+  transition:all 0.25s !important;
+  position:relative;
+}
+#wizModal .v-axis-tab.active{
+  background:linear-gradient(180deg,rgba(99,102,241,0.25),rgba(67,56,202,0.12)) !important;
+  border-color:rgba(139,92,246,0.5) !important;
+  color:#fff !important;
+  text-shadow:none !important;
+  box-shadow:0 0 14px rgba(139,92,246,0.3),inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+#wizModal .v-axis-tab.active::after{
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 8px rgba(139,92,246,0.6);
+}
+#wizModal .v-axis-tab-count{
+  background:rgba(99,102,241,0.22) !important;
+  border-color:rgba(139,92,246,0.4) !important;
+  color:#c4b5fd !important;
+  box-shadow:none !important;
+}
+#wizModal .v-axis-tab.active .v-axis-tab-count{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6) !important;
+  color:#fff !important;
+  box-shadow:0 0 10px rgba(139,92,246,0.5) !important;
+}
+#wizModal .v-axis-tab-add{
+  color:#c4b5fd !important;
+  font-size:18px !important;
+  padding:0 12px !important;
+  font-weight:700;
+}
+
+/* ═══ Selected Bar — glass ═══ */
+#wizModal .v-sel-bar{
+  padding:10px 2px !important;
+  border-bottom:none !important;
+  margin-bottom:10px !important;
+  min-height:auto !important;
+}
+#wizModal .v-sel-chip{
+  background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.18)) !important;
+  border:1px solid rgba(139,92,246,0.5) !important;
+  box-shadow:0 0 12px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.1) !important;
+  color:#fff !important;
+  font-size:11.5px !important;
+  padding:6px 11px 6px 12px !important;
+}
+#wizModal .v-clear-btn{
+  background:rgba(239,68,68,0.08) !important;
+  border:1px solid rgba(239,68,68,0.25) !important;
+  color:#fca5a5 !important;
+  border-radius:100px !important;
+  padding:5px 12px !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+  letter-spacing:0.03em !important;
+  text-transform:uppercase;
+}
+#wizModal .v-sel-empty{
+  color:rgba(255,255,255,0.4) !important;
+  font-size:11px !important;
+  font-style:italic;
+  padding:4px 0;
+}
+
+/* ═══ Picker search input (3D underline от 4.5) ═══ */
+#wizModal .v-picker-search{
+  position:relative; margin-bottom:10px;
+}
+#wizModal .v-picker-search input{
+  width:100% !important;
+  padding:11px 12px 11px 36px !important;
+  background:linear-gradient(180deg,rgba(17,24,44,0.55),rgba(8,11,24,0.8)) !important;
+  border:1px solid rgba(99,102,241,0.2) !important;
+  border-bottom:none !important;
+  border-radius:10px !important;
+  color:#fff !important;
+  font-size:12px !important;
+  font-family:inherit !important;
+  outline:none !important;
+  box-shadow:
+    inset 0 -3px 0 rgba(139,92,246,0.55),
+    inset 0 -4px 10px rgba(139,92,246,0.2),
+    0 3px 8px rgba(99,102,241,0.15),
+    0 0 14px rgba(139,92,246,0.1) !important;
+  transition:all .25s;
+}
+#wizModal .v-picker-search input:focus{
+  border-color:rgba(139,92,246,0.4) !important;
+  box-shadow:
+    inset 0 -4px 0 #a855f7,
+    inset 0 -6px 14px rgba(217,70,239,0.35),
+    0 4px 14px rgba(139,92,246,0.4),
+    0 0 24px rgba(139,92,246,0.3) !important;
+}
+#wizModal .v-picker-search-ic{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  color:#a5b4fc; pointer-events:none;
+}
+#wizModal .v-picker-search-ic svg{width:14px;height:14px;stroke-width:2}
+
+/* ═══ Preset groups (nested glass) ═══ */
+#wizModal .v-pgroup{
+  border:1px solid rgba(99,102,241,0.22) !important;
+  background:linear-gradient(180deg,rgba(17,24,44,0.45),rgba(8,11,24,0.6)) !important;
+  border-radius:14px !important;
+  margin-bottom:8px !important;
+  overflow:hidden;
+}
+#wizModal .v-pgroup-head{
+  background:linear-gradient(90deg,rgba(99,102,241,0.1),transparent) !important;
+  padding:11px 13px !important;
+}
+#wizModal .v-pgroup-title{
+  color:#a5b4fc !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:0.06em !important;
+}
+#wizModal .v-pgroup-count{
+  background:rgba(99,102,241,0.15) !important;
+  border-color:rgba(139,92,246,0.3) !important;
+  color:rgba(255,255,255,0.7) !important;
+}
+#wizModal .v-pgroup-count.has{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6) !important;
+  border-color:rgba(139,92,246,0.6) !important;
+  color:#fff !important;
+  box-shadow:0 0 8px rgba(139,92,246,0.4) !important;
+}
+#wizModal .v-pgroup-body{
+  background:rgba(0,0,0,0.15) !important;
+  border-top:1px solid rgba(99,102,241,0.1) !important;
+  padding:10px 11px 13px !important;
+}
+#wizModal .v-pgroup-footer{
+  border-top:1px solid rgba(99,102,241,0.1) !important;
+  background:rgba(0,0,0,0.2) !important;
+}
+
+/* ═══ Chips in picker body ═══ */
+#wizModal .v-chip{
+  padding:7px 13px !important;
+  border-radius:100px !important;
+  background:rgba(255,255,255,0.04) !important;
+  border:1px solid rgba(139,92,246,0.2) !important;
+  color:rgba(255,255,255,0.75) !important;
+  font-size:11.5px !important;
+  font-weight:600 !important;
+  transition:all 0.2s;
+}
+#wizModal .v-chip:hover{
+  border-color:rgba(139,92,246,0.4) !important;
+  color:#c4b5fd !important;
+}
+#wizModal .v-chip.selected{
+  background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.2)) !important;
+  border-color:rgba(139,92,246,0.6) !important;
+  color:#fff !important;
+  box-shadow:0 0 12px rgba(99,102,241,0.3),inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+
+/* ═══ Matrix CTA (glass card с indigo glow) ═══ */
+#wizModal .v-matrix-cta-wrap{
+  padding:14px !important;
+  margin-top:12px !important;
+  background:linear-gradient(145deg,rgba(17,24,44,0.7),rgba(10,13,30,0.9)) !important;
+  border-radius:18px !important;
+  border:1px solid rgba(139,92,246,0.3) !important;
+  box-shadow:0 0 20px rgba(99,102,241,0.2) !important;
+}
+#wizModal .v-matrix-cta{
+  background:linear-gradient(180deg,rgba(99,102,241,0.2),rgba(67,56,202,0.08)) !important;
+  border:1px solid rgba(139,92,246,0.5) !important;
+  color:#c4b5fd !important;
+  border-radius:12px !important;
+  box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  font-weight:700 !important;
+}
+#wizModal .v-matrix-cta-pill{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6) !important;
+  color:#fff !important;
+  box-shadow:0 0 10px rgba(139,92,246,0.5) !important;
+}
+#wizModal .v-matrix-summary{
+  background:rgba(34,197,94,0.08) !important;
+  border:1px solid rgba(34,197,94,0.3) !important;
+  border-radius:14px !important;
+  padding:12px 14px !important;
+  box-shadow:0 0 14px rgba(34,197,94,0.12) !important;
+}
+#wizModal .v-ms-check{
+  background:linear-gradient(135deg,#22c55e,#16a34a) !important;
+  box-shadow:0 0 12px rgba(34,197,94,0.5) !important;
+}
+#wizModal .v-ms-title{color:#86efac !important; font-weight:700 !important}
+#wizModal .v-ms-edit{
+  background:rgba(34,197,94,0.12) !important;
+  border:1px solid rgba(34,197,94,0.3) !important;
+  color:#86efac !important;
+  border-radius:100px !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+  letter-spacing:0.03em;
+}
+/* S76.3 end */
+
 </style>
 </head>
 <body>
