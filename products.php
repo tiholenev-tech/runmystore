@@ -2510,30 +2510,38 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   line-height:1.2 !important;
 }
 
-/* Tab add бутон + v4 стил */
+/* Tab add бутон — кръгъл + в v4 стил (S76.5 fix) */
 #wizModal .v-axis-tab-add{
   display:inline-flex !important;
   align-items:center !important;
   justify-content:center !important;
   min-height:48px !important;
-  width:auto !important;
-  padding:0 14px !important;
-  border-radius:10px !important;
+  width:48px !important;
+  padding:0 !important;
+  border-radius:12px !important;
   background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08)) !important;
   border:1px solid rgba(139,92,246,0.5) !important;
   color:#c4b5fd !important;
   font-weight:700 !important;
-  font-size:11px !important;
+  font-size:22px !important;
+  line-height:1 !important;
   box-shadow:0 0 10px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05) !important;
-  gap:4px !important;
+  flex-shrink:0 !important;
 }
-#wizModal .v-axis-tab-add::before{
-  content:'+ Добави';
-  font-family:inherit;
-  letter-spacing:0.03em;
+#wizModal .v-axis-tab-add:hover{
+  background:linear-gradient(180deg,rgba(99,102,241,0.28),rgba(67,56,202,0.14)) !important;
+  box-shadow:0 0 16px rgba(139,92,246,0.35),inset 0 1px 0 rgba(255,255,255,0.08) !important;
 }
-#wizModal .v-axis-tab-add{font-size:0 !important}
-#wizModal .v-axis-tab-add::before{font-size:11px}
+
+/* Instruction hide при focus (S76.5) */
+.v4-matrix-ov.open:focus-within #mxInstruction{
+  max-height:0 !important;
+  opacity:0 !important;
+  padding-top:0 !important;
+  padding-bottom:0 !important;
+  border-bottom-width:0 !important;
+}
+/* S76.5 applied */
 
 /* ═══ Chips — по-красиви + padding fix ═══ */
 #wizModal .v-chip{
@@ -2946,7 +2954,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     <button class="mx-close" onclick="mxCancel()" title="Откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
-  <div style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
+  <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:120px"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
 <div class="mx-quick">
     <button class="mx-qchip" onclick="mxFillAll(1)">Всички = 1</button>
     <button class="mx-qchip" onclick="mxFillAll(2)">Всички = 2</button>
