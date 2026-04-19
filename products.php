@@ -2549,6 +2549,22 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   border-bottom-width:0 !important;
 }
 /* S76.7 applied: Matrix focus mode */
+/* S76.8 applied: floating back button */
+#mxFocusBack{
+  position:fixed; top:max(12px,env(safe-area-inset-top,12px)); left:12px;
+  width:44px; height:44px; border-radius:14px;
+  background:linear-gradient(145deg,rgba(99,102,241,0.25),rgba(67,56,202,0.12));
+  border:1px solid rgba(139,92,246,0.55);
+  color:#c4b5fd;
+  display:none; align-items:center; justify-content:center;
+  cursor:pointer; z-index:10001;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 6px 20px rgba(0,0,0,0.5),0 0 18px rgba(139,92,246,0.35),inset 0 1px 0 rgba(255,255,255,0.08);
+  font-family:inherit;
+  transition:transform .15s;
+}
+#mxFocusBack:active{transform:scale(0.92)}
+#mxOverlay.mx-focused #mxFocusBack{display:flex}
 #mxOverlay.mx-focused .mx-header,
 #mxOverlay.mx-focused #mxInstruction,
 #mxOverlay.mx-focused .mx-quick,
@@ -2970,6 +2986,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 <!-- S73.B.6: Fullscreen Matrix Overlay -->
 <div class="mx-overlay" id="mxOverlay">
+  <button id="mxFocusBack" onclick="if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();setTimeout(function(){mxDone()},60)" aria-label="Назад">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
   <div class="mx-header">
     <button class="mx-close" onclick="mxCancel()" title="Откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
