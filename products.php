@@ -5937,14 +5937,11 @@ function wizTogglePresetInline(axIdx,val,chip){
 function _v4ComputeFooter(axIdx){
     var ax=S.wizData.axes[axIdx]||{name:'',values:[]};
     var hasVals=ax.values&&ax.values.length>0;
-    // Намери първия друг axis без стойности (ред по ред)
+    // S78: Празен axis (values=[]) се третира като несъществуващ — позволяваме Запиши
+    // веднага щом текущият axis има стойности. Ако user иска да попълни и друг axis,
+    // сам преминава през tab-овете.
     var nextEmptyIdx=-1;
-    for(var i=0;i<S.wizData.axes.length;i++){
-        if(i===axIdx)continue;
-        var a=S.wizData.axes[i];
-        if(!a.values||a.values.length===0){nextEmptyIdx=i;break}
-    }
-    var nextAx=nextEmptyIdx>=0?S.wizData.axes[nextEmptyIdx]:null;
+    var nextAx=null;
     var ftBack='<button type="button" onclick="wizGo(3)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
     var ftMid;
     if(!hasVals){
