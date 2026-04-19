@@ -2223,13 +2223,20 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   border-bottom:none !important;
   padding:4px !important;
   margin:0 0 12px !important;
-  gap:4px !important;
+  gap:6px !important;
   border-radius:14px !important;
   background:linear-gradient(145deg,rgba(17,24,44,0.65),rgba(10,13,30,0.85)) !important;
   border:1px solid rgba(99,102,241,0.18) !important;
   box-shadow:0 4px 20px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.04) !important;
-  position:relative; overflow:hidden;
+  position:relative;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  -webkit-overflow-scrolling:touch !important;
+  scrollbar-width:none !important;
 }
+#wizModal .v-axis-tabs::-webkit-scrollbar{display:none !important}
+#wizModal .v-axis-tab{flex:1 1 auto !important; min-width:0 !important}
+#wizModal .v-axis-tab-add{flex-shrink:0 !important}
 #wizModal .v-axis-tabs::before{
   content:''; position:absolute; top:0; left:20%; right:20%; height:1px;
   background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);
@@ -2542,6 +2549,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   border-bottom-width:0 !important;
 }
 /* S76.5 applied */
+/* S76.6 applied */
 
 /* ═══ Chips — по-красиви + padding fix ═══ */
 #wizModal .v-chip{
@@ -4183,6 +4191,21 @@ function wizGo(step){
 // ═══ S73.B.6: Matrix Overlay Functions ═══
 function autoMin(qty){if(qty<=0)return 0;if(qty<=3)return 1;return Math.round(qty/2.5)}
 function openMxOverlay(){
+  setTimeout(function(){
+    var ov=document.querySelector('.v4-matrix-ov.open');
+    if(!ov)return;
+    var instr=document.getElementById('mxInstruction');
+    if(!instr)return;
+    ov.addEventListener('focusin',function(e){
+      if(e.target&&e.target.tagName==='INPUT'){instr.style.maxHeight='0';instr.style.opacity='0';instr.style.paddingTop='0';instr.style.paddingBottom='0';instr.style.borderBottomWidth='0';}
+    });
+    ov.addEventListener('focusout',function(){
+      setTimeout(function(){
+        if(!ov.querySelector('input:focus')){instr.style.maxHeight='120px';instr.style.opacity='1';instr.style.paddingTop='10px';instr.style.paddingBottom='10px';instr.style.borderBottomWidth='1px';}
+      },100);
+    });
+  },100);
+
   S._mxSnapshot=JSON.stringify(S.wizData._matrix||{});
   // Намираме axes с стойности — първите 2 с данни стават rows × cols
   var activeAxes=(S.wizData.axes||[]).filter(function(a){return a.values&&a.values.length>0});
