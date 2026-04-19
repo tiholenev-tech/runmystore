@@ -2727,6 +2727,206 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 /* S76.4 end */
 
+/* ═══ S79A1 NEON SECTIONS CSS START ═══ */
+
+/* ── 6 Fundamental Questions — glass hue variants ── */
+.glass.q1 { --hue1: 0;   --hue2: 340; --border-color: hsl(0, 25%, 22%); }
+.glass.q2 { --hue1: 280; --hue2: 260; --border-color: hsl(280, 20%, 22%); }
+.glass.q3 { --hue1: 145; --hue2: 165; --border-color: hsl(145, 20%, 22%); }
+.glass.q4 { --hue1: 175; --hue2: 195; --border-color: hsl(175, 20%, 22%); }
+.glass.q5 { --hue1: 38;  --hue2: 28;  --border-color: hsl(38, 22%, 22%); }
+.glass.q6 { --hue1: 220; --hue2: 230; --border-color: hsl(220, 10%, 18%); }
+
+/* ── Q-head (section header) ── */
+.q-head { display: flex; align-items: center; gap: 10px; padding: 16px 4px 10px; }
+.q-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; color: white;
+    flex-shrink: 0;
+}
+.q-head.q1 .q-badge { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 0 16px rgba(239,68,68,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.q-head.q2 .q-badge { background: linear-gradient(135deg, #a855f7, #7e22ce); box-shadow: 0 0 16px rgba(168,85,247,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.q-head.q3 .q-badge { background: linear-gradient(135deg, #22c55e, #15803d); box-shadow: 0 0 16px rgba(34,197,94,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.q-head.q4 .q-badge { background: linear-gradient(135deg, #14b8a6, #0d9488); box-shadow: 0 0 16px rgba(20,184,166,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.q-head.q5 .q-badge { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 0 16px rgba(245,158,11,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.q-head.q6 .q-badge { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 0 12px rgba(100,116,139,.4), inset 0 1px 0 rgba(255,255,255,.15); }
+
+.q-ttl { flex: 1; min-width: 0; }
+.q-nm { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+.q-nm.q1 { color: #fca5a5; text-shadow: 0 0 10px rgba(239,68,68,.35); }
+.q-nm.q2 { color: #d8b4fe; text-shadow: 0 0 10px rgba(192,132,252,.35); }
+.q-nm.q3 { color: #86efac; text-shadow: 0 0 10px rgba(34,197,94,.35); }
+.q-nm.q4 { color: #5eead4; text-shadow: 0 0 10px rgba(45,212,191,.35); }
+.q-nm.q5 { color: #fcd34d; text-shadow: 0 0 10px rgba(251,191,36,.35); }
+.q-nm.q6 { color: rgba(255,255,255,.72); }
+.q-sub { font-size: 9.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.02em; font-weight: 600; }
+
+.q-total {
+    padding: 5px 11px; border-radius: 100px;
+    font-size: 11px; font-weight: 800;
+    white-space: nowrap; flex-shrink: 0;
+    letter-spacing: 0.01em;
+}
+.q-total.q1 { background: linear-gradient(135deg, rgba(239,68,68,.18), rgba(239,68,68,.08)); border: 1px solid rgba(239,68,68,.35); color: #fca5a5; box-shadow: 0 0 14px rgba(239,68,68,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+.q-total.q2 { background: linear-gradient(135deg, rgba(168,85,247,.18), rgba(168,85,247,.08)); border: 1px solid rgba(168,85,247,.35); color: #d8b4fe; box-shadow: 0 0 14px rgba(168,85,247,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+.q-total.q3 { background: linear-gradient(135deg, rgba(34,197,94,.18), rgba(34,197,94,.08)); border: 1px solid rgba(34,197,94,.35); color: #86efac; box-shadow: 0 0 14px rgba(34,197,94,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+.q-total.q4 { background: linear-gradient(135deg, rgba(20,184,166,.18), rgba(20,184,166,.08)); border: 1px solid rgba(20,184,166,.35); color: #5eead4; box-shadow: 0 0 14px rgba(20,184,166,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+.q-total.q5 { background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.08)); border: 1px solid rgba(245,158,11,.35); color: #fcd34d; box-shadow: 0 0 14px rgba(245,158,11,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+.q-total.q6 { background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.25); color: rgba(255,255,255,.75); }
+
+/* ── Horizontal scroll container ── */
+.h-scroll {
+    display: flex; gap: 8px;
+    overflow-x: auto; overflow-y: hidden;
+    padding: 0 12px 18px;
+    margin: 0 -12px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+
+/* ── Article card in h-scroll ── */
+.art {
+    width: 162px; flex-shrink: 0;
+    padding: 10px; cursor: pointer;
+    scroll-snap-align: start;
+    transition: transform 0.15s var(--ease, cubic-bezier(0.5,1,0.89,1));
+}
+.art:active { transform: scale(0.98); }
+.art-photo {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.02));
+    border: 1px solid rgba(99,102,241,.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px; margin-bottom: 8px;
+    position: relative; overflow: hidden;
+    z-index: 5;
+}
+.art-photo .tag {
+    position: absolute; top: 6px; right: 6px;
+    padding: 2px 7px; border-radius: 100px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.02em;
+    backdrop-filter: blur(6px);
+}
+.art-photo .tag.bad    { background: rgba(239,68,68,.22); border: 1px solid rgba(239,68,68,.45); color: #fca5a5; box-shadow: 0 0 10px rgba(239,68,68,.3); }
+.art-photo .tag.good   { background: rgba(34,197,94,.22); border: 1px solid rgba(34,197,94,.45); color: #86efac; box-shadow: 0 0 10px rgba(34,197,94,.3); }
+.art-photo .tag.hot    { background: rgba(245,158,11,.22); border: 1px solid rgba(245,158,11,.45); color: #fcd34d; box-shadow: 0 0 10px rgba(245,158,11,.3); }
+.art-photo .tag.teal   { background: rgba(20,184,166,.22); border: 1px solid rgba(20,184,166,.45); color: #5eead4; box-shadow: 0 0 10px rgba(20,184,166,.3); }
+.art-photo .tag.dim    { background: rgba(100,116,139,.22); border: 1px solid rgba(100,116,139,.45); color: rgba(255,255,255,.7); }
+.art-photo .tag.violet { background: rgba(168,85,247,.22); border: 1px solid rgba(168,85,247,.45); color: #d8b4fe; box-shadow: 0 0 10px rgba(168,85,247,.3); }
+
+.art-nm {
+    font-size: 11px; font-weight: 700; line-height: 1.3;
+    margin-bottom: 6px; color: var(--text-primary, #f1f5f9);
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    position: relative; z-index: 5;
+}
+.art-bot { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; position: relative; z-index: 5; }
+.art-prc { font-size: 11px; font-weight: 800; color: var(--text-primary, #f1f5f9); }
+.art-stk { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+.art-stk.ok     { background: rgba(34,197,94,.1); color: #86efac; }
+.art-stk.warn   { background: rgba(245,158,11,.1); color: #fbbf24; }
+.art-stk.danger { background: rgba(239,68,68,.1); color: #fca5a5; }
+
+.art-ctx {
+    font-size: 9.5px; line-height: 1.35;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(99,102,241,.18);
+    color: var(--text-secondary, rgba(255,255,255,.6));
+    position: relative; z-index: 5;
+}
+.art-ctx b { font-weight: 800; }
+.art-ctx.q1 b { color: #fca5a5; text-shadow: 0 0 8px rgba(239,68,68,.3); }
+.art-ctx.q2 b { color: #d8b4fe; text-shadow: 0 0 8px rgba(192,132,252,.3); }
+.art-ctx.q3 b { color: #86efac; text-shadow: 0 0 8px rgba(34,197,94,.3); }
+.art-ctx.q4 b { color: #5eead4; text-shadow: 0 0 8px rgba(45,212,191,.3); }
+.art-ctx.q5 b { color: #fcd34d; text-shadow: 0 0 8px rgba(251,191,36,.3); }
+.art-ctx.q6 b { color: rgba(255,255,255,.9); }
+
+/* Empty state card */
+.art.empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 30px 10px; cursor: default;
+}
+.art.empty .empty-ico { margin-bottom: 8px; opacity: 0.4; font-size: 28px; }
+.art.empty .empty-txt { font-size: 11px; font-weight: 700; color: var(--text-secondary, rgba(255,255,255,.6)); }
+.art.empty .empty-sub { font-size: 9px; color: var(--text-muted, rgba(255,255,255,.4)); margin-top: 4px; }
+
+/* Skeleton loading */
+@keyframes skelShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.art.skeleton { pointer-events: none; cursor: default; }
+.skel-photo, .skel-line, .skel-ctx {
+    background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.03) 75%);
+    background-size: 200% 100%;
+    animation: skelShimmer 1.5s infinite;
+    border-radius: 8px;
+}
+.skel-photo { width: 100%; aspect-ratio: 1; margin-bottom: 8px; }
+.skel-line { height: 10px; margin-bottom: 6px; }
+.skel-line.w80 { width: 80%; }
+.skel-line.w50 { width: 50%; }
+.skel-ctx { height: 18px; margin-top: 8px; }
+
+/* ── Ask AI FAB (floating action button) ── */
+.ask-ai {
+    position: fixed; bottom: 84px; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 56px; border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, hsl(255 70% 55%), hsl(222 70% 50%));
+    border: none;
+    box-shadow:
+        0 0 28px hsl(255 70% 50% / .55),
+        0 8px 24px rgba(0,0,0,.4),
+        inset 0 1px 0 rgba(255,255,255,.25);
+    z-index: 45;
+}
+.ask-ai::before, .ask-ai::after {
+    content: ''; position: absolute; inset: -5px;
+    border-radius: 50%;
+    border: 2px solid hsl(255 70% 60% / .4);
+    animation: aiRing 2.5s ease-out infinite;
+    pointer-events: none;
+}
+.ask-ai::after { animation-delay: 1.25s; }
+@keyframes aiRing {
+    0% { transform: scale(.9); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+.ask-ai svg {
+    width: 22px; height: 22px; stroke: white;
+    stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,.4));
+}
+
+/* Section divider */
+.q-sections-wrap { margin-top: 6px; }
+
+/* View all link at the end */
+.view-all-link {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px; margin: 10px 4px 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(99,102,241,.1), rgba(139,92,246,.05));
+    border: 1px solid rgba(99,102,241,.2);
+    font-size: 12px; font-weight: 700;
+    color: #a5b4fc; cursor: pointer;
+    transition: all 0.2s;
+}
+.view-all-link:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.view-all-link svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* ═══ S79A1 NEON SECTIONS CSS END ═══ */
+
 
 </style>
 </head>
@@ -2861,6 +3061,111 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             <div class="signals-hdr"><span class="signals-title">Сигнали</span><span class="signals-count" id="signalsCount"></span><div class="fltr-info" onclick="showWizInfo('description')"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div></div>
             <div id="signalsList"></div>
         </div>
+
+        <!-- ═══ S79A1 SECTIONS HTML START ═══ -->
+<div class="q-sections-wrap" id="qSectionsWrap">
+    <div class="q-section" data-q="1">
+        <div class="q-head q1">
+            <div class="q-badge">1</div>
+            <div class="q-ttl">
+                <div class="q-nm q1">Какво губиш</div>
+                <div class="q-sub">Артикули с продажби без наличност</div>
+            </div>
+            <div class="q-total q1" id="qTotal1">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll1">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="q-section" data-q="2">
+        <div class="q-head q2">
+            <div class="q-badge">2</div>
+            <div class="q-ttl">
+                <div class="q-nm q2">От какво губиш</div>
+                <div class="q-sub">Причини за загуба на печалба</div>
+            </div>
+            <div class="q-total q2" id="qTotal2">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll2">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="q-section" data-q="3">
+        <div class="q-head q3">
+            <div class="q-badge">3</div>
+            <div class="q-ttl">
+                <div class="q-nm q3">Какво печелиш</div>
+                <div class="q-sub">Топ печеливши артикули за 30 дни</div>
+            </div>
+            <div class="q-total q3" id="qTotal3">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll3">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="q-section" data-q="4">
+        <div class="q-head q4">
+            <div class="q-badge">4</div>
+            <div class="q-ttl">
+                <div class="q-nm q4">От какво печелиш</div>
+                <div class="q-sub">Причини за печалба</div>
+            </div>
+            <div class="q-total q4" id="qTotal4">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll4">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="q-section" data-q="5">
+        <div class="q-head q5">
+            <div class="q-badge">5</div>
+            <div class="q-ttl">
+                <div class="q-nm q5">Какво да поръчаш</div>
+                <div class="q-sub">Препоръки от AI анализ</div>
+            </div>
+            <div class="q-total q5" id="qTotal5">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll5">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="q-section" data-q="6">
+        <div class="q-head q6">
+            <div class="q-badge">6</div>
+            <div class="q-ttl">
+                <div class="q-nm q6">Какво да НЕ поръчаш</div>
+                <div class="q-sub">Zombie артикули, замразен капитал</div>
+            </div>
+            <div class="q-total q6" id="qTotal6">—</div>
+        </div>
+        <div class="h-scroll" id="qScroll6">
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+            <div class="art glass sm skeleton"><span class="shine"></span><span class="shine shine-bottom"></span><div class="skel-photo"></div><div class="skel-line w80"></div><div class="skel-line w50"></div><div class="skel-ctx"></div></div>
+        </div>
+    </div>
+
+    <div class="view-all-link" onclick="goScreen('products')">
+        <span>Виж всички артикули</span>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+</div>
+<!-- ═══ S79A1 SECTIONS HTML END ═══ -->
 
     </section>
 
