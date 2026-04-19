@@ -2025,13 +2025,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   border-right:1px solid rgba(99,102,241,0.08);
   overflow:hidden;
 }
-.v4-inpC-wrap::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
-  box-shadow:0 0 10px rgba(139,92,246,0.6),0 0 20px rgba(99,102,241,0.4);
-  transform:scaleX(0.3);transition:transform .4s;transform-origin:center;
-}
-.v4-inpC-wrap:focus-within::after{opacity:1;transform:scaleX(1);box-shadow:0 0 14px rgba(139,92,246,0.9),0 0 28px rgba(99,102,241,0.55)}
+.v4-inpC-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#d946ef,#8b5cf6,#6366f1,transparent);box-shadow:0 0 12px rgba(139,92,246,0.7),0 0 24px rgba(99,102,241,0.5),0 -2px 8px rgba(139,92,246,0.3);opacity:0.75;transform:scaleX(0.45);transition:all 0.4s;transform-origin:center;filter:blur(0.3px)}
+.v4-inpC-wrap:focus-within::after{opacity:1;transform:scaleX(1);box-shadow:0 0 16px rgba(217,70,239,0.85),0 0 32px rgba(139,92,246,0.6),0 -3px 12px rgba(139,92,246,0.4);filter:blur(0px)}
 .v4-inpC-wrap input.fc{
   background:transparent !important;border:none !important;
   border-radius:0 !important;padding:13px 14px !important;
@@ -3764,7 +3759,21 @@ function renderWizPage(step){
         const mic=(f)=>'<button type="button" class="wiz-mic" onclick="wizMic(\''+f+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
 
         const units=(CFG&&CFG.units&&CFG.units.length)?CFG.units:['бр','сет','кг','м','л'];
-        const unitChips=units.map(u=>'<button type="button" onclick="S.wizData.unit=\''+u+'\';renderWizard()" style="padding:8px 14px;border-radius:100px;background:'+(u===un?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)')+';border:1px solid '+(u===un?'#6366f1':'rgba(255,255,255,0.08)')+';font-size:11px;font-weight:500;color:'+(u===un?'#fff':'rgba(255,255,255,0.6)')+';cursor:pointer;box-shadow:'+(u===un?'0 0 10px rgba(99,102,241,0.3)':'none')+'">'+u+'</button>').join('')+'<input type="text" class="v4-chipInput" id="inlUnitChip" placeholder="+ нова" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddUnitFromChip();}" onblur="if(this.value.trim())wizAddUnitFromChip();">';
+        if(S._wizEditUnits===undefined)S._wizEditUnits=false;
+const editMode=S._wizEditUnits;
+const _chipArr=units.map(function(u){
+var isA=(u===un);
+var bg=isA?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)';
+var bd=isA?'#6366f1':'rgba(255,255,255,0.08)';
+var cl=isA?'#fff':'rgba(255,255,255,0.6)';
+var sh=isA?'0 0 10px rgba(99,102,241,0.3)':'none';
+var onc=editMode?('onclick="wizDeleteUnit(\''+u+'\')"'):('onclick="wizSelectUnit(this,\''+u+'\')"');
+var x=editMode?'<span style="margin-left:5px;color:#fca5a5;font-weight:700">\u00d7</span>':'';
+return '<button type="button" class="v4-unit-chip" data-unit="'+u+'" '+onc+' style="padding:8px 14px;border-radius:100px;background:'+bg+';border:1px solid '+bd+';font-size:11px;font-weight:500;color:'+cl+';cursor:pointer;box-shadow:'+sh+';font-family:inherit">'+u+x+'</button>';
+});
+const _addBox='<span style="display:inline-flex;align-items:center;gap:4px"><input type="text" id="wNewUnit" placeholder="нова..." style="width:78px;padding:7px 10px;border-radius:100px;background:rgba(8,11,24,0.7);border:1px dashed rgba(99,102,241,0.4);color:#fff;font-size:11px;font-weight:500;outline:none;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(34,197,94,0.4);font-family:inherit" title="Добави"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button></span>';
+const _editBtn='<button type="button" onclick="S._wizEditUnits=!S._wizEditUnits;renderWizard()" style="padding:7px 11px;border-radius:100px;background:'+(editMode?'rgba(234,179,8,0.18)':'rgba(255,255,255,0.04)')+';border:1px solid '+(editMode?'rgba(234,179,8,0.5)':'rgba(255,255,255,0.1)')+';font-size:10px;font-weight:700;color:'+(editMode?'#fbbf24':'rgba(255,255,255,0.55)')+';cursor:pointer;font-family:inherit;letter-spacing:0.03em">'+(editMode?'Готово':'\u270e Редакция')+'</button>';
+const unitChips=_chipArr.join('')+_addBox+_editBtn;
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
         const _photoContent=_hasPhoto
@@ -5800,17 +5809,6 @@ function wizAddSubcat(){
     });
 }
 
-function wizAddUnitFromChip(){
-    const el=document.getElementById('inlUnitChip');
-    if(!el)return;
-    const unit=(el.value||'').trim();
-    if(!unit){el.value='';return;}
-    el.value='';
-    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
-        if(d&&d.units){CFG.units=d.units;S.wizData.unit=d.added||unit;renderWizard();showToast('"'+unit+'" добавена ✓','success');}
-        else{showToast('Грешка при запис','error');}
-    }).catch(function(){showToast('Грешка при запис','error');});
-}
 function wizSelectUnit(btn,unit){
     S.wizData.unit=unit;
     document.querySelectorAll('.v4-unit-chip').forEach(function(c){
