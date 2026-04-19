@@ -2071,6 +2071,47 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 
 
+
+/* ═══ S75 TYPE TOGGLE (Единичен / С варианти) ═══ */
+.v4-type-toggle{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  padding:4px;margin-bottom:14px;border-radius:14px;
+  background:linear-gradient(145deg,rgba(17,24,44,0.65),rgba(10,13,30,0.85));
+  border:1px solid rgba(99,102,241,0.18);
+  backdrop-filter:blur(14px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.04);
+  position:relative;overflow:hidden;
+}
+.v4-type-toggle::before{
+  content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);
+}
+.v4-tt-opt{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  height:40px;border-radius:10px;cursor:pointer;
+  background:transparent;border:1px solid transparent;
+  color:rgba(255,255,255,0.55);
+  font-family:inherit;font-size:12px;font-weight:600;
+  letter-spacing:0.01em;transition:all 0.25s;
+  position:relative;
+}
+.v4-tt-opt svg{width:15px;height:15px}
+.v4-tt-opt:not(.active):hover{
+  background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.75);
+}
+.v4-tt-opt.active{
+  background:linear-gradient(180deg,rgba(99,102,241,0.25),rgba(67,56,202,0.12));
+  border-color:rgba(139,92,246,0.5);color:#fff;
+  box-shadow:
+    0 0 14px rgba(139,92,246,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.v4-tt-opt.active::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 8px rgba(139,92,246,0.6);
+}
+
 /* ═══ S74.3 FOOTER NEON ═══ */
 .v4-foot-save::after,.v4-foot-next::after{
   content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;
@@ -3437,7 +3478,7 @@ async function loadHomeNew() {
 // ═══════════════════════════════════════════════════════════
 
 const WIZ_LABELS=['Вид','Основни','Варианти','Бизнес','AI Studio'];
-const WIZ_UI_INDEX=[0, null, 4, 1, 2, 3, null];
+const WIZ_UI_INDEX=[null, null, 3, 0, 1, 2, null]; // S75: step 0 премахнат
 
 const WIZ_INFO={
     type_single:'Единичен артикул без варианти — например една чанта, едно бижу, или артикул който се продава само в един вид.',
@@ -3483,7 +3524,7 @@ function fieldLabel(text,key,extra){
 
 // ─── MANUAL WIZARD ───
 function openManualWizard(){
-    S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+    S.wizStep=3;S.wizData={};S.wizType='single';S.wizEditId=null;
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
@@ -3494,7 +3535,7 @@ function openManualWizard(){
 
 // ─── VOICE WIZARD — same steps, with skip buttons ───
 function openVoiceWizard(){
-    S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+    S.wizStep=3;S.wizData={};S.wizType='single';S.wizEditId=null;
     S.wizVoiceMode=true;
     document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
     renderWizard();
@@ -3801,15 +3842,18 @@ const unitChips=_chipArr.join('')+_addBox+_editBtn;
             ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
             : '';
 
+        const typeToggle='<div class="v4-type-toggle"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>';
+
         const aiHint='<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin-bottom:12px;border-radius:14px;background:linear-gradient(90deg,rgba(99,102,241,0.15),rgba(59,130,246,0.08) 60%,transparent);border:1px solid rgba(99,102,241,0.3)"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div style="flex:1;font-size:10.5px;line-height:1.45;color:rgba(255,255,255,0.88)">Натисни <b style="color:#c7d2fe">микрофона</b> и кажи: <b style="color:#c7d2fe">„Бяла блуза, 29 лева, 5 броя"</b></div></div>';
 
         const qtyBlock=isSingle
             ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'
             : '';
 
-        const stickyFooter='<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 12px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);backdrop-filter:blur(12px);z-index:100;display:flex;gap:8px;max-width:480px;margin:0 auto"><button type="button" onclick="wizGo(0)" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGo('+nextStep+')" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
+        const stickyFooter='<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 12px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);backdrop-filter:blur(12px);z-index:100;display:flex;gap:8px;max-width:480px;margin:0 auto"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGo('+nextStep+')" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
 
         return '<div class="wiz-page active">'+
+            typeToggle+
             copyPrev+
             aiHint+
             '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px">'+
@@ -3829,7 +3873,7 @@ const unitChips=_chipArr.join('')+_addBox+_editBtn;
               '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
             '</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
-              '<button type="button" onclick="wizGo(0)" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+              '<button type="button" onclick="closeWizard()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
               '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
               '<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
               '<button type="button" onclick="wizGo('+nextStep+')" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
@@ -5820,6 +5864,12 @@ function wizAddSubcat(){
     });
 }
 
+function wizSwitchType(t){
+    if(S.wizType===t)return;
+    S.wizType=t;
+    renderWizard();
+    if(navigator.vibrate)navigator.vibrate(6);
+}
 function wizSelectUnit(btn,unit){
     S.wizData.unit=unit;
     document.querySelectorAll('.v4-unit-chip').forEach(function(c){
