@@ -392,6 +392,149 @@ function selectChip(btn, value) {
 
 ---
 
+### 4.14 Required Toggle Pattern (S75.2 — ЕТАЛОН)
+
+**Когато има избор от 2 опции който е ЗАДЪЛЖИТЕЛЕН** (напр. Единичен/С варианти, Дребно/Едро) — използвай този pattern.
+
+**Визуално поведение:**
+- При null (нищо избрано) → toggle пулсира жълто (warn) + над него червена буква "▲ Избери първо..."
+- При опит за focus на друг input преди избор → блокира се, toast + toggle пулсира **силно червено 3 пъти** + вибрация
+- При избор → pulse изчезва плавно, warn label премахва
+
+**HTML:**
+```html
+<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>
+<div class="v4-type-toggle needs-select">
+  <button class="v4-tt-opt active" onclick="wizSwitchType('single')">
+    <svg>...</svg><span>Единичен</span>
+  </button>
+  <button class="v4-tt-opt" onclick="wizSwitchType('variant')">
+    <svg>...</svg><span>С варианти</span>
+  </button>
+</div>
+```
+
+**CSS:**
+```css
+.v4-type-toggle {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  padding: 4px; margin-bottom: 14px; border-radius: 14px;
+  background: linear-gradient(145deg, rgba(17,24,44,0.65), rgba(10,13,30,0.85));
+  border: 1px solid rgba(99,102,241,0.18);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative; overflow: hidden;
+}
+.v4-type-toggle::before {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(165,180,252,0.5), transparent);
+}
+.v4-tt-opt {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  height: 40px; border-radius: 10px; cursor: pointer;
+  background: transparent; border: 1px solid transparent;
+  color: rgba(255,255,255,0.55);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.01em; transition: all 0.25s;
+  position: relative;
+}
+.v4-tt-opt.active {
+  background: linear-gradient(180deg, rgba(99,102,241,0.25), rgba(67,56,202,0.12));
+  border-color: rgba(139,92,246,0.5); color: #fff;
+  box-shadow: 0 0 14px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.v4-tt-opt.active::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, #6366f1, #8b5cf6, #6366f1, transparent);
+  box-shadow: 0 0 8px rgba(139,92,246,0.6);
+}
+
+/* ЖЪЛТ pulse — когато нищо не е избрано (мек, непрекъснат) */
+.v4-type-toggle.needs-select {
+  border-color: rgba(234,179,8,0.55);
+  animation: ttPulseRequired 1.3s ease-in-out infinite;
+}
+@keyframes ttPulseRequired {
+  0%,100% { box-shadow: 0 0 0 0 rgba(234,179,8,0.2), 0 4px 20px rgba(0,0,0,0.3); }
+  50%     { box-shadow: 0 0 28px 6px rgba(234,179,8,0.35), 0 4px 20px rgba(0,0,0,0.3); }
+}
+
+/* ЧЕРВЕН силен pulse — при опит да заобиколи избора (3 пъти) */
+.v4-type-toggle.pulsing-strong {
+  animation: ttPulseStrong 0.5s ease-in-out 3;
+}
+@keyframes ttPulseStrong {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3), 0 4px 20px rgba(0,0,0,0.3); border-color: rgba(239,68,68,0.8); }
+  50%     { box-shadow: 0 0 36px 10px rgba(239,68,68,0.55), 0 4px 20px rgba(0,0,0,0.3); border-color: #ef4444; }
+}
+
+/* Warn label — жълт, пулсиращ текст */
+.v4-tt-warn {
+  font-size: 10px; font-weight: 700; color: #fbbf24;
+  text-align: center; margin-bottom: 6px; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(234,179,8,0.5);
+  animation: warnBlink 1.3s ease-in-out infinite;
+}
+@keyframes warnBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+```
+
+**JS Guard (блокира input когато изборът е незаписан):**
+```js
+function typeGuard(e) {
+  if (S.chosenType) return;
+  e.preventDefault();
+  if (e.target && e.target.blur) e.target.blur();
+  showToast('Избери първо...', 'error');
+  var tg = document.querySelector('.v4-type-toggle');
+  if (tg) {
+    tg.classList.add('pulsing-strong');
+    setTimeout(() => tg.classList.remove('pulsing-strong'), 1600);
+  }
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+}
+
+// Attach при render:
+document.querySelectorAll('input, select').forEach(el => {
+  el.removeEventListener('focus', typeGuard);
+  el.addEventListener('focus', typeGuard);
+});
+
+// И в Save функцията:
+function save() {
+  if (!S.chosenType) {
+    showToast('Избери първо...', 'error');
+    // pulse strong + vibrate ... (същото като guard)
+    return;
+  }
+  // ... save logic
+}
+```
+
+**Прилага се за:** Единичен/Варианти, Дребно/Едро превключвач, и всеки друг required binary избор преди форма.
+
+### 4.15 Autofill Fix (Chrome/Safari побеляване)
+
+**Проблем:** Chrome/Safari беят autofilled input-и със светъл фон — разрушава неон темата.
+
+**Fix (задължителен за ВСЕКИ модул с input-и):**
+```css
+#[modalId] input:-webkit-autofill,
+#[modalId] input:-webkit-autofill:hover,
+#[modalId] input:-webkit-autofill:focus,
+#[modalId] input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(17,24,44,0.9) inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+  transition: background-color 9999s ease-out 0s;
+}
+```
+
+Замени `[modalId]` с ID на модала (wizModal, saleModal, и т.н.) или изпусни selector-а за global fix.
+
+
+---
+
 ## 5. ЗАБРАНИ
 
 | НЕ | ВМЕСТО |
@@ -453,6 +596,7 @@ if (!confirm('Изтрий "' + name + '"?')) return;
 | Версия | Дата | Промени |
 |---|---|---|
 | v1.0 | 2026-04-19 | Инициализация след S74.7 — 3D inset underline, all-in-one photo zone, unit edit mode, footer 42px neon |
+| v1.1 | 2026-04-19 | S75.2 — Required Toggle pattern (жълт pulse + червен strong pulse + warn label + input guard), autofill побеляване fix |
 
 ---
 
