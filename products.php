@@ -1948,6 +1948,112 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     .v4-cell-input{width:48px}
 }
 /* S73.A end */
+
+/* ═══ S74 · NEON GLASS WIZARD V4 ═══ */
+.v4-glass-pro{
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.4),
+    0 0 30px rgba(99,102,241,0.18),
+    0 0 60px rgba(139,92,246,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  border-color:rgba(99,102,241,0.28) !important;
+}
+/* Photo zone ALL-IN-ONE */
+.v4-pz{
+  position:relative;overflow:hidden;
+  border-radius:18px;margin-bottom:14px;padding:16px 14px 12px;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(99,102,241,0.10), transparent 70%),
+    linear-gradient(180deg, rgba(99,102,241,0.04), rgba(8,11,24,0.5));
+  border:1.5px dashed rgba(99,102,241,0.32);
+}
+.v4-pz::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);}
+.v4-pz-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.v4-pz-ic{
+  width:44px;height:44px;border-radius:13px;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));
+  border:1px solid rgba(139,92,246,0.4);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.v4-pz-title{font-size:14px;font-weight:700;letter-spacing:-0.01em;
+  background:linear-gradient(135deg,#fff,#a5b4fc);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.v4-pz-sub{font-size:10px;color:rgba(226,232,240,0.55);margin-top:1px}
+.v4-pz-btns{display:flex;gap:8px;margin-bottom:10px}
+.v4-pz-btn{
+  flex:1;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;
+}
+.v4-pz-btn.primary{
+  background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(99,102,241,0.12));
+  border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;
+  box-shadow:0 0 14px rgba(99,102,241,0.2),inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.v4-pz-btn.primary:active{transform:scale(.97)}
+.v4-pz-btn.sec{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;
+}
+.v4-pz-tips{
+  display:flex;flex-wrap:wrap;gap:4px 10px;
+  padding-top:10px;border-top:1px dashed rgba(99,102,241,0.15);
+}
+.v4-pz-tip{display:inline-flex;align-items:center;gap:4px;
+  font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.55);}
+.v4-pz-tip svg{width:10px;height:10px;color:#86efac;flex-shrink:0}
+
+/* Neon Underline INPUT (Variant C) */
+.v4-inpC-wrap{
+  flex:1;position:relative;
+  background:linear-gradient(180deg,rgba(17,24,44,0.4),rgba(8,11,24,0.6));
+  border-radius:10px 10px 2px 2px;
+  border-top:1px solid rgba(99,102,241,0.1);
+  border-left:1px solid rgba(99,102,241,0.08);
+  border-right:1px solid rgba(99,102,241,0.08);
+  overflow:hidden;
+}
+.v4-inpC-wrap::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#6366f1,#8b5cf6,#6366f1,transparent);
+  box-shadow:0 0 10px rgba(139,92,246,0.6),0 0 20px rgba(99,102,241,0.4);
+  transform:scaleX(0.3);transition:transform .4s;transform-origin:center;
+}
+.v4-inpC-wrap:focus-within::after{transform:scaleX(1)}
+.v4-inpC-wrap input.fc{
+  background:transparent !important;border:none !important;
+  border-radius:0 !important;padding:13px 14px !important;
+  box-shadow:none !important;
+}
+/* Chip inline input (for "+ нова" unit) */
+.v4-chipInput{
+  min-width:90px;padding:8px 12px;border-radius:100px;
+  background:linear-gradient(180deg,rgba(17,24,44,0.4),rgba(8,11,24,0.6));
+  border:1px dashed rgba(99,102,241,0.4);
+  color:#fff;font-size:11px;font-weight:500;font-family:inherit;
+  outline:none;transition:all .2s;
+}
+.v4-chipInput:focus{
+  border-color:rgba(139,92,246,0.7);border-style:solid;
+  box-shadow:0 0 12px rgba(139,92,246,0.3);
+}
+.v4-chipInput::placeholder{color:#a5b4fc;font-weight:600}
+/* S74: усилване на .fc в wizard модала */
+#wizModal .fc{
+  background:linear-gradient(180deg,rgba(17,24,44,0.5),rgba(8,11,24,0.7)) !important;
+  border:1px solid rgba(99,102,241,0.22) !important;
+  border-bottom:1.5px solid rgba(99,102,241,0.4) !important;
+  border-radius:10px 10px 4px 4px !important;
+  transition:all .25s !important;
+}
+#wizModal .fc:focus{
+  border-color:rgba(139,92,246,0.5) !important;
+  border-bottom:2px solid #8b5cf6 !important;
+  box-shadow:0 4px 20px rgba(139,92,246,0.15),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
 </style>
 </head>
 <body>
@@ -3628,14 +3734,18 @@ function renderWizPage(step){
         const mic=(f)=>'<button type="button" class="wiz-mic" onclick="wizMic(\''+f+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
 
         const units=(CFG&&CFG.units&&CFG.units.length)?CFG.units:['бр','сет','кг','м','л'];
-        const unitChips=units.map(u=>'<button type="button" onclick="S.wizData.unit=\''+u+'\';renderWizard()" style="padding:8px 14px;border-radius:100px;background:'+(u===un?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)')+';border:1px solid '+(u===un?'#6366f1':'rgba(255,255,255,0.08)')+';font-size:11px;font-weight:500;color:'+(u===un?'#fff':'rgba(255,255,255,0.6)')+';cursor:pointer;box-shadow:'+(u===un?'0 0 10px rgba(99,102,241,0.3)':'none')+'">'+u+'</button>').join('')+'<button type="button" onclick="wizAddUnitPrompt()" style="padding:8px 12px;border-radius:100px;background:rgba(99,102,241,0.08);border:1px dashed rgba(99,102,241,0.4);font-size:11px;font-weight:600;color:#a5b4fc;cursor:pointer">+ Добави</button>';
+        const unitChips=units.map(u=>'<button type="button" onclick="S.wizData.unit=\''+u+'\';renderWizard()" style="padding:8px 14px;border-radius:100px;background:'+(u===un?'linear-gradient(135deg,#4338ca,#3730a3)':'rgba(255,255,255,0.03)')+';border:1px solid '+(u===un?'#6366f1':'rgba(255,255,255,0.08)')+';font-size:11px;font-weight:500;color:'+(u===un?'#fff':'rgba(255,255,255,0.6)')+';cursor:pointer;box-shadow:'+(u===un?'0 0 10px rgba(99,102,241,0.3)':'none')+'">'+u+'</button>').join('')+'<input type="text" class="v4-chipInput" id="inlUnitChip" placeholder="+ нова" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddUnitFromChip();}" onblur="if(this.value.trim())wizAddUnitFromChip();">';
 
-        const photoPreview=S.wizData._photoDataUrl
-            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;height:180px;object-fit:cover;border-radius:14px;cursor:pointer">'
-            : '<div style="aspect-ratio:16/9;border-radius:14px;background:rgba(255,255,255,0.025);border:1.5px dashed rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.35);display:flex;align-items:center;justify-content:center;margin-bottom:2px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="font-size:12px;font-weight:600;color:#e2e8f0">Снимай артикула</div><div style="font-size:9px;color:var(--text-secondary)">AI ползва снимката</div></div>';
-        const photoButtons='<div style="display:flex;gap:8px;margin-top:8px"><button type="button" onclick="document.getElementById(\'photoInput\').click()" style="flex:1;padding:10px;border-radius:12px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 10l4.5-4.5M20 4l-1 1"/><rect x="3" y="8" width="18" height="13" rx="2"/><circle cx="12" cy="15" r="3"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" style="flex:1;padding:10px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
-        const photoTips='<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:10px 12px;margin-top:10px"><div style="font-size:9px;font-weight:700;color:#fbbf24;margin-bottom:4px;letter-spacing:0.05em">СЪВЕТИ ЗА СНИМКА</div><div style="font-size:10px;color:#d4d4d8;line-height:1.6">✓ Равна светла повърхност · ✓ Без други предмети · ✓ Добро осветление · ✓ Ясна, неразмазана</div></div>';
-        const photoBlock='<div style="margin-bottom:14px">'+photoPreview+photoButtons+photoTips+'</div>';
+        const _hasPhoto=!!S.wizData._photoDataUrl;
+        const _photoContent=_hasPhoto
+            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+            : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
+        const _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
+        const _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
+        const photoPreview='<div class="v4-pz">'+_photoContent+_photoBtns+_photoTips+'</div>';
+        const photoButtons='';
+        const photoTips='';
+        const photoBlock=photoPreview+photoButtons+photoTips;
 
         const copyPrev=hasLast
             ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
@@ -3652,7 +3762,7 @@ function renderWizPage(step){
         return '<div class="wiz-page active">'+
             copyPrev+
             aiHint+
-            '<div class="glass" style="padding:18px 16px 16px;margin-bottom:14px">'+
+            '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px">'+
               '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
               '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
               '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
@@ -5660,6 +5770,17 @@ function wizAddSubcat(){
     });
 }
 
+function wizAddUnitFromChip(){
+    const el=document.getElementById('inlUnitChip');
+    if(!el)return;
+    const unit=(el.value||'').trim();
+    if(!unit){el.value='';return;}
+    el.value='';
+    api('products.php?ajax=add_unit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'unit='+encodeURIComponent(unit)}).then(function(d){
+        if(d&&d.units){CFG.units=d.units;S.wizData.unit=d.added||unit;renderWizard();showToast('"'+unit+'" добавена ✓','success');}
+        else{showToast('Грешка при запис','error');}
+    }).catch(function(){showToast('Грешка при запис','error');});
+}
 function wizAddUnitPrompt(){
     var unit=prompt('Нова мерна единица (напр. чифт, комплект, оп., бутилка):');
     if(!unit)return;
