@@ -2072,6 +2072,43 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 
 
+
+/* ═══ S75.2 TYPE TOGGLE — REQUIRED ═══ */
+.v4-type-toggle.needs-select{
+  border-color:rgba(234,179,8,0.55);
+  animation:ttPulseRequired 1.3s ease-in-out infinite;
+}
+@keyframes ttPulseRequired{
+  0%,100%{box-shadow:0 0 0 0 rgba(234,179,8,0.2),0 4px 20px rgba(0,0,0,0.3)}
+  50%{box-shadow:0 0 28px 6px rgba(234,179,8,0.35),0 4px 20px rgba(0,0,0,0.3)}
+}
+.v4-type-toggle.pulsing-strong{
+  animation:ttPulseStrong 0.5s ease-in-out 3;
+}
+@keyframes ttPulseStrong{
+  0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3),0 4px 20px rgba(0,0,0,0.3);border-color:rgba(239,68,68,0.8)}
+  50%{box-shadow:0 0 36px 10px rgba(239,68,68,0.55),0 4px 20px rgba(0,0,0,0.3);border-color:#ef4444}
+}
+.v4-tt-warn{
+  font-size:10px;font-weight:700;color:#fbbf24;
+  text-align:center;margin-bottom:6px;letter-spacing:0.05em;
+  text-transform:uppercase;
+  text-shadow:0 0 8px rgba(234,179,8,0.5);
+  animation:warnBlink 1.3s ease-in-out infinite;
+}
+@keyframes warnBlink{0%,100%{opacity:1}50%{opacity:0.55}}
+
+/* S75.2: autofill fix — Chrome/Safari не бели полетата */
+#wizModal input:-webkit-autofill,
+#wizModal input:-webkit-autofill:hover,
+#wizModal input:-webkit-autofill:focus,
+#wizModal input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 30px rgba(17,24,44,0.9) inset !important;
+  -webkit-text-fill-color:#fff !important;
+  caret-color:#fff !important;
+  transition:background-color 9999s ease-out 0s;
+}
+
 /* ═══ S75 TYPE TOGGLE (Единичен / С варианти) ═══ */
 .v4-type-toggle{
   display:grid;grid-template-columns:1fr 1fr;gap:6px;
@@ -3524,7 +3561,7 @@ function fieldLabel(text,key,extra){
 
 // ─── MANUAL WIZARD ───
 function openManualWizard(){
-    S.wizStep=3;S.wizData={};S.wizType='single';S.wizEditId=null;
+    S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
@@ -3535,7 +3572,7 @@ function openManualWizard(){
 
 // ─── VOICE WIZARD — same steps, with skip buttons ───
 function openVoiceWizard(){
-    S.wizStep=3;S.wizData={};S.wizType='single';S.wizEditId=null;
+    S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
     S.wizVoiceMode=true;
     document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
     renderWizard();
@@ -3719,6 +3756,16 @@ async function renderWizard(){
     if(S._lastWizStep!==S.wizStep){document.getElementById('wizBody').scrollTop=0;S._lastWizStep=S.wizStep;}
     // S70: Init HSL picker if on color tab
     setTimeout(function(){if(document.getElementById('wizHslCanvas'))wizInitHslPicker()},50);
+    // S75_typeguard: блокира input на всички полета ако wizType е null
+    if(S.wizStep===3){
+        setTimeout(function(){
+            document.querySelectorAll('#wizBody input[type="text"],#wizBody input[type="number"],#wizBody select').forEach(function(el){
+                if(el.id==='wNewUnit')return;
+                el.removeEventListener('focus',wizTypeGuard);
+                el.addEventListener('focus',wizTypeGuard);
+            });
+        },60);
+    }
     // Subcategory loader + Supplier→Category filter for step 3
     if(S.wizStep===3){
         // Force restore all fields from saved data (belt-and-suspenders)
@@ -3837,7 +3884,7 @@ const unitChips=_chipArr.join('')+_addBox+_editBtn;
             ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
             : '';
 
-        const typeToggle='<div class="v4-type-toggle"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>';
+        const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle=_ttWarn+'<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>';
 
         const aiHint='<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin-bottom:12px;border-radius:14px;background:linear-gradient(90deg,rgba(99,102,241,0.15),rgba(59,130,246,0.08) 60%,transparent);border:1px solid rgba(99,102,241,0.3)"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div style="flex:1;font-size:10.5px;line-height:1.45;color:rgba(255,255,255,0.88)">Натисни <b style="color:#c7d2fe">микрофона</b> и кажи: <b style="color:#c7d2fe">„Бяла блуза, 29 лева, 5 броя"</b></div></div>';
 
@@ -5748,6 +5795,8 @@ async function wizGenDescription(){
 }
 
 async function wizSave(){
+    // S75.2: wizType first check
+    if(!S.wizType){showToast('Избери първо: Единичен или С варианти','error');var tg=document.querySelector('.v4-type-toggle');if(tg){tg.classList.add('pulsing-strong');setTimeout(function(){tg.classList.remove('pulsing-strong')},1600);}if(navigator.vibrate)navigator.vibrate([50,30,50]);return;}
     wizCollectData();
     if(!S.wizData.name){showToast('Въведи наименование','error');return}
     let combos=wizBuildCombinations();
@@ -5859,6 +5908,15 @@ function wizAddSubcat(){
     });
 }
 
+function wizTypeGuard(e){
+    if(S.wizType)return;
+    e.preventDefault();
+    if(e.target&&e.target.blur)e.target.blur();
+    showToast('Избери първо: Единичен или С варианти','error');
+    var tg=document.querySelector('.v4-type-toggle');
+    if(tg){tg.classList.add('pulsing-strong');setTimeout(function(){tg.classList.remove('pulsing-strong')},1600);}
+    if(navigator.vibrate)navigator.vibrate([50,30,50]);
+}
 function wizSwitchType(t){
     if(S.wizType===t)return;
     S.wizType=t;
