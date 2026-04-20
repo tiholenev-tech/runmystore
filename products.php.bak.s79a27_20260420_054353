@@ -59,7 +59,7 @@ if (isset($_GET['ajax'])) {
 if ($ajax === 'sections') {
     // Топик-към-фундаментален въпрос mapping
     $topicMap = [
-        'stock_zero_bestsellers' => 'loss',
+        'stock_zero_bestsellers' => 'order',
         'stock_critical_low' => 'order',
         'stock_below_minimum' => 'order',
         'stock_size_gaps' => 'loss',
@@ -3255,7 +3255,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 }
 /* S79 A2.5 — SVG FALLBACK DONE */
 /* S79 A2.6 — TOTAL FIX */
-/* S79 A2.7 — HEADER DEDUP */
 </style>
 </head>
 <body>
@@ -3963,9 +3962,9 @@ async function loadHome(){
         document.getElementById('hdrCount').textContent=(d.counts.total_products||0)+' артикула';
     }
     // Init cascade categories (all global)
-
+    setCascadeSup(0, null);
     // Load signals
-
+    loadSignals();
 }
 
 function renderCollapse(id,icon,title,items,renderFn){
