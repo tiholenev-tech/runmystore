@@ -3212,7 +3212,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .ntab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
 
 
-/* ═══ S79 A2.2 — EMOJI GLOW ═══ */
 .art-emoji {
     font-size: 48px;
     line-height: 1;
@@ -3232,9 +3231,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-2px) scale(1.05); }
 }
-/* S79 A2.3 — EMOJI v2 */
-
-/* ═══ S79 A2.5 — NEON GLASS SVG FALLBACK ═══ */
 .art-svg-fallback {
     width: 56px;
     height: 56px;
@@ -3253,9 +3249,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     0%, 100% { transform: scale(1); filter: brightness(1); }
     50% { transform: scale(1.06); filter: brightness(1.15); }
 }
-/* S79 A2.5 — SVG FALLBACK DONE */
-/* S79 A2.6 — TOTAL FIX */
-/* S79 A2.7 — HEADER DEDUP */
 </style>
 </head>
 <body>
@@ -3968,18 +3961,6 @@ async function loadHome(){
 
 }
 
-function renderCollapse(id,icon,title,items,renderFn){
-    const el=document.getElementById(id);
-    if(!items||!items.length){el.classList.add('hidden');return}
-    el.classList.remove('hidden');
-    el.innerHTML=`<div class="collapse-hdr open" onclick="toggleCollapse(this)"><div class="ch-left"><span class="ch-icon">${icon}</span><span class="ch-title">${title}</span><span class="ch-count">${items.length}</span></div><span class="ch-arrow">▼</span></div><div class="collapse-body open"><div class="collapse-inner">${items.map((p,i)=>renderFn(p,i)).join('')}</div></div>`;
-}
-
-function toggleCollapse(hdr){
-    hdr.classList.toggle('open');
-    hdr.nextElementSibling.classList.toggle('open');
-}
-
 async function loadHomeProducts(){
     const f=S.homeTab==='all'?'':`&filter=${S.homeTab}`;
     const d=await api(`products.php?ajax=products&store_id=${CFG.storeId}${f}&page=${S.homePage}&sort=${S.sort}`);
@@ -4613,55 +4594,9 @@ document.getElementById('recOv').addEventListener('click',e=>{if(e.target===e.cu
 // CASCADE FILTERS + SIGNALS — New for redesign
 // ═══════════════════════════════════════════════════════════
 
-let _cascadeSup = 0;
 let _cascadeCat = 0;
 let _cascadeSubcat = 0;
-let _signalsData = [];
 let _qfState = {};
-
-// ─── CASCADE: Supplier selected ───
-async function setCascadeSup(supId, el) {
-    _cascadeSup = supId;
-    _cascadeCat = 0;
-    _cascadeSubcat = 0;
-    // Update active state
-    document.querySelectorAll('#supFilterRow .fltr-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.sup) === supId));
-    // Reload categories for this supplier
-    const catRow = document.getElementById('catFilterRow');
-    catRow.innerHTML = '<div class="fltr-btn active" data-cat="0" onclick="setCascadeCat(0,this)">Всички</div>';
-    const hint = document.getElementById('catHint');
-    if (supId === 0) {
-        hint.textContent = 'глобални';
-        // Show all global categories (parent_id IS NULL)
-        CFG.categories.filter(c => !c.parent_id).sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
-            catRow.innerHTML += `<div class="fltr-btn" data-cat="${c.id}" onclick="setCascadeCat(${c.id},this)">${esc(c.name)}</div>`;
-        });
-    } else {
-        const sup = CFG.suppliers.find(s => s.id === supId);
-        hint.textContent = sup ? sup.name : '';
-        // Fetch categories for this supplier
-        const cats = await api('products.php?ajax=categories&store_id=' + CFG.storeId + '&sup=' + supId);
-        if (cats && cats.length) {
-            cats.filter(c => !c.parent_id).sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
-                catRow.innerHTML += `<div class="fltr-btn" data-cat="${c.id}" onclick="setCascadeCat(${c.id},this)">${esc(c.name)}</div>`;
-            });
-        }
-    }
-}
-
-// ─── CASCADE: Category selected ───
-function setCascadeCat(catId, el) {
-    _cascadeCat = catId;
-    _cascadeSubcat = 0;
-    document.querySelectorAll('#catFilterRow .fltr-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.cat) === catId));
-}
-
-// ─── Navigate to product list with current cascade ───
-function goFilteredList() {
-    S.supId = _cascadeSup || null;
-    S.catId = _cascadeCat || null;
-    goScreen('products', { sup: S.supId, cat: S.catId });
-}
 
 // ─── Load subcategories for product list screen ───
 async function loadSubcategories(catId) {
@@ -4688,68 +4623,6 @@ function setSubcat(id, el) {
     S.catId = id || _cascadeCat;
     S.page = 1;
     loadProducts();
-}
-
-// ─── SIGNALS ───
-async function loadSignals() {
-    const data = await api('products.php?ajax=signals&store_id=' + CFG.storeId);
-    if (!data) return;
-    _signalsData = data;
-    renderSignals(data);
-}
-
-function renderSignals(signals) {
-    const el = document.getElementById('signalsList');
-    const countEl = document.getElementById('signalsCount');
-    if (!signals || !signals.length) { el.innerHTML = ''; countEl.textContent = ''; return; }
-    countEl.textContent = '· ' + signals.length;
-
-    // Group by group
-    const groups = { stock: [], money: [], sales: [], zombie: [], info: [], data: [] };
-    const groupLabels = { stock: 'Наличност', money: 'Пари', sales: 'Продажби', zombie: 'Zombie стока', info: 'Информация', data: 'Качество на данни' };
-    const groupColors = { stock: 'red', money: 'purple', sales: 'green', zombie: 'yellow', info: 'blue', data: 'orange' };
-
-    signals.forEach(s => { if (groups[s.group]) groups[s.group].push(s); });
-
-    let html = '';
-    for (const [gk, items] of Object.entries(groups)) {
-        if (!items.length) continue;
-        html += `<div class="sig-group"><div class="sig-group-label sg-${groupColors[gk]}">${groupLabels[gk]}</div>`;
-        items.forEach(s => {
-            html += `<div class="sig-card s-${s.color}" onclick="askAISignal('${esc(s.question)}')" data-filter="${s.filter||s.type}">
-                <div class="sig-dot"></div>
-                <div class="sig-info"><div class="sig-label">${esc(s.label)}</div><div class="sig-desc">${esc(s.desc)}</div></div>
-                <div class="sig-action">AI</div>
-            </div>`;
-        });
-        html += '</div>';
-    }
-    el.innerHTML = html;
-
-    // Also populate signal filter pills on products list screen
-    const sfRow = document.getElementById('signalFilterRow');
-    if (sfRow) {
-        let pills = '';
-        signals.forEach(s => {
-            pills += `<div class="qfltr-pill sig-${s.color}" onclick="filterBySignal('${s.filter||s.type}')">${esc(s.label)} <span style="opacity:.5;font-size:8px">${s.count}</span></div>`;
-        });
-        sfRow.innerHTML = pills;
-    }
-}
-
-function askAISignal(question) {
-    // S43: Open AI overlay and auto-send question
-    openAIChatOverlay();
-    setTimeout(function(){
-        if (typeof sendAutoQuestion === 'function') sendAutoQuestion(question);
-    }, 400);
-}
-
-function filterBySignal(type) {
-    // S43: real signal-based filtering via AJAX
-    S.filter = type;
-    S.page = 1;
-    goScreen('products');
 }
 
 function openQuickFilter(type) {
@@ -4806,19 +4679,6 @@ function openAIChatOverlay() {
     const dr = document.getElementById('aiChatOv');
     if (dr) { dr.classList.add('open'); return; }
     showToast('AI чат скоро...', '');
-}
-
-// ─── Override loadHome to use new design ───
-async function loadHomeNew() {
-    // Update header count
-    const stats = await api('products.php?ajax=home_stats&store_id=' + CFG.storeId);
-    if (stats && stats.counts) {
-        document.getElementById('hdrCount').textContent = (stats.counts.total_products || 0) + ' артикула';
-    }
-    // Init cascade categories (all global)
-    setCascadeSup(0, null);
-    // Load signals
-    loadSignals();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -8305,9 +8165,7 @@ function wizHighlightNext(){
 }
 // ═══ END S68 ═══
 
-/* ═══ S79 A2.3 — EMOJI v2 ═══ */
 const EMOJI_MAP = [
-  /* S79 A2.5 — SVG FALLBACK */
 // Комплект/сет — НЕ emoji, а SVG (връща null за да мине към fallback)
   {re:/^комплект|^сет |^set | set$| set .| set,|ensemble/i, e:null},
   // Козметика разширено
@@ -8328,7 +8186,6 @@ const EMOJI_MAP = [
   {re:/възглав|cushion|декоратив.*възглав/i, e:'🛏️'},
   {re:/килим|carpet|rug/i, e:'🏠'},
 
-  /* S79 A2.4 — EMOJI v3 */
 // Спортни облекла
   {re:/суичър|суитчер|суичер|sweatshirt|crewneck/i, e:'🧥'},
   {re:/анцуг|тренинг|трак|tracksuit|sports.*suit/i, e:'🧥'},
