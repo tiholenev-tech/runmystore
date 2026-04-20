@@ -165,8 +165,6 @@ if ($ajax === 'sections') {
                 'tagClass' => $tagClass,
                 'ctx' => $ctx,
                 'image_url' => $it['image_url'] ?? null,
-                'category_name' => $it['category_name'] ?? null,
-                'subcategory_name' => $it['subcategory_name'] ?? null,
             ];
 
             if ($ins['value_numeric'] > 0) $sections[$qkey]['total'] += floatval($ins['value_numeric']);
@@ -3230,7 +3228,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-2px) scale(1.05); }
 }
-/* S79 A2.3 — EMOJI v2 */
 </style>
 </head>
 <body>
@@ -8280,92 +8277,35 @@ function wizHighlightNext(){
 }
 // ═══ END S68 ═══
 
-/* ═══ S79 A2.3 — EMOJI v2 ═══ */
-const EMOJI_MAP = [
-  // Обувки (отделни видове)
-  {re:/маратонк|кецове|sneaker|nike|adidas|puma|reebok|vans|converse|asics|newbalance|jordan|airmax|superstar/i, e:'👟'},
-  {re:/обувк|мъжки.*обувк|дамск.*обувк|oxford|loafer|dress.*shoe/i, e:'👞'},
-  {re:/ток|висок.*ток|елегант.*обув|heel|stiletto|pump/i, e:'👠'},
-  {re:/сандал|джапанк|flip.?flop|slipper|чехли|sandal/i, e:'👡'},
-  {re:/ботуш|чизм|boot|boots/i, e:'👢'},
-  // Облекло горно
-  {re:/тениск|t.?shirt|потник|tee/i, e:'👕'},
-  {re:/ризa|риза|shirt|blouse|блуза/i, e:'👔'},
-  {re:/пуловер|суитшърт|sweater|jumper|hoodi|худи|cardigan|жилетка/i, e:'🧥'},
-  {re:/яке|палто|горнищ|jacket|coat|parka|пар[ъу]тa|пухен|anorak|bomber/i, e:'🧥'},
-  // Рокли/поли
-  {re:/рокл|dress|robe|sukien|gown/i, e:'👗'},
-  {re:/пола|skirt|юбк/i, e:'👚'},
-  // Долно
-  {re:/джинс|дънк|jean|levi|deni[mn]|w\d{2,}/i, e:'👖'},
-  {re:/панталон|trouser|chino|pants|slacks|брич/i, e:'👖'},
-  {re:/шорт|short|бермуд/i, e:'🩳'},
-  {re:/клин|leggin|тайц|tight/i, e:'🩱'},
-  // Бельо
-  {re:/бел[ьи]о|underwear|underpants|бикини|пант[ил][еи]|boxer|boxers|slip|brief|гащ[ит]/i, e:'🩲'},
-  {re:/сутие|bra|бюст|lingerie|дамско.*бел/i, e:'🩱'},
-  {re:/пижам|нощн[иа]|pyjama|pajama|nightgown/i, e:'🛌'},
-  // Чорапи
-  {re:/чорап|sock|гьол|stocking|foot[a-z]*gear/i, e:'🧦'},
-  // Шапки
-  {re:/шапк|cap|hat|beanie|кепе|барет|тюрбан|bucket.hat/i, e:'🧢'},
-  // Чанти
-  {re:/чант[аи]|bag|handbag|tote|clutch|backpack|раница|чантичк/i, e:'👜'},
-  {re:/портмон|wallet|кесия|purse/i, e:'👛'},
-  {re:/куфар|luggage|suitcase|trolley/i, e:'🧳'},
-  // Аксесоари
-  {re:/колан|belt|ремък/i, e:'👔'},
-  {re:/шал|scarf|кърп[аи].*врат|врат[ен]?.*аксесоар|bandana/i, e:'🧣'},
-  {re:/ръкавиц|glove|mitten/i, e:'🧤'},
-  {re:/часовник|watch|clock|гривн.*час/i, e:'⌚'},
-  {re:/очил|glasses|sunglas|слънчев.*очил|спектакъл/i, e:'🕶️'},
-  {re:/чадър|umbrella/i, e:'☂️'},
-  // Бижу
-  {re:/пръстен|ring/i, e:'💍'},
-  {re:/обеци|earring/i, e:'💎'},
-  {re:/колие|necklace|синджир|верижк|медалион/i, e:'📿'},
-  {re:/бижу|jewel|гривн|bracelet/i, e:'💎'},
-  // Козметика / парфюм
-  {re:/парфюм|perfume|eau.de|toilette|кьолн/i, e:'💐'},
-  {re:/червило|lipstick|балсам.*устн|lipgloss/i, e:'💄'},
-  {re:/фон.*тен|foundation|крем.*лице|face.*cream/i, e:'🧴'},
-  {re:/спирал|mascara|молив.*око|eyeliner|сенк|eyeshadow/i, e:'👁️'},
-  {re:/лак.*нокт|nail.polish|маникюр/i, e:'💅'},
-  {re:/шампоан|shampoo|балсам.*коса|conditioner/i, e:'🧴'},
-  {re:/сапун|soap|душ.*гел|bodywash/i, e:'🧼'},
-  // Спорт
-  {re:/топк|ball|футбол|football|soccer|баскет|basket/i, e:'⚽'},
-  {re:/тенис|tennis|ракет/i, e:'🎾'},
-  {re:/фитнес|dumbbell|gym|тегло|тежест/i, e:'🏋️'},
-  // Детски
-  {re:/бебе|baby|бебешк|infant|newborn/i, e:'🍼'},
-  {re:/играчк|toy|кукл|пъзел|puzzle|лего|lego/i, e:'🧸'},
-  // Електроника
-  {re:/телефон|phone|iphone|samsung|смарт/i, e:'📱'},
-  {re:/слушалк|headphone|earphone|airpod|earbud/i, e:'🎧'},
-  {re:/лаптоп|laptop|notebook/i, e:'💻'},
-  {re:/кабел|зарядно|charger|cable|адаптер/i, e:'🔌'},
-  // Храна / напитки
-  {re:/кафе|coffee|експресо|espresso/i, e:'☕'},
-  {re:/чай|tea/i, e:'🍵'},
-  {re:/шоколад|chocolate|бонбон|candy|бисквит|cookie/i, e:'🍫'},
-  // Домашни
-  {re:/възглавниц|pillow|cushion/i, e:'🛏️'},
-  {re:/одеял|кувертюр|blanket|завивка/i, e:'🛌'},
-  {re:/свещ|candle/i, e:'🕯️'},
-  {re:/ваз|vase|цвет.*декор/i, e:'🌸'},
-  // Книги
-  {re:/книг|book|роман|учебник|справочник/i, e:'📚'},
-  // Инструменти
-  {re:/отверк|screwdriver|инструмент|tool|чук|hammer|ключ.*гаечен/i, e:'🔧'},
-];
-
-function emojiForProduct(name, catName, subCatName) {
-    const haystack = ((name || '') + ' ' + (catName || '') + ' ' + (subCatName || '')).toLowerCase();
-    for (const m of EMOJI_MAP) {
-        if (m.re.test(haystack)) return m.e;
-    }
-    return '📦'; // последен fallback — пакет
+/* ═══ S79 A2.2 — EMOJI CATEGORY MAPPING ═══ */
+function emojiForProduct(name, categoryName) {
+    const n = ((name || '') + ' ' + (categoryName || '')).toLowerCase();
+    // Обувки
+    if (/обувк|маратонк|кецове|сандали|ботуш|чехли|nike|adidas|geox|puma/i.test(n)) return '👟';
+    if (/ток|висок ток|елегантн/i.test(n)) return '👠';
+    // Облекло горно
+    if (/тениск|t-shirt|shirt|ризи|риза/i.test(n)) return '👕';
+    if (/блуз|пуловер|суитшърт|hoodi/i.test(n)) return '🧥';
+    if (/яке|палто|горнищ|jacket/i.test(n)) return '🧥';
+    if (/рокл|dress/i.test(n)) return '👗';
+    if (/пола|skirt/i.test(n)) return '👗';
+    // Панталони/долно
+    if (/джинс|дънк|панталон|jean|levi/i.test(n)) return '👖';
+    if (/шорт|short/i.test(n)) return '🩳';
+    // Аксесоари
+    if (/чант|bag|раница|backpack/i.test(n)) return '👜';
+    if (/шапк|cap|hat/i.test(n)) return '🧢';
+    if (/часов|watch|гривн/i.test(n)) return '⌚';
+    if (/слънчев очил|очила|glasses|sunglass/i.test(n)) return '🕶️';
+    if (/колан|belt/i.test(n)) return '👔';
+    if (/бижу|пръстен|verig|ring|jewel/i.test(n)) return '💍';
+    // Бельо
+    if (/бел|underwear|бикини|сутие/i.test(n)) return '🩱';
+    if (/чорап|sock/i.test(n)) return '🧦';
+    // Парфюм / козметика
+    if (/парфюм|perfume|козметик|cosmetic/i.test(n)) return '💄';
+    // Default
+    return '🏷️';
 }
 
 function loadSections() {
@@ -8391,7 +8331,7 @@ function loadSections() {
                     return;
                 }
                 scroll.innerHTML = sec.items.map(it => {
-                    const emoji = emojiForProduct(it.name, it.category_name, it.subcategory_name);
+                    const emoji = emojiForProduct(it.name, it.category_name);
                     const photoContent = it.image_url
                         ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
                         : `<span class="art-emoji">${emoji}</span>`;
