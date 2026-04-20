@@ -3207,27 +3207,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .ntab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
 .ntab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
 
-
-/* ═══ S79 A2.2 — EMOJI GLOW ═══ */
-.art-emoji {
-    font-size: 48px;
-    line-height: 1;
-    display: block;
-    filter: drop-shadow(0 0 12px hsl(var(--hue1) 60% 50% / .55))
-            drop-shadow(0 0 4px hsl(var(--hue2) 65% 55% / .4));
-    animation: emojiFloat 3s ease-in-out infinite;
-    text-shadow: 0 0 20px hsl(var(--hue1) 70% 55% / .5);
-}
-.q1 .art-emoji { filter: drop-shadow(0 0 12px hsl(0 70% 55% / .6)) drop-shadow(0 0 4px hsl(340 65% 55% / .4)); }
-.q2 .art-emoji { filter: drop-shadow(0 0 12px hsl(280 65% 60% / .6)) drop-shadow(0 0 4px hsl(260 65% 55% / .4)); }
-.q3 .art-emoji { filter: drop-shadow(0 0 12px hsl(145 65% 50% / .6)) drop-shadow(0 0 4px hsl(165 65% 50% / .4)); }
-.q4 .art-emoji { filter: drop-shadow(0 0 12px hsl(175 65% 50% / .6)) drop-shadow(0 0 4px hsl(195 65% 55% / .4)); }
-.q5 .art-emoji { filter: drop-shadow(0 0 12px hsl(38 75% 55% / .6)) drop-shadow(0 0 4px hsl(28 70% 50% / .4)); }
-.q6 .art-emoji { filter: drop-shadow(0 0 8px hsl(220 20% 60% / .4)); opacity: .7; }
-@keyframes emojiFloat {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-2px) scale(1.05); }
-}
 </style>
 </head>
 <body>
@@ -8277,85 +8256,72 @@ function wizHighlightNext(){
 }
 // ═══ END S68 ═══
 
-/* ═══ S79 A2.2 — EMOJI CATEGORY MAPPING ═══ */
-function emojiForProduct(name, categoryName) {
-    const n = ((name || '') + ' ' + (categoryName || '')).toLowerCase();
-    // Обувки
-    if (/обувк|маратонк|кецове|сандали|ботуш|чехли|nike|adidas|geox|puma/i.test(n)) return '👟';
-    if (/ток|висок ток|елегантн/i.test(n)) return '👠';
-    // Облекло горно
-    if (/тениск|t-shirt|shirt|ризи|риза/i.test(n)) return '👕';
-    if (/блуз|пуловер|суитшърт|hoodi/i.test(n)) return '🧥';
-    if (/яке|палто|горнищ|jacket/i.test(n)) return '🧥';
-    if (/рокл|dress/i.test(n)) return '👗';
-    if (/пола|skirt/i.test(n)) return '👗';
-    // Панталони/долно
-    if (/джинс|дънк|панталон|jean|levi/i.test(n)) return '👖';
-    if (/шорт|short/i.test(n)) return '🩳';
-    // Аксесоари
-    if (/чант|bag|раница|backpack/i.test(n)) return '👜';
-    if (/шапк|cap|hat/i.test(n)) return '🧢';
-    if (/часов|watch|гривн/i.test(n)) return '⌚';
-    if (/слънчев очил|очила|glasses|sunglass/i.test(n)) return '🕶️';
-    if (/колан|belt/i.test(n)) return '👔';
-    if (/бижу|пръстен|verig|ring|jewel/i.test(n)) return '💍';
-    // Бельо
-    if (/бел|underwear|бикини|сутие/i.test(n)) return '🩱';
-    if (/чорап|sock/i.test(n)) return '🧦';
-    // Парфюм / козметика
-    if (/парфюм|perfume|козметик|cosmetic/i.test(n)) return '💄';
-    // Default
-    return '🏷️';
+/* ═══ S79 A2 — JS LOADSECTIONS ═══ */
+async function loadSections() {
+    try {
+        const r = await fetch('products.php?ajax=sections');
+        const d = await r.json();
+        if (!d.ok) return;
+
+        // Header count
+        const countEl = document.querySelector('.title-sub');
+        if (countEl && d.total_products) countEl.textContent = '· ' + d.total_products + ' шт.';
+
+        // Rendering per секция
+        ['q1','q2','q3','q4','q5','q6'].forEach(q => {
+            const sec = d.sections[q];
+            const total = d.totals[q] || '';
+
+            // Намирам h-scroll контейнера за тази секция
+            const allHeads = document.querySelectorAll('.q-head.' + q);
+            if (!allHeads.length) return;
+            const head = allHeads[0];
+
+            // Update total pill
+            const totalEl = head.querySelector('.q-total');
+            if (totalEl && total) totalEl.textContent = total;
+
+            // H-scroll е следващия sibling
+            const scroll = head.nextElementSibling;
+            if (!scroll || !scroll.classList.contains('h-scroll')) return;
+
+            if (!sec.items.length) {
+                scroll.innerHTML = '<div style="padding:20px;color:rgba(255,255,255,.4);font-size:11px;text-align:center;width:100%">Нищо за показване</div>';
+                return;
+            }
+
+            // Render cards
+            scroll.innerHTML = sec.items.map(it => `
+                <div class="glass sm ${q} art" onclick="editProduct(${it.id})">
+                    <span class="shine"></span><span class="shine shine-bottom"></span>
+                    <div class="art-photo">
+                        ${it.image_url ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'}
+                        <span class="tag ${it.tagClass}">${it.tag}</span>
+                    </div>
+                    <div class="art-nm">${escapeHtml(it.name)}</div>
+                    <div class="art-bot">
+                        <div class="art-prc">${it.price ? Math.round(it.price) + ' лв' : '—'}</div>
+                        <div class="art-stk ${it.stkClass}">${it.stkText}</div>
+                    </div>
+                    <div class="art-ctx ${q}">${it.ctx}</div>
+                </div>
+            `).join('');
+        });
+    } catch (e) {
+        console.error('loadSections error:', e);
+    }
 }
 
-function loadSections() {
-    fetch('products.php?ajax=sections')
-        .then(r => r.json())
-        .then(d => {
-            if (!d.ok) return;
-            const countEl = document.querySelector('.title-sub');
-            if (countEl && d.total_products) countEl.textContent = '· ' + d.total_products + ' шт.';
-
-            ['q1','q2','q3','q4','q5','q6'].forEach(q => {
-                const sec = d.sections[q];
-                const total = d.totals[q] || '';
-                const allHeads = document.querySelectorAll('.q-head.' + q);
-                if (!allHeads.length) return;
-                const head = allHeads[0];
-                const totalEl = head.querySelector('.q-total');
-                if (totalEl && total) totalEl.textContent = total;
-                const scroll = head.nextElementSibling;
-                if (!scroll || !scroll.classList.contains('h-scroll')) return;
-                if (!sec.items.length) {
-                    scroll.innerHTML = '<div style="padding:20px;color:rgba(255,255,255,.4);font-size:11px;text-align:center;width:100%">Нищо за показване</div>';
-                    return;
-                }
-                scroll.innerHTML = sec.items.map(it => {
-                    const emoji = emojiForProduct(it.name, it.category_name);
-                    const photoContent = it.image_url
-                        ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
-                        : `<span class="art-emoji">${emoji}</span>`;
-                    return `
-                    <div class="glass sm ${q} art" onclick="editProduct(${it.id})">
-                        <span class="shine"></span><span class="shine shine-bottom"></span>
-                        <div class="art-photo">
-                            ${photoContent}
-                            <span class="tag ${it.tagClass}">${it.tag}</span>
-                        </div>
-                        <div class="art-nm">${escapeHtml(it.name)}</div>
-                        <div class="art-bot">
-                            <div class="art-prc">${it.price ? Math.round(it.price) + ' лв' : '—'}</div>
-                            <div class="art-stk ${it.stkClass}">${it.stkText}</div>
-                        </div>
-                        <div class="art-ctx ${q}">${it.ctx}</div>
-                    </div>`;
-                }).join('');
-            });
-        })
-        .catch(e => console.error('loadSections:', e));
-}
 function escapeHtml(t){return (t||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
-document.addEventListener('DOMContentLoaded', () => { if (document.querySelector('#scrHome')) loadSections(); });
+
+// Auto-zареждане при show на scrHome
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.querySelector('#scrHome.active, #scrHome[style*="block"]') || document.querySelector('#scrHome')) {
+            loadSections();
+        }
+    });
+}
 </script>
 
 <!-- Supplier Category Picker Modal -->
