@@ -8282,35 +8282,6 @@ function wizHighlightNext(){
 
 /* ═══ S79 A2.3 — EMOJI v2 ═══ */
 const EMOJI_MAP = [
-  /* S79 A2.4 — EMOJI v3 */
-// Спортни облекла
-  {re:/суичър|суитчер|суичер|sweatshirt|crewneck/i, e:'🧥'},
-  {re:/анцуг|тренинг|трак|tracksuit|sports.*suit/i, e:'🧥'},
-  {re:/елек|vest|жилетка.*без.*ръкав|puffer.*vest|gilet/i, e:'🦺'},
-  {re:/потник|tank|tanktop|sleeveless/i, e:'👕'},
-  {re:/жилетк|cardigan/i, e:'🧥'},
-  // Още обувки
-  {re:/балерин|ballet.*flat|flat.*shoe/i, e:'🩰'},
-  {re:/мокасини|moccasin|espadril/i, e:'👞'},
-  {re:/валенк|галош|guma.*boot/i, e:'👢'},
-  // Още облекла
-  {re:/туника|tunic|kaftan/i, e:'👚'},
-  {re:/сако|blazer|костюм|suit/i, e:'🤵'},
-  {re:/гащеризон|jumpsuit|overall|комбинезон/i, e:'👖'},
-  {re:/боди|bodysuit|ромпер|romper/i, e:'🩱'},
-  {re:/кимоно|kimono/i, e:'🥻'},
-  // Бански
-  {re:/бански|swimsuit|swimwear|бикин.*лято/i, e:'🩱'},
-  {re:/хавлия|кърп.*плаж|beach.*towel|robe.*bath/i, e:'🛁'},
-  // Домашни дрехи
-  {re:/халат|robe|dressing.*gown/i, e:'🥻'},
-  {re:/пеньоар/i, e:'🥻'},
-  // Ръкавици детайл
-  {re:/маншет|cuff|ръкав/i, e:'🧤'},
-  // Аксесоари още
-  {re:/клипс|hairclip|фиба|headband/i, e:'💇'},
-  {re:/гумичк.*коса|hair.*tie/i, e:'💇'},
-
   // Обувки (отделни видове)
   {re:/маратонк|кецове|sneaker|nike|adidas|puma|reebok|vans|converse|asics|newbalance|jordan|airmax|superstar/i, e:'👟'},
   {re:/обувк|мъжки.*обувк|дамск.*обувк|oxford|loafer|dress.*shoe/i, e:'👞'},
