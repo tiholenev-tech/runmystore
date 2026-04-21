@@ -1,1083 +1,462 @@
 <?php
 /**
- * RunMyStore.ai — compute-insights.php
- * S52 | 12.04.2026
- * 
- * Изчислява всички insights за даден tenant+store.
- * Извиква се от cron-insights.php на всеки 15 мин.
- * 
- * UPSERT: INSERT ... ON DUPLICATE KEY UPDATE (по tenant_id+store_id+topic_id)
- * PHP пресмята, Gemini НЕ участва. Нула API cost.
- * 
- * ПРАВИЛО: Всеки нов модул добавя нови функции тук.
- * S52=30, +sale.php=45, +deliveries=65, +лоялна=75, +transfers=85
+ * compute-insights.php
+ * ====================
+ * Генератор на редове в `ai_insights`.
+ *
+ * ПРИНЦИП: PHP смята → INSERT в ai_insights. AI САМО облича готовото число.
+ *          (ЗАКОН №2: PHP смята, AI говори.)
+ *
+ * Всяка функция:
+ *   - Приема $tenant_id (+ по избор $store_id)
+ *   - Прави SQL (read-only агрегат)
+ *   - Записва insight с fundamental_question (ЗАКОН S77: 6-те въпроса)
+ *   - Idempotent: delete old rows with same topic_id → insert new
+ *
+ * Скелетон версия (S78). Реалните SQL тела се попълват в S79.
+ *
+ * USAGE (CLI):
+ *   php /var/www/runmystore/compute-insights.php              # всички tenants
+ *   php /var/www/runmystore/compute-insights.php 52           # само tenant 52
+ *   php /var/www/runmystore/compute-insights.php 52 47        # tenant 52 / store 47
+ *
+ * CRON (S79+):
+ *   * /15 * * * *  php /var/www/runmystore/compute-insights.php
  */
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/helpers.php';
 
-// ══════════════════════════════════════
-// UPSERT HELPER
-// ══════════════════════════════════════
+// ─────────────────────────────────────────────────────────────
+// 6-те фундаментални въпроса (ЗАКОН S77.1)
+// ─────────────────────────────────────────────────────────────
+const FQ_LOSS       = 'loss';         // 🔴 Какво губя?
+const FQ_LOSS_CAUSE = 'loss_cause';   // 🟣 От какво губя?
+const FQ_GAIN       = 'gain';         // 🟢 Какво печеля?
+const FQ_GAIN_CAUSE = 'gain_cause';   // 🔷 От какво печеля?
+const FQ_ORDER      = 'order';        // 🟡 Какво да поръчам?
+const FQ_ANTI_ORDER = 'anti_order';   // ⚫ Какво да НЕ поръчам?
 
-function upsertInsight(int $tid, int $sid, string $topicId, array $d): void {
-    DB::run(
-        "INSERT INTO ai_insights
-            (tenant_id, store_id, topic_id, category, grp, module, urgency, plan_gate, role_gate,
-             title, detail_text, data_json, value_numeric, product_count,
-             fundamental_question, product_id, supplier_id,
-             created_at, expires_at)
-         VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 MINUTE))
-         ON DUPLICATE KEY UPDATE
-            category=VALUES(category), grp=VALUES(grp), module=VALUES(module), urgency=VALUES(urgency),
-            plan_gate=VALUES(plan_gate), role_gate=VALUES(role_gate), title=VALUES(title),
-            detail_text=VALUES(detail_text), data_json=VALUES(data_json), value_numeric=VALUES(value_numeric),
-            product_count=VALUES(product_count),
-            fundamental_question=VALUES(fundamental_question),
-            product_id=VALUES(product_id), supplier_id=VALUES(supplier_id),
-            created_at=NOW(), expires_at=DATE_ADD(NOW(), INTERVAL 30 MINUTE)",
-        [
-            $tid, $sid, $topicId,
-            $d['category'], $d['grp'] ?? 1, $d['module'] ?? 'home', $d['urgency'] ?? 'info',
-            $d['plan_gate'] ?? 'pro', $d['role_gate'] ?? 'owner,manager',
-            $d['title'], $d['detail_text'] ?? null,
-            isset($d['data']) ? json_encode($d['data'], JSON_UNESCAPED_UNICODE) : null,
-            $d['value'] ?? null, $d['count'] ?? null,
-            $d['fundamental_question'] ?? null,
-            $d['product_id'] ?? null, $d['supplier_id'] ?? null
-        ]
-    );
-}
+// Urgency matrix (FQ → default urgency) — може да се override per-function
+const URGENCY_BY_FQ = [
+    FQ_LOSS       => 'critical',
+    FQ_LOSS_CAUSE => 'warning',
+    FQ_GAIN       => 'opportunity',
+    FQ_GAIN_CAUSE => 'info',
+    FQ_ORDER      => 'warning',
+    FQ_ANTI_ORDER => 'info',
+];
 
-function cleanExpiredInsights(int $tid, int $sid): void {
-    DB::run(
-        "DELETE FROM ai_insights WHERE tenant_id=? AND store_id=? AND expires_at < NOW()",
-        [$tid, $sid]
-    );
-}
+// TTL (seconds) — кога insight-ите изтичат ако не се reprocess-нат
+const INSIGHT_TTL = 3600; // 1 час; cron пуска на 15 мин и refresh-ва
 
-// ══════════════════════════════════════
-// ГЛАВНА ФУНКЦИЯ
-// ══════════════════════════════════════
 
-function computeAllInsights(int $tid, int $sid, string $currency): void {
-    computeZeroStockBestsellers($tid, $sid, $currency);
-    computeCriticalLow($tid, $sid, $currency);
-    computeBelowMinimum($tid, $sid, $currency);
-    computeOverstock($tid, $sid, $currency);
-    computeZombie30($tid, $sid, $currency);
-    computeZombie60($tid, $sid, $currency);
-    computeSizeGaps($tid, $sid, $currency);
-    computeNewNoSales($tid, $sid, $currency);
-    computeNewSellThrough($tid, $sid, $currency);
-    computeNoPhoto($tid, $sid);
-    computeNoCostPrice($tid, $sid);
-    computeNoBarcode($tid, $sid);
-    computeNoSupplier($tid, $sid);
-    computeNoCategory($tid, $sid);
-    computeSellingAtLoss($tid, $sid, $currency);
-    computeLowMargin($tid, $sid, $currency);
-    computeWholesaleCloseToRetail($tid, $sid, $currency);
-    computeTopProfitable($tid, $sid, $currency);
-    computeBottomProfitable($tid, $sid, $currency);
-    computeFrozenCapital($tid, $sid, $currency);
-    computeDiscountExpiring($tid, $sid, $currency);
-    computeDiscountOnBestseller($tid, $sid, $currency);
-    computeDiscountBelowCost($tid, $sid, $currency);
-    computeRevenueTodayVsYesterday($tid, $sid, $currency);
-    computeRevenueWeekVsWeek($tid, $sid, $currency);
-    computeRevenueMonthVsMonth($tid, $sid, $currency);
-    computeBasketTrend($tid, $sid, $currency);
-    computeTopCategoryRevenue($tid, $sid, $currency);
-    computeTopSupplierRevenue($tid, $sid, $currency);
-    computeUncounted30d($tid, $sid);
-    computeProductInsights($tid, $sid, $currency);
-    cleanExpiredInsights($tid, $sid);
-}
+// =============================================================
+// CLASS ComputeInsights
+// =============================================================
+class ComputeInsights
+{
+    private int $tenant_id;
+    private ?int $store_id;
+    private int $inserted = 0;
+    private int $skipped  = 0;
+    private array $errors = [];
 
-// ══════════════════════════════════════
-// ГРУПА 1: СТОКА И НАЛИЧНОСТИ
-// ══════════════════════════════════════
-
-/** #1 — Бестселъри на нула (продажба в 30д, но quantity=0) */
-function computeZeroStockBestsellers(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.code, p.retail_price,
-                SUM(si.quantity) as sold_30d
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         JOIN sale_items si ON si.product_id=p.id
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity<=0
-         GROUP BY p.id
-         ORDER BY sold_30d DESC
-         LIMIT 20",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $names = array_map(fn($r) => $r['name'], array_slice($rows, 0, 3));
-    $dailyLoss = array_sum(array_map(fn($r) => ($r['sold_30d'] / 30) * $r['retail_price'], $rows));
-    
-    upsertInsight($tid, $sid, 'stock_zero_bestsellers', [
-        'category' => 'stock', 'grp' => 1, 'module' => 'home', 'urgency' => 'critical',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' бестселъра на нула — губиш ~' . fmtMoney($dailyLoss, $cur) . '/ден',
-        'detail_text' => implode(', ', $names) . (count($rows) > 3 ? '...' : ''),
-        'data' => ['items' => $rows], 'value' => $dailyLoss, 'count' => count($rows)
-    ]);
-}
-
-/** #2 — Критично ниски (1-2 бр, с продажби в 30д) */
-function computeCriticalLow(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.code, i.quantity, p.retail_price
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0 AND i.quantity <= 2
-         AND p.id IN (
-             SELECT si.product_id FROM sale_items si
-             JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         )
-         ORDER BY i.quantity ASC
-         LIMIT 20",
-        [$sid, $tid, $sid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $names = array_map(fn($r) => $r['name'] . ' (' . fmtQty($r['quantity']) . ')', array_slice($rows, 0, 3));
-    
-    upsertInsight($tid, $sid, 'stock_critical_low', [
-        'category' => 'stock', 'grp' => 1, 'module' => 'home', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' артикула с 1-2 броя — скоро ще свършат',
-        'detail_text' => implode(', ', $names),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #3 — Под минимално количество */
-function computeBelowMinimum(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.code, i.quantity, 
-                GREATEST(i.min_quantity, p.min_quantity) as min_qty
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 
-         AND i.quantity < GREATEST(i.min_quantity, p.min_quantity)
-         AND GREATEST(i.min_quantity, p.min_quantity) > 0
-         ORDER BY (GREATEST(i.min_quantity, p.min_quantity) - i.quantity) DESC
-         LIMIT 20",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'stock_below_minimum', [
-        'category' => 'stock', 'grp' => 1, 'module' => 'home', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' артикула под минимално количество',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'], array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #4 — Свръхналичност (quantity > 10x месечна продажба) */
-function computeOverstock(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, i.quantity, p.cost_price,
-                COALESCE(sold.qty, 0) as sold_30d,
-                i.quantity * p.cost_price as frozen
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT si.product_id, SUM(si.quantity) as qty
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-             GROUP BY si.product_id
-         ) sold ON sold.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND COALESCE(sold.qty, 0) > 0
-         AND i.quantity > COALESCE(sold.qty, 0) * 10
-         ORDER BY frozen DESC
-         LIMIT 15",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $totalFrozen = array_sum(array_column($rows, 'frozen'));
-    
-    upsertInsight($tid, $sid, 'stock_overstock', [
-        'category' => 'stock', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' артикула с прекалено много наличност — ' . fmtMoney($totalFrozen, $cur) . ' замразени',
-        'data' => ['items' => $rows], 'value' => $totalFrozen, 'count' => count($rows)
-    ]);
-}
-
-/** #5 — Zombie 30+ дни без продажба */
-function computeZombie30(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, i.quantity, p.cost_price,
-                i.quantity * p.cost_price as frozen,
-                DATEDIFF(NOW(), COALESCE(last_sale.last_date, p.created_at)) as days_idle
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT si.product_id, MAX(s.created_at) as last_date
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             GROUP BY si.product_id
-         ) last_sale ON last_sale.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND DATEDIFF(NOW(), COALESCE(last_sale.last_date, p.created_at)) BETWEEN 30 AND 59
-         ORDER BY frozen DESC
-         LIMIT 20",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $totalFrozen = array_sum(array_column($rows, 'frozen'));
-    
-    upsertInsight($tid, $sid, 'zombie_30d', [
-        'category' => 'zombie', 'grp' => 1, 'module' => 'home', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' артикула стоят 30+ дни — ' . fmtMoney($totalFrozen, $cur) . ' замразени',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (' . $r['days_idle'] . 'д)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'value' => $totalFrozen, 'count' => count($rows)
-    ]);
-}
-
-/** #6 — Zombie 60+ дни (критично замразени пари) */
-function computeZombie60(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, i.quantity, p.cost_price,
-                i.quantity * p.cost_price as frozen,
-                DATEDIFF(NOW(), COALESCE(last_sale.last_date, p.created_at)) as days_idle
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT si.product_id, MAX(s.created_at) as last_date
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             GROUP BY si.product_id
-         ) last_sale ON last_sale.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND DATEDIFF(NOW(), COALESCE(last_sale.last_date, p.created_at)) >= 60
-         ORDER BY frozen DESC
-         LIMIT 20",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $totalFrozen = array_sum(array_column($rows, 'frozen'));
-    
-    upsertInsight($tid, $sid, 'zombie_60d', [
-        'category' => 'zombie', 'grp' => 1, 'module' => 'home', 'urgency' => 'critical',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' артикула стоят 60+ дни — ' . fmtMoney($totalFrozen, $cur) . ' замразени',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (' . $r['days_idle'] . 'д)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'value' => $totalFrozen, 'count' => count($rows)
-    ]);
-}
-
-/** #7 — Размерни дупки (parent има вариации, някои на нула, други се продават) */
-function computeSizeGaps(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT parent.id as parent_id, parent.name as parent_name,
-                p.id, p.name, p.size, p.color, i.quantity
-         FROM products p
-         JOIN products parent ON parent.id=p.parent_id AND parent.is_active=1
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity<=0
-         AND parent.id IN (
-             SELECT DISTINCT p2.parent_id FROM products p2
-             JOIN inventory i2 ON i2.product_id=p2.id AND i2.store_id=?
-             JOIN sale_items si ON si.product_id=p2.id
-             JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-                  AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-             WHERE p2.parent_id IS NOT NULL AND i2.quantity > 0
-         )
-         ORDER BY parent.name
-         LIMIT 20",
-        [$sid, $tid, $sid, $sid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $parents = [];
-    foreach ($rows as $r) {
-        $parents[$r['parent_name']][] = $r['size'] ?: $r['color'] ?: '?';
+    public function __construct(int $tenant_id, ?int $store_id = null)
+    {
+        $this->tenant_id = $tenant_id;
+        $this->store_id  = $store_id;
     }
-    $detail = [];
-    foreach (array_slice($parents, 0, 3, true) as $name => $sizes) {
-        $detail[] = $name . ': липсва ' . implode(', ', $sizes);
+
+    // ─────────────────────────────────────────────────────────
+    // PUBLIC: Orchestrator
+    // ─────────────────────────────────────────────────────────
+    public function runForProducts(): array
+    {
+        $functions = [
+            // LOSS (3)
+            'zeroStockWithSales',
+            'belowMinUrgent',
+            'runningOutToday',
+            // LOSS_CAUSE (4)
+            'sellingAtLoss',
+            'noCostPrice',
+            'marginBelow15',
+            'sellerDiscountKiller',
+            // GAIN (2)
+            'topProfit30d',
+            'profitGrowth',
+            // GAIN_CAUSE (5)
+            'highestMargin',
+            'trendingUp',
+            'loyalCustomers',
+            'basketDriver',
+            'sizeLeader',
+            // ORDER (2)
+            'bestsellerLowStock',
+            'lostDemandMatch',
+            // ANTI_ORDER (3)
+            'zombie45d',
+            'decliningTrend',
+            'highReturnRate',
+        ];
+
+        foreach ($functions as $fn) {
+            try {
+                $this->$fn();
+            } catch (\Throwable $e) {
+                $this->errors[] = "$fn: " . $e->getMessage();
+            }
+        }
+
+        return [
+            'tenant_id' => $this->tenant_id,
+            'store_id'  => $this->store_id,
+            'inserted'  => $this->inserted,
+            'skipped'   => $this->skipped,
+            'errors'    => $this->errors,
+        ];
     }
-    
-    upsertInsight($tid, $sid, 'stock_size_gaps', [
-        'category' => 'size', 'grp' => 1, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' размерни дупки — клиентите питат, ти нямаш',
-        'detail_text' => implode('; ', $detail),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
+
+    // =========================================================
+    // 🔴 LOSS (Какво губя?) — 3 функции
+    // =========================================================
+
+    /**
+     * ZERO STOCK WITH SALES
+     * Артикули с qty=0 в inventory но имат продажби в последните 30д.
+     * SQL skeleton:
+     *   SELECT p.id, p.name, sold_30d.qty, sold_30d.profit
+     *   FROM products p
+     *   JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+     *   JOIN (SELECT si.product_id, SUM(si.quantity) qty,
+     *                SUM(si.quantity*(si.unit_price-si.cost_price)) profit
+     *         FROM sale_items si JOIN sales s ON s.id=si.sale_id
+     *         WHERE s.tenant_id=? AND s.created_at>=NOW()-INTERVAL 30 DAY
+     *               AND s.status='completed'
+     *         GROUP BY si.product_id) sold_30d ON sold_30d.product_id=p.id
+     *   WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0
+     */
+    private function zeroStockWithSales(): void
+    {
+        // TODO S79: implement SQL above; loop rows; per row:
+        // $this->writeInsight('zero_stock_'.$product_id, 'products', FQ_LOSS, [...]);
+        $this->skipped++;
+    }
+
+    /**
+     * BELOW MIN URGENT
+     * inventory.quantity <= products.min_quantity (и min_quantity > 0).
+     * Критично ако sold_30d > 0.
+     */
+    private function belowMinUrgent(): void
+    {
+        // TODO S79: SELECT p.id, i.quantity, p.min_quantity, sold_30d ...
+        $this->skipped++;
+    }
+
+    /**
+     * RUNNING OUT TODAY
+     * Прогноза: inventory.quantity / (sold_30d/30) < 1 → ще свърши днес.
+     */
+    private function runningOutToday(): void
+    {
+        // TODO S79: формула daily_run_rate = sold_30d/30;
+        // days_left = quantity / daily_run_rate; WHERE days_left < 1
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // 🟣 LOSS_CAUSE (От какво губя?) — 4 функции
+    // =========================================================
+
+    /**
+     * SELLING AT LOSS
+     * sale_items.unit_price < sale_items.cost_price (snapshot).
+     * Идентифицира конкретни трансакции на загуба.
+     */
+    private function sellingAtLoss(): void
+    {
+        // TODO S79: SELECT si.product_id, SUM((si.cost_price-si.unit_price)*si.quantity) loss
+        // FROM sale_items WHERE unit_price < cost_price GROUP BY product_id
+        $this->skipped++;
+    }
+
+    /**
+     * NO COST PRICE
+     * products.cost_price IS NULL OR cost_price = 0.
+     * Без cost_price profit не може да се сметне.
+     */
+    private function noCostPrice(): void
+    {
+        // TODO S79: COUNT(*) products with cost_price<=0 AND is_active=1
+        $this->skipped++;
+    }
+
+    /**
+     * MARGIN BELOW 15
+     * (retail_price - cost_price) / retail_price < 0.15 за артикули със продажби.
+     */
+    private function marginBelow15(): void
+    {
+        // TODO S79: WHERE (retail_price-cost_price)/retail_price < 0.15
+        //           AND sold_30d > 0
+        $this->skipped++;
+    }
+
+    /**
+     * SELLER DISCOTUN KILLER
+     * Служители които дават >avg_discount_pct + 1 sigma. Identify top offenders.
+     */
+    private function sellerDiscountKiller(): void
+    {
+        // TODO S79: GROUP BY sales.user_id, AVG(sale_items.discount_pct) > threshold
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // 🟢 GAIN (Какво печеля?) — 2 функции
+    // =========================================================
+
+    /**
+     * TOP PROFIT 30D
+     * Top 5 артикули по profit (quantity * (unit_price - cost_price)) last 30d.
+     */
+    private function topProfit30d(): void
+    {
+        // TODO S79: ORDER BY profit DESC LIMIT 5
+        $this->skipped++;
+    }
+
+    /**
+     * PROFIT GROWTH
+     * Сравнение last 30d vs previous 30d — артикули с >20% growth.
+     */
+    private function profitGrowth(): void
+    {
+        // TODO S79: two subqueries (30d vs 30-60d) → diff%
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // 🔷 GAIN_CAUSE (От какво печеля?) — 5 функции
+    // =========================================================
+
+    /**
+     * HIGHEST MARGIN
+     * Top artikuli by margin %, с поне 3 продажби за 30д (филтър срещу шум).
+     */
+    private function highestMargin(): void
+    {
+        // TODO S79: WHERE sold_30d >= 3 ORDER BY margin_pct DESC LIMIT 5
+        $this->skipped++;
+    }
+
+    /**
+     * TRENDING UP
+     * Артикули с растяща продажба седмица-към-седмица последни 4 седмици.
+     */
+    private function trendingUp(): void
+    {
+        // TODO S79: 4 WEEKS of weekly aggregates; linear regression slope > 0
+        $this->skipped++;
+    }
+
+    /**
+     * LOYAL CUSTOMERS
+     * Top клиенти по repeat purchases (customers.id JOIN sales).
+     */
+    private function loyalCustomers(): void
+    {
+        // TODO S79: COUNT(DISTINCT sale_id) per customer_id; threshold = 3+ покупки
+        $this->skipped++;
+    }
+
+    /**
+     * BASKET DRIVER
+     * Артикули които най-често присъстват в многоартикулни sales (basket analysis).
+     * Активира се САМО ако има >= 30 пълни дни sale_items данни (BIBLE rule).
+     */
+    private function basketDriver(): void
+    {
+        // TODO S79: first check: COUNT(DISTINCT DATE(created_at)) >= 30
+        //           then: products that co-occur in sales with >=2 items
+        $this->skipped++;
+    }
+
+    /**
+     * SIZE LEADER
+     * За артикули с вариации — кой размер е bestseller (variation_id GROUP BY).
+     */
+    private function sizeLeader(): void
+    {
+        // TODO S79: GROUP BY parent_id, variation_id; top size per parent
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // 🟡 ORDER (Какво да поръчам?) — 2 функции
+    // =========================================================
+
+    /**
+     * BESTSELLER LOW STOCK
+     * sold_30d в top 20% AND quantity < sold_30d/3 (stock < 10 days).
+     * action: отваря order_draft.
+     */
+    private function bestsellerLowStock(): void
+    {
+        // TODO S79: combine percentile + stock ratio filter;
+        // action_type='order_draft', action_data={product_id, suggested_qty}
+        $this->skipped++;
+    }
+
+    /**
+     * LOST DEMAND MATCH
+     * lost_demand.resolved=0 AND suggested_supplier_id IS NOT NULL.
+     * Показва като "препоръчай поръчка за X".
+     */
+    private function lostDemandMatch(): void
+    {
+        // TODO S79: SELECT FROM lost_demand WHERE resolved=0
+        //           AND suggested_supplier_id IS NOT NULL AND times >= 2
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // ⚫ ANTI_ORDER (Какво да НЕ поръчам?) — 3 функции
+    // =========================================================
+
+    /**
+     * ZOMBIE 45d
+     * Артикул който НЕ е продаден за 45 дни и има quantity > 0.
+     * Signal: "Не поръчвай още, предишното не се движи".
+     */
+    private function zombie45d(): void
+    {
+        // TODO S79: LEFT JOIN sale_items (last 45 days) IS NULL
+        //           AND inventory.quantity > 0
+        $this->skipped++;
+    }
+
+    /**
+     * DECLINING TREND
+     * sold_30d < sold_60d_90d * 0.5 (продажбите паднаха на половина).
+     */
+    private function decliningTrend(): void
+    {
+        // TODO S79: two windows compare, > 50% drop
+        $this->skipped++;
+    }
+
+    /**
+     * HIGH RETURN RATE
+     * returns / sold > 10% (returns таблица — ако съществува; иначе sales с status='canceled')
+     */
+    private function highReturnRate(): void
+    {
+        // TODO S79: ratio of canceled sales per product; threshold 10%
+        $this->skipped++;
+    }
+
+    // =========================================================
+    // PRIVATE: writeInsight — unified insert/upsert
+    // =========================================================
+
+    /**
+     * Записва 1 ред в ai_insights. Idempotent — DELETE стария same topic_id + INSERT нов.
+     *
+     * @param string $topic_id     Уникален ключ на insight-а (напр. "zero_stock_1234")
+     * @param string $module       'products','home','warehouse',...
+     * @param string $fq           FQ_LOSS / FQ_GAIN / ...
+     * @param array  $data         Keys: pill_text, value_numeric, product_id?,
+     *                             supplier_id?, action_label?, action_type?,
+     *                             action_data?, detail?, urgency?
+     */
+    private function writeInsight(
+        string $topic_id,
+        string $module,
+        string $fq,
+        array  $data
+    ): void {
+        if (!isset(URGENCY_BY_FQ[$fq])) {
+            $this->errors[] = "Unknown FQ: $fq ($topic_id)";
+            return;
+        }
+        if (empty($data['pill_text'])) {
+            $this->errors[] = "pill_text required ($topic_id)";
+            return;
+        }
+
+        $urgency = $data['urgency'] ?? URGENCY_BY_FQ[$fq];
+        $expires = date('Y-m-d H:i:s', time() + INSIGHT_TTL);
+
+        // Idempotent: изтрий стар ред със същия (tenant_id, topic_id, module)
+        DB::run(
+            "DELETE FROM ai_insights
+             WHERE tenant_id=? AND topic_id=? AND module=?
+               AND (store_id IS NULL OR store_id=?)",
+            [$this->tenant_id, $topic_id, $module, $this->store_id]
+        );
+
+        DB::run(
+            "INSERT INTO ai_insights
+                (tenant_id, store_id, topic_id, module, urgency, fundamental_question,
+                 pill_text, detail_json, value_numeric, product_id, supplier_id,
+                 action_label, action_type, action_data, is_active, computed_at, expires_at)
+             VALUES
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), ?)",
+            [
+                $this->tenant_id,
+                $this->store_id,
+                $topic_id,
+                $module,
+                $urgency,
+                $fq,
+                (string)$data['pill_text'],
+                isset($data['detail']) ? json_encode($data['detail'], JSON_UNESCAPED_UNICODE) : null,
+                $data['value_numeric'] ?? null,
+                $data['product_id']    ?? null,
+                $data['supplier_id']   ?? null,
+                $data['action_label']  ?? null,
+                $data['action_type']   ?? 'chat',
+                isset($data['action_data']) ? json_encode($data['action_data'], JSON_UNESCAPED_UNICODE) : null,
+                $expires,
+            ]
+        );
+
+        $this->inserted++;
+    }
 }
 
-/** #8 — Нови артикули 7+ дни без продажба (FIXED: LEFT JOIN instead of NOT IN) */
-function computeNewNoSales(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.code, i.quantity,
-                DATEDIFF(NOW(), p.created_at) as days_since_add
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT DISTINCT si.product_id
-             FROM sale_items si
-             JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-         ) sold ON sold.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND p.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         AND DATEDIFF(NOW(), p.created_at) >= 7
-         AND sold.product_id IS NULL
-         ORDER BY p.created_at ASC
-         LIMIT 15",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'new_no_sales_7d', [
-        'category' => 'new', 'grp' => 1, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' нови артикула без продажба 7+ дни',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (' . $r['days_since_add'] . 'д)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
 
-/** #9 — Нови артикули: sell-through първа седмица */
-function computeNewSellThrough(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, 
-                COALESCE(sold.qty, 0) as sold_qty,
-                COALESCE(sold.revenue, 0) as revenue
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT si.product_id, SUM(si.quantity) as qty, SUM(si.total) as revenue
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             GROUP BY si.product_id
-         ) sold ON sold.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1
-         AND p.created_at BETWEEN DATE_SUB(NOW(), INTERVAL 14 DAY) AND DATE_SUB(NOW(), INTERVAL 7 DAY)
-         AND COALESCE(sold.qty, 0) > 0
-         ORDER BY sold.revenue DESC
-         LIMIT 5",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    $totalRevenue = array_sum(array_column($rows, 'revenue'));
-    
-    upsertInsight($tid, $sid, 'new_sell_through', [
-        'category' => 'new', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Нови хитове: ' . $rows[0]['name'] . ' — ' . fmtMoney($rows[0]['revenue'], $cur) . ' за първата седмица',
-        'data' => ['items' => $rows], 'value' => $totalRevenue, 'count' => count($rows)
-    ]);
-}
+// =============================================================
+// CLI RUNNER
+// =============================================================
+if (php_sapi_name() === 'cli') {
+    $tenant_id = isset($argv[1]) ? (int)$argv[1] : 0;
+    $store_id  = isset($argv[2]) ? (int)$argv[2] : null;
 
-// ══════════════════════════════════════
-// ГРУПА 1: DATA QUALITY (ВИДИМА ЗА START+!)
-// ══════════════════════════════════════
+    if ($tenant_id > 0) {
+        $runner = new ComputeInsights($tenant_id, $store_id);
+        $result = $runner->runForProducts();
+        echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+        exit(0);
+    }
 
-/** #10 — Без снимка */
-function computeNoPhoto(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND (p.image_url IS NULL OR p.image_url='')",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'dq_no_photo', [
-        'category' => 'data_quality', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner,manager',
-        'title' => $count . ' артикула без снимка — снимка = 3x повече продажби',
-        'count' => $count
-    ]);
-}
+    // Няма аргумент → обиколи всички активни tenants
+    $tenants = DB::run("SELECT id FROM tenants WHERE 1=1")->fetchAll(PDO::FETCH_COLUMN);
+    $totals = ['tenants' => 0, 'inserted' => 0, 'skipped' => 0, 'errors' => 0];
 
-/** #11 — Без доставна цена */
-function computeNoCostPrice(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0 AND p.cost_price<=0",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'dq_no_cost_price', [
-        'category' => 'data_quality', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner',
-        'title' => $count . ' артикула без доставна цена — не можем да покажем печалба',
-        'count' => $count
-    ]);
-}
+    foreach ($tenants as $tid) {
+        $runner = new ComputeInsights((int)$tid, null);
+        $r = $runner->runForProducts();
+        $totals['tenants']++;
+        $totals['inserted'] += $r['inserted'];
+        $totals['skipped']  += $r['skipped'];
+        $totals['errors']   += count($r['errors']);
+    }
 
-/** #12 — Без баркод */
-function computeNoBarcode(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND (p.barcode IS NULL OR p.barcode='')",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'dq_no_barcode', [
-        'category' => 'data_quality', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner,manager',
-        'title' => $count . ' артикула без баркод',
-        'count' => $count
-    ]);
-}
-
-/** #13 — Без доставчик */
-function computeNoSupplier(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND p.supplier_id IS NULL",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'dq_no_supplier', [
-        'category' => 'data_quality', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner,manager',
-        'title' => $count . ' артикула без доставчик',
-        'count' => $count
-    ]);
-}
-
-/** #14 — Без категория */
-function computeNoCategory(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND p.category_id IS NULL",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'dq_no_category', [
-        'category' => 'data_quality', 'grp' => 1, 'module' => 'products', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner,manager',
-        'title' => $count . ' артикула без категория',
-        'count' => $count
-    ]);
-}
-
-// ══════════════════════════════════════
-// ГРУПА 2: ПАРИ И ЦЕНИ
-// ══════════════════════════════════════
-
-/** #15 — Продава се под себестойност */
-function computeSellingAtLoss(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.code, p.cost_price, p.retail_price,
-                p.retail_price - p.cost_price as loss_per_unit,
-                i.quantity
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.cost_price > 0 AND p.retail_price > 0
-         AND p.retail_price < p.cost_price AND i.quantity > 0
-         ORDER BY (p.cost_price - p.retail_price) DESC
-         LIMIT 20",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'price_selling_at_loss', [
-        'category' => 'price', 'grp' => 2, 'module' => 'home', 'urgency' => 'critical',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => count($rows) . ' артикула се продават ПОД себестойност!',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (губиш ' . fmtMoney(abs($r['loss_per_unit']), $cur) . '/бр)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #16 — Марж под 15% */
-function computeLowMargin(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.cost_price, p.retail_price,
-                ROUND((p.retail_price - p.cost_price) / p.retail_price * 100, 1) as margin_pct
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.cost_price > 0 AND p.retail_price > 0
-         AND p.retail_price >= p.cost_price
-         AND ((p.retail_price - p.cost_price) / p.retail_price * 100) < 15
-         AND i.quantity > 0
-         ORDER BY margin_pct ASC
-         LIMIT 15",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'price_low_margin', [
-        'category' => 'price', 'grp' => 2, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => count($rows) . ' артикула с марж под 15%',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (' . $r['margin_pct'] . '%)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #17 — Wholesale твърде близо до retail (<10% разлика) */
-function computeWholesaleCloseToRetail(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.wholesale_price, p.retail_price,
-                ROUND((p.retail_price - p.wholesale_price) / p.retail_price * 100, 1) as diff_pct
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 
-         AND p.wholesale_price > 0 AND p.retail_price > 0
-         AND p.wholesale_price < p.retail_price
-         AND ((p.retail_price - p.wholesale_price) / p.retail_price * 100) < 10
-         AND i.quantity > 0
-         LIMIT 15",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'price_wholesale_close', [
-        'category' => 'price', 'grp' => 2, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => count($rows) . ' артикула: едро и дребно почти еднакви',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (разлика ' . $r['diff_pct'] . '%)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #18 — Топ 5 най-печеливши (30д) */
-function computeTopProfitable(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, 
-                SUM(si.quantity * (si.unit_price - COALESCE(si.cost_price, p.cost_price))) as profit,
-                SUM(si.total) as revenue
-         FROM sale_items si
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         JOIN products p ON p.id=si.product_id AND p.tenant_id=?
-         WHERE COALESCE(si.cost_price, p.cost_price) > 0
-         GROUP BY p.id
-         ORDER BY profit DESC
-         LIMIT 5",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'profit_top5', [
-        'category' => 'profit', 'grp' => 2, 'module' => 'stats', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => 'Топ печалба: ' . $rows[0]['name'] . ' — ' . fmtMoney($rows[0]['profit'], $cur) . ' за 30д',
-        'data' => ['items' => $rows], 'value' => $rows[0]['profit'], 'count' => 5
-    ]);
-}
-
-/** #19 — Дъно 5 най-нископечеливши */
-function computeBottomProfitable(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name,
-                SUM(si.quantity * (si.unit_price - COALESCE(si.cost_price, p.cost_price))) as profit,
-                SUM(si.total) as revenue
-         FROM sale_items si
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         JOIN products p ON p.id=si.product_id AND p.tenant_id=?
-         WHERE COALESCE(si.cost_price, p.cost_price) > 0
-         GROUP BY p.id
-         HAVING profit > 0
-         ORDER BY profit ASC
-         LIMIT 5",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'profit_bottom5', [
-        'category' => 'profit', 'grp' => 2, 'module' => 'stats', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => 'Най-малко печалба: ' . $rows[0]['name'] . ' — само ' . fmtMoney($rows[0]['profit'], $cur) . ' за 30д',
-        'data' => ['items' => $rows], 'value' => $rows[0]['profit'], 'count' => 5
-    ]);
-}
-
-/** #20 — Замразен капитал в zombie стока */
-function computeFrozenCapital(int $tid, int $sid, string $cur): void {
-    $result = DB::run(
-        "SELECT COUNT(*) as cnt,
-                SUM(i.quantity * p.cost_price) as total_frozen
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         LEFT JOIN (
-             SELECT si.product_id, MAX(s.created_at) as last_date
-             FROM sale_items si JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-             GROUP BY si.product_id
-         ) last_sale ON last_sale.product_id=p.id
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0 AND p.cost_price > 0
-         AND DATEDIFF(NOW(), COALESCE(last_sale.last_date, p.created_at)) >= 30",
-        [$sid, $sid, $tid]
-    )->fetch();
-    
-    if (!$result || $result['cnt'] == 0 || $result['total_frozen'] <= 0) return;
-    
-    upsertInsight($tid, $sid, 'cash_frozen_zombie', [
-        'category' => 'cash', 'grp' => 2, 'module' => 'home', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => fmtMoney($result['total_frozen'], $cur) . ' замразени в ' . $result['cnt'] . ' застояли артикула',
-        'value' => $result['total_frozen'], 'count' => $result['cnt']
-    ]);
-}
-
-// ══════════════════════════════════════
-// ГРУПА 3: ПРОМОЦИИ
-// ══════════════════════════════════════
-
-/** #21 — Намаление изтича до 3 дни */
-function computeDiscountExpiring(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.discount_pct, p.discount_ends_at, p.retail_price
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.discount_pct > 0
-         AND p.discount_ends_at IS NOT NULL
-         AND p.discount_ends_at BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
-         AND i.quantity > 0
-         ORDER BY p.discount_ends_at ASC",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'promo_expiring', [
-        'category' => 'promo_when', 'grp' => 3, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' намаления изтичат до 3 дни',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (-' . fmtQty($r['discount_pct']) . '%, до ' . $r['discount_ends_at'] . ')', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #22 — Намаление на бестселър (ненужно) */
-function computeDiscountOnBestseller(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.discount_pct, p.retail_price,
-                SUM(si.quantity) as sold_30d
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         JOIN sale_items si ON si.product_id=p.id
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.discount_pct > 0
-         GROUP BY p.id
-         HAVING sold_30d >= 10
-         ORDER BY sold_30d DESC
-         LIMIT 10",
-        [$sid, $sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'promo_bestseller_discount', [
-        'category' => 'promo_warning', 'grp' => 3, 'module' => 'products', 'urgency' => 'warning',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => count($rows) . ' бестселъра с намаление — продават се и без него',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (' . $r['sold_30d'] . ' продажби, -' . fmtQty($r['discount_pct']) . '%)', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-/** #23 — Намалено под себестойност */
-function computeDiscountBelowCost(int $tid, int $sid, string $cur): void {
-    $rows = DB::run(
-        "SELECT p.id, p.name, p.cost_price, p.retail_price, p.discount_pct,
-                ROUND(p.retail_price * (1 - p.discount_pct/100), 2) as effective_price
-         FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.discount_pct > 0 AND p.cost_price > 0
-         AND (p.retail_price * (1 - p.discount_pct/100)) < p.cost_price
-         AND i.quantity > 0
-         ORDER BY (p.cost_price - (p.retail_price * (1 - p.discount_pct/100))) DESC
-         LIMIT 15",
-        [$sid, $tid]
-    )->fetchAll();
-    
-    if (empty($rows)) return;
-    
-    upsertInsight($tid, $sid, 'promo_below_cost', [
-        'category' => 'promo_warning', 'grp' => 3, 'module' => 'products', 'urgency' => 'critical',
-        'plan_gate' => 'pro', 'role_gate' => 'owner',
-        'title' => count($rows) . ' артикула: намалението ги вкарва ПОД себестойност!',
-        'detail_text' => implode(', ', array_map(fn($r) => $r['name'] . ' (цена ' . fmtMoney($r['effective_price'], $cur) . ', доставна ' . fmtMoney($r['cost_price'], $cur) . ')', array_slice($rows, 0, 3))),
-        'data' => ['items' => $rows], 'count' => count($rows)
-    ]);
-}
-
-// ══════════════════════════════════════
-// ГРУПА 5: ЗДРАВЕ НА БИЗНЕСА
-// ══════════════════════════════════════
-
-/** #24 — Оборот днес vs вчера */
-function computeRevenueTodayVsYesterday(int $tid, int $sid, string $cur): void {
-    $today = DB::run(
-        "SELECT COALESCE(SUM(total), 0) as rev, COUNT(*) as cnt
-         FROM sales WHERE store_id=? AND status='completed' AND DATE(created_at)=CURDATE()",
-        [$sid]
-    )->fetch();
-    
-    $yesterday = DB::run(
-        "SELECT COALESCE(SUM(total), 0) as rev
-         FROM sales WHERE store_id=? AND status='completed' AND DATE(created_at)=DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
-        [$sid]
-    )->fetch();
-    
-    if ($today['cnt'] == 0 && $yesterday['rev'] == 0) return;
-    
-    $diff = ($yesterday['rev'] > 0) 
-        ? round(($today['rev'] - $yesterday['rev']) / $yesterday['rev'] * 100) 
-        : 0;
-    $arrow = ($diff >= 0) ? '+' : '';
-    
-    upsertInsight($tid, $sid, 'biz_revenue_today', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'home', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Днес: ' . fmtMoney($today['rev'], $cur) . ' (' . $today['cnt'] . ' продажби)' . ($yesterday['rev'] > 0 ? ' ' . $arrow . $diff . '% vs вчера' : ''),
-        'value' => $today['rev']
-    ]);
-}
-
-/** #25 — Оборот тази седмица vs миналата */
-function computeRevenueWeekVsWeek(int $tid, int $sid, string $cur): void {
-    $thisWeek = DB::run(
-        "SELECT COALESCE(SUM(total), 0) FROM sales 
-         WHERE store_id=? AND status='completed' AND YEARWEEK(created_at, 1)=YEARWEEK(NOW(), 1)",
-        [$sid]
-    )->fetchColumn();
-    
-    $lastWeek = DB::run(
-        "SELECT COALESCE(SUM(total), 0) FROM sales 
-         WHERE store_id=? AND status='completed' AND YEARWEEK(created_at, 1)=YEARWEEK(DATE_SUB(NOW(), INTERVAL 1 WEEK), 1)",
-        [$sid]
-    )->fetchColumn();
-    
-    if ($thisWeek == 0 && $lastWeek == 0) return;
-    
-    $diff = ($lastWeek > 0) ? round(($thisWeek - $lastWeek) / $lastWeek * 100) : 0;
-    $arrow = ($diff >= 0) ? '+' : '';
-    
-    upsertInsight($tid, $sid, 'biz_revenue_week', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'home', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Тази седмица: ' . fmtMoney($thisWeek, $cur) . ($lastWeek > 0 ? ' (' . $arrow . $diff . '% vs миналата)' : ''),
-        'value' => $thisWeek
-    ]);
-}
-
-/** #26 — Оборот този месец vs миналия */
-function computeRevenueMonthVsMonth(int $tid, int $sid, string $cur): void {
-    $thisMonth = DB::run(
-        "SELECT COALESCE(SUM(total), 0) FROM sales 
-         WHERE store_id=? AND status='completed'
-         AND YEAR(created_at)=YEAR(NOW()) AND MONTH(created_at)=MONTH(NOW())",
-        [$sid]
-    )->fetchColumn();
-    
-    $lastMonth = DB::run(
-        "SELECT COALESCE(SUM(total), 0) FROM sales 
-         WHERE store_id=? AND status='completed'
-         AND YEAR(created_at)=YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH)) 
-         AND MONTH(created_at)=MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))",
-        [$sid]
-    )->fetchColumn();
-    
-    if ($thisMonth == 0 && $lastMonth == 0) return;
-    
-    $diff = ($lastMonth > 0) ? round(($thisMonth - $lastMonth) / $lastMonth * 100) : 0;
-    $arrow = ($diff >= 0) ? '+' : '';
-    
-    upsertInsight($tid, $sid, 'biz_revenue_month', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'stats', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Този месец: ' . fmtMoney($thisMonth, $cur) . ($lastMonth > 0 ? ' (' . $arrow . $diff . '% vs миналия)' : ''),
-        'value' => $thisMonth
-    ]);
-}
-
-/** #27 — Средна кошница тренд */
-function computeBasketTrend(int $tid, int $sid, string $cur): void {
-    $thisWeek = DB::run(
-        "SELECT AVG(total) FROM sales 
-         WHERE store_id=? AND status='completed' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
-        [$sid]
-    )->fetchColumn();
-    
-    $lastWeek = DB::run(
-        "SELECT AVG(total) FROM sales 
-         WHERE store_id=? AND status='completed' 
-         AND created_at BETWEEN DATE_SUB(NOW(), INTERVAL 14 DAY) AND DATE_SUB(NOW(), INTERVAL 7 DAY)",
-        [$sid]
-    )->fetchColumn();
-    
-    if (!$thisWeek) return;
-    
-    $diff = ($lastWeek > 0) ? round(($thisWeek - $lastWeek) / $lastWeek * 100) : 0;
-    $arrow = ($diff >= 0) ? '+' : '';
-    
-    upsertInsight($tid, $sid, 'biz_basket_trend', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'stats', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Средна кошница: ' . fmtMoney($thisWeek, $cur) . ($lastWeek > 0 ? ' (' . $arrow . $diff . '% vs предишна седмица)' : ''),
-        'value' => $thisWeek
-    ]);
-}
-
-/** #28 — Топ категория по оборот 30д */
-function computeTopCategoryRevenue(int $tid, int $sid, string $cur): void {
-    $row = DB::run(
-        "SELECT c.name as cat_name, SUM(si.total) as revenue
-         FROM sale_items si
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         JOIN products p ON p.id=si.product_id AND p.tenant_id=?
-         JOIN categories c ON c.id=p.category_id
-         GROUP BY c.id
-         ORDER BY revenue DESC
-         LIMIT 1",
-        [$sid, $tid]
-    )->fetch();
-    
-    if (!$row) return;
-    
-    upsertInsight($tid, $sid, 'biz_top_category', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'stats', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Топ категория: ' . $row['cat_name'] . ' — ' . fmtMoney($row['revenue'], $cur) . ' за 30д',
-        'value' => $row['revenue']
-    ]);
-}
-
-/** #29 — Топ доставчик по оборот 30д */
-function computeTopSupplierRevenue(int $tid, int $sid, string $cur): void {
-    $row = DB::run(
-        "SELECT sup.name as sup_name, SUM(si.total) as revenue
-         FROM sale_items si
-         JOIN sales s ON s.id=si.sale_id AND s.store_id=? AND s.status='completed'
-              AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-         JOIN products p ON p.id=si.product_id AND p.tenant_id=?
-         JOIN suppliers sup ON sup.id=p.supplier_id
-         GROUP BY sup.id
-         ORDER BY revenue DESC
-         LIMIT 1",
-        [$sid, $tid]
-    )->fetch();
-    
-    if (!$row) return;
-    
-    upsertInsight($tid, $sid, 'biz_top_supplier', [
-        'category' => 'biz_revenue', 'grp' => 5, 'module' => 'stats', 'urgency' => 'info',
-        'plan_gate' => 'pro', 'role_gate' => 'owner,manager',
-        'title' => 'Топ доставчик: ' . $row['sup_name'] . ' — ' . fmtMoney($row['revenue'], $cur) . ' за 30д',
-        'value' => $row['revenue']
-    ]);
-}
-
-// ══════════════════════════════════════
-// ГРУПА 6: ОПЕРАЦИИ
-// ══════════════════════════════════════
-
-/** #30 — Артикули непреброени 30+ дни */
-function computeUncounted30d(int $tid, int $sid): void {
-    $count = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
-         AND (p.last_counted_at IS NULL OR p.last_counted_at < DATE_SUB(NOW(), INTERVAL 30 DAY))",
-        [$sid, $tid]
-    )->fetchColumn();
-    
-    if ($count == 0) return;
-    
-    upsertInsight($tid, $sid, 'ops_uncounted_30d', [
-        'category' => 'data_quality', 'grp' => 6, 'module' => 'home', 'urgency' => 'info',
-        'plan_gate' => 'start', 'role_gate' => 'owner,manager',
-        'title' => $count . ' артикула непреброени 30+ дни — преброй за по-точен склад',
-        'count' => $count
-    ]);
-}
-
-// ══════════════════════════════════════
-// S78 — PRODUCTS 6-QUESTIONS SKELETON
-// ══════════════════════════════════════
-// Всяка функция задължително upsert-ва с fundamental_question.
-// Логика = TODO S79. Тук само скелет + правилен tag.
-
-/** PF#1 — zero stock + продажби в 30д (LOSS) */
-function pfZeroStockWithSales(int $tid, int $sid, string $cur): void {
-    // TODO S79: SELECT products with quantity=0 AND sold_30d>0
-    // fundamental_question = 'loss'
-}
-
-/** PF#2 — under min quantity с реални продажби (LOSS) */
-function pfBelowMinUrgent(int $tid, int $sid, string $cur): void {
-    // TODO S79: i.quantity <= p.min_quantity AND sold_30d>0
-    // fundamental_question = 'loss'
-}
-
-/** PF#3 — ще свършат днес по темпо (LOSS) */
-function pfRunningOutToday(int $tid, int $sid, string $cur): void {
-    // TODO S79: i.quantity / (sold_30d/30) < 1
-    // fundamental_question = 'loss'
-}
-
-/** PF#4 — продажби под cost_price (LOSS_CAUSE) */
-function pfSellingAtLossFQ(int $tid, int $sid, string $cur): void {
-    // TODO S79: retail_price < cost_price — per-product list
-    // fundamental_question = 'loss_cause'
-}
-
-/** PF#5 — липсваща cost_price (LOSS_CAUSE) */
-function pfNoCostPriceFQ(int $tid, int $sid, string $cur): void {
-    // TODO S79: cost_price IS NULL OR 0 — за артикули които са активно продаващи
-    // fundamental_question = 'loss_cause'
-}
-
-/** PF#6 — марж < 15% (LOSS_CAUSE) */
-function pfMarginBelow15(int $tid, int $sid, string $cur): void {
-    // TODO S79: (retail-cost)/retail*100 < 15
-    // fundamental_question = 'loss_cause'
-}
-
-/** PF#7 — продавач дава отстъпка която убива маржа (LOSS_CAUSE) */
-function pfSellerDiscountKiller(int $tid, int $sid, string $cur): void {
-    // TODO S79: sale_items.discount_pct correlated с ниска крайна маржа
-    // fundamental_question = 'loss_cause'
-}
-
-/** PF#8 — топ профит 30д (GAIN) */
-function pfTopProfit30d(int $tid, int $sid, string $cur): void {
-    // TODO S79: SUM((unit_price-cost_price)*quantity) DESC LIMIT 8
-    // fundamental_question = 'gain'
-}
-
-/** PF#9 — профит расте (GAIN) */
-function pfProfitGrowth(int $tid, int $sid, string $cur): void {
-    // TODO S79: profit_30d > profit_prev_30d * 1.15
-    // fundamental_question = 'gain'
-}
-
-/** PF#10 — най-висок марж (GAIN_CAUSE) */
-function pfHighestMargin(int $tid, int $sid, string $cur): void {
-    // TODO S79: margin_pct DESC LIMIT 8 за продаващи артикули
-    // fundamental_question = 'gain_cause'
-}
-
-/** PF#11 — тренд нагоре (GAIN_CAUSE) */
-function pfTrendingUp(int $tid, int $sid, string $cur): void {
-    // TODO S79: sold_last_7d > sold_prev_7d * 1.5
-    // fundamental_question = 'gain_cause'
-}
-
-/** PF#12 — лоялни клиенти го купуват (GAIN_CAUSE) */
-function pfLoyalCustomers(int $tid, int $sid, string $cur): void {
-    // TODO S79: COUNT(DISTINCT returning customer_id) на артикул
-    // fundamental_question = 'gain_cause'
-}
-
-/** PF#13 — basket driver (GAIN_CAUSE) */
-function pfBasketDriver(int $tid, int $sid, string $cur): void {
-    // TODO S79: артикули присъстващи в касови бележки с >3 артикула
-    // fundamental_question = 'gain_cause'
-}
-
-/** PF#14 — лидер по размер (GAIN_CAUSE) */
-function pfSizeLeader(int $tid, int $sid, string $cur): void {
-    // TODO S79: размер с най-много продажби в категория
-    // fundamental_question = 'gain_cause'
-}
-
-/** PF#15 — бестселър с ниска наличност → поръчай (ORDER) */
-function pfBestsellerLowStock(int $tid, int $sid, string $cur): void {
-    // TODO S79: top_sales 30д AND i.quantity <= min_quantity
-    // fundamental_question = 'order'
-}
-
-/** PF#16 — lost_demand съвпадение с доставчик (ORDER) */
-function pfLostDemandMatch(int $tid, int $sid, string $cur): void {
-    // TODO S79: lost_demand rows със suggested_supplier_id → агрегация
-    // fundamental_question = 'order'
-}
-
-/** PF#17 — zombie 45+ дни (ANTI_ORDER) */
-function pfZombie45d(int $tid, int $sid, string $cur): void {
-    // TODO S79: days_stale > 45 AND quantity > 0
-    // fundamental_question = 'anti_order'
-}
-
-/** PF#18 — тренд надолу (ANTI_ORDER) */
-function pfDecliningTrend(int $tid, int $sid, string $cur): void {
-    // TODO S79: sold_last_30d < sold_prev_30d * 0.5
-    // fundamental_question = 'anti_order'
-}
-
-/** PF#19 — висок процент връщания (ANTI_ORDER) */
-function pfHighReturnRate(int $tid, int $sid, string $cur): void {
-    // TODO S79: returned_qty / sold_qty > 0.15
-    // fundamental_question = 'anti_order'
-}
-
-function computeProductInsights(int $tid, int $sid, string $cur): void {
-    pfZeroStockWithSales($tid, $sid, $cur);
-    pfBelowMinUrgent($tid, $sid, $cur);
-    pfRunningOutToday($tid, $sid, $cur);
-    pfSellingAtLossFQ($tid, $sid, $cur);
-    pfNoCostPriceFQ($tid, $sid, $cur);
-    pfMarginBelow15($tid, $sid, $cur);
-    pfSellerDiscountKiller($tid, $sid, $cur);
-    pfTopProfit30d($tid, $sid, $cur);
-    pfProfitGrowth($tid, $sid, $cur);
-    pfHighestMargin($tid, $sid, $cur);
-    pfTrendingUp($tid, $sid, $cur);
-    pfLoyalCustomers($tid, $sid, $cur);
-    pfBasketDriver($tid, $sid, $cur);
-    pfSizeLeader($tid, $sid, $cur);
-    pfBestsellerLowStock($tid, $sid, $cur);
-    pfLostDemandMatch($tid, $sid, $cur);
-    pfZombie45d($tid, $sid, $cur);
-    pfDecliningTrend($tid, $sid, $cur);
-    pfHighReturnRate($tid, $sid, $cur);
+    echo "compute-insights done: " . json_encode($totals) . "\n";
+    exit(0);
 }
