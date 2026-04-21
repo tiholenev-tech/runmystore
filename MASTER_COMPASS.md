@@ -1240,6 +1240,28 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 
 ---
 
+
+---
+
+# 🔗 FILE URLS ЗА CLAUDE — ЖИВИ ОГЛЕДАЛА
+
+**PHP файловете се огледалват автоматично като .md в /mirrors/ (cron на 5 мин).**
+**Всеки нов chat чете тези URL-и от COMPASS и ги използва за fetch.**
+
+| Файл | URL |
+|---|---|
+| products.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/products.md |
+| sale.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/sale.md |
+| chat.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/chat.md |
+| warehouse.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/warehouse.md |
+| inventory.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/inventory.md |
+| stats.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/stats.md |
+
+**MD файловете в корена:**
+- MASTER_COMPASS.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/MASTER_COMPASS.md
+- SESSION_77_HANDOFF.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/SESSION_77_HANDOFF.md
+- SESSION_78_HANDOFF.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/SESSION_78_HANDOFF.md
+
 **КРАЙ НА MASTER_COMPASS v3.0**
 
 *„Живият документ. Ако нещо в системата се промени и не е тук — грешка е.""*
