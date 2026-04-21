@@ -4,7 +4,7 @@
 
 **Последна актуализация:** 21.04.2026  
 **Последна завършена сесия:** S77 (design + architecture, 19.04.2026)  
-**Следваща сесия:** S78 — DB migrations + P0 bugs + compute-insights skeleton  
+**Следваща сесия:** S79.FIX — P0 bugs в products.php главна (10 счупени бутона)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -121,9 +121,9 @@
 
 | # | Файл | Симптом | Fix | Сесия |
 |---|---|---|---|---|
-| 5 | products.php `wizPhotoUpload()` ред ~3200 | AI Studio _hasPhoto не се сетва | `S.wizData._hasPhoto = true` след FileReader.onload | **S78** |
-| 6 | products.php `renderWizard()` | Нулира бройки при re-render (step 6) | `wizCollectData()` в началото на renderWizard ако step===6; `wizGenDescription()` само обновява textarea | **S78** |
-| 7 | products.php `listProducts` ред ~850 | sold_30d = 0 | LEFT JOIN със sale_items aggregated subquery + tenant_id в ON clause | **S78** |
+| 5 | products.php `wizPhotoUpload()` ред ~3200 | AI Studio _hasPhoto не се сетва | `S.wizData._hasPhoto = true` след FileReader.onload | ✅ CLOSED (вече fix-нат, S78 verify) |
+| 6 | products.php `renderWizard()` | Нулира бройки при re-render (step 6) | `wizCollectData()` в началото на renderWizard ако step===6; `wizGenDescription()` само обновява textarea | ⏸ DEFERRED → S79.FIX (wizard блокиран) |
+| 7 | products.php `listProducts` ред ~850 | sold_30d = 0 | LEFT JOIN със sale_items aggregated subquery + tenant_id в ON clause | ✅ CLOSED (вече fix-нат, S78 verify) |
 
 ---
 
@@ -850,6 +850,14 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 21.04.2026 — S78 closeout
+
+- **Решение:** S78 затворена с DB + skeleton + verification. Bug #6 отложен.
+- **Защо:** #5 и #7 вече fix-нати в стари сесии (grep verified). #6 блокиран от S79 wizard breakage — "+ Добави" не отваря wizard, следователно renderWizard не може да се тества.
+- **Засегнати модули:** products.php (untouched този S78), MASTER_COMPASS §2, §6
+- **Rework:** Нова сесия **S79.FIX** — приоритет P0 bugs от `PRODUCTS_MAIN_BUGS_S80.md` (10 счупени бутона на главната). След S79.FIX → retry Bug #6 → S80 (wizard rewrite).
+- **Статус rework:** ⏳ pending (S79.FIX)
+
 ## 21.04.2026 — MASTER_COMPASS v3.0 създаден
 - **Решение:** Добавен dependency tree + change protocol + rework queue
 - **Защо:** Тихол иска да се знае при всяка промяна какво се засяга
@@ -935,6 +943,7 @@ cron-weather.php → 06:00
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
+| 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
 
 ---
 
