@@ -70,7 +70,7 @@
 
 | Модул | Статус | Ред | Бележка |
 |---|---|---|---|
-| `products.php` | 🟡 работи с 3 P0 бъга | 5919 | S78 fix → S79 главна → S80 wizard → S81 AI → S82 polish |
+| `products.php` | 🟡 работи с 3 P0 бъга | 8394 | S78 fix → S79 главна → S80 wizard → S81 AI → S82 polish |
 | `sale.php` | 🟡 базово работи, нужен rewrite | — | S85 (voice primary + camera always-live + numpad) |
 | `chat.php` | 🟡 v7 dashboard + overlay | 1266 | S95 (Simple Mode = AI chat) |
 | `warehouse.php` | 🔴 само скелет | — | S87 (hub rewrite + 5 подмодула) |
@@ -944,6 +944,7 @@ cron-weather.php → 06:00
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
+| 10 | products.php main split | 21.04.2026 (S78 CC sweep) | Файлът е 8394 реда (5.6× над 1500 прага) — extract в partials/helpers; кандидат за rewrite | S80 | ⏳ pending |
 
 ---
 
