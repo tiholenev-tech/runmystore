@@ -5,13 +5,15 @@
   "server": {
     "url": "https://runmystore.ai",
     "androidScheme": "https",
+    "hostname": "runmystore.ai",
     "allowNavigation": ["runmystore.ai", "*.runmystore.ai"],
     "cleartext": false
   },
   "android": {
     "allowMixedContent": false,
     "captureInput": true,
-    "webContentsDebuggingEnabled": true
+    "webContentsDebuggingEnabled": true,
+    "loggingBehavior": "debug"
   },
   "plugins": {
     "BluetoothLe": {
