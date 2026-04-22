@@ -3349,7 +3349,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 1. КАКВО ГУБИШ ═══ -->
-    <div class="q-head q1">
+    <div class="q-head q1" onclick="goScreen('products',{filter:'zero_stock'})" style="cursor:pointer">
         <div class="q-badge">1</div>
         <div class="q-ttl">
             <div class="q-nm q1">Какво губиш</div>
@@ -3358,28 +3358,28 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q1">−340 лв/седм</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q1 art">
+        <div class="glass sm q1 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag bad">0 БР</span></div>
             <div class="art-nm">Nike Air Max 42 черни</div>
             <div class="art-bot"><div class="art-prc">120 лв</div><div class="art-stk danger">0 бр</div></div>
             <div class="art-ctx q1">3 търсения /7д · <b>~360 лв profit/мес пропуснат</b></div>
         </div>
-        <div class="glass sm q1 art">
+        <div class="glass sm q1 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag bad">0 БР</span></div>
             <div class="art-nm">Рокля Zara черна S</div>
             <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk danger">0 бр</div></div>
             <div class="art-ctx q1">2 търсения /7д · <b>~178 лв profit/мес</b></div>
         </div>
-        <div class="glass sm q1 art">
+        <div class="glass sm q1 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag bad">1 БР</span></div>
             <div class="art-nm">Тениска H&M бяла M</div>
             <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk warn">1 бр</div></div>
             <div class="art-ctx q1">9 прод/30д · <b>свършва утре</b></div>
         </div>
-        <div class="glass sm q1 art">
+        <div class="glass sm q1 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag bad">1 БР</span></div>
             <div class="art-nm">Джинси Levi's 501 W32</div>
@@ -3389,7 +3389,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 2. ОТ КАКВО ГУБИШ ═══ -->
-    <div class="q-head q2">
+    <div class="q-head q2" onclick="goScreen('products',{filter:'at_loss'})" style="cursor:pointer">
         <div class="q-badge">2</div>
         <div class="q-ttl">
             <div class="q-nm q2">От какво губиш</div>
@@ -3398,28 +3398,28 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q2">−180 лв profit</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q2 art">
+        <div class="glass sm q2 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M3 19h4l3-3V8l6-4v8l3 3v3H3z"/></svg><span class="tag violet">−8%</span></div>
             <div class="art-nm">Обувки Geox 38</div>
             <div class="art-bot"><div class="art-prc">65 лв</div><div class="art-stk ok">2 бр</div></div>
             <div class="art-ctx q2">Доставна 70 лв · <b>продаваш на загуба</b></div>
         </div>
-        <div class="glass sm q2 art">
+        <div class="glass sm q2 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M8 2l-5 4 2 4 2-1v13h10V9l2 1 2-4-5-4-2 3h-4z"/></svg><span class="tag violet">?</span></div>
             <div class="art-nm">Блуза Mango XS</div>
             <div class="art-bot"><div class="art-prc">48 лв</div><div class="art-stk ok">5 бр</div></div>
             <div class="art-ctx q2">Без доставна цена · <b>не виждаш profit</b></div>
         </div>
-        <div class="glass sm q2 art">
+        <div class="glass sm q2 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M4 10h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M8 10V6a4 4 0 018 0v4"/></svg><span class="tag violet">12%</span></div>
             <div class="art-nm">Чанта Parfois кафява</div>
             <div class="art-bot"><div class="art-prc">70 лв</div><div class="art-stk ok">3 бр</div></div>
             <div class="art-ctx q2">Profit 8 лв · <b>под 15% марж</b></div>
         </div>
-        <div class="glass sm q2 art">
+        <div class="glass sm q2 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 4-1 3 2 7h-5l-2-5-2 5H5l2-7-1-3z"/></svg><span class="tag violet">−12%</span></div>
             <div class="art-nm">Шорти H&M</div>
@@ -3429,7 +3429,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 3. КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q3">
+    <div class="q-head q3" onclick="goScreen('products',{filter:'top_sales'})" style="cursor:pointer">
         <div class="q-badge">3</div>
         <div class="q-ttl">
             <div class="q-nm q3">Какво печелиш</div>
@@ -3438,28 +3438,28 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q3">+2 840 лв</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q3 art">
+        <div class="glass sm q3 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag good">#1</span></div>
             <div class="art-nm">Adidas Superstar 40</div>
             <div class="art-bot"><div class="art-prc">140 лв</div><div class="art-stk ok">8 бр</div></div>
             <div class="art-ctx q3">18 прод · <b>+840 лв profit</b></div>
         </div>
-        <div class="glass sm q3 art">
+        <div class="glass sm q3 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag good">#2</span></div>
             <div class="art-nm">Рокля Zara черна M</div>
             <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk ok">6 бр</div></div>
             <div class="art-ctx q3">11 прод · <b>+568 лв profit</b></div>
         </div>
-        <div class="glass sm q3 art">
+        <div class="glass sm q3 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag good">#3</span></div>
             <div class="art-nm">Яке Tommy Hilfiger L</div>
             <div class="art-bot"><div class="art-prc">320 лв</div><div class="art-stk ok">4 бр</div></div>
             <div class="art-ctx q3">4 прод · <b>+576 лв profit</b></div>
         </div>
-        <div class="glass sm q3 art">
+        <div class="glass sm q3 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag good">#4</span></div>
             <div class="art-nm">Джинси Levi's W34</div>
@@ -3469,7 +3469,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 4. ОТ КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q4">
+    <div class="q-head q4" onclick="goScreen('products',{filter:'top_profit'})" style="cursor:pointer">
         <div class="q-badge">4</div>
         <div class="q-ttl">
             <div class="q-nm q4">От какво печелиш</div>
@@ -3478,35 +3478,35 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q4">4 причини</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q4 art">
+        <div class="glass sm q4 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag teal">58%</span></div>
             <div class="art-nm">Рокля Zara черна M</div>
             <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk ok">6 бр</div></div>
             <div class="art-ctx q4">Най-висок марж · <b>58% профитност</b></div>
         </div>
-        <div class="glass sm q4 art">
+        <div class="glass sm q4 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag teal">↑22%</span></div>
             <div class="art-nm">Adidas Superstar 40</div>
             <div class="art-bot"><div class="art-prc">140 лв</div><div class="art-stk ok">8 бр</div></div>
             <div class="art-ctx q4">Растящ тренд · <b>↑22% седмично</b></div>
         </div>
-        <div class="glass sm q4 art">
+        <div class="glass sm q4 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag teal">5×</span></div>
             <div class="art-nm">Джинси Levi's W32</div>
             <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk ok">5 бр</div></div>
             <div class="art-ctx q4">5 повторни клиенти · <b>лоялен артикул</b></div>
         </div>
-        <div class="glass sm q4 art">
+        <div class="glass sm q4 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag teal">+Y</span></div>
             <div class="art-nm">Тениска H&M бяла</div>
             <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk ok">12 бр</div></div>
             <div class="art-ctx q4">Купуват го с джинси · <b>basket driver</b></div>
         </div>
-        <div class="glass sm q4 art">
+        <div class="glass sm q4 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag teal">M</span></div>
             <div class="art-nm">Яке Tommy L</div>
@@ -3516,7 +3516,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 5. КАКВО ДА ПОРЪЧАШ ═══ -->
-    <div class="q-head q5">
+    <div class="q-head q5" onclick="goScreen('products',{filter:'low'})" style="cursor:pointer">
         <div class="q-badge">5</div>
         <div class="q-ttl">
             <div class="q-nm q5">Какво да поръчаш</div>
@@ -3525,28 +3525,28 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q5">6 артикула</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q5 art">
+        <div class="glass sm q5 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag hot">24</span></div>
             <div class="art-nm">Nike Air Max 42</div>
             <div class="art-bot"><div class="art-prc">120 лв</div><div class="art-stk danger">0 бр</div></div>
             <div class="art-ctx q5">Топ №1 · <b>поръчай 24 бр</b></div>
         </div>
-        <div class="glass sm q5 art">
+        <div class="glass sm q5 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag hot">18</span></div>
             <div class="art-nm">Levi's 501 W32</div>
             <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk warn">2 бр</div></div>
             <div class="art-ctx q5">Bestseller · <b>поръчай 18 бр</b></div>
         </div>
-        <div class="glass sm q5 art">
+        <div class="glass sm q5 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag hot">12</span></div>
             <div class="art-nm">H&M бяла M</div>
             <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk warn">1 бр</div></div>
             <div class="art-ctx q5">Бърз оборот · <b>поръчай 12 бр</b></div>
         </div>
-        <div class="glass sm q5 art">
+        <div class="glass sm q5 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 12c0-5 4-9 10-9s10 4 10 9"/><path d="M2 12h20l-2 4H4z"/></svg><span class="tag hot">10</span></div>
             <div class="art-nm">Шапка черна unisex</div>
@@ -3556,7 +3556,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 6. КАКВО ДА НЕ ПОРЪЧАШ ═══ -->
-    <div class="q-head q6">
+    <div class="q-head q6" onclick="goScreen('products',{filter:'zombie'})" style="cursor:pointer">
         <div class="q-badge">6</div>
         <div class="q-ttl">
             <div class="q-nm q6">Какво да НЕ поръчаш</div>
@@ -3565,28 +3565,28 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="q-total q6">7 · 2 480 лв</div>
     </div>
     <div class="h-scroll">
-        <div class="glass sm q6 art">
+        <div class="glass sm q6 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M8 2l-5 4 2 4 2-1v13h10V9l2 1 2-4-5-4-2 3h-4z"/></svg><span class="tag dim">78д</span></div>
             <div class="art-nm">Блуза Mango розова XS</div>
             <div class="art-bot"><div class="art-prc">48 лв</div><div class="art-stk ok">5 бр</div></div>
             <div class="art-ctx q6">78 дни · <b>240 лв замразени</b></div>
         </div>
-        <div class="glass sm q6 art">
+        <div class="glass sm q6 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M4 10h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M8 10V6a4 4 0 018 0v4"/></svg><span class="tag dim">94д</span></div>
             <div class="art-nm">Чанта Parfois кафява</div>
             <div class="art-bot"><div class="art-prc">70 лв</div><div class="art-stk ok">3 бр</div></div>
             <div class="art-ctx q6">94 дни · <b>210 лв замразени</b></div>
         </div>
-        <div class="glass sm q6 art">
+        <div class="glass sm q6 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag dim">112д</span></div>
             <div class="art-nm">Яке зимно XL</div>
             <div class="art-bot"><div class="art-prc">260 лв</div><div class="art-stk ok">2 бр</div></div>
             <div class="art-ctx q6">112 дни · <b>промоция или мърдай</b></div>
         </div>
-        <div class="glass sm q6 art">
+        <div class="glass sm q6 art" onclick="event.stopPropagation();showToast('Mockup данни — реални артикули идват от sections AJAX','')" style="cursor:pointer">
             <span class="shine"></span><span class="shine shine-bottom"></span>
             <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag dim">−40%</span></div>
             <div class="art-nm">Рокля Mango XXL</div>
@@ -4289,7 +4289,9 @@ function lblPrint(idx){
         }
         html+='</div>';
     });
-    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script></body></html>';
+    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script>
+<!-- S79FIX_BUG9_QSECTIONS_APPLIED -->
+</body></html>';
     var w=window.open('','_blank','width=400,height=600');
     if(w){w.document.write(html);w.document.close()}else showToast('Позволи pop-up','error');
 }
