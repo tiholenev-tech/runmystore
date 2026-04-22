@@ -3595,7 +3595,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         </div>
     </div>
 
-    <div class="glass view-all">
+    <div class="glass view-all" onclick="goScreenWithHistory('products',{filter:'all'})" style="cursor:pointer">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span>Виж всички 247 артикула</span>
         <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
