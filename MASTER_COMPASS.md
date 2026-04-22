@@ -903,6 +903,13 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 22.04.2026 — S79.CRON_AUDIT завършено (CHAT 3)
+- **Решение:** cron-insights.php wrapper (15 min), audit_log extension, cron_heartbeats, auditLog() v2
+- **Засегнати:** compute-insights.php (guard), config/helpers.php, new: cron-insights.php, /etc/cron.d/runmystore, migrations/20260422_002_*
+- **REWORK QUEUE #10:** DONE
+- **Tag:** v0.5.3-s79-cron-audit
+- **Commit:** 75e10fa
+
 ## 22.04.2026 — S81 Printer decision: 3-фазен план
 
 - **Решение:** DTM-5811 е Bluetooth Classic (BT 2.1), Web Bluetooth API не работи с него. 3-фазен план:
