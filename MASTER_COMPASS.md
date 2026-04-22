@@ -1265,6 +1265,29 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 - SESSION_77_HANDOFF.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/SESSION_77_HANDOFF.md
 - SESSION_78_HANDOFF.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/SESSION_78_HANDOFF.md
 
+
+
+---
+
+## 🔒 LOGIC CHANGE — S79.FIX (22.04.2026): Скрита инвентаризация на главен екран
+
+**ЗАКОН:** Секцията "Скрита инвентаризация" (Store Health % + Непреброени артикули + бутон "Започни Zone Walk →") е **ПОСТОЯННА** и **ЗАДЪЛЖИТЕЛНА** на:
+
+1. **products.php** (Detailed Mode за Owner/Manager) — преди 6-те Q-секции
+2. **simple.php / home.php** (Simple Mode за Пешо/Seller) — на видимо място
+
+**Винаги видима**, дори при Store Health 95%+ — защото инвентаризацията НИКОГА не свършва (артикули остаряват, нови идват, кашони се отварят).
+
+**Идентичен дизайн** в двата режима — една визуална компонента, два контекста.
+
+**Източници:**
+- INVENTORY_v4.md §9 — кога свършва инвентаризацията
+- INVENTORY_HIDDEN_v3.md §10 — Store Health Score формула
+- DOC_11_INVENTORY_WAREHOUSE.md §8 — Progress bar "AI знае магазина на X%"
+
+**Имплементация:** S79.FIX (тази сесия) — products.php; следваща сесия — simple.php/home.php.
+
+
 **КРАЙ НА MASTER_COMPASS v3.0**
 
 *„Живият документ. Ако нещо в системата се промени и не е тук — грешка е.""*
