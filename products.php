@@ -3349,7 +3349,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 1. КАКВО ГУБИШ ═══ -->
-    <div class="q-head q1" onclick="goScreen('products',{filter:'zero_stock'})" style="cursor:pointer">
+    <div class="q-head q1" onclick="goScreenWithHistory('products',{filter:'zero_stock'})" style="cursor:pointer">
         <div class="q-badge">1</div>
         <div class="q-ttl">
             <div class="q-nm q1">Какво губиш</div>
@@ -3389,7 +3389,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 2. ОТ КАКВО ГУБИШ ═══ -->
-    <div class="q-head q2" onclick="goScreen('products',{filter:'at_loss'})" style="cursor:pointer">
+    <div class="q-head q2" onclick="goScreenWithHistory('products',{filter:'at_loss'})" style="cursor:pointer">
         <div class="q-badge">2</div>
         <div class="q-ttl">
             <div class="q-nm q2">От какво губиш</div>
@@ -3429,7 +3429,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 3. КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q3" onclick="goScreen('products',{filter:'top_sales'})" style="cursor:pointer">
+    <div class="q-head q3" onclick="goScreenWithHistory('products',{filter:'top_sales'})" style="cursor:pointer">
         <div class="q-badge">3</div>
         <div class="q-ttl">
             <div class="q-nm q3">Какво печелиш</div>
@@ -3469,7 +3469,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 4. ОТ КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q4" onclick="goScreen('products',{filter:'top_profit'})" style="cursor:pointer">
+    <div class="q-head q4" onclick="goScreenWithHistory('products',{filter:'top_profit'})" style="cursor:pointer">
         <div class="q-badge">4</div>
         <div class="q-ttl">
             <div class="q-nm q4">От какво печелиш</div>
@@ -3516,7 +3516,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 5. КАКВО ДА ПОРЪЧАШ ═══ -->
-    <div class="q-head q5" onclick="goScreen('products',{filter:'low'})" style="cursor:pointer">
+    <div class="q-head q5" onclick="goScreenWithHistory('products',{filter:'low'})" style="cursor:pointer">
         <div class="q-badge">5</div>
         <div class="q-ttl">
             <div class="q-nm q5">Какво да поръчаш</div>
@@ -3556,7 +3556,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     </div>
 
     <!-- ═══ 6. КАКВО ДА НЕ ПОРЪЧАШ ═══ -->
-    <div class="q-head q6" onclick="goScreen('products',{filter:'zombie'})" style="cursor:pointer">
+    <div class="q-head q6" onclick="goScreenWithHistory('products',{filter:'zombie'})" style="cursor:pointer">
         <div class="q-badge">6</div>
         <div class="q-ttl">
             <div class="q-nm q6">Какво да НЕ поръчаш</div>
