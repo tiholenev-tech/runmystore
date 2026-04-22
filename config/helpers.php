@@ -422,34 +422,53 @@ function autoGeolocateStore(int $storeId): void {
  * @param array|null $old       Старите стойности (за update/delete)
  * @param array|null $new       Новите стойности (за create/update)
  */
-function auditLog(array $user, string $action, string $table, int $recordId, ?array $old = null, ?array $new = null): void {
-    static $validActions = ['create', 'update', 'delete'];
+function auditLog(
+    array $user,
+    string $action,
+    string $table,
+    int $recordId,
+    ?array $old = null,
+    ?array $new = null,
+    string $source = 'ui',
+    ?string $sourceDetail = null
+): void {
+    static $validActions = ['create', 'update', 'delete', 'cron_run', 'ai_action', 'system_event'];
+    static $validSources = ['ui', 'ai', 'api', 'cron', 'system'];
 
     if (!in_array($action, $validActions, true)) {
-        error_log("auditLog: invalid action '$action' (must be create/update/delete) — skipped");
+        error_log("auditLog: invalid action '$action' — skipped");
         return;
+    }
+    if (!in_array($source, $validSources, true)) {
+        error_log("auditLog: invalid source '$source' — defaulting to 'ui'");
+        $source = 'ui';
     }
 
     $tenantId = $user['tenant_id'] ?? null;
     if (!$tenantId) {
-        error_log("auditLog: missing tenant_id in user — skipped (action=$action, table=$table, id=$recordId)");
+        error_log("auditLog: missing tenant_id — skipped (action=$action, table=$table, id=$recordId)");
         return;
     }
 
     try {
         DB::run(
             "INSERT INTO audit_log
-              (tenant_id, user_id, table_name, record_id, action, old_values, new_values, ip_address, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+              (tenant_id, user_id, store_id, table_name, record_id, action, source, source_detail,
+               old_values, new_values, ip_address, user_agent, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
             [
                 (int) $tenantId,
                 isset($user['id']) ? (int) $user['id'] : null,
+                isset($user['store_id']) ? (int) $user['store_id'] : null,
                 $table,
                 $recordId,
                 $action,
+                $source,
+                $sourceDetail,
                 $old !== null ? json_encode($old, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
                 $new !== null ? json_encode($new, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
-                $_SERVER['REMOTE_ADDR'] ?? null
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 255) : null
             ]
         );
     } catch (Throwable $e) {

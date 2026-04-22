@@ -1194,7 +1194,7 @@ function computeAllInsights(int $tenant_id): array {
 // SECTION 9 — ENTRY POINT (CLI + AJAX)
 // =============================================================
 
-if (php_sapi_name() === 'cli') {
+if (php_sapi_name() === 'cli' && !defined('COMPUTE_INSIGHTS_NO_CLI')) {
     $tenant_id = isset($argv[1]) ? (int)$argv[1] : 0;
     if ($tenant_id > 0) {
         $r = computeAllInsights($tenant_id);
