@@ -3312,7 +3312,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .health-ov-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .health-ov-close:active{background:rgba(99,102,241,.25)}
 .health-ov-hdr{text-align:center;padding:6px 0 18px}
-.health-ov-icon{font-size:28px;margin-bottom:6px}
+.health-ov-icon{margin-bottom:8px;display:flex;justify-content:center}
+.health-ov-icon svg{width:32px;height:32px}
+.hov-act-ic svg{width:22px;height:22px}
+.health-ov-close svg{width:14px;height:14px}
 .health-ov-score{font-size:42px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;margin-bottom:6px}
 .health-ov-title{font-size:14px;color:#5eead4;font-weight:600;margin-bottom:4px}
 .health-ov-status{font-size:12px;color:rgba(94,234,212,.7);padding:0 16px;line-height:1.4}
@@ -8594,10 +8597,15 @@ function openStoreHealthDetail() {
     if (!h) return;
     const score = h.score || 0;
     let statusText, statusColor, statusIcon;
-    if (score >= 95) { statusText='В перфектна форма. AI знае всичко.'; statusColor='#22c55e'; statusIcon='🟢'; }
-    else if (score >= 80) { statusText='Добре, но AI гадае за някои неща.'; statusColor='#eab308'; statusIcon='🟡'; }
-    else if (score >= 60) { statusText='AI не е сигурен. Съветите може да са неточни.'; statusColor='#f97316'; statusIcon='🟠'; }
-    else { statusText='AI гадае. Основните функции са ограничени.'; statusColor='#ef4444'; statusIcon='🔴'; }
+    /* S79.FIX.B-HEALTH-SVG: SVG вместо emoji */
+    const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    const ICON_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    const ICON_CRIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    if (score >= 95) { statusText='В перфектна форма. AI знае всичко.'; statusColor='#22c55e'; statusIcon=ICON_CHECK; }
+    else if (score >= 80) { statusText='Добре, но AI гадае за някои неща.'; statusColor='#eab308'; statusIcon=ICON_WARN; }
+    else if (score >= 60) { statusText='AI не е сигурен. Съветите може да са неточни.'; statusColor='#f97316'; statusIcon=ICON_ALERT; }
+    else { statusText='AI гадае. Основните функции са ограничени.'; statusColor='#ef4444'; statusIcon=ICON_CRIT; }
     const old = document.getElementById('healthOverlay');
     if (old) old.remove();
     const ov = document.createElement('div');
@@ -8608,7 +8616,7 @@ function openStoreHealthDetail() {
     ov.innerHTML = `
         <div class="health-ov-box">
             <span class="shine"></span>
-            <button class="health-ov-close" onclick="closeHealthOverlay()">✕</button>
+            <button class="health-ov-close" onclick="closeHealthOverlay()" aria-label="Затвори"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             <div class="health-ov-hdr">
                 <div class="health-ov-icon">${statusIcon}</div>
                 <div class="health-ov-score" style="color:${statusColor}">${score}<span style="font-size:18px;opacity:.6">%</span></div>
@@ -8630,15 +8638,15 @@ function openStoreHealthDetail() {
             </div>
             <div class="health-ov-actions">
                 <button class="hov-act hov-act-primary" onclick="healthAction('quick')">
-                    <div class="hov-act-ic">⚡</div>
+                    <div class="hov-act-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
                     <div class="hov-act-txt"><div class="hov-act-ttl">Бърза проверка</div><div class="hov-act-hnt">5 артикула · 2 мин</div></div>
                 </button>
                 <button class="hov-act" onclick="healthAction('zone')">
-                    <div class="hov-act-ic">📍</div>
+                    <div class="hov-act-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
                     <div class="hov-act-txt"><div class="hov-act-ttl">Зона по зона</div><div class="hov-act-hnt">Една секция от магазина</div></div>
                 </button>
                 <button class="hov-act" onclick="healthAction('full')">
-                    <div class="hov-act-ic">📦</div>
+                    <div class="hov-act-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
                     <div class="hov-act-txt"><div class="hov-act-ttl">Пълно броене</div><div class="hov-act-hnt">Цялата стока</div></div>
                 </button>
             </div>
