@@ -57,6 +57,10 @@ if (isset($_GET['ajax'])) {
     // ─── SEARCH ───
     // ═══ S79 A2 — AJAX SECTIONS ═══
 if ($ajax === 'sections') {
+    // S79.FIX.B-DEBUG: catch errors
+    error_log("[SECTIONS] start tenant=$tenant_id store=$store_id");
+    set_error_handler(function($s,$m,$f,$l){ error_log("[SECTIONS-ERR] $m @$f:$l"); return false; });
+    register_shutdown_function(function(){ $e=error_get_last(); if($e && $e['type']===E_ERROR){ error_log("[SECTIONS-FATAL] ".json_encode($e)); }});
     // Топик-към-фундаментален въпрос mapping
     $topicMap = [
         'stock_zero_bestsellers' => 'loss',
