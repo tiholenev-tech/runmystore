@@ -117,10 +117,57 @@
 | Gemini 2.5 Flash (2 keys, rotation) | ✅ |
 | OpenAI GPT-4o-mini (fallback 429/503) | ✅ |
 | fal.ai (birefnet + nano-banana-pro) | ✅ |
-| DTM-5811 Bluetooth printer | ⏳ края април 2026 (200 бр. поръчани) |
+| **DTM-5811 Bluetooth Classic printer** (TSPL, BT 2.1.1, BDA DC:0D:51:AC:51:D9) | ⚠ **CSV workaround** — печат през QU Printing app (Dothantech). Native plugin = S82. |
 | Pusher account (real-time sync) | 🔴 не създаден (S88) |
 | ЕНИ магазин beta | ⏳ 10-15 май 2026 first sale |
 | 2-ри beta tenant (с онлайн) | ⏳ юни 2026 |
+| Android Studio setup + Capacitor проект | ⏳ **prerequisite за S82** (не е инсталиран засега) |
+
+## 🖨 Printer strategy — 3 фази
+
+### ФАЗА 1 (S81, ДНЕС) — CSV workaround ✅
+
+Пешо: products.php → продукт → [🏷 Етикет] → [Свали CSV] → отваря QU Printing app → импортира → печата.
+
+Причина: DTM-5811 е Bluetooth Classic (BT 2.1), Web Bluetooth API не работи с него.
+
+### ФАЗА 2 (S82, НОВ ЧАТ) — DTM-5811 Capacitor native plugin
+
+**Обхват:** само DTM-5811 (200 поръчани принтера).
+
+**Prerequisites (задължително преди стартиране):**
+- Android Studio инсталиран
+- Capacitor проект за RunMyStore създаден
+- Java JDK 17+, Android SDK 34+
+- Signing keys за APK
+
+**Технически план:**
+- Transport: Bluetooth Classic SPP (UUID 00001101-0000-1000-8000-00805F9B34FB)
+- Protocol: TSPL (reuse `buildTSPL()` кода от S81)
+- Custom Capacitor plugin Kotlin
+- UI: същия drawer в products.php; бутонът [Печатай всички] вика plugin-а
+- Fallback: CSV експорт остава достъпен
+
+**Estimated effort:** 4-8 часа разработка + 1-2 часа тест + 2-3 часа Android Studio setup (ако липсва).
+
+### ФАЗА 3 (S85.5, преди client launch) — Universal Printer Plugin
+
+**Обхват:** всички масови thermal printers.
+
+**Протоколи:** TSPL, ESC/POS (Epson/Star), CPCL (Zebra mobile), ZPL (Zebra desktop).
+**Транспорти:** Bluetooth Classic SPP, BLE (GATT), WiFi TCP/IP, USB (Android USB Host).
+
+**UI:** printer selector в Settings, auto-detect по model name, test print.
+
+**Estimated effort:** 3-5 дни Android + 2-3 дни iOS + 1-2 дни WiFi/ZPL.
+
+**Референции:**
+- TSPL: TSC Auto ID / Gprinter manuals
+- ESC/POS: Epson docs
+- Niimbot BLE: github.com/MultiMote/niimblue
+- Fichero/D11 BLE: github.com/0xMH/fichero-printer
+- Capacitor BLE: @capacitor-community/bluetooth-le
+- TSPL generator код: backup `/root/printer.js.bak.*` от S81
 
 ## Активни P0 bugs
 
@@ -856,6 +903,17 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 22.04.2026 — S81 Printer decision: 3-фазен план
+
+- **Решение:** DTM-5811 е Bluetooth Classic (BT 2.1), Web Bluetooth API не работи с него. 3-фазен план:
+  - Днес (S81): CSV → QU Printing app
+  - Нов чат (S82): Capacitor native plugin за DTM-5811 (Kotlin, BT Classic SPP, TSPL)
+  - Преди client launch: Universal plugin (всички brands)
+- **Защо:** 200 DTM-5811 поръчани. Capacitor native е единственото надеждно решение.
+- **Prerequisites за S82:** Android Studio, JDK 17+, Android SDK 34+, Capacitor проект.
+- **Изтрити файлове:** js/printer.js, print.php, print-test.php (неуспешен Web Bluetooth опит).
+- **Статус rework:** ⏳ S82 (DTM) + S85.5 (Universal).
+
 ## 22.04.2026 — S79.DB COMPLETE (CHAT 2 parallel session)
 - **Решение:** DB foundation v1 готов: schema_migrations + Migrator + audit_log helper + DB::tx() + soft delete на 5 таблици
 - **Засегнати модули:** config/database.php, config/helpers.php, lib/Migrator.php (нов), migrate.php (нов), migrations/ (нов)
@@ -989,7 +1047,10 @@ cron-weather.php → 06:00
 | — | **🎯 PHASE A DONE. ЕНИ first sale: 10-15 май 2026** | | | |
 | S83 | orders.php v1 (12 входа, 11 типа, 8 статуса, 6 tabs) | orders.php | orders.php (нов файл) | S78 DB таблици |
 | S84 | Lost demand + AI draft | orders.php, lost_demand | orders.php patch, cron-hourly.php | S83 done |
+| S82 | **DTM-5811 Capacitor plugin** (Android build, TSPL + BT Classic) | printer-plugin/, products.php | Kotlin plugin, Android Studio, нов APK | critical за ЕНИ beta |
+| S82.5 | Products wizard complete + filter drawer + CSV + AI features | products.php | products.php (5919→~8000) | S78-S81 done |
 | S85 | sale.php rewrite (voice + camera + numpad) | sale.php | sale.php (rewrite) | S82 products done |
+| S85.5 | **Universal Printer Plugin** (TSPL + ESC/POS + ZPL × BT Classic + BLE + WiFi) | printer-plugin/, Settings | Kotlin + Swift | преди client launch |
 | S86 | deliveries.php (OCR + voice + wizard) | deliveries.php | deliveries.php (нов) | S82 done |
 | S87 | inventory v4 + warehouse hub | inventory.php, warehouse.php | inventory.php (rewrite), warehouse.php (rewrite) | S78 DB |
 | S88 | Pusher setup + tenant channel | real-time infra | config/pusher.php, js/pusher.js | external account |
