@@ -22,7 +22,7 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Добре дошъл — RunMyStore.ai</title>
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
@@ -96,6 +96,10 @@ body{display:flex;flex-direction:column}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 @keyframes waveOut{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.9);opacity:0}}
 @keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(99,102,241,.3)}70%{box-shadow:0 0 0 20px rgba(99,102,241,0)}100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}}
+
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
 </head>
 <body class="bg-gray-950 font-inter text-base text-gray-200 antialiased">
