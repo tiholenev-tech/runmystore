@@ -48,4 +48,40 @@ class DB {
     public static function rollback(): void {
         self::get()->rollBack();
     }
+
+    public static function exec(string $sql): int {
+        return self::get()->exec($sql);
+    }
+
+    /**
+     * DOC_05 §7.2 — Transaction wrapper.
+     * Wraps callable in BEGIN/COMMIT, ROLLBACK on Throwable.
+     * Returns whatever the callback returns.
+     *
+     * Usage:
+     *   $sale_id = DB::tx(function() use ($data) {
+     *       $id = Sales::create($data);
+     *       Inventory::decrement(...);
+     *       return $id;
+     *   });
+     *
+     * Limitations (S79):
+     *   - No nested transactions (PDO native — second beginTransaction throws)
+     *     → SAVEPOINT support идва в S80
+     *   - No deadlock retry → S80
+     */
+    public static function tx(callable $callback) {
+        $pdo = self::get();
+        $pdo->beginTransaction();
+        try {
+            $result = $callback();
+            $pdo->commit();
+            return $result;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
 }
