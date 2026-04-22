@@ -397,3 +397,63 @@ function autoGeolocateStore(int $storeId): void {
     DB::run("UPDATE stores SET latitude = ?, longitude = ?, city = COALESCE(NULLIF(city,''), ?) WHERE id = ?",
         [$geo['lat'], $geo['lon'], $geo['city'], $storeId]);
 }
+
+
+// ══════════════════════════════════════
+// 7. AUDIT LOG (S79.DB)
+// ══════════════════════════════════════
+
+/**
+ * Записва промяна в audit_log.
+ * Адаптирано към реалната структура (S78).
+ *
+ * ОГРАНИЧЕНИЯ (към 22.04.2026):
+ *   - action MUST IN ('create','update','delete') — ENUM ограничение
+ *   - audit_log няма store_id / source / source_detail / user_agent колони
+ *     → DOC_05 §6.2 разширения чакат S79.AUDIT.EXT
+ *
+ * НИКОГА не хвърля exception — audit fail не трябва да чупи бизнес транзакция.
+ * Логва грешки през error_log() и продължава.
+ *
+ * @param array      $user      Текущ user — нужни tenant_id (задължително) + id (optional)
+ * @param string     $action    'create' | 'update' | 'delete'
+ * @param string     $table     Име на засегнатата таблица (напр. 'products')
+ * @param int        $recordId  ID на засегнатия запис
+ * @param array|null $old       Старите стойности (за update/delete)
+ * @param array|null $new       Новите стойности (за create/update)
+ */
+function auditLog(array $user, string $action, string $table, int $recordId, ?array $old = null, ?array $new = null): void {
+    static $validActions = ['create', 'update', 'delete'];
+
+    if (!in_array($action, $validActions, true)) {
+        error_log("auditLog: invalid action '$action' (must be create/update/delete) — skipped");
+        return;
+    }
+
+    $tenantId = $user['tenant_id'] ?? null;
+    if (!$tenantId) {
+        error_log("auditLog: missing tenant_id in user — skipped (action=$action, table=$table, id=$recordId)");
+        return;
+    }
+
+    try {
+        DB::run(
+            "INSERT INTO audit_log
+              (tenant_id, user_id, table_name, record_id, action, old_values, new_values, ip_address, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+            [
+                (int) $tenantId,
+                isset($user['id']) ? (int) $user['id'] : null,
+                $table,
+                $recordId,
+                $action,
+                $old !== null ? json_encode($old, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+                $new !== null ? json_encode($new, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+                $_SERVER['REMOTE_ADDR'] ?? null
+            ]
+        );
+    } catch (Throwable $e) {
+        error_log("auditLog: INSERT failed: " . $e->getMessage()
+            . " (action=$action, table=$table, id=$recordId)");
+    }
+}
