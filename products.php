@@ -3264,6 +3264,27 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     0%, 100% { transform: scale(1); filter: brightness(1); }
     50% { transform: scale(1.06); filter: brightness(1.15); }
 }
+
+/* ═══ S79.FIX.B-HIDDEN-INV-UI: Store Health card ═══ */
+.health-sec{margin:14px 12px 0;padding:14px 14px 12px;border:1px solid rgba(20,184,166,0.25);background:linear-gradient(135deg,rgba(20,184,166,0.08),rgba(6,182,212,0.05));border-radius:18px;cursor:pointer;transition:all .2s;backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.health-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(20,184,166,0.12),transparent 60%);pointer-events:none}
+.health-sec:active{transform:scale(.99)}
+.health-sec .shine{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.6),transparent);pointer-events:none}
+.health-row{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+.health-dot{width:10px;height:10px;border-radius:50%;background:#64748b;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.health-dot.dot-green{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.7)}
+.health-dot.dot-yellow{background:#eab308;box-shadow:0 0 10px rgba(234,179,8,.7)}
+.health-dot.dot-orange{background:#f97316;box-shadow:0 0 10px rgba(249,115,22,.7)}
+.health-dot.dot-red{background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.7)}
+.health-info{flex:1;min-width:0}
+.health-title{font-size:13px;font-weight:600;color:#5eead4;margin-bottom:2px;letter-spacing:.2px}
+.health-meta{font-size:11px;color:rgba(94,234,212,.7);line-height:1.3}
+.health-pct{font-size:18px;font-weight:700;color:#5eead4;flex-shrink:0;font-variant-numeric:tabular-nums}
+.health-bar{margin-top:10px;height:5px;background:rgba(20,184,166,.12);border-radius:3px;overflow:hidden;position:relative;z-index:1}
+.health-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:3px;transition:width .8s ease-out;box-shadow:0 0 8px rgba(20,184,166,.5)}
+.health-fill.fill-yellow{background:linear-gradient(90deg,#eab308,#ca8a04)}
+.health-fill.fill-orange{background:linear-gradient(90deg,#f97316,#ea580c)}
+.health-fill.fill-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
 </style>
 </head>
 <body>
@@ -3343,7 +3364,21 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         </div>
     </div>
 
-    <!-- ═══ 1. КАКВО ГУБИШ ═══ -->
+<!-- ═══ S79.FIX.B-HIDDEN-INV-UI: Здраве на склада (Вариант B) ═══ -->
+    <div class="health-sec" onclick="openStoreHealthDetail()">
+        <span class="shine"></span>
+        <div class="health-row">
+            <div class="health-dot" id="healthDot"></div>
+            <div class="health-info">
+                <div class="health-title">Здраве на склада</div>
+                <div class="health-meta" id="healthMeta">Изчислява се...</div>
+            </div>
+            <div class="health-pct" id="healthPct">—</div>
+        </div>
+        <div class="health-bar"><div class="health-fill" id="healthFill" style="width:0%"></div></div>
+    </div>
+
+        <!-- ═══ 1. КАКВО ГУБИШ ═══ -->
     <div class="q-head q1" onclick="goScreenWithHistory('products',{filter:'zero_stock'})" style="cursor:pointer">
         <div class="q-badge">1</div>
         <div class="q-ttl">
@@ -8475,6 +8510,51 @@ function loadSections() {
 }
 function escapeHtml(t){return (t||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
 document.addEventListener('DOMContentLoaded', () => { if (document.querySelector('#scrHome')) loadSections(); });
+
+/* ═══ S79.FIX.B-HIDDEN-INV-UI: Store Health renderer ═══ */
+function renderStoreHealth(h) {
+    const dot = document.getElementById('healthDot');
+    const pct = document.getElementById('healthPct');
+    const fill = document.getElementById('healthFill');
+    const meta = document.getElementById('healthMeta');
+    if (!dot || !pct || !fill || !meta) return;
+    const score = h.score || 0;
+    pct.textContent = score + '%';
+    fill.style.width = score + '%';
+    dot.className = 'health-dot';
+    fill.className = 'health-fill';
+    let dotClass, fillClass;
+    if (score >= 95) { dotClass='dot-green'; fillClass=''; }
+    else if (score >= 80) { dotClass='dot-yellow'; fillClass='fill-yellow'; }
+    else if (score >= 60) { dotClass='dot-orange'; fillClass='fill-orange'; }
+    else { dotClass='dot-red'; fillClass='fill-red'; }
+    dot.classList.add(dotClass);
+    if (fillClass) fill.classList.add(fillClass);
+    const parts = [];
+    if (h.uncounted > 0) parts.push(h.uncounted + ' непреброени');
+    if (h.incomplete > 0) parts.push(h.incomplete + ' недовършени');
+    meta.textContent = parts.length ? parts.join(' · ') : (h.total > 0 ? 'Всичко наред' : 'Няма артикули');
+    window._storeHealthData = h;
+}
+function openStoreHealthDetail() {
+    const h = window._storeHealthData;
+    if (!h) return;
+    const meta = h.score + '% · ' + (h.uncounted||0) + ' непреброени · ' + (h.incomplete||0) + ' недовършени';
+    if (typeof showToast === 'function') showToast('Здраве на склада: ' + meta, '');
+}
+(function(){
+    function tryFetch(){
+        if (typeof CFG === 'undefined' || !CFG.storeId) { setTimeout(tryFetch, 500); return; }
+        if (window._storeHealthData) return;
+        const sid = CFG.storeId;
+        fetch('products.php?ajax=home_stats&store_id=' + sid)
+            .then(r => r.json())
+            .then(d => { if (d && d.store_health) renderStoreHealth(d.store_health); })
+            .catch(()=>{});
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(tryFetch, 800));
+    else setTimeout(tryFetch, 800);
+})();
 </script>
 
 <!-- Supplier Category Picker Modal -->
