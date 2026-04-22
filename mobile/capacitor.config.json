@@ -3,6 +3,7 @@
   "appName": "RunMyStore",
   "webDir": "www",
   "server": {
+    "url": "https://runmystore.ai",
     "androidScheme": "https",
     "allowNavigation": ["runmystore.ai", "*.runmystore.ai"],
     "cleartext": false
