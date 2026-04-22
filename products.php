@@ -3314,7 +3314,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <div class="app">
 
     <div class="header">
-        <button class="h-menu"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <button class="h-menu" onclick="openMenuDrawer()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <div class="brand">RUNMYSTORE.AI</div>
         <div class="h-spacer"></div>
         <button class="store-switch">Магазин 1<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -3659,6 +3659,32 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 </div><!-- /main-wrap -->
 
 
+
+
+<!-- S79.FIX Bug #1: Menu drawer -->
+<div class="drawer-ov" id="menuOv" onclick="closeDrawer('menu')"></div>
+<div class="drawer" id="menuDr">
+    <div class="drawer-handle"></div>
+    <div class="drawer-hdr"><h3>Меню</h3><button class="drawer-close" onclick="closeDrawer('menu')">✕</button></div>
+    <div style="padding:0 4px 20px">
+        <div class="cat-item" onclick="closeDrawer('menu');location.href='profile.php'">
+            <div style="display:flex;align-items:center;gap:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg><span style="font-size:14px;font-weight:600">Профил</span></div>
+            <span style="color:var(--text-secondary)">›</span>
+        </div>
+        <div class="cat-item" onclick="closeDrawer('menu');location.href='settings.php'">
+            <div style="display:flex;align-items:center;gap:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span style="font-size:14px;font-weight:600">Настройки</span></div>
+            <span style="color:var(--text-secondary)">›</span>
+        </div>
+        <div class="cat-item" onclick="closeDrawer('menu');showStoreSwitcher()">
+            <div style="display:flex;align-items:center;gap:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span style="font-size:14px;font-weight:600">Смени магазин</span></div>
+            <span style="color:var(--text-secondary)">›</span>
+        </div>
+        <div class="cat-item" onclick="if(confirm('Излез от профила?'))location.href='logout.php'" style="color:#fca5a5;border-top:1px solid rgba(239,68,68,.15)">
+            <div style="display:flex;align-items:center;gap:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span style="font-size:14px;font-weight:600">Изход</span></div>
+            <span style="color:#fca5a5">›</span>
+        </div>
+    </div>
+</div>
 
 <!-- ═══ INFO AI PANEL ═══ -->
 <div class="info-panel-ov" id="infoPanelOv" onclick="closeInfoPanel()"></div>
@@ -7249,6 +7275,19 @@ async function editProduct(id){
 }
 
 
+
+// S79.FIX Bug #1: Hamburger menu functions
+function openMenuDrawer(){openDrawer('menu')}
+function showStoreSwitcher(){
+    if(typeof CFG!=='undefined' && document.getElementById('storeSelect')){
+        document.getElementById('storeSelect').focus();
+        document.getElementById('storeSelect').click();
+    }else{
+        showToast('Само 1 магазин в акаунта','');
+    }
+}
+
+// S79FIX_BUG1_HAMBURGER_APPLIED
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
     history.replaceState({scr:'home'}, '', '#home');
@@ -7262,7 +7301,7 @@ window.addEventListener('popstate', function(e) {
     if (wizModal && wizModal.classList.contains('open')) { closeWizard(); return; }
     const recOv = document.getElementById('recOv');
     if (recOv && recOv.classList.contains('open')) { closeVoice(); return; }
-    const drawers = ['detail','ai','filter','studio','labels','csv','qf'];
+    const drawers = ['detail','ai','filter','studio','labels','csv','qf','menu'];
     for (const n of drawers) {
         const dr = document.getElementById(n+'Dr');
         if (dr && dr.classList.contains('open')) {
