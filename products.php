@@ -320,7 +320,24 @@ if ($ajax === 'sections') {
         $top_sellers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, SUM(si.quantity) AS sold_qty, SUM(si.quantity*si.unit_price) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND s.status!='canceled' GROUP BY p.id ORDER BY sold_qty DESC LIMIT 5", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
         $slow_movers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity,0) AS qty, DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) AS days_stale FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity>0 AND p.parent_id IS NULL HAVING days_stale BETWEEN 25 AND 45 ORDER BY days_stale DESC LIMIT 10", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $counts = DB::run("SELECT COUNT(DISTINCT p.id) AS total_products, COALESCE(SUM(i.quantity),0) AS total_units FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL", [$sid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
-        echo json_encode(['capital'=>$can_see_margin?round($capital['retail_value'],2):null,'avg_margin'=>$can_see_margin?$avg_margin:null,'zombies'=>$zombies,'low_stock'=>$low_stock,'out_of_stock'=>$out_of_stock,'top_sellers'=>$top_sellers,'slow_movers'=>$slow_movers,'counts'=>$counts]);
+        // S79.FIX.B-HIDDEN-INV-BE: Store Health metrics (Вариант B)
+        $sh_total = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL", [$tenant_id])->fetchColumn();
+        if ($sh_total > 0) {
+            $sh_recent = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND last_counted_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [$tenant_id])->fetchColumn();
+            $sh_accuracy = (int)round(($sh_recent / $sh_total) * 100);
+            $sh_avg_days = DB::run("SELECT AVG(DATEDIFF(NOW(), last_counted_at)) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND last_counted_at IS NOT NULL", [$tenant_id])->fetchColumn();
+            $sh_freshness = $sh_avg_days === null ? 0 : (int)max(0, min(100, round(100 - ($sh_avg_days * 100 / 30))));
+            $sh_conf = DB::run("SELECT AVG(confidence_score) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL", [$tenant_id])->fetchColumn();
+            $sh_confidence = $sh_conf === null ? 0 : (int)round($sh_conf);
+            $sh_score = (int)round($sh_accuracy * 0.4 + $sh_freshness * 0.3 + $sh_confidence * 0.3);
+            $sh_uncounted = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND (last_counted_at IS NULL OR last_counted_at < DATE_SUB(NOW(), INTERVAL 60 DAY))", [$tenant_id])->fetchColumn();
+            $sh_incomplete = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND (supplier_id IS NULL OR category_id IS NULL)", [$tenant_id])->fetchColumn();
+        } else {
+            $sh_score = 0; $sh_accuracy = 0; $sh_freshness = 0; $sh_confidence = 0;
+            $sh_uncounted = 0; $sh_incomplete = 0;
+        }
+        $store_health = ['score'=>$sh_score,'accuracy'=>$sh_accuracy,'freshness'=>$sh_freshness,'confidence'=>$sh_confidence,'uncounted'=>$sh_uncounted,'incomplete'=>$sh_incomplete,'total'=>$sh_total];
+        echo json_encode(['capital'=>$can_see_margin?round($capital['retail_value'],2):null,'avg_margin'=>$can_see_margin?$avg_margin:null,'zombies'=>$zombies,'low_stock'=>$low_stock,'out_of_stock'=>$out_of_stock,'top_sellers'=>$top_sellers,'slow_movers'=>$slow_movers,'counts'=>$counts,'store_health'=>$store_health]);
         exit;
     }
 
