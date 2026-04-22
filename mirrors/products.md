@@ -4294,17 +4294,10 @@ function openCSVImport() {
 
 // S50: openLabels — full print UI like wizard step 7
 async function openLabels(productId) {
-    openDrawer('labels');
-    document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px">Зареждам...</div>';
-    const d=await api('products.php?ajax=export_labels&product_id='+productId+'&format=json');
-    const pd=await api('products.php?ajax=product_detail&id='+productId);
-    if(!d||!d.length){document.getElementById('labelsBody').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-secondary)">Няма вариации</div>';return}
-    const p=pd?.product||{};
-    S._labelProductId=productId;
-    S._labelData=d;
-    S._labelProduct=p;
-    if(!S._labelPrintMode)S._labelPrintMode='eur';
-    renderLabelsDrawer();
+    // S81.PRINT: пренасочване към новия print.php (Bluetooth DTM-5811)
+    if (productId) {
+        window.location.href = 'print.php?product_id=' + productId;
+    }
 }
 function renderLabelsDrawer(){
     var d=S._labelData||[];
