@@ -3346,6 +3346,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 body{padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
+<script src="js/capacitor-printer.js"></script>
 </head>
 <body>
 
@@ -7617,6 +7618,10 @@ function wizLabelsX2(){
     wizLblRecalc();
 }
 function wizPrintLabels(comboIdx){
+    // S82.CAPACITOR — BLE print on mobile APK
+    if (window.CapPrinter && window.CapPrinter.isAvailable()) {
+        return wizPrintLabelsMobile(comboIdx);
+    }
     var combos=S.wizData._printCombos||[];
     var pm=S.wizData._printMode||'eur';
     var sup=CFG.suppliers.find(function(s){return s.id==S.wizData.supplier_id});
@@ -7733,6 +7738,81 @@ function wizPrintLabels(comboIdx){
     if(w){w.document.write(html);w.document.close();}
     else{showToast('Позволи pop-up прозорци','error');}
 }
+
+
+// ═══ S82.CAPACITOR — Mobile BLE print ═══
+async function wizPrintLabelsMobile(comboIdx){
+    var combos = S.wizData._printCombos || [];
+    var sup = CFG.suppliers.find(function(s){return s.id == S.wizData.supplier_id});
+    var supName = sup ? sup.name : '';
+    var barcode = S.wizData.barcode || ('200' + String(S.wizSavedId || 0).padStart(9, '0'));
+    if (barcode.length === 12) {
+        var sum = 0;
+        for (var bi = 0; bi < 12; bi++) sum += parseInt(barcode[bi]) * (bi % 2 === 0 ? 1 : 3);
+        barcode += String((10 - sum % 10) % 10);
+    }
+    var name = S.wizData.name || '';
+    var code = S.wizData.code || '';
+    var price = parseFloat(S.wizData.retail_price) || 0;
+
+    var items = [];
+    if (comboIdx === -1) {
+        combos.forEach(function(c, i){
+            var qty = parseInt(document.getElementById('lblQty' + i)?.value) || 0;
+            if (qty > 0) items.push({combo: c, qty: qty});
+        });
+    } else {
+        var qty = parseInt(document.getElementById('lblQty' + comboIdx)?.value) || 1;
+        items.push({combo: combos[comboIdx], qty: qty});
+    }
+    if (!items.length) { showToast('Няма етикети за печат', 'error'); return; }
+
+    // If no printer paired yet — prompt pair
+    if (!CapPrinter.hasPairedPrinter()) {
+        showToast('Първи път: избери принтера от списъка', 'info');
+        try {
+            await CapPrinter.pair();
+            showToast('Принтерът е сдвоен', 'success');
+        } catch (e) {
+            showToast('Неуспешно сдвояване: ' + (e.message || e), 'error');
+            return;
+        }
+    }
+
+    var storeInfo = {
+        name: (typeof CFG !== 'undefined' && CFG.store && CFG.store.name) ? CFG.store.name : 'RunMyStore',
+        currency: 'EUR'
+    };
+
+    var totalCopies = 0;
+    items.forEach(function(it){ totalCopies += it.qty; });
+    showToast('Печат: ' + totalCopies + ' ет...', 'info');
+
+    try {
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var parts = it.combo.parts || [];
+            var sizeVal = '', colorVal = '';
+            parts.forEach(function(p){
+                var n = p.axis.toLowerCase();
+                if (n.includes('размер') || n.includes('size')) sizeVal = p.value;
+                else if (n.includes('цвят') || n.includes('color')) colorVal = p.value;
+            });
+            var labelName = name + (sizeVal ? ' ' + sizeVal : '') + (colorVal ? ' ' + colorVal : '');
+            var product = {
+                code: code,
+                name: labelName,
+                retail_price: price,
+                barcode: barcode
+            };
+            await CapPrinter.print(product, storeInfo, it.qty);
+        }
+        showToast('Готово: ' + totalCopies + ' етикета', 'success');
+    } catch (e) {
+        showToast('Грешка: ' + (e.message || e), 'error');
+    }
+}
+
 function wizLabelsReset(){
     var combos=S.wizData._printCombos||[];
     combos.forEach(function(c,i){
