@@ -1256,6 +1256,9 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 | warehouse.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/warehouse.md |
 | inventory.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/inventory.md |
 | stats.php | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/mirrors/stats.md |
+| INVENTORY_v4.md | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/INVENTORY_v4.md |
+| INVENTORY_HIDDEN_v3.md | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/INVENTORY_HIDDEN_v3.md |
+| DOC_11_INVENTORY_WAREHOUSE.md | https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/DOC_11_INVENTORY_WAREHOUSE.md |
 
 **MD файловете в корена:**
 - MASTER_COMPASS.md → https://raw.githubusercontent.com/tiholenev-tech/runmystore/main/MASTER_COMPASS.md
