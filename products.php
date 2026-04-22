@@ -8545,7 +8545,7 @@ function loadSections() {
                         ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
                         : (emoji ? `<span class="art-emoji">${emoji}</span>` : `<svg class="art-svg-fallback" viewBox="0 0 48 48" fill="none"> <defs>  <linearGradient id="ngg1" x1="0" y1="0" x2="1" y2="1">   <stop offset="0" stop-color="currentColor" stop-opacity=".85"/>   <stop offset="1" stop-color="currentColor" stop-opacity=".35"/>  </linearGradient>  <filter id="ngf1" x="-30%" y="-30%" width="160%" height="160%">   <feGaussianBlur stdDeviation="1.5" result="b"/>   <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>  </filter> </defs> <!-- Хексагонален rim с glow --> <polygon points="24,5 39,13 39,32 24,40 9,32 9,13"   stroke="url(#ngg1)" stroke-width="1.5" fill="none" filter="url(#ngf1)" opacity=".8"/> <polygon points="24,10 35,16 35,30 24,36 13,30 13,16"   stroke="currentColor" stroke-width=".8" fill="none" opacity=".5"/> <!-- Централен символ — звезда/кристал --> <path d="M24 17 L27 22 L32 22.5 L28 26 L29 31 L24 28.5 L19 31 L20 26 L16 22.5 L21 22 Z"   fill="url(#ngg1)" stroke="currentColor" stroke-width=".4" filter="url(#ngf1)"/> <circle cx="24" cy="23" r="1.5" fill="currentColor" opacity=".9"/></svg>`);
                     return `
-                    <div class="glass sm ${q} art" onclick="editProduct(${it.id})">
+                    <div class="glass sm ${q} art" onclick="openProductDetail(${it.id})" data-fix="S79.FIX.B-BUG9">
                         <span class="shine"></span><span class="shine shine-bottom"></span>
                         <div class="art-photo">
                             ${photoContent}
