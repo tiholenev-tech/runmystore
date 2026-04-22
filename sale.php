@@ -782,6 +782,10 @@ body::before{
 .kb-key { flex: 1 !important; min-width: 0 !important; max-width: 42px !important; padding: 0 !important; }
 .kb-key.wide { flex: 1.5 !important; max-width: 65px !important; }
 
+
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
 </head>
 <body>

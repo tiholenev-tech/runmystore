@@ -392,7 +392,11 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             background: rgba(99, 102, 241, 0.3);
             border-radius: 3px;
         }
-    </style>
+    
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
+</style>
 </head>
 <body>
 

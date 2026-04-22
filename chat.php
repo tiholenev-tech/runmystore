@@ -318,7 +318,7 @@ $chat_messages = DB::run(
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#030712">
 <title>RunMyStore.ai</title>
 <style>
@@ -664,6 +664,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 @keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
 @keyframes vrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
 @keyframes cardin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
 </head>
 <body>

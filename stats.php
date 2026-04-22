@@ -118,7 +118,7 @@ $hlabel = $health_score >= 70 ? 'Бизнесът е в добро здраве'
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Статистики — RunMyStore.ai</title>
 <style>
 :root{
@@ -843,6 +843,10 @@ body::before{
     background:rgba(99,102,241,.3);
     border-radius:3px;
 }
+
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
 </head>
 <body>
