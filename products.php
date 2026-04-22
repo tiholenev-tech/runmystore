@@ -11,6 +11,7 @@ session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
+require_once 'config/helpers.php';
 require_once 'compute-insights.php';
 
 $pdo = DB::get();
