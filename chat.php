@@ -220,6 +220,31 @@ try {
 $briefing = array_slice($insights, 0, 3);
 $remaining = max(0, count($insights) - 3);
 
+// S79_P4_PROACTIVE_STRIP — top strip pills (loss+order, 6h cooldown)
+$proactive_pills = [];
+try {
+    if (planAtLeast($plan, 'pro')) {
+        $sql = "SELECT i.id, i.topic_id, i.fundamental_question, i.title,
+                       i.value_numeric, i.product_count, i.category, i.product_id
+                FROM ai_insights i
+                LEFT JOIN ai_shown s ON s.tenant_id = i.tenant_id
+                  AND s.topic_id = i.topic_id
+                  AND s.user_id = ?
+                  AND s.shown_at > NOW() - INTERVAL 6 HOUR
+                WHERE i.tenant_id = ?
+                  AND (i.store_id = 0 OR i.store_id = ?)
+                  AND (i.expires_at IS NULL OR i.expires_at > NOW())
+                  AND i.fundamental_question IN ('loss','order')
+                  AND (i.role_gate = '' OR i.role_gate IS NULL OR FIND_IN_SET(?, i.role_gate) > 0)
+                  AND s.id IS NULL
+                ORDER BY FIELD(i.fundamental_question,'loss','order'),
+                         (i.urgency='critical') DESC,
+                         i.value_numeric DESC
+                LIMIT 3";
+        $proactive_pills = DB::run($sql, [$user_id, $tenant_id, $store_id, $role])->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (Exception $e) { error_log("S79 proactive pills: " . $e->getMessage()); }
+
 // Generate action button from insight — DB columns first, fallback to topic_id
 function insightAction(array $ins): array {
     // DB action columns (from compute-insights.php, populated by next session)
@@ -231,7 +256,32 @@ function insightAction(array $ins): array {
             'data'  => $ins['action_data'] ? json_decode($ins['action_data'], true) : null,
         ];
     }
-    // Fallback: derive from topic_id (works with current 30 functions)
+    // S79_P1_INSIGHT_ACTION_FQ — 2-ри fallback: fundamental_question специфични actions
+    $fq = $ins['fundamental_question'] ?? '';
+    $tid = $ins['topic_id'] ?? '';
+    if ($fq && empty($ins['action_label'])) {
+        switch ($fq) {
+            case 'loss':
+                if (str_contains($tid, 'zero') || str_contains($tid, 'stock') || str_contains($tid, 'below_min') || str_contains($tid, 'running_out'))
+                    return ['label' => 'Поръчай липсите', 'type' => 'order_draft', 'url' => null, 'data' => null];
+                return ['label' => 'Виж детайли', 'type' => 'deeplink', 'url' => 'products.php', 'data' => null];
+            case 'loss_cause':
+                if (!empty($ins['supplier_id']))
+                    return ['label' => 'Виж доставчика', 'type' => 'deeplink', 'url' => 'products.php?supplier='.(int)$ins['supplier_id'], 'data' => null];
+                if (str_contains($tid, 'below_cost') || str_contains($tid, 'selling_at_loss') || str_contains($tid, 'margin'))
+                    return ['label' => 'Коригирай цени', 'type' => 'deeplink', 'url' => 'products.php?filter=below_cost', 'data' => null];
+                return ['label' => 'Виж причината', 'type' => 'chat', 'url' => null, 'data' => null];
+            case 'gain':
+                return ['label' => 'Виж продажби', 'type' => 'deeplink', 'url' => 'products.php?filter=top_profit', 'data' => null];
+            case 'gain_cause':
+                return ['label' => 'Повече данни', 'type' => 'chat', 'url' => null, 'data' => null];
+            case 'order':
+                return ['label' => 'Подготви поръчка', 'type' => 'order_draft', 'url' => null, 'data' => null];
+            case 'anti_order':
+                return ['label' => 'Виж zombie стока', 'type' => 'deeplink', 'url' => 'products.php?filter=zombie', 'data' => null];
+        }
+    }
+    // 3-ти fallback: derive from topic_id
     $tid = $ins['topic_id'] ?? '';
     if (str_contains($tid, 'zero_stock') || str_contains($tid, 'low_stock'))
         return ['label' => 'Добави за поръчка', 'type' => 'order_draft', 'url' => null, 'data' => null];
@@ -285,6 +335,17 @@ foreach ($insights as $idx => $ins) {
         'data'       => $ins['data_json'] ? json_decode($ins['data_json'], true) : null,
         'action'     => $action,
         'topicId'    => $ins['topic_id'] ?? '',
+        // S79_P2_JS_FQ — fundamental_question + UI hue class
+        'fq'         => $ins['fundamental_question'] ?? '',
+        'qClass'     => (function($f){ return match($f){
+            'loss'=>'q1', 'loss_cause'=>'q2', 'gain'=>'q3',
+            'gain_cause'=>'q4', 'order'=>'q5', 'anti_order'=>'q6',
+            default=>'' }; })($ins['fundamental_question'] ?? ''),
+        'fqLabel'    => (function($f){ return match($f){
+            'loss'=>'🔴 Какво губиш', 'loss_cause'=>'🟣 От какво губиш',
+            'gain'=>'🟢 Какво печелиш', 'gain_cause'=>'🔷 От какво печелиш',
+            'order'=>'🟡 Поръчай', 'anti_order'=>'⚫ НЕ поръчвай',
+            default=>'' }; })($ins['fundamental_question'] ?? ''),
     ];
 }
 $all_insights_json = json_encode($all_insights_for_js, JSON_UNESCAPED_UNICODE);
@@ -423,6 +484,37 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .signal-card{padding:9px 11px;margin:5px 0;border-radius:14px;cursor:pointer;
     display:flex;align-items:flex-start;gap:8px;transition:all .15s}
 .signal-card:active{transform:scale(.98)}
+/* S79_P3_CSS_Q_HUES — 6-те фундаментални въпроса hue classes (BIBLE §6) */
+.signal-card.q1{border-left:3px solid hsl(0,85%,60%)}
+.signal-card.q2{border-left:3px solid hsl(280,70%,65%)}
+.signal-card.q3{border-left:3px solid hsl(145,70%,55%)}
+.signal-card.q4{border-left:3px solid hsl(175,70%,55%)}
+.signal-card.q5{border-left:3px solid hsl(38,90%,60%)}
+.signal-card.q6{border-left:3px solid hsl(220,10%,55%)}
+/* Proactive pills top strip */
+.top-strip{display:flex;gap:6px;padding:8px 12px 0;overflow-x:auto;scrollbar-width:none}
+.top-strip::-webkit-scrollbar{display:none}
+.top-pill{flex-shrink:0;padding:5px 10px;border-radius:12px;cursor:pointer;
+  font-size:10px;line-height:1.2;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);color:#e2e8f0;
+  display:flex;align-items:center;gap:5px;max-width:230px;
+  transition:transform .15s,background .15s}
+.top-pill:active{transform:scale(.96)}
+.top-pill.q1{border-left:2px solid hsl(0,85%,60%);background:rgba(239,68,68,.06)}
+.top-pill.q5{border-left:2px solid hsl(38,90%,60%);background:rgba(251,191,36,.06)}
+.top-pill .tp-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-pill .tp-val{font-weight:700;color:#fbbf24;flex-shrink:0}
+.top-pill.q1 .tp-val{color:#fca5a5}
+/* fq badge в Signal Detail */
+.fq-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
+  border-radius:10px;font-size:9px;font-weight:600;margin-bottom:7px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
+.fq-badge.q1{color:#fca5a5;border-color:hsl(0,85%,60%,.3)}
+.fq-badge.q2{color:#c4b5fd;border-color:hsl(280,70%,65%,.3)}
+.fq-badge.q3{color:#86efac;border-color:hsl(145,70%,55%,.3)}
+.fq-badge.q4{color:#5eead4;border-color:hsl(175,70%,55%,.3)}
+.fq-badge.q5{color:#fcd34d;border-color:hsl(38,90%,60%,.3)}
+.fq-badge.q6{color:#9ca3af;border-color:hsl(220,10%,55%,.3)}
 .sig-critical{background:rgba(239,68,68,.03);border:.5px solid rgba(239,68,68,.15);border-left:4px solid #ef4444}
 .sig-warning{background:rgba(251,191,36,.02);border:.5px solid rgba(251,191,36,.12);border-left:4px solid #fbbf24}
 .sig-info{background:rgba(34,197,94,.02);border:.5px solid rgba(34,197,94,.12);border-left:4px solid #4ade80}
@@ -795,12 +887,28 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     <span class="ai-meta-time">&middot; <?= date('H:i') ?></span>
   </div>
 
+  <?php /* S79_P5_TOP_STRIP_HTML — proactive pills top strip */ if (!empty($proactive_pills)): ?>
+  <div class="top-strip">
+    <?php foreach ($proactive_pills as $pp):
+        $pp_q = match($pp['fundamental_question']){ 'loss'=>'q1', 'order'=>'q5', default=>'' };
+        $pp_val = (float)($pp['value_numeric'] ?? 0);
+        $pp_val_str = $pp_val > 0 ? number_format($pp_val, 0, '.', ' ') . ' ' . $cs : '';
+    ?>
+    <div class="top-pill <?= $pp_q ?>" data-topic="<?= htmlspecialchars($pp['topic_id'], ENT_QUOTES) ?>" data-cat="<?= htmlspecialchars($pp['category'] ?? '', ENT_QUOTES) ?>" data-pid="<?= (int)($pp['product_id'] ?? 0) ?>" onclick="proactivePillTap(this, '<?= htmlspecialchars(addslashes($pp['title']), ENT_QUOTES) ?>')">
+      <span class="tp-txt"><?= htmlspecialchars($pp['title']) ?></span>
+      <?php if ($pp_val_str): ?><span class="tp-val"><?= $pp_val_str ?></span><?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <?php if (!empty($briefing)): ?>
   <!-- PRO: Real insights -->
   <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
     <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
     <?php foreach ($briefing as $bidx => $ins): ?>
-    <div class="signal-card <?= urgencyClass($ins['urgency']) ?>" onclick="openSignalDetail(<?= $bidx ?>)">
+    <?php /* S79_P6_SIG_Q_CLASS */ $sig_q = match($ins['fundamental_question'] ?? ''){
+        'loss'=>'q1','loss_cause'=>'q2','gain'=>'q3','gain_cause'=>'q4','order'=>'q5','anti_order'=>'q6',default=>'' }; ?>
+    <div class="signal-card <?= urgencyClass($ins['urgency']) ?> <?= $sig_q ?>" onclick="openSignalDetail(<?= $bidx ?>)">
       <div class="signal-stripe <?= urgencyClass($ins['urgency']) ?>-stripe"></div>
       <div class="signal-content">
         <div class="signal-title"><?= htmlspecialchars($ins['title']) ?></div>
@@ -1235,7 +1343,41 @@ function stopVoice() {
 // ══════════════════════════════════════════════
 let sigDetailOpen = false;
 
+// S79_P7_JS_MARK_SHOWN — AJAX към mark-insight-shown.php
+function markInsightShown(topicId, action, category, pid) {
+  try {
+    fetch('mark-insight-shown.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'topic_id=' + encodeURIComponent(topicId || '')
+          + '&action=' + encodeURIComponent(action || 'shown')
+          + '&category=' + encodeURIComponent(category || '')
+          + '&product_id=' + encodeURIComponent(pid || 0)
+    }).catch(function(e){ console.warn('mark-insight-shown fail', e); });
+  } catch(e) {}
+}
+// Proactive pill tap → mark shown + open detail ако има в insights
+function proactivePillTap(el, title) {
+  var topic = el.getAttribute('data-topic') || '';
+  var cat = el.getAttribute('data-cat') || '';
+  var pid = el.getAttribute('data-pid') || 0;
+  markInsightShown(topic, 'tapped', cat, pid);
+  // Опитай да намериш insight в текущия pool
+  if (typeof ALL_INSIGHTS !== 'undefined') {
+    for (var i=0; i<ALL_INSIGHTS.length; i++) {
+      if (ALL_INSIGHTS[i].topicId === topic) { openSignalDetail(i); return; }
+    }
+  }
+  // Fallback: отвори чат с title
+  if (typeof openChatQ === 'function') openChatQ(title);
+}
+
 function openSignalDetail(idx) {
+    // S79_P8_FQ_BADGE_RENDER + mark as tapped
+    try {
+        var _s = (typeof ALL_INSIGHTS !== 'undefined') ? ALL_INSIGHTS[idx] : null;
+        if (_s && _s.topicId) markInsightShown(_s.topicId, 'tapped', _s.category || '', 0);
+    } catch(e) {} // S79_P8_FQ_BADGE_RENDER
     const s = ALL_INSIGHTS[idx];
     if (!s) return;
     sigDetailOpen = true;
