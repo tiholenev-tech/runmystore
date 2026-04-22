@@ -77,7 +77,7 @@
 |---|---|---|---|
 | `products.php` | 🟡 работи с 3 P0 бъга | 8394 | S78 fix → S79 главна → S80 wizard → S81 AI → S82 polish |
 | `sale.php` | 🟡 базово работи, нужен rewrite | — | S85 (voice primary + camera always-live + numpad) |
-| `chat.php` | 🟡 v7 dashboard + overlay | 1266 | S95 (Simple Mode = AI chat) |
+| `chat.php` | 🟢 v7 + 6Q AI context + proactive pills + ai_shown tracking | 1605 | S79.FIX (fq-badge), CHAT 4 visual rewrite, S95 Simple Mode |
 | `warehouse.php` | 🔴 само скелет | — | S87 (hub rewrite + 5 подмодула) |
 | `inventory.php` | 🟡 v3 работи, v4 rewrite | — | S87 (event-sourced, Smart Resolver, offline) |
 | `stats.php` | 🟡 базово | — | S93 (5 таба, role-based, drawer) |
@@ -903,6 +903,21 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 22.04.2026 — S79.CHAT_INTEGRATION: chat.php → ai_insights свързан
+
+- **Решение:**
+  (а) build-prompt.php получава 6Q context block от ai_insights (готови числа за AI)
+  (б) chat.php проактивни pills с 6h cooldown + Signal Detail с fq actions
+  (в) нов endpoint mark-insight-shown.php за tracking
+  (г) ORDER BY narrative flow: loss → loss_cause → gain → gain_cause → order → anti_order
+- **Защо narrative flow:** Разказвателен поток е по-естествен за AI reading context. Старият priority order (loss→loss_cause→anti_order→order→gain→gain_cause) остава за Selection Engine когато избираме top-3.
+- **Засегнати модули:** build-prompt.php, chat.php, mark-insight-shown.php (нов), ai_shown (INSERT flow), BIBLE §6.5
+- **Rework затворени:** #3 (chat.php AI prompts + fundamental_question)
+- **Нови rework:** S79.FIX (fq-badge в Signal Detail overlay, priceFormat/qtyFormat в top-pill values)
+- **Статус:** ✅ done
+- **Commits:** 8a91c27 (ETAP 1 build-prompt), 33eb831 (ETAP 2+3 chat.php + endpoint)
+- **Tag:** v0.5.4-s79-chat-integration
+
 ## 22.04.2026 — S79.CRON_AUDIT завършено (CHAT 3)
 - **Решение:** cron-insights.php wrapper (15 min), audit_log extension, cron_heartbeats, auditLog() v2
 - **Засегнати:** compute-insights.php (guard), config/helpers.php, new: cron-insights.php, /etc/cron.d/runmystore, migrations/20260422_002_*
@@ -1016,7 +1031,9 @@ cron-weather.php → 06:00
 |---|---|---|---|---|---|
 | 1 | products.php UI pills | 19.04.2026 (6-те въпроса закон) | Класифицирай всички съществуващи pills с fundamental_question | S79 | ⏳ pending |
 | 2 | ai_insights съществуващи редове | 19.04.2026 (6-те въпроса закон) | Migration script попълва fundamental_question за стари редове | S78 | ⏳ pending |
-| 3 | chat.php AI prompts | 19.04.2026 (AI tag per insight) | build-prompt.php добавя fundamental_question в context | S91+ | ⏳ pending |
+| 3 | chat.php AI prompts | 19.04.2026 (AI tag per insight) | build-prompt.php добавя fundamental_question в context | **S79 ✅ done 22.04.2026** | ✅ closed |
+| 9 | chat.php Signal Detail | 22.04.2026 (S79 S79.FIX) | Добави fq-badge (q1-q6) в overlay header + priceFormat/qtyFormat в top-pill values | S79.FIX или CHAT 4 rewrite | ⏳ pending |
+| 10 | chat.php visual | 22.04.2026 (home-neon-v2 approved) | Пълен CSS rewrite към home-neon-v2 дизайн, запазвайки S79 PHP логика | CHAT 4 | ⏳ pending |
 | 4 | ВСИЧКИ модули — currency format | 17.04.2026 (i18n) | Замяна hardcoded "лв"/"€" с `priceFormat($amount, $tenant)` | S96 | ⏳ pending |
 | 5 | ВСИЧКИ модули — BG текст | 17.04.2026 (i18n) | Замяна с `t('key')` или $tenant['language'] check | S96 | ⏳ pending |
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
