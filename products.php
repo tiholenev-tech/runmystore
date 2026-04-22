@@ -3302,6 +3302,41 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .health-fill.fill-yellow{background:linear-gradient(90deg,#eab308,#ca8a04)}
 .health-fill.fill-orange{background:linear-gradient(90deg,#f97316,#ea580c)}
 .health-fill.fill-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
+
+/* ═══ S79.FIX.B-HEALTH-OV: Health Detail Overlay (опция В) ═══ */
+.health-ov{position:fixed;inset:0;background:rgba(3,7,18,0.78);backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .25s}
+.health-ov.open{opacity:1}
+.health-ov-box{position:relative;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:linear-gradient(180deg,rgba(15,15,40,0.95),rgba(8,12,30,0.98));border-top:1px solid rgba(20,184,166,0.35);border-radius:20px 20px 0 0;padding:24px 18px 32px;box-shadow:0 -16px 60px rgba(20,184,166,0.15);transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.health-ov.open .health-ov-box{transform:translateY(0)}
+.health-ov-box .shine{position:absolute;top:0;left:18%;right:18%;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.7),transparent);pointer-events:none}
+.health-ov-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.health-ov-close:active{background:rgba(99,102,241,.25)}
+.health-ov-hdr{text-align:center;padding:6px 0 18px}
+.health-ov-icon{font-size:28px;margin-bottom:6px}
+.health-ov-score{font-size:42px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;margin-bottom:6px}
+.health-ov-title{font-size:14px;color:#5eead4;font-weight:600;margin-bottom:4px}
+.health-ov-status{font-size:12px;color:rgba(94,234,212,.7);padding:0 16px;line-height:1.4}
+.health-ov-bd{padding:14px 8px;border-top:1px solid rgba(20,184,166,.15);border-bottom:1px solid rgba(20,184,166,.15);margin:0 0 16px}
+.hov-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+.hov-row:first-child{margin-top:0}
+.hov-lbl{font-size:11px;color:#5eead4;width:88px;flex-shrink:0;font-weight:600}
+.hov-bar{flex:1;height:5px;background:rgba(20,184,166,.12);border-radius:3px;overflow:hidden}
+.hov-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:3px;box-shadow:0 0 6px rgba(20,184,166,.4);transition:width .8s ease-out}
+.hov-val{font-size:12px;color:#5eead4;font-weight:700;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.hov-sub{font-size:10px;color:rgba(148,163,184,.6);margin:3px 0 0 96px;line-height:1.3}
+.health-ov-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 4px 16px}
+.hov-meta-cell{text-align:center;padding:10px 6px;background:rgba(15,15,40,.4);border:1px solid rgba(99,102,241,.15);border-radius:12px}
+.hov-meta-num{font-size:20px;font-weight:700;color:#e0e7ff;font-variant-numeric:tabular-nums}
+.hov-meta-lbl{font-size:10px;color:rgba(165,180,252,.7);margin-top:2px}
+.health-ov-actions{display:flex;flex-direction:column;gap:8px;padding:0 2px}
+.hov-act{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(15,15,40,.5);border:1px solid rgba(99,102,241,.2);border-radius:14px;cursor:pointer;text-align:left;color:inherit;font-family:inherit;transition:all .15s;min-height:60px}
+.hov-act:active{transform:scale(.99);background:rgba(15,15,40,.7)}
+.hov-act-primary{border-color:rgba(20,184,166,.4);background:linear-gradient(135deg,rgba(20,184,166,.12),rgba(6,182,212,.08))}
+.hov-act-primary:active{background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(6,182,212,.12))}
+.hov-act-ic{font-size:22px;width:36px;text-align:center;flex-shrink:0}
+.hov-act-txt{flex:1}
+.hov-act-ttl{font-size:14px;font-weight:600;color:#e0e7ff;margin-bottom:2px}
+.hov-act-hnt{font-size:11px;color:rgba(148,163,184,.7)}
 </style>
 </head>
 <body>
@@ -8554,10 +8589,79 @@ function renderStoreHealth(h) {
     window._storeHealthData = h;
 }
 function openStoreHealthDetail() {
+    /* S79.FIX.B-HEALTH-OV: full detail overlay (опция В) */
     const h = window._storeHealthData;
     if (!h) return;
-    const meta = h.score + '% · ' + (h.uncounted||0) + ' непреброени · ' + (h.incomplete||0) + ' недовършени';
-    if (typeof showToast === 'function') showToast('Здраве на склада: ' + meta, '');
+    const score = h.score || 0;
+    let statusText, statusColor, statusIcon;
+    if (score >= 95) { statusText='В перфектна форма. AI знае всичко.'; statusColor='#22c55e'; statusIcon='🟢'; }
+    else if (score >= 80) { statusText='Добре, но AI гадае за някои неща.'; statusColor='#eab308'; statusIcon='🟡'; }
+    else if (score >= 60) { statusText='AI не е сигурен. Съветите може да са неточни.'; statusColor='#f97316'; statusIcon='🟠'; }
+    else { statusText='AI гадае. Основните функции са ограничени.'; statusColor='#ef4444'; statusIcon='🔴'; }
+    const old = document.getElementById('healthOverlay');
+    if (old) old.remove();
+    const ov = document.createElement('div');
+    ov.id = 'healthOverlay';
+    ov.className = 'health-ov';
+    ov.onclick = function(e){ if(e.target===ov) closeHealthOverlay(); };
+    const fmt = (n) => n + '%';
+    ov.innerHTML = `
+        <div class="health-ov-box">
+            <span class="shine"></span>
+            <button class="health-ov-close" onclick="closeHealthOverlay()">✕</button>
+            <div class="health-ov-hdr">
+                <div class="health-ov-icon">${statusIcon}</div>
+                <div class="health-ov-score" style="color:${statusColor}">${score}<span style="font-size:18px;opacity:.6">%</span></div>
+                <div class="health-ov-title">Здраве на склада</div>
+                <div class="health-ov-status">${statusText}</div>
+            </div>
+            <div class="health-ov-bd">
+                <div class="hov-row"><span class="hov-lbl">Точност</span><div class="hov-bar"><div class="hov-fill" style="width:${h.accuracy}%"></div></div><span class="hov-val">${fmt(h.accuracy)}</span></div>
+                <div class="hov-sub">Артикули преброени в последните 30 дни (тегло 40%)</div>
+                <div class="hov-row"><span class="hov-lbl">Свежест</span><div class="hov-bar"><div class="hov-fill" style="width:${h.freshness}%"></div></div><span class="hov-val">${fmt(h.freshness)}</span></div>
+                <div class="hov-sub">Колко скоро е било последното броене (тегло 30%)</div>
+                <div class="hov-row"><span class="hov-lbl">AI увереност</span><div class="hov-bar"><div class="hov-fill" style="width:${h.confidence}%"></div></div><span class="hov-val">${fmt(h.confidence)}</span></div>
+                <div class="hov-sub">Колко добре AI познава артикулите ти (тегло 30%)</div>
+            </div>
+            <div class="health-ov-meta">
+                <div class="hov-meta-cell"><div class="hov-meta-num">${h.uncounted||0}</div><div class="hov-meta-lbl">непреброени</div></div>
+                <div class="hov-meta-cell"><div class="hov-meta-num">${h.incomplete||0}</div><div class="hov-meta-lbl">недовършени</div></div>
+                <div class="hov-meta-cell"><div class="hov-meta-num">${h.total||0}</div><div class="hov-meta-lbl">общо</div></div>
+            </div>
+            <div class="health-ov-actions">
+                <button class="hov-act hov-act-primary" onclick="healthAction('quick')">
+                    <div class="hov-act-ic">⚡</div>
+                    <div class="hov-act-txt"><div class="hov-act-ttl">Бърза проверка</div><div class="hov-act-hnt">5 артикула · 2 мин</div></div>
+                </button>
+                <button class="hov-act" onclick="healthAction('zone')">
+                    <div class="hov-act-ic">📍</div>
+                    <div class="hov-act-txt"><div class="hov-act-ttl">Зона по зона</div><div class="hov-act-hnt">Една секция от магазина</div></div>
+                </button>
+                <button class="hov-act" onclick="healthAction('full')">
+                    <div class="hov-act-ic">📦</div>
+                    <div class="hov-act-txt"><div class="hov-act-ttl">Пълно броене</div><div class="hov-act-hnt">Цялата стока</div></div>
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(ov);
+    requestAnimationFrame(()=>ov.classList.add('open'));
+    document.body.style.overflow='hidden';
+    history.pushState({modal:'healthOv'}, '', '#healthOv');
+}
+function closeHealthOverlay() {
+    const ov = document.getElementById('healthOverlay');
+    if (!ov) return;
+    ov.classList.remove('open');
+    document.body.style.overflow='';
+    setTimeout(()=>ov.remove(), 250);
+    if (location.hash === '#healthOv') history.back();
+}
+function healthAction(mode) {
+    /* S79.FIX.B: navigate към inventory с mode hint. inventory.php ще ги поеме в S87. */
+    closeHealthOverlay();
+    const url = 'inventory.php?from=health&mode=' + encodeURIComponent(mode);
+    setTimeout(()=>{ window.location.href = url; }, 200);
 }
 (function(){
     function tryFetch(){
@@ -8572,6 +8676,16 @@ function openStoreHealthDetail() {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(tryFetch, 800));
     else setTimeout(tryFetch, 800);
 })();
+
+/* S79.FIX.B-HEALTH-OV: handle back-button to close overlay */
+window.addEventListener('popstate', function(e){
+    const ov = document.getElementById('healthOverlay');
+    if (ov && ov.classList.contains('open')) {
+        ov.classList.remove('open');
+        document.body.style.overflow='';
+        setTimeout(()=>ov.remove(), 250);
+    }
+});
 </script>
 
 <!-- Supplier Category Picker Modal -->
