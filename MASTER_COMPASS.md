@@ -2,9 +2,9 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 22.04.2026
-**Последна завършена сесия:** S79.FIX.B (hidden inventory + Bug #9, 22.04.2026)
-**Следваща сесия:** S79 главна (DB foundations: schema_migrations, audit_log helper, DB::tx, soft delete, money cents)
+**Последна актуализация:** 22.04.2026 (вечер)
+**Последна завършена сесия:** S79.INSIGHTS (compute-insights.php, 19 функции, 22.04.2026)
+**Следваща сесия:** S79.SECURITY (P0 — DB credentials в публично репо: ротация + .env + .gitignore)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -32,30 +32,35 @@
 **Формат на отговора при отваряне:**
 
 ```
-Прочетох COMPASS + DOC 01 + SESSION_77 + [specific].
+Прочетох COMPASS + DOC 01 + SESSION_79_INSIGHTS_HANDOFF + [specific].
 
 СЪСТОЯНИЕ:
-- Последна сесия: S77 (design) — 19.04.2026
-- Последен commit: 07381e9 (S76)
+- Последна сесия: S79.INSIGHTS (compute-insights.php, 22.04.2026)
+- Последен commit: 5b8a3e0 (S79.INSIGHTS)
 - Текуща фаза: Phase A (Products Foundation)
-- Завършено: 5%
+- Завършено: ~15%
 
 РАБОТИ:
-- products.php v0.9 (списък, wizard, детайли)
+- products.php v0.9 (списък, wizard, детайли) — 8394 реда
 - sale.php (базова функционалност)
 - chat.php v7 (dashboard + overlay)
+- compute-insights.php (19 pf функции, 9 активни на tenant 7) — 1280 реда
+- ai_insights генерира реални insights (zombie 148K EUR, top profit, bestsellers low stock и т.н.)
 
 НЕ РАБОТИ:
-- 3 P0 bugs в products.php (#5 _hasPhoto, #6 renderWizard нулира бройки, #7 sold_30d=0)
-- S77 DB таблиците (ai_insights fundamental_question, supplier_orders*, lost_demand)
-- compute-insights.php (0 функции, target 15 за products)
+- products.php P0 bugs от PRODUCTS_MAIN_BUGS_S80.md
+- DB credentials в публично репо (P0 SECURITY)
+- Cron за compute-insights не е настроен
+- compute-insights само за първия магазин на tenant (multi-store отложено)
 - orders.php, deliveries.php, simple.php (не съществуват)
 - Bluetooth печат (не интегриран)
 
-СЛЕДВАЩА ЗАДАЧА (S78):
-1. DB миграция — всички S77 таблици
-2. P0 bugs #5, #6, #7 в products.php
-3. compute-insights.php skeleton (15 функции)
+СЛЕДВАЩА ЗАДАЧА (S79.SECURITY P0):
+1. Ротирай MySQL парола
+2. Създай .env с credentials
+3. .env в .gitignore
+4. config/database.php чете от env vars
+5. Force-rebase или accept exposure (старата парола ротирана = OK)
 
 Започвам от задача 1. Команди за конзолата идват сега.
 ```
@@ -81,7 +86,7 @@
 | `transfers.php` | 🔴 не съществува | — | S92 (multi-store + resolver) |
 | `simple.php` / `life-board.php` | 🔴 не съществува | — | S95 (AI chat = home) |
 | `ai-action.php` | 🔴 не съществува | — | S94 (router + $MODULE_ACTIONS) |
-| `compute-insights.php` | 🔴 0 функции, target 100+ | — | S78 skeleton (15) → expand each module |
+| `compute-insights.php` | ✅ 19 функции (products), 9 активни на tenant 7 | 1280 | S79.INSIGHTS done → S84 (+20 за warehouse/sale/stats) |
 
 ## DB foundation
 
@@ -97,7 +102,7 @@
 | `idempotency_keys` таблица | 🔴 няма | S80 |
 | Stock movements append-only ledger | 🔴 няма | S81 |
 | `events` + `dead_letter_queue` | 🔴 няма | S81 |
-| **S77 таблици** (ai_insights, supplier_orders*, lost_demand) | 🔴 **няма** | **S78** |
+| **S77 таблици** (ai_insights, supplier_orders*, lost_demand) | ✅ S78 + S79.INSIGHTS popolnen ai_insights | S78 |
 | `idempotency_log` (multi-device) | 🔴 няма | S78 |
 | `user_devices` (multi-device tracking) | 🔴 няма | S78 |
 | `wizard_draft` (crash recovery) | 🔴 няма | S79 |
