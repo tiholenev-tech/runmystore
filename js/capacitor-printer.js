@@ -24,8 +24,21 @@
   // ----- Helpers -----
 
   function isCapacitor() {
-    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    // Check Capacitor bridge first
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+    // Fallback: URL param (set by APK on first load)
+    try {
+      if (new URLSearchParams(window.location.search).get('capacitor') === '1') return true;
+      if (sessionStorage.getItem('_is_capacitor') === '1') return true;
+    } catch(e) {}
+    return false;
   }
+  // Persist capacitor flag across navigation
+  try {
+    if (new URLSearchParams(window.location.search).get('capacitor') === '1') {
+      sessionStorage.setItem('_is_capacitor', '1');
+    }
+  } catch(e) {}
 
   function getBle() {
     if (!window.CapacitorBluetoothLe) {
