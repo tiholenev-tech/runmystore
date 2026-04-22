@@ -2,9 +2,9 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 21.04.2026  
-**Последна завършена сесия:** S77 (design + architecture, 19.04.2026)  
-**Следваща сесия:** S79.FIX — P0 bugs в products.php главна (10 счупени бутона)
+**Последна актуализация:** 22.04.2026
+**Последна завършена сесия:** S79.FIX.B (hidden inventory + Bug #9, 22.04.2026)
+**Следваща сесия:** S79 главна (DB foundations: schema_migrations, audit_log helper, DB::tx, soft delete, money cents)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -121,9 +121,10 @@
 
 | # | Файл | Симптом | Fix | Сесия |
 |---|---|---|---|---|
-| 5 | products.php `wizPhotoUpload()` ред ~3200 | AI Studio _hasPhoto не се сетва | `S.wizData._hasPhoto = true` след FileReader.onload | ✅ CLOSED (вече fix-нат, S78 verify) |
-| 6 | products.php `renderWizard()` | Нулира бройки при re-render (step 6) | `wizCollectData()` в началото на renderWizard ако step===6; `wizGenDescription()` само обновява textarea | ⏸ DEFERRED → S79.FIX (wizard блокиран) |
-| 7 | products.php `listProducts` ред ~850 | sold_30d = 0 | LEFT JOIN със sale_items aggregated subquery + tenant_id в ON clause | ✅ CLOSED (вече fix-нат, S78 verify) |
+| 5 | products.php `wizPhotoUpload()` | AI Studio _hasPhoto не се сетва | (S78 fix приложен — verify в S79.FIX.B / S80) | S78 ✅ done, retest pending |
+| 6 | products.php `renderWizard()` | Нулира бройки при re-render (step 6) | (S78 fix приложен — retry verification в S79.FIX.B) | S78 ✅ done, retest pending |
+| 7 | products.php `listProducts` | sold_30d = 0 | LEFT JOIN sale_items aggregated subquery | S78 ✅ done |
+| 9 | products.php Q-секции тап | Артикулната карта в q1-q6 отваряше EDIT wizard (data risk) | `editProduct` → `openProductDetail` в `sec.items.map` render | **S79.FIX.B ✅ done** |
 
 ---
 
@@ -945,6 +946,8 @@ cron-weather.php → 06:00
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
 | 10 | products.php main split | 21.04.2026 (S78 CC sweep) | Файлът е 8394 реда (5.6× над 1500 прага) — extract в partials/helpers; кандидат за rewrite | S80 | ⏳ pending |
+| 11 | products.php Q-секции (q1-q6 home) | 22.04.2026 (Тихол: "трябва AI да предлага действие иначе безсмислено") | Всеки артикул в Q-секция трябва да има AI-генериран action button: 'Поръчай 5 при Иванов' / 'Промо -20%' / 'Прехвърли в магазин 2' и т.н. Source: ai_insights.action_label + action_type + action_data вече съществуват в DB. Compute-insights.php трябва да попълва тези колони. UI render да чете и показва бутон под всеки item. Tap на бутона → execute action (без чат). | S81 (AI features) | ⏳ pending
+| 12 | products.php drawer detail screen | 22.04.2026 (свързано с #11) | Detail drawer също да показва AI primary action отгоре ("Препоръчвам: Поръчай 5 от Иванов — 320 лв profit/седм") + secondary actions. Бил е plain product card. | S81 | ⏳ pending
 
 ---
 
@@ -957,6 +960,7 @@ cron-weather.php → 06:00
 | 3 | Pusher account creation | S88 | преди S88 |
 | 4 | Stripe Connect setup | S107 Partners launch | преди S107 |
 | 5 | EU VAT OSS регистрация | S103 GDPR/Legal | преди public launch |
+| 6 | AI action button persona — императив ("Поръчай 5") или предложение ("Препоръчвам: Поръчай 5")? | products.php Q-секции | преди S81 |
 
 ---
 
@@ -1291,3 +1295,18 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 **КРАЙ НА MASTER_COMPASS v3.0**
 
 *„Живият документ. Ако нещо в системата се промени и не е тук — грешка е.""*
+
+
+## 22.04.2026 — Q-секции: тапът отваря DETAIL (НЕ EDIT) — Bug #9 fix
+- **Решение:** В `products.php` Q-секции (q1-q6 fundamental questions home), тапът на артикулна карта вика `openProductDetail(id)` (read-only drawer), НЕ `editProduct(id)` (wizard в EDIT режим).
+- **Защо:** EDIT режимът беше data risk — Пешо случайно тапва, попада в wizard, може неволно да изтрие/промени бройки. Detail drawer = безопасен read-only обзор + знае как да предложи next action.
+- **Засегнати модули:** products.php (само 1 onclick в `sec.items.map` render block); drawer detail и main list onclick-ове ЗАПАЗВАТ editProduct (owner action, безопасен контекст).
+- **Rework:** ЗАВЪРШЕН в S79.FIX.B (commit с маркер S79.FIX.B-BUG9).
+
+## 22.04.2026 — Hidden Inventory Section (Вариант B) добавена
+- **Решение:** В `products.php` Home екран добавена тюркоаз/cyan карта "Здраве на склада" (Store Health %) между Add card и Q-секциите. Tap → bottom-sheet overlay с breakdown (Точност 40% + Свежест 30% + AI увереност 30%) + 3 действия (Бърза проверка / Зона по зона / Пълно броене).
+- **Формула:** Accuracy = % продукти с last_counted_at < 30 дни; Freshness = 100 − (avg_days_since_last_counted × 100/30); Confidence = AVG(products.confidence_score).
+- **Source:** `INVENTORY_HIDDEN_v3.md §10 + §12`, `INVENTORY_v4.md §9`.
+- **Засегнати:** products.php (нов endpoint output `store_health` в home_stats; нов HTML/CSS/JS; нов overlay).
+- **Rework:** ЗАВЪРШЕН в S79.FIX.B (маркер S79.FIX.B-HIDDEN-INV-*).
+
