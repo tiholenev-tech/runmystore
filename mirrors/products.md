@@ -3341,6 +3341,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .hov-act-txt{flex:1}
 .hov-act-ttl{font-size:14px;font-weight:600;color:#e0e7ff;margin-bottom:2px}
 .hov-act-hnt{font-size:11px;color:rgba(148,163,184,.7)}
+
+/* S82.CAPACITOR safe-area */
+body{padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
 </head>
 <body>
