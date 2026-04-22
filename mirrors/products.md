@@ -4289,11 +4289,9 @@ function lblPrint(idx){
         }
         html+='</div>';
     });
-    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script>
-<!-- S79FIX_BUG9_QSECTIONS_APPLIED -->
-
-<!-- S79FIX_BUG567_ADDCARD_APPLIED -->
-</body></html>';
+    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script></body></html>';
+    // S79FIX_BUG9_QSECTIONS_APPLIED
+    // S79FIX_BUG567_ADDCARD_APPLIED
     var w=window.open('','_blank','width=400,height=600');
     if(w){w.document.write(html);w.document.close()}else showToast('Позволи pop-up','error');
 }
