@@ -208,7 +208,8 @@ if ($ajax === 'sections') {
     if ($ajax === 'search') {
         $q = trim($_GET['q'] ?? '');
         $sid = (int)($_GET['store_id'] ?? $store_id);
-        if (strlen($q) < 1) { echo json_encode([]); exit; }
+        $mix = isset($_GET['mix']) ? (int)$_GET['mix'] : 0;  // S79.FIX Bug #2: return products+categories
+        if (strlen($q) < 1) { echo json_encode($mix ? ['products'=>[],'categories'=>[]] : []); exit; }
         $like = "%{$q}%";
         $rows = DB::run("
             SELECT p.id, p.name, p.code, p.retail_price, p.cost_price, p.image_url, p.supplier_id,
@@ -226,6 +227,20 @@ if ($ajax === 'sections') {
             LIMIT 30
         ", [$sid, $tenant_id, $like, $like, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
         if (!$can_see_cost) { foreach ($rows as &$r) unset($r['cost_price']); }
+        if ($mix) {
+            // S79.FIX Bug #2: also fetch categories matching query
+            $cats = DB::run("
+                SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count
+                FROM categories c
+                LEFT JOIN products p ON p.category_id = c.id AND p.is_active = 1 AND p.tenant_id = ?
+                WHERE c.tenant_id = ? AND c.name LIKE ?
+                GROUP BY c.id
+                ORDER BY (c.name LIKE ?) DESC, c.name ASC
+                LIMIT 5
+            ", [$tenant_id, $tenant_id, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['products' => array_slice($rows, 0, 8), 'categories' => $cats, 'total_products' => count($rows)]);
+            exit;
+        }
         echo json_encode($rows); exit;
     }
 
@@ -3329,10 +3344,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
     <div class="search-wrap">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Търси по име, код или баркод...">
+        <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off">
         <button class="s-btn"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot">3</span></button>
         <button class="s-btn mic" onclick="openVoiceSearch()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     </div>
+    <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
+    <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:14px;background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+
 
     <div class="glass add-card">
         <span class="shine"></span><span class="shine shine-bottom"></span>
@@ -7288,6 +7306,93 @@ function showStoreSwitcher(){
 }
 
 // S79FIX_BUG1_HAMBURGER_APPLIED
+
+// S79.FIX Bug #2: Home search autocomplete
+let _hSearchTO = null;
+function onLiveSearchHome(q) {
+    q = q.trim();
+    const dd = document.getElementById('hSearchDD');
+    if (!dd) return;
+    if (q.length < 1) {
+        clearTimeout(_hSearchTO);
+        dd.style.display = 'none';
+        return;
+    }
+    clearTimeout(_hSearchTO);
+    _hSearchTO = setTimeout(async () => {
+        const d = await api('products.php?ajax=search&mix=1&q=' + encodeURIComponent(q) + '&store_id=' + CFG.storeId);
+        if (!d) { dd.style.display = 'none'; return; }
+        const products = d.products || [];
+        const categories = d.categories || [];
+        const totalProducts = d.total_products || products.length;
+        if (!products.length && !categories.length) {
+            dd.innerHTML = '<div style="padding:14px;text-align:center;font-size:12px;color:var(--text-secondary)">Нищо за "' + esc(q) + '"</div>';
+            dd.style.display = 'block';
+            return;
+        }
+        let html = '';
+        // Header with close
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12);position:sticky;top:0;background:rgba(8,8,24,0.98);z-index:1">';
+        html += '<span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">' + (products.length + categories.length) + ' резултата</span>';
+        html += '<div onclick="clearHSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div>';
+        html += '</div>';
+        // Categories first (more important)
+        if (categories.length) {
+            html += '<div style="padding:6px 14px 2px;font-size:9px;font-weight:800;color:var(--indigo-300);text-transform:uppercase;letter-spacing:0.05em">Категории</div>';
+            categories.forEach(c => {
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickHSearchCat(' + c.id + ')">';
+                html += '<div style="width:32px;height:32px;border-radius:8px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
+                html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + esc(c.name) + '</div><div style="font-size:9px;color:var(--text-secondary)">' + (c.product_count || 0) + ' артикула</div></div>';
+                html += '<span style="color:var(--text-secondary);font-size:14px">›</span></div>';
+            });
+        }
+        // Products
+        if (products.length) {
+            html += '<div style="padding:8px 14px 2px;font-size:9px;font-weight:800;color:var(--indigo-300);text-transform:uppercase;letter-spacing:0.05em">Артикули</div>';
+            products.forEach(p => {
+                const stock = parseInt(p.total_stock || 0);
+                const sc = stock > 0 ? 'var(--success)' : 'var(--danger)';
+                const thumb = p.image_url ? '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickHSearchProd(' + p.id + ')">';
+                html += '<div style="width:34px;height:34px;border-radius:8px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">' + thumb + '</div>';
+                html += '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.name) + '</div><div style="font-size:9px;color:var(--text-secondary)">' + esc(p.code || '') + (p.supplier_name ? ' · ' + esc(p.supplier_name) : '') + '</div></div>';
+                html += '<div style="text-align:right;flex-shrink:0"><div style="font-size:11px;font-weight:700;color:var(--indigo-300)">' + fmtPrice(p.retail_price) + '</div><div style="font-size:9px;color:' + sc + '">' + stock + ' бр</div></div></div>';
+            });
+        }
+        // "View all" footer if more products exist
+        if (totalProducts > products.length) {
+            html += '<div style="padding:11px 14px;text-align:center;background:rgba(99,102,241,.06);cursor:pointer;border-top:1px solid rgba(99,102,241,.12)" onclick="viewAllHSearchResults(\'' + q.replace(/'/g, "\\'") + '\')">';
+            html += '<span style="font-size:12px;font-weight:700;color:#a5b4fc">Виж всички ' + totalProducts + ' артикула →</span></div>';
+        }
+        dd.innerHTML = html;
+        dd.style.display = 'block';
+    }, 250);
+}
+
+function clearHSearch() {
+    const inp = document.getElementById('hSearchInp');
+    if (inp) inp.value = '';
+    const dd = document.getElementById('hSearchDD');
+    if (dd) dd.style.display = 'none';
+}
+
+function pickHSearchProd(id) {
+    clearHSearch();
+    openProductDetail(id);
+}
+
+function pickHSearchCat(id) {
+    clearHSearch();
+    goScreenWithHistory('products', {cat: id});
+}
+
+function viewAllHSearchResults(q) {
+    clearHSearch();
+    goScreenWithHistory('products');
+    setTimeout(() => doSearch(q), 100);
+}
+
+// S79FIX_BUG2_AUTOCOMPLETE_APPLIED
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
     history.replaceState({scr:'home'}, '', '#home');
