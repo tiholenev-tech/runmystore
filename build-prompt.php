@@ -124,6 +124,44 @@ function getSeasonalContext(string $business_type, string $country): string {
     return empty($lines) ? '' : implode("\n", $lines);
 }
 
+/**
+ * S79.CHAT_INTEGRATION — insights с fundamental_question за AI context.
+ * Закон №2: PHP подава готови числа, AI само ги облича в изречение.
+ * Filter: expires_at OK, role_gate OK, store_id scope.
+ * Order: narrative flow loss→loss_cause→gain→gain_cause→order→anti_order.
+ */
+function getInsightsForContext(int $tenant_id, int $store_id, string $role, string $module = 'all'): array {
+    $sql = "SELECT i.topic_id, i.fundamental_question, i.title, i.detail_text,
+                   i.value_numeric, i.product_count, i.product_id, i.supplier_id,
+                   i.category, i.module, i.urgency,
+                   p.name AS product_name,
+                   s.name AS supplier_name
+            FROM ai_insights i
+            LEFT JOIN products p ON p.id = i.product_id
+            LEFT JOIN suppliers s ON s.id = i.supplier_id
+            WHERE i.tenant_id = ?
+              AND (i.store_id = 0 OR i.store_id = ?)
+              AND (i.expires_at IS NULL OR i.expires_at > NOW())
+              AND (i.role_gate = '' OR i.role_gate IS NULL OR FIND_IN_SET(?, i.role_gate) > 0)
+              AND i.fundamental_question IS NOT NULL";
+    $params = [$tenant_id, $store_id, $role];
+    if ($module !== 'all') {
+        $sql .= " AND i.module = ?";
+        $params[] = $module;
+    }
+    $sql .= " ORDER BY FIELD(i.fundamental_question,
+                             'loss','loss_cause','gain','gain_cause','order','anti_order'),
+                       (i.urgency='critical') DESC,
+                       i.value_numeric DESC
+              LIMIT 30";
+    try {
+        return DB::run($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Exception $e) {
+        error_log("getInsightsForContext failed: " . $e->getMessage());
+        return [];
+    }
+}
+
 function buildSystemPrompt(int $tenant_id, int $store_id, string $role): string {
 
     // ── TENANT + STORE INFO ───────────────────────────────────
@@ -825,6 +863,38 @@ LAYER 9 — THINGS THE OWNER TOLD YOU
         $prompt .= "
 Use this knowledge naturally in your answers. Never say 'you told me' — just use it.";
     }
+
+    // S79_CHAT_INTEGRATION_6Q_CONTEXT — 6-те фундаментални въпроса (готови числа от PHP)
+    try {
+        $fqInsights = getInsightsForContext($tenant_id, $store_id, $role, 'all');
+        if (!empty($fqInsights)) {
+            $fqGroups = [
+                'loss'       => ["\xF0\x9F\x94\xB4 ЗАГУБИ (какво губиш сега)", []],
+                'loss_cause' => ["\xF0\x9F\x9F\xA3 ОТ КАКВО ГУБИШ (причина)", []],
+                'gain'       => ["\xF0\x9F\x9F\xA2 ПЕЧАЛБИ (какво печелиш сега)", []],
+                'gain_cause' => ["\xF0\x9F\x94\xB7 ОТ КАКВО ПЕЧЕЛИШ (причина)", []],
+                'order'      => ["\xF0\x9F\x9F\xA1 ПОРЪЧАЙ (какво да поръчаш)", []],
+                'anti_order' => ["\xE2\x9A\xAB НЕ ПОРЪЧВАЙ (пази от грешки)", []],
+            ];
+            foreach ($fqInsights as $ins) {
+                $fq = $ins['fundamental_question'] ?? '';
+                if (!isset($fqGroups[$fq])) continue;
+                $line = '- ' . ($ins['title'] ?? '');
+                if (!empty($ins['detail_text'])) { $line .= ': ' . $ins['detail_text']; }
+                $fqGroups[$fq][1][] = $line;
+            }
+            $ctxBlock = "\n\nТЕКУЩО СЪСТОЯНИЕ НА БИЗНЕСА (готови числа от PHP sensors):\n";
+            $ctxBlock .= "ВАЖНО: Това са РЕАЛНИ числа, пресметнати от PHP. НЕ ги преизчислявай. НЕ халюцинирай.\n";
+            $ctxBlock .= "Използвай САМО числата по-долу. Ако въпрос не е покрит — кажи 'нямам сигурни данни за това'.\n\n";
+            $hasContent = false;
+            foreach ($fqGroups as $fq => $gdata) {
+                if (empty($gdata[1])) continue;
+                $hasContent = true;
+                $ctxBlock .= $gdata[0] . ":\n" . implode("\n", array_slice($gdata[1], 0, 5)) . "\n\n";
+            }
+            if ($hasContent) { $prompt .= $ctxBlock; }
+        }
+    } catch (\Exception $e) { error_log("S79 context layer: " . $e->getMessage()); }
 
     return $prompt;
 }
