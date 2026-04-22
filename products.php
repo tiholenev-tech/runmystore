@@ -3337,14 +3337,14 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div class="glass add-card">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="add-main">
+        <div class="add-main" onclick="openManualWizard()" style="cursor:pointer">
             <div class="add-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
             <div class="add-txt"><div class="add-title">Добави артикул</div><div class="add-hint">Избери начин →</div></div>
         </div>
         <div class="add-modes">
-            <button class="add-mode voice"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
-            <button class="add-mode"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-            <button class="add-mode"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg></button>
+            <button class="add-mode voice" onclick="event.stopPropagation();openVoiceWizard()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+            <button class="add-mode" onclick="event.stopPropagation();openManualWizard()"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+            <button class="add-mode" onclick="event.stopPropagation();showToast('Още опции — идват в S82','')"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg></button>
         </div>
     </div>
 
@@ -4291,6 +4291,8 @@ function lblPrint(idx){
     });
     html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script>
 <!-- S79FIX_BUG9_QSECTIONS_APPLIED -->
+
+<!-- S79FIX_BUG567_ADDCARD_APPLIED -->
 </body></html>';
     var w=window.open('','_blank','width=400,height=600');
     if(w){w.document.write(html);w.document.close()}else showToast('Позволи pop-up','error');
