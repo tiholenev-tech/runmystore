@@ -3,3 +3,22 @@
 *.save
 *.bak_*
 FETCH_HEAD
+
+# Capacitor / Mobile
+mobile/node_modules/
+mobile/.gradle/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.idea/
+mobile/android/local.properties
+mobile/android/captures/
+mobile/android/app/release/
+mobile/android/app/src/main/assets/public/
+mobile/android/app/src/main/assets/capacitor.config.json
+mobile/android/app/src/main/assets/capacitor.plugins.json
+*.apk
+*.aab
+*.keystore
+*.jks
+

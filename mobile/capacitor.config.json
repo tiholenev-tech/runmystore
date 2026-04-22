@@ -1,0 +1,25 @@
+{
+  "appId": "ai.runmystore.app",
+  "appName": "RunMyStore",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["runmystore.ai", "*.runmystore.ai"],
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Търсене на принтер...",
+        "cancel": "Отказ",
+        "availableDevices": "Налични принтери",
+        "noDeviceFound": "Принтер не е намерен"
+      }
+    }
+  }
+}
