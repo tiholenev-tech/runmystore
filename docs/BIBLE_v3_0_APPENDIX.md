@@ -91,10 +91,13 @@ def select_insights(pool, max=3):
     # 4. Order
     # 5. Gain
     # 6. Gain_cause
+    # S79 UPDATE 22.04.2026 — two orderings:
+    # selection_priority: loss,loss_cause,anti_order,order,gain,gain_cause
+    # narrative_flow (S79 default): loss,loss_cause,gain,gain_cause,order,anti_order
     priority = {
         'loss': 1, 'loss_cause': 2,
-        'anti_order': 3, 'order': 4,
-        'gain': 5, 'gain_cause': 6
+        'gain': 3, 'gain_cause': 4,
+        'order': 5, 'anti_order': 6
     }
     return sorted(pool, key=lambda x: (
         priority[x.fundamental_question],
