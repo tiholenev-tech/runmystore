@@ -87,11 +87,11 @@
 
 | Компонент | Статус | Сесия |
 |---|---|---|
-| `schema_migrations` таблица | 🔴 няма | S79 |
+| `schema_migrations` таблица | ✅ S79.DB | S79 |
 | Money cents миграция | 🔴 DECIMAL в момента | S79 |
-| `audit_log` | 🔴 няма | S79 |
-| Transaction wrapper `DB::tx()` | 🔴 няма | S79 |
-| Soft delete pattern | 🔴 няма | S79 |
+| `audit_log` | ✅ S78 + helper S79.DB | S79 |
+| Transaction wrapper `DB::tx()` | ✅ S79.DB (без deadlock retry) | S79 |
+| Soft delete pattern | ✅ S79.DB (5 таблици) | S79 |
 | Negative stock guard (TRIGGER) | 🔴 няма | S80 |
 | Composite tenant FK | 🔴 няма | S80 |
 | `idempotency_keys` таблица | 🔴 няма | S80 |
@@ -850,6 +850,14 @@ cron-weather.php → 06:00
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
+
+## 22.04.2026 — S79.DB COMPLETE (CHAT 2 parallel session)
+- **Решение:** DB foundation v1 готов: schema_migrations + Migrator + audit_log helper + DB::tx() + soft delete на 5 таблици
+- **Засегнати модули:** config/database.php, config/helpers.php, lib/Migrator.php (нов), migrate.php (нов), migrations/ (нов)
+- **DB changes:** +1 таблица (schema_migrations), +5 ALTER (suppliers/customers/users/stores/categories с deleted_at/by/reason + idx)
+- **Rework генериран:** S79.SECURITY (P0), S79.AUDIT.EXT (P1), S80 deadlock retry (P1), S80 SAVEPOINT (P2)
+- **Tag:** v0.5.1-s79-db (commit eca6506)
+- **Status rework:** ⏳ S79.SECURITY P0 — ЗАДЪЛЖИТЕЛНО преди следваща сесия
 
 ## 21.04.2026 — S78 closeout
 
