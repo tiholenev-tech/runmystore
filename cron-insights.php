@@ -1,57 +1,120 @@
 <?php
-/**
- * RunMyStore.ai — cron-insights.php
- * S52 | 12.04.2026
- * 
- * Cron job: на всеки 15 минути.
- * Crontab: every 15 min — * * * * php /var/www/runmystore/cron-insights.php >> /var/log/runmystore-insights.log 2>&1
- * 
- * Обхожда всички активни tenants и техните stores.
- * За всеки store извиква computeAllInsights() от compute-insights.php.
- */
+declare(strict_types=1);
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+set_time_limit(300);
+
+define('COMPUTE_INSIGHTS_NO_CLI', true);
 
 require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/helpers.php';
 require_once __DIR__ . '/compute-insights.php';
 
-$startTime = microtime(true);
-$tenantsProcessed = 0;
-$storesProcessed = 0;
-
-echo "[" . date('Y-m-d H:i:s') . "] cron-insights START\n";
+$start = microtime(true);
+$job_name = 'compute_insights_15min';
+$status = 'ok';
+$error_msg = null;
+$total_inserted = 0;
+$tenants_processed = 0;
+$tenants_failed = 0;
 
 try {
-    // Всички активни tenants
     $tenants = DB::run(
-        "SELECT id, currency FROM tenants WHERE is_active=1"
+        "SELECT id, name, plan, trial_ends_at
+         FROM tenants
+         WHERE is_active=1
+           AND (plan IN ('start','pro') OR (trial_ends_at IS NOT NULL AND trial_ends_at > NOW()))
+         ORDER BY id"
     )->fetchAll();
-    
-    foreach ($tenants as $tenant) {
-        $tid = $tenant['id'];
-        $currency = $tenant['currency'] ?: 'EUR';
-        
-        // Всички stores на този tenant
-        $stores = DB::run(
-            "SELECT id FROM stores WHERE tenant_id=?",
-            [$tid]
-        )->fetchAll(\PDO::FETCH_COLUMN);
-        
-        foreach ($stores as $sid) {
-            try {
-                computeAllInsights($tid, $sid, $currency);
-                $storesProcessed++;
-            } catch (\Exception $e) {
-                echo "  ERROR tenant=$tid store=$sid: " . $e->getMessage() . "\n";
+
+    $stamp = date('Y-m-d H:i:s');
+    fwrite(STDOUT, "[$stamp] cron-insights: " . count($tenants) . " active tenants
+");
+
+    foreach ($tenants as $t) {
+        $tid = (int)$t['id'];
+        $tname = (string)$t['name'];
+        $t_start = microtime(true);
+        try {
+            $result = computeProductInsights($tid);
+            $inserted = 0;
+            if (is_array($result)) {
+                foreach ($result as $info) {
+                    if (is_array($info) && isset($info['count'])) {
+                        $inserted += (int)$info['count'];
+                    }
+                }
             }
+            $total_inserted += $inserted;
+            $tenants_processed++;
+            $elapsed = (int)((microtime(true) - $t_start) * 1000);
+            fwrite(STDOUT, "  tenant " . $tid . " (" . $tname . "): " . $inserted . " insights, " . $elapsed . "ms
+");
+        } catch (Throwable $e) {
+            $tenants_failed++;
+            error_log("cron-insights: tenant $tid failed: " . $e->getMessage());
+            fwrite(STDERR, "  ERROR tenant $tid: " . $e->getMessage() . "
+");
+            try {
+                DB::run(
+                    "INSERT INTO audit_log
+                     (tenant_id, user_id, store_id, table_name, record_id, action, source, source_detail, old_values, new_values, ip_address, user_agent, created_at)
+                     VALUES (?, NULL, NULL, 'ai_insights', 0, 'cron_run', 'cron', ?, NULL, ?, NULL, NULL, NOW())",
+                    [$tid, 'compute_insights_error', json_encode(['error' => $e->getMessage()])]
+                );
+            } catch (Throwable $_) {}
         }
-        
-        $tenantsProcessed++;
     }
-    
-} catch (\Exception $e) {
-    echo "  FATAL: " . $e->getMessage() . "\n";
+} catch (Throwable $e) {
+    $status = 'error';
+    $error_msg = $e->getMessage();
+    fwrite(STDERR, "FATAL: " . $e->getMessage() . "
+");
 }
 
-$elapsed = round(microtime(true) - $startTime, 2);
-echo "[" . date('Y-m-d H:i:s') . "] cron-insights DONE — $tenantsProcessed tenants, $storesProcessed stores, {$elapsed}s\n\n";
+$duration_ms = (int)((microtime(true) - $start) * 1000);
+
+try {
+    DB::run(
+        "INSERT INTO cron_heartbeats
+           (job_name, last_run_at, last_status, last_error, last_duration_ms, expected_interval_minutes)
+         VALUES (?, NOW(), ?, ?, ?, 15)
+         ON DUPLICATE KEY UPDATE
+           last_run_at=NOW(), last_status=VALUES(last_status),
+           last_error=VALUES(last_error), last_duration_ms=VALUES(last_duration_ms)",
+        [$job_name, $status, $error_msg, $duration_ms]
+    );
+} catch (Throwable $e) {
+    error_log("cron-insights: heartbeat write failed: " . $e->getMessage());
+}
+
+try {
+    // audit_log.tenant_id is NOT NULL and has FK to tenants.id — use first tenant or skip if none
+    $first_tenant = DB::run("SELECT id FROM tenants WHERE is_active=1 ORDER BY id LIMIT 1")->fetch();
+    $audit_tid = $first_tenant ? (int)$first_tenant['id'] : 0;
+    if ($audit_tid > 0) {
+        DB::run(
+            "INSERT INTO audit_log
+             (tenant_id, user_id, store_id, table_name, record_id, action, source, source_detail, old_values, new_values, ip_address, user_agent, created_at)
+             VALUES (?, NULL, NULL, 'ai_insights', 0, 'cron_run', 'cron', ?, NULL, ?, NULL, NULL, NOW())",
+            [
+                $audit_tid,
+                'compute_insights_15min_summary',
+                json_encode([
+                    'status' => $status,
+                    'duration_ms' => $duration_ms,
+                    'tenants_processed' => $tenants_processed,
+                    'tenants_failed' => $tenants_failed,
+                    'total_inserted' => $total_inserted,
+                ], JSON_UNESCAPED_UNICODE)
+            ]
+        );
+    }
+} catch (Throwable $e) {
+    error_log("cron-insights: summary audit failed: " . $e->getMessage());
+}
+
+$stamp2 = date('Y-m-d H:i:s');
+fwrite(STDOUT, "[$stamp2] cron-insights DONE: $status, {$duration_ms}ms, {$tenants_processed}/{$tenants_failed} tenants, $total_inserted insights
+");
+exit($status === 'ok' ? 0 : 1);
