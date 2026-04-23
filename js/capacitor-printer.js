@@ -211,10 +211,17 @@
     push('SPEED 3\r\n');
     push('CLS\r\n');
 
-    // Layout @ 8 dots/mm → 50mm=400, 30mm=240
-    let y = 8;
+    // Layout @ 8 dots/mm → 50mm=400 wide, 30mm=240 tall
+    // Използваме целия 240 dot height:
+    //   y=4   store name (bitmap ~24px ≈ 28 dots)
+    //   y=36  product name (bitmap ~28px ≈ 34 dots)
+    //   y=76  price (bitmap ~34px ≈ 42 dots, bold, right-aligned feel)
+    //   y=124 code (TSPL font 2, 20 dots)
+    //   y=150 barcode (80 dots)
 
-    // Store name (ред 1) — BITMAP ако има cyrillic, иначе native TEXT
+    let y = 4;
+
+    // Store name — по-малък, горе
     if (storeName) {
       if (hasCyrillic(storeName)) {
         const bmp = renderTextBitmap(storeName, 22, 380);
@@ -222,59 +229,63 @@
           push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
           pushRaw(bmp.data);
           push('\r\n');
-          y += bmp.height + 4;
         }
       } else {
         push('TEXT 10,' + y + ',"3",0,1,1,"' + storeName + '"\r\n');
-        y += 32;
       }
     }
+    y = 34;
 
-    // Product name (ред 2) — винаги BITMAP (може да има cyrillic)
+    // Product name — среден голям
     if (name) {
       if (hasCyrillic(name)) {
-        const bmp = renderTextBitmap(name, 22, 380);
+        const bmp = renderTextBitmap(name, 26, 380);
         if (bmp) {
           push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
           pushRaw(bmp.data);
           push('\r\n');
-          y += bmp.height + 4;
         }
       } else {
-        push('TEXT 10,' + y + ',"3",0,1,1,"' + name + '"\r\n');
-        y += 32;
+        push('TEXT 10,' + y + ',"4",0,1,1,"' + name + '"\r\n');
       }
     }
+    y = 74;
 
-    // Code (ред 3) — обикновено ASCII, native TSPL
+    // Price — ГОЛЯМ (bitmap за пълен контрол на размера)
+    // Винаги ASCII (числа + EUR/BGN) но правим bitmap за по-голям font
+    {
+      const priceBmp = renderTextBitmap(priceStr, 34, 380);
+      if (priceBmp) {
+        push('BITMAP 10,' + y + ',' + priceBmp.widthBytes + ',' + priceBmp.height + ',0,');
+        pushRaw(priceBmp.data);
+        push('\r\n');
+      }
+    }
+    y = 120;
+
+    // Code — малък, под цената
     if (code) {
       if (hasCyrillic(code)) {
-        const bmp = renderTextBitmap(code, 16, 380);
+        const bmp = renderTextBitmap(code, 14, 380);
         if (bmp) {
           push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
           pushRaw(bmp.data);
           push('\r\n');
-          y += bmp.height + 4;
         }
       } else {
         push('TEXT 10,' + y + ',"2",0,1,1,"' + code + '"\r\n');
-        y += 24;
       }
     }
 
-    // Price (ред 4) — ASCII, голям native font
-    push('TEXT 10,' + y + ',"4",0,1,1,"' + priceStr + '"\r\n');
-    y += 36;
-
-    // Barcode (последен) — auto-detect format
+    // Barcode — долен край, height=70 dots
     if (barcode) {
-      const barY = Math.max(y, 155);
+      const barY = 150;
       let fmt = '128';
       let narrow = 2;
       if (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 2; }
       else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA'; narrow = 2; }
       else if (/^[0-9]{8}$/.test(barcode)) { fmt = 'EAN8'; narrow = 2; }
-      push('BARCODE 10,' + barY + ',"' + fmt + '",55,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
+      push('BARCODE 10,' + barY + ',"' + fmt + '",70,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
     }
 
     push('PRINT ' + n + '\r\n');
