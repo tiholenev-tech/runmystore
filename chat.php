@@ -764,74 +764,151 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 .sig-card.q5{border-left-color:hsl(38,90%,55%) !important}
 .sig-card.q6{border-left-color:hsl(220,10%,55%) !important}
 
-/* S79.BRIEFING_6FQ — 6 секции по fundamental_question */
+/* S79.POLISH — Neon Glass briefing sections */
 .briefing-section{
-    margin:8px 0;padding:12px 12px 10px;
-    border-radius:12px;
-    border-left:4px solid;
-    background:rgba(0,0,0,.25);
-    border:1px solid rgba(255,255,255,.05);
-    position:relative;z-index:5
+    position:relative;z-index:5;
+    margin:10px 0;padding:14px 14px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.06);
+    background:
+        linear-gradient(135deg,rgba(255,255,255,.025),rgba(0,0,0,.15)),
+        linear-gradient(hsl(220 25% 6% / .6));
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        0 4px 12px rgba(0,0,0,.2);
+    overflow:hidden
 }
-.briefing-section.q1{border-left-color:hsl(0,85%,55%);background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(0,0,0,.25))}
-.briefing-section.q2{border-left-color:hsl(280,70%,62%);background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(0,0,0,.25))}
-.briefing-section.q3{border-left-color:hsl(145,70%,50%);background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(0,0,0,.25))}
-.briefing-section.q4{border-left-color:hsl(175,70%,50%);background:linear-gradient(135deg,rgba(20,184,166,.08),rgba(0,0,0,.25))}
-.briefing-section.q5{border-left-color:hsl(38,90%,55%);background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(0,0,0,.25))}
-.briefing-section.q6{border-left-color:hsl(220,10%,55%);background:linear-gradient(135deg,rgba(107,114,128,.1),rgba(0,0,0,.25))}
-.briefing-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.briefing-emoji{font-size:12px}
-.briefing-name{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
-.briefing-section.q1 .briefing-name{color:#fca5a5}
-.briefing-section.q2 .briefing-name{color:#c4b5fd}
-.briefing-section.q3 .briefing-name{color:#86efac}
-.briefing-section.q4 .briefing-name{color:#5eead4}
-.briefing-section.q5 .briefing-name{color:#fcd34d}
-.briefing-section.q6 .briefing-name{color:#9ca3af}
+.briefing-section::before{
+    content:'';position:absolute;
+    top:0;left:0;bottom:0;width:3px;
+    border-radius:14px 0 0 14px;
+    background:linear-gradient(180deg,var(--qcol,transparent) 0%,transparent 100%);
+    box-shadow:0 0 20px 1px var(--qcol,transparent);
+    opacity:.9
+}
+.briefing-section::after{
+    content:'';position:absolute;
+    top:-1px;right:-1px;
+    width:80px;height:80px;
+    background:radial-gradient(circle at top right,var(--qcol,transparent) 0%,transparent 60%);
+    opacity:.12;pointer-events:none;
+    border-radius:0 14px 0 0
+}
+.briefing-section.q1{--qcol:hsl(0,85%,55%)}
+.briefing-section.q2{--qcol:hsl(280,70%,62%)}
+.briefing-section.q3{--qcol:hsl(145,70%,50%)}
+.briefing-section.q4{--qcol:hsl(175,70%,50%)}
+.briefing-section.q5{--qcol:hsl(38,90%,55%)}
+.briefing-section.q6{--qcol:hsl(220,10%,60%)}
+
+.briefing-head{
+    display:flex;align-items:center;gap:8px;
+    margin-bottom:8px;position:relative;z-index:2
+}
+.briefing-emoji{
+    font-size:14px;line-height:1;
+    filter:drop-shadow(0 0 6px var(--qcol,transparent))
+}
+.briefing-name{
+    font-size:9px;font-weight:900;
+    letter-spacing:.1em;text-transform:uppercase;
+    color:var(--qcol);
+    text-shadow:0 0 10px var(--qcol)
+}
+
 .briefing-title{
-    font-size:13px;font-weight:800;color:#f1f5f9;
-    line-height:1.35;margin-bottom:4px
+    font-size:14px;font-weight:800;
+    color:#f1f5f9;line-height:1.4;
+    margin-bottom:6px;letter-spacing:-.01em;
+    position:relative;z-index:2
 }
 .briefing-detail{
-    font-size:11px;color:rgba(255,255,255,.75);
-    line-height:1.5;margin-bottom:8px;font-weight:500
+    font-size:12px;font-weight:500;
+    color:rgba(255,255,255,.7);
+    line-height:1.55;margin-bottom:10px;
+    position:relative;z-index:2
 }
+
 .briefing-items{
-    margin:6px 0 10px;
-    padding:8px 10px;
-    background:rgba(0,0,0,.2);
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,.03)
+    margin:8px 0 12px;padding:8px 10px;
+    background:rgba(0,0,0,.3);
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.04);
+    position:relative;z-index:2
 }
 .briefing-item{
-    display:flex;align-items:center;gap:6px;
-    padding:3px 0;font-size:11px
+    display:flex;align-items:center;gap:8px;
+    padding:4px 0;font-size:11px
 }
 .briefing-item:not(:last-child){border-bottom:1px solid rgba(255,255,255,.03)}
-.bi-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0}
-.bi-name{flex:1;color:rgba(255,255,255,.85);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bi-qty{color:rgba(255,255,255,.5);font-weight:700;font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0}
-.briefing-actions{display:flex;gap:6px;margin-top:8px}
-.briefing-btn-primary{
-    flex:1;padding:10px 10px;border-radius:10px;
-    font-size:11px;font-weight:800;
-    text-align:center;cursor:pointer;border:none;font-family:inherit;
-    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
-    color:white;text-decoration:none;display:block;
-    box-shadow:0 3px 10px hsl(var(--hue1) 60% 45% / .3),inset 0 1px 0 rgba(255,255,255,.15);
-    letter-spacing:.02em;transition:transform .15s
+.bi-dot{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--qcol);flex-shrink:0;
+    box-shadow:0 0 8px var(--qcol);
+    opacity:.7
 }
-.briefing-btn-primary:active{transform:scale(.97)}
+.bi-name{
+    flex:1;color:rgba(255,255,255,.85);
+    font-weight:600;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap
+}
+.bi-qty{
+    color:rgba(255,255,255,.55);font-weight:700;
+    font-size:10px;font-variant-numeric:tabular-nums;
+    flex-shrink:0;padding:1px 6px;
+    background:rgba(255,255,255,.04);
+    border-radius:100px
+}
+
+.briefing-actions{
+    display:flex;gap:6px;margin-top:10px;
+    position:relative;z-index:2
+}
+.briefing-btn-primary{
+    flex:1;padding:10px 12px;
+    border-radius:100px;
+    font-size:11px;font-weight:800;
+    text-align:center;cursor:pointer;
+    border:1px solid;font-family:inherit;
+    text-decoration:none;display:flex;
+    align-items:center;justify-content:center;gap:4px;
+    letter-spacing:.02em;
+    transition:transform .15s,box-shadow .15s;
+    background:linear-gradient(135deg,
+        color-mix(in oklch,var(--qcol) 35%,hsl(220 30% 10%)) 0%,
+        color-mix(in oklch,var(--qcol) 20%,hsl(220 30% 8%)) 100%);
+    border-color:color-mix(in oklch,var(--qcol) 50%,transparent);
+    color:white;
+    box-shadow:
+        0 4px 14px color-mix(in oklch,var(--qcol) 35%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.12),
+        inset 0 0 20px color-mix(in oklch,var(--qcol) 10%,transparent)
+}
+.briefing-btn-primary:active{
+    transform:scale(.97);
+    box-shadow:
+        0 2px 8px color-mix(in oklch,var(--qcol) 25%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.08)
+}
 .briefing-btn-secondary{
-    padding:10px 14px;border-radius:10px;
+    padding:10px 16px;
+    border-radius:100px;
     font-size:11px;font-weight:700;
     text-align:center;cursor:pointer;
-    border:1px solid rgba(255,255,255,.1);font-family:inherit;
-    background:rgba(255,255,255,.04);
-    color:rgba(255,255,255,.75);
-    letter-spacing:.02em
+    font-family:inherit;letter-spacing:.02em;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    color:rgba(255,255,255,.7);
+    backdrop-filter:blur(4px);
+    transition:transform .15s,background .15s,color .15s
 }
-.briefing-btn-secondary:active{transform:scale(.97)}
+.briefing-btn-secondary:active{
+    transform:scale(.97);
+    background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.95)
+}
 .sig-card-body{flex:1;min-width:0}
 .sig-card-t{font-size:11px;font-weight:800;line-height:1.25}
 .sig-card.critical .sig-card-t{color:#fca5a5}
