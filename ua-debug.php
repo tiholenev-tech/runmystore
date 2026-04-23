@@ -43,9 +43,4 @@ header('Content-Type: text/html; charset=utf-8');
 })();
 </script>
 
-<!-- S82_CAPACITOR_PRINTER_BTN -->
-<div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.5);border-radius:10px">
-<button type="button" onclick="window.location.href='/printer-setup.php'" style="width:100%;font-size:14px;font-weight:bold;padding:14px;background:rgba(34,197,94,0.35);color:#86efac;border:none;border-radius:8px;cursor:pointer">🖨️ Отвори Printer Setup</button>
-<button type="button" onclick="window.location.reload(true)" style="width:100%;margin-top:8px;font-size:12px;padding:10px;background:rgba(99,102,241,0.2);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);border-radius:6px;cursor:pointer">🔄 Презареди</button>
-</div>
 </body></html>

@@ -4,7 +4,7 @@
 
 **Последна актуализация:** 23.04.2026
 **Последна завършена сесия:** S79.VISUAL_REWRITE (chat.php v8, 23.04.2026)
-**Следваща сесия:** S82.CAPACITOR.2 — Capacitor bridge fix (Claude Code, printer блокер)
+**Следваща сесия:** S82.4 LABEL DESIGN — TSPL codepage 1251 (кирилица) + 50×30mm layout polish
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -915,6 +915,22 @@ cron-weather.php → 06:00
 - **Статус:** ✅ done — production, verified
 
 
+
+## 23.04.2026 — S82.CAPACITOR ✅ DONE: DTM-5811 печата от APK
+
+- **Статус:** ✅ **Пълен успех.** TSPL команди минават през BLE bridge, тестов етикет излиза от DTM-5811.
+- **Последен fix (S82.CAPACITOR.3):** Премахнат `android:maxSdkVersion="30"` от `ACCESS_FINE_LOCATION` в AndroidManifest.xml — BLE plugin на Android 12+ иска permission-а без ограничение.
+- **Потвърждение:** UA `Mozilla/5.0 (Linux; Android 16; SM-F741B ... wv)` — в Capacitor WebView. `Capacitor.getPlatform()=android`, `isNativePlatform=true`, `androidBridge=object`, `BleClient=object`, `BluetoothLe=present`.
+- **Устройство за тест:** Samsung Z Flip6 (Android 16) + DTM-5811 BDA DC:0D:51:AC:51:D9.
+- **Следващ проблем (не блокер):** TSPL label layout нужда от polish — кирилица излиза като йероглифи (липсва codepage 1251), spacing между редове недобър. → **Задача S82.4 LABEL DESIGN.**
+- **Git tag:** `v0.6.0-s82-capacitor` поставен.
+- **Cleanup:** Debug trap в login.php премахнат; printer бутон от ua-debug.php премахнат. Ua-debug.php остава public за бъдеща диагностика.
+
+### REWORK QUEUE updates
+- **Затворен #11 (S82.CAPACITOR blocker):** APK → external browser → DONE чрез Capacitor runtime hosted на runmystore.ai (commit 5bddc81) + FINE_LOCATION permission fix.
+- **Нов #12 (S82.4 LABEL DESIGN):** TSPL codepage за кирилица + layout redesign за 50×30mm етикет.
+- **Нов REWORK iOS Capacitor → S85.5:** Android работи; iOS Capacitor build и тест са отложени за след Phase A launch.
+- **Нов S82.5 SECURITY:** биометрия + PIN за APP-то (Android BiometricPrompt API).
 
 ## 23.04.2026 — S82.CAPACITOR.2: Capacitor runtime hosted on runmystore.ai
 - **Решение:** Вместо да разчитаме на Capacitor's auto-injection (която не работи надеждно на Samsung Z Flip6 WebView), хостваме `native-bridge.js` + `@capacitor/core` + `bluetooth-le` в `/js/capacitor/` на сървъра. `js/capacitor-printer.js` сам ги инжектира през document.write преди всяка печатна операция.
