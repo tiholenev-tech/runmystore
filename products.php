@@ -7823,6 +7823,73 @@ function wizPrintLabels(comboIdx){
 
 
 
+
+// ═══ S82.CAPACITOR — Printer Settings Modal ═══
+async function openPrinterSettings(){
+    if (typeof CapPrinter === 'undefined' || !CapPrinter.isAvailable()){
+        showToast('Наличен само в мобилното приложение', 'info');
+        return;
+    }
+
+    var paired = CapPrinter.hasPairedPrinter();
+    var status = paired ? 'Свързан ✓' : 'Не е свързан';
+    var statusColor = paired ? '#34d399' : '#f87171';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'prSetOv';
+    overlay.innerHTML =
+        '<div style="position:fixed;inset:0;background:rgba(3,7,18,.85);backdrop-filter:blur(6px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px"' +
+        ' onclick="if(event.target===this)document.getElementById(\'prSetOv\').remove()">' +
+        '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 0 60px rgba(99,102,241,.25)">' +
+        '<div style="text-align:center;margin-bottom:16px">' +
+        '<div style="font-size:42px;margin-bottom:8px">🖨️</div>' +
+        '<div style="font-size:18px;font-weight:700;color:#e4e4f0;margin-bottom:4px">Принтер за етикети</div>' +
+        '<div style="font-size:14px;color:'+statusColor+';font-weight:600">'+status+'</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">' +
+        '<button id="prSetPair" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:0;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">🔗 '+(paired?'Смени':'Свържи')+' принтер</button>' +
+        (paired ? '<button id="prSetTest" style="background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">🧪 Тестов печат</button>' : '') +
+        (paired ? '<button id="prSetForget" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3);padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">🗑️ Забрави принтера</button>' : '') +
+        '</div>' +
+        '<button onclick="document.getElementById(\'prSetOv\').remove()" style="background:transparent;color:#8b92b0;border:0;padding:10px;width:100%;font-size:14px;cursor:pointer">Затвори</button>' +
+        '</div></div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('prSetPair').onclick = async function(){
+        try {
+            showPrintOverlay('Избери принтер от списъка...');
+            await CapPrinter.pair();
+            hidePrintOverlay();
+            showToast('Принтерът е сдвоен ✓', 'success');
+            document.getElementById('prSetOv').remove();
+        } catch (e) {
+            hidePrintOverlay();
+            showToast('Грешка: ' + (e.message || e), 'error');
+        }
+    };
+
+    if (paired){
+        document.getElementById('prSetTest').onclick = async function(){
+            try {
+                showPrintOverlay('Тестов печат...');
+                await CapPrinter.test();
+                hidePrintOverlay();
+                showToast('Тестът успешен ✓', 'success');
+            } catch (e) {
+                hidePrintOverlay();
+                showToast('Грешка: ' + (e.message || e), 'error');
+            }
+        };
+        document.getElementById('prSetForget').onclick = function(){
+            if (confirm('Сигурен ли си? Ще трябва пак да сдвоиш принтер.')){
+                CapPrinter.forget();
+                showToast('Принтерът е забравен', 'info');
+                document.getElementById('prSetOv').remove();
+            }
+        };
+    }
+}
+
 // ═══ S82.CAPACITOR — Print loading overlay ═══
 function showPrintOverlay(text){
     var ov = document.getElementById('printOverlay');
