@@ -3938,7 +3938,7 @@ const S = {
     supId: null, catId: null,
     searchText: '', searchTO: null,
     detailStack: [],
-    cameraMode: null, cameraStream: null, barcodeDetector: null, barcodeInterval: null,
+    cameraMode: null, cameraStream: null, barcodeDetector: null, barcodeInterval: null, zxingReader: null,
     recognition: null, isListening: false, lastTranscript: '',
     wizStep: 0, wizData: {}, wizType: null, wizEditId: null,
     aiWizMode: false, aiWizConversation: [], aiWizCollected: {},
@@ -4719,26 +4719,75 @@ function closeCamera(){
     document.getElementById('cameraOv').classList.remove('open');
     if(S.cameraStream){S.cameraStream.getTracks().forEach(t=>t.stop());S.cameraStream=null}
     if(S.barcodeInterval){clearInterval(S.barcodeInterval);S.barcodeInterval=null}
+    if(S.zxingReader){try{S.zxingReader.reset()}catch(e){}S.zxingReader=null}
     document.getElementById('scanLine').style.display='none';
 }
-function startBarcodeScanning(){
-    if(!('BarcodeDetector' in window)){showToast('Баркод скенерът не е поддържан','error');closeCamera();return}
-    S.barcodeDetector=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','qr_code','upc_a','upc_e']});
-    const vid=document.getElementById('camVideo');
-    S.barcodeInterval=setInterval(async()=>{
-        try{
-            const codes=await S.barcodeDetector.detect(vid);
-            if(codes.length>0){
-                clearInterval(S.barcodeInterval);
-                playBeep();
-                const code=codes[0].rawValue;
-                const d=await api(`products.php?ajax=barcode&code=${encodeURIComponent(code)}&store_id=${CFG.storeId}`);
-                closeCamera();
-                if(d&&!d.error)openProductDetail(d.id);
-                else showToast(`Баркод ${code} не е намерен`);
+// S82.CAPACITOR.21 — barcode scan с ZXing fallback за Android WebView
+function loadZXing(){
+    return new Promise((resolve, reject) => {
+        if (window.ZXingBrowser) return resolve(window.ZXingBrowser);
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js';
+        s.onload = () => resolve(window.ZXingBrowser);
+        s.onerror = () => reject(new Error('ZXing не може да се зареди'));
+        document.head.appendChild(s);
+    });
+}
+
+async function handleScannedCode(code){
+    clearInterval(S.barcodeInterval);
+    S.barcodeInterval = null;
+    if (S.zxingReader){
+        try { S.zxingReader.reset(); } catch(e){}
+        S.zxingReader = null;
+    }
+    playBeep();
+    const d = await api(`products.php?ajax=barcode&code=${encodeURIComponent(code)}&store_id=${CFG.storeId}`);
+    closeCamera();
+    if (d && !d.error) openProductDetail(d.id);
+    else showToast(`Баркод ${code} не е намерен`);
+}
+
+async function startBarcodeScanning(){
+    const vid = document.getElementById('camVideo');
+
+    // Option 1: native BarcodeDetector (Chrome desktop/mobile)
+    if ('BarcodeDetector' in window){
+        S.barcodeDetector = new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','qr_code','upc_a','upc_e']});
+        S.barcodeInterval = setInterval(async () => {
+            try {
+                const codes = await S.barcodeDetector.detect(vid);
+                if (codes.length > 0) handleScannedCode(codes[0].rawValue);
+            } catch(e){}
+        }, 300);
+        return;
+    }
+
+    // Option 2: ZXing fallback (Android WebView, iOS Safari, др.)
+    try {
+        const ZX = await loadZXing();
+        const hints = new Map();
+        const formats = [
+            ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8,
+            ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.CODE_39,
+            ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E,
+            ZX.BarcodeFormat.QR_CODE
+        ];
+        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+
+        S.zxingReader = new ZX.BrowserMultiFormatReader(hints);
+        // Ползваме наличния stream от video tag-а
+        await S.zxingReader.decodeFromVideoElement(vid, (result, err) => {
+            if (result){
+                const code = result.getText();
+                handleScannedCode(code);
             }
-        }catch(e){}
-    },300);
+        });
+    } catch(e){
+        showToast('Баркод скенерът не може да се зареди: ' + (e.message || e), 'error');
+        closeCamera();
+    }
 }
 function capturePhoto(){document.getElementById('photoInput').click();closeCamera()}
 function playBeep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=1200;g.gain.value=0.3;o.start();o.stop(c.currentTime+0.15)}catch(e){}}
