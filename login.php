@@ -163,10 +163,12 @@ function togglePass(){
 }
 </script>
 
-<!-- S82_CAPACITOR_DEBUG_LINK -->
-<a href="/ua-debug.php" style="position:fixed;bottom:8px;right:8px;font-size:10px;padding:6px 10px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);border-radius:8px;text-decoration:none;z-index:9999;font-family:monospace">🔧 UA Debug</a>
 
-<!-- S82_CAPACITOR_PRINTER_LINK -->
-<a href="/printer-setup.php" style="position:fixed;bottom:8px;left:8px;font-size:10px;padding:6px 10px;background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.4);border-radius:8px;text-decoration:none;z-index:9999;font-family:monospace">🖨️ Printer Setup</a>
+
+<!-- S82_CAPACITOR_DEBUG_PANEL -->
+<div id="s82Debug" style="position:fixed;bottom:8px;left:8px;right:8px;display:flex;gap:6px;z-index:2147483647;pointer-events:auto;font-family:monospace">
+<button type="button" onclick="window.location.href='/ua-debug.php';return false;" style="flex:1;font-size:11px;padding:10px 8px;background:rgba(99,102,241,0.25);color:#c7d2fe;border:1px solid rgba(99,102,241,0.6);border-radius:8px;cursor:pointer;touch-action:manipulation">🔧 UA Debug</button>
+<button type="button" onclick="window.location.href='/printer-setup.php';return false;" style="flex:1;font-size:11px;padding:10px 8px;background:rgba(34,197,94,0.25);color:#86efac;border:1px solid rgba(34,197,94,0.6);border-radius:8px;cursor:pointer;touch-action:manipulation">🖨️ Printer</button>
+</div>
 </body>
 </html>
