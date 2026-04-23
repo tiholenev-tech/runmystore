@@ -3,8 +3,8 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 23.04.2026
-**Последна завършена сесия:** S82.CAPACITOR.2 (deployed, awaiting device test, 23.04.2026)
-**Следваща сесия:** S82.CAPACITOR.2 verification (Тихол тества с DTM-5811) → ако OK, S82.5 SECURITY
+**Последна завършена сесия:** S79.VISUAL_REWRITE (chat.php v8, 23.04.2026)
+**Следваща сесия:** S80 — products.php wizard rewrite (4 стъпки final)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -902,6 +902,19 @@ cron-weather.php → 06:00
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
+
+## 23.04.2026 — S79.VISUAL_REWRITE: chat.php v8 (home-neon-v2 design)
+
+- **Решение:** Пълен визуален rewrite на chat.php към home-neon-v2 design (Neon Glass с conic-gradient shine + glow). Всички S79 функции запазени. 3 × 75vh overlays (Chat, Signal Detail, Browser) със същия дизайн, blur фон отдолу.
+- **Защо 75vh:** Чат като WhatsApp app, signal detail като обяснителна страница. Хардуерен back бутон + swipe down + ESC.
+- **Засегнати:** chat.php (1605 → 2094, +489). 0 DB промени.
+- **Нови функции:** history.pushState back, swipe-to-close, ESC, body.overlay-open blur+scale, pulsing SVG AI icon.
+- **Rework затворени:** visual consistency с DESIGN_SYSTEM.md
+- **Commit:** 44aafab
+- **Tag:** v0.5.5-s79-visual
+- **Статус:** ✅ done — production, verified
+
+
 
 ## 23.04.2026 — S82.CAPACITOR.2: Capacitor runtime hosted on runmystore.ai
 - **Решение:** Вместо да разчитаме на Capacitor's auto-injection (която не работи надеждно на Samsung Z Flip6 WebView), хостваме `native-bridge.js` + `@capacitor/core` + `bluetooth-le` в `/js/capacitor/` на сървъра. `js/capacitor-printer.js` сам ги инжектира през document.write преди всяка печатна операция.
