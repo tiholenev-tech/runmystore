@@ -157,18 +157,16 @@
     cmd += 'CLS\r\n';
     // Layout: 50×30mm = 400×240 dots (@ 8 dots/mm)
     // Ред 1 (y=8): store name (font TSS24.BF2 — голям sans-serif)
+    // Fonts: "1"=8x12, "2"=12x20, "3"=16x24, "4"=24x32, "5"=32x48 (bitmap)
+    // Вградените fonts с CODEPAGE 1251 трябва да поддържат cyrillic на DTM-5811
     if (storeName) {
-      cmd += `TEXT 10,8,"TSS24.BF2",0,1,1,"${storeName}"\r\n`;
+      cmd += `TEXT 10,8,"3",0,1,1,"${storeName}"\r\n`;
     }
-    // Ред 2 (y=40): product name
-    cmd += `TEXT 10,40,"TSS24.BF2",0,1,1,"${name}"\r\n`;
-    // Ред 3 (y=72): code (малък)
+    cmd += `TEXT 10,40,"3",0,1,1,"${name}"\r\n`;
     if (code) {
-      cmd += `TEXT 10,72,"1",0,1,1,"${code}"\r\n`;
+      cmd += `TEXT 10,70,"2",0,1,1,"${code}"\r\n`;
     }
-    // Ред 4 (y=95): price (голям — font 4)
     cmd += `TEXT 10,95,"4",0,1,1,"${price}"\r\n`;
-    // Ред 5 (y=155): barcode CODE128, h=55 dots
     if (barcode) {
       cmd += `BARCODE 10,155,"128",55,1,0,2,2,"${barcode}"\r\n`;
     }
