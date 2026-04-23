@@ -742,6 +742,12 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 .sig-card.critical{border-left-color:#ef4444}
 .sig-card.warning{border-left-color:#fbbf24}
 .sig-card.info{border-left-color:#22c55e}
+.sig-card.q1{border-left-color:hsl(0,85%,55%) !important}
+.sig-card.q2{border-left-color:hsl(280,70%,62%) !important}
+.sig-card.q3{border-left-color:hsl(145,70%,50%) !important}
+.sig-card.q4{border-left-color:hsl(175,70%,50%) !important}
+.sig-card.q5{border-left-color:hsl(38,90%,55%) !important}
+.sig-card.q6{border-left-color:hsl(220,10%,55%) !important}
 .sig-card-body{flex:1;min-width:0}
 .sig-card-t{font-size:11px;font-weight:800;line-height:1.25}
 .sig-card.critical .sig-card-t{color:#fca5a5}
@@ -1366,8 +1372,11 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
         <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
         <?php foreach ($briefing as $bidx => $ins):
             $u = urgencyClass($ins['urgency']);
+            $sig_q = match($ins['fundamental_question'] ?? ''){
+                'loss'=>'q1','loss_cause'=>'q2','gain'=>'q3',
+                'gain_cause'=>'q4','order'=>'q5','anti_order'=>'q6',default=>'' };
         ?>
-        <div class="sig-card <?= $u ?>" onclick="openSignalDetail(<?= $bidx ?>)">
+        <div class="sig-card <?= $u ?> <?= $sig_q ?>" onclick="openSignalDetail(<?= $bidx ?>)">
             <div class="sig-card-body">
                 <div class="sig-card-t"><?= htmlspecialchars($ins['title']) ?></div>
                 <?php if (!empty($ins['detail_text'])): ?>

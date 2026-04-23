@@ -3346,6 +3346,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 body{padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
 </style>
+<?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js"></script>
 </head>
 <body>
