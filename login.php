@@ -10,11 +10,22 @@ if (isset($_SESSION['tenant_id'])) {
 
 $error = '';
 
-// S82_CAPACITOR_DEBUG_TRAP
+// S82_CAPACITOR_DEBUG_TRAP — auto-login като tenant=7 (ЕНИ test)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_debug_email = trim($_POST['email'] ?? '');
     if ($_debug_email === 'printer' || $_debug_email === 'debug' || $_debug_email === 'printer@x.x' || $_debug_email === 'debug@x.x') {
-        header('Location: /ua-debug.php');
+        $_tenant = DB::run("SELECT * FROM tenants WHERE id=7")->fetch();
+        if ($_tenant) {
+            $_user = DB::run("SELECT * FROM users WHERE tenant_id=7 ORDER BY id ASC LIMIT 1")->fetch();
+            $_SESSION['tenant_id']   = 7;
+            $_SESSION['user_id']     = $_user['id'] ?? null;
+            $_SESSION['role']        = $_user['role'] ?? 'owner';
+            $_SESSION['store_id']    = $_user['store_id'] ?? null;
+            $_SESSION['supato_mode'] = $_tenant['supato_mode'] ?? 1;
+            $_SESSION['currency']    = $_tenant['currency'] ?? 'EUR';
+            $_SESSION['language']    = $_tenant['language'] ?? 'bg';
+        }
+        header('Location: /printer-setup.php');
         exit;
     }
 }
