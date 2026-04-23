@@ -274,7 +274,7 @@
 
     // Barcode — долен край, height=70 dots
     if (barcode) {
-      const barY = 148;
+      const barY = 160;
       // Auto-fit barcode:
       // - EAN13: 95 modules — narrow=4 → 380 dots (95% fit, лесно за сканиране)
       // - Code128: variable — narrow=3 обикновено запълва
