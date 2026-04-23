@@ -4,7 +4,7 @@
 
 **Последна актуализация:** 23.04.2026
 **Последна завършена сесия:** S79.SECURITY (env-based credentials + history scrub, 23.04.2026)
-**Следваща сесия:** S80 (DB::tx SAVEPOINT + deadlock retry) ИЛИ S82.4 LABEL DESIGN (Тихол избира)
+**Следваща сесия:** S80 ROLES_AND_MODES_FOUNDATION (roles + modes infra, beta blocker)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -898,6 +898,15 @@ cron-weather.php → 06:00
 5. Voice overlay от S56 стандарт — никой модул не прави свой
 6. Никаква native клавиатура в sale.php/numpad контексти
 7. **RESPONSIVE ОТ ДЕН 1** — всеки модул работи на всички екрани (телефон 320-428px, таблет portrait 768px, таблет landscape 1024px, desktop 1280px+) чрез CSS @media queries. Никога не се пишат "mobile" и "tablet" версии отделно — един код, self-adapting. Breakpoints: 375/768/1024/1280.
+8. **ROLE-AWARE + MODE-AWARE ОТ ДЕН 1** — всеки нов модул:
+   - `requires_role()` в началото (owner/manager/seller)
+   - `forceSimpleIfSeller()` след auth (seller = forced simple mode)
+   - SQL queries conditional на `can('view_cost')` etc. — данни които seller не трябва да вижда (cost_price, profit, insights с cost) НЕ се query-ват от базата
+   - UI pills/actions обвити в `if (can(...))`
+   - `?simple=1` URL param triggers simple wrapper (без bottom nav, без burger)
+   - 3 роли: owner / manager / seller (+ 2 режима: simple / detailed)
+   - Seller е hardcoded към simple (forced, not default)
+   - Owner/manager могат ad-hoc да превключват към simple
 
 ---
 
@@ -906,6 +915,22 @@ cron-weather.php → 06:00
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
+
+## 23.04.2026 (късно) — BETA SCOPE FINALIZED + ЗАКОН №8 (Role-aware)
+- **Решение:** Beta launch (май 2026) scope = 1 магазин, 1 seller (Ани), БЕЗ AI. Необходими модули: sale.php (rewrite), deliveries.php (нов), products.php (polish), inventory.php (v3 работи, само simple wrapper), life-board.php (skeleton без AI).
+- **Отложено за Beta v2 (юни-юли):** трансфери между магазини, фактури, OCR сканиране, multi-магазин, multi-seller.
+- **Post-beta (септември+):** AI insights, Voice, Life Board Selection Engine (17 решения), customers/CRM, partners/referrals, online интеграции.
+- **ЗАКОН №8 (Role-aware + Mode-aware):** всеки модул от ден 1 проверява role + mode. Seller = forced simple. Owner/manager = detailed + ad-hoc simple toggle. Данните които seller не трябва да вижда НЕ се query-ват от базата (не просто hidden в UI).
+- **Roadmap ревизия:**
+  - S80 = ROLES_AND_MODES_FOUNDATION (beta blocker — 3 часа)
+  - S81 = LIFE_BOARD_SKELETON (beta blocker — 4-6 часа, БЕЗ AI)
+  - S82 = продължава (products + labels + simple wrapper)
+  - S85 = sale.php rewrite (responsive + role-aware + simple wrapper от ден 1)
+  - S86 = deliveries.php (нов, responsive + role-aware + simple wrapper от ден 1)
+  - S95-S96 (post-beta) = Life Board Selection Engine + AI integration
+- **Засегнати:** всички нови модули; 3 съществуващи модули трябват role retrofit (REWORK #18/#19/#20)
+- **Защо:** Ани е seller → forced simple mode → без life-board.php beta не може да стартира. Life Board беше S95 — преместен на S81 (beta blocker).
+- **Critical path:** S80 → S81 → S82 → S85 → S86 → inventory polish → beta launch (~6-10 сесии, 3-5 седмици при 1 сесия/ден)
 
 ## 23.04.2026 (вечер) — UI ЗАКОН №6: Responsive от ден 1
 - **Решение:** Всеки модул е responsive от първия ред код. Един кодбейз, self-adapting на всички екрани 320-1920px+
@@ -1154,6 +1179,11 @@ cron-weather.php → 06:00
 | 15 | chat.php responsive (всички breakpoints) | 23.04.2026 (responsive закон) | Tablet 768px+ columns layout, desktop 1024px+ sidebar pattern, запази v8 PHP логика | Следваща chat сесия | ⏳ pending |
 | 16 | products.php responsive + P0 bugs | 23.04.2026 (responsive закон) | Tablet/desktop breakpoints + списък артикули 2-3 колони + existing P0 bugs fixes | S80 (разширен) | ⏳ pending |
 | 17 | stats.php logic review + responsive | 23.04.2026 (responsive + логика съмнения) | ДВЕ задачи: (a) ревизия на всички stats изчисления — какво показва, колко е правилно. (b) responsive breakpoints. Direction: post-beta. | Post-beta (след S85) | ⏳ pending |
+| 18 | chat.php role checks + simple mode redirect | 23.04.2026 (ЗАКОН №8) | Добави current_role() + can() на всички SQL queries; redirect към life-board.php ако ui_mode=simple; pills hidden за seller | S81 или нова сесия | ⏳ pending |
+| 19 | products.php role checks | 23.04.2026 (ЗАКОН №8) | Seller НЕ вижда cost_price, retail_price на supplier level, profit columns; SQL conditional queries | S82 (разширен) | ⏳ pending |
+| 20 | stats.php role checks | 23.04.2026 (ЗАКОН №8) | Seller НЕ вижда profit/revenue charts, само own-sales summary | S93 (в rewrite сесията) | ⏳ pending |
+| 21 | life-board.php (Simple Mode) — минимална версия без AI | 23.04.2026 (beta blocker) | header + оборот + 4 бутона (Продай/Стоката/Доставка/Поръчка) + ЧЗВ (15-20 статични въпроса) + footer. БЕЗ AI insights cards. БЕЗ Voice FAB. Static PHP SQL за числата. | **S81 (beta blocker)** | ⏳ pending |
+| 22 | Shift management + daily summary | 23.04.2026 (beta scope) | Seller започва/затваря смяна; life-board показва "колко продадох днес" в края на деня | S86.5 (ако Тихол реши) | ❓ pending decision |
 | 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
 | 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
@@ -1182,7 +1212,9 @@ cron-weather.php → 06:00
 |---|---|---|---|---|
 | S78 | DB migration + 3 P0 bugs + compute-insights skeleton | products.php, DB | products.php, compute-insights.php, /tmp/s78_*.py | → цяла Phase A blocker |
 | S79 | DB foundations 1: schema_migrations, audit_log, DB::tx(), soft delete | DB, helpers | config/database.php, config/helpers.php, migrations/ | S78 done |
-| S80 | DB foundations 2: negative stock guard, composite FK, idempotency, cents | DB, helpers | migrations/, products.php patch | S79 done |
+| **S80** | **ROLES_AND_MODES_FOUNDATION** (beta blocker) | **DB, helpers** | **users.role + tenants.ui_mode migration, helpers/auth.php, helpers/simple-mode.php, ROLES_MATRIX.md, life-board-router.php placeholder** | **S79.SECURITY done** |
+| **S81** | **LIFE_BOARD_SKELETON** (beta blocker, без AI) | **new file** | **life-board.php (header + оборот + 4 бутона + ЧЗВ static JSON), 4 бутона → ?simple=1 на sale/products/deliveries/inventory** | **S80 done** |
+| ~~S80-old~~ | ~~DB foundations 2~~ | ~~→ перенесено~~ | ~~reclaimed за beta work~~ | — |
 | S81 | DB foundations 3: stock ledger, events queue, Bluetooth | DB, products.php, js/ | migrations/, products.php, js/printer.js | S80 done |
 | S82 | Products wizard complete + filter drawer + CSV + AI features | products.php | products.php (5919→~8000) | S78-S81 done |
 | — | **🎯 PHASE A DONE. ЕНИ first sale: 10-15 май 2026** | | | |
