@@ -4372,7 +4372,9 @@ function renderLabelsDrawer(){
         h+='<div onclick="lblPrint('+i+')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
     });
 
-    h+='<button type="button" class="abtn save" style="margin-top:10px;font-size:13px;padding:12px" onclick="lblPrint(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>\u041f\u0435\u0447\u0430\u0442\u0430\u0439 \u0432\u0441\u0438\u0447\u043a\u0438 (<span id="lblTot">'+totalQty+'</span> \u0435\u0442.)</button>';
+    h+='<div style="display:flex;gap:8px;margin-top:10px;align-items:stretch">';
+    h+='<button type="button" onclick="openPrinterSettings()" title="Настройки принтер" style="width:48px;flex-shrink:0;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.25);border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">⚙️</button>';
+    h+='<button type="button" class="abtn save" style="flex:1;font-size:13px;padding:12px" onclick="lblPrint(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>\u041f\u0435\u0447\u0430\u0442\u0430\u0439 \u0432\u0441\u0438\u0447\u043a\u0438 (<span id="lblTot">'+totalQty+'</span> \u0435\u0442.)</button></div>';
     h+='<button type="button" class="abtn" onclick="lblCSV()" style="margin-top:6px;font-size:11px;padding:8px;border-color:rgba(99,102,241,.15);color:var(--indigo-300)">\u0421\u0432\u0430\u043b\u0438 CSV</button>';
     h+='</div>';
     document.getElementById('labelsBody').innerHTML=h;
@@ -4430,7 +4432,23 @@ function lblPrint(idx){
         }
         html+='</div>';
     });
-    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script></body></html>';
+    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script>
+<!-- S82.CAPACITOR — Printer FAB (показва се само в Capacitor APP) -->
+<button id="prnFab" onclick="openPrinterSettings()" style="display:none;position:fixed;bottom:88px;right:16px;width:52px;height:52px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;box-shadow:0 6px 20px rgba(99,102,241,.4);z-index:9000;cursor:pointer;font-size:22px" title="Принтер">🖨️</button>
+<script>
+// Показва FAB само в Capacitor APP
+(function(){
+    function showFab(){
+        if (typeof CapPrinter !== 'undefined' && CapPrinter.isAvailable && CapPrinter.isAvailable()){
+            var fab = document.getElementById('prnFab');
+            if (fab) fab.style.display = 'flex';
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(showFab,500)});
+    else setTimeout(showFab, 500);
+})();
+</script>
+</body></html>';
     // S79FIX_BUG9_QSECTIONS_APPLIED
     // S79FIX_BUG567_ADDCARD_APPLIED
     var w=window.open('','_blank','width=400,height=600');
