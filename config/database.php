@@ -1,24 +1,51 @@
 <?php
+/**
+ * S79.SECURITY — credentials се четат от /etc/runmystore/db.env
+ * НИКОГА hardcoded стойности тук!
+ */
 class DB {
     private static ?PDO $instance = null;
+    private static ?array $config = null;
 
-    private static array $config = [
-        'host'    => 'localhost',
-        'dbname'  => 'runmystore',
-        'user'    => 'runmystore',
-        'pass'    => '***REMOVED_DB_PASSWORD***',
-        'charset' => 'utf8mb4',
-    ];
+    private static function loadConfig(): array {
+        if (self::$config !== null) return self::$config;
+
+        $env_file = '/etc/runmystore/db.env';
+        if (!file_exists($env_file)) {
+            error_log('S79.SECURITY: DB config missing: ' . $env_file);
+            die('Database configuration not found. Contact administrator.');
+        }
+        if (!is_readable($env_file)) {
+            error_log('S79.SECURITY: DB config not readable (check ownership/permissions): ' . $env_file);
+            die('Database configuration not readable. Contact administrator.');
+        }
+
+        $env = parse_ini_file($env_file);
+        if ($env === false || !isset($env['DB_HOST'], $env['DB_NAME'], $env['DB_USER'], $env['DB_PASS'])) {
+            error_log('S79.SECURITY: DB env file malformed: ' . $env_file);
+            die('Database configuration invalid. Contact administrator.');
+        }
+
+        self::$config = [
+            'host'    => $env['DB_HOST'],
+            'dbname'  => $env['DB_NAME'],
+            'user'    => $env['DB_USER'],
+            'pass'    => $env['DB_PASS'],
+            'charset' => 'utf8mb4',
+        ];
+        return self::$config;
+    }
 
     public static function get(): PDO {
         if (self::$instance === null) {
+            $cfg = self::loadConfig();
             $dsn = sprintf(
                 'mysql:host=%s;dbname=%s;charset=%s',
-                self::$config['host'],
-                self::$config['dbname'],
-                self::$config['charset']
+                $cfg['host'],
+                $cfg['dbname'],
+                $cfg['charset']
             );
-            self::$instance = new PDO($dsn, self::$config['user'], self::$config['pass'], [
+            self::$instance = new PDO($dsn, $cfg['user'], $cfg['pass'], [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
@@ -58,17 +85,10 @@ class DB {
      * Wraps callable in BEGIN/COMMIT, ROLLBACK on Throwable.
      * Returns whatever the callback returns.
      *
-     * Usage:
-     *   $sale_id = DB::tx(function() use ($data) {
-     *       $id = Sales::create($data);
-     *       Inventory::decrement(...);
-     *       return $id;
-     *   });
-     *
      * Limitations (S79):
      *   - No nested transactions (PDO native — second beginTransaction throws)
-     *     → SAVEPOINT support идва в S80
-     *   - No deadlock retry → S80
+     *     -> SAVEPOINT support идва в S80
+     *   - No deadlock retry -> S80
      */
     public static function tx(callable $callback) {
         $pdo = self::get();

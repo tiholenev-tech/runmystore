@@ -22,3 +22,13 @@ mobile/android/app/src/main/assets/capacitor.plugins.json
 *.keystore
 *.jks
 
+
+# S79.SECURITY — credential files
+*.env
+.env
+.env.*
+!.env.example
+config/*.local.php
+secrets/
+.claude/settings.local.json
+config/database.php.save
