@@ -266,10 +266,15 @@
     push('TEXT 10,' + y + ',"4",0,1,1,"' + priceStr + '"\r\n');
     y += 36;
 
-    // Barcode (последен) — подравнен към долния край на етикета
+    // Barcode (последен) — auto-detect format
     if (barcode) {
       const barY = Math.max(y, 155);
-      push('BARCODE 10,' + barY + ',"128",55,1,0,2,2,"' + barcode + '"\r\n');
+      let fmt = '128';
+      let narrow = 2;
+      if (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 2; }
+      else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA'; narrow = 2; }
+      else if (/^[0-9]{8}$/.test(barcode)) { fmt = 'EAN8'; narrow = 2; }
+      push('BARCODE 10,' + barY + ',"' + fmt + '",55,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
     }
 
     push('PRINT ' + n + '\r\n');
@@ -351,11 +356,43 @@
     async print(product, store, copies) {
       if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
 
-      const id = await this.connect();
+      const ble = getBle();
       const bytes = generateTSPL(product, store, copies || 1);
 
-      await writeChunked(getBle(), id, bytes);
+      let id = getSavedDeviceId();
+      if (!id) throw new Error('Няма сдвоен принтер');
+
+      await ble.initialize({ androidNeverForLocation: false });
+
+      // Свързваме (ignore "already connected")
+      try {
+        await ble.connect(id, () => {});
+      } catch (e) {
+        const msg = (e && e.message) ? e.message.toLowerCase() : '';
+        if (!msg.includes('already') && !msg.includes('connected')) {
+          // Опит за reconnect
+          try { await ble.disconnect(id); } catch (_) {}
+          await sleep(300);
+          await ble.connect(id, () => {});
+        }
+      }
+      await sleep(150);
+
+      // Write — с retry при неуспех
+      try {
+        await writeChunked(ble, id, bytes);
+      } catch (e) {
+        try { await ble.disconnect(id); } catch (_) {}
+        await sleep(400);
+        await ble.connect(id, () => {});
+        await sleep(200);
+        await writeChunked(ble, id, bytes);
+      }
       await sleep(500);
+
+      // Explicit disconnect — гарантира свежа връзка следващия път
+      try { await ble.disconnect(id); } catch (_) {}
+
       return { ok: true, bytes: bytes.length, copies: copies || 1 };
     },
 
