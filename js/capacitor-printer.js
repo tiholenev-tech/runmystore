@@ -83,8 +83,39 @@
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
   }
 
+  // Windows-1251 (Cyrillic) map — DTM-5811 вграденият font е CP1251
+  const CP1251 = (function() {
+    const m = new Map();
+    // Кирилица главни букви (Unicode 0x0410-0x042F → CP1251 0xC0-0xDF)
+    for (let i = 0; i < 32; i++) m.set(0x0410 + i, 0xC0 + i);
+    // Кирилица малки букви (Unicode 0x0430-0x044F → CP1251 0xE0-0xFF)
+    for (let i = 0; i < 32; i++) m.set(0x0430 + i, 0xE0 + i);
+    // Допълнителни
+    m.set(0x0401, 0xA8); // Ё
+    m.set(0x0451, 0xB8); // ё
+    m.set(0x20AC, 0x88); // €
+    m.set(0x2116, 0xB9); // №
+    m.set(0x00B7, 0xB7); // ·
+    m.set(0x00AB, 0xAB); // «
+    m.set(0x00BB, 0xBB); // »
+    m.set(0x2014, 0x97); // —
+    m.set(0x2013, 0x96); // –
+    return m;
+  })();
+
   function strToBytes(s) {
-    return new TextEncoder().encode(s);
+    const out = [];
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      if (code < 128) {
+        out.push(code);
+      } else if (CP1251.has(code)) {
+        out.push(CP1251.get(code));
+      } else {
+        out.push(0x3F);
+      }
+    }
+    return new Uint8Array(out);
   }
 
   function bytesToDataView(bytes) {
@@ -97,7 +128,7 @@
 
   function escapeTsplText(s) {
     if (!s) return '';
-    return String(s).replace(/[\r\n\t]/g, ' ').substring(0, 32);
+    return String(s).replace(/[\r\n\t"]/g, ' ').substring(0, 32);
   }
 
   function formatPrice(amount, currency) {
@@ -120,19 +151,26 @@
     cmd += 'SIZE 50 mm,30 mm\r\n';
     cmd += 'GAP 2 mm,0\r\n';
     cmd += 'DIRECTION 1\r\n';
-    cmd += 'DENSITY 8\r\n';
-    cmd += 'SPEED 4\r\n';
+    cmd += 'DENSITY 10\r\n';
+    cmd += 'SPEED 3\r\n';
+    cmd += 'CODEPAGE 1251\r\n';
     cmd += 'CLS\r\n';
+    // Layout: 50×30mm = 400×240 dots (@ 8 dots/mm)
+    // Ред 1 (y=8): store name (font TSS24.BF2 — голям sans-serif)
     if (storeName) {
-      cmd += `TEXT 15,10,"1",0,1,1,"${storeName}"\r\n`;
+      cmd += `TEXT 10,8,"TSS24.BF2",0,1,1,"${storeName}"\r\n`;
     }
-    cmd += `TEXT 15,35,"2",0,1,1,"${name}"\r\n`;
-    cmd += `TEXT 15,75,"4",0,1,1,"${price}"\r\n`;
+    // Ред 2 (y=40): product name
+    cmd += `TEXT 10,40,"TSS24.BF2",0,1,1,"${name}"\r\n`;
+    // Ред 3 (y=72): code (малък)
+    if (code) {
+      cmd += `TEXT 10,72,"1",0,1,1,"${code}"\r\n`;
+    }
+    // Ред 4 (y=95): price (голям — font 4)
+    cmd += `TEXT 10,95,"4",0,1,1,"${price}"\r\n`;
+    // Ред 5 (y=155): barcode CODE128, h=55 dots
     if (barcode) {
-      cmd += `BARCODE 15,130,"128",50,1,0,2,2,"${barcode}"\r\n`;
-    }
-    if (code && code !== barcode) {
-      cmd += `TEXT 280,10,"1",0,1,1,"${code}"\r\n`;
+      cmd += `BARCODE 10,155,"128",55,1,0,2,2,"${barcode}"\r\n`;
     }
     cmd += `PRINT ${n}\r\n`;
     return cmd;
