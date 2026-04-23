@@ -44,7 +44,7 @@
   const PRINTER_NAME_FILTER = 'DTM';
 
   // Max BLE write chunk (DTM-5811 default MTU = 20 bytes safe)
-  const CHUNK_SIZE = 20;
+  const CHUNK_SIZE = 100;
 
   // ----- Helpers -----
 
@@ -288,7 +288,7 @@
     for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
       const chunk = bytes.slice(i, i + CHUNK_SIZE);
       await ble.write(deviceId, SERVICE_UUID, WRITE_CHAR_UUID, bytesToDataView(chunk));
-      await sleep(15);
+      await sleep(5);
     }
   }
 
@@ -351,6 +351,7 @@
       const id = getSavedDeviceId();
       if (!id) return;
       try { await getBle().disconnect(id); } catch (e) {}
+      window.__blePrinterConnected = false;
     },
 
     async print(product, store, copies) {
@@ -362,37 +363,42 @@
       let id = getSavedDeviceId();
       if (!id) throw new Error('Няма сдвоен принтер');
 
-      await ble.initialize({ androidNeverForLocation: false });
+      // Initialize само веднъж per session
+      if (!window.__bleInitialized) {
+        await ble.initialize({ androidNeverForLocation: false });
+        window.__bleInitialized = true;
+      }
 
-      // Свързваме (ignore "already connected")
-      try {
-        await ble.connect(id, () => {});
-      } catch (e) {
-        const msg = (e && e.message) ? e.message.toLowerCase() : '';
-        if (!msg.includes('already') && !msg.includes('connected')) {
-          // Опит за reconnect
-          try { await ble.disconnect(id); } catch (_) {}
-          await sleep(300);
-          await ble.connect(id, () => {});
+      // Connect ако още не сме свързани
+      if (!window.__blePrinterConnected) {
+        try {
+          await ble.connect(id, () => { window.__blePrinterConnected = false; });
+          window.__blePrinterConnected = true;
+        } catch (e) {
+          const msg = (e && e.message) ? e.message.toLowerCase() : '';
+          if (msg.includes('already') || msg.includes('connected')) {
+            window.__blePrinterConnected = true;
+          } else {
+            throw e;
+          }
         }
       }
-      await sleep(150);
 
-      // Write — с retry при неуспех
+      // Write — retry веднъж ако падне
       try {
         await writeChunked(ble, id, bytes);
       } catch (e) {
+        // Reconnect и пробваме пак
+        window.__blePrinterConnected = false;
         try { await ble.disconnect(id); } catch (_) {}
-        await sleep(400);
-        await ble.connect(id, () => {});
         await sleep(200);
+        await ble.connect(id, () => { window.__blePrinterConnected = false; });
+        window.__blePrinterConnected = true;
         await writeChunked(ble, id, bytes);
       }
-      await sleep(500);
+      await sleep(200);
 
-      // Explicit disconnect — гарантира свежа връзка следващия път
-      try { await ble.disconnect(id); } catch (_) {}
-
+      // Не disconnect-ваме — следващото print е мигновено
       return { ok: true, bytes: bytes.length, copies: copies || 1 };
     },
 
