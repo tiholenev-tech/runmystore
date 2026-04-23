@@ -1340,16 +1340,19 @@ DEPENDENCY: [описание]                — промяна в dependency t
 # 📊 PHASE OVERVIEW
 
 ```
-Phase A — DB Foundation + Products (S78-S82)          ~10% ⏳
-  ├─ P0 bugs fixed                                    0% ⏳ S78
-  ├─ S77 DB migrations                                0% ⏳ S78
-  ├─ DB foundations (cents, audit, soft delete)       0% ⏳ S79
-  ├─ DB guards (negative, FK, idempotency)            0% ⏳ S80
+Phase A — DB Foundation + Products (S78-S82)         ~40% ⏳
+  ├─ P0 bugs fixed                                  100% ✅ S78 + S79.FIX.B
+  ├─ S77 DB migrations                              100% ✅ S78
+  ├─ DB foundations 1 (migrations, audit, soft del) 100% ✅ S79.DB
+  ├─ audit_log extension (store_id, source)         100% ✅ S79.CRON_AUDIT
+  ├─ compute-insights.php (19 pf + cron 15min)      100% ✅ S79.INSIGHTS + CRON
+  ├─ DB guards (negative, FK, idempotency, cents)     0% ⏳ S80
+  ├─ DB::tx() deadlock retry                          0% ⏳ S80
   ├─ Stock ledger + event queue                       0% ⏳ S81
-  ├─ Bluetooth print                                  50% ⏳ S82 (код готов, bridge блокер)
-  ├─ products.php главна rewrite                      0% ⏳ S79
+  ├─ Bluetooth print (CSV workaround live)           30% 🟡 S82 Capacitor in progress
+  ├─ products.php главна — 6 секции + Hidden Inv    100% ✅ S79.FIX.B
   ├─ products.php wizard rewrite                      0% ⏳ S80
-  ├─ products.php AI features                         0% ⏳ S81
+  ├─ AI Studio (background remove)                    0% ⏳ S81.AI (отложено)
   ├─ products.php polish                              0% ⏳ S82
   └─ ЕНИ first sale                                   0% ⏳ 10-15 май
 
