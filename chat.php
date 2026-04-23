@@ -602,23 +602,27 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
     position:relative;z-index:5
 }
 .rev-meta b{color:hsl(var(--hue1) 60% 85%);font-weight:800}
-.rev-pills{display:flex;align-items:center;gap:6px;position:relative;z-index:5;flex-wrap:wrap}
-.rev-pill-group{display:flex;gap:3px}
+/* S79.POLISH2 — Revenue pills (period + mode) */
+.rev-pills{display:flex;align-items:center;gap:8px;position:relative;z-index:5;flex-wrap:wrap}
+.rev-pill-group{display:flex;gap:4px;padding:3px;background:rgba(0,0,0,.25);border-radius:100px;border:1px solid rgba(255,255,255,.04)}
 .rev-pill{
-    padding:4px 9px;border-radius:100px;
+    padding:6px 12px;border-radius:100px;
     font-size:10px;font-weight:700;cursor:pointer;
     font-family:inherit;letter-spacing:.02em;
-    border:1px solid;background:transparent;color:var(--text-muted);
-    border-color:rgba(255,255,255,.06);
-    transition:all .2s
+    border:none;background:transparent;color:rgba(255,255,255,.5);
+    transition:all .2s;font-family:inherit
 }
+.rev-pill:not(.active):active{color:rgba(255,255,255,.85)}
 .rev-pill.active{
-    background:linear-gradient(135deg,hsl(var(--hue1) 55% 32%),hsl(var(--hue2) 60% 26%));
-    border-color:hsl(var(--hue1) 60% 50%);
-    color:white;
-    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / .35)
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 65% 40%));
+    color:white;font-weight:800;
+    box-shadow:
+        0 2px 8px hsl(var(--hue1) 60% 45% / .4),
+        inset 0 1px 0 rgba(255,255,255,.2),
+        inset 0 0 12px hsl(var(--hue1) 70% 60% / .15);
+    text-shadow:0 0 8px hsl(var(--hue1) 80% 70% / .5)
 }
-.rev-divider{width:1px;height:18px;background:rgba(255,255,255,.08);margin:0 3px}
+.rev-divider{width:1px;height:24px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1),transparent);margin:0 4px}
 .conf-warn{
     display:flex;align-items:center;gap:6px;
     margin:8px 0 0;padding:6px 10px;
@@ -714,25 +718,39 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 /* Proactive top-strip (S79) */
 .top-strip{display:flex;gap:6px;padding:4px 2px 8px;overflow-x:auto;scrollbar-width:none}
 .top-strip::-webkit-scrollbar{display:none}
+/* S79.POLISH2 — Top-strip proactive pills */
 .top-pill{
-    flex-shrink:0;padding:6px 11px;border-radius:100px;
+    flex-shrink:0;padding:8px 14px;border-radius:100px;
     cursor:pointer;font-size:10px;font-weight:700;line-height:1.2;
-    background:rgba(255,255,255,.03);
-    border:1px solid rgba(255,255,255,.06);
-    color:#e2e8f0;
-    display:flex;align-items:center;gap:6px;max-width:230px;
-    transition:transform .15s
+    background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(0,0,0,.2));
+    border:1px solid rgba(255,255,255,.08);
+    color:#e2e8f0;backdrop-filter:blur(6px);
+    display:flex;align-items:center;gap:7px;max-width:260px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    transition:transform .15s,box-shadow .2s
 }
 .top-pill:active{transform:scale(.96)}
 .top-pill.q1{
-    border-color:hsl(0,85%,50%,.3);
-    background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(239,68,68,.03));
-    box-shadow:0 0 10px rgba(239,68,68,.15)
+    --qc:hsl(0,85%,55%);
+    border-color:color-mix(in oklch,var(--qc) 40%,transparent);
+    background:linear-gradient(135deg,
+        color-mix(in oklch,var(--qc) 20%,hsl(220 30% 8%)),
+        color-mix(in oklch,var(--qc) 8%,hsl(220 30% 6%)));
+    box-shadow:
+        0 2px 10px color-mix(in oklch,var(--qc) 25%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.1),
+        inset 0 0 16px color-mix(in oklch,var(--qc) 12%,transparent)
 }
 .top-pill.q5{
-    border-color:hsl(38,90%,50%,.3);
-    background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(251,191,36,.03));
-    box-shadow:0 0 10px rgba(251,191,36,.15)
+    --qc:hsl(38,90%,55%);
+    border-color:color-mix(in oklch,var(--qc) 40%,transparent);
+    background:linear-gradient(135deg,
+        color-mix(in oklch,var(--qc) 20%,hsl(220 30% 8%)),
+        color-mix(in oklch,var(--qc) 8%,hsl(220 30% 6%)));
+    box-shadow:
+        0 2px 10px color-mix(in oklch,var(--qc) 25%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.1),
+        inset 0 0 16px color-mix(in oklch,var(--qc) 12%,transparent)
 }
 .top-pill .tp-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-pill .tp-val{font-weight:900;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -916,16 +934,25 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 .sig-card.info .sig-card-t{color:#86efac}
 .sig-card-d{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sig-card-arr{color:rgba(255,255,255,.25);font-size:13px;font-weight:900;flex-shrink:0}
+/* S79.POLISH2 — "Виж всички сигнала" button */
 .sig-more{
-    display:inline-flex;padding:6px 12px;
-    border-radius:100px;
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
-    color:hsl(var(--hue1) 60% 80%);
+    display:inline-flex;align-items:center;gap:4px;
+    padding:8px 16px;border-radius:100px;
+    background:linear-gradient(135deg,
+        hsl(var(--hue1) 40% 20% / .8),
+        hsl(var(--hue2) 45% 15% / .8));
+    border:1px solid hsl(var(--hue1) 40% 35% / .5);
+    color:hsl(var(--hue1) 60% 88%);
     font-size:10px;font-weight:800;
     cursor:pointer;font-family:inherit;
-    letter-spacing:.02em;margin-top:4px
+    letter-spacing:.03em;margin-top:8px;
+    box-shadow:
+        0 2px 10px hsl(var(--hue1) 60% 35% / .3),
+        inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(6px);
+    transition:transform .15s
 }
+.sig-more:active{transform:scale(.97)}
 
 .ghost-pill{
     display:inline-flex;padding:7px 14px;
@@ -1274,27 +1301,43 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .sig-suggest{color:hsl(var(--hue1) 60% 85%);font-weight:600}
 
 .sig-actions{display:flex;gap:6px;margin-top:6px}
+/* S79.POLISH2 — Signal Detail buttons (neon glass pill) */
 .sig-btn-primary{
-    flex:1;padding:12px 10px;border-radius:12px;
+    flex:1;padding:13px 14px;border-radius:100px;
     font-size:12px;font-weight:800;
-    text-align:center;cursor:pointer;border:none;font-family:inherit;
-    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
-    color:white;
-    box-shadow:0 4px 14px hsl(var(--hue1) 60% 45% / .4),inset 0 1px 0 rgba(255,255,255,.2);
-    letter-spacing:.02em;
-    transition:transform .15s
+    text-align:center;cursor:pointer;border:1px solid;font-family:inherit;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 48%),hsl(var(--hue2) 70% 42%));
+    border-color:hsl(var(--hue1) 60% 55% / .5);
+    color:white;letter-spacing:.03em;
+    box-shadow:
+        0 4px 16px hsl(var(--hue1) 60% 45% / .45),
+        inset 0 1px 0 rgba(255,255,255,.2),
+        inset 0 0 20px hsl(var(--hue1) 70% 65% / .15);
+    text-shadow:0 0 10px hsl(var(--hue1) 80% 75% / .4);
+    transition:transform .15s,box-shadow .2s
 }
-.sig-btn-primary:active{transform:scale(.97)}
+.sig-btn-primary:active{
+    transform:scale(.97);
+    box-shadow:
+        0 2px 8px hsl(var(--hue1) 60% 45% / .35),
+        inset 0 1px 0 rgba(255,255,255,.15)
+}
 .sig-btn-secondary{
-    flex:1;padding:12px 10px;border-radius:12px;
+    flex:1;padding:13px 14px;border-radius:100px;
     font-size:12px;font-weight:700;
     text-align:center;cursor:pointer;
-    border:1px solid rgba(255,255,255,.08);font-family:inherit;
-    background:rgba(255,255,255,.04);
-    color:hsl(var(--hue1) 60% 80%);
-    letter-spacing:.02em
+    border:1px solid rgba(255,255,255,.1);font-family:inherit;
+    background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(0,0,0,.15));
+    color:rgba(255,255,255,.8);
+    letter-spacing:.03em;
+    backdrop-filter:blur(6px);
+    transition:all .15s
 }
-.sig-btn-secondary:active{transform:scale(.97)}
+.sig-btn-secondary:active{
+    transform:scale(.97);
+    background:rgba(255,255,255,.08);
+    color:white
+}
 .sig-hint{
     font-size:9px;color:var(--text-muted);
     text-align:center;margin-top:6px;font-weight:600;letter-spacing:.03em
@@ -1317,20 +1360,55 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .sig-row-val{font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0}
 
 /* Signal Browser grid */
+/* S79.POLISH2 — Signal Browser categories */
 .browser-cat{
-    background:rgba(255,255,255,.02);
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:14px;padding:10px;margin-bottom:10px
+    position:relative;
+    background:
+        linear-gradient(135deg,rgba(255,255,255,.025),rgba(0,0,0,.15)),
+        linear-gradient(hsl(220 25% 7% / .6));
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:16px;padding:12px;margin-bottom:12px;
+    backdrop-filter:blur(6px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        0 3px 10px rgba(0,0,0,.2);
+    overflow:hidden
 }
-.browser-cat-h{display:flex;align-items:center;gap:6px;margin:0 2px 8px}
-.browser-cat-dot{width:8px;height:8px;border-radius:50%}
-.browser-cat-name{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
-.browser-cat-cnt{font-size:10px;color:var(--text-muted);font-weight:700;margin-left:auto}
+.browser-cat::before{
+    content:'';position:absolute;
+    top:0;left:0;width:3px;bottom:0;
+    background:linear-gradient(180deg,var(--ccol,transparent),transparent);
+    box-shadow:0 0 16px 1px var(--ccol,transparent);
+    opacity:.8;border-radius:16px 0 0 16px
+}
+.browser-cat-h{
+    display:flex;align-items:center;gap:8px;
+    margin:0 2px 10px;position:relative;z-index:2
+}
+.browser-cat-dot{
+    width:9px;height:9px;border-radius:50%;
+    box-shadow:0 0 10px currentColor;
+    flex-shrink:0
+}
+.browser-cat-name{
+    font-size:11px;font-weight:900;
+    text-transform:uppercase;letter-spacing:.08em;
+    text-shadow:0 0 10px currentColor
+}
+.browser-cat-cnt{
+    font-size:10px;color:rgba(255,255,255,.5);
+    font-weight:800;margin-left:auto;
+    padding:2px 8px;border-radius:100px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.04);
+    font-variant-numeric:tabular-nums
+}
 .browser-future{
-    padding:10px;font-size:10px;color:var(--text-muted);
-    border:1px dashed rgba(255,255,255,.06);
+    padding:12px;font-size:11px;
+    color:rgba(255,255,255,.4);
+    border:1px dashed rgba(255,255,255,.08);
     border-radius:10px;text-align:center;margin:4px 0;
-    font-weight:600
+    font-weight:600;font-style:italic
 }
 
 /* Toast */
@@ -2058,9 +2136,9 @@ function openSignalBrowser() {
         const label = CAT_LABELS[catKey];
         const color = CAT_COLORS[catKey];
 
-        h += '<div class="browser-cat">'
+        h += '<div class="browser-cat" style="--ccol:' + color + '">'
            + '<div class="browser-cat-h">'
-           + '<div class="browser-cat-dot" style="background:' + color + '"></div>'
+           + '<div class="browser-cat-dot" style="background:' + color + ';color:' + color + '"></div>'
            + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
            + '<span class="browser-cat-cnt">' + (items.length || '\u2014') + '</span></div>';
 
