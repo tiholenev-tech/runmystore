@@ -216,8 +216,23 @@ try {
     }
 } catch (Exception $e) {}
 
-$briefing = array_slice($insights, 0, 3);
-$remaining = max(0, count($insights) - 3);
+// S79.BRIEFING_6FQ — BIBLE §6.5 narrative_flow: top 1 insight от всеки fundamental_question
+$by_fq = [];
+foreach ($insights as $ins) {
+    $fq = $ins['fundamental_question'] ?? '';
+    if ($fq && !isset($by_fq[$fq])) {
+        $by_fq[$fq] = $ins;
+    }
+}
+$narrative_order = ['loss', 'loss_cause', 'gain', 'gain_cause', 'order', 'anti_order'];
+$briefing = [];
+$briefing_indices = []; // запазваме оригиналния index в $all_insights_for_js за Signal Detail
+foreach ($narrative_order as $fq) {
+    if (isset($by_fq[$fq])) {
+        $briefing[] = $by_fq[$fq];
+    }
+}
+$remaining = max(0, count($insights) - count($briefing));
 
 // S79_P4_PROACTIVE_STRIP — top strip pills (loss+order, 6h cooldown)
 $proactive_pills = [];
@@ -748,6 +763,75 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 .sig-card.q4{border-left-color:hsl(175,70%,50%) !important}
 .sig-card.q5{border-left-color:hsl(38,90%,55%) !important}
 .sig-card.q6{border-left-color:hsl(220,10%,55%) !important}
+
+/* S79.BRIEFING_6FQ — 6 секции по fundamental_question */
+.briefing-section{
+    margin:8px 0;padding:12px 12px 10px;
+    border-radius:12px;
+    border-left:4px solid;
+    background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.05);
+    position:relative;z-index:5
+}
+.briefing-section.q1{border-left-color:hsl(0,85%,55%);background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(0,0,0,.25))}
+.briefing-section.q2{border-left-color:hsl(280,70%,62%);background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(0,0,0,.25))}
+.briefing-section.q3{border-left-color:hsl(145,70%,50%);background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(0,0,0,.25))}
+.briefing-section.q4{border-left-color:hsl(175,70%,50%);background:linear-gradient(135deg,rgba(20,184,166,.08),rgba(0,0,0,.25))}
+.briefing-section.q5{border-left-color:hsl(38,90%,55%);background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(0,0,0,.25))}
+.briefing-section.q6{border-left-color:hsl(220,10%,55%);background:linear-gradient(135deg,rgba(107,114,128,.1),rgba(0,0,0,.25))}
+.briefing-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.briefing-emoji{font-size:12px}
+.briefing-name{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.briefing-section.q1 .briefing-name{color:#fca5a5}
+.briefing-section.q2 .briefing-name{color:#c4b5fd}
+.briefing-section.q3 .briefing-name{color:#86efac}
+.briefing-section.q4 .briefing-name{color:#5eead4}
+.briefing-section.q5 .briefing-name{color:#fcd34d}
+.briefing-section.q6 .briefing-name{color:#9ca3af}
+.briefing-title{
+    font-size:13px;font-weight:800;color:#f1f5f9;
+    line-height:1.35;margin-bottom:4px
+}
+.briefing-detail{
+    font-size:11px;color:rgba(255,255,255,.75);
+    line-height:1.5;margin-bottom:8px;font-weight:500
+}
+.briefing-items{
+    margin:6px 0 10px;
+    padding:8px 10px;
+    background:rgba(0,0,0,.2);
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.03)
+}
+.briefing-item{
+    display:flex;align-items:center;gap:6px;
+    padding:3px 0;font-size:11px
+}
+.briefing-item:not(:last-child){border-bottom:1px solid rgba(255,255,255,.03)}
+.bi-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0}
+.bi-name{flex:1;color:rgba(255,255,255,.85);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bi-qty{color:rgba(255,255,255,.5);font-weight:700;font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.briefing-actions{display:flex;gap:6px;margin-top:8px}
+.briefing-btn-primary{
+    flex:1;padding:10px 10px;border-radius:10px;
+    font-size:11px;font-weight:800;
+    text-align:center;cursor:pointer;border:none;font-family:inherit;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    color:white;text-decoration:none;display:block;
+    box-shadow:0 3px 10px hsl(var(--hue1) 60% 45% / .3),inset 0 1px 0 rgba(255,255,255,.15);
+    letter-spacing:.02em;transition:transform .15s
+}
+.briefing-btn-primary:active{transform:scale(.97)}
+.briefing-btn-secondary{
+    padding:10px 14px;border-radius:10px;
+    font-size:11px;font-weight:700;
+    text-align:center;cursor:pointer;
+    border:1px solid rgba(255,255,255,.1);font-family:inherit;
+    background:rgba(255,255,255,.04);
+    color:rgba(255,255,255,.75);
+    letter-spacing:.02em
+}
+.briefing-btn-secondary:active{transform:scale(.97)}
 .sig-card-body{flex:1;min-width:0}
 .sig-card-t{font-size:11px;font-weight:800;line-height:1.25}
 .sig-card.critical .sig-card-t{color:#fca5a5}
@@ -1365,29 +1449,78 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <?php endif; ?>
 
     <?php if (!empty($briefing)): ?>
-    <!-- PRO: Real insights -->
+    <!-- PRO: 6-by-fq narrative briefing (BIBLE §6.5) -->
     <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
-        <?php foreach ($briefing as $bidx => $ins):
-            $u = urgencyClass($ins['urgency']);
-            $sig_q = match($ins['fundamental_question'] ?? ''){
-                'loss'=>'q1','loss_cause'=>'q2','gain'=>'q3',
-                'gain_cause'=>'q4','order'=>'q5','anti_order'=>'q6',default=>'' };
+        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Ето пълната картина за днес:</div>
+        <?php
+        $fq_meta = [
+            'loss'       => ['q'=>'q1', 'emoji'=>'🔴', 'name'=>'КАКВО ГУБИШ'],
+            'loss_cause' => ['q'=>'q2', 'emoji'=>'🟣', 'name'=>'ОТ КАКВО ГУБИШ'],
+            'gain'       => ['q'=>'q3', 'emoji'=>'🟢', 'name'=>'КАКВО ПЕЧЕЛИШ'],
+            'gain_cause' => ['q'=>'q4', 'emoji'=>'🔷', 'name'=>'ОТ КАКВО ПЕЧЕЛИШ'],
+            'order'      => ['q'=>'q5', 'emoji'=>'🟡', 'name'=>'ПОРЪЧАЙ'],
+            'anti_order' => ['q'=>'q6', 'emoji'=>'⚫', 'name'=>'НЕ ПОРЪЧВАЙ'],
+        ];
+        // Find the original index in $all_insights_for_js by topic_id for openSignalDetail()
+        $topic_to_idx = [];
+        foreach ($all_insights_for_js as $idx => $v) {
+            $topic_to_idx[$v['topicId']] = $idx;
+        }
+        foreach ($briefing as $ins):
+            $fq = $ins['fundamental_question'];
+            $meta = $fq_meta[$fq];
+            $action = insightAction($ins);
+            $idx_in_all = $topic_to_idx[$ins['topic_id']] ?? 0;
+            // Extract sub-items (top 3 affected products)
+            $items = [];
+            if (!empty($ins['data_json'])) {
+                $dj = json_decode($ins['data_json'], true);
+                if (!empty($dj['products'])) {
+                    $items = array_slice($dj['products'], 0, 3);
+                }
+            }
         ?>
-        <div class="sig-card <?= $u ?> <?= $sig_q ?>" onclick="openSignalDetail(<?= $bidx ?>)">
-            <div class="sig-card-body">
-                <div class="sig-card-t"><?= htmlspecialchars($ins['title']) ?></div>
-                <?php if (!empty($ins['detail_text'])): ?>
-                <div class="sig-card-d"><?= htmlspecialchars(mb_substr($ins['detail_text'], 0, 80)) ?></div>
-                <?php endif; ?>
+        <div class="briefing-section <?= $meta['q'] ?>">
+            <div class="briefing-head">
+                <span class="briefing-emoji"><?= $meta['emoji'] ?></span>
+                <span class="briefing-name"><?= $meta['name'] ?></span>
             </div>
-            <div class="sig-card-arr">›</div>
+            <div class="briefing-title"><?= htmlspecialchars($ins['title']) ?></div>
+            <?php if (!empty($ins['detail_text'])): ?>
+            <div class="briefing-detail"><?= htmlspecialchars($ins['detail_text']) ?></div>
+            <?php endif; ?>
+            <?php if (!empty($items)): ?>
+            <div class="briefing-items">
+                <?php foreach ($items as $it):
+                    $it_qty = isset($it['qty']) ? (int)$it['qty'] : null;
+                    $it_name = $it['name'] ?? '';
+                ?>
+                <div class="briefing-item">
+                    <span class="bi-dot"></span>
+                    <span class="bi-name"><?= htmlspecialchars($it_name) ?></span>
+                    <?php if ($it_qty !== null): ?>
+                    <span class="bi-qty"><?= $it_qty ?> бр</span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            <div class="briefing-actions">
+                <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
+                <a href="<?= htmlspecialchars($action['url']) ?>" class="briefing-btn-primary"><?= htmlspecialchars($action['label']) ?> →</a>
+                <?php elseif ($action['type'] === 'order_draft'): ?>
+                <button class="briefing-btn-primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
+                <?php else: ?>
+                <button class="briefing-btn-primary" onclick="openChatQ('<?= htmlspecialchars(addslashes($ins['title']), ENT_QUOTES) ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
+                <?php endif; ?>
+                <button class="briefing-btn-secondary" onclick="openSignalDetail(<?= $idx_in_all ?>)">Детайли</button>
+            </div>
         </div>
         <?php endforeach; ?>
         <?php if ($remaining > 0): ?>
-        <button class="sig-more" onclick="openSignalBrowser()">Виж още <?= $remaining ?> сигнала →</button>
+        <button class="sig-more" onclick="openSignalBrowser()">Виж всички <?= count($insights) ?> сигнала →</button>
         <?php endif; ?>
     </div>
 
