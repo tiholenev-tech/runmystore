@@ -58,3 +58,57 @@
 
 **Временен workaround:** нищо — чат просто не работи до Стъпка 3.
 
+
+---
+
+## FINAL UPDATE (23.04.2026 вечер)
+
+**Допълнителни завършени работи след основния visual rewrite:**
+
+### S79.VIZ.FIX (commit d5ddf41)
+- sig-card в briefing получава q1-q6 клас по fundamental_question
+- CSS border-left-color override на urgency -> fq color
+- BIBLE §6.6 UI Pattern compliance
+
+### S79.BRIEFING_6FQ
+- $briefing от top-3 array_slice -> по 1 insight от всеки fundamental_question (max 6 секции)
+- Narrative order: loss -> loss_cause -> gain -> gain_cause -> order -> anti_order (BIBLE §6.5)
+- HTML rewrite: 3 малки sig-cards -> 6 широки briefing-section
+- Секция: emoji + name + title + wide detail + items list + primary action + "Детайли" button
+- Празните секции се скриват автоматично
+- Добавен "Виж всички N сигнала" бутон отдолу
+
+### S79.POLISH + S79.POLISH2 (commits bdd14c7, c2caaf5)
+- briefing-section: glass morphism + vertical hue glow border + radial hue corner
+- Primary button: color-mix(in oklch) hue gradient + inset highlight + hue glow
+- Secondary button: glass pill + backdrop-blur
+- Revenue pills: segmented control в dark контейнер с active indigo gradient
+- Top-strip pills: glass с hue-matched gradient + inset radial glow
+- Signal Detail buttons: pill 100px + hue gradient
+- Signal Browser categories: glass капсула + vertical hue border + pill count badge
+
+### DESIGN_SYSTEM v2.0 (commit 843a1d8)
+- 1006 реда пълна спецификация
+- 19 компонента с точни CSS параметри
+- ЕТАЛОН за всеки нов модул
+- Adoption checklist § M (18 точки) преди commit
+- Референтен файл: chat.php v8 (commit c2caaf5)
+
+### DB testing changes (runtime only, не в repo)
+- tenants.plan_effective = pro за всички (trial до 2027) — за тестване
+- ai_shown cleared за tenant 7 — нулиран cooldown
+
+---
+
+## Final commits
+
+- 44aafab: Update chat.php (initial visual rewrite)
+- 069f683: COMPASS fix next-session
+- 9fa2c44: P0 leaked API keys note
+- d5ddf41: S79.VIZ.FIX q1-q6 colors
+- bdd14c7: S79.POLISH Neon Glass briefing + premium buttons
+- c2caaf5: S79.POLISH2 revenue pills + top-strip + signal detail + browser
+- 843a1d8: DESIGN_SYSTEM v2.0
+
+**Статус: DONE — ЕТАЛОН за всички бъдещи модули**
+
