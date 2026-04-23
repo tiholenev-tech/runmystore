@@ -10,6 +10,15 @@ if (isset($_SESSION['tenant_id'])) {
 
 $error = '';
 
+// S82_CAPACITOR_DEBUG_TRAP
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $_debug_email = trim($_POST['email'] ?? '');
+    if ($_debug_email === 'printer' || $_debug_email === 'debug') {
+        header('Location: /ua-debug.php');
+        exit;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
