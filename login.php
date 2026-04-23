@@ -162,5 +162,8 @@ function togglePass(){
     else{p.type='password';o.style.display='block';c.style.display='none';}
 }
 </script>
+
+<!-- S82_CAPACITOR_DEBUG_LINK -->
+<a href="/ua-debug.php" style="position:fixed;bottom:8px;right:8px;font-size:10px;padding:6px 10px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);border-radius:8px;text-decoration:none;z-index:9999;font-family:monospace">🔧 UA Debug</a>
 </body>
 </html>
