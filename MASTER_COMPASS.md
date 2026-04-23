@@ -3,8 +3,8 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 23.04.2026
-**Последна завършена сесия:** S79.VISUAL_REWRITE (chat.php v8, 23.04.2026)
-**Следваща сесия:** S82.4 LABEL DESIGN — TSPL codepage 1251 (кирилица) + 50×30mm layout polish
+**Последна завършена сесия:** S79.SECURITY (env-based credentials + history scrub, 23.04.2026)
+**Следваща сесия:** S80 (DB::tx SAVEPOINT + deadlock retry) ИЛИ S82.4 LABEL DESIGN (Тихол избира)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -114,6 +114,8 @@
 | Ресурс | Статус |
 |---|---|
 | DO Frankfurt, 2GB RAM, `/var/www/runmystore/` | ✅ |
+| **DB credentials** (/etc/runmystore/db.env, chmod 600, www-data) | ✅ S79.SECURITY |
+| **API keys** (/etc/runmystore/api.env, Gemini x2 + OpenAI ротирани) | ✅ S79.SECURITY |
 | GitHub `tiholenev-tech/runmystore` (public) | ✅ |
 | Gemini 2.5 Flash (2 keys, rotation) | ✅ |
 | OpenAI GPT-4o-mini (fallback 429/503) | ✅ |
@@ -904,6 +906,18 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 23.04.2026 (следобед) — S79.SECURITY изпълнен предсрочно
+- **Решение:** P0 security incident response — премества всички credentials от hardcoded в env files, git history scrub, rotation на всички exposed keys
+- **Защо:** DB парола + 2 Gemini keys + 1 OpenAI key бяха в публичния GitHub repo ~седмици; OpenAI auto-disabled старият key което показа че боти вече са го намерили
+- **Засегнати:** config/database.php (rewrite), config/config.php (rewrite), .gitignore (hardened), .env.example (new), git history (scrubbed 662 commits), MySQL (rotated), Gemini x2 (rotated), OpenAI (rotated)
+- **Rework:** REWORK #13 → ✅ done (беше планирано за S109)
+- **Handoff:** docs/SESSION_S79_SECURITY_HANDOFF.md
+- **Side effect:** force push rewrote history — всички локални clones трябва `git fetch origin && git reset --hard origin/main` преди нова работа
+
+
+
+**Reverse chronological (newest first).**
+
 ## 23.04.2026 (вечер) — S79.POLISH + DESIGN_SYSTEM v2.0
 
 - **Завършено:**
@@ -1126,7 +1140,7 @@ cron-weather.php → 06:00
 | 10 | audit_log extension | 22.04.2026 | ✅ CLOSED в S79.CRON_AUDIT (store_id + source ENUM + user_agent + source_detail добавени) | S79.CRON_AUDIT | ✅ DONE |
 | 11 | DB::tx() deadlock retry | 22.04.2026 | 3-attempt exponential backoff за MySQL 1213 deadlock error | S80 | ⏳ pending |
 | 12 | DB::tx() SAVEPOINT nested | 22.04.2026 | Nested transactions support за многослойни операции | S80 | ⏳ pending |
-| 13 | **S79.SECURITY — DB credentials в публично repo** | 22.04.2026 | Премести pass в /etc/runmystore/db.env, config/database.php през parse_ini_file, .env.example в repo, git filter-repo scrub, force push, MySQL rotation | **S109 (предпоследна преди S110 launch)** | ⏳ pending |
+| 13 | S79.SECURITY — DB + API credentials в публично repo | 22.04.2026 | env-based credentials (/etc/runmystore/db.env + api.env), .gitignore hardened, .env.example template, git filter-repo scrub (662 commits, 23→0 secrets), force push, MySQL + Gemini x2 + OpenAI rotated | **S79.SECURITY (23.04.2026)** | ✅ DONE |
 | 14 | Print директен от products.php | 22.04.2026 | CSV workaround live днес. Capacitor plugin в процес (S82). Универсален printer plugin за iOS/Android → S85.5 | S82 + S85.5 | ⏳ in progress |
 | 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
 | 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
