@@ -4472,10 +4472,11 @@ async function lblPrintMobile(idx){
 
     var totalCopies = 0;
     items.forEach(function(it){ totalCopies += it.qty; });
-    showToast('Печат: ' + totalCopies + ' ет...', 'info');
+    showPrintOverlay('Печат 1 от ' + items.length + '...');
 
     try {
         for (var i = 0; i < items.length; i++) {
+            showPrintOverlay('Печат ' + (i+1) + ' от ' + items.length + '...');
             var it = items[i];
             var sizeVal = it.v.size || '';
             var colorVal = it.v.color || '';
@@ -4489,8 +4490,10 @@ async function lblPrintMobile(idx){
             };
             await CapPrinter.print(product, storeInfo, it.qty);
         }
+        hidePrintOverlay();
         showToast('Готово: ' + totalCopies + ' етикета', 'success');
     } catch (e) {
+        hidePrintOverlay();
         showToast('Грешка: ' + (e.message || e), 'error');
     }
 }
@@ -7819,6 +7822,31 @@ function wizPrintLabels(comboIdx){
 }
 
 
+
+// ═══ S82.CAPACITOR — Print loading overlay ═══
+function showPrintOverlay(text){
+    var ov = document.getElementById('printOverlay');
+    if(!ov){
+        ov = document.createElement('div');
+        ov.id = 'printOverlay';
+        ov.innerHTML = '<style>@keyframes prSpin{to{transform:rotate(360deg)}}@keyframes prPulse{0%,100%{opacity:.4}50%{opacity:1}}</style>'+
+            '<div style="position:fixed;inset:0;background:rgba(3,7,18,.85);backdrop-filter:blur(6px);z-index:999999;display:flex;align-items:center;justify-content:center">'+
+            '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:18px;padding:28px 36px;min-width:220px;text-align:center;box-shadow:0 0 60px rgba(99,102,241,.25)">'+
+            '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(99,102,241,.2);border-top-color:#818cf8;border-radius:50%;animation:prSpin 0.9s linear infinite"></div>'+
+            '<div id="printOvText" style="font-size:15px;font-weight:600;color:#e4e4f0;margin-bottom:6px">Печат...</div>'+
+            '<div style="font-size:11px;color:#8b92b0;animation:prPulse 1.4s ease-in-out infinite">🖨️ Не изключвай принтера</div>'+
+            '</div></div>';
+        document.body.appendChild(ov);
+    }
+    var txt = document.getElementById('printOvText');
+    if(txt) txt.textContent = text || 'Печат...';
+    ov.style.display = 'block';
+}
+function hidePrintOverlay(){
+    var ov = document.getElementById('printOverlay');
+    if(ov) ov.style.display = 'none';
+}
+
 // ═══ S82.CAPACITOR — Mobile BLE print ═══
 async function wizPrintLabelsMobile(comboIdx){
     var combos = S.wizData._printCombos || [];
@@ -7865,10 +7893,12 @@ async function wizPrintLabelsMobile(comboIdx){
 
     var totalCopies = 0;
     items.forEach(function(it){ totalCopies += it.qty; });
-    showToast('Печат: ' + totalCopies + ' ет...', 'info');
+    showPrintOverlay('Печат 1 от ' + items.length + '...');
+    var _done = 0;
 
     try {
         for (var i = 0; i < items.length; i++) {
+            showPrintOverlay('Печат ' + (i+1) + ' от ' + items.length + '...');
             var it = items[i];
             var parts = it.combo.parts || [];
             var sizeVal = '', colorVal = '';
@@ -7885,9 +7915,12 @@ async function wizPrintLabelsMobile(comboIdx){
                 barcode: barcode
             };
             await CapPrinter.print(product, storeInfo, it.qty);
+            _done += it.qty;
         }
+        hidePrintOverlay();
         showToast('Готово: ' + totalCopies + ' етикета', 'success');
     } catch (e) {
+        hidePrintOverlay();
         showToast('Грешка: ' + (e.message || e), 'error');
     }
 }
