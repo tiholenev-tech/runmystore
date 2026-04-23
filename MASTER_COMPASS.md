@@ -897,6 +897,7 @@ cron-weather.php → 06:00
 4. 6-те hue classes (q1-q6) — с фиксирани hue1/hue2 стойности
 5. Voice overlay от S56 стандарт — никой модул не прави свой
 6. Никаква native клавиатура в sale.php/numpad контексти
+7. **RESPONSIVE ОТ ДЕН 1** — всеки модул работи на всички екрани (телефон 320-428px, таблет portrait 768px, таблет landscape 1024px, desktop 1280px+) чрез CSS @media queries. Никога не се пишат "mobile" и "tablet" версии отделно — един код, self-adapting. Breakpoints: 375/768/1024/1280.
 
 ---
 
@@ -905,6 +906,14 @@ cron-weather.php → 06:00
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
+
+## 23.04.2026 (вечер) — UI ЗАКОН №6: Responsive от ден 1
+- **Решение:** Всеки модул е responsive от първия ред код. Един кодбейз, self-adapting на всички екрани 320-1920px+
+- **Защо:** Ани (beta клиент) ползва таблет. Пешо (персона) ползва телефон. Бъдещи клиенти — неизвестни устройства. Retrofit е 2x по-скъп от първоначален дизайн.
+- **Breakpoints:** 375px (телефон) / 768px (таблет portrait) / 1024px (таблет landscape) / 1280px (desktop). Ширини между breakpoint-ите наследяват по-малкия стил.
+- **НЕ прави:** hover states, keyboard shortcuts, desktop-only features — НЕ в скоупа сега. Приложението е touch-first. Desktop работи но не е оптимизиран.
+- **Засегнати:** chat.php (REWORK #15), products.php (REWORK #16), stats.php (REWORK #17), всички бъдещи модули (sale.php S85, orders.php S83, warehouse.php S87, inventory.php v4 S87) — responsive от нулата.
+- **Invariant:** UI ЗАКОН №6 добавен в секция "UI invariants".
 
 ## 23.04.2026 (следобед) — S79.SECURITY изпълнен предсрочно
 - **Решение:** P0 security incident response — премества всички credentials от hardcoded в env files, git history scrub, rotation на всички exposed keys
@@ -1142,6 +1151,9 @@ cron-weather.php → 06:00
 | 12 | DB::tx() SAVEPOINT nested | 22.04.2026 | Nested transactions support за многослойни операции | S80 | ⏳ pending |
 | 13 | S79.SECURITY — DB + API credentials в публично repo | 22.04.2026 | env-based credentials (/etc/runmystore/db.env + api.env), .gitignore hardened, .env.example template, git filter-repo scrub (662 commits, 23→0 secrets), force push, MySQL + Gemini x2 + OpenAI rotated | **S79.SECURITY (23.04.2026)** | ✅ DONE |
 | 14 | Print директен от products.php | 22.04.2026 | CSV workaround live днес. Capacitor plugin в процес (S82). Универсален printer plugin за iOS/Android → S85.5 | S82 + S85.5 | ⏳ in progress |
+| 15 | chat.php responsive (всички breakpoints) | 23.04.2026 (responsive закон) | Tablet 768px+ columns layout, desktop 1024px+ sidebar pattern, запази v8 PHP логика | Следваща chat сесия | ⏳ pending |
+| 16 | products.php responsive + P0 bugs | 23.04.2026 (responsive закон) | Tablet/desktop breakpoints + списък артикули 2-3 колони + existing P0 bugs fixes | S80 (разширен) | ⏳ pending |
+| 17 | stats.php logic review + responsive | 23.04.2026 (responsive + логика съмнения) | ДВЕ задачи: (a) ревизия на всички stats изчисления — какво показва, колко е правилно. (b) responsive breakpoints. Direction: post-beta. | Post-beta (след S85) | ⏳ pending |
 | 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
 | 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
