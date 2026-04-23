@@ -8,16 +8,12 @@ if (isset($_SESSION['tenant_id'])) {
     exit;
 }
 
-if (isset($_POST['email']) && in_array(trim($_POST['email']), ['printer','printer@x.x'], true)) { header('Location: /ua-debug.php'); exit; }
 $error = '';
 
 // S82_CAPACITOR_DEBUG_TRAP
-// S82_TRAP
-if (isset($_POST['email']) && in_array(trim($_POST['email']), ['printer','debug','printer@x.x'], true)) { header('Location: /ua-debug.php'); exit; }
-"""
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_debug_email = trim($_POST['email'] ?? '');
-    if ($_debug_email === 'printer' || $_debug_email === 'debug') {
+    if ($_debug_email === 'printer' || $_debug_email === 'debug' || $_debug_email === 'printer@x.x' || $_debug_email === 'debug@x.x') {
         header('Location: /ua-debug.php');
         exit;
     }
