@@ -1,5 +1,3 @@
----
-
 # DESIGN SYSTEM v2.0 — S79 NEON GLASS STANDARD
 
 **Дата:** 2026-04-23
