@@ -114,25 +114,12 @@
    * TSPL BITMAP data: MSB-first, 1=white (no dot), 0=black (dot).
    * @returns {widthBytes, height, data: Uint8Array}
    */
-  function renderTextBitmap(text, fontSize, maxWidthPx, opts) {
+  function renderTextBitmap(text, fontSize, maxWidthPx) {
     text = String(text || '');
     if (!text) return null;
-    opts = opts || {};
-    const targetWidth = opts.fillWidth ? maxWidthPx : null; // ако е зададено → разтегляме font-а до запълване
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-
-    // Auto-fit: увеличаваме font докато не запълни 95% от maxWidth
-    if (targetWidth) {
-      const target = targetWidth * 0.95;
-      for (let probe = fontSize; probe < 80; probe += 2) {
-        ctx.font = 'bold ' + probe + 'px Arial, sans-serif';
-        const m = ctx.measureText(text).width;
-        if (m >= target) { fontSize = probe; break; }
-        fontSize = probe;
-      }
-    }
 
     // Измерваме ширината на текста
     ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
@@ -249,27 +236,27 @@
     }
     y = 34;
 
-    // Product name — автоматично запълва ширината
+    // Product name — font 28 (по-голям от стандартния)
     if (name) {
-      const nameBmp = renderTextBitmap(name, 26, 380, {fillWidth: true});
+      const nameBmp = renderTextBitmap(name, 28, 380);
       if (nameBmp) {
         push('BITMAP 10,' + y + ',' + nameBmp.widthBytes + ',' + nameBmp.height + ',0,');
         pushRaw(nameBmp.data);
         push('\r\n');
       }
     }
-    y = 74;
+    y = 76;
 
-    // Price — ГОЛЯМ, запълва ширината
+    // Price — ГОЛЯМ (38px), не overlap-ва
     {
-      const priceBmp = renderTextBitmap(priceStr, 34, 380, {fillWidth: true});
+      const priceBmp = renderTextBitmap(priceStr, 38, 380);
       if (priceBmp) {
         push('BITMAP 10,' + y + ',' + priceBmp.widthBytes + ',' + priceBmp.height + ',0,');
         pushRaw(priceBmp.data);
         push('\r\n');
       }
     }
-    y = 120;
+    y = 128;
 
     // Code — малък, под цената
     if (code) {
@@ -287,7 +274,7 @@
 
     // Barcode — долен край, height=70 dots
     if (barcode) {
-      const barY = 150;
+      const barY = 160;
       // Auto-fit barcode:
       // - EAN13: 95 modules — narrow=4 → 380 dots (95% fit, лесно за сканиране)
       // - Code128: variable — narrow=3 обикновено запълва
