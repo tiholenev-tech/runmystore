@@ -3,6 +3,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RunMyStore</title>
+<script>
+  // S82.CAPACITOR.2 — if Capacitor ever falls back to loading local www
+  // (e.g. server.url unreachable at boot), redirect to runmystore.ai so
+  // the app still reaches the real backend. Capacitor's allowNavigation
+  // keeps us inside the WebView.
+  (function() {
+    try {
+      var h = location.hostname;
+      if (h !== 'runmystore.ai' && h !== 'www.runmystore.ai') {
+        location.replace('https://runmystore.ai/');
+      }
+    } catch (e) {}
+  })();
+</script>
 </head>
-<body style="margin:0;background:#030712"></body>
+<body style="margin:0;background:#030712;color:#fff;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh">
+<div style="text-align:center">
+  <div style="font-size:18px;margin-bottom:8px">RunMyStore</div>
+  <div style="font-size:13px;color:#8b92b0">Зареждане...</div>
+  <div style="margin-top:16px;font-size:12px"><a href="https://runmystore.ai/" style="color:#818cf8">Отвори ръчно</a></div>
+</div>
+</body>
 </html>

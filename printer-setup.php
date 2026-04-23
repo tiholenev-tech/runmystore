@@ -9,6 +9,7 @@ if (!isset($_SESSION['tenant_id'])) { header('Location: login.php'); exit; }
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Принтер · RunMyStore</title>
+<?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js"></script>
 <style>
 :root{--bg:#030712;--card:rgba(15,15,40,.75);--indigo:#818cf8;--text:#fff;--muted:#8b92b0;--ok:#10b981;--err:#ef4444}
@@ -122,8 +123,10 @@ $('btnTest').addEventListener('click', async function(){
   }
 });
 
-// Init
-setTimeout(refreshStatus, 200);
+// Init: refresh now, on capacitor-ready event, and after a safety delay
+refreshStatus();
+window.addEventListener('capacitor-ready', refreshStatus);
+setTimeout(refreshStatus, 800);
 </script>
 
 </body>

@@ -7,7 +7,38 @@
  *   await CapPrinter.pair();           // one-time setup
  *   await CapPrinter.print(product, store, copies);
  *   await CapPrinter.test();
+ *
+ * S82.CAPACITOR.2 — self-loads the Capacitor runtime (native-bridge + core
+ * + BLE plugin) via document.write so this one <script> is drop-in anywhere,
+ * including products.php which must not be modified. Detection uses
+ * Capacitor.isNativePlatform() which is reliable on all WebView versions.
  */
+(function() {
+  if (window.__capacitorRuntimeInjected) return;
+  if (window.Capacitor || document.querySelector('script[src*="/capacitor/native-bridge.js"]')) return;
+  window.__capacitorRuntimeInjected = true;
+  if (document.readyState === 'loading') {
+    document.write(
+      '<script src="/js/capacitor/native-bridge.js"><\/script>' +
+      '<script src="/js/capacitor/core.js"><\/script>' +
+      '<script src="/js/capacitor/ble.js"><\/script>' +
+      '<script src="/js/capacitor-bundle.js"><\/script>'
+    );
+  } else {
+    // Page already parsed (late include) — fall back to dynamic injection
+    ['native-bridge.js', 'core.js', 'ble.js'].forEach(function(f) {
+      var s = document.createElement('script');
+      s.src = '/js/capacitor/' + f;
+      s.async = false;
+      document.head.appendChild(s);
+    });
+    var b = document.createElement('script');
+    b.src = '/js/capacitor-bundle.js';
+    b.async = false;
+    document.head.appendChild(b);
+  }
+})();
+
 (function(window) {
   'use strict';
 
@@ -24,40 +55,20 @@
   // ----- Helpers -----
 
   function isCapacitor() {
-    // UA-based detection (most reliable)
     try {
-      var ua = navigator.userAgent || '';
-      if (/wv\)/i.test(ua) && /runmystore|ai\.runmystore/i.test(ua)) return true;
-      if (/CapacitorHttp|Capacitor/i.test(ua)) return true;
-      // Android WebView indicator + no Chrome browser UI
-      if (/Android.*Version\/[\d.]+.*Chrome\/[\d.]+.*Mobile.*Safari/i.test(ua) && !window.chrome?.webstore) {
-        if (/; wv\)/.test(ua)) return true;
+      if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function') {
+        return window.Capacitor.isNativePlatform();
       }
-    } catch(e) {}
-    return isCapacitorOriginal();
-  }
-  function isCapacitorOriginal() {
-    // Check Capacitor bridge first
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
-    // Fallback: URL param (set by APK on first load)
-    try {
-      if (new URLSearchParams(window.location.search).get('capacitor') === '1') return true;
-      if (sessionStorage.getItem('_is_capacitor') === '1') return true;
-    } catch(e) {}
+    } catch (e) {}
     return false;
   }
-  // Persist capacitor flag across navigation
-  try {
-    if (new URLSearchParams(window.location.search).get('capacitor') === '1') {
-      sessionStorage.setItem('_is_capacitor', '1');
-    }
-  } catch(e) {}
 
   function getBle() {
-    if (!window.CapacitorBluetoothLe) {
-      throw new Error('BluetoothLe plugin not loaded');
+    if (window.BleClient) return window.BleClient;
+    if (window.capacitorCommunityBluetoothLe && window.capacitorCommunityBluetoothLe.BleClient) {
+      return window.capacitorCommunityBluetoothLe.BleClient;
     }
-    return window.CapacitorBluetoothLe.BleClient;
+    throw new Error('BleClient не е зареден — включи capacitor-head.php');
   }
 
   function getSavedDeviceId() {
@@ -72,33 +83,20 @@
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
   }
 
-  // UTF-8 string → Uint8Array (for TSPL ASCII commands)
   function strToBytes(s) {
     return new TextEncoder().encode(s);
   }
 
-  // Concat Uint8Arrays
-  function concatBytes(arrays) {
-    const total = arrays.reduce((n, a) => n + a.length, 0);
-    const out = new Uint8Array(total);
-    let offset = 0;
-    for (const a of arrays) { out.set(a, offset); offset += a.length; }
-    return out;
-  }
-
-  // Uint8Array → DataView (Capacitor BLE expects DataView)
   function bytesToDataView(bytes) {
     return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   }
 
-  // Sleep
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   // ----- TSPL Generation (50x30mm label) -----
 
   function escapeTsplText(s) {
     if (!s) return '';
-    // Remove control chars, limit length
     return String(s).replace(/[\r\n\t]/g, ' ').substring(0, 32);
   }
 
@@ -110,12 +108,6 @@
     return n.toFixed(2) + ' ' + c;
   }
 
-  /**
-   * Generate TSPL for 50x30mm label
-   * product: { code, name, retail_price, barcode }
-   * store:   { name, currency }
-   * copies:  number
-   */
   function generateTSPL(product, store, copies) {
     const name = escapeTsplText(product.name || '');
     const code = escapeTsplText(product.code || '');
@@ -124,11 +116,6 @@
     const storeName = escapeTsplText(store.name || '');
     const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
-    // TSPL commands (ASCII)
-    // SIZE w mm, h mm | GAP 2mm | DIRECTION 1 | CLS
-    // TEXT x,y,"font",rotation,xmul,ymul,"content"
-    // BARCODE x,y,"code type",height,humanread,rotation,narrow,wide,"content"
-    // PRINT copies
     let cmd = '';
     cmd += 'SIZE 50 mm,30 mm\r\n';
     cmd += 'GAP 2 mm,0\r\n';
@@ -136,19 +123,14 @@
     cmd += 'DENSITY 8\r\n';
     cmd += 'SPEED 4\r\n';
     cmd += 'CLS\r\n';
-    // Store name — top, small font
     if (storeName) {
       cmd += `TEXT 15,10,"1",0,1,1,"${storeName}"\r\n`;
     }
-    // Product name — medium
     cmd += `TEXT 15,35,"2",0,1,1,"${name}"\r\n`;
-    // Price — large bold
     cmd += `TEXT 15,75,"4",0,1,1,"${price}"\r\n`;
-    // Barcode — bottom
     if (barcode) {
       cmd += `BARCODE 15,130,"128",50,1,0,2,2,"${barcode}"\r\n`;
     }
-    // Product code — bottom right
     if (code && code !== barcode) {
       cmd += `TEXT 280,10,"1",0,1,1,"${code}"\r\n`;
     }
@@ -162,7 +144,6 @@
     for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
       const chunk = bytes.slice(i, i + CHUNK_SIZE);
       await ble.write(deviceId, SERVICE_UUID, WRITE_CHAR_UUID, bytesToDataView(chunk));
-      // Small delay between chunks (DTM-5811 buffer)
       await sleep(15);
     }
   }
@@ -179,9 +160,6 @@
       return !!getSavedDeviceId();
     },
 
-    /**
-     * Pair with printer (user selects DTM-5811 from scan)
-     */
     async pair() {
       if (!isCapacitor()) {
         throw new Error('Не си в мобилно приложение');
@@ -202,9 +180,6 @@
       return { deviceId: device.deviceId, name: device.name || 'DTM-5811' };
     },
 
-    /**
-     * Connect to saved printer
-     */
     async connect() {
       if (!isCapacitor()) throw new Error('Не си в мобилно приложение');
       const ble = getBle();
@@ -216,7 +191,6 @@
       try {
         await ble.connect(id, null, { timeout: 10000 });
       } catch (e) {
-        // Already connected is OK
         if (!String(e.message || e).toLowerCase().includes('already')) throw e;
       }
       return id;
@@ -229,12 +203,6 @@
       try { await getBle().disconnect(id); } catch (e) {}
     },
 
-    /**
-     * Print label for product
-     * product: { code, name, retail_price, barcode }
-     * store:   { name, currency }
-     * copies:  int
-     */
     async print(product, store, copies) {
       if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
 
@@ -243,14 +211,10 @@
       const bytes = strToBytes(tspl);
 
       await writeChunked(getBle(), id, bytes);
-      // Give printer time to finish before disconnect
       await sleep(500);
       return { ok: true, bytes: bytes.length, copies: copies || 1 };
     },
 
-    /**
-     * Test print — diagnostic label
-     */
     async test() {
       const testProduct = {
         code: 'TEST-001',
@@ -262,20 +226,15 @@
       return await this.print(testProduct, testStore, 1);
     },
 
-    /**
-     * Remove paired printer
-     */
     forget() {
       clearDeviceId();
     },
 
-    // Expose internals for debugging
     _generateTSPL: generateTSPL,
     _isCapacitor: isCapacitor,
     _getDeviceId: getSavedDeviceId
   };
 
-  // Expose globally
   window.CapPrinter = CapPrinter;
 
 })(window);
