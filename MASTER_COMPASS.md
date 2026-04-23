@@ -903,6 +903,20 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 23.04.2026 (вечер) — S79.POLISH + DESIGN_SYSTEM v2.0
+
+- **Завършено:**
+  (а) S79.BRIEFING_6FQ — briefing bubble от 3 sig-cards към 6 широки секции (по 1 insight от всеки fundamental_question) с narrative order loss→loss_cause→gain→gain_cause→order→anti_order
+  (б) S79.POLISH + POLISH2 — Neon Glass treatment за revenue pills, top-strip, signal detail buttons, signal browser; primary actions с color-mix(in oklch) hue gradient
+  (в) DESIGN_SYSTEM.md v2.0 — 1006 реда пълна спецификация, 19 компонента, adoption checklist §M
+- **Референтен файл:** chat.php v8 (2094 реда, commit c2caaf5)
+- **ЕТАЛОН:** всеки нов модул ТРЯБВА да премине adoption checklist §M преди commit
+- **Rework затворени:** #1 (products.php UI pills — трябва да се прекласифицират с fundamental_question mapping когато се обнови products.php)
+- **Commits:** d5ddf41 (VIZ.FIX), bdd14c7 (POLISH), c2caaf5 (POLISH2), 843a1d8 (DESIGN_SYSTEM v2)
+- **Статус:** ✅ done — ЕТАЛОН за всички бъдещи модули
+
+
+
 ## 23.04.2026 — S79.VISUAL_REWRITE: chat.php v8 (home-neon-v2 design)
 
 - **Решение:** Пълен визуален rewrite на chat.php към home-neon-v2 design (Neon Glass с conic-gradient shine + glow). Всички S79 функции запазени. 3 × 75vh overlays (Chat, Signal Detail, Browser) със същия дизайн, blur фон отдолу.
