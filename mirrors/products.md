@@ -4432,23 +4432,7 @@ function lblPrint(idx){
         }
         html+='</div>';
     });
-    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script>
-<!-- S82.CAPACITOR — Printer FAB (показва се само в Capacitor APP) -->
-<button id="prnFab" onclick="openPrinterSettings()" style="display:none;position:fixed;bottom:88px;right:16px;width:52px;height:52px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;box-shadow:0 6px 20px rgba(99,102,241,.4);z-index:9000;cursor:pointer;font-size:22px" title="Принтер">🖨️</button>
-<script>
-// Показва FAB само в Capacitor APP
-(function(){
-    function showFab(){
-        if (typeof CapPrinter !== 'undefined' && CapPrinter.isAvailable && CapPrinter.isAvailable()){
-            var fab = document.getElementById('prnFab');
-            if (fab) fab.style.display = 'flex';
-        }
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(showFab,500)});
-    else setTimeout(showFab, 500);
-})();
-</script>
-</body></html>';
+    html+='<script>var opts={format:"EAN13",width:1,height:28,displayValue:false,margin:0};for(var i=0;i<'+labels.length+';i++){try{JsBarcode("#bc"+i,"'+barcode+'",opts)}catch(e){}}setTimeout(function(){window.print()},400)<\/script></body></html>';
     // S79FIX_BUG9_QSECTIONS_APPLIED
     // S79FIX_BUG567_ADDCARD_APPLIED
     var w=window.open('','_blank','width=400,height=600');
@@ -9069,3 +9053,22 @@ window.addEventListener('popstate', function(e){
 <?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
 </body>
 </html>
+
+<!-- S82.CAPACITOR — Printer FAB (показва се само в Capacitor APP) -->
+<button id="prnFab" style="display:none;position:fixed;bottom:88px;right:16px;width:52px;height:52px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;box-shadow:0 6px 20px rgba(99,102,241,.4);z-index:9000;cursor:pointer;font-size:22px" title="Принтер">🖨️</button>
+<script>
+(function(){
+    var fab = document.getElementById('prnFab');
+    if (!fab) return;
+    fab.addEventListener('click', function(){
+        if (typeof openPrinterSettings === 'function') openPrinterSettings();
+    });
+    function showFab(){
+        if (typeof CapPrinter !== 'undefined' && CapPrinter.isAvailable && CapPrinter.isAvailable()){
+            fab.style.display = 'flex';
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(showFab,500)});
+    else setTimeout(showFab, 500);
+})();
+</script>
