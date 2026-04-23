@@ -3880,9 +3880,25 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
 
 <script>
+<?php
+// S82.CAPACITOR.7 — store name за label печат
+$_current_store_name = '';
+foreach ($stores as $_s) {
+    if ((int)$_s['id'] === (int)$store_id) {
+        $_current_store_name = $_s['name'];
+        break;
+    }
+}
+// Fallback към tenant името ако store-а няма име
+if (!$_current_store_name) {
+    $_tenant_row = DB::run("SELECT name FROM tenants WHERE id = ?", [$tenant_id])->fetch();
+    $_current_store_name = $_tenant_row['name'] ?? '';
+}
+?>
 // ═══ PHP → JS CONFIG ═══
 const CFG = {
     storeId: <?= (int)$store_id ?>,
+    storeName: <?= json_encode($_current_store_name, JSON_UNESCAPED_UNICODE) ?>,
     canAdd: <?= $can_add ? 'true' : 'false' ?>,
     canSeeCost: <?= $can_see_cost ? 'true' : 'false' ?>,
     canSeeMargin: <?= $can_see_margin ? 'true' : 'false' ?>,
@@ -4450,7 +4466,7 @@ async function lblPrintMobile(idx){
     var code = p.code || '';
     var barcode = p.barcode || ('200' + String(p.id || 0).padStart(9, '0'));
     var storeInfo = {
-        name: (typeof CFG !== 'undefined' && CFG.store && CFG.store.name) ? CFG.store.name : 'RunMyStore',
+        name: (typeof CFG !== 'undefined' && CFG.storeName) ? CFG.storeName : '',
         currency: 'EUR'
     };
 
@@ -7843,7 +7859,7 @@ async function wizPrintLabelsMobile(comboIdx){
     }
 
     var storeInfo = {
-        name: (typeof CFG !== 'undefined' && CFG.store && CFG.store.name) ? CFG.store.name : 'RunMyStore',
+        name: (typeof CFG !== 'undefined' && CFG.storeName) ? CFG.storeName : '',
         currency: 'EUR'
     };
 
