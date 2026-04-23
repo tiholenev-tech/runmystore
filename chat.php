@@ -1,12 +1,15 @@
 <?php
 /**
- * chat.php — RunMyStore.ai Dashboard + AI Chat v7.0
- * S56 — FULL REWRITE per CHAT_PHP_SPEC_v7.md
+ * chat.php — RunMyStore.ai Dashboard + AI Chat v8.0
+ * S79.VISUAL_REWRITE — home-neon-v2 design + всички S79 patches запазени
  *
- * Затворен: Revenue карта + AI ТОЧНОСТ + AI Брифинг bubble + input бар
- * Отворен:  72% overlay, чист чат (WhatsApp стил), blur фон
+ * Затворен: Revenue карта + Точност + Weather + AI Briefing + input бар
+ * Отворен:  75vh overlay (WhatsApp стил), blur фон отдолу
+ * Signal:   75vh overlay (обяснителна страница), blur фон, same modern design
  *
+ * Закон №1: Пешо не пише нищо — voice/tap/photo only.
  * Закон №2: PHP смята, Gemini говори. Pills/Signals = чист PHP+SQL.
+ * Закон №3: AI мълчи, PHP продължава.
  */
 session_start();
 require_once __DIR__ . '/config/database.php';
@@ -48,7 +51,9 @@ $all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY na
 // S56: silent geolocation from IP
 autoGeolocateStore($store_id);
 
+// ══════════════════════════════════════════════
 // WEATHER FORECAST
+// ══════════════════════════════════════════════
 $weather_today = null;
 $weather_week = [];
 $weather_suggestion = '';
@@ -93,8 +98,8 @@ try {
             $t0 = (float)$weather_week[0]['temp_max'];
             $t7 = (float)$weather_week[6]['temp_max'];
             $diff = round($t7 - $t0);
-            if ($diff >= 5) $weather_suggestion .= '. Затопляне идва (+' . $diff . '\xC2\xB0C за 7 дни) — сезонна смяна наближава';
-            elseif ($diff <= -5) $weather_suggestion .= '. Застудяване идва (' . $diff . '\xC2\xB0C за 7 дни) — сезонна смяна наближава';
+            if ($diff >= 5) $weather_suggestion .= '. Затопляне идва (+' . $diff . '°C за 7 дни) — сезонна смяна наближава';
+            elseif ($diff <= -5) $weather_suggestion .= '. Застудяване идва (' . $diff . '°C за 7 дни) — сезонна смяна наближава';
         }
         $rainy_days = 0;
         foreach (array_slice($weather_week, 0, 7) as $d) {
@@ -111,7 +116,7 @@ function wmoSvg($code) {
 }
 
 function wmoText($code) {
-    if ($code <= 3) return 'Ясно';
+    if ($code <= 3) return 'Слънчево';
     if ($code <= 48) return 'Облачно';
     if ($code <= 57) return 'Ръми';
     if ($code <= 67) return 'Дъжд';
@@ -120,12 +125,6 @@ function wmoText($code) {
     return 'Буря';
 }
 
-// Plan badge colors
-$plan_colors = match($plan) {
-    'pro'   => ['bg' => 'rgba(192,132,252,.15)', 'br' => 'rgba(192,132,252,.3)', 'tx' => '#c084fc'],
-    'start' => ['bg' => 'rgba(99,102,241,.15)',  'br' => 'rgba(99,102,241,.3)',  'tx' => '#818cf8'],
-    default => ['bg' => 'rgba(107,114,128,.15)', 'br' => 'rgba(107,114,128,.3)', 'tx' => '#9ca3af'],
-};
 $plan_label = strtoupper($plan);
 
 // ══════════════════════════════════════════════
@@ -351,9 +350,9 @@ foreach ($insights as $idx => $ins) {
 $all_insights_json = json_encode($all_insights_for_js, JSON_UNESCAPED_UNICODE);
 $ui_categories_json = json_encode($ui_categories, JSON_UNESCAPED_UNICODE);
 
-// Urgency colors
+// Urgency class (from v7 mapping, now shorter)
 function urgencyClass(string $u): string {
-    return match($u) { 'critical' => 'sig-critical', 'warning' => 'sig-warning', default => 'sig-info' };
+    return match($u) { 'critical' => 'critical', 'warning' => 'warning', default => 'info' };
 }
 
 // ══════════════════════════════════════════════
@@ -362,7 +361,7 @@ function urgencyClass(string $u): string {
 $hour = (int)date('H');
 $greeting = match(true) {
     $hour >= 5 && $hour < 12 => 'Добро утро',
-    $hour >= 12 && $hour < 18 => 'Добър ден',
+    $hour >= 12 && $hour < 18 => 'Здрасти',
     default => 'Добър вечер'
 };
 if ($user_name) $greeting .= ', ' . htmlspecialchars($user_name);
@@ -375,736 +374,1215 @@ $chat_messages = DB::run(
     'SELECT role, content, created_at FROM chat_messages WHERE tenant_id=? AND store_id=? ORDER BY created_at ASC LIMIT 50',
     [$tenant_id, $store_id])->fetchAll(PDO::FETCH_ASSOC);
 
+$bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+
 ?><!DOCTYPE html>
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#030712">
-<title>RunMyStore.ai</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>Начало — RunMyStore.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#030712;--nav:52px}
-*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html{background:var(--bg)}
-body{background:var(--bg);color:#f1f5f9;font-family:'Montserrat',Inter,system-ui,sans-serif;
-    height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:var(--nav)}
-body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
-    width:600px;height:350px;background:radial-gradient(ellipse,rgba(99,102,241,.07)0%,transparent 70%);
-    pointer-events:none;z-index:0}
+:root{
+    --hue1:255; --hue2:222;
+    --border:1px; --border-color:hsl(var(--hue2),12%,20%);
+    --radius:22px; --radius-sm:14px;
+    --ease:cubic-bezier(0.5,1,0.89,1);
+    --bg-main:#08090d;
+    --text-primary:#f1f5f9;
+    --text-secondary:rgba(255,255,255,.6);
+    --text-muted:rgba(255,255,255,.4)
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg-main);color:var(--text-primary);font-family:'Montserrat',Inter,system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-user-select:none;user-select:none}
+body{
+    background:
+        radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),
+        radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),
+        linear-gradient(180deg,#0a0b14 0%,#050609 100%);
+    background-attachment:fixed;
+    padding-bottom:140px;
+    position:relative
+}
+body::before{
+    content:'';
+    position:fixed;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity:.03;
+    pointer-events:none;z-index:1;mix-blend-mode:overlay
+}
+body.overlay-open{overflow:hidden}
+body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);pointer-events:none}
 
-/* ── HEADER ── */
-.header{position:sticky;top:0;z-index:50;padding:10px 14px 8px;
-    background:rgba(3,7,18,.96);border-bottom:1px solid rgba(99,102,241,.07)}
-.header-top{display:flex;align-items:center;justify-content:space-between}
-.header-brand{font-size:14px;font-weight:700;color:rgba(165,180,252,.5);letter-spacing:.6px}
-.header-right{display:flex;align-items:center;gap:6px}
-.plan-badge{padding:4px 10px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.3px;
-    background:<?= $plan_colors['bg'] ?>;border:1px solid <?= $plan_colors['br'] ?>;color:<?= $plan_colors['tx'] ?>}
-.simple-toggle{font-size:11px;color:rgba(165,180,252,.35);border:1px solid rgba(99,102,241,.08);
-    border-radius:10px;padding:2px 7px;cursor:pointer;text-decoration:none}
-.header-icon{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.03);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
-.header-icon svg{width:12px;height:12px;stroke:rgba(165,180,252,.35);fill:none;stroke-width:1.8}
-.logout-dropdown{position:absolute;top:28px;right:0;background:#0f0f2a;
-    border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:8px 14px;white-space:nowrap;
-    z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:14px;color:#fca5a5;
-    font-weight:600;cursor:pointer;display:none;text-decoration:none}
+.app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px 12px 20px;transition:filter .3s var(--ease),transform .3s var(--ease)}
+
+/* ─────────────────────────────────────────── */
+/* GLASS BASE (conic-gradient shine + glow)    */
+/* ─────────────────────────────────────────── */
+.glass{
+    position:relative;
+    border-radius:var(--radius);
+    border:var(--border) solid var(--border-color);
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),
+        linear-gradient(hsl(220deg 25% 4.8% / .78));
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    isolation:isolate
+}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+.glass .shine,
+.glass .shine::before,
+.glass .shine::after{
+    pointer-events:none;
+    border-radius:0;
+    border-top-right-radius:inherit;
+    border-bottom-left-radius:inherit;
+    border:1px solid transparent;
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    right:calc(var(--border) * -1);top:calc(var(--border) * -1);
+    left:auto;z-index:1;
+    --start:12%;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;
+    mask-clip:padding-box,border-box;
+    mask-composite:subtract
+}
+.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none}
+.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
+.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
+.glass .glow{
+    pointer-events:none;
+    border-top-right-radius:calc(var(--radius) * 2.5);
+    border-bottom-left-radius:calc(var(--radius) * 2.5);
+    border:calc(var(--radius) * 1.25) solid transparent;
+    inset:calc(var(--radius) * -2);
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    left:auto;bottom:auto;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mask-mode:luminance;mask-size:29%;
+    opacity:1;
+    filter:blur(12px) saturate(1.25) brightness(0.5);
+    mix-blend-mode:plus-lighter;
+    z-index:3
+}
+.glass .glow.glow-bottom{inset:calc(var(--radius) * -2);top:auto;right:auto}
+.glass .glow::before,.glass .glow::after{
+    content:"";position:absolute;inset:0;
+    border:inherit;border-radius:inherit;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract;
+    filter:saturate(2) brightness(1)
+}
+.glass .glow::after{
+    --lit:70%;--sat:100%;--start:15%;--end:35%;
+    border-width:calc(var(--radius) * 1.75);
+    border-radius:calc(var(--radius) * 2.75);
+    inset:calc(var(--radius) * -.25);
+    z-index:4;opacity:.75
+}
+.glass.sm{--radius:var(--radius-sm)}
+
+/* ─────────────────────────────────────────── */
+/* HEADER                                      */
+/* ─────────────────────────────────────────── */
+.header{display:flex;align-items:center;gap:8px;padding:4px 2px 12px}
+.brand{
+    font-size:11px;font-weight:900;
+    letter-spacing:.12em;
+    color:hsl(var(--hue1) 50% 70%);
+    text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3)
+}
+.plan-badge{
+    padding:3px 8px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(280 70% 55%),hsl(300 70% 50%));
+    color:white;font-size:9px;font-weight:900;letter-spacing:.08em;
+    box-shadow:0 0 10px hsl(280 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2)
+}
+.plan-badge.free{background:linear-gradient(135deg,#6b7280,#4b5563);box-shadow:0 0 8px rgba(107,114,128,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+.plan-badge.start{background:linear-gradient(135deg,hsl(220 70% 55%),hsl(240 70% 50%));box-shadow:0 0 10px hsl(220 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2)}
+.header-spacer{flex:1}
+.header-icon-btn{
+    width:28px;height:28px;border-radius:50%;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.05);
+    color:var(--text-secondary);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    position:relative;text-decoration:none
+}
+.header-icon-btn svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.logout-dropdown{
+    position:absolute;top:34px;right:0;
+    background:#0f0f2a;
+    border:1px solid rgba(239,68,68,.3);
+    border-radius:10px;padding:8px 14px;white-space:nowrap;
+    z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5);
+    font-size:13px;color:#fca5a5;font-weight:700;
+    cursor:pointer;display:none;text-decoration:none
+}
 .logout-dropdown.show{display:block}
 
-/* ── MAIN SCROLL ── */
-.main-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;z-index:1;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none;transition:opacity .3s}
-.main-scroll::-webkit-scrollbar{display:none}
+/* ─────────────────────────────────────────── */
+/* REVENUE CARD                                */
+/* ─────────────────────────────────────────── */
+.rev-card{padding:16px 16px 14px;margin-bottom:12px}
+.rev-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;position:relative;z-index:5;gap:8px}
+.rev-label{
+    font-size:10px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.08em;
+    color:var(--text-muted);
+    display:flex;align-items:center;gap:6px
+}
+.rev-link{
+    font-size:9px;color:hsl(var(--hue1) 60% 78%);
+    font-weight:700;cursor:pointer;text-decoration:none
+}
+.store-sel{
+    padding:3px 10px;border-radius:100px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+    color:var(--text-secondary);
+    font-size:10px;font-weight:700;
+    cursor:pointer;display:flex;align-items:center;gap:4px;
+    font-family:inherit
+}
+.store-sel svg{width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none}
+.store-sel select{
+    background:transparent;border:none;color:inherit;font:inherit;
+    cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;
+    padding-right:4px;max-width:100px;text-overflow:ellipsis
+}
+.store-sel select option{background:#0f0f2a;color:#e2e8f0}
+.rev-big{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;position:relative;z-index:5}
+.rev-val{
+    font-size:34px;font-weight:900;letter-spacing:-.03em;
+    background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    line-height:1;font-variant-numeric:tabular-nums
+}
+.rev-cur{font-size:14px;color:var(--text-muted);font-weight:700}
+.rev-change{
+    margin-left:auto;font-size:15px;font-weight:900;
+    color:#22c55e;text-shadow:0 0 8px rgba(34,197,94,.3)
+}
+.rev-change.neg{color:#ef4444;text-shadow:0 0 8px rgba(239,68,68,.3)}
+.rev-change.zero{color:#6b7280;text-shadow:none}
+.rev-vs{font-size:10px;color:var(--text-muted);margin-left:4px;font-weight:600}
+.rev-compare{font-size:10px;color:var(--text-muted);font-weight:600;margin-bottom:10px;position:relative;z-index:5}
+.rev-meta{
+    font-size:11px;color:var(--text-secondary);font-weight:600;
+    margin-bottom:12px;padding-bottom:12px;
+    border-bottom:1px solid rgba(255,255,255,.04);
+    position:relative;z-index:5
+}
+.rev-meta b{color:hsl(var(--hue1) 60% 85%);font-weight:800}
+.rev-pills{display:flex;align-items:center;gap:6px;position:relative;z-index:5;flex-wrap:wrap}
+.rev-pill-group{display:flex;gap:3px}
+.rev-pill{
+    padding:4px 9px;border-radius:100px;
+    font-size:10px;font-weight:700;cursor:pointer;
+    font-family:inherit;letter-spacing:.02em;
+    border:1px solid;background:transparent;color:var(--text-muted);
+    border-color:rgba(255,255,255,.06);
+    transition:all .2s
+}
+.rev-pill.active{
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 32%),hsl(var(--hue2) 60% 26%));
+    border-color:hsl(var(--hue1) 60% 50%);
+    color:white;
+    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / .35)
+}
+.rev-divider{width:1px;height:18px;background:rgba(255,255,255,.08);margin:0 3px}
+.conf-warn{
+    display:flex;align-items:center;gap:6px;
+    margin:8px 0 0;padding:6px 10px;
+    border-radius:10px;
+    background:rgba(251,191,36,.06);
+    border:1px solid rgba(251,191,36,.15);
+    font-size:9px;color:#fcd34d;
+    position:relative;z-index:5;font-weight:600
+}
+.conf-warn svg{width:11px;height:11px;stroke:#fbbf24;fill:none;stroke-width:2.5;flex-shrink:0}
 
-/* ── REVENUE CARD ── */
-.revenue-card{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
-    border-radius:14px;padding:12px 14px 10px;margin:10px 12px 0}
-.revenue-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px}
-.revenue-period-label{font-size:13px;font-weight:700;color:rgba(255,255,255,.35);
-    text-transform:uppercase;letter-spacing:.5px}
-.revenue-store-name{font-size:12px;color:rgba(165,180,252,.3)}
-.revenue-store-name select{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
-    border-radius:8px;color:#a5b4fc;font-size:12px;font-weight:600;padding:4px 8px;
-    font-family:inherit;cursor:pointer;outline:none}
-.revenue-number-row{display:flex;align-items:baseline;gap:6px}
-.revenue-number{font-size:28px;font-weight:800;color:#a5b4fc;letter-spacing:-1px}
-.revenue-currency{font-size:14px;color:#4b5563;font-weight:600}
-.revenue-change{font-size:16px;font-weight:800}
-.revenue-change.up{color:#4ade80}
-.revenue-change.down{color:#f87171}
-.revenue-change.zero{color:#4b5563}
-.revenue-comparison{font-size:12px;color:#4b5563;margin:1px 0 0}
-.revenue-meta{font-size:13px;color:#4b5563;margin-top:3px}
-.revenue-pills{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.revenue-pill-group{display:flex;gap:6px;width:100%}
-.revenue-pill{flex:1;text-align:center;font-size:13px;padding:10px 0;border-radius:12px;cursor:pointer;white-space:nowrap;
-    border:1px solid transparent;transition:all .2s}
-.revenue-pill.active{color:#e2e8f0;background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.25)}
-.revenue-pill.inactive{color:#64748b;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
-.revenue-divider{display:none}
-.confidence-warning{display:flex;align-items:center;gap:6px;margin:6px 0 0;padding:5px 8px;
-    border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);
-    font-size:9px;color:#fcd34d}
-.confidence-warning svg{width:12px;height:12px;stroke:#fbbf24;fill:none;stroke-width:2.5;flex-shrink:0}
-
-/* ── STORE HEALTH BAR ── */
-.health-bar{margin:8px 12px 4px;display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:10px 14px}
-.health-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:.5px;
-    text-transform:uppercase;white-space:nowrap}
-.health-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
-.health-fill{height:100%;border-radius:3px;
-    background:linear-gradient(90deg,#ef4444 0%,#f97316 25%,#eab308 50%,#84cc16 75%,#22c55e 100%)}
-.health-percent{font-size:13px;font-weight:700}
-.health-link{font-size:11px;color:#818cf8;white-space:nowrap;cursor:pointer}
-
-/* ── HEALTH INFO ── */
-.health-info-btn{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s}
-.health-info-btn:active{transform:scale(.9)}
-.health-info-btn svg{width:12px;height:12px;stroke:#a5b4fc;fill:none;stroke-width:2}
-.health-tooltip{display:none;margin:6px 12px 0;padding:12px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:12px;font-size:14px;color:#d1d5db;line-height:1.5}
-.health-tooltip.open{display:block;animation:cardin .3s ease both}
-.health-tooltip b{color:#a5b4fc;font-weight:600}
-
-/* ── SEPARATOR ── */
-.separator{height:1px;margin:6px 12px;background:rgba(255,255,255,.04)}
-
-/* ── AI META ── */
-.ai-meta{display:flex;align-items:center;gap:4px;margin:10px 12px 5px}
-.ai-meta svg{width:13px;height:13px;fill:none;stroke:#818cf8;stroke-width:1.5}
-.ai-meta-label{font-size:14px;color:#818cf8;font-weight:600}
-.ai-meta-time{font-size:13px;color:#4b5563}
-
-/* ── AI BUBBLE ── */
-.ai-bubble{max-width:92%;margin:0 12px;background:rgba(99,102,241,.12);
-    border:1px solid rgba(99,102,241,.2);border-radius:14px 14px 14px 3px;padding:10px 12px}
-.ai-bubble-text{font-size:14px;color:#d1d5db;line-height:1.4}
-.ai-bubble-text.with-signals{margin-bottom:7px}
-
-/* ── SIGNAL CARDS (inside bubble) — bubble style ── */
-.signal-card{padding:9px 11px;margin:5px 0;border-radius:14px;cursor:pointer;
-    display:flex;align-items:flex-start;gap:8px;transition:all .15s}
-.signal-card:active{transform:scale(.98)}
-/* S79_P3_CSS_Q_HUES — 6-те фундаментални въпроса hue classes (BIBLE §6) */
-.signal-card.q1{border-left:3px solid hsl(0,85%,60%)}
-.signal-card.q2{border-left:3px solid hsl(280,70%,65%)}
-.signal-card.q3{border-left:3px solid hsl(145,70%,55%)}
-.signal-card.q4{border-left:3px solid hsl(175,70%,55%)}
-.signal-card.q5{border-left:3px solid hsl(38,90%,60%)}
-.signal-card.q6{border-left:3px solid hsl(220,10%,55%)}
-/* Proactive pills top strip */
-.top-strip{display:flex;gap:6px;padding:8px 12px 0;overflow-x:auto;scrollbar-width:none}
-.top-strip::-webkit-scrollbar{display:none}
-.top-pill{flex-shrink:0;padding:5px 10px;border-radius:12px;cursor:pointer;
-  font-size:10px;line-height:1.2;background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);color:#e2e8f0;
-  display:flex;align-items:center;gap:5px;max-width:230px;
-  transition:transform .15s,background .15s}
-.top-pill:active{transform:scale(.96)}
-.top-pill.q1{border-left:2px solid hsl(0,85%,60%);background:rgba(239,68,68,.06)}
-.top-pill.q5{border-left:2px solid hsl(38,90%,60%);background:rgba(251,191,36,.06)}
-.top-pill .tp-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.top-pill .tp-val{font-weight:700;color:#fbbf24;flex-shrink:0}
-.top-pill.q1 .tp-val{color:#fca5a5}
-/* fq badge в Signal Detail */
-.fq-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
-  border-radius:10px;font-size:9px;font-weight:600;margin-bottom:7px;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
-.fq-badge.q1{color:#fca5a5;border-color:hsl(0,85%,60%,.3)}
-.fq-badge.q2{color:#c4b5fd;border-color:hsl(280,70%,65%,.3)}
-.fq-badge.q3{color:#86efac;border-color:hsl(145,70%,55%,.3)}
-.fq-badge.q4{color:#5eead4;border-color:hsl(175,70%,55%,.3)}
-.fq-badge.q5{color:#fcd34d;border-color:hsl(38,90%,60%,.3)}
-.fq-badge.q6{color:#9ca3af;border-color:hsl(220,10%,55%,.3)}
-.sig-critical{background:rgba(239,68,68,.03);border:.5px solid rgba(239,68,68,.15);border-left:4px solid #ef4444}
-.sig-warning{background:rgba(251,191,36,.02);border:.5px solid rgba(251,191,36,.12);border-left:4px solid #fbbf24}
-.sig-info{background:rgba(34,197,94,.02);border:.5px solid rgba(34,197,94,.12);border-left:4px solid #4ade80}
-.signal-stripe{display:none}
-.sig-critical-stripe{background:#ef4444}
-.sig-warning-stripe{background:#fbbf24}
-.sig-info-stripe{background:#4ade80}
-.signal-content{flex:1;min-width:0}
-.signal-title{font-size:14px;font-weight:600;line-height:1.3}
-.sig-critical .signal-title{color:#fca5a5}
-.sig-warning .signal-title{color:#fcd34d}
-.sig-info .signal-title{color:#86efac}
-.signal-body{font-size:13px;color:#6b7280;line-height:1.3;margin-top:1px}
-.signal-arrow{color:rgba(255,255,255,.12);font-size:16px;flex-shrink:0;align-self:center}
-
-/* ── SIGNAL DETAIL OVERLAY ── */
-.signal-detail-bg{position:fixed;inset:0;background:rgba(3,7,18,.92);backdrop-filter:blur(10px);
-    z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
-.signal-detail-bg.open{opacity:1;pointer-events:auto}
-.signal-detail-panel{position:fixed;bottom:-100%;left:0;right:0;height:85vh;
-    background:rgba(5,8,20,.98);border-radius:20px 20px 0 0;z-index:310;
-    display:flex;flex-direction:column;transition:bottom .3s cubic-bezier(.32,0,.67,0)}
-.signal-detail-panel.open{bottom:0}
-.signal-detail-header{display:flex;align-items:center;justify-content:space-between;
-    padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
-.signal-detail-header-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.signal-detail-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.signal-detail-dot-critical{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.5)}
-.signal-detail-dot-warning{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.5)}
-.signal-detail-dot-info{background:#4ade80;box-shadow:0 0 8px rgba(34,197,94,.5)}
-.signal-detail-title{font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.signal-detail-body{flex:1;overflow-y:auto;padding:0 14px 14px;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none}
-.signal-detail-body::-webkit-scrollbar{display:none}
-.detail-hero{text-align:center;padding:16px 0 12px}
-.detail-hero-num{font-size:34px;font-weight:800;letter-spacing:-1px}
-.detail-hero-unit{font-size:13px;color:#6b7280;margin-top:2px}
-.detail-why{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
-    border-radius:12px;padding:10px 12px;margin-bottom:10px}
-.detail-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.15);
-    text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.detail-text{font-size:14px;color:#d1d5db;line-height:1.5}
-.detail-suggestion{background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);
-    border-radius:12px;padding:10px 12px;margin-bottom:10px}
-.detail-suggestion-text{font-size:14px;color:#a5b4fc;line-height:1.5;margin-bottom:10px}
-.detail-actions{display:flex;gap:6px}
-.detail-action-primary{flex:1;padding:11px 8px;border-radius:10px;font-size:14px;font-weight:600;
-    text-align:center;cursor:pointer;border:none;font-family:inherit;
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
-.detail-action-primary:active{transform:scale(.98)}
-.detail-action-secondary{flex:1;padding:11px 8px;border-radius:10px;font-size:14px;font-weight:600;
-    text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,.06);font-family:inherit;
-    background:rgba(255,255,255,.03);color:#a5b4fc}
-.detail-action-hint{font-size:12px;color:#4b5563;text-align:center;margin-top:5px}
-.detail-section{font-size:11px;font-weight:700;color:rgba(255,255,255,.15);
-    text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
-.detail-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;
-    background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
-    border-radius:8px;margin-bottom:3px}
-.detail-row-name{font-size:14px;color:#d1d5db}
-.detail-row-value{font-size:14px;font-weight:700}
-
-/* ── SIGNAL BROWSER OVERLAY ── */
-.signal-browser-bg{position:fixed;inset:0;background:rgba(3,7,18,.92);backdrop-filter:blur(10px);
-    z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
-.signal-browser-bg.open{opacity:1;pointer-events:auto}
-.signal-browser-panel{position:fixed;bottom:-100%;left:0;right:0;height:90vh;
-    background:rgba(5,8,20,.98);border-radius:20px 20px 0 0;z-index:310;
-    display:flex;flex-direction:column;transition:bottom .3s cubic-bezier(.32,0,.67,0)}
-.signal-browser-panel.open{bottom:0}
-.browser-body{flex:1;overflow-y:auto;padding:8px 12px;background:rgba(99,102,241,.06);
-    -webkit-overflow-scrolling:touch;scrollbar-width:none}
-.browser-body::-webkit-scrollbar{display:none}
-.browser-cat-wrap{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);border-radius:14px;padding:8px;margin-bottom:10px}
-.browser-cat-header{display:flex;align-items:center;gap:6px;margin:0 4px 6px;padding:0}
-.browser-cat-dot{width:8px;height:8px;border-radius:50%}
-.browser-cat-name{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.browser-cat-count{font-size:12px;color:#4b5563;font-weight:600}
-.browser-signal{padding:9px 11px;margin:4px 0;border-radius:10px;cursor:pointer;border-left:4px solid transparent;background:transparent;border:1px solid rgba(255,255,255,.06);
-    display:flex;align-items:flex-start;gap:8px;transition:all .15s}
-.browser-signal:active{transform:scale(.98)}
-.browser-future{padding:10px;font-size:13px;color:#4b5563;
-    border:.5px dashed rgba(255,255,255,.08);border-radius:14px;text-align:center;margin:4px 0}
-
-/* ── ACTION BUTTONS ── */
-.action-buttons{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
-.action-button{padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;
-    color:#a5b4fc;border:1px solid rgba(99,102,241,.15);background:transparent;
-    cursor:pointer;font-family:inherit;transition:background .15s}
-.action-button:active{background:rgba(99,102,241,.08)}
-.action-button-more{color:#818cf8;border-color:rgba(99,102,241,.25);background:rgba(99,102,241,.1)}
-
-/* ── GHOST PILL ── */
-.ghost-pill{padding:7px 14px;border-radius:8px;font-size:14px;font-weight:600;
-    color:rgba(168,85,247,.4);border:1px dashed rgba(168,85,247,.2);background:transparent;
-    cursor:pointer;font-family:inherit;margin-top:6px}
-
-/* ── USER BUBBLE (dashboard history) ── */
-.user-row{display:flex;justify-content:flex-end;margin:10px 12px 4px;flex-direction:column;align-items:flex-end}
-.user-time{font-size:12px;color:#4b5563;margin-bottom:3px}
-.user-bubble{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.1);
-    border-radius:14px 14px 3px 14px;padding:10px 14px;font-size:14px;color:#e2e8f0;
-    max-width:75%;line-height:1.4;word-break:break-word}
-
-/* ── AI RESPONSE BUBBLE (dashboard history) ── */
-.ai-response{max-width:88%;margin:0 12px;background:rgba(255,255,255,.025);
-    border:1px solid rgba(255,255,255,.05);border-radius:14px 14px 14px 3px;
-    padding:8px 12px;font-size:11px;color:#d1d5db;line-height:1.5;word-break:break-word;
-    white-space:pre-wrap}
-
-/* ── INPUT BAR (dashboard bottom) ── */
-.input-bar{padding:8px 12px 6px;position:relative;z-index:5;cursor:pointer}
-.input-bar-inner{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);
-    border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:7px 8px 7px 10px;
-    transition:border-color .2s}
-.input-bar-inner:active{border-color:rgba(99,102,241,.2)}
-.input-waves{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
-.input-wave-bar{width:2px;border-radius:1px;animation:waveAnim .8s ease-in-out infinite alternate}
-.input-wave-bar:nth-child(1){animation-delay:0s}
-.input-wave-bar:nth-child(2){animation-delay:.15s}
-.input-wave-bar:nth-child(3){animation-delay:.3s}
-.input-wave-bar:nth-child(4){animation-delay:.45s}
-.input-wave-bar:nth-child(5){animation-delay:.6s}
-.input-placeholder{flex:1;font-size:14px;color:#374151}
-.mic-button{width:32px;height:32px;border-radius:50%;
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.mic-button svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
-.send-button{width:30px;height:30px;border-radius:50%;
-    background:linear-gradient(135deg,#059669,#10b981);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.send-button svg{width:13px;height:13px;fill:#fff}
-
-/* ── BOTTOM NAV ── */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);
-    background:rgba(3,7,18,.97);border-top:1px solid rgba(255,255,255,.04);
-    display:flex;z-index:100}
-.bottom-nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s}
-.bottom-nav-tab svg{width:18px;height:18px;stroke-width:1.5;fill:none}
-.bottom-nav-tab.active{color:#a5b4fc}
-.bottom-nav-tab.active svg{stroke:#a5b4fc}
-.bottom-nav-tab.inactive{color:rgba(165,180,252,.45)}
-.bottom-nav-tab.inactive svg{stroke:rgba(165,180,252,.45)}
-
-/* ── CHAT OVERLAY ── */
-.chat-overlay-bg{position:fixed;inset:0;background:rgba(3,7,18,.65);backdrop-filter:blur(8px);
-    z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
-.chat-overlay-bg.open{opacity:1;pointer-events:auto}
-.chat-overlay-panel{position:fixed;bottom:-100%;left:0;right:0;height:72vh;
-    background:rgba(8,10,24,.98);border-radius:20px 20px 0 0;z-index:210;
-    display:flex;flex-direction:column;
-    box-shadow:0 -8px 40px rgba(99,102,241,.12);transition:bottom .3s cubic-bezier(.32,0,.67,0)}
-.chat-overlay-panel.open{bottom:0}
-.chat-overlay-panel::before{content:'';position:absolute;inset:0;border-radius:20px 20px 0 0;
-    background:radial-gradient(ellipse at 20% 10%,rgba(99,102,241,.04)0%,transparent 55%),
-               radial-gradient(ellipse at 80% 90%,rgba(139,92,246,.03)0%,transparent 50%);
-    pointer-events:none}
-
-/* ── OVERLAY HEADER ── */
-.overlay-header{display:flex;align-items:center;justify-content:space-between;
-    padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:1}
-.overlay-header-left{display:flex;align-items:center;gap:8px}
-.overlay-avatar{width:30px;height:30px;border-radius:50%;
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);
+/* ─────────────────────────────────────────── */
+/* HEALTH BAR                                  */
+/* ─────────────────────────────────────────── */
+.health{padding:10px 14px;margin-bottom:10px;--radius:var(--radius-sm);display:flex;align-items:center;gap:8px}
+.health-lbl{
+    font-size:9px;font-weight:800;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.06em;
+    white-space:nowrap;position:relative;z-index:5
+}
+.health-track{
+    flex:1;height:5px;border-radius:100px;
+    background:rgba(255,255,255,.04);overflow:hidden;
+    position:relative;z-index:5
+}
+.health-fill{
+    height:100%;border-radius:100px;
+    background:linear-gradient(90deg,#ef4444 0%,#f97316 25%,#eab308 50%,#84cc16 75%,#22c55e 100%)
+}
+.health-pct{
+    font-size:11px;font-weight:900;
+    position:relative;z-index:5;
+    font-variant-numeric:tabular-nums
+}
+.health-link{
+    font-size:9px;color:hsl(var(--hue1) 60% 78%);
+    font-weight:700;cursor:pointer;
+    white-space:nowrap;position:relative;z-index:5
+}
+.health-info{
+    width:18px;height:18px;border-radius:50%;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 12px rgba(99,102,241,.3)}
-.overlay-avatar svg{width:14px;height:14px;fill:#fff}
-.overlay-title{font-size:16px;font-weight:600;color:#e2e8f0}
-.overlay-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.04);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
-.overlay-close svg{width:14px;height:14px;stroke:rgba(255,255,255,.35);fill:none;stroke-width:2}
+    cursor:pointer;flex-shrink:0;
+    position:relative;z-index:5
+}
+.health-info svg{width:10px;height:10px;stroke:hsl(var(--hue1) 60% 70%);stroke-width:2;fill:none}
+.health-tooltip{
+    display:none;margin:6px 0 10px;
+    padding:12px 14px;border-radius:14px;
+    background:rgba(99,102,241,.08);
+    border:1px solid rgba(99,102,241,.15);
+    font-size:11px;color:#d1d5db;line-height:1.5
+}
+.health-tooltip.open{display:block;animation:cardin .3s ease both}
+.health-tooltip b{color:hsl(var(--hue1) 60% 85%);font-weight:800}
 
-/* ── OVERLAY CHAT MESSAGES ── */
-.overlay-messages{flex:1;overflow-y:auto;padding:10px 12px;position:relative;z-index:1;
-    display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.overlay-messages::-webkit-scrollbar{display:none}
-.chat-message-group{display:flex;flex-direction:column;gap:4px}
-.chat-meta-line{font-size:13px;color:#4b5563;display:flex;align-items:center;gap:4px}
-.chat-meta-line.right{justify-content:flex-end}
-.chat-ai-msg{max-width:85%;padding:10px 14px;font-size:15px;line-height:1.5;word-break:break-word;
-    background:rgba(15,20,40,.8);border:.5px solid rgba(99,102,241,.15);color:#e2e8f0;
-    border-radius:4px 14px 14px 14px;white-space:pre-wrap}
-.chat-user-msg{max-width:75%;padding:10px 14px;font-size:15px;line-height:1.5;word-break:break-word;
-    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.15);color:#e2e8f0;
-    border-radius:14px 14px 4px 14px;margin-left:auto}
-.chat-typing-indicator{display:none;padding:8px 12px;background:rgba(15,20,40,.8);
-    border:.5px solid rgba(99,102,241,.15);border-radius:4px 14px 14px 14px;width:fit-content}
+/* ─────────────────────────────────────────── */
+/* WEATHER CARD                                */
+/* ─────────────────────────────────────────── */
+.weather{padding:12px 14px;margin-bottom:10px;--radius:var(--radius-sm)}
+.weather-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;position:relative;z-index:5}
+.weather-left{display:flex;align-items:center;gap:6px}
+.weather-left svg{width:18px;height:18px;stroke:hsl(var(--hue1) 60% 78%);stroke-width:1.5;fill:none}
+.weather-condition{font-size:11px;font-weight:700;color:white}
+.weather-temp{font-size:18px;font-weight:900;color:hsl(var(--hue1) 60% 85%);font-variant-numeric:tabular-nums}
+.weather-range{font-size:9px;color:var(--text-muted);font-weight:600;margin-bottom:6px;position:relative;z-index:5}
+.weather-sug{font-size:10.5px;color:rgba(255,255,255,.82);font-weight:600;line-height:1.45;position:relative;z-index:5}
+.weather-week{display:flex;gap:4px;margin-top:10px;overflow-x:auto;scrollbar-width:none;position:relative;z-index:5}
+.weather-week::-webkit-scrollbar{display:none}
+.weather-day{
+    flex:1;min-width:38px;text-align:center;
+    padding:5px 3px;
+    background:rgba(255,255,255,.02);
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.03)
+}
+.weather-day-name{font-size:8px;color:var(--text-muted);font-weight:700}
+.weather-day-temp{font-size:11px;font-weight:800;color:white;margin:2px 0;font-variant-numeric:tabular-nums}
+.weather-day-rain{font-size:8px;font-weight:700}
+
+.indigo-sep{height:1px;background:linear-gradient(90deg,transparent,hsl(var(--hue1) 40% 30% / .3),transparent);margin:8px 0}
+
+/* ─────────────────────────────────────────── */
+/* AI BRIEFING                                 */
+/* ─────────────────────────────────────────── */
+.ai-meta{display:flex;align-items:center;gap:5px;padding:8px 4px 6px}
+.ai-meta svg{width:13px;height:13px;fill:none;stroke:hsl(var(--hue1) 60% 70%);stroke-width:1.5}
+.ai-meta-lbl{font-size:10px;color:hsl(var(--hue1) 60% 75%);font-weight:700}
+.ai-meta-time{font-size:9px;color:var(--text-muted)}
+
+/* Proactive top-strip (S79) */
+.top-strip{display:flex;gap:6px;padding:4px 2px 8px;overflow-x:auto;scrollbar-width:none}
+.top-strip::-webkit-scrollbar{display:none}
+.top-pill{
+    flex-shrink:0;padding:6px 11px;border-radius:100px;
+    cursor:pointer;font-size:10px;font-weight:700;line-height:1.2;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+    color:#e2e8f0;
+    display:flex;align-items:center;gap:6px;max-width:230px;
+    transition:transform .15s
+}
+.top-pill:active{transform:scale(.96)}
+.top-pill.q1{
+    border-color:hsl(0,85%,50%,.3);
+    background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(239,68,68,.03));
+    box-shadow:0 0 10px rgba(239,68,68,.15)
+}
+.top-pill.q5{
+    border-color:hsl(38,90%,50%,.3);
+    background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(251,191,36,.03));
+    box-shadow:0 0 10px rgba(251,191,36,.15)
+}
+.top-pill .tp-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-pill .tp-val{font-weight:900;flex-shrink:0;font-variant-numeric:tabular-nums}
+.top-pill.q1 .tp-val{color:#fca5a5}
+.top-pill.q5 .tp-val{color:#fcd34d}
+
+.ai-bubble{padding:12px 14px;margin-bottom:10px;border-radius:var(--radius) var(--radius) var(--radius) 4px}
+.ai-bubble-text{font-size:12px;color:rgba(255,255,255,.88);line-height:1.5;margin-bottom:8px;position:relative;z-index:5}
+
+/* Signal cards in briefing */
+.sig-card{
+    display:flex;align-items:center;gap:9px;
+    padding:9px 11px;margin-bottom:5px;
+    border-radius:11px;
+    background:rgba(0,0,0,.2);
+    border:1px solid rgba(255,255,255,.04);
+    cursor:pointer;border-left:3px solid;
+    position:relative;z-index:5;
+    transition:transform .15s,background .15s
+}
+.sig-card:active{transform:scale(.98)}
+.sig-card.critical{border-left-color:#ef4444}
+.sig-card.warning{border-left-color:#fbbf24}
+.sig-card.info{border-left-color:#22c55e}
+.sig-card-body{flex:1;min-width:0}
+.sig-card-t{font-size:11px;font-weight:800;line-height:1.25}
+.sig-card.critical .sig-card-t{color:#fca5a5}
+.sig-card.warning .sig-card-t{color:#fcd34d}
+.sig-card.info .sig-card-t{color:#86efac}
+.sig-card-d{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sig-card-arr{color:rgba(255,255,255,.25);font-size:13px;font-weight:900;flex-shrink:0}
+.sig-more{
+    display:inline-flex;padding:6px 12px;
+    border-radius:100px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    color:hsl(var(--hue1) 60% 80%);
+    font-size:10px;font-weight:800;
+    cursor:pointer;font-family:inherit;
+    letter-spacing:.02em;margin-top:4px
+}
+
+.ghost-pill{
+    display:inline-flex;padding:7px 14px;
+    border-radius:100px;background:transparent;
+    border:1px dashed rgba(168,85,247,.3);
+    color:rgba(192,132,252,.6);
+    font-size:10px;font-weight:800;cursor:pointer;
+    font-family:inherit;margin-top:4px
+}
+
+/* ─────────────────────────────────────────── */
+/* INPUT BAR (dashboard)                       */
+/* ─────────────────────────────────────────── */
+.input-bar{
+    position:fixed;bottom:60px;left:0;right:0;
+    max-width:480px;margin:0 auto;padding:8px 12px;
+    z-index:35;cursor:pointer;
+    transition:opacity .3s,transform .3s
+}
+body.overlay-open .input-bar{opacity:0;pointer-events:none;transform:translateY(20px)}
+.input-bar-inner{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 35% 15% / .85),hsl(var(--hue2) 35% 12% / .7));
+    border:1px solid hsl(var(--hue1) 30% 25% / .6);
+    backdrop-filter:blur(20px);
+    box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 16px hsl(var(--hue1) 60% 45% / .2)
+}
+.input-waves{display:flex;gap:2px;align-items:flex-end;height:14px;flex-shrink:0}
+.input-wave-bar{width:3px;border-radius:100px;animation:wavebar 1.2s ease-in-out infinite}
+.input-wave-bar:nth-child(1){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:0s}
+.input-wave-bar:nth-child(2){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.15s}
+.input-wave-bar:nth-child(3){height:14px;background:hsl(var(--hue1) 70% 60%);animation-delay:.3s}
+.input-wave-bar:nth-child(4){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.45s}
+.input-wave-bar:nth-child(5){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:.6s}
+@keyframes wavebar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+.input-placeholder{flex:1;font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:.02em}
+.input-mic{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / .4),inset 0 1px 0 rgba(255,255,255,.2)
+}
+.input-mic svg{width:14px;height:14px;stroke:white;stroke-width:2;fill:none;stroke-linecap:round}
+.input-send{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+.input-send svg{width:13px;height:13px;fill:var(--text-muted)}
+
+/* ─────────────────────────────────────────── */
+/* BOTTOM NAV                                  */
+/* ─────────────────────────────────────────── */
+.bottom-nav{
+    position:fixed;bottom:0;left:0;right:0;
+    max-width:480px;margin:0 auto;display:flex;
+    padding:8px 8px 14px;
+    background:linear-gradient(180deg,hsl(220 25% 6% / .85),hsl(220 25% 4% / .95));
+    backdrop-filter:blur(20px);
+    border-top:1px solid hsl(var(--hue2) 20% 15% / .5);
+    z-index:40;
+    transition:opacity .3s
+}
+body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
+.nav-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:7px 4px 4px;border-radius:12px;
+    background:transparent;border:none;
+    color:var(--text-muted);cursor:pointer;
+    font-family:inherit;text-decoration:none
+}
+.nav-tab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nav-tab-label{font-size:9px;font-weight:700;letter-spacing:.02em}
+.nav-tab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
+.nav-tab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
+
+/* ═══════════════════════════════════════════════════════ */
+/* 75vh OVERLAY (Chat + Signal Detail + Signal Browser)   */
+/* ═══════════════════════════════════════════════════════ */
+.ov-bg{
+    position:fixed;inset:0;
+    background:rgba(5,8,20,.55);
+    backdrop-filter:blur(16px) saturate(.85);
+    -webkit-backdrop-filter:blur(16px) saturate(.85);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity .3s var(--ease)
+}
+.ov-bg.open{opacity:1;pointer-events:auto}
+.ov-panel{
+    position:fixed;bottom:-80vh;left:0;right:0;
+    max-width:480px;margin:0 auto;
+    height:75vh;z-index:210;
+    display:flex;flex-direction:column;
+    transition:bottom .35s var(--ease);
+    border-radius:24px 24px 0 0;
+    overflow:hidden;
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .9),hsl(var(--hue1) 50% 8% / .7) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .9),hsl(var(--hue2) 50% 8% / .7) 33%),
+        linear-gradient(hsl(220deg 30% 6% / .96));
+    border:1px solid hsl(var(--hue1) 30% 25% / .5);
+    border-bottom:none;
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    box-shadow:
+        0 -20px 60px rgba(0,0,0,.6),
+        0 -8px 40px hsl(var(--hue1) 60% 45% / .15),
+        inset 0 1px 0 hsl(var(--hue1) 60% 50% / .2)
+}
+.ov-panel.open{bottom:0}
+.ov-panel::before{
+    content:'';position:absolute;
+    top:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,hsl(var(--hue1) 70% 65% / .7),transparent);
+    z-index:5;pointer-events:none
+}
+.ov-handle{
+    position:absolute;top:6px;left:50%;
+    transform:translateX(-50%);
+    width:38px;height:4px;border-radius:100px;
+    background:rgba(255,255,255,.18);
+    z-index:6;pointer-events:none
+}
+
+.ov-header{
+    display:flex;align-items:center;gap:10px;
+    padding:18px 14px 10px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    flex-shrink:0;position:relative;z-index:5
+}
+.ov-back{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:var(--text-secondary);flex-shrink:0
+}
+.ov-back svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ov-title-wrap{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.ov-avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 50% / .45);
+    flex-shrink:0
+}
+.ov-avatar svg{width:14px;height:14px;fill:white}
+.ov-title{font-size:14px;font-weight:800;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-sub{font-size:9px;color:var(--text-muted);font-weight:600}
+.ov-close{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(239,68,68,.08);
+    border:1px solid rgba(239,68,68,.2);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:#fca5a5;flex-shrink:0
+}
+.ov-close svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round}
+
+.ov-signal-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ov-signal-dot.critical{background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.5)}
+.ov-signal-dot.warning{background:#fbbf24;box-shadow:0 0 10px rgba(251,191,36,.5)}
+.ov-signal-dot.info{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.5)}
+
+/* ═══ CHAT MESSAGES (WhatsApp neon) ═══ */
+.chat-messages{
+    flex:1;overflow-y:auto;padding:12px 12px 8px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    display:flex;flex-direction:column;gap:8px
+}
+.chat-messages::-webkit-scrollbar{display:none}
+.chat-empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:11px}
+.chat-empty-t{font-size:14px;font-weight:800;color:hsl(var(--hue1) 60% 80%);margin-bottom:6px}
+
+.msg-group{display:flex;flex-direction:column;gap:4px}
+.msg-meta{font-size:9px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:4px;padding:0 2px}
+.msg-meta.right{justify-content:flex-end}
+.msg-meta svg{width:10px;height:10px;fill:none;stroke:hsl(var(--hue1) 60% 70%);stroke-width:2}
+
+.msg-ai{
+    max-width:82%;padding:10px 13px;
+    font-size:13px;line-height:1.5;word-break:break-word;
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 15% / .85),hsl(var(--hue1) 30% 10% / .7));
+    border:1px solid hsl(var(--hue1) 35% 25% / .4);
+    color:#e2e8f0;
+    border-radius:4px 16px 16px 16px;
+    white-space:pre-wrap;
+    box-shadow:
+        0 2px 12px rgba(0,0,0,.25),
+        0 0 16px hsl(var(--hue1) 60% 40% / .08),
+        inset 0 1px 0 hsl(var(--hue1) 60% 50% / .15);
+    align-self:flex-start;position:relative
+}
+.msg-user{
+    max-width:75%;padding:10px 13px;
+    font-size:13px;line-height:1.5;word-break:break-word;
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 28%),hsl(var(--hue2) 60% 22%));
+    border:1px solid hsl(var(--hue1) 55% 40% / .5);
+    color:white;
+    border-radius:16px 16px 4px 16px;
+    align-self:flex-end;
+    box-shadow:
+        0 2px 12px rgba(0,0,0,.35),
+        0 0 14px hsl(var(--hue1) 60% 45% / .25),
+        inset 0 1px 0 rgba(255,255,255,.1);
+    position:relative
+}
+
+.typing{
+    display:none;padding:10px 14px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 15% / .85),hsl(var(--hue1) 30% 10% / .7));
+    border:1px solid hsl(var(--hue1) 35% 25% / .4);
+    border-radius:4px 16px 16px 16px;
+    width:fit-content;align-self:flex-start
+}
+.typing.on{display:block}
 .typing-dots{display:flex;gap:4px;align-items:center}
-.typing-dot{width:5px;height:5px;border-radius:50%;background:#818cf8;animation:dotbounce 1.2s infinite}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:hsl(var(--hue1) 60% 70%);animation:tdot 1.2s infinite}
 .typing-dot:nth-child(2){animation-delay:.2s}
 .typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
 
-/* ── OVERLAY REC BAR ── */
-.recording-bar{display:none;align-items:center;gap:8px;padding:6px 12px;
-    background:rgba(239,68,68,.06);border-top:1px solid rgba(239,68,68,.15);position:relative;z-index:1}
-.recording-bar.on{display:flex}
-.recording-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;
-    animation:recpulse 1s infinite;box-shadow:0 0 8px rgba(239,68,68,.6)}
-.recording-label{font-size:13px;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.5px}
-.recording-transcript{font-size:14px;color:#e2e8f0;flex:1}
+/* ═══ REC BAR ═══ */
+.rec-bar{
+    display:none;align-items:center;gap:8px;
+    padding:8px 14px;
+    background:linear-gradient(90deg,rgba(239,68,68,.08),rgba(239,68,68,.03));
+    border-top:1px solid rgba(239,68,68,.15);
+    flex-shrink:0
+}
+.rec-bar.on{display:flex}
+.rec-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:#ef4444;
+    animation:recpulse 1s infinite;
+    box-shadow:0 0 10px rgba(239,68,68,.7)
+}
+@keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.25)}}
+.rec-label{font-size:10px;font-weight:900;color:#fca5a5;text-transform:uppercase;letter-spacing:.08em}
+.rec-transcript{font-size:12px;color:#e2e8f0;flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ── OVERLAY INPUT ── */
-.overlay-input{padding:6px 10px 8px;position:relative;z-index:1}
-.overlay-input-inner{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);
-    border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:6px 8px 6px 12px}
-.overlay-textarea{flex:1;background:transparent;border:none;color:#f1f5f9;font-size:15px;
-    padding:6px 0;font-family:inherit;outline:none;resize:none;max-height:80px;line-height:1.4}
-.overlay-textarea::placeholder{color:#374151}
-.overlay-mic{width:34px;height:34px;border-radius:50%;flex-shrink:0;position:relative;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);
-    box-shadow:0 0 12px rgba(99,102,241,.3);transition:all .2s}
-.overlay-mic.recording{background:linear-gradient(135deg,#ef4444,#dc2626);
-    box-shadow:0 0 18px rgba(239,68,68,.5)}
-.overlay-mic svg{width:16px;height:16px;color:#fff;z-index:1;stroke:#fff;fill:none;stroke-width:2}
-.voice-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);opacity:0}
-.overlay-mic.recording .voice-ring{border-color:rgba(255,255,255,.5)}
-.vr1{width:20px;height:20px;animation:vrpulse 2s 0s ease-in-out infinite}
+/* ═══ CHAT INPUT (bottom of overlay) ═══ */
+.chat-input{padding:8px 10px 12px;flex-shrink:0}
+.chat-input-inner{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 35% 15% / .85),hsl(var(--hue2) 35% 12% / .7));
+    border:1px solid hsl(var(--hue1) 30% 25% / .6);
+    box-shadow:0 4px 16px rgba(0,0,0,.3),0 0 12px hsl(var(--hue1) 60% 45% / .15)
+}
+.chat-ta{
+    flex:1;background:transparent;border:none;
+    color:#f1f5f9;font-size:13px;padding:6px 4px;
+    font-family:inherit;outline:none;resize:none;
+    max-height:80px;line-height:1.4;font-weight:500
+}
+.chat-ta::placeholder{color:var(--text-muted);font-weight:600}
+.chat-mic{
+    width:34px;height:34px;border-radius:50%;
+    flex-shrink:0;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / .45),inset 0 1px 0 rgba(255,255,255,.18);
+    transition:all .2s
+}
+.chat-mic.rec{
+    background:linear-gradient(135deg,#ef4444,#dc2626);
+    box-shadow:0 0 20px rgba(239,68,68,.55)
+}
+.chat-mic svg{width:16px;height:16px;color:white;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+.voice-ring{
+    position:absolute;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.3);
+    opacity:0;pointer-events:none
+}
+.chat-mic.rec .voice-ring{border-color:rgba(255,255,255,.5)}
+.vr1{width:22px;height:22px;animation:vrpulse 2s 0s ease-in-out infinite}
 .vr2{width:32px;height:32px;animation:vrpulse 2s .3s ease-in-out infinite}
 .vr3{width:44px;height:44px;animation:vrpulse 2s .6s ease-in-out infinite}
-.overlay-send{width:34px;height:34px;border-radius:50%;
-    background:linear-gradient(135deg,#059669,#10b981);
-    border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;transition:opacity .2s}
-.overlay-send:disabled{opacity:.2}
-.overlay-send svg{width:14px;height:14px;fill:#fff}
+@keyframes vrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+.chat-send{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#10b981,#059669);
+    border:none;color:white;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;transition:opacity .2s;
+    box-shadow:0 0 12px rgba(16,185,129,.35)
+}
+.chat-send:disabled{opacity:.2;box-shadow:none}
+.chat-send svg{width:14px;height:14px;fill:white}
 
-/* ── TOAST ── */
-.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
-    padding:9px 18px;border-radius:20px;font-size:14px;font-weight:600;z-index:500;
-    opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+/* ═══ SIGNAL DETAIL CONTENT ═══ */
+.sig-body{
+    flex:1;overflow-y:auto;
+    padding:14px 14px 20px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none
+}
+.sig-body::-webkit-scrollbar{display:none}
+.sig-hero{text-align:center;padding:14px 0 18px}
+.sig-hero-num{
+    font-size:42px;font-weight:900;
+    letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;
+    line-height:1
+}
+.sig-hero-num.critical{color:#fca5a5;text-shadow:0 0 20px rgba(239,68,68,.4)}
+.sig-hero-num.warning{color:#fcd34d;text-shadow:0 0 20px rgba(251,191,36,.4)}
+.sig-hero-num.info{color:#86efac;text-shadow:0 0 20px rgba(34,197,94,.4)}
+.sig-hero-unit{
+    font-size:11px;color:var(--text-muted);
+    margin-top:6px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.08em
+}
+.sig-fq-badge{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 10px;border-radius:100px;
+    font-size:9px;font-weight:800;margin-bottom:10px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+    letter-spacing:.03em
+}
+.sig-fq-badge.q1{color:#fca5a5;border-color:hsl(0,85%,50%,.35);background:rgba(239,68,68,.08)}
+.sig-fq-badge.q2{color:#c4b5fd;border-color:hsl(280,70%,60%,.35);background:rgba(168,85,247,.08)}
+.sig-fq-badge.q3{color:#86efac;border-color:hsl(145,70%,50%,.35);background:rgba(34,197,94,.08)}
+.sig-fq-badge.q4{color:#5eead4;border-color:hsl(175,70%,50%,.35);background:rgba(20,184,166,.08)}
+.sig-fq-badge.q5{color:#fcd34d;border-color:hsl(38,90%,55%,.35);background:rgba(251,191,36,.08)}
+.sig-fq-badge.q6{color:#9ca3af;border-color:hsl(220,10%,50%,.35);background:rgba(107,114,128,.08)}
+
+.sig-box{
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 12% / .65),hsl(var(--hue1) 30% 8% / .5));
+    border:1px solid hsl(var(--hue1) 35% 22% / .35);
+    border-radius:14px;
+    padding:12px 14px;margin-bottom:10px;
+    position:relative;overflow:hidden;
+    box-shadow:inset 0 1px 0 hsl(var(--hue1) 60% 50% / .12)
+}
+.sig-label{
+    font-size:9px;font-weight:900;
+    color:hsl(var(--hue1) 60% 70%);
+    text-transform:uppercase;letter-spacing:.08em;
+    margin-bottom:6px
+}
+.sig-text{font-size:12px;color:#e2e8f0;line-height:1.55;font-weight:500}
+.sig-suggest{color:hsl(var(--hue1) 60% 85%);font-weight:600}
+
+.sig-actions{display:flex;gap:6px;margin-top:6px}
+.sig-btn-primary{
+    flex:1;padding:12px 10px;border-radius:12px;
+    font-size:12px;font-weight:800;
+    text-align:center;cursor:pointer;border:none;font-family:inherit;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    color:white;
+    box-shadow:0 4px 14px hsl(var(--hue1) 60% 45% / .4),inset 0 1px 0 rgba(255,255,255,.2);
+    letter-spacing:.02em;
+    transition:transform .15s
+}
+.sig-btn-primary:active{transform:scale(.97)}
+.sig-btn-secondary{
+    flex:1;padding:12px 10px;border-radius:12px;
+    font-size:12px;font-weight:700;
+    text-align:center;cursor:pointer;
+    border:1px solid rgba(255,255,255,.08);font-family:inherit;
+    background:rgba(255,255,255,.04);
+    color:hsl(var(--hue1) 60% 80%);
+    letter-spacing:.02em
+}
+.sig-btn-secondary:active{transform:scale(.97)}
+.sig-hint{
+    font-size:9px;color:var(--text-muted);
+    text-align:center;margin-top:6px;font-weight:600;letter-spacing:.03em
+}
+
+.sig-section{
+    font-size:9px;font-weight:900;
+    color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.08em;
+    margin:16px 0 6px;padding:0 2px
+}
+.sig-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 12px;
+    background:rgba(255,255,255,.02);
+    border:1px solid rgba(255,255,255,.04);
+    border-radius:10px;margin-bottom:4px
+}
+.sig-row-name{font-size:12px;color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:8px}
+.sig-row-val{font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* Signal Browser grid */
+.browser-cat{
+    background:rgba(255,255,255,.02);
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:14px;padding:10px;margin-bottom:10px
+}
+.browser-cat-h{display:flex;align-items:center;gap:6px;margin:0 2px 8px}
+.browser-cat-dot{width:8px;height:8px;border-radius:50%}
+.browser-cat-name{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.browser-cat-cnt{font-size:10px;color:var(--text-muted);font-weight:700;margin-left:auto}
+.browser-future{
+    padding:10px;font-size:10px;color:var(--text-muted);
+    border:1px dashed rgba(255,255,255,.06);
+    border-radius:10px;text-align:center;margin:4px 0;
+    font-weight:600
+}
+
+/* Toast */
+.toast{
+    position:fixed;bottom:80px;left:50%;
+    transform:translateX(-50%);
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 40%),hsl(var(--hue2) 65% 35%));
+    color:white;padding:10px 18px;border-radius:100px;
+    font-size:12px;font-weight:700;
+    z-index:500;opacity:0;
+    transition:opacity .3s,transform .3s;
+    pointer-events:none;white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 16px hsl(var(--hue1) 60% 45% / .4)
+}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
 
-/* ── KEYFRAMES ── */
-@keyframes waveAnim{0%{transform:scaleY(.4)}100%{transform:scaleY(1.6)}}
-@keyframes dotbounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-@keyframes recpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
-@keyframes vrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
-@keyframes cardin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* Action buttons (AI chat actions) */
+.action-buttons{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.action-button{
+    padding:7px 13px;border-radius:8px;
+    font-size:11px;font-weight:700;
+    color:hsl(var(--hue1) 60% 80%);
+    border:1px solid hsl(var(--hue1) 40% 30% / .3);
+    background:rgba(99,102,241,.04);
+    cursor:pointer;font-family:inherit;
+    transition:background .15s
+}
+.action-button:active{background:rgba(99,102,241,.15)}
 
-/* S82.CAPACITOR safe-area */
-body{padding-bottom:env(safe-area-inset-bottom);}
-.bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
+@keyframes cardin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Safe area (iOS / Capacitor) */
+body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+.bottom-nav{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.input-bar{bottom:calc(60px + env(safe-area-inset-bottom))}
+.chat-input{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- HEADER                                        -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="header">
-  <div class="header-top">
-    <span class="header-brand">RUNMYSTORE.AI</span>
-    <div class="header-right">
-      <span class="plan-badge"><?= htmlspecialchars($plan_label) ?></span>
-      <a href="simple.php" class="simple-toggle">&larr; Опростен</a>
-      <div class="header-icon" onclick="location.href='settings.php'">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3c.4-1.8 2.9-1.8 3.4 0a1.7 1.7 0 002.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 001 2.6c1.8.4 1.8 2.9 0 3.3a1.7 1.7 0 00-1 2.6c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 00-2.6 1c-.4 1.8-2.9 1.8-3.3 0a1.7 1.7 0 00-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 1.7 0 00-1-2.6c-1.8-.4-1.8-2.9 0-3.3a1.7 1.7 0 001-2.6c-.9-1.5.9-3.3 2.4-2.4 1 .6 2.3.1 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg>
-      </div>
-      <div class="header-icon" id="logoutWrap" onclick="toggleLogout()" style="position:relative">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        <a href="logout.php" class="logout-dropdown" id="logoutDrop">Изход &rarr;</a>
-      </div>
-    </div>
-  </div>
-</div>
+<div class="app" id="app">
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- MAIN SCROLL AREA                              -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="main-scroll" id="mainScroll">
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- HEADER                                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="header">
+        <div class="brand">RUNMYSTORE.AI</div>
+        <span class="plan-badge <?= htmlspecialchars($plan) ?>"><?= htmlspecialchars($plan_label) ?></span>
+        <div class="header-spacer"></div>
+        <a href="simple.php" class="header-icon-btn" title="Опростен режим">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </a>
+        <a href="settings.php" class="header-icon-btn" title="Настройки">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </a>
+        <button class="header-icon-btn" id="logoutBtn" onclick="toggleLogout(event)" title="Изход">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <a href="logout.php" class="logout-dropdown" id="logoutDrop">Изход →</a>
+        </button>
+    </div>
 
-  <!-- REVENUE CARD -->
-  <div class="revenue-card" style="animation:cardin .5s ease both">
-    <div class="revenue-top">
-      <span style="display:flex;align-items:center;gap:6px"><span class="revenue-period-label" id="revLabel">ДНЕС</span><a href="stats.php" style="font-size:13px;color:#818cf8;text-decoration:none">Справки &rarr;</a></span>
-      <?php if (count($all_stores) > 1): ?>
-      <span class="revenue-store-name">
-        <select onchange="location.href='?store='+this.value">
-          <?php foreach ($all_stores as $st): ?>
-          <option value="<?= $st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </span>
-      <?php else: ?>
-      <span class="revenue-store-name"><?= htmlspecialchars($store_name) ?></span>
-      <?php endif; ?>
-    </div>
-    <div class="revenue-number-row">
-      <span class="revenue-number" id="revNum">0</span>
-      <span class="revenue-currency"><?= $cs ?></span>
-      <span class="revenue-change up" id="revPct">+0%</span><span id="revVs" style="font-size:12px;color:#4b5563;margin-left:4px"></span>
-    </div>
-    <div class="revenue-comparison" id="revCmp"></div>
-    <div class="revenue-meta" id="revMeta">0 продажби</div>
-    <?php if ($role === 'owner' && $confidence_pct < 100): ?>
-    <div class="confidence-warning" id="confWarn" style="display:none">
-      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-      Данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>)
-    </div>
-    <?php endif; ?>
-    <div class="revenue-pills">
-      <div class="revenue-pill-group">
-        <span class="revenue-pill active" onclick="setPeriod('today',this)">Днес</span>
-        <span class="revenue-pill inactive" onclick="setPeriod('7d',this)">7 дни</span>
-        <span class="revenue-pill inactive" onclick="setPeriod('30d',this)">30 дни</span>
-        <span class="revenue-pill inactive" onclick="setPeriod('365d',this)">365 дни</span>
-      </div>
-      <?php if ($role === 'owner'): ?>
-      <div class="revenue-divider"></div>
-      <div class="revenue-pill-group">
-        <span class="revenue-pill active" id="modeRev" onclick="setMode('rev')">Оборот</span>
-        <span class="revenue-pill inactive" id="modeProfit" onclick="setMode('profit')">Печалба</span>
-      </div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <!-- STORE HEALTH BAR -->
-  <div class="health-bar">
-    <span class="health-label">Точност</span>
-    <div class="health-track"><div class="health-fill" style="width:<?= $health ?>%"></div></div>
-    <span class="health-percent" style="color:<?= $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171') ?>"><?= $health ?>%</span>
-    <span class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй &rarr;</span>
-    <span class="health-info-btn" onclick="document.querySelector('.health-tooltip').classList.toggle('open')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
-  </div>
-  <div class="health-tooltip">
-    <b>Какво е AI Точност?</b><br>
-    Колко добре AI познава магазина ти. Расте когато:<br>
-    &bull; Въведеш <b>доставни цени</b> на артикулите<br>
-    &bull; <b>Преброиш</b> стоката по рафтовете<br>
-    &bull; Получиш <b>доставка</b> с фактура<br><br>
-    По-висока точност = по-умни съвети от AI.
-  </div>
-
-  <div class="separator"></div>
-
-  <!-- WEATHER CARD -->
-  <?php if ($weather_today): ?>
-  <div style="margin:6px 12px;padding:10px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:14px;animation:cardin .5s .05s ease both">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:6px">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:#a5b4fc;stroke-width:1.5"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg>
-        <span style="font-size:11px;font-weight:700;color:#e2e8f0"><?= wmoText((int)$weather_today['weather_code']) ?></span>
-      </div>
-      <span style="font-size:18px;font-weight:800;color:#a5b4fc"><?= round($weather_today['temp_max']) ?>°</span>
-    </div>
-    <div style="font-size:13px;color:#94a3b8;margin-bottom:6px"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° &middot; Дъжд <?= $weather_today['precipitation_prob'] ?>%</div>
-    <div style="font-size:14px;color:#d1d5db;line-height:1.4"><?= htmlspecialchars($weather_suggestion) ?></div>
-    <?php if (count($weather_week) >= 7): ?>
-    <div style="display:flex;gap:4px;margin-top:8px;overflow-x:auto">
-      <?php foreach (array_slice($weather_week, 1, 7) as $wd): ?>
-      <div style="flex:1;min-width:36px;text-align:center;padding:4px 2px;background:rgba(255,255,255,.03);border-radius:8px">
-        <div style="font-size:7px;color:#6b7280"><?= mb_substr(['Нд','Пн','Вт','Ср','Чт','Пт','Сб'][date('w',strtotime($wd['forecast_date']))], 0, 2) ?></div>
-        <div style="font-size:10px;font-weight:700;color:#e2e8f0;margin:2px 0"><?= round($wd['temp_max']) ?>°</div>
-        <div style="font-size:7px;color:<?= (int)$wd['precipitation_prob'] > 50 ? '#60a5fa' : '#4b5563' ?>"><?= $wd['precipitation_prob'] ?>%</div>
-      </div>
-      <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
-
-  <!-- AI BRIEFING BUBBLE -->
-  <div class="ai-meta">
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-    <span class="ai-meta-label">AI</span>
-    <span class="ai-meta-time">&middot; <?= date('H:i') ?></span>
-  </div>
-
-  <?php /* S79_P5_TOP_STRIP_HTML — proactive pills top strip */ if (!empty($proactive_pills)): ?>
-  <div class="top-strip">
-    <?php foreach ($proactive_pills as $pp):
-        $pp_q = match($pp['fundamental_question']){ 'loss'=>'q1', 'order'=>'q5', default=>'' };
-        $pp_val = (float)($pp['value_numeric'] ?? 0);
-        $pp_val_str = $pp_val > 0 ? number_format($pp_val, 0, '.', ' ') . ' ' . $cs : '';
-    ?>
-    <div class="top-pill <?= $pp_q ?>" data-topic="<?= htmlspecialchars($pp['topic_id'], ENT_QUOTES) ?>" data-cat="<?= htmlspecialchars($pp['category'] ?? '', ENT_QUOTES) ?>" data-pid="<?= (int)($pp['product_id'] ?? 0) ?>" onclick="proactivePillTap(this, '<?= htmlspecialchars(addslashes($pp['title']), ENT_QUOTES) ?>')">
-      <span class="tp-txt"><?= htmlspecialchars($pp['title']) ?></span>
-      <?php if ($pp_val_str): ?><span class="tp-val"><?= $pp_val_str ?></span><?php endif; ?>
-    </div>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-  <?php if (!empty($briefing)): ?>
-  <!-- PRO: Real insights -->
-  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
-    <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
-    <?php foreach ($briefing as $bidx => $ins): ?>
-    <?php /* S79_P6_SIG_Q_CLASS */ $sig_q = match($ins['fundamental_question'] ?? ''){
-        'loss'=>'q1','loss_cause'=>'q2','gain'=>'q3','gain_cause'=>'q4','order'=>'q5','anti_order'=>'q6',default=>'' }; ?>
-    <div class="signal-card <?= urgencyClass($ins['urgency']) ?> <?= $sig_q ?>" onclick="openSignalDetail(<?= $bidx ?>)">
-      <div class="signal-stripe <?= urgencyClass($ins['urgency']) ?>-stripe"></div>
-      <div class="signal-content">
-        <div class="signal-title"><?= htmlspecialchars($ins['title']) ?></div>
-        <?php if (!empty($ins['detail_text'])): ?>
-        <div class="signal-body"><?= htmlspecialchars(mb_substr($ins['detail_text'], 0, 80)) ?></div>
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- REVENUE CARD                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="glass rev-card" style="animation:cardin .5s ease both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="rev-head">
+            <div class="rev-label"><span id="revLabel">ДНЕС</span> <a class="rev-link" href="stats.php">Справки →</a></div>
+            <?php if (count($all_stores) > 1): ?>
+            <div class="store-sel">
+                <select onchange="location.href='?store='+this.value">
+                    <?php foreach ($all_stores as $st): ?>
+                    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <svg viewBox="0 0 24 24" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <?php else: ?>
+            <div class="store-sel"><?= htmlspecialchars($store_name) ?></div>
+            <?php endif; ?>
+        </div>
+        <div class="rev-big">
+            <div class="rev-val" id="revNum">0</div>
+            <div class="rev-cur"><?= $cs ?></div>
+            <div class="rev-change" id="revPct">+0%</div>
+            <span class="rev-vs" id="revVs"></span>
+        </div>
+        <div class="rev-compare" id="revCmp"></div>
+        <div class="rev-meta" id="revMeta">0 продажби</div>
+        <?php if ($role === 'owner' && $confidence_pct < 100): ?>
+        <div class="conf-warn" id="confWarn" style="display:none">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            Данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>)
+        </div>
         <?php endif; ?>
-      </div>
-      <span class="signal-arrow">&rsaquo;</span>
+        <div class="rev-pills">
+            <div class="rev-pill-group">
+                <button class="rev-pill active" onclick="setPeriod('today',this)">Днес</button>
+                <button class="rev-pill" onclick="setPeriod('7d',this)">7 дни</button>
+                <button class="rev-pill" onclick="setPeriod('30d',this)">30 дни</button>
+                <button class="rev-pill" onclick="setPeriod('365d',this)">365 дни</button>
+            </div>
+            <?php if ($role === 'owner'): ?>
+            <div class="rev-divider"></div>
+            <div class="rev-pill-group">
+                <button class="rev-pill active" id="modeRev" onclick="setMode('rev')">Оборот</button>
+                <button class="rev-pill" id="modeProfit" onclick="setMode('profit')">Печалба</button>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
-    <div style="text-align:right;margin:-2px 0 4px"><span style="font-size:9px;color:#818cf8;cursor:pointer" onclick="event.stopPropagation();openSignalDetail(<?= $bidx ?>)">Виж &rarr;</span></div>
-    <?php endforeach; ?>
-    <?php if (count($insights) > 3): ?>
-    <div class="action-buttons">
-      <button class="action-button action-button-more" onclick="openSignalBrowser()">Виж още <?= count($insights) - 3 ?> сигнала &rarr;</button>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- HEALTH BAR                                  -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="glass sm health">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="health-lbl">Точност</div>
+        <div class="health-track"><div class="health-fill" style="width:<?= $health ?>%"></div></div>
+        <div class="health-pct" style="color:<?= $health >= 80 ? '#86efac' : ($health >= 50 ? '#fcd34d' : '#fca5a5') ?>"><?= $health ?>%</div>
+        <div class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй →</div>
+        <div class="health-info" onclick="document.getElementById('healthTip').classList.toggle('open')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+    </div>
+    <div class="health-tooltip" id="healthTip">
+        <b>Какво е AI Точност?</b><br>
+        Колко добре AI познава магазина ти. Расте когато:<br>
+        • Въведеш <b>доставни цени</b> на артикулите<br>
+        • <b>Преброиш</b> стоката по рафтовете<br>
+        • Получиш <b>доставка</b> с фактура<br><br>
+        По-висока точност = по-умни съвети от AI.
+    </div>
+
+    <div class="indigo-sep"></div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- WEATHER CARD                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <?php if ($weather_today): ?>
+    <div class="glass sm weather">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="weather-head">
+            <div class="weather-left">
+                <svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg>
+                <div class="weather-condition"><?= wmoText((int)$weather_today['weather_code']) ?></div>
+            </div>
+            <div class="weather-temp"><?= round($weather_today['temp_max']) ?>°</div>
+        </div>
+        <div class="weather-range"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
+        <div class="weather-sug"><?= htmlspecialchars($weather_suggestion) ?></div>
+        <?php if (count($weather_week) >= 7): ?>
+        <div class="weather-week">
+            <?php foreach (array_slice($weather_week, 1, 7) as $wd):
+                $dname = $bg_days_full[(int)date('w', strtotime($wd['forecast_date']))];
+                $rain = (int)$wd['precipitation_prob'];
+            ?>
+            <div class="weather-day">
+                <div class="weather-day-name"><?= $dname ?></div>
+                <div class="weather-day-temp"><?= round($wd['temp_max']) ?>°</div>
+                <div class="weather-day-rain" style="color:<?= $rain > 50 ? '#60a5fa' : '#4b5563' ?>"><?= $rain ?>%</div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <div class="indigo-sep"></div>
+    <?php endif; ?>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- AI BRIEFING                                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="ai-meta">
+        <svg viewBox="0 0 24 20" fill="none"><rect x="2" y="8" width="3" height="7" rx="1.5" fill="currentColor" opacity=".6"><animate attributeName="height" values="7;14;7" dur="1.2s" repeatCount="indefinite"/><animate attributeName="y" values="8;4;8" dur="1.2s" repeatCount="indefinite"/></rect><rect x="7" y="4" width="3" height="12" rx="1.5" fill="currentColor" opacity=".75"><animate attributeName="height" values="12;6;12" dur="1.2s" begin="0.15s" repeatCount="indefinite"/><animate attributeName="y" values="4;7;4" dur="1.2s" begin="0.15s" repeatCount="indefinite"/></rect><rect x="12" y="2" width="3" height="16" rx="1.5" fill="currentColor" opacity=".9"><animate attributeName="height" values="16;8;16" dur="1.2s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="y" values="2;6;2" dur="1.2s" begin="0.3s" repeatCount="indefinite"/></rect><rect x="17" y="5" width="3" height="10" rx="1.5" fill="currentColor" opacity=".7"><animate attributeName="height" values="10;14;10" dur="1.2s" begin="0.45s" repeatCount="indefinite"/><animate attributeName="y" values="5;3;5" dur="1.2s" begin="0.45s" repeatCount="indefinite"/></rect></svg>
+        <span class="ai-meta-lbl">AI</span>
+        <span class="ai-meta-time">· <?= date('H:i') ?></span>
+    </div>
+
+    <?php /* S79_P5_TOP_STRIP_HTML — proactive pills top strip */ if (!empty($proactive_pills)): ?>
+    <div class="top-strip">
+        <?php foreach ($proactive_pills as $pp):
+            $pp_q = match($pp['fundamental_question']){ 'loss'=>'q1', 'order'=>'q5', default=>'' };
+            $pp_val = (float)($pp['value_numeric'] ?? 0);
+            $pp_val_str = $pp_val > 0 ? number_format($pp_val, 0, '.', ' ') . ' ' . $cs : '';
+        ?>
+        <div class="top-pill <?= $pp_q ?>" data-topic="<?= htmlspecialchars($pp['topic_id'], ENT_QUOTES) ?>" data-cat="<?= htmlspecialchars($pp['category'] ?? '', ENT_QUOTES) ?>" data-pid="<?= (int)($pp['product_id'] ?? 0) ?>" onclick="proactivePillTap(this, '<?= htmlspecialchars(addslashes($pp['title']), ENT_QUOTES) ?>')">
+            <span class="tp-txt"><?= htmlspecialchars($pp['title']) ?></span>
+            <?php if ($pp_val_str): ?><span class="tp-val"><?= $pp_val_str ?></span><?php endif; ?>
+        </div>
+        <?php endforeach; ?>
     </div>
     <?php endif; ?>
-  </div>
 
-  <?php elseif (!empty($ghost_pills)): ?>
-  <!-- START/FREE: Ghost pill teaser -->
-  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
-    <div class="ai-bubble-text with-signals"><?= htmlspecialchars($greeting) ?> AI има съвет за теб...</div>
-    <button class="ghost-pill" onclick="showToast('Включи PRO за AI съвети')">PRO</button>
-  </div>
-
-  <?php else: ?>
-  <!-- No insights / 1/4 silence -->
-  <div class="ai-bubble" style="animation:cardin .4s .1s ease both">
-    <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Попитай каквото искаш — говори или пиши.</div>
-  </div>
-  <?php endif; ?>
-
-  <!-- Chat history is in overlay only -->
-
-  <div style="height:14px"></div>
-</div>
-
-<!-- ══════════════════════════════════════════════ -->
-<!-- INPUT BAR (tap → opens overlay)               -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="input-bar" id="dashboardInput" onclick="openChat()">
-  <div class="input-bar-inner">
-    <div class="input-waves">
-      <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
-      <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
-      <div class="input-wave-bar" style="height:14px;background:#818cf8"></div>
-      <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
-      <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
+    <?php if (!empty($briefing)): ?>
+    <!-- PRO: Real insights -->
+    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Ето какво е важно:</div>
+        <?php foreach ($briefing as $bidx => $ins):
+            $u = urgencyClass($ins['urgency']);
+        ?>
+        <div class="sig-card <?= $u ?>" onclick="openSignalDetail(<?= $bidx ?>)">
+            <div class="sig-card-body">
+                <div class="sig-card-t"><?= htmlspecialchars($ins['title']) ?></div>
+                <?php if (!empty($ins['detail_text'])): ?>
+                <div class="sig-card-d"><?= htmlspecialchars(mb_substr($ins['detail_text'], 0, 80)) ?></div>
+                <?php endif; ?>
+            </div>
+            <div class="sig-card-arr">›</div>
+        </div>
+        <?php endforeach; ?>
+        <?php if ($remaining > 0): ?>
+        <button class="sig-more" onclick="openSignalBrowser()">Виж още <?= $remaining ?> сигнала →</button>
+        <?php endif; ?>
     </div>
-    <span class="input-placeholder">Кажи или напиши...</span>
-    <div class="mic-button"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg></div>
-    <div class="send-button"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
-  </div>
-</div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- CHAT OVERLAY (72%, blur bg, clean chat)       -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="chat-overlay-bg" id="chatOverlayBg" onclick="closeChat()"></div>
-<div class="chat-overlay-panel" id="chatOverlayPanel">
-  <div class="overlay-header">
-    <div class="overlay-header-left">
-      <div class="overlay-avatar">
-        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </div>
-      <span class="overlay-title">AI Асистент</span>
+    <?php elseif (!empty($ghost_pills)): ?>
+    <!-- START/FREE: Ghost pill teaser -->
+    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> AI има съвет за теб...</div>
+        <button class="ghost-pill" onclick="showToast('Включи PRO за AI съвети')">Включи PRO</button>
     </div>
-    <button class="overlay-close" onclick="closeChat()">
-      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-  </div>
 
-  <div class="overlay-messages" id="chatMessages">
-    <?php if (empty($chat_messages)): ?>
-    <div style="text-align:center;padding:30px 10px;color:#4b5563;font-size:12px">
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px;color:#a5b4fc">
-        Здравей<?= $user_name ? ', '.htmlspecialchars($user_name) : '' ?>!
-      </div>
-      Попитай каквото искаш — говори или пиши.
-    </div>
     <?php else: ?>
-    <?php foreach ($chat_messages as $m): ?>
-    <div class="chat-message-group">
-      <?php if ($m['role'] === 'assistant'): ?>
-      <div class="chat-meta-line">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        AI &middot; <?= date('H:i', strtotime($m['created_at'])) ?>
-      </div>
-      <div class="chat-ai-msg"><?= nl2br(htmlspecialchars(preg_replace(['/\*\*(.+?)\*\*/u','/^#{1,3}\s*/mu','/```[\s\S]*?```/u','/`([^`]+)`/u'],['$1','','','$1'],$m['content']))) ?></div>
-      <?php else: ?>
-      <div class="chat-meta-line right"><?= date('H:i', strtotime($m['created_at'])) ?></div>
-      <div class="chat-user-msg"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
-      <?php endif; ?>
+    <!-- No insights / 1/4 silence -->
+    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Попитай каквото искаш — говори или пиши.</div>
     </div>
-    <?php endforeach; ?>
     <?php endif; ?>
-    <div class="chat-typing-indicator" id="chatTyping">
-      <div class="typing-dots">
-        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
-      </div>
-    </div>
-  </div>
 
-  <div class="recording-bar" id="recBar">
-    <div class="recording-dot"></div>
-    <span class="recording-label">ЗАПИСВА</span>
-    <span class="recording-transcript" id="recTranscript">Слушам...</span>
-  </div>
-
-  <div class="overlay-input">
-    <div class="overlay-input-inner">
-      <div style="display:flex;align-items:center;gap:2px;padding:0 4px;flex-shrink:0">
-        <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
-        <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
-        <div class="input-wave-bar" style="height:14px;background:#818cf8"></div>
-        <div class="input-wave-bar" style="height:9px;background:#6366f1"></div>
-        <div class="input-wave-bar" style="height:5px;background:#4f46e5"></div>
-      </div>
-      <textarea class="overlay-textarea" id="chatInput" placeholder="Кажи или пиши..." rows="1"
-        oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';document.getElementById('chatSendBtn').disabled=!this.value.trim()"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
-      <div class="overlay-mic" id="voiceBtn" onclick="toggleVoice()">
-        <div class="voice-ring vr1"></div><div class="voice-ring vr2"></div><div class="voice-ring vr3"></div>
-        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-      </div>
-      <button class="overlay-send" id="chatSendBtn" onclick="sendMsg()" disabled>
-        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-      </button>
-    </div>
-  </div>
+    <div style="height:20px"></div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- BOTTOM NAV                                    -->
-<!-- ══════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- INPUT BAR (tap → opens 75vh chat overlay)              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="input-bar" id="inpBar" onclick="openChat()">
+    <div class="input-bar-inner">
+        <div class="input-waves">
+            <div class="input-wave-bar"></div>
+            <div class="input-wave-bar"></div>
+            <div class="input-wave-bar"></div>
+            <div class="input-wave-bar"></div>
+            <div class="input-wave-bar"></div>
+        </div>
+        <span class="input-placeholder">Кажи или напиши...</span>
+        <div class="input-mic">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        </div>
+        <div class="input-send">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- BOTTOM NAV (4 tabs)                                    -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <nav class="bottom-nav">
-  <a href="chat.php" class="bottom-nav-tab active">
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
-  </a>
-  <a href="warehouse.php" class="bottom-nav-tab inactive">
-    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Склад
-  </a>
-  <a href="stats.php" class="bottom-nav-tab inactive">
-    <svg viewBox="0 0 24 24" stroke-linecap="round">
-      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
-  </a>
-  <a href="sale.php" class="bottom-nav-tab inactive">
-    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
-  </a>
+    <a href="chat.php" class="nav-tab active">
+        <svg viewBox="0 0 24 20" fill="none"><rect x="2" y="8" width="3" height="7" rx="1.5" fill="currentColor" opacity=".6"><animate attributeName="height" values="7;14;7" dur="1.2s" repeatCount="indefinite"/><animate attributeName="y" values="8;4;8" dur="1.2s" repeatCount="indefinite"/></rect><rect x="7" y="4" width="3" height="12" rx="1.5" fill="currentColor" opacity=".75"><animate attributeName="height" values="12;6;12" dur="1.2s" begin="0.15s" repeatCount="indefinite"/><animate attributeName="y" values="4;7;4" dur="1.2s" begin="0.15s" repeatCount="indefinite"/></rect><rect x="12" y="2" width="3" height="16" rx="1.5" fill="currentColor" opacity=".9"><animate attributeName="height" values="16;8;16" dur="1.2s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="y" values="2;6;2" dur="1.2s" begin="0.3s" repeatCount="indefinite"/></rect><rect x="17" y="5" width="3" height="10" rx="1.5" fill="currentColor" opacity=".7"><animate attributeName="height" values="10;14;10" dur="1.2s" begin="0.45s" repeatCount="indefinite"/><animate attributeName="y" values="5;3;5" dur="1.2s" begin="0.45s" repeatCount="indefinite"/></rect></svg>
+        <span class="nav-tab-label">AI</span>
+    </a>
+    <a href="warehouse.php" class="nav-tab">
+        <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <span class="nav-tab-label">Склад</span>
+    </a>
+    <a href="stats.php" class="nav-tab">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="nav-tab-label">Справки</span>
+    </a>
+    <a href="sale.php" class="nav-tab">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span class="nav-tab-label">Продажба</span>
+    </a>
 </nav>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- SIGNAL DETAIL OVERLAY                         -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="signal-detail-bg" id="sigDetailBg" onclick="closeSignalDetail()"></div>
-<div class="signal-detail-panel" id="sigDetailPanel">
-  <div class="signal-detail-header">
-    <div class="signal-detail-header-left">
-      <div class="signal-detail-dot" id="sigDetailDot"></div>
-      <span class="signal-detail-title" id="sigDetailTitle"></span>
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 75vh CHAT OVERLAY (WhatsApp стил, blur отдолу)         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="ov-bg" id="chatBg" onclick="closeChat()"></div>
+<div class="ov-panel" id="chatPanel">
+    <div class="ov-handle"></div>
+    <div class="ov-header">
+        <button class="ov-back" onclick="closeChat()" title="Назад">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="ov-title-wrap">
+            <div class="ov-avatar">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div style="min-width:0">
+                <div class="ov-title">AI Асистент</div>
+                <div class="ov-sub">Онлайн · отговаря бързо</div>
+            </div>
+        </div>
+        <button class="ov-close" onclick="closeChat()" title="Затвори">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
     </div>
-    <button class="overlay-close" onclick="closeSignalDetail()">
-      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="signal-detail-body" id="sigDetailBody"></div>
+
+    <div class="chat-messages" id="chatMessages">
+        <?php if (empty($chat_messages)): ?>
+        <div class="chat-empty">
+            <div class="chat-empty-t">Здравей<?= $user_name ? ', '.htmlspecialchars($user_name) : '' ?>!</div>
+            Попитай каквото искаш — говори или пиши.
+        </div>
+        <?php else: ?>
+        <?php foreach ($chat_messages as $m): ?>
+        <div class="msg-group">
+            <?php if ($m['role'] === 'assistant'): ?>
+            <div class="msg-meta">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                AI · <?= date('H:i', strtotime($m['created_at'])) ?>
+            </div>
+            <div class="msg-ai"><?= nl2br(htmlspecialchars(preg_replace(['/\*\*(.+?)\*\*/u','/^#{1,3}\s*/mu','/```[\s\S]*?```/u','/`([^`]+)`/u'],['$1','','','$1'],$m['content']))) ?></div>
+            <?php else: ?>
+            <div class="msg-meta right"><?= date('H:i', strtotime($m['created_at'])) ?></div>
+            <div class="msg-user"><?= nl2br(htmlspecialchars($m['content'])) ?></div>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+        <div class="typing" id="typing">
+            <div class="typing-dots">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rec-bar" id="recBar">
+        <div class="rec-dot"></div>
+        <span class="rec-label">ЗАПИСВА</span>
+        <span class="rec-transcript" id="recTranscript">Слушам...</span>
+    </div>
+
+    <div class="chat-input">
+        <div class="chat-input-inner">
+            <div class="input-waves">
+                <div class="input-wave-bar"></div><div class="input-wave-bar"></div>
+                <div class="input-wave-bar"></div><div class="input-wave-bar"></div>
+                <div class="input-wave-bar"></div>
+            </div>
+            <textarea class="chat-ta" id="chatInput" placeholder="Кажи или пиши..." rows="1"
+                oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';document.getElementById('chatSend').disabled=!this.value.trim()"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <div class="chat-mic" id="micBtn" onclick="toggleVoice()">
+                <div class="voice-ring vr1"></div>
+                <div class="voice-ring vr2"></div>
+                <div class="voice-ring vr3"></div>
+                <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            </div>
+            <button class="chat-send" id="chatSend" onclick="sendMsg()" disabled>
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- SIGNAL BROWSER OVERLAY                        -->
-<!-- ══════════════════════════════════════════════ -->
-<div class="signal-browser-bg" id="sigBrowserBg" onclick="closeSignalBrowser()"></div>
-<div class="signal-browser-panel" id="sigBrowserPanel">
-  <div class="overlay-header">
-    <div class="overlay-header-left">
-      <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:#a5b4fc;stroke-width:1.5">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span class="overlay-title">Всички сигнали</span>
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 75vh SIGNAL DETAIL OVERLAY                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="ov-bg" id="sigBg" onclick="closeSignalDetail()"></div>
+<div class="ov-panel" id="sigPanel">
+    <div class="ov-handle"></div>
+    <div class="ov-header">
+        <button class="ov-back" onclick="closeSignalDetail()" title="Назад">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="ov-title-wrap">
+            <div class="ov-signal-dot" id="sigDot"></div>
+            <div style="min-width:0;flex:1">
+                <div class="ov-title" id="sigTitle"></div>
+                <div class="ov-sub" id="sigSub">Сигнал · детайли</div>
+            </div>
+        </div>
+        <button class="ov-close" onclick="closeSignalDetail()" title="Затвори">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
     </div>
-    <button class="overlay-close" onclick="closeSignalBrowser()">
-      <svg viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="browser-body" id="sigBrowserBody"></div>
+    <div class="sig-body" id="sigBody"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 75vh SIGNAL BROWSER OVERLAY                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="ov-bg" id="brBg" onclick="closeSignalBrowser()"></div>
+<div class="ov-panel" id="brPanel">
+    <div class="ov-handle"></div>
+    <div class="ov-header">
+        <button class="ov-back" onclick="closeSignalBrowser()" title="Назад">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="ov-title-wrap">
+            <div class="ov-avatar">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div style="min-width:0">
+                <div class="ov-title">Всички сигнали</div>
+                <div class="ov-sub">Категоризирани</div>
+            </div>
+        </div>
+        <button class="ov-close" onclick="closeSignalBrowser()" title="Затвори">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="sig-body" id="brBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════════════════════════════════════ -->
-<!-- JAVASCRIPT                                    -->
-<!-- ══════════════════════════════════════════════ -->
 <script>
+// ═══════════════════════════════════════════════════════
+// DATA FROM PHP
+// ═══════════════════════════════════════════════════════
 const P = <?= $periods_json ?>;
 const CS = <?= json_encode($cs) ?>;
 const IS_OWNER = <?= $role === 'owner' ? 'true' : 'false' ?>;
@@ -1118,13 +1596,22 @@ const URG_BG = {critical:'rgba(239,68,68,.03)',warning:'rgba(251,191,36,.02)',in
 const URG_BORDER = {critical:'rgba(239,68,68,.15)',warning:'rgba(251,191,36,.12)',info:'rgba(34,197,94,.12)'};
 
 function $(id) { return document.getElementById(id); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function showToast(m) { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+function esc(s) {
+    return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
+function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function showToast(m) {
+    const t = $('toast'); t.textContent = m; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+}
+function vib(n) { if (navigator.vibrate) navigator.vibrate(n || 6); }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // REVENUE — Period & Mode switching
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 let curPeriod = 'today';
 let curMode = 'rev';
 
@@ -1135,14 +1622,15 @@ function updateRevenue() {
     const sub = curMode === 'rev' ? d.sub_rev : d.sub_prof;
 
     $('revNum').textContent = fmt(val);
-    $('revPct').textContent = (pct >= 0 ? '+' : '') + pct + '%';
-    $('revPct').className = 'revenue-change ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'zero');
-    $('revCmp').textContent = sub + ' ' + CS;
+    const pctEl = $('revPct');
+    pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
+    pctEl.className = 'rev-change ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
 
     const labels = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
     const vsLabels = { today: 'спрямо вчера', '7d': 'спрямо предните 7 дни', '30d': 'спрямо предните 30 дни', '365d': 'спрямо предната година' };
     $('revVs').textContent = vsLabels[curPeriod];
     $('revLabel').textContent = labels[curPeriod];
+    $('revCmp').textContent = sub + ' ' + CS;
 
     let meta = d.cnt + ' продажби';
     if (IS_OWNER && d.cnt > 0) meta += ' \u00b7 ' + d.margin + '% марж';
@@ -1154,67 +1642,73 @@ function updateRevenue() {
 
 function setPeriod(period, el) {
     curPeriod = period;
-    document.querySelectorAll('.revenue-pill-group:first-child .revenue-pill').forEach(p => {
-        p.className = 'revenue-pill ' + (p === el ? 'active' : 'inactive');
+    document.querySelectorAll('.rev-pill-group:first-child .rev-pill').forEach(p => {
+        p.classList.toggle('active', p === el);
     });
     updateRevenue();
+    vib(7);
 }
 
 function setMode(mode) {
     curMode = mode;
     const mr = $('modeRev'), mp = $('modeProfit');
-    if (mr) { mr.className = 'revenue-pill ' + (mode === 'rev' ? 'active' : 'inactive'); }
-    if (mp) { mp.className = 'revenue-pill ' + (mode === 'profit' ? 'active' : 'inactive'); }
+    if (mr) mr.classList.toggle('active', mode === 'rev');
+    if (mp) mp.classList.toggle('active', mode === 'profit');
     updateRevenue();
+    vib(7);
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // LOGOUT
-// ══════════════════════════════════════════════
-function toggleLogout() { $('logoutDrop').classList.toggle('show'); }
+// ═══════════════════════════════════════════════════════
+function toggleLogout(e) {
+    e.stopPropagation();
+    $('logoutDrop').classList.toggle('show');
+}
 document.addEventListener('click', e => {
-    if (!$('logoutWrap').contains(e.target)) $('logoutDrop').classList.remove('show');
+    if (!$('logoutBtn').contains(e.target)) $('logoutDrop').classList.remove('show');
 });
 
-// ══════════════════════════════════════════════
-// CHAT OVERLAY
-// ══════════════════════════════════════════════
-let chatOpen = false;
+// ═══════════════════════════════════════════════════════
+// OVERLAY STATE + HISTORY (hardware Back button)
+// ═══════════════════════════════════════════════════════
+const OV = { chat: false, sig: false, br: false };
 
+function _openBody() { document.body.classList.add('overlay-open'); }
+function _closeBody() { if (!OV.chat && !OV.sig && !OV.br) document.body.classList.remove('overlay-open'); }
+
+// ─── CHAT OVERLAY ───
 function openChat() {
-    if (chatOpen) return;
-    chatOpen = true;
-    try { sessionStorage.setItem('rms_chat_open','1'); } catch(e) {}
-    $('chatOverlayBg').classList.add('open');
-    $('chatOverlayPanel').classList.add('open');
-    $('mainScroll').style.opacity = '.4';
-    $('dashboardInput').style.opacity = '0';
-    $('dashboardInput').style.pointerEvents = 'none';
-    document.querySelector('.header').style.opacity = '.4';
-    history.pushState({ chat: true }, '');
-    scrollChatBottom();
-    setTimeout(() => $('chatInput').focus(), 300);
+    if (OV.chat) return;
+    OV.chat = true;
+    try { sessionStorage.setItem('rms_chat_open', '1'); } catch(e) {}
+    $('chatBg').classList.add('open');
+    $('chatPanel').classList.add('open');
+    _openBody();
+    history.pushState({ ov: 'chat' }, '');
+    setTimeout(() => scrollChatBottom(), 50);
+    setTimeout(() => $('chatInput').focus(), 350);
+    vib();
 }
 
-function closeChat() {
-    chatOpen = false;
+function closeChat(skipHistory) {
+    if (!OV.chat) return;
+    OV.chat = false;
     try { sessionStorage.removeItem('rms_chat_open'); } catch(e) {}
-    $('chatOverlayBg').classList.remove('open');
-    $('chatOverlayPanel').classList.remove('open');
-    $('mainScroll').style.opacity = '1';
-    $('dashboardInput').style.opacity = '1';
-    $('dashboardInput').style.pointerEvents = 'auto';
-    document.querySelector('.header').style.opacity = '1';
+    $('chatBg').classList.remove('open');
+    $('chatPanel').classList.remove('open');
     stopVoice();
+    _closeBody();
+    if (!skipHistory && history.state && history.state.ov === 'chat') history.back();
 }
 
 function openChatQ(question) {
     openChat();
     setTimeout(() => {
         $('chatInput').value = question;
-        $('chatSendBtn').disabled = false;
+        $('chatSend').disabled = false;
         sendMsg();
-    }, 350);
+    }, 400);
 }
 
 function scrollChatBottom() {
@@ -1222,9 +1716,213 @@ function scrollChatBottom() {
     el.scrollTop = el.scrollHeight;
 }
 
-// ══════════════════════════════════════════════
+// ─── SIGNAL DETAIL OVERLAY ───
+function openSignalDetail(idx) {
+    if (OV.sig) return;
+    const s = ALL_INSIGHTS[idx];
+    if (!s) return;
+    OV.sig = true;
+
+    // Mark as tapped (S79 ai_shown tracking)
+    try {
+        if (s.topicId) markInsightShown(s.topicId, 'tapped', s.category || '', 0);
+    } catch(e) {}
+
+    const u = s.urgency;
+    $('sigDot').className = 'ov-signal-dot ' + u;
+    $('sigTitle').textContent = s.title;
+    $('sigTitle').style.color = URG_TITLE[u] || '#e2e8f0';
+    $('sigSub').textContent = s.fqLabel || 'Сигнал · детайли';
+
+    const body = $('sigBody');
+    let h = '';
+
+    // fq badge на върха (S79 §6)
+    if (s.fqLabel && s.qClass) {
+        h += '<div style="text-align:center;margin-bottom:4px">'
+           + '<span class="sig-fq-badge ' + s.qClass + '">' + esc(s.fqLabel) + '</span></div>';
+    }
+
+    // Hero number (загуба/печалба)
+    if (s.value) {
+        const sign = u === 'info' ? '+' : '\u2212';
+        h += '<div class="sig-hero"><div class="sig-hero-num ' + u + '">'
+           + sign + fmt(Math.abs(s.value)) + ' ' + CS + '</div>'
+           + '<div class="sig-hero-unit">' + (u === 'info' ? 'печалба / период' : 'пропуснати приходи / период') + '</div></div>';
+    }
+
+    // Why box
+    if (s.detail) {
+        h += '<div class="sig-box"><div class="sig-label">Защо</div>'
+           + '<div class="sig-text">' + esc(s.detail) + '</div></div>';
+    }
+
+    // Suggestion box + action buttons
+    h += '<div class="sig-box"><div class="sig-label">Предложение</div>';
+    if (s.detail) {
+        h += '<div class="sig-text sig-suggest">Обмисли действие по този сигнал.</div>';
+    }
+    h += '<div class="sig-actions">';
+    if (s.action && s.action.label) {
+        if (s.action.type === 'deeplink' && s.action.url) {
+            h += '<button class="sig-btn-primary" onclick="location.href=\'' + esc(s.action.url) + '\'">' + esc(s.action.label) + '</button>';
+        } else if (s.action.type === 'order_draft') {
+            h += '<button class="sig-btn-primary" onclick="addToOrderDraft(' + idx + ')">' + esc(s.action.label) + '</button>';
+        } else {
+            h += '<button class="sig-btn-primary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">' + esc(s.action.label) + '</button>';
+        }
+    }
+    h += '<button class="sig-btn-secondary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">Попитай AI</button>';
+    h += '</div>';
+    if (s.action && s.action.type === 'order_draft') {
+        h += '<div class="sig-hint">Прибавя към чернова поръчка</div>';
+    }
+    h += '</div>';
+
+    // Засегнати артикули (от data.products)
+    if (s.data && s.data.products && s.data.products.length) {
+        h += '<div class="sig-section">Засегнати артикули</div>';
+        s.data.products.forEach(function(p) {
+            const vc = (p.qty === 0) ? '#fca5a5' : (p.qty <= 2 ? '#fcd34d' : '#86efac');
+            h += '<div class="sig-row">'
+               + '<div class="sig-row-name">' + esc(p.name) + '</div>'
+               + '<div class="sig-row-val" style="color:' + vc + '">' + p.qty + ' бр</div>'
+               + '</div>';
+        });
+    }
+
+    // Обобщение
+    if (s.count > 0) {
+        h += '<div class="sig-section">Обобщение</div>';
+        h += '<div class="sig-row">'
+           + '<div class="sig-row-name">Засегнати артикули</div>'
+           + '<div class="sig-row-val" style="color:#a5b4fc">' + s.count + '</div>'
+           + '</div>';
+    }
+
+    body.innerHTML = h;
+    $('sigBg').classList.add('open');
+    $('sigPanel').classList.add('open');
+    _openBody();
+    history.pushState({ ov: 'sig', idx: idx }, '');
+    vib();
+}
+
+function closeSignalDetail(skipHistory) {
+    if (!OV.sig) return;
+    OV.sig = false;
+    $('sigBg').classList.remove('open');
+    $('sigPanel').classList.remove('open');
+    _closeBody();
+    if (!skipHistory && history.state && history.state.ov === 'sig') history.back();
+}
+
+function addToOrderDraft(idx) {
+    const s = ALL_INSIGHTS[idx];
+    if (!s) return;
+    showToast('Добавено към чернова поръчка');
+    closeSignalDetail();
+    // TODO: actual order draft integration (S83 orders.php)
+}
+
+// ─── SIGNAL BROWSER OVERLAY ───
+function openSignalBrowser() {
+    if (OV.br) return;
+    OV.br = true;
+    const body = $('brBody');
+    let h = '';
+    const catOrder = ['sales', 'warehouse', 'products', 'finance', 'expenses'];
+
+    catOrder.forEach(function(catKey) {
+        const cat = UI_CATS[catKey];
+        const items = cat.items || [];
+        const label = CAT_LABELS[catKey];
+        const color = CAT_COLORS[catKey];
+
+        h += '<div class="browser-cat">'
+           + '<div class="browser-cat-h">'
+           + '<div class="browser-cat-dot" style="background:' + color + '"></div>'
+           + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
+           + '<span class="browser-cat-cnt">' + (items.length || '\u2014') + '</span></div>';
+
+        if (catKey === 'expenses' && items.length === 0) {
+            h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div></div>';
+            return;
+        }
+
+        if (items.length === 0) {
+            h += '<div class="browser-future">Няма сигнали за тази категория</div></div>';
+            return;
+        }
+
+        items.forEach(function(idx) {
+            const s = ALL_INSIGHTS[idx];
+            if (!s) return;
+            const u = s.urgency;
+            h += '<div class="sig-card ' + u + '" style="margin:4px 0" onclick="closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},400)">'
+               + '<div class="sig-card-body">'
+               + '<div class="sig-card-t">' + esc(s.title) + '</div>'
+               + (s.detail ? '<div class="sig-card-d">' + esc(s.detail.substring(0, 80)) + '</div>' : '')
+               + '</div>'
+               + '<div class="sig-card-arr">\u203A</div></div>';
+        });
+        h += '</div>';
+    });
+
+    body.innerHTML = h;
+    $('brBg').classList.add('open');
+    $('brPanel').classList.add('open');
+    _openBody();
+    history.pushState({ ov: 'br' }, '');
+    vib();
+}
+
+function closeSignalBrowser(skipHistory) {
+    if (!OV.br) return;
+    OV.br = false;
+    $('brBg').classList.remove('open');
+    $('brPanel').classList.remove('open');
+    _closeBody();
+    if (!skipHistory && history.state && history.state.ov === 'br') history.back();
+}
+
+// ─── Hardware Back Button (телефон) ───
+window.addEventListener('popstate', e => {
+    if (OV.sig) closeSignalDetail(true);
+    else if (OV.br) closeSignalBrowser(true);
+    else if (OV.chat) closeChat(true);
+});
+
+// ─── ESC key (desktop) ───
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        if (OV.sig) closeSignalDetail();
+        else if (OV.br) closeSignalBrowser();
+        else if (OV.chat) closeChat();
+    }
+});
+
+// ─── Swipe down to close overlay ───
+let _touchY = 0;
+['chatPanel', 'sigPanel', 'brPanel'].forEach(id => {
+    const p = $(id);
+    if (!p) return;
+    p.addEventListener('touchstart', e => { _touchY = e.touches[0].clientY; }, { passive: true });
+    p.addEventListener('touchend', e => {
+        const dy = e.changedTouches[0].clientY - _touchY;
+        // Only close if swipe начва от горните 80px и слиза >80px
+        const rect = p.getBoundingClientRect();
+        if (_touchY < rect.top + 80 && dy > 80) {
+            if (id === 'chatPanel') closeChat();
+            else if (id === 'sigPanel') closeSignalDetail();
+            else if (id === 'brPanel') closeSignalBrowser();
+        }
+    }, { passive: true });
+});
+
+// ═══════════════════════════════════════════════════════
 // SEND MESSAGE
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 async function sendMsg() {
     const inp = $('chatInput');
     const txt = inp.value.trim();
@@ -1233,8 +1931,8 @@ async function sendMsg() {
     addUserBubble(txt);
     inp.value = '';
     inp.style.height = '';
-    $('chatSendBtn').disabled = true;
-    $('chatTyping').style.display = 'block';
+    $('chatSend').disabled = true;
+    $('typing').classList.add('on');
     scrollChatBottom();
 
     try {
@@ -1246,47 +1944,51 @@ async function sendMsg() {
         const raw = await r.text();
         let d;
         try { d = JSON.parse(raw); } catch(e) {
-            $('chatTyping').style.display = 'none';
+            $('typing').classList.remove('on');
             addAIBubble('Грешка: ' + raw.substring(0, 200));
             return;
         }
-        $('chatTyping').style.display = 'none';
+        $('typing').classList.remove('on');
         addAIBubble(d.reply || d.error || 'Грешка при обработка.', d.actions || null);
     } catch (e) {
-        $('chatTyping').style.display = 'none';
+        $('typing').classList.remove('on');
         addAIBubble('Грешка при свързване. Опитай пак.');
     }
 }
 
 function addUserBubble(txt) {
     const g = document.createElement('div');
-    g.className = 'chat-message-group';
+    g.className = 'msg-group';
     const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
-    g.innerHTML = '<div class="chat-meta-line right">' + t + '</div><div class="chat-user-msg">' + esc(txt) + '</div>';
-    $('chatMessages').insertBefore(g, $('chatTyping'));
+    g.innerHTML = '<div class="msg-meta right">' + t + '</div>'
+                + '<div class="msg-user">' + esc(txt) + '</div>';
+    $('chatMessages').insertBefore(g, $('typing'));
     scrollChatBottom();
 }
 
 function addAIBubble(txt, actions) {
     const g = document.createElement('div');
-    g.className = 'chat-message-group';
+    g.className = 'msg-group';
     const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
-    let h = '<div class="chat-meta-line"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI \u00b7 ' + t + '</div><div class="chat-ai-msg">' + esc(txt) + '</div>';
+    let h = '<div class="msg-meta">'
+          + '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+          + 'AI \u00b7 ' + t + '</div>'
+          + '<div class="msg-ai">' + esc(txt) + '</div>';
     if (actions && actions.length) {
-        h += '<div class="action-buttons" style="margin:6px 0 0">';
+        h += '<div class="action-buttons">';
         actions.forEach(function(a) {
             h += '<button class="action-button" onclick="window.open(\'' + esc(a.url || '#') + '\',\'_blank\')">' + esc(a.label) + ' \u2192</button>';
         });
         h += '</div>';
     }
     g.innerHTML = h;
-    $('chatMessages').insertBefore(g, $('chatTyping'));
+    $('chatMessages').insertBefore(g, $('typing'));
     scrollChatBottom();
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // VOICE
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 let voiceRec = null, isRecording = false, voiceText = '';
 
 function toggleVoice() {
@@ -1295,7 +1997,7 @@ function toggleVoice() {
     if (!SR) { showToast('Браузърът не поддържа гласов вход'); return; }
     isRecording = true;
     voiceText = '';
-    $('voiceBtn').classList.add('recording');
+    $('micBtn').classList.add('rec');
     $('recBar').classList.add('on');
     $('recTranscript').innerText = 'Слушам...';
     voiceRec = new SR();
@@ -1313,11 +2015,11 @@ function toggleVoice() {
     };
     voiceRec.onend = () => {
         isRecording = false;
-        $('voiceBtn').classList.remove('recording');
+        $('micBtn').classList.remove('rec');
         $('recBar').classList.remove('on');
         if (voiceText) {
             $('chatInput').value = voiceText;
-            $('chatSendBtn').disabled = false;
+            $('chatSend').disabled = false;
             sendMsg();
         }
     };
@@ -1327,211 +2029,52 @@ function toggleVoice() {
         else if (e.error === 'not-allowed') showToast('Разреши микрофона');
         else showToast('Грешка: ' + e.error);
     };
-    try { voiceRec.start(); } catch (e) { stopVoice(); }
+    try { voiceRec.start(); } catch(e) { stopVoice(); }
 }
 
 function stopVoice() {
     isRecording = false;
     voiceText = '';
-    $('voiceBtn').classList.remove('recording');
-    $('recBar').classList.remove('on');
-    if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; }
+    const mb = $('micBtn'), rb = $('recBar');
+    if (mb) mb.classList.remove('rec');
+    if (rb) rb.classList.remove('on');
+    if (voiceRec) { try { voiceRec.stop(); } catch(e) {} voiceRec = null; }
 }
 
-// ══════════════════════════════════════════════
-// SIGNAL DETAIL
-// ══════════════════════════════════════════════
-let sigDetailOpen = false;
-
-// S79_P7_JS_MARK_SHOWN — AJAX към mark-insight-shown.php
+// ═══════════════════════════════════════════════════════
+// S79 — MARK INSIGHT SHOWN + PROACTIVE PILL TAP
+// ═══════════════════════════════════════════════════════
 function markInsightShown(topicId, action, category, pid) {
-  try {
-    fetch('mark-insight-shown.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'topic_id=' + encodeURIComponent(topicId || '')
-          + '&action=' + encodeURIComponent(action || 'shown')
-          + '&category=' + encodeURIComponent(category || '')
-          + '&product_id=' + encodeURIComponent(pid || 0)
-    }).catch(function(e){ console.warn('mark-insight-shown fail', e); });
-  } catch(e) {}
-}
-// Proactive pill tap → mark shown + open detail ако има в insights
-function proactivePillTap(el, title) {
-  var topic = el.getAttribute('data-topic') || '';
-  var cat = el.getAttribute('data-cat') || '';
-  var pid = el.getAttribute('data-pid') || 0;
-  markInsightShown(topic, 'tapped', cat, pid);
-  // Опитай да намериш insight в текущия pool
-  if (typeof ALL_INSIGHTS !== 'undefined') {
-    for (var i=0; i<ALL_INSIGHTS.length; i++) {
-      if (ALL_INSIGHTS[i].topicId === topic) { openSignalDetail(i); return; }
-    }
-  }
-  // Fallback: отвори чат с title
-  if (typeof openChatQ === 'function') openChatQ(title);
-}
-
-function openSignalDetail(idx) {
-    // S79_P8_FQ_BADGE_RENDER + mark as tapped
     try {
-        var _s = (typeof ALL_INSIGHTS !== 'undefined') ? ALL_INSIGHTS[idx] : null;
-        if (_s && _s.topicId) markInsightShown(_s.topicId, 'tapped', _s.category || '', 0);
-    } catch(e) {} // S79_P8_FQ_BADGE_RENDER
-    const s = ALL_INSIGHTS[idx];
-    if (!s) return;
-    sigDetailOpen = true;
-    const u = s.urgency;
-    const dot = $('sigDetailDot');
-    dot.className = 'signal-detail-dot signal-detail-dot-' + u;
-    const ttl = $('sigDetailTitle');
-    ttl.textContent = s.title;
-    ttl.style.color = URG_TITLE[u] || '#e2e8f0';
+        fetch('mark-insight-shown.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'topic_id=' + encodeURIComponent(topicId || '')
+                + '&action=' + encodeURIComponent(action || 'shown')
+                + '&category=' + encodeURIComponent(category || '')
+                + '&product_id=' + encodeURIComponent(pid || 0)
+        }).catch(function(e) { console.warn('mark-insight-shown fail', e); });
+    } catch(e) {}
+}
 
-    const body = $('sigDetailBody');
-    let h = '';
-
-    // Hero number
-    if (s.value) {
-        const sign = u === 'info' ? '+' : '\u2212';
-        const color = u === 'info' ? '#4ade80' : (u === 'critical' ? '#f87171' : '#fbbf24');
-        h += '<div class="detail-hero"><div class="detail-hero-num" style="color:' + color + '">'
-           + sign + fmt(Math.abs(s.value)) + ' ' + CS + '</div>'
-           + '<div class="detail-hero-unit">' + (u === 'info' ? 'печалба/период' : 'пропуснати приходи/период') + '</div></div>';
-    }
-
-    // Why box
-    if (s.detail) {
-        h += '<div class="detail-why"><div class="detail-label">Защо</div>'
-           + '<div class="detail-text">' + esc(s.detail) + '</div></div>';
-    }
-
-    // Suggestion box with action buttons inside
-    h += '<div class="detail-suggestion"><div class="detail-label">Предложение</div>';
-    if (s.detail) {
-        h += '<div class="detail-suggestion-text">Обмисли действие по този сигнал.</div>';
-    }
-    h += '<div class="detail-actions">';
-    if (s.action && s.action.label) {
-        if (s.action.type === 'deeplink' && s.action.url) {
-            h += '<button class="detail-action-primary" onclick="location.href=\'' + esc(s.action.url) + '\'">' + esc(s.action.label) + '</button>';
-        } else if (s.action.type === 'order_draft') {
-            h += '<button class="detail-action-primary" onclick="addToOrderDraft(' + idx + ')">' + esc(s.action.label) + '</button>';
-        } else {
-            h += '<button class="detail-action-primary" onclick="closeSignalDetail();openChatQ(\'' + esc(s.title) + '\')">' + esc(s.action.label) + '</button>';
+function proactivePillTap(el, title) {
+    const topic = el.getAttribute('data-topic') || '';
+    const cat = el.getAttribute('data-cat') || '';
+    const pid = el.getAttribute('data-pid') || 0;
+    markInsightShown(topic, 'tapped', cat, pid);
+    // Опитай да намериш insight в текущия pool
+    if (typeof ALL_INSIGHTS !== 'undefined') {
+        for (let i = 0; i < ALL_INSIGHTS.length; i++) {
+            if (ALL_INSIGHTS[i].topicId === topic) { openSignalDetail(i); return; }
         }
     }
-    h += '<button class="detail-action-secondary" onclick="closeSignalDetail();openChatQ(\'' + esc(s.title) + '\')">Попитай AI</button>';
-    h += '</div>';
-    if (s.action && s.action.type === 'order_draft') {
-        h += '<div class="detail-action-hint">Прибавя към чернова поръчка</div>';
-    }
-    h += '</div>';
-
-    // Data rows if available
-    if (s.data && s.data.products && s.data.products.length) {
-        h += '<div class="detail-section">Засегнати артикули</div>';
-        s.data.products.forEach(function(p) {
-            const vc = p.qty === 0 ? 'color:#f87171' : (p.qty <= 2 ? 'color:#fbbf24' : 'color:#4ade80');
-            h += '<div class="detail-row"><span class="detail-row-name">' + esc(p.name) + '</span>'
-               + '<span class="detail-row-value" style="' + vc + '">' + p.qty + ' бр</span></div>';
-        });
-    }
-
-    if (s.count > 0) {
-        h += '<div class="detail-section">Обобщение</div>';
-        h += '<div class="detail-row"><span class="detail-row-name">Засегнати артикули</span>'
-           + '<span class="detail-row-value" style="color:#a5b4fc">' + s.count + '</span></div>';
-    }
-
-    body.innerHTML = h;
-    $('sigDetailBg').classList.add('open');
-    $('sigDetailPanel').classList.add('open');
-    history.pushState({ sigDetail: true }, '');
+    // Fallback: отвори чат с title
+    openChatQ(title);
 }
 
-function closeSignalDetail() {
-    if (!sigDetailOpen) return;
-    sigDetailOpen = false;
-    $('sigDetailBg').classList.remove('open');
-    $('sigDetailPanel').classList.remove('open');
-}
-
-function addToOrderDraft(idx) {
-    const s = ALL_INSIGHTS[idx];
-    showToast('Добавено към чернова поръчка');
-    closeSignalDetail();
-}
-
-// ══════════════════════════════════════════════
-// SIGNAL BROWSER
-// ══════════════════════════════════════════════
-let sigBrowserOpen = false;
-
-function openSignalBrowser() {
-    sigBrowserOpen = true;
-    const body = $('sigBrowserBody');
-    let h = '';
-    const catOrder = ['sales', 'warehouse', 'products', 'finance', 'expenses'];
-
-    catOrder.forEach(function(catKey) {
-        const cat = UI_CATS[catKey];
-        const items = cat.items || [];
-        const label = CAT_LABELS[catKey];
-        const color = CAT_COLORS[catKey];
-
-        h += '<div class="browser-cat-wrap">'
-           + '<div class="browser-cat-header">'
-           + '<div class="browser-cat-dot" style="background:' + color + '"></div>'
-           + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
-           + '<span class="browser-cat-count">' + (items.length || '\u2014') + '</span></div>';
-
-        if (catKey === 'expenses' && items.length === 0) {
-            h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div></div>';
-            return;
-        }
-
-        if (items.length === 0) {
-            h += '<div class="browser-future">Няма сигнали за тази категория</div></div>';
-            return;
-        }
-
-        items.forEach(function(idx) {
-            const s = ALL_INSIGHTS[idx];
-            if (!s) return;
-            const u = s.urgency;
-            h += '<div class="browser-signal" style="background:' + URG_BG[u] + ';border:.5px solid ' + URG_BORDER[u] + ';border-left:4px solid ' + URG_COLORS[u] + '"'
-               + ' onclick="closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},300)">'
-               + '<div class="signal-content"><div class="sig-t" style="color:' + URG_TITLE[u] + '">' + esc(s.title) + '</div>'
-               + (s.detail ? '<div class="sig-d" style="font-size:9px;color:#6b7280;margin-top:1px">' + esc(s.detail.substring(0, 60)) + '</div>' : '')
-               + '</div><span class="signal-arrow">\u203A</span></div>';
-            h += '<div style="text-align:right;margin:-2px 11px 4px"><span style="font-size:9px;color:#818cf8;cursor:pointer" onclick="event.stopPropagation();closeSignalBrowser();setTimeout(function(){openSignalDetail(' + idx + ')},300)">Виж \u2192</span></div>';
-        });
-        h += '</div>';
-    });
-
-    body.innerHTML = h;
-    $('sigBrowserBg').classList.add('open');
-    $('sigBrowserPanel').classList.add('open');
-    history.pushState({ sigBrowser: true }, '');
-}
-
-function closeSignalBrowser() {
-    if (!sigBrowserOpen) return;
-    sigBrowserOpen = false;
-    $('sigBrowserBg').classList.remove('open');
-    $('sigBrowserPanel').classList.remove('open');
-}
-
-// ══════════════════════════════════════════════
-// BACK BUTTON + INIT
-// ══════════════════════════════════════════════
-window.addEventListener('popstate', () => {
-    if (sigDetailOpen) { closeSignalDetail(); return; }
-    if (sigBrowserOpen) { closeSignalBrowser(); return; }
-    if (chatOpen) closeChat();
-});
-
+// ═══════════════════════════════════════════════════════
+// INIT + HAPTICS
+// ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
     updateRevenue();
     // S58: Auto-reopen chat if was open before navigation
@@ -1541,6 +2084,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     } catch(e) {}
 });
+
+document.querySelectorAll('.sig-card,.sig-more,.nav-tab,.header-icon-btn,.store-sel,.health-link,.health-info,.top-pill,.rev-pill').forEach(el => {
+    el.addEventListener('click', () => vib(6));
+});
 </script>
+
 </body>
 </html>
