@@ -103,9 +103,10 @@
 | Stock movements append-only ledger | 🔴 няма | S81 |
 | `events` + `dead_letter_queue` | 🔴 няма | S81 |
 | **S77 таблици** (ai_insights, supplier_orders*, lost_demand) | ✅ S78 + S79.INSIGHTS popolnen ai_insights | S78 |
-| `idempotency_log` (multi-device) | 🔴 няма | S78 |
-| `user_devices` (multi-device tracking) | 🔴 няма | S78 |
-| `wizard_draft` (crash recovery) | 🔴 няма | S79 |
+| `idempotency_log` (multi-device) | ✅ | S78 |
+| `user_devices` (multi-device tracking) | ✅ | S78 |
+| `wizard_draft` (crash recovery) | ⏳ отложено | S80 |
+| `cron_heartbeats` (cron monitoring) | ✅ | S79.CRON_AUDIT |
 | `inventory_events` (event-sourced) | 🔴 няма | S87 |
 
 ## Hardware / External
@@ -1013,6 +1014,27 @@ cron-weather.php → 06:00
 - **Rework:** Нова сесия **S79.FIX** — приоритет P0 bugs от `PRODUCTS_MAIN_BUGS_S80.md` (10 счупени бутона на главната). След S79.FIX → retry Bug #6 → S80 (wizard rewrite).
 - **Статус rework:** ⏳ pending (S79.FIX)
 
+## 22.04.2026 — S79 разделен на 4 под-сесии
+- **Решение:** Оригинален S79 (DB foundations 1) твърде голям → раздели на S79.FIX.B (products UI) + S79.DB (schema_migrations) + S79.INSIGHTS (compute-insights 19 pf) + S79.CRON_AUDIT (cron + audit extension)
+- **Защо:** Паралелна работа с нулев overlap + чисти single-responsibility сесии
+- **Засегнати:** compute-insights.php (0→19), audit_log (extended), schema_migrations (created), products.php (10+ bugs closed)
+- **Rework:** REWORK #10 closed, добавени #11 #12 (DB::tx retry + SAVEPOINT), #13 SECURITY, #14 print integration
+- **Статус rework:** ✅ done за основната работа
+
+## 22.04.2026 — Bluetooth печат pivot от Web Bluetooth → Capacitor plugin
+- **Решение:** Web Bluetooth провален в Chrome тест → pivot към Capacitor Android plugin
+- **Защо:** Web Bluetooth не надежден, Capacitor с @capacitor-community/bluetooth-le е production-ready
+- **Засегнати:** js/printer.js (deprecated), js/capacitor-printer.js (new), android/ folder (new), products.php (бутон detect Capacitor env)
+- **Rework:** CSV workaround временно, REWORK #14 добавен за tracking
+- **Статус rework:** ⏳ in progress (S82)
+
+## 22.04.2026 — S79.SECURITY отложена към предпоследна преди launch (S109)
+- **Решение:** DB credentials в публично repo = реален P0 security incident, но Тихол reши да го отложи
+- **Защо:** Риск управляем (MySQL root@localhost не е external access), бета период, фокус на Phase A
+- **Засегнати:** config/database.php (credentials hardcoded), git history (password exposed)
+- **Rework:** REWORK #13 добавен за S109 — задължителен преди public launch
+- **Статус rework:** ⏳ pending S109
+
 ## 21.04.2026 — MASTER_COMPASS v3.0 създаден
 - **Решение:** Добавен dependency tree + change protocol + rework queue
 - **Защо:** Тихол иска да се знае при всяка промяна какво се засяга
@@ -1100,6 +1122,12 @@ cron-weather.php → 06:00
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
+| 9 | inventory naming | 22.04.2026 | Rename inventory→stock_levels, inventories→inventory_sessions, inventory_items→inventory_session_lines. Update всички queries. | S87 | ⏳ pending |
+| 10 | audit_log extension | 22.04.2026 | ✅ CLOSED в S79.CRON_AUDIT (store_id + source ENUM + user_agent + source_detail добавени) | S79.CRON_AUDIT | ✅ DONE |
+| 11 | DB::tx() deadlock retry | 22.04.2026 | 3-attempt exponential backoff за MySQL 1213 deadlock error | S80 | ⏳ pending |
+| 12 | DB::tx() SAVEPOINT nested | 22.04.2026 | Nested transactions support за многослойни операции | S80 | ⏳ pending |
+| 13 | **S79.SECURITY — DB credentials в публично repo** | 22.04.2026 | Премести pass в /etc/runmystore/db.env, config/database.php през parse_ini_file, .env.example в repo, git filter-repo scrub, force push, MySQL rotation | **S109 (предпоследна преди S110 launch)** | ⏳ pending |
+| 14 | Print директен от products.php | 22.04.2026 | CSV workaround live днес. Capacitor plugin в процес (S82). Универсален printer plugin за iOS/Android → S85.5 | S82 + S85.5 | ⏳ in progress |
 | 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
 | 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
@@ -1346,7 +1374,7 @@ Phase C — AI Safety (S97-S102)                        0% ⏳
 Phase D — Launch (S103-S110)                          0% ⏳
 ```
 
-**Overall: ~2% complete. Public launch target: септ 2026.**
+**Overall: ~8% complete. Public launch target: септ 2026.**
 
 ---
 
