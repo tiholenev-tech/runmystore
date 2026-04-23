@@ -2,9 +2,9 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 22.04.2026
-**Последна завършена сесия:** S82.CAPACITOR (частично — BLE блокер, 22.04.2026)
-**Следваща сесия:** S82.CAPACITOR.2 — Capacitor bridge fix (Claude Code)
+**Последна актуализация:** 23.04.2026
+**Последна завършена сесия:** S82.CAPACITOR.2 (deployed, awaiting device test, 23.04.2026)
+**Следваща сесия:** S82.CAPACITOR.2 verification (Тихол тества с DTM-5811) → ако OK, S82.5 SECURITY
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -902,6 +902,14 @@ cron-weather.php → 06:00
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
+
+## 23.04.2026 — S82.CAPACITOR.2: Capacitor runtime hosted on runmystore.ai
+- **Решение:** Вместо да разчитаме на Capacitor's auto-injection (която не работи надеждно на Samsung Z Flip6 WebView), хостваме `native-bridge.js` + `@capacitor/core` + `bluetooth-le` в `/js/capacitor/` на сървъра. `js/capacitor-printer.js` сам ги инжектира през document.write преди всяка печатна операция.
+- **Защо:** `window.Capacitor` остана undefined в APK → BLE plugin не работеше. Нашето решение инициализира bridge-а manually от страна на server-served JS, без нужда от auto-injection.
+- **Засегнати:** includes/capacitor-head.php (нов), js/capacitor-bundle.js (нов), js/capacitor/*.js (3 нови), js/capacitor-printer.js (rewrite), printer-setup.php, ua-debug.php (богат debug), mobile/capacitor.config.json (без редундантен hostname), mobile/www/index.html (fallback redirect)
+- **products.php:** НЕ е пипана (правилото от handoff). Старият `<script src="js/capacitor-printer.js">` автоматично взима новото поведение.
+- **Статус:** ⏳ deployed — awaiting Тихол device test. Ако `/ua-debug.php` покаже `window.Capacitor: object` и `BleClient: function`, old APK стига. Иначе — нов APK build ще е готов в GitHub Actions.
+- **Commit:** 5bddc81
 
 ## 22.04.2026 — S82.CAPACITOR частично завършена, блокер за S82.CAPACITOR.2
 - **Завършено:** Node 22 + mobile/ + BLE plugin 8.1.3 + GitHub Actions + APK build работи + index.php router + .htaccess fix + safe-area fix (6 files) + capacitor-printer.js + wizPrintLabelsMobile hook + printer-setup.php + ua-debug.php
