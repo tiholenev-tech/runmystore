@@ -114,12 +114,25 @@
    * TSPL BITMAP data: MSB-first, 1=white (no dot), 0=black (dot).
    * @returns {widthBytes, height, data: Uint8Array}
    */
-  function renderTextBitmap(text, fontSize, maxWidthPx) {
+  function renderTextBitmap(text, fontSize, maxWidthPx, opts) {
     text = String(text || '');
     if (!text) return null;
+    opts = opts || {};
+    const targetWidth = opts.fillWidth ? maxWidthPx : null; // ако е зададено → разтегляме font-а до запълване
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+
+    // Auto-fit: увеличаваме font докато не запълни 95% от maxWidth
+    if (targetWidth) {
+      const target = targetWidth * 0.95;
+      for (let probe = fontSize; probe < 80; probe += 2) {
+        ctx.font = 'bold ' + probe + 'px Arial, sans-serif';
+        const m = ctx.measureText(text).width;
+        if (m >= target) { fontSize = probe; break; }
+        fontSize = probe;
+      }
+    }
 
     // Измерваме ширината на текста
     ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
@@ -236,25 +249,20 @@
     }
     y = 34;
 
-    // Product name — среден голям
+    // Product name — автоматично запълва ширината
     if (name) {
-      if (hasCyrillic(name)) {
-        const bmp = renderTextBitmap(name, 26, 380);
-        if (bmp) {
-          push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
-          pushRaw(bmp.data);
-          push('\r\n');
-        }
-      } else {
-        push('TEXT 10,' + y + ',"4",0,1,1,"' + name + '"\r\n');
+      const nameBmp = renderTextBitmap(name, 26, 380, {fillWidth: true});
+      if (nameBmp) {
+        push('BITMAP 10,' + y + ',' + nameBmp.widthBytes + ',' + nameBmp.height + ',0,');
+        pushRaw(nameBmp.data);
+        push('\r\n');
       }
     }
     y = 74;
 
-    // Price — ГОЛЯМ (bitmap за пълен контрол на размера)
-    // Винаги ASCII (числа + EUR/BGN) но правим bitmap за по-голям font
+    // Price — ГОЛЯМ, запълва ширината
     {
-      const priceBmp = renderTextBitmap(priceStr, 34, 380);
+      const priceBmp = renderTextBitmap(priceStr, 34, 380, {fillWidth: true});
       if (priceBmp) {
         push('BITMAP 10,' + y + ',' + priceBmp.widthBytes + ',' + priceBmp.height + ',0,');
         pushRaw(priceBmp.data);
@@ -280,11 +288,14 @@
     // Barcode — долен край, height=70 dots
     if (barcode) {
       const barY = 150;
+      // Auto-fit barcode:
+      // - EAN13: 95 modules — narrow=4 → 380 dots (95% fit, лесно за сканиране)
+      // - Code128: variable — narrow=3 обикновено запълва
       let fmt = '128';
-      let narrow = 2;
-      if (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 2; }
-      else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA'; narrow = 2; }
-      else if (/^[0-9]{8}$/.test(barcode)) { fmt = 'EAN8'; narrow = 2; }
+      let narrow = 3;
+      if (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 4; }
+      else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA'; narrow = 4; }
+      else if (/^[0-9]{8}$/.test(barcode)) { fmt = 'EAN8'; narrow = 4; }
       push('BARCODE 10,' + barY + ',"' + fmt + '",70,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
     }
 
