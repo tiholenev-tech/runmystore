@@ -4,7 +4,7 @@
 
 **Последна актуализация:** 23.04.2026
 **Последна завършена сесия:** S79.VISUAL_REWRITE (chat.php v8, 23.04.2026)
-**Следваща сесия:** S80 — products.php wizard rewrite (4 стъпки final)
+**Следваща сесия:** S82.CAPACITOR.2 — Capacitor bridge fix (Claude Code, printer блокер)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
