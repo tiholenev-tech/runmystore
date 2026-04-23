@@ -24,6 +24,19 @@
   // ----- Helpers -----
 
   function isCapacitor() {
+    // UA-based detection (most reliable)
+    try {
+      var ua = navigator.userAgent || '';
+      if (/wv\)/i.test(ua) && /runmystore|ai\.runmystore/i.test(ua)) return true;
+      if (/CapacitorHttp|Capacitor/i.test(ua)) return true;
+      // Android WebView indicator + no Chrome browser UI
+      if (/Android.*Version\/[\d.]+.*Chrome\/[\d.]+.*Mobile.*Safari/i.test(ua) && !window.chrome?.webstore) {
+        if (/; wv\)/.test(ua)) return true;
+      }
+    } catch(e) {}
+    return isCapacitorOriginal();
+  }
+  function isCapacitorOriginal() {
     // Check Capacitor bridge first
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
     // Fallback: URL param (set by APK on first load)

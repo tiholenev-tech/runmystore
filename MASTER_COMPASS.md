@@ -2,9 +2,9 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 22.04.2026 (вечер)
-**Последна завършена сесия:** S79.INSIGHTS (compute-insights.php, 19 функции, 22.04.2026)
-**Следваща сесия:** S79.SECURITY (P0 — DB credentials в публично репо: ротация + .env + .gitignore)
+**Последна актуализация:** 22.04.2026
+**Последна завършена сесия:** S82.CAPACITOR (частично — BLE блокер, 22.04.2026)
+**Следваща сесия:** S82.CAPACITOR.2 — Capacitor bridge fix (Claude Code)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -903,6 +903,16 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 22.04.2026 — S82.CAPACITOR частично завършена, блокер за S82.CAPACITOR.2
+- **Завършено:** Node 22 + mobile/ + BLE plugin 8.1.3 + GitHub Actions + APK build работи + index.php router + .htaccess fix + safe-area fix (6 files) + capacitor-printer.js + wizPrintLabelsMobile hook + printer-setup.php + ua-debug.php
+- **Блокер:** APK отваря runmystore.ai в **external Chrome browser**, не в Capacitor WebView. `window.Capacitor` е undefined → BLE plugin не работи.
+- **Доказано:** UA-то от APK няма `wv` маркер. Пробвани са 3 config варианта, нито един не инжектира bridge.
+- **Следваща стъпка:** Claude Code поема задачата с SESSION_S82_CAPACITOR_HANDOFF.md като референция. Варианти: hybrid local+fetch, iframe+postMessage, различна Capacitor version, custom WebView activity.
+- **Засегнати:** mobile/, js/capacitor-printer.js, printer-setup.php
+- **Статус:** ⏳ Нe е продакшън готов
+
+
+
 ## 22.04.2026 — S79.CHAT_INTEGRATION: chat.php → ai_insights свързан
 
 - **Решение:**
@@ -1039,6 +1049,8 @@ cron-weather.php → 06:00
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
+| 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
+| 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
 | 9 | products.php wizard | 21.04.2026 (S78 #6 blocked) | Bug #6 renderWizard — verify след като wizard отваря в S79.FIX | S79.FIX | ⏳ pending |
 | 10 | products.php main split | 21.04.2026 (S78 CC sweep) | Файлът е 8394 реда (5.6× над 1500 прага) — extract в partials/helpers; кандидат за rewrite | S80 | ⏳ pending |
 | 11 | products.php Q-секции (q1-q6 home) | 22.04.2026 (Тихол: "трябва AI да предлага действие иначе безсмислено") | Всеки артикул в Q-секция трябва да има AI-генериран action button: 'Поръчай 5 при Иванов' / 'Промо -20%' / 'Прехвърли в магазин 2' и т.н. Source: ai_insights.action_label + action_type + action_data вече съществуват в DB. Compute-insights.php трябва да попълва тези колони. UI render да чете и показва бутон под всеки item. Tap на бутона → execute action (без чат). | S81 (AI features) | ⏳ pending
@@ -1249,13 +1261,13 @@ DEPENDENCY: [описание]                — промяна в dependency t
 # 📊 PHASE OVERVIEW
 
 ```
-Phase A — DB Foundation + Products (S78-S82)          ~5% ⏳
+Phase A — DB Foundation + Products (S78-S82)          ~10% ⏳
   ├─ P0 bugs fixed                                    0% ⏳ S78
   ├─ S77 DB migrations                                0% ⏳ S78
   ├─ DB foundations (cents, audit, soft delete)       0% ⏳ S79
   ├─ DB guards (negative, FK, idempotency)            0% ⏳ S80
   ├─ Stock ledger + event queue                       0% ⏳ S81
-  ├─ Bluetooth print                                  0% ⏳ S81
+  ├─ Bluetooth print                                  50% ⏳ S82 (код готов, bridge блокер)
   ├─ products.php главна rewrite                      0% ⏳ S79
   ├─ products.php wizard rewrite                      0% ⏳ S80
   ├─ products.php AI features                         0% ⏳ S81
