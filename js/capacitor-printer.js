@@ -274,7 +274,7 @@
 
     // Barcode — долен край, height=70 dots
     if (barcode) {
-      const barY = 160;
+      const barY = 148;
       // Auto-fit barcode:
       // - EAN13: 95 modules — narrow=4 → 380 dots (95% fit, лесно за сканиране)
       // - Code128: variable — narrow=3 обикновено запълва
@@ -283,7 +283,7 @@
       if (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 4; }
       else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA'; narrow = 4; }
       else if (/^[0-9]{8}$/.test(barcode)) { fmt = 'EAN8'; narrow = 4; }
-      push('BARCODE 10,' + barY + ',"' + fmt + '",70,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
+      push('BARCODE 10,' + barY + ',"' + fmt + '",55,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
     }
 
     push('PRINT ' + n + '\r\n');
