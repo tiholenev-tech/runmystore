@@ -3,15 +3,10 @@
  * Hardware: DTM-5811 (TSPL protocol, 50x30mm labels)
  * Plugin: @capacitor-community/bluetooth-le
  *
- * Usage:
- *   await CapPrinter.pair();           // one-time setup
- *   await CapPrinter.print(product, store, copies);
- *   await CapPrinter.test();
- *
- * S82.CAPACITOR.2 — self-loads the Capacitor runtime (native-bridge + core
- * + BLE plugin) via document.write so this one <script> is drop-in anywhere,
- * including products.php which must not be modified. Detection uses
- * Capacitor.isNativePlatform() which is reliable on all WebView versions.
+ * S82.CAPACITOR.10 — Canvas→BITMAP rasterize за кирилица
+ * DTM-5811 не поддържа cyrillic font → render-ваме cyrillic текстове
+ * като Canvas bitmap и ги изпращаме с TSPL BITMAP команда.
+ * ASCII текстове (code, price, barcode) — native TSPL за компактност.
  */
 (function() {
   if (window.__capacitorRuntimeInjected) return;
@@ -25,7 +20,6 @@
       '<script src="/js/capacitor-bundle.js"><\/script>'
     );
   } else {
-    // Page already parsed (late include) — fall back to dynamic injection
     ['native-bridge.js', 'core.js', 'ble.js'].forEach(function(f) {
       var s = document.createElement('script');
       s.src = '/js/capacitor/' + f;
@@ -83,39 +77,24 @@
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
   }
 
-  // Windows-1251 (Cyrillic) map — DTM-5811 вграденият font е CP1251
-  const CP1251 = (function() {
-    const m = new Map();
-    // Кирилица главни букви (Unicode 0x0410-0x042F → CP1251 0xC0-0xDF)
-    for (let i = 0; i < 32; i++) m.set(0x0410 + i, 0xC0 + i);
-    // Кирилица малки букви (Unicode 0x0430-0x044F → CP1251 0xE0-0xFF)
-    for (let i = 0; i < 32; i++) m.set(0x0430 + i, 0xE0 + i);
-    // Допълнителни
-    m.set(0x0401, 0xA8); // Ё
-    m.set(0x0451, 0xB8); // ё
-    m.set(0x20AC, 0x88); // €
-    m.set(0x2116, 0xB9); // №
-    m.set(0x00B7, 0xB7); // ·
-    m.set(0x00AB, 0xAB); // «
-    m.set(0x00BB, 0xBB); // »
-    m.set(0x2014, 0x97); // —
-    m.set(0x2013, 0x96); // –
-    return m;
-  })();
-
-  function strToBytes(s) {
-    const out = [];
+  // ASCII-only encoder (за command strings — TSPL commands)
+  function asciiToBytes(s) {
+    const out = new Uint8Array(s.length);
     for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (code < 128) {
-        out.push(code);
-      } else if (CP1251.has(code)) {
-        out.push(CP1251.get(code));
-      } else {
-        out.push(0x3F);
-      }
+      const c = s.charCodeAt(i);
+      out[i] = c < 128 ? c : 0x3F;
     }
-    return new Uint8Array(out);
+    return out;
+  }
+
+  // Concat multiple Uint8Arrays в един
+  function concatBytes(parts) {
+    let total = 0;
+    for (const p of parts) total += p.length;
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const p of parts) { out.set(p, off); off += p.length; }
+    return out;
   }
 
   function bytesToDataView(bytes) {
@@ -124,54 +103,178 @@
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // ----- TSPL Generation (50x30mm label) -----
-
-  function escapeTsplText(s) {
-    if (!s) return '';
-    return String(s).replace(/[\r\n\t"]/g, ' ').substring(0, 32);
+  function hasCyrillic(s) {
+    return /[\u0400-\u04FF]/.test(String(s || ''));
   }
 
-  function formatPrice(amount, currency) {
-    const n = parseFloat(amount) || 0;
-    const c = currency || 'BGN';
-    if (c === 'EUR') return n.toFixed(2) + ' EUR';
-    if (c === 'BGN') return n.toFixed(2) + ' lv';
-    return n.toFixed(2) + ' ' + c;
+  // ----- Canvas → TSPL BITMAP -----
+
+  /**
+   * Рендерира text на Canvas и връща TSPL BITMAP raw bytes.
+   * TSPL BITMAP data: MSB-first, 1=white (no dot), 0=black (dot).
+   * @returns {widthBytes, height, data: Uint8Array}
+   */
+  function renderTextBitmap(text, fontSize, maxWidthPx) {
+    text = String(text || '');
+    if (!text) return null;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Измерваме ширината на текста
+    ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+    const metrics = ctx.measureText(text);
+    let w = Math.ceil(metrics.width) + 4;
+    if (w > maxWidthPx) w = maxWidthPx;
+    if (w < 8) w = 8;
+
+    // Закръгляме ширината нагоре към цял байт (8 пиксела)
+    const widthBytes = Math.ceil(w / 8);
+    const canvasWidth = widthBytes * 8;
+    const canvasHeight = fontSize + 8; // descenders + padding
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Бял фон
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Черен текст
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    // Truncate ако не се вмества
+    let displayText = text;
+    if (ctx.measureText(displayText).width > canvasWidth - 4) {
+      while (displayText.length > 1 && ctx.measureText(displayText + '…').width > canvasWidth - 4) {
+        displayText = displayText.slice(0, -1);
+      }
+      displayText += '…';
+    }
+    ctx.fillText(displayText, 2, 2);
+
+    const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    const px = imgData.data;
+
+    // Пакетираме в TSPL BITMAP data:
+    // - MSB first (bit 7 = leftmost pixel)
+    // - 1 = white (no dot), 0 = black (dot)
+    const data = new Uint8Array(widthBytes * canvasHeight);
+    for (let y = 0; y < canvasHeight; y++) {
+      for (let bx = 0; bx < widthBytes; bx++) {
+        let byte = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = bx * 8 + bit;
+          const i = (y * canvasWidth + x) * 4;
+          const dark = (px[i] + px[i + 1] + px[i + 2]) < 384; // <128 avg на канал
+          const bitVal = dark ? 0 : 1;
+          byte |= (bitVal << (7 - bit));
+        }
+        data[y * widthBytes + bx] = byte;
+      }
+    }
+
+    return { widthBytes, height: canvasHeight, data };
   }
 
+  /**
+   * Построява TSPL команди като list от byte arrays.
+   * Връща финален Uint8Array готов за BLE write.
+   */
   function generateTSPL(product, store, copies) {
-    const name = escapeTsplText(product.name || '');
-    const code = escapeTsplText(product.code || '');
-    const price = formatPrice(product.retail_price, store.currency);
-    const barcode = product.barcode || product.code || '';
-    const storeName = escapeTsplText(store.name || '');
+    const name = String(product.name || '').replace(/[\r\n\t"]/g, ' ').substring(0, 48);
+    const code = String(product.code || '').replace(/[\r\n\t"]/g, ' ').substring(0, 20);
+    const barcode = String(product.barcode || product.code || '').replace(/[^0-9A-Za-z]/g, '');
+    const storeName = String(store.name || '').replace(/[\r\n\t"]/g, ' ').substring(0, 32);
     const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
-    let cmd = '';
-    cmd += 'SIZE 50 mm,30 mm\r\n';
-    cmd += 'GAP 2 mm,0\r\n';
-    cmd += 'DIRECTION 1\r\n';
-    cmd += 'DENSITY 10\r\n';
-    cmd += 'SPEED 3\r\n';
-    cmd += 'CODEPAGE 1251\r\n';
-    cmd += 'CLS\r\n';
-    // Layout: 50×30mm = 400×240 dots (@ 8 dots/mm)
-    // Ред 1 (y=8): store name (font TSS24.BF2 — голям sans-serif)
-    // Fonts: "1"=8x12, "2"=12x20, "3"=16x24, "4"=24x32, "5"=32x48 (bitmap)
-    // Вградените fonts с CODEPAGE 1251 трябва да поддържат cyrillic на DTM-5811
+    // Price — винаги ASCII (няма cyrillic)
+    const amt = parseFloat(product.retail_price) || 0;
+    const cur = store.currency || 'EUR';
+    let priceStr;
+    if (cur === 'EUR') priceStr = amt.toFixed(2) + ' EUR';
+    else if (cur === 'BGN') priceStr = amt.toFixed(2) + ' lv';
+    else priceStr = amt.toFixed(2) + ' ' + cur;
+
+    const parts = [];
+    const push = (s) => parts.push(asciiToBytes(s));
+    const pushRaw = (b) => parts.push(b);
+
+    // Header
+    push('SIZE 50 mm,30 mm\r\n');
+    push('GAP 2 mm,0\r\n');
+    push('DIRECTION 1\r\n');
+    push('DENSITY 10\r\n');
+    push('SPEED 3\r\n');
+    push('CLS\r\n');
+
+    // Layout @ 8 dots/mm → 50mm=400, 30mm=240
+    let y = 8;
+
+    // Store name (ред 1) — BITMAP ако има cyrillic, иначе native TEXT
     if (storeName) {
-      cmd += `TEXT 10,8,"3",0,1,1,"${storeName}"\r\n`;
+      if (hasCyrillic(storeName)) {
+        const bmp = renderTextBitmap(storeName, 22, 380);
+        if (bmp) {
+          push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
+          pushRaw(bmp.data);
+          push('\r\n');
+          y += bmp.height + 4;
+        }
+      } else {
+        push('TEXT 10,' + y + ',"3",0,1,1,"' + storeName + '"\r\n');
+        y += 32;
+      }
     }
-    cmd += `TEXT 10,40,"3",0,1,1,"${name}"\r\n`;
+
+    // Product name (ред 2) — винаги BITMAP (може да има cyrillic)
+    if (name) {
+      if (hasCyrillic(name)) {
+        const bmp = renderTextBitmap(name, 22, 380);
+        if (bmp) {
+          push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
+          pushRaw(bmp.data);
+          push('\r\n');
+          y += bmp.height + 4;
+        }
+      } else {
+        push('TEXT 10,' + y + ',"3",0,1,1,"' + name + '"\r\n');
+        y += 32;
+      }
+    }
+
+    // Code (ред 3) — обикновено ASCII, native TSPL
     if (code) {
-      cmd += `TEXT 10,70,"2",0,1,1,"${code}"\r\n`;
+      if (hasCyrillic(code)) {
+        const bmp = renderTextBitmap(code, 16, 380);
+        if (bmp) {
+          push('BITMAP 10,' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
+          pushRaw(bmp.data);
+          push('\r\n');
+          y += bmp.height + 4;
+        }
+      } else {
+        push('TEXT 10,' + y + ',"2",0,1,1,"' + code + '"\r\n');
+        y += 24;
+      }
     }
-    cmd += `TEXT 10,95,"4",0,1,1,"${price}"\r\n`;
+
+    // Price (ред 4) — ASCII, голям native font
+    push('TEXT 10,' + y + ',"4",0,1,1,"' + priceStr + '"\r\n');
+    y += 36;
+
+    // Barcode (последен) — подравнен към долния край на етикета
     if (barcode) {
-      cmd += `BARCODE 10,155,"128",55,1,0,2,2,"${barcode}"\r\n`;
+      const barY = Math.max(y, 155);
+      push('BARCODE 10,' + barY + ',"128",55,1,0,2,2,"' + barcode + '"\r\n');
     }
-    cmd += `PRINT ${n}\r\n`;
-    return cmd;
+
+    push('PRINT ' + n + '\r\n');
+
+    return concatBytes(parts);
   }
 
   // ----- BLE Write (chunked) -----
@@ -201,33 +304,39 @@
         throw new Error('Не си в мобилно приложение');
       }
       const ble = getBle();
-      await ble.initialize();
+      await ble.initialize({ androidNeverForLocation: false });
 
       const device = await ble.requestDevice({
         namePrefix: PRINTER_NAME_FILTER,
+        services: [SERVICE_UUID],
         optionalServices: [SERVICE_UUID]
+      }).catch(async () => {
+        // Fallback без service filter ако първият сканира не намери
+        return await ble.requestDevice({ namePrefix: PRINTER_NAME_FILTER });
       });
 
       if (!device || !device.deviceId) {
-        throw new Error('Няма избран принтер');
+        throw new Error('Не е избран принтер');
       }
-
       saveDeviceId(device.deviceId);
-      return { deviceId: device.deviceId, name: device.name || 'DTM-5811' };
+      await ble.connect(device.deviceId, () => clearDeviceId());
+      return device.deviceId;
     },
 
     async connect() {
-      if (!isCapacitor()) throw new Error('Не си в мобилно приложение');
-      const ble = getBle();
-      await ble.initialize();
-
+      if (!isCapacitor()) {
+        throw new Error('Мобилен печат не е достъпен тук');
+      }
       const id = getSavedDeviceId();
-      if (!id) throw new Error('Принтерът не е сдвоен. Натисни "Сдвои".');
-
+      if (!id) {
+        throw new Error('Няма сдвоен принтер — направи pair първо');
+      }
+      const ble = getBle();
+      await ble.initialize({ androidNeverForLocation: false });
       try {
-        await ble.connect(id, null, { timeout: 10000 });
+        await ble.connect(id, () => {});
       } catch (e) {
-        if (!String(e.message || e).toLowerCase().includes('already')) throw e;
+        // Може вече да е свързан
       }
       return id;
     },
@@ -243,8 +352,7 @@
       if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
 
       const id = await this.connect();
-      const tspl = generateTSPL(product, store, copies || 1);
-      const bytes = strToBytes(tspl);
+      const bytes = generateTSPL(product, store, copies || 1);
 
       await writeChunked(getBle(), id, bytes);
       await sleep(500);
@@ -258,7 +366,7 @@
         retail_price: 12.34,
         barcode: '0000000000017'
       };
-      const testStore = { name: 'RunMyStore', currency: 'BGN' };
+      const testStore = { name: 'Магазин Тест', currency: 'EUR' };
       return await this.print(testProduct, testStore, 1);
     },
 
@@ -268,7 +376,8 @@
 
     _generateTSPL: generateTSPL,
     _isCapacitor: isCapacitor,
-    _getDeviceId: getSavedDeviceId
+    _getDeviceId: getSavedDeviceId,
+    _renderTextBitmap: renderTextBitmap
   };
 
   window.CapPrinter = CapPrinter;
