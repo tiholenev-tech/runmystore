@@ -7619,8 +7619,22 @@ function wizLabelsX2(){
 }
 function wizPrintLabels(comboIdx){
     // S82.CAPACITOR — BLE print on mobile APK
+    var _capDiag = {
+        CapPrinter: typeof window.CapPrinter,
+        hasIsAvail: !!(window.CapPrinter && window.CapPrinter.isAvailable),
+        isAvail: (window.CapPrinter && window.CapPrinter.isAvailable) ? window.CapPrinter.isAvailable() : 'N/A',
+        Capacitor: typeof window.Capacitor,
+        isNative: (window.Capacitor && window.Capacitor.isNativePlatform) ? window.Capacitor.isNativePlatform() : 'N/A',
+        platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'N/A'
+    };
+    console.log('[S82 DIAG]', JSON.stringify(_capDiag));
     if (window.CapPrinter && window.CapPrinter.isAvailable()) {
         return wizPrintLabelsMobile(comboIdx);
+    }
+    // Diagnostic alert вместо external browser fallback ако сме в Capacitor
+    if (_capDiag.isNative === true) {
+        alert('S82 BLE fallback блокиран:\n' + JSON.stringify(_capDiag, null, 2));
+        return;
     }
     var combos=S.wizData._printCombos||[];
     var pm=S.wizData._printMode||'eur';
