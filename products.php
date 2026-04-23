@@ -4374,6 +4374,10 @@ function lblX2(){(S._labelData||[]).forEach(function(v,i){v._printQty=Math.max(1
 function lblReset(){(S._labelData||[]).forEach(function(v,i){v._printQty=1;var inp=document.getElementById('lbl'+i);if(inp)inp.value=1});lblRecalc()}
 function lblCSV(){location.href='products.php?ajax=export_labels&product_id='+S._labelProductId+'&format=csv'}
 function lblPrint(idx){
+    // S82.CAPACITOR — BLE print on mobile APK (edit/detail drawer)
+    if (window.CapPrinter && window.CapPrinter.isAvailable()) {
+        return lblPrintMobile(idx);
+    }
     var d=S._labelData||[];
     var p=S._labelProduct||{};
     var pm=S._labelPrintMode||'eur';
@@ -4414,6 +4418,64 @@ function lblPrint(idx){
     // S79FIX_BUG567_ADDCARD_APPLIED
     var w=window.open('','_blank','width=400,height=600');
     if(w){w.document.write(html);w.document.close()}else showToast('Позволи pop-up','error');
+}
+
+
+// ═══ S82.CAPACITOR — Mobile BLE print за edit/detail drawer ═══
+async function lblPrintMobile(idx){
+    var d = S._labelData || [];
+    var p = S._labelProduct || {};
+    var items = [];
+    if (idx === -1) {
+        d.forEach(function(v){ if (v._printQty > 0) items.push({v: v, qty: v._printQty}); });
+    } else if (d[idx]) {
+        items.push({v: d[idx], qty: d[idx]._printQty || 1});
+    }
+    if (!items.length) { showToast('Няма етикети', 'error'); return; }
+
+    if (!CapPrinter.hasPairedPrinter()) {
+        showToast('Първи път: избери принтера', 'info');
+        try {
+            await CapPrinter.pair();
+            showToast('Принтерът е сдвоен', 'success');
+        } catch (e) {
+            showToast('Неуспешно сдвояване: ' + (e.message || e), 'error');
+            return;
+        }
+    }
+
+    var price = parseFloat(p.retail_price) || 0;
+    var name = p.name || '';
+    var code = p.code || '';
+    var barcode = p.barcode || ('200' + String(p.id || 0).padStart(9, '0'));
+    var storeInfo = {
+        name: (typeof CFG !== 'undefined' && CFG.store && CFG.store.name) ? CFG.store.name : 'RunMyStore',
+        currency: 'EUR'
+    };
+
+    var totalCopies = 0;
+    items.forEach(function(it){ totalCopies += it.qty; });
+    showToast('Печат: ' + totalCopies + ' ет...', 'info');
+
+    try {
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var sizeVal = it.v.size || '';
+            var colorVal = it.v.color || '';
+            var labelName = name + (sizeVal ? ' ' + sizeVal : '') + (colorVal ? ' ' + colorVal : '');
+            var itemBarcode = it.v.barcode || barcode;
+            var product = {
+                code: code,
+                name: labelName,
+                retail_price: price,
+                barcode: itemBarcode
+            };
+            await CapPrinter.print(product, storeInfo, it.qty);
+        }
+        showToast('Готово: ' + totalCopies + ' етикета', 'success');
+    } catch (e) {
+        showToast('Грешка: ' + (e.message || e), 'error');
+    }
 }
 
 // S43+S50+S50b: openImageStudio — full AI Studio in drawer (same as wizard step 2)
@@ -7619,22 +7681,8 @@ function wizLabelsX2(){
 }
 function wizPrintLabels(comboIdx){
     // S82.CAPACITOR — BLE print on mobile APK
-    var _capDiag = {
-        CapPrinter: typeof window.CapPrinter,
-        hasIsAvail: !!(window.CapPrinter && window.CapPrinter.isAvailable),
-        isAvail: (window.CapPrinter && window.CapPrinter.isAvailable) ? window.CapPrinter.isAvailable() : 'N/A',
-        Capacitor: typeof window.Capacitor,
-        isNative: (window.Capacitor && window.Capacitor.isNativePlatform) ? window.Capacitor.isNativePlatform() : 'N/A',
-        platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'N/A'
-    };
-    console.log('[S82 DIAG]', JSON.stringify(_capDiag));
     if (window.CapPrinter && window.CapPrinter.isAvailable()) {
         return wizPrintLabelsMobile(comboIdx);
-    }
-    // Diagnostic alert вместо external browser fallback ако сме в Capacitor
-    if (_capDiag.isNative === true) {
-        alert('S82 BLE fallback блокиран:\n' + JSON.stringify(_capDiag, null, 2));
-        return;
     }
     var combos=S.wizData._printCombos||[];
     var pm=S.wizData._printMode||'eur';
