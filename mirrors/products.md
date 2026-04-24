@@ -7297,6 +7297,14 @@ async function wizSave(){
         return{size:finalSize,color:colorVal,qty:c.qty||0};
     });
 
+    // S81.BUGFIX.V3.EXT [B4]: confirm zero-qty save for NEW products
+    var _totalQty = S.wizType==='variant'
+        ? variants.reduce(function(s,v){return s+(parseInt(v.qty)||0)},0)
+        : (parseInt(singleQty)||0);
+    if (!S.wizEditId && _totalQty === 0) {
+        if (!confirm('Няма въведени бройки. Сигурен ли си, че искаш да запишеш артикула с 0 количество?')) return;
+    }
+
     const payload={
         name:S.wizData.name,barcode:S.wizData.barcode,
         retail_price:S.wizData.retail_price,wholesale_price:S.wizData.wholesale_price,
