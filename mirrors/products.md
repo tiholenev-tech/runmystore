@@ -2812,6 +2812,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ═══ Footer (Back/Колко бройки/Избери/Запиши) v4 ═══ */
 #wizModal #v4Footer{
   padding:10px 12px !important;
+  padding-bottom:max(60px, calc(10px + env(safe-area-inset-bottom))) !important;
   gap:8px !important;
 }
 #wizModal #v4Footer > button{
@@ -5574,7 +5575,7 @@ function renderWizPagePart2(step){
 
 ''; // S73.B.13: footer via helper
         var _footer=_v4ComputeFooter(S._wizActiveTab);
-        return '<div class="wiz-page active" style="padding-bottom:80px">'+
+        return '<div class="wiz-page active" style="padding-bottom:140px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             '<div id="v4Footer" style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_footer+'</div>'+
