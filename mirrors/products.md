@@ -1116,7 +1116,7 @@ foreach ($_custom_colors as $cc) {
 .mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
 .mx-qchip:hover{background:hsl(var(--hue1) 40% 22% / 0.4);border-color:hsl(var(--hue1) 50% 45% / 0.5);color:hsl(var(--hue1) 60% 88%)}
 .mx-qchip.danger{border-color:rgba(239,68,68,0.25);color:#fca5a5}
-.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative;animation:mxFlash 0.7s ease-out}
+.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative}
 @keyframes mxFlash{0%{opacity:0;transform:scale(0.97);filter:brightness(2)}40%{opacity:1;filter:brightness(1.3)}100%{opacity:1;transform:scale(1);filter:brightness(1)}}
 .mx-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 .mx-head-cell,.mx-row-head,.mx-corner{position:sticky;background:rgba(8,9,13,0.98);backdrop-filter:blur(8px);z-index:2}
@@ -1140,7 +1140,7 @@ foreach ($_custom_colors as $cc) {
 .mx-cell-min:focus{border-color:hsl(45 70% 55%);box-shadow:0 0 0 2px hsl(45 70% 50% / 0.2)}
 .mx-min-step{width:18px;height:26px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
 .mx-min-step:hover{background:hsl(45 30% 20% / 0.5);border-color:hsl(45 40% 40% / 0.5)}
-.mx-bottom{flex-shrink:0;padding:14px 16px 20px;background:rgba(3,7,18,0.95);backdrop-filter:blur(12px);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
+.mx-bottom{flex-shrink:0;padding:14px 16px max(80px, calc(20px + env(safe-area-inset-bottom)));background:rgba(3,7,18,0.95);backdrop-filter:blur(12px);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
 .mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
 .mx-stat{text-align:center;flex:1}
 .mx-stat-v{font-size:20px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
