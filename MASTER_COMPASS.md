@@ -1062,6 +1062,17 @@ cron-weather.php → 06:00
 - **Rework:** Нова сесия **S79.FIX** — приоритет P0 bugs от `PRODUCTS_MAIN_BUGS_S80.md` (10 счупени бутона на главната). След S79.FIX → retry Bug #6 → S80 (wizard rewrite).
 - **Статус rework:** ⏳ pending (S79.FIX)
 
+## 22.04.2026 — STANDARD: AI описание = максимален контекст за SEO
+- **Решение:** Gemini Vision получава ВСИЧКА налична DB информация за артикула (не само снимка) → идеално SEO описание
+- **Контекст pull:** име, категория, подкатегория, доставчик/бранд, размер, цвят, материал, проба/карат, cost_price (за price tier sense), retail_price, вариации (всички), custom attributes от biz_learned_data, snimka
+- **Default:** 250 думи. Override бутон [📝 Дълго]: 350 думи (за luxury items)
+- **Език:** tenant.lang (BG default за бета)
+- **SEO keywords:** 3-4 автоматични в описанието (категория + материал + повод)
+- **Cost при scale:** 1000 магазина × 100 артикула/мес = €28/мес (нищожно)
+- **Засегнати модули:** products.php (S81), orders.php (S83 auto-fill), WooCommerce sync (S90)
+- **Helper:** generateProductDescriptionFull() в config/gemini.php — единствен helper, преиспользван навсякъде
+- **Rework:** REWORK #16 standing rule — всички AI описания минават през helper-а
+
 ## 22.04.2026 — S79 разделен на 4 под-сесии
 - **Решение:** Оригинален S79 (DB foundations 1) твърде голям → раздели на S79.FIX.B (products UI) + S79.DB (schema_migrations) + S79.INSIGHTS (compute-insights 19 pf) + S79.CRON_AUDIT (cron + audit extension)
 - **Защо:** Паралелна работа с нулев overlap + чисти single-responsibility сесии
@@ -1192,6 +1203,8 @@ cron-weather.php → 06:00
 | 12 | products.php drawer detail screen | 22.04.2026 (свързано с #11) | Detail drawer също да показва AI primary action отгоре ("Препоръчвам: Поръчай 5 от Иванов — 320 лв profit/седм") + secondary actions. Бил е plain product card. | S81 | ⏳ pending
 
 ---
+
+| 16 | AI описание STANDARD | 22.04.2026 (Тихол решение) | STANDING RULE — всички AI описания минават през generateProductDescriptionFull(). Pull MAX context: всички DB полета + image. Default 250 думи, override 350 luxury. Език tenant.lang. 3-4 SEO keywords automatic. Cost ~€28/мес за 1000 магазина. | ALL modules с AI описание (S81, S83, S90) | ⏳ standing rule |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 
