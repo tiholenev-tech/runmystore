@@ -5911,6 +5911,7 @@ function wizScanBarcode(){
         const vid=document.getElementById('wizBcVid');
         if(!vid){stream.getTracks().forEach(t=>t.stop());return}
         vid.srcObject=stream;vid._stream=stream;
+        try{var _pp=vid.play();if(_pp&&_pp.catch)_pp.catch(function(){})}catch(_){}
         if('BarcodeDetector' in window){
             const det=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
             vid._bcInterval=setInterval(async()=>{
