@@ -2149,23 +2149,43 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     .v4-mx-head,.v4-mx-cell{min-width:96px}
     .v4-cell-input{width:48px}
 }
-/* ═══ S81.BUGFIX · MOBILE WIZARD FIX ═══ */
+/* ═══ S81.BUGFIX · MOBILE WIZARD FIX v2 ═══ */
 @media (max-width:430px){
-  /* Wizard footer не да се скрива под Android nav bar */
+  /* По-голямо padding-bottom за да не се режат последните полета зад sticky footer + Android nav bar */
+  .wiz-page{
+    padding-bottom:200px !important;
+  }
+  /* Sticky footer вътре в wizard стъпките — повдигаме го над Android nav bar */
+  .wiz-page [style*="position:fixed"][style*="bottom:0"],
+  [style*="position:fixed"][style*="bottom:0"][style*="z-index:100"]{
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,12px)) !important;
+  }
+  /* V4 footer (stepper) */
   #v4Footer{
-    padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)) !important;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom,12px)) !important;
     padding-top:10px !important;
   }
-  /* Повече място отдолу за wizard страница за да не реже последните полета */
-  .wiz-page{
-    padding-bottom:140px !important;
+  /* Number counter [−]/[+] бутони — по-видими и гарантирано clickable */
+  .wiz-page div[style*="display:flex"][style*="border-radius:12px"][style*="overflow:hidden"] > button[type="button"]{
+    min-width:44px !important;
+    flex-shrink:0 !important;
+    font-size:20px !important;
+    font-weight:700 !important;
   }
-  /* Number input counters да не cut-off-ват на малък екран */
-  .wiz-page input[type="number"]{
-    box-sizing:border-box !important;
+  /* Input полета да не overflow контейнера си */
+  .wiz-page input.fc{
+    min-width:0 !important;
     max-width:100% !important;
+    box-sizing:border-box !important;
   }
-  /* Voice mic бутоните да са proportional */
+  /* Mic бутон — по-компактен за да не яде space от input-а */
+  .wiz-page .wiz-mic{
+    width:38px !important;
+    min-width:38px !important;
+    height:38px !important;
+    flex-shrink:0 !important;
+  }
+  /* Voice mic flex-shrink */
   .wiz-page .voice-mic,.wiz-page [class*="mic"]{
     flex-shrink:0 !important;
   }
