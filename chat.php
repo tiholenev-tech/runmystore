@@ -1562,6 +1562,96 @@ html[data-theme="light"] [style*="rgba(255,255,255,0.85)"]{color:rgba(15,23,42,.
 html[data-theme="light"] .overlay,
 html[data-theme="light"] .modal-ov{background:rgba(255,255,255,.92)}
 
+/* ─── Chat overlay (bottom-sheet AI chat) ─── */
+html[data-theme="light"] .ov-bg{
+    background:rgba(240,243,250,.55);
+    backdrop-filter:blur(16px) saturate(.95);
+    -webkit-backdrop-filter:blur(16px) saturate(.95);
+}
+html[data-theme="light"] .ov-panel{
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 70% 93% / .9),hsl(var(--hue1) 70% 96% / .7) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 70% 93% / .9),hsl(var(--hue2) 70% 96% / .7) 33%),
+        linear-gradient(hsl(215deg 40% 99% / .96));
+    border:1px solid hsl(var(--hue2),25%,80%);
+    border-bottom:none;
+    box-shadow:
+        0 -20px 60px hsl(var(--hue2) 40% 60% / .18),
+        0 -8px 40px hsl(var(--hue1) 60% 55% / .12),
+        inset 0 1px 0 hsl(var(--hue1) 60% 70% / .3);
+}
+html[data-theme="light"] .ov-panel::before{
+    background:linear-gradient(90deg,transparent,hsl(var(--hue1) 70% 60% / .6),transparent);
+}
+html[data-theme="light"] .ov-handle{background:rgba(15,23,42,.18)}
+html[data-theme="light"] .ov-header{border-bottom-color:rgba(15,23,42,.06)}
+html[data-theme="light"] .ov-back{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:var(--text-secondary);
+}
+html[data-theme="light"] .ov-close{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:var(--text-secondary);
+}
+html[data-theme="light"] .ov-title{color:#0f172a}
+html[data-theme="light"] .ov-sub{color:var(--text-muted)}
+
+/* Chat empty state */
+html[data-theme="light"] .chat-empty{color:var(--text-muted)}
+html[data-theme="light"] .chat-empty-t{color:hsl(var(--hue1) 55% 45%)}
+
+/* Chat messages (AI bubble and user bubble) */
+html[data-theme="light"] .msg-ai{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 96%),hsl(var(--hue1) 60% 93%));
+    border:1px solid hsl(var(--hue1) 50% 80%);
+    color:#1e293b;
+    box-shadow:
+        0 2px 12px hsl(var(--hue2) 40% 60% / .10),
+        0 0 16px hsl(var(--hue1) 60% 70% / .10),
+        inset 0 1px 0 hsl(var(--hue1) 60% 95%);
+}
+html[data-theme="light"] .msg-user{
+    background:linear-gradient(135deg,hsl(var(--hue1) 70% 58%),hsl(var(--hue2) 70% 52%));
+    border:1px solid hsl(var(--hue1) 70% 55%);
+    color:#fff;
+    box-shadow:
+        0 2px 12px hsl(var(--hue1) 60% 50% / .28),
+        0 0 14px hsl(var(--hue1) 60% 55% / .22),
+        inset 0 1px 0 rgba(255,255,255,.18);
+}
+html[data-theme="light"] .msg-meta{color:var(--text-muted)}
+html[data-theme="light"] .msg-meta svg{stroke:hsl(var(--hue1) 60% 50%)}
+
+/* Typing indicator */
+html[data-theme="light"] .typing{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 96%),hsl(var(--hue1) 60% 93%));
+    border:1px solid hsl(var(--hue1) 50% 80%);
+}
+html[data-theme="light"] .typing-dot{background:hsl(var(--hue1) 60% 55%)}
+
+/* Rec bar */
+html[data-theme="light"] .rec-bar{
+    background:linear-gradient(90deg,rgba(239,68,68,.10),rgba(239,68,68,.04));
+    border-top-color:rgba(239,68,68,.20);
+}
+html[data-theme="light"] .rec-label{color:#dc2626}
+html[data-theme="light"] .rec-transcript{color:#1e293b}
+
+/* Chat input (composer) */
+html[data-theme="light"] .chat-input-inner{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 95% / .95),hsl(var(--hue2) 60% 95% / .90));
+    border:1px solid hsl(var(--hue1) 40% 75%);
+    box-shadow:
+        0 4px 16px hsl(var(--hue2) 30% 60% / .18),
+        0 0 12px hsl(var(--hue1) 60% 70% / .15);
+}
+html[data-theme="light"] .chat-ta{color:#0f172a}
+html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
+
+/* mic + send buttons — keep vivid brand gradient in both themes */
+
 /* END LIGHT THEME */
 </style>
 </head>
