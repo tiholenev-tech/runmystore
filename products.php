@@ -1105,7 +1105,7 @@ foreach ($_custom_colors as $cc) {
 .mx-overlay{position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.25) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.25) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);display:none;flex-direction:column;opacity:0;transition:opacity 0.25s var(--ease)}
 .mx-overlay.open{display:flex;opacity:1}
 .mx-header{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 16px 12px;background:rgba(3,7,18,0.9);backdrop-filter:blur(12px);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.6)}
-.mx-close{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.mx-close{min-width:36px;height:36px;padding:0 12px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;font-family:inherit}
 .mx-close svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
 .mx-title-wrap{flex:1;min-width:0}
 .mx-title{font-size:15px;font-weight:800;background:linear-gradient(135deg,#f1f5f9 30%,hsl(var(--hue1) 60% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
@@ -3870,7 +3870,7 @@ html{overflow-x:hidden;max-width:100vw}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <div class="mx-header">
-    <button class="mx-close" onclick="mxCancel()" title="Откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="mx-close" onclick="mxCancel()" title="Назад — откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
   <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:120px"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
