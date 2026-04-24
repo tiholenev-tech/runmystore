@@ -4941,7 +4941,7 @@ function openAIChatOverlay() {
 // ═══════════════════════════════════════════════════════════
 
 const WIZ_LABELS=['Вид','Основни','Варианти','Бизнес','AI Studio'];
-const WIZ_UI_INDEX=[null, null, 3, 0, 1, 2, null]; // S75: step 0 премахнат
+const WIZ_UI_INDEX=[null, null, 3, 0, 1, 2, 4]; // S81.1: step 6 → uiIdx 4 (AI Studio активна в stepper)
 
 const WIZ_INFO={
     type_single:'Единичен артикул без варианти — например една чанта, едно бижу, или артикул който се продава само в един вид.',
