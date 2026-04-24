@@ -1078,18 +1078,25 @@ function pfHighReturnRate(int $tenant_id): int {
     if (pfTableExists('returns')) {
         $sql = "
             SELECT p.id AS product_id, p.name, p.code,
-                   SUM(si.quantity) AS sold,
-                   COALESCE(SUM(r.quantity), 0) AS returned
+                   sold_agg.sold AS sold,
+                   COALESCE(ret_agg.returned, 0) AS returned
             FROM products p
-            JOIN sale_items si ON si.product_id = p.id
-            JOIN sales s ON s.id = si.sale_id AND s.tenant_id = ?
-            LEFT JOIN returns r ON r.product_id = p.id AND r.tenant_id = ?
-                                 AND r.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            JOIN (
+                SELECT si.product_id, SUM(si.quantity) AS sold
+                FROM sale_items si
+                JOIN sales s ON s.id = si.sale_id AND s.tenant_id = ?
+                WHERE s.status = 'completed' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                GROUP BY si.product_id
+            ) sold_agg ON sold_agg.product_id = p.id
+            LEFT JOIN (
+                SELECT r.product_id, SUM(r.quantity) AS returned
+                FROM returns r
+                WHERE r.tenant_id = ? AND r.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                GROUP BY r.product_id
+            ) ret_agg ON ret_agg.product_id = p.id
             WHERE p.tenant_id = ? AND p.is_active = 1
-              AND s.status = 'completed' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-            GROUP BY p.id, p.name, p.code
-            HAVING sold >= 5 AND returned > sold * 0.15
-            ORDER BY (returned / sold) DESC
+              AND sold_agg.sold >= 5 AND COALESCE(ret_agg.returned, 0) > sold_agg.sold * 0.15
+            ORDER BY (ret_agg.returned / sold_agg.sold) DESC
             LIMIT 20";
         $params = [$tenant_id, $tenant_id, $tenant_id];
     } else {
