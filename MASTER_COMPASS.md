@@ -917,6 +917,14 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 24.04.2026 - DIAGNOSTIC PROTOCOL = STANDING RULE #21 (IRON PROTOCOL addition)
+- Reshenie: vsyaka promyana na AI logika PREDI commit minava prez DIAGNOSTIC_PROTOCOL.md.
+- Zashto: S79 otkri realen bug (pfHighReturnRate Cartesian) koyto ne byeshe uloven mesetsi. Bez sistematichno testvane AI mozhe da dava greshni preporaki.
+- Kak: TDD workflow (7 stupki), 4 kategorii A/B/C/D, 5 avtomatichni trigera, diagnostic_log tablitsa.
+- Trigeri: nov AI modul, ponedelnik 03:00 cron, 1-vi den mesec 04:00 cron, rachno 'AI DIAG PUSNI', pri sumnenie za bug.
+- Referenten dokument: DIAGNOSTIC_PROTOCOL.md v1.0 (323 reda) v repo root.
+- Status: standing rule
+
 ## 24.04.2026 - ZABRANA NA MARKDOWN V HEREDOC (IRON PROTOCOL addition)
 - Reshenie: heredoc payload NE sadurzha emoji/bold/tables/headers/backticks/BG kavichki.
 - Zashto: paste v bash konzola shhupeshe parsera, faylovete se suzdavaha chastichno.
@@ -1324,6 +1332,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 18 | IRON PROTOCOL | 24.04.2026 | STANDING RULE: vseki chat chete IRON PROTOCOL pri otvaryane. ZABRANA na base64. Length warning pri ~30-40 suobshteniya. | ALL | standing |
 | 19 | PARALLEL COMMIT CHECK | 24.04.2026 | Pri paralelni chat-ove VINAGI 'git status' + 'git log -5' predi patch. Inache drug chat moje da include-ne tvoite promeni v svoya commit (viz S79.SELECTION_ENGINE + IRON PROTOCOL sluchay). | ALL | standing |
 | 20 | HEREDOC MARKDOWN BAN | 24.04.2026 | STANDING: heredoc bez emoji/bold/tables/headers/backticks/BG kavichki. 2-stupkov workflow: ASCII heredoc + Python s \u escapes. | ALL | standing |
+| 21 | DIAGNOSTIC PROTOCOL AI | 24.04.2026 | STANDING: vsyaka promyana na AI logika (pf funktsii, build-prompt, selection-engine, nov AI modul, ai_insights schema) PREDI commit minava prez DIAGNOSTIC_PROTOCOL.md. TDD workflow: Tihol opisva -> scenarii -> kategorizatsia A/B/C/D -> fixtures -> impl -> diagnostic -> A+D 100% PASS ili rollback. | ALL AI modules | standing |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 
@@ -1682,6 +1691,69 @@ Heredoc payload (`cat > file.md << EOF ... EOF`) НЕ съдържа:
 **Алтернатива:** един голям Python скрипт с `\u` escapes за цялото съдържание вътре (не чете external файл).
 
 **Неспазване = IRON PROTOCOL violation.** Тихол казва "IRON PROTOCOL" → chat преформулира в 2-стъпков workflow.
+
+
+### 🧪 ЗАДЪЛЖИТЕЛНО — DIAGNOSTIC PROTOCOL ПРИ AI ПРОМЯНА (STANDING RULE #21)
+
+**ВСЯКА промяна на AI логика ПРЕДИ commit минава през DIAGNOSTIC_PROTOCOL.md.**
+
+Референтен документ: `DIAGNOSTIC_PROTOCOL.md` в repo root (323 реда, v1.0, 24.04.2026).
+
+#### Кога се прилага (задължително)
+
+- Нова pf-функция в compute-insights.php
+- Промяна на съществуваща pf-функция (SQL, threshold, logic)
+- Нов AI модул (onboarding AI, chat AI, action broker)
+- Промяна на build-prompt.php context layers
+- Промяна на selection-engine.php (MMR, weights, suppression)
+- Нов cron job който генерира ai_insights
+- Промяна на ai_insights schema (нови колони, ENUM values)
+
+#### Test-Driven workflow (Claude следва реда ЗАДЪЛЖИТЕЛНО)
+
+1. Тихол описва с прости думи какво прави модулът/функцията
+2. Claude пише 10-30 сценарии в `seed_oracle` (покриват 6-те фундаментални въпроса)
+3. Тихол категоризира A/B/C/D за всеки сценарий
+4. Claude пише fixtures (seed scripts) + oracle expectations
+5. Claude имплементира SQL/PHP
+6. Claude пуска diagnostic и сравнява
+7. Category A + D = **100% PASS** → commit. Ако не → **rollback** + re-fix. Category B/C FAIL → commit OK, но документирай в COMPASS.
+
+#### Non-negotiable правила
+
+- Без diagnostic run **commit НЕ се приема** за AI код
+- Category A (critical) FAIL = **rollback**, не "fix later"
+- Category D (boundary) FAIL = SQL bug, веднага
+- Никога на production tenant (47 = ЕНИ). Само test tenant = 7
+- Всяко diagnostic run записва в `diagnostic_log` таблица
+- "AI DIAG ПУСНИ" от Тихол = Claude пуска пълен scan веднага
+
+#### Автоматични тригери
+
+- **Нов AI модул** → diagnostic ПРЕДИ commit (ръчно)
+- **Понеделник 03:00 Europe/Sofia** → weekly cron (автоматично)
+- **1-ви ден месец 04:00** → monthly full scan + performance metrics
+- **Тихол или клиент забележи bug** → diagnostic ПРЕДИ разследване
+
+#### При FAIL — протокол
+
+1. Уникален ID: `BUG-YYYYMMDD-module-scenario`
+2. Категоризирай A/B/C/D
+3. Логни в `diagnostic_log.failures_json`
+4. Добави entry в COMPASS LOGIC CHANGE LOG
+5. A/D поправи сега. B следваща сесия. C Тихол решава.
+6. Re-verify след fix (пусни точно този сценарий)
+7. Ако bug е нов случай → добави нов scenario в seed_oracle
+
+#### Прагове по maturity
+
+- **New (в разработка):** A+D = 100%, B+C = min 60%
+- **Beta (в ЕНИ тест):** A+D = 100%, B+C = min 80%
+- **Stable (production):** A+D = 100%, B+C = min 90%
+- **Frozen:** A+D = 100%, B+C = min 95%
+
+**Неспазване = IRON PROTOCOL violation. Тихол казва "IRON PROTOCOL" → reminder.**
+
 
 
 ### Git
