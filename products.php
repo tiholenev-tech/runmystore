@@ -4993,7 +4993,8 @@ function infoBtn(key,color){
 
 function fieldLabel(text,key,extra){
     extra=extra||'';
-    return '<label class="fl">'+text+' '+extra+'</label>';
+    var html=text.replace(/\s*\*\s*$/,'&nbsp;<span style="color:#ef4444">*</span>');
+    return '<label class="fl">'+html+' '+extra+'</label>';
 }
 
 // ─── MANUAL WIZARD ───
