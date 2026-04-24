@@ -7328,8 +7328,9 @@ async function wizSave(){
                 if(_sAx&&_cAx){
                     _sAx.values.forEach(function(sz,si){_cAx.values.forEach(function(cl,ci){
                         var cellId='mx_'+si+'_'+ci;
-                        var qty=S.wizData._matrix[cellId];
-                        if(qty!==undefined&&qty!==null&&qty!==''){
+                        var _cell=S.wizData._matrix[cellId];
+                        var qty=(_cell&&typeof _cell==='object')?_cell.qty:_cell;
+                        if(qty!==undefined&&qty!==null&&qty!==''&&parseInt(qty)>0){
                             _pc.push({parts:[{axis:'Размер',value:sz},{axis:'Цвят',value:cl}],printQty:parseInt(qty)||1});
                         }
                     })});
