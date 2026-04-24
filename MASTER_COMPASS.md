@@ -1591,3 +1591,56 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 - **Файл:** products.php — unhide `.credit-bar` + activate `falCostTrack()` paywall check
 - **Сесия за активация:** преди beta launch (target S100+)
 
+
+---
+
+## 24.04.2026 — S81.BUGFIX.V2 (CHAT 1.3) — P0 bugs в products.php wizard
+
+**Контекст:** CHAT 1.2 забуксува в mobile CSS loop (5 опита провалили) → REVERT. CHAT 1.3 с нов P0-first приоритет.
+
+### ✅ P0 #1 — Name input false "Въведи наименование" — FIXED
+- **Причина:** onclick handlers на "Запази" (ред 5351) и "Напред variant" (ред 5352) четяха `S.wizData.name` директно без да викат `wizCollectData()`. На mobile `oninput` понякога не сработва (IME, glide-typing, autocomplete) → DOM има стойност, state е празно → фалшиво "Въведи наименование".
+- **Fix:** Добавен `wizCollectData();` в началото на двата onclick-а. Синхронизира DOM → state преди validation.
+- **Commit:** `2fb55ff` — v0.6.0-s81-bugfix-v2 tag pending в края на сесията
+- **Тест:** ЕНИ Android — потвърден от Тихол ✓
+
+### ⏸ P0 #2 — Voice Microphone в Android app — DEFERRED TO S82
+- **Диагностика:** Браузър (Chrome HTTPS) работи ✓. Android Capacitor app НЕ работи.
+- **Причина:** Android app (Capacitor) не иска automatically mic permission. Трябва:
+  1. `RECORD_AUDIO` permission в `android/app/src/main/AndroidManifest.xml`
+  2. Runtime permission request при първо отваряне
+- **Защо deferred:** `android/` папката е извън обхвата на CHAT 1.3. ЕНИ може да ползва browser (HTTPS) или PWA (Add to Home Screen) междувременно — микрофонът работи там.
+- **S82 task:** Отделна сесия с Android достъп за Capacitor permission fix.
+
+### ⏸ P0 #3 — Barcode Scanner — STATUS TBD
+- **Действие:** Диагностика в процес. Ако е само Android app issue (като микрофона) → defer to S82 с permissions fix-а. Ако е browser issue → fix сега.
+
+### ⏸ P1 #4 — Mobile CSS (бутони под Android nav bar) — DEFERRED
+- **Защо:** CHAT 1.2 опита 5 пъти (padding-bottom, env(safe-area-inset-bottom), sticky footer, inline styles, 80-120px fallback) — всички провалили без screenshot. Prompt правило #10: без screenshot не опитвам.
+- **S82 task:** С реален screenshot от Тихол + remote DevTools session → прост подход (margin-bottom на body / overscroll-behavior / scroll-to-visible при focus).
+
+---
+
+## 🔒 S82 REWORK QUEUE (записано в S81.BUGFIX.V2)
+
+### 1. Android Capacitor permissions (P0 — блокер за app users)
+- **Файлове:** `android/app/src/main/AndroidManifest.xml` + Capacitor plugin check
+- **Задачи:**
+  - Добави `<uses-permission android:name="android.permission.RECORD_AUDIO" />`
+  - Добави `<uses-permission android:name="android.permission.CAMERA" />` (ако не е вече)
+  - Провери `@capacitor/microphone` plugin или custom bridge
+  - Runtime permission request на първо отваряне на mic/camera
+- **Тест:** Rebuild APK → Тихол инсталира на Android → тапва 🎤 → prompt "Разреши микрофон?" → Allow → работи.
+- **Блокер за:** Пешо voice-first workflow в app версията
+
+### 2. Mobile CSS — wizard footer бутони под Android nav bar (P1)
+- **Изисква:** Screenshot от Тихол от Chrome Android remote DevTools
+- **Опитани (и провалили) в CHAT 1.2:** safe-area-inset-bottom, padding-bottom 200px, inline styles, sticky footer, 80-120px fallback
+- **Ново предложение:** margin-bottom на body + `overscroll-behavior: contain` + `scrollIntoView()` при button focus
+- **Workaround до fix:** Пешо може да scroll-не manually или да обърне device portrait/landscape
+
+### 3. (евентуално) P0 #3 Barcode Scanner — ако се окаже app-only issue
+- Същият подход като P0 #2 — camera permission в AndroidManifest.xml
+
+---
+
