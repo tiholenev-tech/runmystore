@@ -2,9 +2,10 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 22.04.2026  
-**Последна завършена сесия:** S82.CAPACITOR (частично — BLE bridge блокер, 22.04.2026)  
-**Следваща сесия:** S82.CAPACITOR.2 — Capacitor WebView bridge fix (Claude Code)  
+**Последна актуализация:** 24.04.2026  
+**Последна завършена сесия:** S79.SELECTION_ENGINE (24.04.2026, Chat 2) — MMR topic rotation, 1000 topics bootstrap  
+**Паралелно в ход:** Chat 1.3 (products.php S79), Capacitor S82 (Claude Code)  
+**Следваща сесия:** S79.SECURITY (DB credentials rotation + .env) + S80  
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -87,6 +88,8 @@
 | `simple.php` / `life-board.php` | 🔴 не съществува | — | S95 (AI chat = home) |
 | `ai-action.php` | 🔴 не съществува | — | S94 (router + $MODULE_ACTIONS) |
 | `compute-insights.php` | ✅ 19 функции (products), 9 активни на tenant 7 | 1280 | S79.INSIGHTS done → S84 (+20 за warehouse/sale/stats) |
+| `selection-engine.php` | ✅ готов | 157 | MMR λ=0.75, 4 функции, FK CASCADE (S79.SELECTION_ENGINE) |
+| `config/ai_topics.php` | ✅ готов | 99 | Bootstrap + helpers (S79.SELECTION_ENGINE) |
 
 ## DB foundation
 
@@ -962,6 +965,19 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 24.04.2026 — S79.SELECTION_ENGINE: AI topic rotation система
+
+- **Решение:** 1000+ теми в DB каталог + MMR selection engine + per-tenant 6h suppression window
+- **Защо:** S95 Simple Mode и S96 Life Board имат нужда от rotating AI теми за Пешо AI chat. Compute-insights е статична — винаги едни и същи функции. Selection Engine избира КОИ теми да се показват на КОЙ tenant в кой момент.
+- **Алгоритъм:** MMR (Maximal Marginal Relevance) — greedy selection с relevance score (priority 40% + freshness 30% + trigger 30%) минус diversity penalty 0.4 per дублирана категория. λ=0.75 default.
+- **Нови файлове:** migrations/20260424_001_ai_topics.up.sql (41), config/ai_topics.php (99), selection-engine.php (157), SESSION_S79_SELECTION_ENGINE_HANDOFF.md
+- **Integration points:** S94 /ai-action.php (getTopicById), S95 life-board.php (selectTopicsForTenant), S96 Life Board визуализация, compute-insights.php (trigger_match scoring)
+- **Discrepancies fixed в кода:** tenants.plan_effective/country/language (не plan/country_code/lang), plan=business=универсален, FK CASCADE добавен, UNIQUE заменя INDEX
+- **Тестове (tenant 7):** 6/6 зелени (selection, suppression, stats, module scope, reset, diversity)
+- **Commit:** c0a4540
+- **Tag:** v0.6.0-s79-selection-engine
+- **Статус:** ✅ done
+
 ## 23.04.2026 (вечер) — S79.POLISH + DESIGN_SYSTEM v2.0
 
 - **Завършено:**
@@ -1468,6 +1484,7 @@ Phase A — DB Foundation + Products (S78-S82)         ~40% ⏳
   ├─ DB::tx() deadlock retry                          0% ⏳ S80
   ├─ Stock ledger + event queue                       0% ⏳ S81
   ├─ Bluetooth print (CSV workaround live)           30% 🟡 S82 Capacitor in progress
+  ├─ Selection Engine (1000 topics + MMR)           100% ✅ S79.SELECTION_ENGINE
   ├─ products.php главна — 6 секции + Hidden Inv    100% ✅ S79.FIX.B
   ├─ products.php wizard rewrite                      0% ⏳ S80
   ├─ AI Studio (background remove)                    0% ⏳ S81.AI (отложено)
@@ -1780,7 +1797,11 @@ products.retail_price (НЕ sell_price), inventory.quantity (НЕ qty), products
 - **Commit:** `2fb55ff` — v0.6.0-s81-bugfix-v2 tag pending в края на сесията
 - **Тест:** ЕНИ Android — потвърден от Тихол ✓
 
-### ⏸ P0 #2 — Voice Microphone в Android app — DEFERRED TO S82
+### ✅ P0 #2 — Voice Microphone в Android app — FIXED (24.04.2026)
+- **Fix:** Claude Code направи WebChromeClient permission passthrough в MainActivity.java + runtime permission request (RECORD_AUDIO + CAMERA + MODIFY_AUDIO_SETTINGS). Commit `aab28ef`.
+- **Потвърдено от Тихол:** микрофонът работи в Capacitor APK ✓
+
+### 🗂 LEGACY (запазен за референция) — старата хипотеза P0 #2 DEFERRED TO S82
 - **Диагностика:** Браузър (Chrome HTTPS) работи ✓. Android Capacitor app НЕ работи.
 - **Причина:** Android app (Capacitor) не иска automatically mic permission. Трябва:
   1. `RECORD_AUDIO` permission в `android/app/src/main/AndroidManifest.xml`
@@ -1797,6 +1818,35 @@ products.retail_price (НЕ sell_price), inventory.quantity (НЕ qty), products
 ### ⏸ P1 #4 — Mobile CSS (бутони под Android nav bar) — DEFERRED
 - **Защо:** CHAT 1.2 опита 5 пъти (padding-bottom, env(safe-area-inset-bottom), sticky footer, inline styles, 80-120px fallback) — всички провалили без screenshot. Prompt правило #10: без screenshot не опитвам.
 - **S82 task:** С реален screenshot от Тихол + remote DevTools session → прост подход (margin-bottom на body / overscroll-behavior / scroll-to-visible при focus).
+
+---
+
+## 🔒 S81.BUGFIX.V3 — MOBILE CSS REWORK (незапочнат, pending screenshots готови)
+
+**Статус:** Screenshots получени от Тихол на Samsung Z Flip6, Android 16, Capacitor WebView. 3 различни bug-а идентифицирани.
+
+### Проблем 1 — БРОЙ поле: "+" бутон отрязан отдясно
+- **Симптом:** "−" видим вляво, "1" в центъра, "+" **невидим** (overflow-clipped)
+- **Контекст:** products.php wizard, стъпка "Name+Price+Qty"
+- **Вероятна причина:** `.qty-row` flex container е по-широк от viewport, или `.quantity-input` има fixed width
+
+### Проблем 2 — Footer бутони под Android nav bar
+- **Симптом:** "Назад / Принтер / Запази" се виждат наполовина, долната половина е под системната навигация
+- **Класически safe-area bug** — `env(safe-area-inset-bottom)` не е приложен правилно в wizard footer
+- **Opus 4.7 opinion:** CHAT 1.2 опита 5 пъти без screenshot. Сега имаме screenshot → прост fix:
+  - `.wiz-footer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }`
+  - Или `<body>` ниво: `padding-bottom: env(safe-area-inset-bottom)`
+
+### Проблем 3 — Horizontal scroll (екрана се мърда ляво-дясно)
+- **Симптом:** Minor swipe ляво/дясно движи целия layout
+- **Вероятна причина:** Нещо (вероятно qty-row или gradient border) overflow-ва viewport width
+- **Fix:** `body { overflow-x: hidden; }` + намиране на реалния overflow виновник
+
+### Следваща сесия (кога Тихол се върне):
+1. Diagnostics: grep в products.php за `.qty-row`, `.quantity-input`, `.wiz-footer`
+2. Fix 1 bug наведнъж (P1 first Проблем 1, след това 2, след това 3)
+3. Commit след всеки → Тихол тества на Samsung → confirms → следващ
+4. git tag `v0.6.1-s81-bugfix-v3-mobilecss` в края
 
 ---
 
