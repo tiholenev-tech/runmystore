@@ -2149,6 +2149,29 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     .v4-mx-head,.v4-mx-cell{min-width:96px}
     .v4-cell-input{width:48px}
 }
+/* ═══ S81.BUGFIX · MOBILE WIZARD FIX ═══ */
+@media (max-width:430px){
+  /* Wizard footer не да се скрива под Android nav bar */
+  #v4Footer{
+    padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)) !important;
+    padding-top:10px !important;
+  }
+  /* Повече място отдолу за wizard страница за да не реже последните полета */
+  .wiz-page{
+    padding-bottom:140px !important;
+  }
+  /* Number input counters да не cut-off-ват на малък екран */
+  .wiz-page input[type="number"]{
+    box-sizing:border-box !important;
+    max-width:100% !important;
+  }
+  /* Voice mic бутоните да са proportional */
+  .wiz-page .voice-mic,.wiz-page [class*="mic"]{
+    flex-shrink:0 !important;
+  }
+}
+/* S81.BUGFIX end */
+
 /* S73.A end */
 
 /* ═══ S74 · NEON GLASS WIZARD V4 ═══ */
@@ -9054,21 +9077,3 @@ window.addEventListener('popstate', function(e){
 </body>
 </html>
 
-<!-- S82.CAPACITOR — Printer FAB (показва се само в Capacitor APP) -->
-<button id="prnFab" style="display:none;position:fixed;bottom:88px;right:16px;width:52px;height:52px;border-radius:50%;border:0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;box-shadow:0 6px 20px rgba(99,102,241,.4);z-index:9000;cursor:pointer;font-size:22px" title="Принтер">🖨️</button>
-<script>
-(function(){
-    var fab = document.getElementById('prnFab');
-    if (!fab) return;
-    fab.addEventListener('click', function(){
-        if (typeof openPrinterSettings === 'function') openPrinterSettings();
-    });
-    function showFab(){
-        if (typeof CapPrinter !== 'undefined' && CapPrinter.isAvailable && CapPrinter.isAvailable()){
-            fab.style.display = 'flex';
-        }
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(showFab,500)});
-    else setTimeout(showFab, 500);
-})();
-</script>
