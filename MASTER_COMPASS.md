@@ -921,6 +921,13 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 24.04.2026 - SHEF_RESTORE_PROMPT v2 (auto-fetch URLs)
+- Reshenie: Shef-chat restore prompt prezapisan - edno izrechenie s 2 URL-a.
+- Zashto: Web_fetch safety policy bloki URL-i koito ne sa v user turn. Stariyat protokol kazvashe web_fetch raboti no ne rabotesha za shef-chat.
+- Kak: Tihol kopira 1 red pri otvaryane na nov shef-chat. URL-ite idvat ot user -> fetch raboti avtomatichno.
+- Dobaveno: Predupreghdenie za parallel commits (viz S79.SELECTION_ENGINE + IRON PROTOCOL case na 24.04).
+- Status: standing rule
+
 ## 24.04.2026 - IRON PROTOCOL vuveden (no-base64)
 - Reshenie: Zhelezen protokol v IRON PROTOCOL sektsia na COMPASS.
 - Zashto: Povtorenie na prompts = gubene vreme. Propuski v closeout = zagubena rabota.
@@ -1268,6 +1275,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 
 | 16 | AI описание STANDARD | 22.04.2026 (Тихол решение) | STANDING RULE — всички AI описания минават през generateProductDescriptionFull(). Pull MAX context: всички DB полета + image. Default 250 думи, override 350 luxury. Език tenant.lang. 3-4 SEO keywords automatic. Cost ~€28/мес за 1000 магазина. | ALL modules с AI описание (S81, S83, S90) | ⏳ standing rule |
 | 18 | IRON PROTOCOL | 24.04.2026 | STANDING RULE: vseki chat chete IRON PROTOCOL pri otvaryane. ZABRANA na base64. Length warning pri ~30-40 suobshteniya. | ALL | standing |
+| 19 | PARALLEL COMMIT CHECK | 24.04.2026 | Pri paralelni chat-ove VINAGI 'git status' + 'git log -5' predi patch. Inache drug chat moje da include-ne tvoite promeni v svoya commit (viz S79.SELECTION_ENGINE + IRON PROTOCOL sluchay). | ALL | standing |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 
