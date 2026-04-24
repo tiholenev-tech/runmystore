@@ -2766,7 +2766,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 #mxOverlay.mx-focused .mx-body-wrap{
   flex:1 !important;
   max-height:none !important;
-  padding-top:8px !important;
+  padding-top:max(40px, calc(8px + env(safe-area-inset-top))) !important;
 }
 /* S76.5 applied */
 /* S76.6 applied */
@@ -3866,7 +3866,7 @@ html{overflow-x:hidden;max-width:100vw}
 
 <!-- S73.B.6: Fullscreen Matrix Overlay -->
 <div class="mx-overlay" id="mxOverlay">
-  <button id="mxFocusBack" onclick="if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();setTimeout(function(){mxDone()},60)" aria-label="Назад">
+  <button id="mxFocusBack" onclick="if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()" aria-label="Назад">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <div class="mx-header">
@@ -5121,6 +5121,7 @@ function openMxOverlay(){
     });
   },120);
 
+  try{history.pushState({modal:'matrix'},'','#matrix')}catch(_){}
   S._mxSnapshot=JSON.stringify(S.wizData._matrix||{});
   // Намираме axes с стойности — първите 2 с данни стават rows × cols
   var activeAxes=(S.wizData.axes||[]).filter(function(a){return a.values&&a.values.length>0});
@@ -7625,6 +7626,18 @@ document.addEventListener('DOMContentLoaded',()=>{
 // S43: Back button support for drawers and screens
 window.addEventListener('popstate', function(e) {
     // Close topmost overlay first, don't navigate
+    const mxOv = document.getElementById('mxOverlay');
+    if (mxOv && mxOv.classList.contains('open')) {
+        if (mxOv.classList.contains('mx-focused')) {
+            // Focus mode: exit focus, keep matrix open; re-push state so next back still works
+            const inp = mxOv.querySelector('input:focus');
+            if (inp) inp.blur();
+            try{history.pushState({modal:'matrix'},'','#matrix')}catch(_){}
+            return;
+        }
+        mxCancel();
+        return;
+    }
     const wizModal = document.getElementById('wizModal');
     if (wizModal && wizModal.classList.contains('open')) { closeWizard(); return; }
     const recOv = document.getElementById('recOv');
