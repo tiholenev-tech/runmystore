@@ -5901,9 +5901,13 @@ async function doStudioObjects(){
 
 function wizScanBarcode(){
     const ov=document.createElement('div');ov.className='preset-ov';ov.id='barcodeScanOv';
-    ov.innerHTML='<div class="preset-box" style="text-align:center;padding:16px">'+
+    ov.innerHTML='<style>#wizBcVid::-webkit-media-controls,#wizBcVid::-webkit-media-controls-panel,#wizBcVid::-webkit-media-controls-overlay-play-button,#wizBcVid::-webkit-media-controls-play-button,#wizBcVid::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}</style>'+
+    '<div class="preset-box" style="text-align:center;padding:16px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">Сканирай баркод</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
-    '<video id="wizBcVid" autoplay playsinline muted style="width:100%;max-height:250px;border-radius:12px;background:#000;object-fit:cover"></video>'+
+    '<div id="wizBcWrap" style="position:relative;width:100%;aspect-ratio:16/10;max-height:250px;border-radius:12px;background:#000;overflow:hidden">'+
+      '<video id="wizBcVid" autoplay playsinline muted disablepictureinpicture style="width:100%;height:100%;object-fit:cover;visibility:hidden"></video>'+
+      '<div id="wizBcLoad" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>Стартиране на камерата…</div>'+
+    '</div>'+
     '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">Насочи камерата към баркода</div>'+
     '<button class="abtn" onclick="closeBarcodeScan()" style="margin-top:10px">Затвори</button></div>';
     document.body.appendChild(ov);
@@ -5911,7 +5915,10 @@ function wizScanBarcode(){
         const vid=document.getElementById('wizBcVid');
         if(!vid){stream.getTracks().forEach(t=>t.stop());return}
         vid.srcObject=stream;vid._stream=stream;
-        try{var _pp=vid.play();if(_pp&&_pp.catch)_pp.catch(function(){})}catch(_){}
+        try{vid.muted=true;vid.playsInline=true}catch(_){}
+        function _bcReveal(){var ld=document.getElementById('wizBcLoad');if(ld)ld.style.display='none';vid.style.visibility='visible'}
+        vid.addEventListener('loadedmetadata',function(){_bcReveal();try{var _pp2=vid.play();if(_pp2&&_pp2.catch)_pp2.catch(function(){})}catch(_){}},{once:true});
+        try{var _pp=vid.play();if(_pp&&_pp.then){_pp.then(_bcReveal).catch(function(){})}else{_bcReveal()}}catch(_){_bcReveal()}
         if('BarcodeDetector' in window){
             const det=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
             vid._bcInterval=setInterval(async()=>{
