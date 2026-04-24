@@ -3,9 +3,9 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 24.04.2026  
-**Последна завършена сесия:** S79.SELECTION_ENGINE (24.04.2026, Chat 2) — MMR topic rotation, 1000 topics bootstrap  
+**Последна завършена сесия:** S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE (24.04.2026) — pfHighReturnRate Cartesian bug fix, 19/19 pf*() функции, seed_oracle, MMR topic rotation  
 **Паралелно в ход:** Chat 1.3 (products.php S79), Capacitor S82 (Claude Code)  
-**Следваща сесия:** S79.SECURITY (DB credentials rotation + .env) + S80  
+**Следваща сесия:** S80 — DIAGNOSTIC.FRAMEWORK (cron + dashboard + 72/72 PASS)  
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -39,7 +39,7 @@
 - Последна сесия: S79.INSIGHTS (compute-insights.php, 22.04.2026)
 - Последен commit: 5b8a3e0 (S79.INSIGHTS)
 - Текуща фаза: Phase A (Products Foundation)
-- Завършено: ~15%
+- Завършено: ~20%
 
 РАБОТИ:
 - products.php v0.9 (списък, wizard, детайли) — 8394 реда
@@ -188,7 +188,7 @@
 
 ---
 
-# 🎯 СЛЕДВАЩА ЗАДАЧА — S78
+# 🎯 СЛЕДВАЩА ЗАДАЧА — S80 DIAGNOSTIC.FRAMEWORK
 
 **Тип:** Фундамент — DB + P0 bugs + skeleton  
 **Модел:** Opus 4.7  
@@ -249,7 +249,7 @@ git tag v0.5.0-s78-foundation && git push --tags
 
 ---
 
-# 📚 ЧЕТИВО ЗА СЛЕДВАЩАТА СЕСИЯ (S78)
+# 📚 ЧЕТИВО ЗА СЛЕДВАЩАТА СЕСИЯ (S80 — DIAGNOSTIC.FRAMEWORK)
 
 | Файл | Секция | Защо |
 |---|---|---|
@@ -917,6 +917,21 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 24.04.2026 — S79.INSIGHTS.COMPLETE (Cartesian bug fix + seed_oracle)
+
+- **Решение 1:** `pfHighReturnRate` Cartesian bug fixed. Old SQL: `LEFT JOIN returns + SUM()` дублираше quantity ×N при N sale_items → показваше 100% returns вместо реални 10%. New: subquery aggregation pattern.
+- **Решение 2:** compute-insights.php **= 19/19 pf*() функции работят** (от 0 skeleton в S77 план). 9 schema gap + 10 functional били фиксирани в S78+S79.SCHEMA.
+- **Решение 3:** `seed_oracle` table **= permanent** на test tenant (7). Регресионни expectations за всеки AI модул. 72 scenarios defined за insights module.
+- **Решение 4:** `cost_price` остава **NOT NULL** (S79 experiment reverted). 0 = "не знам", wizard принуждава въвеждане (UX rule).
+- **Решение 5:** DIAGNOSTIC FRAMEWORK planned за S80. Continuous integration testing: нов AI модул + weekly cron (понеделник 03:00) + monthly + ръчно "AI DIAG ПУСНИ".
+- **Test coverage:** 53/72 oracle scenarios PASS (74%). 19 FAIL = TOP-N background pollution, не bugs, S80 решава с pristine tenant.
+- **Засегнати:** compute-insights.php (SQL fix ред ~1075), DB schema (+seed_oracle, +returns, +sale_items.returned_quantity, +products.has_variations/size/color)
+- **Rework:** добавени RQ-S79-1..9 (refactor s79_seed.py, multi-store inventory fix, category backfill, pristine mode, aggressive fixtures, children fixture, cron, dashboard, diagnostic_log)
+- **Tags:** `v0.7.0-s79-insights-complete` (pushed)
+- **Commits:** `c9a49f5` (pfHighReturnRate fix)
+- **Файлове създадени:** `docs/DIAGNOSTIC_PROTOCOL.md` v1.0, `docs/SESSION_S79_INSIGHTS_COMPLETE_HANDOFF.md`
+
+
 > **Правило:** когато Тихол промени решение или върне назад, record в този лог. Всеки chat при стартиране проверява тук за влияние върху текущата задача.
 
 **Reverse chronological (newest first).**
@@ -1023,6 +1038,17 @@ cron-weather.php → 06:00
 - **Cleanup:** Debug trap в login.php премахнат; printer бутон от ua-debug.php премахнат. Ua-debug.php остава public за бъдеща диагностика.
 
 ### REWORK QUEUE updates
+
+### Added 24.04.2026 (S79 → S80)
+| RQ-S79-1 | Refactor s79_seed.py → /tools/diagnostic/ modular structure | P0 | S80 |
+| RQ-S79-2 | Fix adjust_inventory multi-store routing | P1 | S80 |
+| RQ-S79-3 | Backfill category A/B/C/D на 23 scenarios | P0 | S80 |
+| RQ-S79-4 | Pristine tenant mode (--pristine flag, wipe products) | P1 | S80 |
+| RQ-S79-5 | Aggressive fixtures → 72/72 PASS | P2 | S80 |
+| RQ-S79-6 | Children products fixture за size_leader | P2 | S80 |
+| RQ-S79-7 | Cron setup (weekly понеделник 03:00, monthly 1-ви 04:00) | P0 | S80 |
+| RQ-S79-8 | Admin dashboard /admin/diagnostics.php | P0 | S80 |
+| RQ-S79-9 | diagnostic_log DB table | P0 | S80 |
 - **Затворен #11 (S82.CAPACITOR blocker):** APK → external browser → DONE чрез Capacitor runtime hosted на runmystore.ai (commit 5bddc81) + FINE_LOCATION permission fix.
 - **Нов #12 (S82.4 LABEL DESIGN):** TSPL codepage за кирилица + layout redesign за 50×30mm етикет.
 - **Нов REWORK iOS Capacitor → S85.5:** Android работи; iOS Capacitor build и тест са отложени за след Phase A launch.
@@ -1885,3 +1911,29 @@ products.retail_price (НЕ sell_price), inventory.quantity (НЕ qty), products
 
 ---
 
+# 📋 LOGIC CHANGE LOG
+
+## 24.04.2026 — S79.INSIGHTS.COMPLETE + DIAGNOSTIC FRAMEWORK planning
+
+### Решения
+1. **pfHighReturnRate Cartesian bug fix.** Стар SQL: `LEFT JOIN returns` + `SUM()` дублира quantity ×N когато има N sale_items. Нов: subquery aggregation pattern (JOIN (SELECT SUM...) sold_agg + LEFT JOIN (SELECT SUM...) ret_agg). Impact: производствен bug — показваше 100% връщания вместо реални 10% при N≥10.
+2. **compute-insights.php = 19/19 pf*() функции работят** (от 0 skeleton в S77 план). 10/19 генерираха insights преди S79, 9/19 връщаха 0 заради schema gap (resolved S79.SCHEMA) + data gap (resolved S79.SEED).
+3. **cost_price остава NOT NULL.** S79 experiment временно ALTER-на колоната до NULL-able, revert-нат. 0 = "не знам", wizard принуждава въвеждане (UX rule, не DB rule).
+4. **seed_oracle table = permanent.** Нова DB таблица за регресионни тестове. Остава на test tenant=7. Всеки AI модул ще има oracle entries.
+5. **DIAGNOSTIC FRAMEWORK planned (S80).** Continuous integration testing: при всеки нов AI модул + weekly cron (понеделник 03:00) + monthly + ръчно "AI DIAG ПУСНИ". Пълен план в SESSION_S79_INSIGHTS_COMPLETE_HANDOFF.md.
+
+### Засегнати модули
+- `compute-insights.php` — SQL fix в pfHighReturnRate (от ред ~1075)
+- DB schema — нови `seed_oracle`, `returns`; колона `sale_items.returned_quantity`; колони `products.has_variations/size/color`
+- `/tmp/s79_seed.py` (1224 реда) — reference за refactor в S80 към `/tools/diagnostic/`
+
+### Test coverage
+- **53/72 oracle scenarios PASS** (74%)
+- 0 real SQL bugs остават след S79.BUGFIX
+- 19 FAIL = TOP-N background pollution, не bugs, S80 решава с pristine tenant mode
+
+### Tags
+- `v0.7.0-s79-insights-complete` (pushed)
+
+### Commits
+- `c9a49f5` — pfHighReturnRate Cartesian fix
