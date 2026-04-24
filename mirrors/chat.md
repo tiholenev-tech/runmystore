@@ -1445,6 +1445,124 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 .bottom-nav{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 .input-bar{bottom:calc(60px + env(safe-area-inset-bottom))}
 .chat-input{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* LIGHT THEME OVERRIDES — activated via <html data-theme="light"> */
+/* Default = dark (no data-theme attr). Toggle in header switches. */
+/* ═══════════════════════════════════════════════════════════ */
+html[data-theme="light"]{
+    --border-color:hsl(var(--hue2),22%,82%);
+    --bg-main:#f4f6fb;
+    --text-primary:#0f172a;
+    --text-secondary:rgba(15,23,42,.70);
+    --text-muted:rgba(15,23,42,.50);
+    color-scheme:light;
+}
+html[data-theme="light"] body{
+    background:
+        radial-gradient(ellipse 900px 550px at 20% 10%,hsl(var(--hue1) 85% 72% / .30) 0%,transparent 60%),
+        radial-gradient(ellipse 750px 500px at 85% 85%,hsl(var(--hue2) 85% 72% / .30) 0%,transparent 60%),
+        linear-gradient(180deg,#f8faff 0%,#e7ebf5 100%);
+    background-attachment:fixed;
+    color:var(--text-primary);
+}
+html[data-theme="light"] body::before{opacity:.04;mix-blend-mode:multiply}
+
+html[data-theme="light"] .glass{
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 70% 92% / .85),hsl(var(--hue1) 70% 95% / 0) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 70% 92% / .85),hsl(var(--hue2) 70% 95% / 0) 33%),
+        linear-gradient(hsl(215deg 40% 99% / .92));
+    border-color:hsl(var(--hue2),25%,80%);
+    box-shadow:
+        hsl(var(--hue2) 40% 75% / .35) 0 10px 16px -8px,
+        hsl(var(--hue2) 40% 70% / .30) 0 20px 36px -14px;
+}
+html[data-theme="light"] .glass .shine,
+html[data-theme="light"] .glass .shine::before,
+html[data-theme="light"] .glass .shine::after{--lit:55%;--sat:85%}
+html[data-theme="light"] .glass .glow{
+    filter:blur(14px) saturate(1.5) brightness(.75);
+    opacity:.55;mix-blend-mode:multiply;
+}
+html[data-theme="light"] .glass .glow::after{--lit:55%;--sat:90%;opacity:.55}
+
+html[data-theme="light"] .brand{
+    color:hsl(var(--hue1) 55% 48%);
+    text-shadow:0 0 10px hsl(var(--hue1) 60% 60% / .20);
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] .hero-title,
+html[data-theme="light"] .gradient-title{
+    background:linear-gradient(110deg,#1e1b4b 0%,#4338ca 35%,#1e1b4b 70%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+}
+
+html[data-theme="light"] [style*="rgba(255,255,255,0.03)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.04)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.05)"]{background:rgba(15,23,42,0.03) !important}
+html[data-theme="light"] [style*="rgba(255,255,255,0.06)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.08)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.1)"]{background:rgba(15,23,42,0.06) !important}
+
+html[data-theme="light"] .header-icon-btn{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:var(--text-secondary);
+}
+html[data-theme="light"] .header-icon-btn:hover{background:rgba(15,23,42,.08)}
+
+html[data-theme="light"] .bottom-nav{
+    background:
+        linear-gradient(180deg,hsl(215deg 40% 99% / .75),hsl(215deg 40% 97% / .95)),
+        hsl(215deg 40% 99% / .8);
+    border-top-color:hsl(var(--hue2),25%,80%);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+html[data-theme="light"] .nav-item{color:var(--text-secondary)}
+html[data-theme="light"] .nav-item.active{color:hsl(var(--hue1) 65% 50%)}
+
+html[data-theme="light"] .input-bar{
+    background:linear-gradient(180deg,hsl(215deg 40% 99% / .85),hsl(215deg 40% 97% / .95));
+    border-color:hsl(var(--hue2),25%,80%);
+}
+html[data-theme="light"] .chat-input,
+html[data-theme="light"] .chat-input input,
+html[data-theme="light"] .chat-input textarea{
+    background:rgba(255,255,255,.85) !important;
+    color:var(--text-primary) !important;
+    border-color:hsl(var(--hue2),25%,82%) !important;
+}
+html[data-theme="light"] .chat-input input::placeholder,
+html[data-theme="light"] .chat-input textarea::placeholder{color:var(--text-muted) !important}
+
+html[data-theme="light"] .pill,
+html[data-theme="light"] .card,
+html[data-theme="light"] .weather-card,
+html[data-theme="light"] .revenue-card{
+    background:linear-gradient(180deg,hsl(215deg 40% 99% / .85),hsl(215deg 40% 96% / .92));
+    border-color:hsl(var(--hue2),25%,82%);
+    color:var(--text-primary);
+}
+
+html[data-theme="light"] body,
+html[data-theme="light"] .app,
+html[data-theme="light"] p,
+html[data-theme="light"] span,
+html[data-theme="light"] div{color:var(--text-primary)}
+
+html[data-theme="light"] [style*="rgba(255,255,255,0.4)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.5)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.6)"]{color:rgba(15,23,42,.65) !important}
+html[data-theme="light"] [style*="rgba(255,255,255,0.7)"],
+html[data-theme="light"] [style*="rgba(255,255,255,0.85)"]{color:rgba(15,23,42,.85) !important}
+
+html[data-theme="light"] .overlay,
+html[data-theme="light"] .modal-ov{background:rgba(255,255,255,.92)}
+
+/* END LIGHT THEME */
 </style>
 </head>
 <body>
@@ -1457,6 +1575,10 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
     <div class="header">
         <div class="brand">RUNMYSTORE.AI</div>
         <span class="plan-badge <?= htmlspecialchars($plan) ?>"><?= htmlspecialchars($plan_label) ?></span>
+        <button class="header-icon-btn theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Светла/тъмна тема" style="margin-left:8px">
+            <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
         <div class="header-spacer"></div>
         <a href="simple.php" class="header-icon-btn" title="Опростен режим">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1882,6 +2004,41 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+// THEME TOGGLE — default DARK, user can switch to LIGHT
+// Persisted in localStorage['rms_theme']
+// ═══════════════════════════════════════════════════════
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        if(saved==='light'){
+            document.documentElement.setAttribute('data-theme','light');
+        }
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            var isLight=document.documentElement.getAttribute('data-theme')==='light';
+            if(isLight){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var nxt=(cur==='light')?'dark':'light';
+    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
+    else{document.documentElement.removeAttribute('data-theme')}
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
+
 // ═══════════════════════════════════════════════════════
 // DATA FROM PHP
 // ═══════════════════════════════════════════════════════
