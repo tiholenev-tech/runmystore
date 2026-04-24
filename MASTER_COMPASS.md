@@ -2,9 +2,9 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 24.04.2026
-**Последна завършена сесия:** S79.FIX.TOP_PILL (fmtMoney/fmtQty в top-pill values, 24.04.2026)
-**Следваща сесия:** S80 ROLES_AND_MODES_FOUNDATION (roles + modes infra, beta blocker)
+**Последна актуализация:** 22.04.2026  
+**Последна завършена сесия:** S82.CAPACITOR (частично — BLE bridge блокер, 22.04.2026)  
+**Следваща сесия:** S82.CAPACITOR.2 — Capacitor WebView bridge fix (Claude Code)  
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
@@ -1094,6 +1094,38 @@ cron-weather.php → 06:00
 - **Rework:** REWORK #13 добавен за S109 — задължителен преди public launch
 - **Статус rework:** ⏳ pending S109
 
+## 22.04.2026 — S82.CAPACITOR частично завършена, блокер за S82.CAPACITOR.2
+
+**Извършена работа (11 commit-а):**
+- Node 22 + mobile/ Capacitor 8.3.1 проект
+- @capacitor-community/bluetooth-le@8.1.3 инсталиран
+- GitHub Actions — Android APK Build работи, APK билдва успешно
+- index.php session router (chat/onboarding/login)
+- .htaccess DirectoryIndex + Options -Indexes fix
+- Safe-area-inset CSS за bottom nav (6 файла: chat, products, sale, stats, warehouse, onboarding)
+- js/capacitor-printer.js — BLE bridge за DTM-5811 (pair/print/test/forget API, TSPL 50×30mm)
+- wizPrintLabelsMobile hook в products.php step 6
+- printer-setup.php — dedicated pairing UI с diagnostic log
+- ua-debug.php — diagnostic страница
+- SESSION_S82_CAPACITOR_HANDOFF.md — пълен handoff документ за Claude Code
+
+**БЛОКЕР (нерешен):**
+APK-то отваря runmystore.ai в **external Chrome browser**, не в Capacitor WebView. `window.Capacitor` е undefined → BLE plugin не се активира.
+
+**Доказателство:** UA от APK = `Mozilla/5.0 (Linux; Android 10; K) Chrome/147.0.0.0 Mobile Safari/537.36` (няма `wv` маркер)
+
+**Пробвани 4 конфигурации:** server.url mode, webDir+JS redirect, hostname-only, URL param+sessionStorage fallback — нито една не инжектира bridge.
+
+**Следваща стъпка:** Claude Code поема S82.CAPACITOR.2 с SESSION_S82_CAPACITOR_HANDOFF.md като референция. 6 варианти за опит: hybrid local+fetch, iframe+postMessage, различна Capacitor версия, custom WebView activity, PWA+Service Worker, hosted runtime.js.
+
+**Засегнати файлове:** mobile/*, js/capacitor-printer.js, printer-setup.php, ua-debug.php, index.php, .htaccess, products.php (wizPrintLabelsMobile функция), chat/stats/sale/warehouse/onboarding .php (safe-area CSS)
+
+**Commits:** aeb8187, 5f97e39, de49554, 0bbe881, 069c63c, 4cc1380, bb25add, 985e5fc, 5f384e0, 9115d5b, b86eb56
+
+**Статус:** ⏳ Не е production-ready. APK инсталиран на Samsung Z Flip6 на Тихол, login работи, но BLE печат не работи.
+
+---
+
 ## 21.04.2026 — MASTER_COMPASS v3.0 създаден
 - **Решение:** Добавен dependency tree + change protocol + rework queue
 - **Защо:** Тихол иска да се знае при всяка промяна какво се засяга
@@ -1612,8 +1644,11 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 - **Защо deferred:** `android/` папката е извън обхвата на CHAT 1.3. ЕНИ може да ползва browser (HTTPS) или PWA (Add to Home Screen) междувременно — микрофонът работи там.
 - **S82 task:** Отделна сесия с Android достъп за Capacitor permission fix.
 
-### ⏸ P0 #3 — Barcode Scanner — STATUS TBD
-- **Действие:** Диагностика в процес. Ако е само Android app issue (като микрофона) → defer to S82 с permissions fix-а. Ако е browser issue → fix сега.
+### ⏸ P0 #3 — Barcode Scanner в Android app — DEFERRED TO S82
+- **Диагностика:** Браузър (Chrome HTTPS) работи ✓. Android Capacitor app НЕ работи.
+- **Причина:** Идентична с P0 #2 — Android app не иска automatically CAMERA permission.
+- **Fix в S82:** `<uses-permission android:name="android.permission.CAMERA" />` + runtime permission request.
+- **Workaround за ЕНИ:** Chrome Android browser работи.
 
 ### ⏸ P1 #4 — Mobile CSS (бутони под Android nav bar) — DEFERRED
 - **Защо:** CHAT 1.2 опита 5 пъти (padding-bottom, env(safe-area-inset-bottom), sticky footer, inline styles, 80-120px fallback) — всички провалили без screenshot. Prompt правило #10: без screenshot не опитвам.
@@ -1639,8 +1674,12 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 - **Ново предложение:** margin-bottom на body + `overscroll-behavior: contain` + `scrollIntoView()` при button focus
 - **Workaround до fix:** Пешо може да scroll-не manually или да обърне device portrait/landscape
 
-### 3. (евентуално) P0 #3 Barcode Scanner — ако се окаже app-only issue
-- Същият подход като P0 #2 — camera permission в AndroidManifest.xml
+### 3. CAMERA permission в Android app (P0 — блокер за баркод сканиране)
+- **Потвърдено app-only issue** (browser работи).
+- Същият подход като P0 #2:
+  - Добави `<uses-permission android:name="android.permission.CAMERA" />` в AndroidManifest.xml
+  - Runtime permission request при първо отваряне на камерата
+  - Test: wizard → поле Баркод → tap scan → prompt → Allow → работи
 
 ---
 
