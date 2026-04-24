@@ -917,6 +917,13 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 24.04.2026 - ZABRANA NA MARKDOWN V HEREDOC (IRON PROTOCOL addition)
+- Reshenie: heredoc payload NE sadurzha emoji/bold/tables/headers/backticks/BG kavichki.
+- Zashto: paste v bash konzola shhupeshe parsera, faylovete se suzdavaha chastichno.
+- Pravilen workflow: 2 stupki. Heredoc s plain ASCII placeholders + Python skript s \u unicode escapes za final markdown.
+- Alternativa: edin golyam Python skript s \u escapes za tsyaloto sudurzhanie.
+- Status: standing rule
+
 ## 24.04.2026 — S81.BUGFIX.V3.EXT (14 mobile bugs Samsung Z Flip6)
 
 - **Решение 1:** Mobile CSS rework for Samsung Z Flip6 cover display (~373px wide, Capacitor WebView). 14 bugs closed across 3 groups (CSS, functional, UX).
@@ -1316,6 +1323,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 16 | AI описание STANDARD | 22.04.2026 (Тихол решение) | STANDING RULE — всички AI описания минават през generateProductDescriptionFull(). Pull MAX context: всички DB полета + image. Default 250 думи, override 350 luxury. Език tenant.lang. 3-4 SEO keywords automatic. Cost ~€28/мес за 1000 магазина. | ALL modules с AI описание (S81, S83, S90) | ⏳ standing rule |
 | 18 | IRON PROTOCOL | 24.04.2026 | STANDING RULE: vseki chat chete IRON PROTOCOL pri otvaryane. ZABRANA na base64. Length warning pri ~30-40 suobshteniya. | ALL | standing |
 | 19 | PARALLEL COMMIT CHECK | 24.04.2026 | Pri paralelni chat-ove VINAGI 'git status' + 'git log -5' predi patch. Inache drug chat moje da include-ne tvoite promeni v svoya commit (viz S79.SELECTION_ENGINE + IRON PROTOCOL sluchay). | ALL | standing |
+| 20 | HEREDOC MARKDOWN BAN | 24.04.2026 | STANDING: heredoc bez emoji/bold/tables/headers/backticks/BG kavichki. 2-stupkov workflow: ASCII heredoc + Python s \u escapes. | ALL | standing |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 
@@ -1649,6 +1657,32 @@ EOF
 python3 /tmp/script.py
 
 Ако chat дава base64 → Тихол казва "IRON PROTOCOL" → chat преформулира в plain text.
+
+
+### 🚫 ЗАБРАНА НА MARKDOWN В HEREDOC (STANDING, 24.04.2026)
+
+Heredoc payload (`cat > file.md << EOF ... EOF`) НЕ съдържа:
+
+- Emoji (нито в текста, нито в code blocks)
+- Markdown bold (звезди)
+- Markdown headers (###)
+- Markdown tables (pipe delimiters)
+- Code fences (triple backtick)
+- Български кавички „ “
+- Долар знак без escape
+- Backtick, backslash
+
+**Причина:** Тези символи чупят bash parser-а когато heredoc-ът се paste-ва в конзола. Output-ът се реже по средата, файлът се създава частично, Python scripts грешат със SyntaxError.
+
+**Правилен workflow — 2 стъпки:**
+
+1. **Stupka 1:** Heredoc > `/tmp/content_raw.txt` с само ASCII placeholders (без emoji, без tables, без headers). Това е safe за paste.
+2. **Stupka 2:** Python скрипт чете raw файла + използва вътрешен Python string literal с `\u` unicode escapes за кирилица/emoji за да напише final markdown. Python стринговете НЕ минават през bash parser.
+
+**Алтернатива:** един голям Python скрипт с `\u` escapes за цялото съдържание вътре (не чете external файл).
+
+**Неспазване = IRON PROTOCOL violation.** Тихол казва "IRON PROTOCOL" → chat преформулира в 2-стъпков workflow.
+
 
 ### Git
 - git pull origin main ПРЕДИ всеки commit
