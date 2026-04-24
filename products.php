@@ -1116,7 +1116,7 @@ foreach ($_custom_colors as $cc) {
 .mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
 .mx-qchip:hover{background:hsl(var(--hue1) 40% 22% / 0.4);border-color:hsl(var(--hue1) 50% 45% / 0.5);color:hsl(var(--hue1) 60% 88%)}
 .mx-qchip.danger{border-color:rgba(239,68,68,0.25);color:#fca5a5}
-.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative;animation:mxFlash 0.7s ease-out}
+.mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative}
 @keyframes mxFlash{0%{opacity:0;transform:scale(0.97);filter:brightness(2)}40%{opacity:1;filter:brightness(1.3)}100%{opacity:1;transform:scale(1);filter:brightness(1)}}
 .mx-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 .mx-head-cell,.mx-row-head,.mx-corner{position:sticky;background:rgba(8,9,13,0.98);backdrop-filter:blur(8px);z-index:2}
