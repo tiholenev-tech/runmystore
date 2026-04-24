@@ -1573,3 +1573,21 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 - **Засегнати:** products.php (нов endpoint output `store_health` в home_stats; нов HTML/CSS/JS; нов overlay).
 - **Rework:** ЗАВЪРШЕН в S79.FIX.B (маркер S79.FIX.B-HIDDEN-INV-*).
 
+
+---
+
+## 🔒 TODO ПРЕДИ БЕТА (S81 PENDING)
+
+### AI Credits Paywall — активиране
+- **Статус:** Сега скрит credit bar в products.php AI стъпка (S81)
+- **При бета:** Активирай credit bar с лимити per план:
+  - FREE: 0 AI операции/мес
+  - START: 50 AI операции/мес (€0.05 birefnet, €0.50 nano-banana)
+  - PRO: 300 + 50/магазин
+- **Цени (от S81 mockup):**
+  - Махни фона (birefnet): €0.05
+  - AI модел носи дрехата (nano-banana): €0.50
+  - Студийна снимка: €0.50
+- **Файл:** products.php — unhide `.credit-bar` + activate `falCostTrack()` paywall check
+- **Сесия за активация:** преди beta launch (target S100+)
+
