@@ -108,6 +108,8 @@
 | `wizard_draft` (crash recovery) | ⏳ отложено | S80 |
 | `cron_heartbeats` (cron monitoring) | ✅ | S79.CRON_AUDIT |
 | `inventory_events` (event-sourced) | 🔴 няма | S87 |
+| `ai_topics_catalog` (1000 теми) | ✅ S79.SELECTION_ENGINE |
+| `ai_topic_rotation` (MMR suppression) | ✅ S79.SELECTION_ENGINE |
 
 ## Hardware / External
 
@@ -916,6 +918,14 @@ cron-weather.php → 06:00
 
 **Reverse chronological (newest first).**
 
+## 24.04.2026 - IRON PROTOCOL vuveden (no-base64)
+- Reshenie: Zhelezen protokol v IRON PROTOCOL sektsia na COMPASS.
+- Zashto: Povtorenie na prompts = gubene vreme. Propuski v closeout = zagubena rabota.
+- Kak: Shef-chat kazva 'Izpulni IRON PROTOCOL + zadachata e: ...'. Chat chete COMPASS.
+- Klyuchovo: ZABRANA na base64 (Opus 4.7 safety go blokira -> chat spira po sredata).
+- Dobaveno: Length warning pri ~30-40 suobshteniya, 7-stupkov closeout.
+- Status: standing rule
+
 ## 23.04.2026 (късно) — BETA SCOPE FINALIZED + ЗАКОН №8 (Role-aware)
 - **Решение:** Beta launch (май 2026) scope = 1 магазин, 1 seller (Ани), БЕЗ AI. Необходими модули: sale.php (rewrite), deliveries.php (нов), products.php (polish), inventory.php (v3 работи, само simple wrapper), life-board.php (skeleton без AI).
 - **Отложено за Beta v2 (юни-юли):** трансфери между магазини, фактури, OCR сканиране, multi-магазин, multi-seller.
@@ -1213,6 +1223,10 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |
+| 9 | selection-engine strict_module | 24.04.2026 (S79.SELECTION_ENGINE) | Добави $strict_module=true flag за module-specific feed (без home fallback) | S94+ | ⏳ pending |
+| 10 | selection-engine trigger evaluator | 24.04.2026 (S79.SELECTION_ENGINE) | PHP match statement за trigger_condition string (напр. rev12m>80pct_threshold) | S94+ | ⏳ pending |
+| 11 | ai_topics_catalog embeddings | 24.04.2026 (S79.SELECTION_ENGINE) | Gemini embeddings per topic.what → MMR със semantic similarity | S97+ | ⏳ pending |
+| 12 | selection-engine monitoring | 24.04.2026 (S79.SELECTION_ENGINE) | Ако suppressed_count/total > 0.8 → reset най-старите | S100+ | ⏳ pending |
 | 9 | inventory naming | 22.04.2026 | Rename inventory→stock_levels, inventories→inventory_sessions, inventory_items→inventory_session_lines. Update всички queries. | S87 | ⏳ pending |
 | 10 | audit_log extension | 22.04.2026 | ✅ CLOSED в S79.CRON_AUDIT (store_id + source ENUM + user_agent + source_detail добавени) | S79.CRON_AUDIT | ✅ DONE |
 | 11 | DB::tx() deadlock retry | 22.04.2026 | 3-attempt exponential backoff за MySQL 1213 deadlock error | S80 | ⏳ pending |
@@ -1237,6 +1251,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 ---
 
 | 16 | AI описание STANDARD | 22.04.2026 (Тихол решение) | STANDING RULE — всички AI описания минават през generateProductDescriptionFull(). Pull MAX context: всички DB полета + image. Default 250 думи, override 350 luxury. Език tenant.lang. 3-4 SEO keywords automatic. Cost ~€28/мес за 1000 магазина. | ALL modules с AI описание (S81, S83, S90) | ⏳ standing rule |
+| 18 | IRON PROTOCOL | 24.04.2026 | STANDING RULE: vseki chat chete IRON PROTOCOL pri otvaryane. ZABRANA na base64. Length warning pri ~30-40 suobshteniya. | ALL | standing |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 
@@ -1510,6 +1525,135 @@ git commit -m "COMPASS: update after S78 — bugs closed, tables created"
 ```
 
 ---
+
+
+# ⚙️ IRON PROTOCOL — ЗАДЪЛЖИТЕЛНО ЗА ВСЕКИ CHAT (24.04.2026)
+
+> **ВСЕКИ** работен chat прочита § IRON PROTOCOL при отваряне.
+> Шеф-chat не повтаря правилата в prompts — казва: "Изпълни IRON PROTOCOL + твоята задача е: ...".
+> Ако нарушаваш → Тихол казва "IRON PROTOCOL" = reminder.
+
+## ⚠️ ПРЕДУПРЕЖДЕНИЕ ЗА ДЪЛЖИНА НА CHAT
+
+Chat-ът има ограничен context window. При натрупване на много съобщения → рискуваш да се **прекъсне сесията**.
+
+**Ти (chat) си длъжен:**
+- След ~30-40 съобщения → питай Тихол: "Чатът е дълъг, да затварям и започнем нов?"
+- При първи признак за забавяне → СПРИ, направи closeout.
+- Винаги commit + push междувременно.
+- Не чакай колапс — проактивно предупреждавай.
+
+Същото важи за ШЕФ-CHAT — при ~50+ съобщения в планиране → предлагай restore prompt за нов шеф.
+
+## 🟢 НАЧАЛО НА СЕСИЯ
+
+1. Прочети COMPASS от DROPLET (НЕ github raw — 5min CDN cache):
+   cat /var/www/runmystore/MASTER_COMPASS.md | head -100
+2. Scan commits: cd /var/www/runmystore && git log --oneline -10
+3. Питай Тихол: "Други активни chat-ове? На кои файлове?"
+4. Потвърди scope в 2-3 реда, чакай "ОК".
+
+## 🔵 ПО ВРЕМЕ НА РАБОТА
+
+### Комуникация
+- Само български. Кратки съобщения (5-10 реда).
+- Никога "готов ли си?". Никога "може ли?". Действай.
+- ALL-CAPS от Тихол = frustrated → още по-кратко.
+
+### Конзола
+- МАКСИМУМ 2 команди наведнъж. Чакай резултат.
+- Никога sed. Python scripts only.
+
+### 🚫 ЗАБРАНА НА BASE64 (критично, 24.04.2026)
+
+**НИКОГА не използвай base64 encoding за скриптове, файлове или payload-и.**
+
+Причина: Claude Opus 4.7 safety системата блокира base64 output → прекъсва отговори по средата, чатът спира, работата се губи.
+
+**Правилен подход — винаги plain text:**
+- Малки скриптове (под ~200 реда) → paste директно в nano /tmp/script.py
+- Големи скриптове → cat heredoc със single quotes ('EOF')
+- Много големи файлове → разделяй на 2-3 скрипта или използвай git
+- Бинарни payload-и (изображения, PDF) → НИКОГА inline → scp / git LFS
+
+**Правилен heredoc pattern:**
+cat > /tmp/script.py << 'EOF'
+#!/usr/bin/env python3
+print("работи без base64")
+EOF
+python3 /tmp/script.py
+
+Ако chat дава base64 → Тихол казва "IRON PROTOCOL" → chat преформулира в plain text.
+
+### Git
+- git pull origin main ПРЕДИ всеки commit
+- Backup: cp file /root/file.$(date +%H%M).bak
+- php -l преди commit
+- Commit: S<XX>.<SUB>: [описание]
+- Push ВЕДНАГА след commit
+- Tag в края: v<version>-s<session>-<desc>
+
+## 🔴 БЛОКЕР
+
+- Не работи след 2 опита → СПРИ, не опитвай 3-ти
+- Покажи точния error на Тихол
+- Питай за screenshot / log / debug info
+- НИКОГА revert самостоятелно — покажи и питай
+
+## ⚫ ЗАЩИТЕНИ ЗОНИ
+
+Друг chat работи на файл X → ти си забранен на X.
+Ако задачата изисква → СПРИ, питай Тихол "пипам или отлагам?".
+
+## 🟡 КРАЙ НА СЕСИЯ — 7 СТЪПКИ (без тях сесията НЕ Е ЗАТВОРЕНА)
+
+| # | Стъпка | Verify |
+|---|---|---|
+| 1 | COMPASS update (последна сесия, phase%, P0 bugs, REWORK, LOG) | grep последна |
+| 2 | SESSION_S<XX>_HANDOFF.md | ls SESSION_S*_HANDOFF.md |
+| 3 | git status clean | git status |
+| 4 | pull → commit → push + tag | git log --oneline -3 |
+| 5 | Verify от remote | git fetch && git log origin/main --oneline -5 |
+| 6 | Съобщение към Тихол | формат долу |
+| 7 | Тихол потвърди "OK" | чакай отговор |
+
+### Формат на съобщение (стъпка 6):
+✅ S<XX> ЗАТВОРЕНА.
+COMMIT: <hash>
+TAG: <tag>
+HANDOFF: <file>
+
+НАПРАВЕНО: [точки]
+ОСТАВА: [за следваща]
+
+COMPASS: commit <hash>. Друг chat prav git pull.
+
+## 🟠 WIP / БЛОКЕР ИЗХОД
+
+Не може да приключи?
+1. git commit -m "S<XX>.WIP: [status]"
+2. SESSION_S<XX>_WIP_HANDOFF.md с блокер описание
+3. git push задължителен
+4. Съобщение: "S<XX> БЛОКЕР: [какво]. Следващ chat продължава."
+
+## 🟣 РОЛИ
+
+**Тихол не е developer.** Не technical jargon, не английски, не 10 команди наведнъж. Той е "ръцете".
+
+- Технически решения (code/git/backup/инструмент) → chat решава
+- Логически/продуктови (UX/текстове/wizard) → chat пита Тихол
+
+## 🔵 5-те ЗАКОНА (НЕ СЕ НАРУШАВАТ)
+
+1. Пешо не пише нищо (voice/tap/photo, не native keyboard)
+2. PHP смята, AI говори
+3. AI мълчи при грешка (fallback template)
+4. "AI" в UI, НИКОГА "Gemini"/"fal.ai"
+5. priceFormat() + t() — никога hardcoded "лв"/"€"/BG текст
+
+### DB naming (задължително)
+products.retail_price (НЕ sell_price), inventory.quantity (НЕ qty), products.code (НЕ sku), sales.status='canceled' (едно L)
+
 
 # ❓ QUICK FAQ
 
