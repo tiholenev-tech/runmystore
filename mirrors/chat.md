@@ -1593,7 +1593,12 @@ body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
         <?php foreach ($proactive_pills as $pp):
             $pp_q = match($pp['fundamental_question']){ 'loss'=>'q1', 'order'=>'q5', default=>'' };
             $pp_val = (float)($pp['value_numeric'] ?? 0);
-            $pp_val_str = $pp_val > 0 ? number_format($pp_val, 0, '.', ' ') . ' ' . $cs : '';
+            // S79.FIX: EU формат + правилна единица (пари vs брой)
+            $pp_money_topics = ['zero_stock_with_sales','selling_at_loss','seller_discount_killer','zombie_45d'];
+            $pp_is_money = in_array($pp['topic_id'] ?? '', $pp_money_topics, true);
+            $pp_val_str = $pp_val > 0
+                ? ($pp_is_money ? fmtMoney($pp_val, $cs) : fmtQty($pp_val))
+                : '';
         ?>
         <div class="top-pill <?= $pp_q ?>" data-topic="<?= htmlspecialchars($pp['topic_id'], ENT_QUOTES) ?>" data-cat="<?= htmlspecialchars($pp['category'] ?? '', ENT_QUOTES) ?>" data-pid="<?= (int)($pp['product_id'] ?? 0) ?>" onclick="proactivePillTap(this, '<?= htmlspecialchars(addslashes($pp['title']), ENT_QUOTES) ?>')">
             <span class="tp-txt"><?= htmlspecialchars($pp['title']) ?></span>
