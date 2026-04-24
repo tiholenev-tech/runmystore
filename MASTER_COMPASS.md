@@ -3,7 +3,7 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 24.04.2026  
-**Последна завършена сесия:** S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE (24.04.2026) — pfHighReturnRate Cartesian bug fix, 19/19 pf*() функции, seed_oracle, MMR topic rotation  
+**Последна завършена сесия:** S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE (24.04.2026) — 14 mobile bugs closed (Samsung Z Flip6), pfHighReturnRate Cartesian fix, 19/19 pf*() функции, seed_oracle, MMR topic rotation  
 **Паралелно в ход:** Chat 1.3 (products.php S79), Capacitor S82 (Claude Code)  
 **Следваща сесия:** S80 — DIAGNOSTIC.FRAMEWORK (cron + dashboard + 72/72 PASS)  
 **Текуща Phase:** A — Products Foundation  
@@ -916,6 +916,20 @@ cron-weather.php → 06:00
 ---
 
 # 📝 LOGIC CHANGE LOG
+
+## 24.04.2026 — S81.BUGFIX.V3.EXT (14 mobile bugs Samsung Z Flip6)
+
+- **Решение 1:** Mobile CSS rework for Samsung Z Flip6 cover display (~373px wide, Capacitor WebView). 14 bugs closed across 3 groups (CSS, functional, UX).
+- **Решение 2:** **Capacitor env(safe-area-inset-bottom) = 0 on Android** (default non-edge-to-edge). Discovered after 3 failed attempts. Fix: padding-bottom `max(120px, calc(16px + env()))` on `.wiz-page` — 120px fallback works universally; env() kicks in on iOS/edge-to-edge.
+- **Решение 3:** Dead code discovery — `const stickyFooter=` var at line 5336 is never returned in rendered HTML. Real footer is inline block at 5359-5364. All prior Bug 2 attempts modified dead code. Lesson: grep for `variable+` or `return.*variable` before patching.
+- **Решение 4:** Orchestration split — Chat 1 (Opus 4.7) diagnostic + patches → Claude Code took over after Bug 2 failure for iterative on-device testing. Worked smoothly.
+- **Решение 5:** Parallel session success — Chat 1 (products.php) + Chat 2 (compute-insights.php S79.INSIGHTS) ran simultaneously, FILE LOCK observed, 0 conflicts, both closed same day.
+- **Tag:** `v0.6.4-s81-bugfix-v3-ext` (pushed, 4221ef9 last bugfix commit)
+- **Handoff:** `docs/SESSION_S81_BUGFIX_V3_EXT_HANDOFF.md`
+- **Засегнати файлове:** `products.php` (EXCLUSIVE FILE LOCK)
+- **REWORK pushed forward:** S82 Capacitor edge-to-edge config — когато direkte, 120px fallback → чист env()
+
+---
 
 ## 24.04.2026 — S79.INSIGHTS.COMPLETE (Cartesian bug fix + seed_oracle)
 
