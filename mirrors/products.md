@@ -1478,7 +1478,7 @@ body::before{
 .wiz-step.done{background:var(--indigo-500)}
 .wiz-label{font-size:12px;color:var(--text-secondary);padding:0 16px 6px}
 .wiz-label b{color:var(--indigo-300)}
-.wiz-page{display:none;padding:16px}
+.wiz-page{display:none;padding:16px 16px max(120px,calc(16px + env(safe-area-inset-bottom)))}
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
