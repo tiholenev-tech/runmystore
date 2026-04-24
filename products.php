@@ -1140,7 +1140,7 @@ foreach ($_custom_colors as $cc) {
 .mx-cell-min:focus{border-color:hsl(45 70% 55%);box-shadow:0 0 0 2px hsl(45 70% 50% / 0.2)}
 .mx-min-step{width:18px;height:26px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
 .mx-min-step:hover{background:hsl(45 30% 20% / 0.5);border-color:hsl(45 40% 40% / 0.5)}
-.mx-bottom{flex-shrink:0;padding:14px 16px 20px;background:rgba(3,7,18,0.95);backdrop-filter:blur(12px);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
+.mx-bottom{flex-shrink:0;padding:14px 16px max(80px, calc(20px + env(safe-area-inset-bottom)));background:rgba(3,7,18,0.95);backdrop-filter:blur(12px);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
 .mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
 .mx-stat{text-align:center;flex:1}
 .mx-stat-v{font-size:20px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
