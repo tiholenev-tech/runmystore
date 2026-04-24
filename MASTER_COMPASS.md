@@ -2,8 +2,8 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 23.04.2026
-**Последна завършена сесия:** S79.SECURITY (env-based credentials + history scrub, 23.04.2026)
+**Последна актуализация:** 24.04.2026
+**Последна завършена сесия:** S79.FIX.TOP_PILL (fmtMoney/fmtQty в top-pill values, 24.04.2026)
 **Следваща сесия:** S80 ROLES_AND_MODES_FOUNDATION (roles + modes infra, beta blocker)
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
