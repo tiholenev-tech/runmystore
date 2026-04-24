@@ -1241,7 +1241,7 @@ cron-weather.php → 06:00
 | S87 | inventory v4 + warehouse hub | inventory.php, warehouse.php | inventory.php (rewrite), warehouse.php (rewrite) | S78 DB |
 | S88 | Pusher setup + tenant channel | real-time infra | config/pusher.php, js/pusher.js | external account |
 | S89 | Multi-device events + MySQL FOR UPDATE | sale.php, inventory.php | sale.php patch, inventory.php patch | S88 done |
-| S90 | WooCommerce integration v1 | new | integrations/woo.php | REAL_TIME_SYNC |
+| S90 | WooCommerce integration v1 🟡 skeleton готов (S81.WOO_API, 24.04.2026) | new | integrations/woo.php, config/woo.php, docs/WOOCOMMERCE_API_SPEC.md | REAL_TIME_SYNC |
 | S91 | Shopify integration v1 | new | integrations/shopify.php | S90 patterns |
 | S92 | transfers + multi-store resolver | transfers.php | transfers.php (нов), helpers | S87 inventory |
 | S93 | stats.php rewrite (5 таба, role-based) | stats.php | stats.php (rewrite) | all modules data |
@@ -1435,7 +1435,7 @@ Phase B — Module Ecosystem + Real-time (S83-S96)      0% ⏳
   ├─ inventory v4 + warehouse hub                     0% ⏳ S87
   ├─ Pusher real-time (CRITICAL)                      0% ⏳ S88
   ├─ Multi-device FOR UPDATE (CRITICAL)               0% ⏳ S89
-  ├─ WooCommerce integration                          0% ⏳ S90
+  ├─ WooCommerce integration                          5% 🟡 S81.WOO_API skeleton → S90 full
   ├─ Shopify integration                              0% ⏳ S91
   ├─ transfers + multi-store                          0% ⏳ S92
   ├─ stats.php rewrite                                0% ⏳ S93
