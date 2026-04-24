@@ -1631,6 +1631,10 @@ html[data-theme="light"] .modal-ov{
     <div class="header">
         <div class="brand">RUNMYSTORE.AI</div>
         <span class="plan-badge <?= htmlspecialchars($plan) ?>"><?= htmlspecialchars($plan_label) ?></span>
+        <button class="header-icon-btn theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Светла/тъмна тема" style="margin-left:8px">
+            <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
         <div class="header-spacer"></div>
         <a href="simple.php" class="header-icon-btn" title="Опростен режим">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -2056,6 +2060,38 @@ html[data-theme="light"] .modal-ov{
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+// THEME TOGGLE (preview — xchat.php)
+// ═══════════════════════════════════════════════════════
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        // Default = light for this preview; production default will be dark
+        var theme=saved||'light';
+        document.documentElement.setAttribute('data-theme',theme);
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            if(theme==='light'){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'light';
+    var nxt=(cur==='light')?'dark':'light';
+    document.documentElement.setAttribute('data-theme',nxt);
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
+
 // ═══════════════════════════════════════════════════════
 // DATA FROM PHP
 // ═══════════════════════════════════════════════════════
