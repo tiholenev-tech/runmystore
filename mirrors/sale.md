@@ -126,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title><?= $page_title ?> — RunMyStore.ai</title>
 <link href="./css/vendors/aos.css" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>"/>
 <style>
 /* ═══════════════════════════════════════════════════════════
    SALE MODULE — Unified Design System 2026
@@ -170,7 +171,7 @@ body::before{
 
 /* ═══ CAMERA-HEADER (merged) ═══ */
 .cam-header{
-    position:relative;height:80px;flex-shrink:0;overflow:hidden;
+    position:relative;height:calc(80px + env(safe-area-inset-top,0px));flex-shrink:0;overflow:hidden;
     background:#111;z-index:50;
 }
 .cam-header video{
@@ -183,7 +184,7 @@ body::before{
 .cam-top{
     position:absolute;top:0;left:0;right:0;
     display:flex;align-items:center;justify-content:space-between;
-    padding:6px 10px;
+    padding:max(6px,calc(env(safe-area-inset-top,0px) + 6px)) 10px 6px;
 }
 .cam-title{
     font-size:14px;font-weight:800;
@@ -855,6 +856,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
                         🅿️<span class="park-badge" id="parkedCount">0</span>
                     </button>
                     <button class="cam-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
+                    <button class="cam-btn" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
                 </div>
             </div>
             <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
@@ -1120,6 +1122,36 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 /* ═══════════════════════════════════════════════════════════
    SALE MODULE — JavaScript Engine
    ═══════════════════════════════════════════════════════════ */
+
+// S82.UI — Theme toggle (default DARK, persists in localStorage['rms_theme'])
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        if(saved==='light'){document.documentElement.setAttribute('data-theme','light')}
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            var isLight=document.documentElement.getAttribute('data-theme')==='light';
+            if(isLight){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var nxt=(cur==='light')?'dark':'light';
+    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
+    else{document.documentElement.removeAttribute('data-theme')}
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
 
 // ─── STATE ───
 const STATE = {

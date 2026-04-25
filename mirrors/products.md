@@ -3149,6 +3149,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .header{display:flex;align-items:center;gap:6px;padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 2px 10px;min-height:36px}
 .h-menu,.h-icon{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .h-menu svg,.h-icon svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.h-icon.h-theme,.h-icon.h-print{position:relative;transition:color .2s,border-color .2s,background .2s}
+.h-icon.h-theme:hover,.h-icon.h-print:hover{color:var(--indigo-300,#a5b4fc);border-color:var(--border-glow,rgba(99,102,241,.40))}
+.h-icon.h-print::after{content:'';position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:50%;background:rgba(148,163,184,.7);border:1.5px solid var(--bg-main,#030712)}
+.h-icon.h-print.paired{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+.h-icon.h-print.paired::after{background:#22c55e;box-shadow:0 0 6px #22c55e}
+.h-icon.h-print.error{color:#fca5a5;border-color:rgba(239,68,68,.40)}
+.h-icon.h-print.error::after{background:#ef4444;box-shadow:0 0 6px #ef4444}
 .brand{font-size:10.5px;font-weight:900;letter-spacing:.12em;color:hsl(var(--hue1) 50% 70%);text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3);white-space:nowrap}
 .store-switch{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:700;color:var(--text-secondary)}
 .store-switch svg{width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none}
@@ -3910,6 +3917,38 @@ if (!$_current_store_name) {
     $_current_store_name = $_tenant_row['name'] ?? '';
 }
 ?>
+// ═══════════════════════════════════════════════════════
+// S82.UI THEME TOGGLE — default DARK, persists in localStorage
+// ═══════════════════════════════════════════════════════
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        if(saved==='light'){document.documentElement.setAttribute('data-theme','light')}
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            var isLight=document.documentElement.getAttribute('data-theme')==='light';
+            if(isLight){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var nxt=(cur==='light')?'dark':'light';
+    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
+    else{document.documentElement.removeAttribute('data-theme')}
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
+
 // ═══ PHP → JS CONFIG ═══
 const CFG = {
     storeId: <?= (int)$store_id ?>,
