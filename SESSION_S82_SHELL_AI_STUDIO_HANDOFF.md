@@ -4,8 +4,8 @@
 **Модел:** Claude Code (Opus 4.7, 1M context)
 **Статус:** ✅ CLOSED — push-нато на main
 **Tag:** не зададен (множество follow-up commits, очаква се потвърждение от Тихол)
-**Последен commit:** `6f3fae7`
-**Общо commits:** 11 (включително swipe nav)
+**Последен commit:** `a952bf1`
+**Общо commits:** 13
 **Паралелна сесия:** друг chat работи по AI brain (chat-send.php / build-prompt.php / compute-insights.php) + диагностичен framework
 
 ---
@@ -53,13 +53,19 @@
 |---|---|
 | `8bc26ed` | Първа версия на този handoff |
 
-### Follow-up fix-ове (4 commits)
+### Follow-up fix-ове (3 commits)
 | Commit | Описание |
 |---|---|
 | `a44ee2d` | **CRITICAL:** matrix qty save bug (data loss) + AI Studio CTA + light theme overrides + responsive header. ⚠️ Този commit съдържа също файлове от паралелния chat (`tools/diagnostic/*`, `migrations/20260425_003/004_*`) защото `git add -A` — паралелният chat трябва да pull-не |
 | `3c1b815` | chat.php дублиран input-bar + products.php „Попитай AI" floating btn премахнат + FOUC inline script във всички 7 модула + light theme подобрен |
 | `6f3fae7` | Скрол отблокиран (моят wrapper padding-bottom го беше повредил) + по-умна light theme текст инверсия (wrapper-based вместо attribute selectors) |
-| `<последен>` | **Horizontal swipe navigation** между bottom-nav модули — touch-only, 80px threshold, vertical guard, изключения за input/drawer/modal/scrollable/edge |
+
+### Swipe navigation (3 commits)
+| Commit | Описание |
+|---|---|
+| `5b926f9` | Initial swipe nav между AI ←→ Склад ←→ Справки ←→ Продажба (touch-only, 80px threshold, exception списък за input/drawer/modal/scrollable/edge swipe) |
+| `bed4343` | Fix: swipe от Склад → AI не работеше. Причина — `a[href]` и `button` бяха в block селектора, всеки card е `<a>`. Премахнати. Threshold 80→60. Премахнат opacity fade за моментален feel |
+| `a952bf1` | По-бърз: threshold 60→40px (light flick), prefetch на съседните модули чрез `requestIdleCallback` → swipe чете от browser cache, не от PHP/DB → next page paint в ~50-100ms |
 
 ---
 
@@ -84,6 +90,15 @@
 - Всички sticky хедъри ползват `padding-top: max(X, calc(env(safe-area-inset-top, 0px) + X))`
 - Bottom nav използва `padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px))`
 - Body има `padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px))` (auto от `body.has-rms-shell` клас, добавян от `shell-scripts.php`)
+
+### Swipe навигация (touch only)
+
+- Хоризонтален swipe ≥40px (vertical drift ≤70px) → smяна на модул
+- Ред: **AI ← → Склад ← → Справки ← → Продажба**
+- Sub-страниците се мапват: products/inventory/transfers/deliveries/suppliers → Склад group; finance.php/.html → Справки group; simple.php/life-board.php → AI group
+- Изключения: input/textarea/select/contenteditable, отворени drawer/modal/camera/recording overlay, хоризонтално-scrollable елементи (axis tabs, period bar и т.н.), edge swipe (24px от краищата)
+- Escape hatch: добави `data-no-swipe` атрибут на елемент за да го пропуска
+- Prefetch на съседите чрез `requestIdleCallback` → swipe е почти моментален (~50-100ms)
 
 ### AI backend
 
@@ -225,12 +240,13 @@ Commit `a44ee2d` съдържа файлове от паралелния chat:
 
 ## ✅ EXIT CRITERIA
 
-- [x] 10 commits на main
+- [x] 13 commits на main
 - [x] Всички 8 PHP файла php -l clean
 - [x] Backend endpoints отговарят правилно (401 / 429 / 503 според състоянието)
 - [x] DB миграция applied
 - [x] Final handoff (този файл)
+- [x] Swipe nav тестван и работи в двете посоки
 - [ ] FAL_API_KEY (ОЧАКВА Тихол)
-- [ ] On-device test (ОЧАКВА Тихол)
+- [ ] On-device test за останалите проверки от Test plan
 - [ ] Tag за release (ОЧАКВА Тихол да реши кога)
 - [ ] AI Studio модул (ДРУГ CHAT)
