@@ -1491,8 +1491,10 @@ body::before{
 .pmt-opt.active{background:linear-gradient(180deg,rgba(99,102,241,0.2),rgba(67,56,202,0.1));color:var(--indigo-300);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
 .pmt-opt svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
-.photo-multi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
-.photo-multi-cell{position:relative;display:flex;flex-direction:column;gap:6px}
+/* S82.COLOR.6: horizontal swipe carousel — 2 cards visible, snap-to-card, native momentum scroll. */
+.photo-multi-grid{display:flex;gap:8px;margin-bottom:8px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:2px 2px 8px;scrollbar-width:none;scroll-padding-left:2px}
+.photo-multi-grid::-webkit-scrollbar{display:none}
+.photo-multi-cell{position:relative;display:flex;flex-direction:column;gap:6px;flex:0 0 calc(50% - 4px);min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
 .photo-multi-thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.18)}
 .photo-multi-thumb .ph-img{width:100%;height:100%;object-fit:cover;display:block}
 .photo-multi-thumb .ph-num{position:absolute;top:5px;left:5px;padding:2px 7px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;font-weight:800;line-height:1.4}
@@ -6187,7 +6189,7 @@ function wizPhotoCameraLoop() {
     ov.innerHTML =
         '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
         '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
-        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
+        '<input type="file" id="rmsCamInput" accept="image/*" capture="user" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
     document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
