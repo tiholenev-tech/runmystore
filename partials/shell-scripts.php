@@ -91,14 +91,16 @@
         'stats.php':2,'finance.php':2,'finance.html':2,
         'sale.php':3
     };
-    var SWIPE_THRESHOLD = 80;
-    var SWIPE_MAX_VERTICAL = 50;
+    var SWIPE_THRESHOLD = 60;     // was 80 — snappier
+    var SWIPE_MAX_VERTICAL = 60;  // was 50 — more lenient on diagonal palm swipes
+    // NOTE: do NOT block on <a> or <button> — every warehouse/products card is a link
+    // and all the bottom-nav itself is buttons; blocking those killed swipe entirely.
     var SWIPE_BLOCK_SELECTOR =
-        'input, textarea, select, button, [contenteditable], a[href], '
-      + '.modal-ov.open, .ov-bg.open, .preset-ov, .camera-ov, .camera-ov.open, '
+        'input, textarea, select, [contenteditable], '
+      + '.modal-ov.open, .ov-bg.open, .camera-ov.open, '
       + '.rec-ov.active, .drawer.open, .ws-sheet.open, .ws-overlay.open, '
       + '.parked-overlay.open, .pay-sheet.open, .ew-panel.open, '
-      + '#wizModal[style*="display: flex"], #wizModal.open, '
+      + '#wizModal.open, '
       + '.cam-header, video, canvas, '
       + '[data-no-swipe], .v-axis-tabs, .period-bar, .rev-pills, '
       + '.zt-tabs, .scroll-x, [data-horizontal-scroll]';
@@ -148,9 +150,7 @@
         var nxt = (dx < 0) ? cur + 1 : cur - 1;
         if (nxt < 0 || nxt >= NAV_ORDER.length) return;
         if (NAV_ORDER[nxt] === (location.pathname.split('/').pop() || 'chat.php').toLowerCase()) return;
-        // small visual hint
-        document.body.style.transition = 'opacity .15s ease';
-        document.body.style.opacity = '.55';
+        // No fade — keeps it instant. Browser handles its own loader.
         location.href = NAV_ORDER[nxt];
     }, { passive: true });
 })();
