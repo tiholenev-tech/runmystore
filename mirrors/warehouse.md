@@ -50,6 +50,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
     <title>Склад — RunMyStore.ai</title>
     <link href="./css/vendors/aos.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>" />
     <style>
         /* ═══════════════════════════════════════════════════════════
            UNIFIED DESIGN SYSTEM 2026 — Based on stats.php
@@ -107,9 +108,27 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             background: rgba(3, 7, 18, 0.93);
             backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-subtle);
-            padding: 12px 16px 0;
+            padding: max(12px, calc(env(safe-area-inset-top, 0px) + 12px)) 16px 0;
             margin: 0 -12px;
         }
+        .page-header .ph-theme-toggle {
+            position: absolute;
+            right: 16px;
+            top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.06);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: color .2s, border-color .2s, background .2s;
+        }
+        .page-header .ph-theme-toggle:hover {
+            color: var(--indigo-300, #a5b4fc);
+            border-color: var(--border-glow, rgba(99,102,241,.40));
+        }
+        .page-header .ph-theme-toggle svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
         .page-title {
             font-size: 18px;
@@ -404,6 +423,10 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
     <div class="page-header">
         <h1 class="page-title">Склад</h1>
+        <button class="ph-theme-toggle" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()">
+            <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
     </div>
 
     <div class="indigo-sep"></div>
@@ -507,6 +530,36 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 </nav>
 
 <script>
+// S82.UI — Theme toggle (default DARK, persists in localStorage['rms_theme'])
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        if(saved==='light'){document.documentElement.setAttribute('data-theme','light')}
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            var isLight=document.documentElement.getAttribute('data-theme')==='light';
+            if(isLight){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var nxt=(cur==='light')?'dark':'light';
+    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
+    else{document.documentElement.removeAttribute('data-theme')}
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
+
 // Count up animation from stats.php
 function animCount(el, target, dur = 900) {
     const s = performance.now();
