@@ -1114,7 +1114,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     </div>
 </div>
 
-<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php /* sale.php — chat input intentionally OMITTED (POS scanner — no AI distraction during checkout) */ ?>
 <?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <script>

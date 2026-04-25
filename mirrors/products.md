@@ -5380,7 +5380,21 @@ function renderWizPage(step){
 
         const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle='<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>'+_ttWarn;
 
-        const aiHint='';
+        // S82.UI.FIX2: proactive AI Studio CTA at top of step 3 when variant + AI not yet run.
+        // Click → opens photo input + sets _aiAutoTrigger so the photo onload auto-runs the AI flow.
+        var _shouldShowCTA = (S.wizType === 'variant') && !_hasPhoto && (_aiState === 'idle');
+        const aiHint = _shouldShowCTA
+            ? '<div onclick="S.wizData._aiAutoTrigger=true;document.getElementById(\'photoInput\').click()" style="display:flex;align-items:center;gap:12px;padding:13px 14px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.10));border:1px solid rgba(139,92,246,.45);cursor:pointer;box-shadow:0 0 18px rgba(139,92,246,.18),inset 0 1px 0 rgba(255,255,255,.05)">'
+              + '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(139,92,246,.4)">'
+              + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>'
+              + '</div>'
+              + '<div style="flex:1;min-width:0">'
+              + '<div style="font-size:13px;font-weight:800;color:#c4b5fd;letter-spacing:-.01em">🪄 AI Studio — снимай артикула</div>'
+              + '<div style="font-size:10.5px;color:rgba(196,181,253,.65);margin-top:2px;line-height:1.3">AI ще махне фона и автоматично ще разпознае цветовете за вариациите</div>'
+              + '</div>'
+              + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>'
+              + '</div>'
+            : '';
 
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
         const qtyBlock=isSingle
@@ -6003,6 +6017,10 @@ async function wizAIProcessPhoto(){
             // Partial success — still show as done but with a hint
             S.wizData._aiState = 'done';
             showToast(bgOk ? 'Бял фон ✓ (цветове неуспешни)' : 'Цветове ✓ (бял фон неуспешен)', 'success');
+        }
+        // S82.UI.FIX2: auto-advance to Variants step if variant type + colours detected
+        if (S.wizType === 'variant' && colorOk && S.wizStep === 3) {
+            setTimeout(function(){ wizGo(4); }, 1200);
         }
     }catch(e){
         console.error('AI process error', e);
@@ -7403,19 +7421,41 @@ async function wizSave(){
         else extraAxes.push(ax);
     });
 
-    // S70: Read matrix quantities into combos
+    // S70: Read matrix quantities into combos. _matrix[cellId] is an OBJECT {qty, min}.
+    // S82.UI.FIX1: was reading the object as a number → parseInt(obj) === NaN → all qty=0 on save.
         if(S.wizData._matrix&&Object.keys(S.wizData._matrix).length){
             var _sAxis=null,_cAxis=null;
             (S.wizData.axes||[]).forEach(function(ax){var n=ax.name.toLowerCase();if(!_sAxis&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))_sAxis=ax;else if(!_cAxis&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))_cAxis=ax});
+            // Single-axis (color-only or size-only) matrix support
+            var _onlyAxis = !_sAxis && _cAxis ? _cAxis : (!_cAxis && _sAxis ? _sAxis : null);
             if(_sAxis&&_cAxis){
                 combos=[];
                 _sAxis.values.forEach(function(sz,si){_cAxis.values.forEach(function(cl,ci){
                     var cellId='mx_'+si+'_'+ci;
-                    var qty=S.wizData._matrix[cellId];
-                    if(qty!==undefined&&qty!==null&&qty!==''){
-                        combos.push({parts:[{axis:'Размер',value:sz},{axis:'Цвят',value:cl}],qty:parseInt(qty)||0,axisValues:sz+' / '+cl});
+                    var cell=S.wizData._matrix[cellId];
+                    var rawQ = (cell && typeof cell === 'object') ? cell.qty : cell;
+                    var q = parseInt(rawQ) || 0;
+                    if (q > 0) {
+                        combos.push({parts:[{axis:'Размер',value:sz},{axis:'Цвят',value:cl}],qty:q,axisValues:sz+' / '+cl});
                     }
                 })});
+            } else if (_onlyAxis) {
+                combos=[];
+                var _axName = (_onlyAxis === _cAxis) ? 'Цвят' : 'Размер';
+                _onlyAxis.values.forEach(function(v,vi){
+                    // Try both row and column key conventions just in case
+                    var candidates = ['mx_0_'+vi, 'mx_'+vi+'_0'];
+                    var q = 0;
+                    for (var k=0; k<candidates.length; k++) {
+                        var cell = S.wizData._matrix[candidates[k]];
+                        var rawQ = (cell && typeof cell === 'object') ? cell.qty : cell;
+                        var n = parseInt(rawQ) || 0;
+                        if (n > 0) { q = n; break; }
+                    }
+                    if (q > 0) {
+                        combos.push({parts:[{axis:_axName,value:v}],qty:q,axisValues:v});
+                    }
+                });
             }
         }else{
             document.querySelectorAll('[data-combo][data-field="qty"]').forEach(function(inp){var ci=parseInt(inp.dataset.combo);if(combos[ci])combos[ci].qty=parseInt(inp.value)||0});
@@ -7598,6 +7638,11 @@ document.getElementById('photoInput').addEventListener('change',async function()
         showToast('Снимка добавена','success');
         // S73.B.35: Rerender за да се покаже снимката в photo zone на Step 1
         renderWizard();
+        // S82.UI.FIX2: auto-trigger AI flow if user clicked the proactive AI Studio CTA
+        if (S.wizData._aiAutoTrigger) {
+            S.wizData._aiAutoTrigger = false;
+            setTimeout(function(){ if (typeof wizAIProcessPhoto === 'function') wizAIProcessPhoto(); }, 200);
+        }
     };
     reader.readAsDataURL(this.files[0]);
     this.value='';
