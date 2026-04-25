@@ -91,8 +91,8 @@
         'stats.php':2,'finance.php':2,'finance.html':2,
         'sale.php':3
     };
-    var SWIPE_THRESHOLD = 60;     // was 80 — snappier
-    var SWIPE_MAX_VERTICAL = 60;  // was 50 — more lenient on diagonal palm swipes
+    var SWIPE_THRESHOLD = 40;     // tuned for phone — 40px = light flick
+    var SWIPE_MAX_VERTICAL = 70;  // forgiving for diagonal palm swipes
     // NOTE: do NOT block on <a> or <button> — every warehouse/products card is a link
     // and all the bottom-nav itself is buttons; blocking those killed swipe entirely.
     var SWIPE_BLOCK_SELECTOR =
@@ -122,6 +122,30 @@
         if (NAV_MAP[name] !== undefined && NAV_MAP[name] !== (1<<31)) return NAV_MAP[name];
         // Default fallback (chat / unknown root)
         return 0;
+    }
+
+    // ─── Prefetch neighbour modules so swipe feels instant ───
+    // Runs after page is idle; browser silently fetches the HTML for the
+    // tabs immediately to the left/right of the current one and caches them.
+    function prefetchNeighbours() {
+        var cur = currentNavIndex();
+        var targets = [];
+        if (cur - 1 >= 0) targets.push(NAV_ORDER[cur - 1]);
+        if (cur + 1 < NAV_ORDER.length) targets.push(NAV_ORDER[cur + 1]);
+        targets.forEach(function (url) {
+            // Skip if already prefetched in this page lifetime
+            if (document.querySelector('link[rel="prefetch"][href="' + url + '"]')) return;
+            var l = document.createElement('link');
+            l.rel = 'prefetch';
+            l.href = url;
+            l.as = 'document';
+            document.head.appendChild(l);
+        });
+    }
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(prefetchNeighbours, { timeout: 2000 });
+    } else {
+        setTimeout(prefetchNeighbours, 1500);
     }
 
     var _sx = 0, _sy = 0, _sActive = false;
