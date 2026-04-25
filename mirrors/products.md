@@ -5873,11 +5873,30 @@ function renderWizPagePart2(step){
         // Summary line
         var sumLine='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.04)"><b style="color:var(--text-primary)">'+esc(S.wizData.name||'')+'</b> \u00b7 '+fmtPrice(S.wizData.retail_price)+' \u00b7 Код: '+esc(S.wizData.code||'AI генерира')+'</div>';
 
+        // S82.COLOR.4: final AI Studio prompt — Yes opens Studio after save, No saves directly.
+        var finalPromptH =
+            '<div class="s82-finalprompt">' +
+                '<div class="s82-finalprompt-title">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
+                    '✨ Искаш ли AI обработка?' +
+                '</div>' +
+                '<ul class="s82-finalprompt-list">' +
+                    '<li>Махане на фона на снимките</li>' +
+                    '<li>AI магия (модел носи дрехата)</li>' +
+                    '<li>SEO описание за онлайн магазин</li>' +
+                    '<li>Експорт CSV/PDF/Excel</li>' +
+                '</ul>' +
+                '<div class="s82-finalprompt-actions">' +
+                    '<button type="button" class="s82-finalprompt-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
+                    '<button type="button" class="s82-finalprompt-btn no" onclick="wizFinalAINo()">Не, запази</button>' +
+                '</div>' +
+            '</div>';
+
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">Бройки и запис</div>'+
         sumLine+unitH+matrixH+minQtyH+descH+
-        '<button class="abtn save" style="margin-top:12px;font-size:15px;padding:14px" onclick="wizSave()">\u2713 Запази артикула</button>'+
-        '<button class="abtn" onclick="wizGo(4)" style="margin-top:6px">\u2190 Назад към вариации</button>'+
+        finalPromptH+
+        '<button class="abtn" onclick="wizGo(4)" style="margin-top:10px">\u2190 Назад към вариации</button>'+
         vskip+'</div>';
     }
 
