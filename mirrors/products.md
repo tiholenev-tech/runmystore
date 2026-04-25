@@ -5348,8 +5348,24 @@ function renderWizPage(step){
         var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
+        // S82.AI_STUDIO: AI controls visible after photo loaded
+        const _aiState = S.wizData._aiState || 'idle'; // idle | processing | done | error
+        const _aiColors = (S.wizData._aiDetectedColors || []);
+        let _aiControls = '';
+        if (_hasPhoto) {
+            if (_aiState === 'idle') {
+                _aiControls = '<button type="button" onclick="wizAIProcessPhoto()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.10));border:1px solid rgba(139,92,246,.45);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;box-shadow:0 0 14px rgba(139,92,246,.18),inset 0 1px 0 rgba(255,255,255,.05)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>AI обработи (бял фон + цветове)</button>';
+            } else if (_aiState === 'processing') {
+                _aiControls = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);color:#a5b4fc;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>AI обработва...</div>';
+            } else if (_aiState === 'done' && _aiColors.length) {
+                let _colorPills = _aiColors.map(c => '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);font-size:11px;color:#c7d2fe"><span style="width:10px;height:10px;border-radius:50%;background:'+c.hex+';border:1px solid rgba(255,255,255,.20)"></span>'+c.name+'</span>').join('');
+                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:11px;font-weight:700;color:#86efac">AI откри цветове — ще се попълнят на следващата стъпка</span></div><div style="display:flex;flex-wrap:wrap;gap:5px">'+_colorPills+'</div></div>';
+            } else if (_aiState === 'error') {
+                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.30);color:#fca5a5;font-size:11px;font-weight:600">'+(S.wizData._aiError||'AI обработката не успя.')+' <a href="#" onclick="event.preventDefault();S.wizData._aiState=\'idle\';renderWizard()" style="color:#fca5a5;text-decoration:underline">Опитай пак</a></div>';
+            }
+        }
         const _photoContent=_hasPhoto
-            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'+_aiControls
             : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
         const _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
         const _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
@@ -5419,6 +5435,29 @@ function renderWizPagePart2(step){
                 window._bizVariants.variant_fields.forEach(function(f){S.wizData.axes.push({name:f,values:[]})});
             }
             if(!S.wizData.axes.length){S.wizData.axes.push({name:'Вариация 1',values:[]});S.wizData.axes.push({name:'Вариация 2',values:[]})}
+        }
+        // S82.AI_STUDIO: auto-populate color axis from AI-detected colors (once)
+        if (S.wizData._aiDetectedColors && S.wizData._aiDetectedColors.length && !S.wizData._aiColorsApplied) {
+            var _colorAxisIdx = -1;
+            S.wizData.axes.forEach(function(ax, i){
+                var n = (ax.name || '').toLowerCase();
+                if (n.indexOf('цвят') !== -1 || n.indexOf('color') !== -1) _colorAxisIdx = i;
+            });
+            if (_colorAxisIdx === -1 && S.wizData.axes.length) {
+                // Rename the first generic "Вариация N" axis to "Цвят" if no colour axis exists
+                var _ax0 = S.wizData.axes[0];
+                if (/^вариация\s*\d+$/i.test(_ax0.name)) { _ax0.name = 'Цвят'; _colorAxisIdx = 0; }
+            }
+            if (_colorAxisIdx !== -1) {
+                var _existing = new Set(S.wizData.axes[_colorAxisIdx].values || []);
+                S.wizData._aiDetectedColors.forEach(function(c){
+                    if (c && c.name && !_existing.has(c.name)) {
+                        S.wizData.axes[_colorAxisIdx].values.push(c.name);
+                        _existing.add(c.name);
+                    }
+                });
+                S.wizData._aiColorsApplied = true;
+            }
         }
         if(S._wizActiveTab===undefined)S._wizActiveTab=0;
 
@@ -5909,11 +5948,69 @@ function selectStudioPreset(label,el){
 }
 
 async function doStudioWhiteBg(){
-    showToast('AI обработва... 5-15 сек','');
-    // TODO: fal.ai birefnet call via ai-image-processor.php
-    const d=await api('products.php?ajax=ai_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'bg_removal'})});
-    if(d?.error)showToast(d.error,'error');
-    else{showToast('Бял фон приложен ✓','success');wizGo(6)}
+    // Drawer entry — delegate to the unified wizard auto-flow
+    closeDrawer && closeDrawer('studio');
+    return wizAIProcessPhoto();
+}
+
+// S82.AI_STUDIO — auto-flow: bg removal + colour detection in parallel.
+// Reads S.wizData._photoDataUrl, posts to /ai-image-processor.php and
+// /ai-color-detect.php, then updates S.wizData._photoDataUrl with the
+// bg-removed PNG and stores detected colours in S.wizData._aiDetectedColors.
+// Renders wizard at each state transition so the user sees progress.
+async function wizAIProcessPhoto(){
+    if(!S.wizData._photoDataUrl){showToast('Първо добави снимка','error');return}
+    // Convert data URL → Blob → File for multipart upload
+    let blob;
+    try{
+        const r = await fetch(S.wizData._photoDataUrl);
+        blob = await r.blob();
+    }catch(e){showToast('Грешка при четене на снимката','error');return}
+    const file = new File([blob], 'wiz-photo.' + (blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg'), {type: blob.type || 'image/jpeg'});
+    S.wizData._aiState = 'processing';
+    S.wizData._aiError = null;
+    renderWizard();
+    const fd1 = new FormData(); fd1.append('image', file);
+    const fd2 = new FormData(); fd2.append('image', file);
+    try{
+        const [bgRes, colorRes] = await Promise.allSettled([
+            fetch('/ai-image-processor.php', {method:'POST', body: fd1, credentials:'same-origin'}).then(r=>r.json()),
+            fetch('/ai-color-detect.php',     {method:'POST', body: fd2, credentials:'same-origin'}).then(r=>r.json()),
+        ]);
+        let bgOk = bgRes.status==='fulfilled' && bgRes.value && bgRes.value.ok;
+        let colorOk = colorRes.status==='fulfilled' && colorRes.value && colorRes.value.ok;
+        // bg removal — replace preview if successful
+        if (bgOk) {
+            S.wizData._photoBgRemoved = bgRes.value.url;
+            S.wizData._photoDataUrl   = bgRes.value.url; // use new URL going forward (saved to product on wizSave)
+        }
+        // colours — store for step 4 auto-fill
+        if (colorOk) {
+            S.wizData._aiDetectedColors = colorRes.value.colors || [];
+            S.wizData._aiColorsApplied  = false; // re-apply on next render of step 4
+        }
+        // Combined error reporting
+        if (!bgOk && !colorOk) {
+            S.wizData._aiState = 'error';
+            const reason = (bgRes.value && bgRes.value.reason) || (colorRes.value && colorRes.value.reason) || 'AI грешка.';
+            S.wizData._aiError = reason;
+            showToast(reason, 'error');
+        } else if (bgOk && colorOk) {
+            S.wizData._aiState = 'done';
+            const remaining = (bgRes.value.remaining!=null) ? bgRes.value.remaining : '?';
+            showToast('AI готово ✓ (остават '+remaining+' AI кредита днес)', 'success');
+        } else {
+            // Partial success — still show as done but with a hint
+            S.wizData._aiState = 'done';
+            showToast(bgOk ? 'Бял фон ✓ (цветове неуспешни)' : 'Цветове ✓ (бял фон неуспешен)', 'success');
+        }
+    }catch(e){
+        console.error('AI process error', e);
+        S.wizData._aiState = 'error';
+        S.wizData._aiError = 'Мрежова грешка.';
+        showToast('Мрежова грешка', 'error');
+    }
+    renderWizard();
 }
 
 async function doStudioTryon(){
