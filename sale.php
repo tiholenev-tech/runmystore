@@ -127,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 <title><?= $page_title ?> — RunMyStore.ai</title>
 <link href="./css/vendors/aos.css" rel="stylesheet"/>
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>"/>
+<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>"/>
 <style>
 /* ═══════════════════════════════════════════════════════════
    SALE MODULE — Unified Design System 2026
@@ -845,6 +846,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 <div class="sale-wrap" id="saleWrap">
 
+    <?php include __DIR__ . '/partials/header.php'; ?>
+
     <div class="cam-header" id="camHeader">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div class="cam-overlay">
@@ -1111,12 +1114,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     </div>
 </div>
 
-<nav class="bottom-nav">
-    <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
-    <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
-    <a href="stats.php" class="bnav-tab"><span class="bnav-icon">📊</span>Справки</a>
-    <a href="sale.php" class="bnav-tab active"><span class="bnav-icon">⚡</span>Въвеждане</a>
-</nav>
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <script>
 /* ═══════════════════════════════════════════════════════════
@@ -2205,5 +2204,6 @@ blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
 document.head.appendChild(blinkStyle);
 </script>
 
+<?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body>
 </html>

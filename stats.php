@@ -121,6 +121,7 @@ $hlabel = $health_score >= 70 ? 'Бизнесът е в добро здраве'
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Статистики — RunMyStore.ai</title>
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
+<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
 <style>
 :root{
     --bg-main: #030712;
@@ -867,6 +868,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 <div class="page-wrap">
 
+    <?php include __DIR__ . '/partials/header.php'; ?>
     <div class="page-header">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
             <h1 class="page-title">Статистики</h1>
@@ -883,10 +885,6 @@ body{padding-bottom:env(safe-area-inset-bottom);}
                 </select>
             </form>
             <?php endif; ?>
-            <button class="ph-theme-toggle" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()">
-                <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            </button>
             </div>
         </div>
 
@@ -1158,12 +1156,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     <div class="drawer-body" id="drawerBody"></div>
 </div>
 
-<nav class="bottom-nav">
-    <a href="chat.php" class="bnav-tab"><span class="bnav-icon">✦</span>AI</a>
-    <a href="warehouse.php" class="bnav-tab"><span class="bnav-icon">📦</span>Склад</a>
-    <a href="stats.php" class="bnav-tab active"><span class="bnav-icon">📊</span>Справки</a>
-    <a href="actions.php" class="bnav-tab"><span class="bnav-icon">⚡</span>Въвеждане</a>
-</nav>
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <script>
 // S82.UI — Theme toggle (default DARK, persists in localStorage['rms_theme'])
@@ -1265,5 +1259,6 @@ window.addEventListener('DOMContentLoaded',function(){
     }
 });
 </script>
+<?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body>
 </html>
