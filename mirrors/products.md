@@ -873,6 +873,7 @@ foreach ($_custom_colors as $cc) {
 <meta name="business-type" content="<?= htmlspecialchars($business_type) ?>">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
+<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
 <style>
 /* ═══════════════════════════════════════════════════════════
    PRODUCTS MODULE — Sale.php/Warehouse.php Design System
@@ -3408,20 +3409,12 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- ═══ S79 A1.7 — SCRHOME START ═══ -->
 <div class="app">
 
-    <div class="header">
-        <button class="h-menu" onclick="openMenuDrawer()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <div class="brand">RUNMYSTORE.AI</div>
-        <div class="h-spacer"></div>
-        <button class="store-switch">Магазин 1<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-        <span class="plan-tag">PRO</span>
-        <button class="h-icon h-print" id="printStatusBtn" type="button" aria-label="Bluetooth принтер" onclick="if(typeof openPrinterSettings==='function'){openPrinterSettings()}else if(typeof showToast==='function'){showToast('Свързване с принтер — скоро','')}"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
-        <button class="h-icon h-theme" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()"><svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-        <button class="h-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-    </div>
+    <?php include __DIR__ . '/partials/header.php'; ?>
 
     <div class="title-row">
         <div class="title-main">Артикули</div>
         <div class="title-sub" id="hTitleCount">·</div>
+        <button class="store-switch" onclick="if(typeof openStoreSwitcher==='function')openStoreSwitcher()" style="margin-left:auto">Магазин 1<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
 
     <div class="search-wrap">
@@ -9121,22 +9114,11 @@ window.addEventListener('popstate', function(e){
     <div class="drawer-hdr"><h3 id="qfTitle">Филтър</h3><button class="drawer-close" onclick="closeDrawer('qf')">✕</button></div>
     <div id="qfBody" style="padding:0 4px 20px"></div>
 </div>
-<nav class="bottom-nav">
-  <a href="chat.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
-  </a>
-  <a href="warehouse.php" class="bottom-nav-tab active">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>Склад
-  </a>
-  <a href="stats.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки
-  </a>
-  <a href="sale.php" class="bottom-nav-tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба
-  </a>
-</nav>
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
+<?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body>
 </html>
 
