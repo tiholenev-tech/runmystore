@@ -402,6 +402,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
+<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
 <style>
 :root{
     --hue1:255; --hue2:222;
@@ -1661,27 +1662,9 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 <div class="app" id="app">
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- HEADER                                      -->
+    <!-- HEADER (S82.SHELL — unified partial)        -->
     <!-- ═══════════════════════════════════════════ -->
-    <div class="header">
-        <div class="brand">RUNMYSTORE.AI</div>
-        <span class="plan-badge <?= htmlspecialchars($plan) ?>"><?= htmlspecialchars($plan_label) ?></span>
-        <button class="header-icon-btn theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Светла/тъмна тема" style="margin-left:8px">
-            <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <div class="header-spacer"></div>
-        <a href="simple.php" class="header-icon-btn" title="Опростен режим">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </a>
-        <a href="settings.php" class="header-icon-btn" title="Настройки">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </a>
-        <button class="header-icon-btn" id="logoutBtn" onclick="toggleLogout(event)" title="Изход">
-            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <a href="logout.php" class="logout-dropdown" id="logoutDrop">Изход →</a>
-        </button>
-    </div>
+    <?php include __DIR__ . '/partials/header.php'; ?>
 
     <!-- ═══════════════════════════════════════════ -->
     <!-- REVENUE CARD                                -->
@@ -1939,26 +1922,9 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- BOTTOM NAV (4 tabs)                                    -->
+<!-- BOTTOM NAV (S82.SHELL — unified partial)              -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<nav class="bottom-nav">
-    <a href="chat.php" class="nav-tab active">
-        <svg viewBox="0 0 24 20" fill="none"><rect x="2" y="8" width="3" height="7" rx="1.5" fill="currentColor" opacity=".6"><animate attributeName="height" values="7;14;7" dur="1.2s" repeatCount="indefinite"/><animate attributeName="y" values="8;4;8" dur="1.2s" repeatCount="indefinite"/></rect><rect x="7" y="4" width="3" height="12" rx="1.5" fill="currentColor" opacity=".75"><animate attributeName="height" values="12;6;12" dur="1.2s" begin="0.15s" repeatCount="indefinite"/><animate attributeName="y" values="4;7;4" dur="1.2s" begin="0.15s" repeatCount="indefinite"/></rect><rect x="12" y="2" width="3" height="16" rx="1.5" fill="currentColor" opacity=".9"><animate attributeName="height" values="16;8;16" dur="1.2s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="y" values="2;6;2" dur="1.2s" begin="0.3s" repeatCount="indefinite"/></rect><rect x="17" y="5" width="3" height="10" rx="1.5" fill="currentColor" opacity=".7"><animate attributeName="height" values="10;14;10" dur="1.2s" begin="0.45s" repeatCount="indefinite"/><animate attributeName="y" values="5;3;5" dur="1.2s" begin="0.45s" repeatCount="indefinite"/></rect></svg>
-        <span class="nav-tab-label">AI</span>
-    </a>
-    <a href="warehouse.php" class="nav-tab">
-        <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-        <span class="nav-tab-label">Склад</span>
-    </a>
-    <a href="stats.php" class="nav-tab">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span class="nav-tab-label">Справки</span>
-    </a>
-    <a href="sale.php" class="nav-tab">
-        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span class="nav-tab-label">Продажба</span>
-    </a>
-</nav>
+<?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh CHAT OVERLAY (WhatsApp стил, blur отдолу)         -->
@@ -2639,6 +2605,8 @@ document.querySelectorAll('.sig-card,.sig-more,.nav-tab,.header-icon-btn,.store-
     el.addEventListener('click', () => vib(6));
 });
 </script>
+
+<?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 
 </body>
 </html>
