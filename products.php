@@ -1485,6 +1485,59 @@ body::before{
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
+/* === S82.COLOR.4 — Photo mode toggle + multi-photo + camera loop === */
+.photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
+.pmt-opt{flex:1;padding:7px 8px;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:10.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:all .18s}
+.pmt-opt.active{background:linear-gradient(180deg,rgba(99,102,241,0.2),rgba(67,56,202,0.1));color:var(--indigo-300);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
+.pmt-opt svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.photo-multi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
+.photo-multi-cell{position:relative;display:flex;flex-direction:column;gap:6px}
+.photo-multi-thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.18)}
+.photo-multi-thumb .ph-img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-multi-thumb .ph-num{position:absolute;top:5px;left:5px;padding:2px 7px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;font-weight:800;line-height:1.4}
+.photo-multi-thumb .ph-rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,0.85);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:inherit;line-height:1;padding:0}
+
+.photo-color-input{display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2)}
+.photo-color-swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0;border:0.5px solid rgba(255,255,255,0.2)}
+.photo-color-input input{flex:1;background:transparent;border:none;color:var(--text-primary);font-size:11px;font-weight:600;outline:none;font-family:inherit;padding:2px 0;min-width:0}
+.photo-color-conf{font-size:8px;font-weight:800;color:#86efac;letter-spacing:0.05em;flex-shrink:0}
+.photo-color-conf.warn{color:#fbbf24}
+.photo-color-conf.detecting{color:var(--indigo-300)}
+
+.photo-empty-add{aspect-ratio:1;border-radius:10px;background:rgba(99,102,241,0.05);border:1.5px dashed rgba(99,102,241,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--indigo-300);font-size:10px;font-weight:600;font-family:inherit;transition:all .15s;padding:8px}
+.photo-empty-add:hover{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.5)}
+.photo-empty-add svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
+.photo-multi-info b{color:var(--text-primary)}
+
+/* Camera loop fullscreen overlay */
+.cam-loop-ov{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column}
+.cam-loop-ov.show{display:flex}
+.cam-loop-video{flex:1;width:100%;object-fit:cover;background:#000}
+.cam-loop-preview{flex:1;width:100%;object-fit:contain;background:#000}
+.cam-loop-controls{padding:14px 14px calc(14px + env(safe-area-inset-bottom,0));background:rgba(0,0,0,0.9);display:flex;gap:8px;align-items:center;justify-content:center}
+.cam-loop-btn{padding:14px 18px;border-radius:14px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.cam-loop-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cam-loop-btn.shoot{width:74px;height:74px;border-radius:50%;background:#fff;color:#000;padding:0;box-shadow:0 0 0 4px rgba(255,255,255,0.25)}
+.cam-loop-btn.shoot svg{width:30px;height:30px;stroke-width:2.2}
+.cam-loop-btn.next{background:linear-gradient(135deg,var(--indigo-500),var(--indigo-600));color:#fff;flex:1;max-width:160px}
+.cam-loop-btn.done{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;flex:1;max-width:160px}
+.cam-loop-btn.retake{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);flex:1;max-width:140px}
+.cam-loop-btn.cancel{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);width:50px;height:50px;border-radius:14px;padding:0}
+.cam-loop-counter{position:absolute;top:calc(14px + env(safe-area-inset-top,0));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(8px);z-index:1}
+
+/* Step 5 final AI prompt card */
+.s82-finalprompt{margin-top:14px;padding:16px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(99,102,241,.10));border:1.5px solid rgba(139,92,246,.45);position:relative;overflow:hidden}
+.s82-finalprompt-title{font-size:14px;font-weight:800;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.s82-finalprompt-list{font-size:11px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;padding-left:14px}
+.s82-finalprompt-list li{margin-bottom:2px}
+.s82-finalprompt-actions{display:flex;gap:8px}
+.s82-finalprompt-btn{flex:1;padding:11px;border-radius:11px;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
+.s82-finalprompt-btn.yes{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,0.3)}
+.s82-finalprompt-btn.no{background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid rgba(255,255,255,0.1)}
+
 /* ═══ FORM ELEMENTS ═══ */
 .fg{margin-bottom:10px}
 .fl{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -5339,31 +5392,67 @@ function renderWizPage(step){
         var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
-        // S82.AI_STUDIO: AI controls visible after photo loaded
-        const _aiState = S.wizData._aiState || 'idle'; // idle | processing | done | error
-        const _aiColors = (S.wizData._aiDetectedColors || []);
-        let _aiControls = '';
-        if (_hasPhoto) {
-            if (_aiState === 'idle') {
-                _aiControls = '<button type="button" onclick="wizAIProcessPhoto()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.10));border:1px solid rgba(139,92,246,.45);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;box-shadow:0 0 14px rgba(139,92,246,.18),inset 0 1px 0 rgba(255,255,255,.05)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>AI обработи (бял фон + цветове)</button>';
-            } else if (_aiState === 'processing') {
-                _aiControls = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);color:#a5b4fc;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>AI обработва...</div>';
-            } else if (_aiState === 'done' && _aiColors.length) {
-                let _colorPills = _aiColors.map(c => '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);font-size:11px;color:#c7d2fe"><span style="width:10px;height:10px;border-radius:50%;background:'+c.hex+';border:1px solid rgba(255,255,255,.20)"></span>'+c.name+'</span>').join('');
-                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:11px;font-weight:700;color:#86efac">AI откри цветове — ще се попълнят на следващата стъпка</span></div><div style="display:flex;flex-wrap:wrap;gap:5px">'+_colorPills+'</div></div>';
-            } else if (_aiState === 'error') {
-                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.30);color:#fca5a5;font-size:11px;font-weight:600">'+(S.wizData._aiError||'AI обработката не успя.')+' <a href="#" onclick="event.preventDefault();S.wizData._aiState=\'idle\';renderWizard()" style="color:#fca5a5;text-decoration:underline">Опитай пак</a></div>';
-            }
+        // S82.COLOR.4: photo mode toggle (single | multi). Multi is meaningful only for variant type.
+        var _photoMode = S.wizData._photoMode;
+        if (!_photoMode) {
+            try { _photoMode = localStorage.getItem('_rms_photoMode') || 'single'; } catch(e) { _photoMode = 'single'; }
+            S.wizData._photoMode = _photoMode;
         }
-        const _photoContent=_hasPhoto
-            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'+_aiControls
-            : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
-        const _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
-        const _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
-        const photoPreview='<div class="v4-pz">'+_photoContent+_photoBtns+_photoTips+'</div>';
-        const photoButtons='';
-        const photoTips='';
-        const photoBlock=photoPreview+photoButtons+photoTips;
+        if (S.wizType !== 'variant') _photoMode = 'single';
+        var _photoModeToggle = '';
+        if (S.wizType === 'variant') {
+            _photoModeToggle =
+                '<div class="photo-mode-toggle">' +
+                    '<button type="button" class="pmt-opt' + (_photoMode==='single'?' active':'') + '" onclick="wizSetPhotoMode(\'single\')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Една снимка</button>' +
+                    '<button type="button" class="pmt-opt' + (_photoMode==='multi'?' active':'') + '" onclick="wizSetPhotoMode(\'multi\')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Различни цветове</button>' +
+                '</div>';
+        }
+        var photoBlock = '';
+        if (_photoMode === 'multi') {
+            var _photos = Array.isArray(S.wizData._photos) ? S.wizData._photos : [];
+            var _gridH = '<div class="photo-multi-grid">';
+            _photos.forEach(function(p, i){
+                var conf = (p.ai_confidence === null || p.ai_confidence === undefined) ? null : p.ai_confidence;
+                var confLabel = '';
+                var confCls = 'photo-color-conf';
+                if (conf === null) { confLabel = 'AI...'; confCls += ' detecting'; }
+                else if (conf >= 0.75) { confLabel = Math.round(conf*100) + '%'; }
+                else if (conf >= 0.5)  { confLabel = Math.round(conf*100) + '%'; confCls += ' warn'; }
+                else { confLabel = '?'; confCls += ' warn'; }
+                var swHex = p.ai_hex || '#666';
+                var nm = (p.ai_color || '').replace(/"/g,'&quot;');
+                _gridH +=
+                    '<div class="photo-multi-cell">' +
+                        '<div class="photo-multi-thumb">' +
+                            '<img class="ph-img" src="' + p.dataUrl + '" alt="">' +
+                            '<span class="ph-num">' + (i+1) + '</span>' +
+                            '<button type="button" class="ph-rm" onclick="wizPhotoMultiRemove(' + i + ')">×</button>' +
+                        '</div>' +
+                        '<div class="photo-color-input">' +
+                            '<span class="photo-color-swatch" style="background:' + swHex + '"></span>' +
+                            '<input type="text" value="' + nm + '" placeholder="цвят..." oninput="wizPhotoSetColor(' + i + ',this.value)">' +
+                            '<span class="' + confCls + '">' + confLabel + '</span>' +
+                        '</div>' +
+                    '</div>';
+            });
+            _gridH +=
+                '<div class="photo-multi-cell">' +
+                    '<div class="photo-empty-add" onclick="wizPhotoMultiPick()">' +
+                        '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        '<span>Добави</span>' +
+                    '</div>' +
+                '</div>';
+            _gridH += '</div>';
+            var _info = '<div class="photo-multi-info">Снимки по цвят: <b>' + _photos.length + '</b> · AI разпознава цветовете автоматично</div>';
+            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _info + _gridH + '</div>';
+        } else {
+            var _photoContent = _hasPhoto
+                ? '<img src="' + S.wizData._photoDataUrl + '" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+                : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
+            var _photoBtns = '<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
+            var _photoTips = '<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
+            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
+        }
 
         const copyPrev=hasLast
             ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
@@ -5371,27 +5460,7 @@ function renderWizPage(step){
 
         const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle='<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>'+_ttWarn;
 
-        // S82.UI.FIX2 v2: proactive AI Studio CTA — visible WHENEVER user is on step 3 and AI isn't done.
-        // Single (non-variant) gets a softer CTA without the "auto-fill colours" line.
-        var _aiCTAVisible = (_aiState === 'idle') && !_hasPhoto;
-        var _aiCTAVariant = (S.wizType === 'variant');
-        var _aiCTASubText = _aiCTAVariant
-            ? 'AI ще махне фона и автоматично ще разпознае цветовете за вариациите'
-            : 'AI ще махне фона на снимката за чист бял студиен изглед';
-        const aiHint = _aiCTAVisible
-            ? '<div id="aiStudioCTA" onclick="S.wizData._aiAutoTrigger=true;document.getElementById(\'photoInput\').click()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:12px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(99,102,241,.14));border:1.5px solid rgba(139,92,246,.55);cursor:pointer;box-shadow:0 0 22px rgba(139,92,246,.25),inset 0 1px 0 rgba(255,255,255,.08);position:relative;overflow:hidden">'
-              + '<div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(139,92,246,.18),transparent 60%);pointer-events:none"></div>'
-              + '<div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#7c3aed,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(139,92,246,.5);position:relative">'
-              + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>'
-              + '</div>'
-              + '<div style="flex:1;min-width:0;position:relative">'
-              + '<div style="font-size:14px;font-weight:800;color:#e9d5ff;letter-spacing:-.01em">🪄 AI Studio — снимай артикула</div>'
-              + '<div style="font-size:11px;color:rgba(233,213,255,.78);margin-top:2px;line-height:1.35">'+_aiCTASubText+'</div>'
-              + '</div>'
-              + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e9d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;position:relative"><polyline points="9 18 15 12 9 6"/></svg>'
-              + '</div>'
-            : '';
-
+        // S82.COLOR.4: prominent AI Studio CTA + _aiState/_aiCTA*/_aiAutoTrigger removed (replaced by photo-mode toggle + step 5 final prompt).
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
         const qtyBlock=isSingle
             ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'+'<div class="fg">'+fieldLabel('Мин. количество','name','<span class="hint">(за сигнали)</span>')+'<div style="display:flex;border:1px solid rgba(245,158,11,0.15);border-radius:12px;overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-right:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-left:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">+</button></div></div>'
@@ -5402,7 +5471,6 @@ function renderWizPage(step){
         return '<div class="wiz-page active">'+
             typeToggle+
             copyPrev+
-            aiHint+
             '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px">'+
               '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
               '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
@@ -5446,8 +5514,21 @@ function renderWizPagePart2(step){
             }
             if(!S.wizData.axes.length){S.wizData.axes.push({name:'Вариация 1',values:[]});S.wizData.axes.push({name:'Вариация 2',values:[]})}
         }
-        // S82.AI_STUDIO: auto-populate color axis from AI-detected colors (once)
-        if (S.wizData._aiDetectedColors && S.wizData._aiDetectedColors.length && !S.wizData._aiColorsApplied) {
+        // S82.COLOR.4: auto-populate color axis from either legacy _aiDetectedColors or new _photos[].ai_color (once)
+        var _detectedColors = [];
+        if (Array.isArray(S.wizData._aiDetectedColors)) {
+            S.wizData._aiDetectedColors.forEach(function(c){ if (c && c.name) _detectedColors.push({name: c.name, hex: c.hex || '#666'}); });
+        }
+        if (Array.isArray(S.wizData._photos)) {
+            S.wizData._photos.forEach(function(p){
+                var n = (p.ai_color || '').trim();
+                if (!n) return;
+                if (!_detectedColors.find(function(x){return x.name.toLowerCase()===n.toLowerCase()})) {
+                    _detectedColors.push({name: n, hex: p.ai_hex || '#666'});
+                }
+            });
+        }
+        if (_detectedColors.length && !S.wizData._aiColorsApplied) {
             var _colorAxisIdx = -1;
             S.wizData.axes.forEach(function(ax, i){
                 var n = (ax.name || '').toLowerCase();
@@ -5460,8 +5541,8 @@ function renderWizPagePart2(step){
             }
             if (_colorAxisIdx !== -1) {
                 var _existing = new Set(S.wizData.axes[_colorAxisIdx].values || []);
-                S.wizData._aiDetectedColors.forEach(function(c){
-                    if (c && c.name && !_existing.has(c.name)) {
+                _detectedColors.forEach(function(c){
+                    if (!_existing.has(c.name)) {
                         S.wizData.axes[_colorAxisIdx].values.push(c.name);
                         _existing.add(c.name);
                     }
@@ -5792,11 +5873,30 @@ function renderWizPagePart2(step){
         // Summary line
         var sumLine='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.04)"><b style="color:var(--text-primary)">'+esc(S.wizData.name||'')+'</b> \u00b7 '+fmtPrice(S.wizData.retail_price)+' \u00b7 Код: '+esc(S.wizData.code||'AI генерира')+'</div>';
 
+        // S82.COLOR.4: final AI Studio prompt — Yes opens Studio after save, No saves directly.
+        var finalPromptH =
+            '<div class="s82-finalprompt">' +
+                '<div class="s82-finalprompt-title">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
+                    '✨ Искаш ли AI обработка?' +
+                '</div>' +
+                '<ul class="s82-finalprompt-list">' +
+                    '<li>Махане на фона на снимките</li>' +
+                    '<li>AI магия (модел носи дрехата)</li>' +
+                    '<li>SEO описание за онлайн магазин</li>' +
+                    '<li>Експорт CSV/PDF/Excel</li>' +
+                '</ul>' +
+                '<div class="s82-finalprompt-actions">' +
+                    '<button type="button" class="s82-finalprompt-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
+                    '<button type="button" class="s82-finalprompt-btn no" onclick="wizFinalAINo()">Не, запази</button>' +
+                '</div>' +
+            '</div>';
+
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">Бройки и запис</div>'+
         sumLine+unitH+matrixH+minQtyH+descH+
-        '<button class="abtn save" style="margin-top:12px;font-size:15px;padding:14px" onclick="wizSave()">\u2713 Запази артикула</button>'+
-        '<button class="abtn" onclick="wizGo(4)" style="margin-top:6px">\u2190 Назад към вариации</button>'+
+        finalPromptH+
+        '<button class="abtn" onclick="wizGo(4)" style="margin-top:10px">\u2190 Назад към вариации</button>'+
         vskip+'</div>';
     }
 
@@ -6025,6 +6125,233 @@ async function wizAIProcessPhoto(){
         showToast('Мрежова грешка', 'error');
     }
     renderWizard();
+}
+
+// === S82.COLOR.4 — Photo mode + Camera loop + AI color detect ===
+
+function wizSetPhotoMode(mode) {
+    if (mode !== 'single' && mode !== 'multi') return;
+    S.wizData._photoMode = mode;
+    try { localStorage.setItem('_rms_photoMode', mode); } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate(8);
+    renderWizard();
+}
+
+function wizPhotoMultiPick() {
+    if (document.getElementById('rmsPickerDrawer')) {
+        document.getElementById('rmsPickerDrawer').remove();
+    }
+    var dr = document.createElement('div');
+    dr.id = 'rmsPickerDrawer';
+    dr.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:9998;display:flex;align-items:flex-end;justify-content:center';
+    dr.onclick = function(e) { if (e.target === dr) dr.remove(); };
+    dr.innerHTML = '<div style="background:var(--bg-card,#0a0b14);border:1px solid var(--border-subtle);border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0));width:100%;max-width:480px">' +
+        '<div style="font-size:13px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:12px">Добави снимка</div>' +
+        '<div style="display:flex;gap:8px">' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
+        '</div>' +
+        '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
+    '</div>';
+    document.body.appendChild(dr);
+}
+
+function wizPhotoMultiGalleryPick() {
+    if (document.getElementById('_rmsGalPicker')) document.getElementById('_rmsGalPicker').remove();
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.id = '_rmsGalPicker'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.style.display = 'none';
+    inp.onchange = async function(e) {
+        var files = Array.from(e.target.files || []);
+        await wizPhotoMultiAdd(files);
+        inp.remove();
+    };
+    document.body.appendChild(inp);
+    inp.click();
+}
+
+var _rmsCamStream = null;
+var _rmsCamCanvas = null;
+
+function wizPhotoCameraLoop() {
+    if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
+    var ov = document.createElement('div');
+    ov.id = 'rmsCamLoop'; ov.className = 'cam-loop-ov show';
+    var photoCount = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0) + 1;
+    ov.innerHTML =
+        '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
+        '<video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video>' +
+        '<img id="rmsCamPreview" class="cam-loop-preview" style="display:none" alt="">' +
+        '<div class="cam-loop-controls" id="rmsCamControls">' +
+            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamLoopShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
+        '</div>';
+    document.body.appendChild(ov);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (typeof showToast === 'function') showToast('Камерата не се поддържа', 'error');
+        wizCamLoopClose();
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+        .then(function(stream) {
+            _rmsCamStream = stream;
+            var v = document.getElementById('rmsCamVideo');
+            if (v) v.srcObject = stream;
+        })
+        .catch(function(err) {
+            if (typeof showToast === 'function') showToast('Камера: ' + err.message, 'error');
+            wizCamLoopClose();
+        });
+}
+
+function wizCamLoopShoot() {
+    var video = document.getElementById('rmsCamVideo');
+    var preview = document.getElementById('rmsCamPreview');
+    if (!video || !video.videoWidth) return;
+    if (!_rmsCamCanvas) _rmsCamCanvas = document.createElement('canvas');
+    _rmsCamCanvas.width = video.videoWidth;
+    _rmsCamCanvas.height = video.videoHeight;
+    var ctx = _rmsCamCanvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    var dataUrl = _rmsCamCanvas.toDataURL('image/jpeg', 0.9);
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('rmsCamControls').innerHTML =
+        '<button type="button" class="cam-loop-btn retake" onclick="wizCamLoopRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Снимай пак</button>' +
+        '<button type="button" class="cam-loop-btn next" onclick="wizCamLoopAccept(true)">Следваща<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+        '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
+}
+
+function wizCamLoopRetake() {
+    document.getElementById('rmsCamPreview').style.display = 'none';
+    document.getElementById('rmsCamPreview').src = '';
+    document.getElementById('rmsCamVideo').style.display = 'block';
+    document.getElementById('rmsCamControls').innerHTML =
+        '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+        '<button type="button" class="cam-loop-btn shoot" onclick="wizCamLoopShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>';
+}
+
+async function wizCamLoopAccept(continueShooting) {
+    var preview = document.getElementById('rmsCamPreview');
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    S.wizData._photos.push({ dataUrl: preview.src, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
+    if (continueShooting && S.wizData._photos.length < 30) {
+        var ctr = document.getElementById('rmsCamCounter');
+        if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
+        wizCamLoopRetake();
+    } else {
+        wizCamLoopClose();
+        wizPhotoDetectColors();
+    }
+}
+
+function wizCamLoopClose() {
+    if (_rmsCamStream) {
+        _rmsCamStream.getTracks().forEach(function(t) { t.stop(); });
+        _rmsCamStream = null;
+    }
+    var ov = document.getElementById('rmsCamLoop');
+    if (ov) ov.remove();
+    if (typeof renderWizard === 'function') renderWizard();
+}
+
+async function wizPhotoMultiAdd(files) {
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    var room = 30 - S.wizData._photos.length;
+    if (room <= 0) {
+        if (typeof showToast === 'function') showToast('Максимум 30 снимки', 'error');
+        return;
+    }
+    var accepted = files.slice(0, room);
+    for (var i = 0; i < accepted.length; i++) {
+        var file = accepted[i];
+        try {
+            var dataUrl = await new Promise(function(res, rej) {
+                var fr = new FileReader();
+                fr.onload = function() { res(fr.result); };
+                fr.onerror = rej;
+                fr.readAsDataURL(file);
+            });
+            S.wizData._photos.push({ dataUrl: dataUrl, file: file, ai_color: null, ai_hex: null, ai_confidence: null });
+        } catch (err) { console.warn('[S82.COLOR.4] Read err:', err); }
+    }
+    renderWizard();
+    wizPhotoDetectColors();
+}
+
+function wizPhotoMultiRemove(idx) {
+    if (!Array.isArray(S.wizData._photos)) return;
+    if (idx < 0 || idx >= S.wizData._photos.length) return;
+    if (!confirm('Премахни снимка №' + (idx+1) + '?')) return;
+    S.wizData._photos.splice(idx, 1);
+    // Re-applying colours after removal needs a refresh — drop the applied flag.
+    S.wizData._aiColorsApplied = false;
+    renderWizard();
+}
+
+function wizPhotoSetColor(idx, value) {
+    if (!Array.isArray(S.wizData._photos)) return;
+    if (idx < 0 || idx >= S.wizData._photos.length) return;
+    S.wizData._photos[idx].ai_color = (value || '').trim();
+    S.wizData._aiColorsApplied = false;
+}
+
+async function wizPhotoDetectColors() {
+    if (!Array.isArray(S.wizData._photos) || !S.wizData._photos.length) return;
+    var todo = [];
+    var todoIndices = [];
+    S.wizData._photos.forEach(function(p, i) {
+        if (p.ai_confidence === null || p.ai_confidence === undefined) {
+            todo.push(p);
+            todoIndices.push(i);
+        }
+    });
+    if (!todo.length) return;
+    try {
+        var fd = new FormData();
+        todo.forEach(function(p, i) {
+            var arr = p.dataUrl.split(',');
+            var mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+            var bstr = atob(arr[1]);
+            var n = bstr.length;
+            var u8 = new Uint8Array(n);
+            while (n--) u8[n] = bstr.charCodeAt(n);
+            fd.append('image_' + i, new Blob([u8], { type: mime }), 'photo_' + i + '.jpg');
+        });
+        fd.append('count', String(todo.length));
+        var r = await fetch('ai-color-detect.php?multi=1', { method: 'POST', body: fd, credentials: 'same-origin' });
+        if (!r.ok) {
+            console.warn('[S82.COLOR.4] AI detect HTTP', r.status);
+            return;
+        }
+        var j = await r.json();
+        if (Array.isArray(j.results)) {
+            j.results.forEach(function(res, i) {
+                var targetIdx = todoIndices[i];
+                if (targetIdx === undefined) return;
+                if (!S.wizData._photos[targetIdx]) return;
+                S.wizData._photos[targetIdx].ai_color = res.color_bg || res.name || '';
+                S.wizData._photos[targetIdx].ai_hex = res.hex || '#666';
+                S.wizData._photos[targetIdx].ai_confidence = (typeof res.confidence === 'number') ? res.confidence : 0.5;
+            });
+            S.wizData._aiColorsApplied = false;
+            renderWizard();
+        }
+    } catch (err) {
+        console.warn('[S82.COLOR.4] AI detect err:', err);
+    }
+}
+
+// Step 5 final AI prompt → answer 'yes' / 'no'
+function wizFinalAIYes() {
+    S.wizData._openStudioAfterSave = true;
+    if (typeof wizSave === 'function') wizSave();
+}
+
+function wizFinalAINo() {
+    S.wizData._openStudioAfterSave = false;
+    if (typeof wizSave === 'function') wizSave();
 }
 
 async function doStudioTryon(){
@@ -7634,11 +7961,7 @@ document.getElementById('photoInput').addEventListener('change',async function()
         showToast('Снимка добавена','success');
         // S73.B.35: Rerender за да се покаже снимката в photo zone на Step 1
         renderWizard();
-        // S82.UI.FIX2: auto-trigger AI flow if user clicked the proactive AI Studio CTA
-        if (S.wizData._aiAutoTrigger) {
-            S.wizData._aiAutoTrigger = false;
-            setTimeout(function(){ if (typeof wizAIProcessPhoto === 'function') wizAIProcessPhoto(); }, 200);
-        }
+        // S82.COLOR.4: _aiAutoTrigger auto-trigger of wizAIProcessPhoto removed.
     };
     reader.readAsDataURL(this.files[0]);
     this.value='';
