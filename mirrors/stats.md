@@ -1166,6 +1166,36 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 </nav>
 
 <script>
+// S82.UI — Theme toggle (default DARK, persists in localStorage['rms_theme'])
+(function initTheme(){
+    try{
+        var saved=localStorage.getItem('rms_theme');
+        if(saved==='light'){document.documentElement.setAttribute('data-theme','light')}
+        document.addEventListener('DOMContentLoaded',function(){
+            var sun=document.getElementById('themeIconSun');
+            var moon=document.getElementById('themeIconMoon');
+            if(!sun||!moon)return;
+            var isLight=document.documentElement.getAttribute('data-theme')==='light';
+            if(isLight){sun.style.display='';moon.style.display='none'}
+            else{sun.style.display='none';moon.style.display=''}
+        });
+    }catch(_){}
+})();
+function toggleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var nxt=(cur==='light')?'dark':'light';
+    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
+    else{document.documentElement.removeAttribute('data-theme')}
+    try{localStorage.setItem('rms_theme',nxt)}catch(_){}
+    var sun=document.getElementById('themeIconSun');
+    var moon=document.getElementById('themeIconMoon');
+    if(sun&&moon){
+        if(nxt==='light'){sun.style.display='';moon.style.display='none'}
+        else{sun.style.display='none';moon.style.display=''}
+    }
+    if(navigator.vibrate)navigator.vibrate(5);
+}
+
 const D={
     revenue:{title:'Оборот',value:'<?= number_format($sales_summary['revenue'],2,',','.') ?> <?= $currency ?>',explain:'Общата сума на всички завършени продажби за периода.',ai:'Фокусирай се върху топ артикулите — те носят 80% от парите. Увери се че никога не са на 0.',action:'Виж продажбите',link:'stats.php?tab=sales&period=<?= $period ?>'},
     transactions:{title:'Транзакции',value:'<?= $sales_summary['transactions'] ?>',explain:'Броят на отделните продажби. По-много транзакции с по-висока средна сметка = по-добър бизнес.',ai:'Средната сметка е <?= number_format($sales_summary['avg_ticket'],2,',','.') ?> <?= $currency ?>. Предлагай допълнителен артикул на всяка продажба.',action:null},
