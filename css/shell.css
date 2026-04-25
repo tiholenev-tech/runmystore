@@ -153,16 +153,10 @@ body.overlay-open .rms-input-bar{opacity:0;pointer-events:none;transform:transla
 }
 :root[data-theme="light"] .rms-input-placeholder{color:var(--text-muted)}
 
-/* Page padding so content doesn't sit under input-bar + bottom-nav */
+/* Page padding so content can scroll past the sticky chat-input + bottom-nav.
+   No !important, no wrapper overrides — those broke scroll on flex-height wrappers. */
 body.has-rms-shell{
-    padding-bottom:calc(170px + env(safe-area-inset-bottom,0px)) !important;
-}
-/* Modules with their own .app/.page-wrap also need bottom breathing room */
-body.has-rms-shell .app,
-body.has-rms-shell .page-wrap,
-body.has-rms-shell .sale-wrap,
-body.has-rms-shell .inv-screen{
-    padding-bottom:calc(160px + env(safe-area-inset-bottom,0px));
+    padding-bottom:calc(140px + env(safe-area-inset-bottom,0px));
 }
 
 /* ─── RESPONSIVE: smaller icons + tighter brand on narrow screens ─── */
@@ -254,28 +248,36 @@ body.has-rms-shell .inv-screen{
 :root[data-theme="light"] .bnav-tab.active,
 :root[data-theme="light"] .bottom-nav-tab.active{color:#4338ca !important}
 
-/* ─── LIGHT THEME — fix invisible-on-light text patterns ─── */
-/* Any element relying on inline white-ish color in dark mode loses contrast on light bg */
-:root[data-theme="light"] [style*="color:#fff"]:not(.rms-input-mic):not(.input-mic),
-:root[data-theme="light"] [style*="color: #fff"]:not(.rms-input-mic):not(.input-mic),
-:root[data-theme="light"] [style*="color:#f1f5f9"],
-:root[data-theme="light"] [style*="color:#e2e8f0"],
-:root[data-theme="light"] [style*="color:#cbd5e1"],
-:root[data-theme="light"] [style*="color:#a5b4fc"],
-:root[data-theme="light"] [style*="color:#c4b5fd"],
-:root[data-theme="light"] [style*="color:#c7d2fe"],
-:root[data-theme="light"] [style*="color:#86efac"],
-:root[data-theme="light"] [style*="color:#fbbf24"],
-:root[data-theme="light"] [style*="color:#fca5a5"]{
+/* ─── LIGHT THEME — broad text darkening for wizard / cards / modals ─── */
+/* Strategy: target whole wrappers, not inline color attribute matches.
+   This way all child text inherits dark colour by default, but a child
+   element with a coloured GRADIENT background keeps its white text
+   (because we exempt gradient backgrounds below). */
+:root[data-theme="light"] .wiz-page,
+:root[data-theme="light"] .wiz-page *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .glass:not(.rev-card),
+:root[data-theme="light"] .glass:not(.rev-card) *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v4-glass-pro,
+:root[data-theme="light"] .v4-glass-pro *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .modal-box,
+:root[data-theme="light"] .modal-box *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .add-card,
+:root[data-theme="light"] .add-card *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .health-sec,
+:root[data-theme="light"] .health-sec *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .stat-card *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v4-pz,
+:root[data-theme="light"] .v4-pz *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v-picker-body,
+:root[data-theme="light"] .v-picker-body *:not(svg):not(svg *):not([style*="linear-gradient"]){
     color:#0f172a !important;
 }
-/* Re-allow vivid colours on coloured-bg pills/chips (where bg gives contrast) */
-:root[data-theme="light"] [style*="background:linear-gradient"][style*="color:#fff"],
-:root[data-theme="light"] [style*="background: linear-gradient"][style*="color:#fff"]{
-    color:#fff !important;
-}
-/* gradient-text titles in light mode get explicit dark-indigo gradient */
-:root[data-theme="light"] [style*="-webkit-text-fill-color:transparent"]{
+/* Gradient-text titles get a dark indigo gradient instead of bright */
+:root[data-theme="light"] .wiz-page [style*="-webkit-text-fill-color:transparent"],
+:root[data-theme="light"] .glass [style*="-webkit-text-fill-color:transparent"],
+:root[data-theme="light"] .title-main,
+:root[data-theme="light"] .page-title{
     background:linear-gradient(135deg,#1e1b4b,#4338ca) !important;
     -webkit-background-clip:text !important;
     background-clip:text !important;
