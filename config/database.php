@@ -1,7 +1,10 @@
 <?php
 /**
  * S79.SECURITY — credentials се четат от /etc/runmystore/db.env
- * НИКОГА hardcoded стойности тук!
+ * S80.A — DB::tx() deadlock retry (1213, 1205) с exponential backoff + jitter
+ * S80.B — DB::tx() SAVEPOINT-based nested transactions
+ *
+ * НИКОГА hardcoded credentials тук!
  */
 class DB {
     private static ?PDO $instance = null;
@@ -81,27 +84,125 @@ class DB {
     }
 
     /**
-     * DOC_05 §7.2 — Transaction wrapper.
-     * Wraps callable in BEGIN/COMMIT, ROLLBACK on Throwable.
-     * Returns whatever the callback returns.
+     * S80.AB — Transaction wrapper с deadlock retry + SAVEPOINT nesting.
      *
-     * Limitations (S79):
-     *   - No nested transactions (PDO native — second beginTransaction throws)
-     *     -> SAVEPOINT support идва в S80
-     *   - No deadlock retry -> S80
+     * OUTER call (no active transaction):
+     *   - BEGIN -> callable($pdo) -> COMMIT
+     *   - На errors 1213 (deadlock) или 1205 (lock wait timeout): ROLLBACK + retry
+     *   - Backoff: exponential + jitter (~50ms / 150ms / 350ms)
+     *   - След $maxRetries неуспешни опита: throw RuntimeException обвиващ PDOException
+     *   - На non-retryable PDO error или Throwable: ROLLBACK + rethrow
+     *
+     * INNER call (active transaction съществува):
+     *   - SAVEPOINT sp_<hex8> -> callable($pdo) -> RELEASE SAVEPOINT
+     *   - На exception: ROLLBACK TO SAVEPOINT + rethrow
+     *   - НЕ retry на inner level (deadlock убива outer transaction-а — outer-ът ще retry-не цялата операция)
+     *
+     * ⚠️ IDEMPOTENCY WARNING:
+     *   Callable-ът може да бъде извикан НЯКОЛКО ПЪТИ при retry.
+     *   НЕ слагай side effects извън DB вътре в DB::tx():
+     *     - Stripe charge -> double-charge
+     *     - HTTP API call -> double request
+     *     - File write -> partial state
+     *     - Email send -> spam
+     *   Прави side effects СЛЕД като DB::tx() върне резултат.
+     *
+     * @param callable $fn Получава PDO instance: function(PDO $pdo): mixed
+     * @param int $maxRetries Максимум retries на outer level (default 3)
+     * @return mixed Каквото върне callable-ът
+     * @throws RuntimeException При exhausted retries (с PDOException като previous)
+     * @throws Throwable При non-retryable error (rethrown 1:1)
      */
-    public static function tx(callable $callback) {
+    public static function tx(callable $fn, int $maxRetries = 3) {
         $pdo = self::get();
-        $pdo->beginTransaction();
-        try {
-            $result = $callback();
-            $pdo->commit();
-            return $result;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
+
+        // ─────────────────────────────────────────
+        // INNER CASE — SAVEPOINT, no retry
+        // ─────────────────────────────────────────
+        if ($pdo->inTransaction()) {
+            $sp = 'sp_' . bin2hex(random_bytes(4));
+            $pdo->exec("SAVEPOINT $sp");
+            try {
+                $result = $fn($pdo);
+                $pdo->exec("RELEASE SAVEPOINT $sp");
+                return $result;
+            } catch (Throwable $e) {
+                try {
+                    $pdo->exec("ROLLBACK TO SAVEPOINT $sp");
+                } catch (Throwable $_) {
+                    // SAVEPOINT може вече да не съществува ако outer transaction е killed
+                    // Suppress secondary error, оригиналното $e е по-важно
+                }
+                throw $e;
             }
-            throw $e;
         }
+
+        // ─────────────────────────────────────────
+        // OUTER CASE — BEGIN/COMMIT с deadlock retry
+        // ─────────────────────────────────────────
+        $attempt = 0;
+        $lastException = null;
+        $tenantTag = $_SESSION['tenant_id'] ?? 'cli';
+
+        while ($attempt <= $maxRetries) {
+            try {
+                $pdo->beginTransaction();
+                $result = $fn($pdo);
+                $pdo->commit();
+
+                if ($attempt > 0) {
+                    error_log(sprintf(
+                        '[DB::tx] recovered after %d retries (tenant=%s)',
+                        $attempt, $tenantTag
+                    ));
+                }
+                return $result;
+
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                $code = $e->errorInfo[1] ?? null;
+                $isRetryable = in_array($code, [1213, 1205], true);
+                $lastException = $e;
+
+                if (!$isRetryable || $attempt >= $maxRetries) {
+                    throw new RuntimeException(
+                        sprintf(
+                            'DB::tx %s after %d attempts (last: code=%s msg=%s)',
+                            $isRetryable ? 'exhausted retries' : 'failed (non-retryable)',
+                            $attempt + 1,
+                            $code ?? 'unknown',
+                            $e->getMessage()
+                        ),
+                        0,
+                        $e
+                    );
+                }
+
+                // Exponential backoff + jitter
+                // attempt=0 -> ~50-100ms, attempt=1 -> ~100-150ms, attempt=2 -> ~200-250ms
+                $delay = ((1 << $attempt) * 50_000) + random_int(0, 50_000);
+                error_log(sprintf(
+                    '[DB::tx] retry %d/%d after %dms (code=%s tenant=%s)',
+                    $attempt + 1, $maxRetries,
+                    intdiv($delay, 1000),
+                    $code, $tenantTag
+                ));
+                usleep($delay);
+                $attempt++;
+
+            } catch (Throwable $e) {
+                // User code exception (RuntimeException, LogicException, etc.) — no retry
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
+        }
+
+        // Unreachable defensive fallback
+        throw $lastException ?? new RuntimeException('DB::tx exhausted all retries (unreachable)');
     }
 }
