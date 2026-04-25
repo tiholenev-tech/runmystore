@@ -23,9 +23,12 @@ if ($t && $t['onboarding_done']) { header('Location: chat.php'); exit; }
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
 <title>Добре дошъл — RunMyStore.ai</title>
 <link rel="stylesheet" href="./css/vendors/aos.css">
 <link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 html,body{height:100dvh;overflow:hidden}
 body{display:flex;flex-direction:column}
