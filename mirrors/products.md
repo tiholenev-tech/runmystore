@@ -5339,69 +5339,28 @@ function renderWizPage(step){
         var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
-        // S82.COLOR.2: Photo mode toggle (single / multi) — само за variant продукти
-        const _isVariant = (S.wizType === 'variant');
-        let _photoMode = S.wizData._photoMode;
-        if (!_photoMode) {
-            try { _photoMode = localStorage.getItem('_rms_photoMode') || 'single'; } catch(e) { _photoMode = 'single'; }
-            S.wizData._photoMode = _photoMode;
+        // S82.AI_STUDIO: AI controls visible after photo loaded
+        const _aiState = S.wizData._aiState || 'idle'; // idle | processing | done | error
+        const _aiColors = (S.wizData._aiDetectedColors || []);
+        let _aiControls = '';
+        if (_hasPhoto) {
+            if (_aiState === 'idle') {
+                _aiControls = '<button type="button" onclick="wizAIProcessPhoto()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.10));border:1px solid rgba(139,92,246,.45);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;box-shadow:0 0 14px rgba(139,92,246,.18),inset 0 1px 0 rgba(255,255,255,.05)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>AI обработи (бял фон + цветове)</button>';
+            } else if (_aiState === 'processing') {
+                _aiControls = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;margin:0 0 10px;border-radius:12px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);color:#a5b4fc;font-size:12px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>AI обработва...</div>';
+            } else if (_aiState === 'done' && _aiColors.length) {
+                let _colorPills = _aiColors.map(c => '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;background:rgba(99,102,241,.10);border:1px solid rgba(99,102,241,.30);font-size:11px;color:#c7d2fe"><span style="width:10px;height:10px;border-radius:50%;background:'+c.hex+';border:1px solid rgba(255,255,255,.20)"></span>'+c.name+'</span>').join('');
+                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:11px;font-weight:700;color:#86efac">AI откри цветове — ще се попълнят на следващата стъпка</span></div><div style="display:flex;flex-wrap:wrap;gap:5px">'+_colorPills+'</div></div>';
+            } else if (_aiState === 'error') {
+                _aiControls = '<div style="margin:0 0 10px;padding:9px 12px;border-radius:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.30);color:#fca5a5;font-size:11px;font-weight:600">'+(S.wizData._aiError||'AI обработката не успя.')+' <a href="#" onclick="event.preventDefault();S.wizData._aiState=\'idle\';renderWizard()" style="color:#fca5a5;text-decoration:underline">Опитай пак</a></div>';
+            }
         }
-        if (!_isVariant) _photoMode = 'single';
-        if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
-        const _photoModeToggle = _isVariant ? (
-            '<div class="photo-mode-toggle">' +
-            '<button type="button" class="pmt-opt ' + (_photoMode==='single'?'active':'') + '" onclick="wizSetPhotoMode(\'single\')">' +
-            '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Една снимка</button>' +
-            '<button type="button" class="pmt-opt ' + (_photoMode==='multi'?'active':'') + '" onclick="wizSetPhotoMode(\'multi\')">' +
-            '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/></svg>Различни цветове</button>' +
-            '</div>'
-        ) : '';
         const _photoContent=_hasPhoto
-            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'+_aiControls
             : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
         const _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
         const _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
-        // S82.COLOR.2: Multi-photo render с color textbox
-        let _multiGridHTML = '';
-        if (_photoMode === 'multi' && _isVariant) {
-            const _photos = S.wizData._photos || [];
-            let _cellsHTML = '';
-            _photos.forEach(function(p, i) {
-                const conf = p.ai_confidence;
-                let confClass = 'detecting';
-                let confText = '...';
-                if (conf !== null && conf !== undefined) {
-                    if (conf >= 0.85) { confClass = ''; confText = 'AI ' + Math.round(conf*100) + '%'; }
-                    else if (conf >= 0.5) { confClass = 'warn'; confText = '⚠ ' + Math.round(conf*100) + '%'; }
-                    else { confClass = 'warn'; confText = '? ' + Math.round(conf*100) + '%'; }
-                }
-                const swatchBg = p.ai_hex || '#666';
-                const colorVal = (p.ai_color || '').replace(/"/g, '&quot;');
-                _cellsHTML += '<div class="photo-multi-cell">' +
-                    '<div class="photo-multi-thumb">' +
-                        '<span class="ph-num">' + (i+1) + '</span>' +
-                        '<button type="button" class="ph-rm" onclick="wizPhotoMultiRemove(' + i + ')">×</button>' +
-                        '<img class="ph-img" src="' + p.dataUrl + '" alt="">' +
-                    '</div>' +
-                    '<div class="photo-color-input">' +
-                        '<span class="photo-color-swatch" style="background:' + swatchBg + '"></span>' +
-                        '<input type="text" value="' + colorVal + '" placeholder="цвят..." onchange="wizPhotoSetColor(' + i + ', this.value)">' +
-                        '<span class="photo-color-conf ' + confClass + '">' + confText + '</span>' +
-                    '</div>' +
-                '</div>';
-            });
-            // Add tile (винаги в края)
-            _cellsHTML += '<div class="photo-multi-cell"><div class="photo-empty-add" onclick="wizPhotoMultiPick()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</div></div>';
-
-            const _infoText = _photos.length === 0
-                ? 'Натисни „<b>+ Добави</b>" → снимай или избери от галерия. AI ще разпознае цветовете.'
-                : 'Качени: <b>' + _photos.length + '</b> · AI разпознава цветовете автоматично';
-            _multiGridHTML = '<div class="photo-multi-info">' + _infoText + '</div>' +
-                '<div class="photo-multi-grid">' + _cellsHTML + '</div>';
-        }
-        const photoPreview = (_photoMode === 'multi' && _isVariant)
-            ? '<div class="v4-pz">' + _photoModeToggle + _multiGridHTML + '</div>'
-            : '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
+        const photoPreview='<div class="v4-pz">'+_photoContent+_photoBtns+_photoTips+'</div>';
         const photoButtons='';
         const photoTips='';
         const photoBlock=photoPreview+photoButtons+photoTips;
@@ -5426,6 +5385,7 @@ function renderWizPage(step){
               + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>'
               + '</div>'
               + '<div style="flex:1;min-width:0;position:relative">'
+              + '<div style="font-size:14px;font-weight:800;color:#e9d5ff;letter-spacing:-.01em">🪄 AI Studio — снимай артикула</div>'
               + '<div style="font-size:11px;color:rgba(233,213,255,.78);margin-top:2px;line-height:1.35">'+_aiCTASubText+'</div>'
               + '</div>'
               + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e9d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;position:relative"><polyline points="9 18 15 12 9 6"/></svg>'
@@ -7372,239 +7332,6 @@ async function wizLoadSubcats(catId){
 }
 function wizFilterSelect(selId,q){}
 
-
-// === S82.COLOR.2 — Photo mode + Camera loop + AI color detect ===
-function wizSetPhotoMode(mode) {
-    if (mode !== 'single' && mode !== 'multi') return;
-    S.wizData._photoMode = mode;
-    try { localStorage.setItem('_rms_photoMode', mode); } catch(e) {}
-    if (navigator.vibrate) navigator.vibrate(8);
-    renderWizard();
-}
-
-// При „+" в multi grid — drawer/menu с „Снимай" / „Галерия"
-function wizPhotoMultiPick() {
-    if (typeof openDrawer === 'function') {
-        // Render small drawer choice
-        if (document.getElementById('rmsPickerDrawer')) {
-            document.getElementById('rmsPickerDrawer').remove();
-        }
-        const dr = document.createElement('div');
-        dr.id = 'rmsPickerDrawer';
-        dr.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:9998;display:flex;align-items:flex-end;justify-content:center;animation:rmsFadeIn 0.2s';
-        dr.onclick = function(e) { if (e.target === dr) dr.remove(); };
-        dr.innerHTML = '<div style="background:#0a0b14;border:1px solid rgba(99,102,241,0.25);border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0));width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,0.6)">' +
-            '<div style="font-size:13px;font-weight:800;color:#fff;text-align:center;margin-bottom:12px">Добави снимка</div>' +
-            '<div style="display:flex;gap:8px">' +
-                '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);border:1px solid #818cf8;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
-                '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
-            '</div>' +
-            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
-        '</div>';
-        document.body.appendChild(dr);
-        if (navigator.vibrate) navigator.vibrate(6);
-    }
-}
-
-// Galery multi-select picker
-function wizPhotoMultiGalleryPick() {
-    if (document.getElementById('_rmsGalPicker')) document.getElementById('_rmsGalPicker').remove();
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.id = '_rmsGalPicker';
-    inp.accept = 'image/*';
-    inp.multiple = true;
-    inp.style.display = 'none';
-    inp.onchange = async function(e) {
-        const files = Array.from(e.target.files || []);
-        await wizPhotoMultiAdd(files);
-        inp.remove();
-    };
-    document.body.appendChild(inp);
-    inp.click();
-}
-
-// Camera loop — снимка след снимка с [Следваща] [Готово]
-let _rmsCamStream = null;
-let _rmsCamCanvas = null;
-function wizPhotoCameraLoop() {
-    // Create overlay
-    if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
-    const ov = document.createElement('div');
-    ov.id = 'rmsCamLoop';
-    ov.className = 'cam-loop-ov show';
-    ov.innerHTML =
-        '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят 1</div>' +
-        '<video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video>' +
-        '<img id="rmsCamPreview" class="cam-loop-preview" style="display:none" alt="preview">' +
-        '<div class="cam-loop-controls" id="rmsCamControls">' +
-            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()" title="Откажи"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
-            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamLoopShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
-        '</div>';
-    document.body.appendChild(ov);
-    // Start camera
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-        .then(function(stream) {
-            _rmsCamStream = stream;
-            document.getElementById('rmsCamVideo').srcObject = stream;
-        })
-        .catch(function(err) {
-            console.error('[CamLoop] Camera error:', err);
-            if (typeof showToast === 'function') showToast('Не мога да отворя камерата: ' + err.message, 'error');
-            wizCamLoopClose();
-        });
-    if (navigator.vibrate) navigator.vibrate(8);
-}
-
-function wizCamLoopShoot() {
-    const video = document.getElementById('rmsCamVideo');
-    const preview = document.getElementById('rmsCamPreview');
-    if (!video || !video.videoWidth) return;
-    // Capture frame to canvas
-    if (!_rmsCamCanvas) _rmsCamCanvas = document.createElement('canvas');
-    _rmsCamCanvas.width = video.videoWidth;
-    _rmsCamCanvas.height = video.videoHeight;
-    const ctx = _rmsCamCanvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = _rmsCamCanvas.toDataURL('image/jpeg', 0.9);
-    // Show preview
-    preview.src = dataUrl;
-    preview.style.display = 'block';
-    video.style.display = 'none';
-    // Update controls — [Refer] [Next] [Done]
-    document.getElementById('rmsCamControls').innerHTML =
-        '<button type="button" class="cam-loop-btn retake" onclick="wizCamLoopRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Снимай пак</button>' +
-        '<button type="button" class="cam-loop-btn next" onclick="wizCamLoopAccept(true)">Следваща<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
-        '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
-    if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
-}
-
-function wizCamLoopRetake() {
-    document.getElementById('rmsCamPreview').style.display = 'none';
-    document.getElementById('rmsCamPreview').src = '';
-    document.getElementById('rmsCamVideo').style.display = 'block';
-    document.getElementById('rmsCamControls').innerHTML =
-        '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()" title="Откажи"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
-        '<button type="button" class="cam-loop-btn shoot" onclick="wizCamLoopShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>';
-    if (navigator.vibrate) navigator.vibrate(6);
-}
-
-async function wizCamLoopAccept(continueShooting) {
-    const preview = document.getElementById('rmsCamPreview');
-    const dataUrl = preview.src;
-    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
-    S.wizData._photos.push({ dataUrl: dataUrl, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
-    if (continueShooting && S.wizData._photos.length < 30) {
-        // Reset to live camera
-        document.getElementById('rmsCamCounter').textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
-        wizCamLoopRetake();
-    } else {
-        wizCamLoopClose();
-        // Trigger AI detect for all collected
-        wizPhotoDetectColors();
-    }
-    if (navigator.vibrate) navigator.vibrate([8, 30, 12]);
-}
-
-function wizCamLoopClose() {
-    if (_rmsCamStream) {
-        _rmsCamStream.getTracks().forEach(function(t) { t.stop(); });
-        _rmsCamStream = null;
-    }
-    const ov = document.getElementById('rmsCamLoop');
-    if (ov) ov.remove();
-    renderWizard();
-}
-
-// Add files (от galery) → push в _photos[] → trigger AI detect
-async function wizPhotoMultiAdd(files) {
-    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
-    const room = 30 - S.wizData._photos.length;
-    if (room <= 0) {
-        if (typeof showToast === 'function') showToast('Максимум 30 снимки', 'error');
-        return;
-    }
-    const accepted = files.slice(0, room);
-    for (const file of accepted) {
-        try {
-            const dataUrl = await new Promise(function(resolve, reject) {
-                const fr = new FileReader();
-                fr.onload = function() { resolve(fr.result); };
-                fr.onerror = reject;
-                fr.readAsDataURL(file);
-            });
-            S.wizData._photos.push({ dataUrl: dataUrl, file: file, ai_color: null, ai_hex: null, ai_confidence: null });
-        } catch (err) { console.warn('[S82.COLOR.2] Read error:', err); }
-    }
-    if (navigator.vibrate) navigator.vibrate(10);
-    renderWizard();
-    // Trigger AI detection for all
-    wizPhotoDetectColors();
-}
-
-function wizPhotoMultiRemove(idx) {
-    if (!Array.isArray(S.wizData._photos)) return;
-    if (idx < 0 || idx >= S.wizData._photos.length) return;
-    if (!confirm('Премахни снимка №' + (idx+1) + '?')) return;
-    S.wizData._photos.splice(idx, 1);
-    if (navigator.vibrate) navigator.vibrate(8);
-    renderWizard();
-}
-
-function wizPhotoSetColor(idx, value) {
-    if (!Array.isArray(S.wizData._photos)) return;
-    if (idx < 0 || idx >= S.wizData._photos.length) return;
-    S.wizData._photos[idx].ai_color = (value || '').trim();
-    // User-edited → confidence стои както е
-}
-
-// AI color detection — 1 заявка за всички снимки наведнъж
-async function wizPhotoDetectColors() {
-    if (!Array.isArray(S.wizData._photos) || !S.wizData._photos.length) return;
-    // Намираме снимки без откриет цвят
-    const todo = S.wizData._photos.filter(function(p) { return p.ai_confidence === null || p.ai_confidence === undefined; });
-    if (!todo.length) return;
-    try {
-        // POST към ai-color-detect.php (Claude Code endpoint)
-        // Предава всичките снимки като multipart с уникално име image_0, image_1...
-        const fd = new FormData();
-        todo.forEach(function(p, i) {
-            // dataUrl → blob
-            const arr = p.dataUrl.split(',');
-            const mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8 = new Uint8Array(n);
-            while (n--) u8[n] = bstr.charCodeAt(n);
-            fd.append('image_' + i, new Blob([u8], { type: mime }), 'photo_' + i + '.jpg');
-        });
-        fd.append('count', String(todo.length));
-        // Endpoint връща array с {idx, color_bg, hex, confidence}
-        const r = await fetch('ai-color-detect.php?multi=1', { method: 'POST', body: fd, credentials: 'same-origin' });
-        if (!r.ok) {
-            console.warn('[S82.COLOR.2] AI detect HTTP error:', r.status);
-            return;
-        }
-        const j = await r.json();
-        if (Array.isArray(j.results)) {
-            // Map results to S.wizData._photos
-            todo.forEach(function(photoRef, i) {
-                const res = j.results[i];
-                if (!res) return;
-                // Намираме индекса в S.wizData._photos
-                const targetIdx = S.wizData._photos.indexOf(photoRef);
-                if (targetIdx < 0) return;
-                S.wizData._photos[targetIdx].ai_color = res.color_bg || res.name || '';
-                S.wizData._photos[targetIdx].ai_hex = res.hex || '#666';
-                S.wizData._photos[targetIdx].ai_confidence = (typeof res.confidence === 'number') ? res.confidence : 0.5;
-            });
-            renderWizard();
-        }
-    } catch (err) {
-        console.warn('[S82.COLOR.2] AI detect error:', err);
-    }
-}
-
 function wizCollectData(){
     const el=id=>document.getElementById(id);
     if(el('wName')){const v=el('wName').value.trim();if(v)S.wizData.name=v}
@@ -7910,7 +7637,7 @@ document.getElementById('photoInput').addEventListener('change',async function()
         // S82.UI.FIX2: auto-trigger AI flow if user clicked the proactive AI Studio CTA
         if (S.wizData._aiAutoTrigger) {
             S.wizData._aiAutoTrigger = false;
-
+            setTimeout(function(){ if (typeof wizAIProcessPhoto === 'function') wizAIProcessPhoto(); }, 200);
         }
     };
     reader.readAsDataURL(this.files[0]);
