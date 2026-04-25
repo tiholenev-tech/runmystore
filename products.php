@@ -874,6 +874,7 @@ foreach ($_custom_colors as $cc) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 /* ═══════════════════════════════════════════════════════════
    PRODUCTS MODULE — Sale.php/Warehouse.php Design System
@@ -3810,17 +3811,7 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- Quick Actions now integrated into home screen add-sec -->
 
 
-<!-- ═══ FLOATING AI BUTTON ═══ -->
-<div class="ai-float-btn" id="aiFloatBtn" onclick="openAIChatOverlay()">
-    <div class="ai-waves">
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:0s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.15s"></div>
-      <div class="ai-wave-bar" style="color:#a5b4fc;height:18px;animation-delay:.3s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.45s"></div>
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:.6s"></div>
-    </div>
-    <span>Попитай AI</span>
-</div>
+<!-- ═══ FLOATING AI BUTTON — REMOVED in S82.SHELL (replaced by partials/chat-input-bar.php) ═══ -->
 
 <!-- S43: Detail drawer (was missing) -->
 <div class="drawer-ov" id="detailOv" onclick="closeDrawer('detail')"></div>
@@ -5380,19 +5371,24 @@ function renderWizPage(step){
 
         const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle='<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>'+_ttWarn;
 
-        // S82.UI.FIX2: proactive AI Studio CTA at top of step 3 when variant + AI not yet run.
-        // Click → opens photo input + sets _aiAutoTrigger so the photo onload auto-runs the AI flow.
-        var _shouldShowCTA = (S.wizType === 'variant') && !_hasPhoto && (_aiState === 'idle');
-        const aiHint = _shouldShowCTA
-            ? '<div onclick="S.wizData._aiAutoTrigger=true;document.getElementById(\'photoInput\').click()" style="display:flex;align-items:center;gap:12px;padding:13px 14px;margin-bottom:12px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.10));border:1px solid rgba(139,92,246,.45);cursor:pointer;box-shadow:0 0 18px rgba(139,92,246,.18),inset 0 1px 0 rgba(255,255,255,.05)">'
-              + '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(139,92,246,.4)">'
-              + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>'
+        // S82.UI.FIX2 v2: proactive AI Studio CTA — visible WHENEVER user is on step 3 and AI isn't done.
+        // Single (non-variant) gets a softer CTA without the "auto-fill colours" line.
+        var _aiCTAVisible = (_aiState === 'idle') && !_hasPhoto;
+        var _aiCTAVariant = (S.wizType === 'variant');
+        var _aiCTASubText = _aiCTAVariant
+            ? 'AI ще махне фона и автоматично ще разпознае цветовете за вариациите'
+            : 'AI ще махне фона на снимката за чист бял студиен изглед';
+        const aiHint = _aiCTAVisible
+            ? '<div id="aiStudioCTA" onclick="S.wizData._aiAutoTrigger=true;document.getElementById(\'photoInput\').click()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:12px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(99,102,241,.14));border:1.5px solid rgba(139,92,246,.55);cursor:pointer;box-shadow:0 0 22px rgba(139,92,246,.25),inset 0 1px 0 rgba(255,255,255,.08);position:relative;overflow:hidden">'
+              + '<div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(139,92,246,.18),transparent 60%);pointer-events:none"></div>'
+              + '<div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#7c3aed,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(139,92,246,.5);position:relative">'
+              + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>'
               + '</div>'
-              + '<div style="flex:1;min-width:0">'
-              + '<div style="font-size:13px;font-weight:800;color:#c4b5fd;letter-spacing:-.01em">🪄 AI Studio — снимай артикула</div>'
-              + '<div style="font-size:10.5px;color:rgba(196,181,253,.65);margin-top:2px;line-height:1.3">AI ще махне фона и автоматично ще разпознае цветовете за вариациите</div>'
+              + '<div style="flex:1;min-width:0;position:relative">'
+              + '<div style="font-size:14px;font-weight:800;color:#e9d5ff;letter-spacing:-.01em">🪄 AI Studio — снимай артикула</div>'
+              + '<div style="font-size:11px;color:rgba(233,213,255,.78);margin-top:2px;line-height:1.35">'+_aiCTASubText+'</div>'
               + '</div>'
-              + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>'
+              + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e9d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;position:relative"><polyline points="9 18 15 12 9 6"/></svg>'
               + '</div>'
             : '';
 

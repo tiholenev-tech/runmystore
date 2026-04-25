@@ -52,6 +52,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
     <link href="./css/vendors/aos.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>" />
     <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>" />
+    <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
     <style>
         /* ═══════════════════════════════════════════════════════════
            UNIFIED DESIGN SYSTEM 2026 — Based on stats.php

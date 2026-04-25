@@ -122,6 +122,7 @@ $hlabel = $health_score >= 70 ? 'Бизнесът е в добро здраве'
 <title>Статистики — RunMyStore.ai</title>
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 :root{
     --bg-main: #030712;
