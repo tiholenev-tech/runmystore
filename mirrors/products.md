@@ -6189,7 +6189,7 @@ function wizPhotoCameraLoop() {
     ov.innerHTML =
         '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
         '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
-        '<input type="file" id="rmsCamInput" accept="image/*" capture="user" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
+        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
     document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
