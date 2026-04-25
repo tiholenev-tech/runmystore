@@ -51,6 +51,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
     <title>Склад — RunMyStore.ai</title>
     <link href="./css/vendors/aos.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>" />
+    <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>" />
     <style>
         /* ═══════════════════════════════════════════════════════════
            UNIFIED DESIGN SYSTEM 2026 — Based on stats.php
@@ -421,12 +422,9 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 <div class="page-wrap">
 
+    <?php include __DIR__ . '/partials/header.php'; ?>
     <div class="page-header">
         <h1 class="page-title">Склад</h1>
-        <button class="ph-theme-toggle" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()">
-            <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
     </div>
 
     <div class="indigo-sep"></div>
@@ -522,12 +520,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 </div>
 
-<nav class="bottom-nav">
-  <a href="chat.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI</a>
-  <a href="warehouse.php" class="bnav-tab active"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="#a5b4fc" width="18" height="18" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Склад</a>
-  <a href="stats.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Справки</a>
-  <a href="sale.php" class="bnav-tab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="rgba(165,180,252,.45)" width="18" height="18" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Продажба</a>
-</nav>
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
 <script>
 // S82.UI — Theme toggle (default DARK, persists in localStorage['rms_theme'])
@@ -580,5 +574,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body>
 </html>
