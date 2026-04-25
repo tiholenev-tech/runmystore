@@ -6210,24 +6210,86 @@ async function wizPhotoCameraLoop() {
     }
 }
 
+// S82.COLOR.9: 3-step camera selection that mirrors what native apps do.
+// Native (Instagram etc.) enumerate cameras by deviceId, not just facingMode.
+// On phones with 4+ cameras (Z Flip, Pixel) facingMode alone is unreliable.
 async function _camStart(facing) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('браузърът не поддържа камера');
     }
     _camStop();
-    // S82.COLOR.8: ask for the highest resolution the device exposes.
-    // Browsers will cap at what the device/track actually supports.
-    var constraints = {
+
+    // Step 1: try facingMode "exact" (forces; rejects if device can't deliver).
+    try {
+        await _attachStream({
+            video: {
+                facingMode: { exact: facing },
+                width:  { ideal: 4096 },
+                height: { ideal: 4096 }
+            },
+            audio: false
+        });
+        console.log('[S82.COLOR.9] camera ok via facingMode exact:', _camTrack && _camTrack.label);
+        return;
+    } catch (e1) {
+        console.warn('[S82.COLOR.9] facingMode exact failed, trying device enumeration:', e1.message);
+    }
+
+    // Step 2: enumerateDevices and pick by label heuristic.
+    // Labels are only populated AFTER permission is granted, so this works on the second open onward.
+    try {
+        var devs = await navigator.mediaDevices.enumerateDevices();
+        var cams = devs.filter(function(d){ return d.kind === 'videoinput'; });
+        console.log('[S82.COLOR.9] available cameras:', cams.map(function(d){ return d.label || d.deviceId.slice(0,8); }));
+        var rxBack  = /back|rear|environment|outward|world/i;
+        var rxFront = /front|user|self|inward|face/i;
+        var rx = (facing === 'environment') ? rxBack : rxFront;
+        var pick = cams.find(function(d){ return d.label && rx.test(d.label); });
+        // If multiple back cameras (wide/ultrawide/tele), prefer the first non-ultrawide & non-tele match.
+        if (pick && facing === 'environment') {
+            var primary = cams.find(function(d){
+                return d.label && rxBack.test(d.label) && !/ultra|wide|tele|zoom|macro/i.test(d.label);
+            });
+            if (primary) pick = primary;
+        }
+        if (pick) {
+            try {
+                await _attachStream({
+                    video: {
+                        deviceId: { exact: pick.deviceId },
+                        width:  { ideal: 4096 },
+                        height: { ideal: 4096 }
+                    },
+                    audio: false
+                });
+                try { localStorage.setItem('_rms_cam_' + facing, pick.deviceId); } catch(e) {}
+                console.log('[S82.COLOR.9] camera ok via deviceId pick:', pick.label);
+                return;
+            } catch (e2) {
+                console.warn('[S82.COLOR.9] deviceId pick failed:', e2.message);
+            }
+        }
+    } catch (eEnum) {
+        console.warn('[S82.COLOR.9] enumerateDevices failed:', eEnum);
+    }
+
+    // Step 3: last-resort soft hint.
+    await _attachStream({
         video: {
             facingMode: { ideal: facing },
             width:  { ideal: 4096 },
             height: { ideal: 4096 }
         },
         audio: false
-    };
-    _camStream = await navigator.mediaDevices.getUserMedia(constraints);
-    _camTrack = _camStream.getVideoTracks()[0];
-    // Try to push the track to its maximum capabilities after the fact (some devices need this).
+    });
+    console.log('[S82.COLOR.9] camera ok via facingMode ideal (fallback):', _camTrack && _camTrack.label);
+}
+
+async function _attachStream(constraints) {
+    var stream = await navigator.mediaDevices.getUserMedia(constraints);
+    _camStream = stream;
+    _camTrack = stream.getVideoTracks()[0];
+    // Push the live track to its hardware maximum if applyConstraints supports it.
     if (_camTrack && _camTrack.applyConstraints && _camTrack.getCapabilities) {
         try {
             var caps = _camTrack.getCapabilities();
@@ -6237,15 +6299,15 @@ async function _camStart(facing) {
             if (Object.keys(advanced).length) {
                 await _camTrack.applyConstraints({ advanced: [advanced] });
             }
-        } catch(e) { /* not all browsers support this — ignore */ }
+        } catch(_) {}
     }
     _imgCapture = null;
     if (window.ImageCapture && _camTrack) {
-        try { _imgCapture = new ImageCapture(_camTrack); } catch(e) { _imgCapture = null; }
+        try { _imgCapture = new ImageCapture(_camTrack); } catch(_) { _imgCapture = null; }
     }
     var v = document.getElementById('rmsCamVideo');
     if (v) {
-        v.srcObject = _camStream;
+        v.srcObject = stream;
         v.style.display = 'block';
     }
 }
