@@ -214,7 +214,8 @@ function rms_color_detect_multi(int $tenant_id, ?int $user_id): void {
         'contents' => [['parts' => $parts]],
         'generationConfig' => [
             'temperature'      => 0.2,
-            'maxOutputTokens'  => 1024,
+            // S82.COLOR.7: was 1024 — Gemini was getting cut off mid-response on 3+ images.
+            'maxOutputTokens'  => 4096,
             'responseMimeType' => 'application/json',
         ],
     ];

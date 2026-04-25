@@ -24,6 +24,13 @@ if (!function_exists('rms_image_plan_limit')) {
         if ($tenant_id <= 0) {
             return ['plan'=>'free','limit'=>0,'used'=>0,'remaining'=>0,'allowed'=>false,'reason'=>'Не сте влезли.'];
         }
+        // S82.COLOR.7: god-mode tenants — unlimited AI image quota for testing.
+        // Listed in /etc/runmystore/api.env as RMS_IMAGE_GOD_TENANTS=7,42,99 (csv).
+        $god_csv = (string)(rms_api_env('RMS_IMAGE_GOD_TENANTS') ?? '7');
+        $god_ids = array_filter(array_map('intval', explode(',', $god_csv)));
+        if (in_array($tenant_id, $god_ids, true)) {
+            return ['plan'=>'god','limit'=>999999,'used'=>0,'remaining'=>999999,'allowed'=>true,'reason'=>null];
+        }
         $row = DB::run("SELECT plan FROM tenants WHERE id = ?", [$tenant_id])->fetch();
         $plan = strtolower($row['plan'] ?? 'free');
         $limit = rms_image_plan_limit($plan);
@@ -56,6 +63,10 @@ if (!function_exists('rms_image_plan_limit')) {
      * Atomically increment usage. Call ONLY after successful AI operation.
      */
     function rms_image_record_usage(int $tenant_id, ?int $user_id, string $operation): void {
+        // S82.COLOR.7: god-mode tenants don't pollute the usage table.
+        $god_csv = (string)(rms_api_env('RMS_IMAGE_GOD_TENANTS') ?? '7');
+        $god_ids = array_filter(array_map('intval', explode(',', $god_csv)));
+        if (in_array($tenant_id, $god_ids, true)) return;
         DB::run(
             "INSERT INTO ai_image_usage (tenant_id, user_id, operation, day, count)
              VALUES (?, ?, ?, CURDATE(), 1)
