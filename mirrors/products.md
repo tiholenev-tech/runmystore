@@ -874,6 +874,7 @@ foreach ($_custom_colors as $cc) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 /* ═══════════════════════════════════════════════════════════
    PRODUCTS MODULE — Sale.php/Warehouse.php Design System
@@ -3810,17 +3811,7 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- Quick Actions now integrated into home screen add-sec -->
 
 
-<!-- ═══ FLOATING AI BUTTON ═══ -->
-<div class="ai-float-btn" id="aiFloatBtn" onclick="openAIChatOverlay()">
-    <div class="ai-waves">
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:0s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.15s"></div>
-      <div class="ai-wave-bar" style="color:#a5b4fc;height:18px;animation-delay:.3s"></div>
-      <div class="ai-wave-bar" style="color:#818cf8;height:18px;animation-delay:.45s"></div>
-      <div class="ai-wave-bar" style="color:#6366f1;height:18px;animation-delay:.6s"></div>
-    </div>
-    <span>Попитай AI</span>
-</div>
+<!-- ═══ FLOATING AI BUTTON — REMOVED in S82.SHELL (replaced by partials/chat-input-bar.php) ═══ -->
 
 <!-- S43: Detail drawer (was missing) -->
 <div class="drawer-ov" id="detailOv" onclick="closeDrawer('detail')"></div>

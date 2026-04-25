@@ -403,6 +403,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 :root{
     --hue1:255; --hue2:222;
@@ -1900,26 +1901,9 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- INPUT BAR (tap → opens 75vh chat overlay)              -->
+<!-- INPUT BAR — moved to partials/chat-input-bar.php       -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="input-bar" id="inpBar" onclick="openChat()">
-    <div class="input-bar-inner">
-        <div class="input-waves">
-            <div class="input-wave-bar"></div>
-            <div class="input-wave-bar"></div>
-            <div class="input-wave-bar"></div>
-            <div class="input-wave-bar"></div>
-            <div class="input-wave-bar"></div>
-        </div>
-        <span class="input-placeholder">Кажи или напиши...</span>
-        <div class="input-mic">
-            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        </div>
-        <div class="input-send">
-            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </div>
-    </div>
-</div>
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- BOTTOM NAV (S82.SHELL — unified partial)              -->
