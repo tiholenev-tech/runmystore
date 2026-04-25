@@ -3,11 +3,14 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 24.04.2026  
-**Последна завършена сесия:** S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE (24.04.2026) — 14 mobile bugs closed (Samsung Z Flip6), pfHighReturnRate Cartesian fix, 19/19 pf*() функции, seed_oracle, MMR topic rotation  
+**Последна завършена сесия:** S79.SECURITY (e15f719, verified 25.04.2026) + S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE
 **Паралелно в ход:** Chat 1.3 (products.php S79), Capacitor S82 (Claude Code)  
 **Следваща сесия:** S80 — DIAGNOSTIC.FRAMEWORK (cron + dashboard + 72/72 PASS)  
 **Текуща Phase:** A — Products Foundation  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
+
+
+- **S79.SECURITY VERIFIED (25.04.2026):** /etc/runmystore/db.env архитектура (по-сигурна от original handoff plan). PDO + parse_ini_file. History scrubbed. P0 closed.
 
 ---
 
@@ -50,7 +53,6 @@
 
 НЕ РАБОТИ:
 - products.php P0 bugs от PRODUCTS_MAIN_BUGS_S80.md
-- DB credentials в публично репо (P0 SECURITY)
 - Cron за compute-insights не е настроен
 - compute-insights само за първия магазин на tenant (multi-store отложено)
 - orders.php, deliveries.php, simple.php (не съществуват)

@@ -5240,3 +5240,18 @@ class CountryFixtures {
 
 *RunMyStore.ai — Пешо говори. AI прави.*
 *Библия v3.0 TECH — 17.04.2026*
+
+
+## Security (S79.SECURITY — e15f719, completed 23.04.2026)
+
+DB credentials в `/etc/runmystore/db.env` — system-wide config, **извън** git working tree, физически невъзможно да се commit-не. Permissions `600 www-data:www-data`.
+
+`config/database.php` ползва native `parse_ini_file()` с пълна validation (file_exists + is_readable + parse + missing keys check). `die()` с error_log при всеки fail.
+
+Driver: **PDO** (не mysqli). `ATTR_ERRMODE=EXCEPTION`, `FETCH_ASSOC` default, `EMULATE_PREPARES=false`.
+
+`DB::tx(callable)` wrapper за транзакции: BEGIN/COMMIT, ROLLBACK на Throwable. Limitations: няма nested transactions (PDO native ограничение → SAVEPOINT в S80), няма deadlock retry за error 1213 → S80.
+
+Git history scrubbed — старата парола replaced с `'***REMOVED_DB_PASSWORD***'` placeholder в всички 3 commit-а на `config/database.php`. Public repo не съдържа реални credentials.
+
+`.gitignore` покрива: `*.env`, `.env`, `.env.*` (с `!.env.example` exception), `config/*.local.php`, `secrets/`, `.claude/settings.local.json`, `config/database.php.save`.
