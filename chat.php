@@ -401,6 +401,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <style>
 :root{
     --hue1:255; --hue2:222;
@@ -512,7 +513,7 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 /* ─────────────────────────────────────────── */
 /* HEADER                                      */
 /* ─────────────────────────────────────────── */
-.header{display:flex;align-items:center;gap:8px;padding:4px 2px 12px}
+.header{display:flex;align-items:center;gap:8px;padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 2px 12px}
 .brand{
     font-size:11px;font-weight:900;
     letter-spacing:.12em;
