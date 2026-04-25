@@ -72,5 +72,12 @@
         if (s === 'paired') btn.classList.add('paired');
         else if (s === 'error') btn.classList.add('error');
     });
+
+    // ─── Auto-add has-rms-shell so content gets bottom padding for chat-input + bottom-nav ───
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!document.body.classList.contains('has-rms-shell')) {
+            document.body.classList.add('has-rms-shell');
+        }
+    });
 })();
 </script>

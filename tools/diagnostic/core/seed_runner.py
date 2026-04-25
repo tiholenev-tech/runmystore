@@ -1,0 +1,162 @@
+"""
+seed_runner.py — universal scenario seeder.
+
+Workflow:
+  1. assert_safe_tenant(tenant_id) — refuse production
+  2. (optional) pristine wipe — clear test products/sales за чистен baseline
+  3. Loop scenarios: execute fixture_sql от seed_oracle row
+  4. Trigger compute-insights.php run
+  5. Read produced ai_insights → return за verification
+
+Tenant rules:
+  - tenant_id=7  → Тихол test (default)
+  - tenant_id=99 → AI evaluation shadow
+  - tenant_id=47 → ABORT (ЕНИ production)
+  - all others   → ABORT
+"""
+
+import sys
+import json
+import time
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db_helpers import (  # noqa: E402
+    fetchall, fetchone, transaction, conn_ctx,
+    assert_safe_tenant, ALLOWED_TENANTS,
+)
+
+
+# Range на test product IDs — никога не пипаме production products
+TEST_PRODUCT_ID_RANGE = (9000, 9999)
+TEST_USER_ID_RANGE = (8000, 8099)
+TEST_CUSTOMER_ID_RANGE = (7000, 7099)
+
+
+def fetch_active_scenarios(module: str = 'insights') -> list:
+    """Чете всички активни scenarios от seed_oracle."""
+    return fetchall("""
+        SELECT id, scenario_code, module_name, expected_topic, category,
+               expected_should_appear, verification_type, verification_payload,
+               scenario_description, fixture_sql
+        FROM seed_oracle
+        WHERE module_name = %s AND COALESCE(is_active, 1) = 1
+        ORDER BY category, expected_topic, scenario_code
+    """, (module,))
+
+
+def cleanup_test_data(tenant_id: int) -> dict:
+    """
+    Pristine wipe — изтрива test fixtures (НЕ пипа production data на tenant).
+    Само products/inventory/sale_items в test ID range.
+    Връща counts на изтрити rows.
+    """
+    assert_safe_tenant(tenant_id)
+    pmin, pmax = TEST_PRODUCT_ID_RANGE
+    counts = {}
+    with transaction() as c:
+        cur = c.cursor()
+        # Cascade: sale_items → returns → inventory → products
+        cur.execute(
+            "DELETE FROM sale_items WHERE product_id BETWEEN %s AND %s "
+            "AND sale_id IN (SELECT id FROM sales WHERE tenant_id=%s)",
+            (pmin, pmax, tenant_id)
+        )
+        counts['sale_items'] = cur.rowcount
+        try:
+            cur.execute(
+                "DELETE FROM returns WHERE product_id BETWEEN %s AND %s",
+                (pmin, pmax)
+            )
+            counts['returns'] = cur.rowcount
+        except Exception:
+            counts['returns'] = 0  # таблицата може да не съществува
+        cur.execute(
+            "DELETE FROM inventory WHERE product_id BETWEEN %s AND %s",
+            (pmin, pmax)
+        )
+        counts['inventory'] = cur.rowcount
+        cur.execute(
+            "DELETE FROM products WHERE id BETWEEN %s AND %s AND tenant_id=%s",
+            (pmin, pmax, tenant_id)
+        )
+        counts['products'] = cur.rowcount
+        cur.close()
+    return counts
+
+
+def seed_scenario(scenario_row: dict, tenant_id: int) -> tuple:
+    """
+    Изпълнява fixture_sql на единичен сценарий.
+    Връща (success: bool, error: str | None).
+    """
+    assert_safe_tenant(tenant_id)
+    fixture = scenario_row.get('fixture_sql', '') or ''
+    if not fixture.strip():
+        return True, None  # няма fixture (само verification expectation)
+
+    # Substitute {{tenant_id}} placeholder
+    fixture = fixture.replace('{{tenant_id}}', str(tenant_id))
+
+    try:
+        with transaction() as c:
+            cur = c.cursor()
+            # Split by ; и execute statement-by-statement (mysql.connector не handle multi-statement)
+            for stmt in fixture.split(';'):
+                stmt_s = stmt.strip()
+                if stmt_s:
+                    cur.execute(stmt_s)
+            cur.close()
+        return True, None
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
+
+
+def trigger_compute_insights(tenant_id: int, php_path: str = '/var/www/runmystore') -> tuple:
+    """
+    Извиква compute-insights.php през PHP CLI.
+    Връща (returncode, stdout, stderr, duration_seconds).
+    Вход: tenant_id env var; PHP скриптът разчита на стандартна invocation pattern.
+    """
+    assert_safe_tenant(tenant_id)
+    cron_php = f'{php_path}/cron-insights.php'
+    if not Path(cron_php).exists():
+        # Fallback: try direct compute-insights.php
+        cron_php = f'{php_path}/compute-insights.php'
+    t0 = time.time()
+    try:
+        r = subprocess.run(
+            ['php', cron_php, '--tenant', str(tenant_id)],
+            capture_output=True, text=True, timeout=120, cwd=php_path
+        )
+        return r.returncode, r.stdout, r.stderr, time.time() - t0
+    except subprocess.TimeoutExpired:
+        return 124, '', 'TIMEOUT after 120s', time.time() - t0
+    except Exception as e:
+        return 1, '', f"{type(e).__name__}: {e}", time.time() - t0
+
+
+def fetch_actual_insights(tenant_id: int, expected_topic: str) -> Optional[dict]:
+    """
+    Чете най-новата ai_insights row за дадения topic + tenant.
+    Връща data_json decoded или None.
+    """
+    row = fetchone("""
+        SELECT data_json
+        FROM ai_insights
+        WHERE tenant_id = %s AND topic_id = %s
+        ORDER BY created_at DESC
+        LIMIT 1
+    """, (tenant_id, expected_topic))
+    if not row or not row.get('data_json'):
+        return None
+    try:
+        if isinstance(row['data_json'], (bytes, bytearray)):
+            return json.loads(row['data_json'].decode('utf-8'))
+        if isinstance(row['data_json'], str):
+            return json.loads(row['data_json'])
+        return row['data_json']
+    except Exception:
+        return None

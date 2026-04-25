@@ -155,5 +155,101 @@ body.overlay-open .rms-input-bar{opacity:0;pointer-events:none;transform:transla
 
 /* Page padding so content doesn't sit under input-bar + bottom-nav */
 body.has-rms-shell{
-    padding-bottom:calc(140px + env(safe-area-inset-bottom,0px));
+    padding-bottom:calc(170px + env(safe-area-inset-bottom,0px)) !important;
 }
+/* Modules with their own .app/.page-wrap also need bottom breathing room */
+body.has-rms-shell .app,
+body.has-rms-shell .page-wrap,
+body.has-rms-shell .sale-wrap,
+body.has-rms-shell .inv-screen{
+    padding-bottom:calc(160px + env(safe-area-inset-bottom,0px));
+}
+
+/* ─── RESPONSIVE: smaller icons + tighter brand on narrow screens ─── */
+@media (max-width: 380px){
+    .rms-header{gap:6px;padding-left:6px;padding-right:6px}
+    .rms-brand{font-size:10px;letter-spacing:.10em}
+    .rms-plan-badge{padding:2px 6px;font-size:8px}
+    .rms-icon-btn{width:26px;height:26px}
+    .rms-icon-btn svg{width:11px;height:11px}
+}
+@media (max-width: 340px){
+    .rms-brand{font-size:9px;letter-spacing:.08em}
+    .rms-icon-btn{width:24px;height:24px;border-radius:8px}
+    .rms-header{gap:4px}
+}
+
+/* ─── LIGHT THEME — overrides for module-local hardcoded dark patterns ─── */
+:root[data-theme="light"] body{
+    background:linear-gradient(180deg,#f8faff 0%,#e7ebf5 100%) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] .glass,
+:root[data-theme="light"] .add-card,
+:root[data-theme="light"] .health-sec,
+:root[data-theme="light"] .wiz-page,
+:root[data-theme="light"] .v4-glass-pro,
+:root[data-theme="light"] .modal-box,
+:root[data-theme="light"] .pay-sheet,
+:root[data-theme="light"] .ws-sheet{
+    background:linear-gradient(235deg,hsl(255 70% 92% / .85),hsl(255 70% 95% / 0) 33%),
+               linear-gradient(45deg,hsl(222 70% 92% / .85),hsl(222 70% 95% / 0) 33%),
+               linear-gradient(hsl(215deg 40% 99% / .92)) !important;
+    border-color:hsl(222,25%,80%) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] .header,
+:root[data-theme="light"] .page-header,
+:root[data-theme="light"] .modal-hdr,
+:root[data-theme="light"] .inv-header,
+:root[data-theme="light"] .top-bar{
+    background:rgba(244,246,251,.92) !important;
+    border-bottom-color:rgba(99,102,241,.18) !important;
+}
+:root[data-theme="light"] .h-icon,
+:root[data-theme="light"] .h-menu,
+:root[data-theme="light"] .back-btn,
+:root[data-theme="light"] .info-btn,
+:root[data-theme="light"] .store-switch,
+:root[data-theme="light"] .plan-tag,
+:root[data-theme="light"] .ph-theme-toggle,
+:root[data-theme="light"] .cam-btn{
+    background:rgba(15,23,42,.04) !important;
+    border-color:rgba(15,23,42,.10) !important;
+    color:#475569 !important;
+}
+:root[data-theme="light"] .title-main,
+:root[data-theme="light"] .page-title,
+:root[data-theme="light"] h1,
+:root[data-theme="light"] h2,
+:root[data-theme="light"] .brand{
+    background:linear-gradient(110deg,#1e1b4b 0%,#4338ca 35%,#1e1b4b 70%) !important;
+    -webkit-background-clip:text !important;background-clip:text !important;
+    -webkit-text-fill-color:transparent !important;color:transparent !important;
+}
+:root[data-theme="light"] .title-sub,
+:root[data-theme="light"] .add-hint,
+:root[data-theme="light"] .health-meta,
+:root[data-theme="light"] .stat-lbl{color:#475569 !important}
+:root[data-theme="light"] .add-title,
+:root[data-theme="light"] .health-title,
+:root[data-theme="light"] .stat-val,
+:root[data-theme="light"] .q-nm,
+:root[data-theme="light"] .field-label{color:#0f172a !important}
+:root[data-theme="light"] .fc,
+:root[data-theme="light"] input[type="text"],
+:root[data-theme="light"] input[type="number"],
+:root[data-theme="light"] input[type="email"],
+:root[data-theme="local"] input[type="password"],
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] select{
+    background:rgba(255,255,255,.85) !important;
+    border-color:rgba(15,23,42,.15) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder{color:rgba(15,23,42,.45) !important}
+
+/* light theme — bottom nav + chat input bar already handled above; ensure nav active glow stays visible */
+:root[data-theme="light"] .bnav-tab.active,
+:root[data-theme="light"] .bottom-nav-tab.active{color:#4338ca !important}
