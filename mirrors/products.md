@@ -2174,6 +2174,28 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 .v4-pz::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
   background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);}
+
+/* === S82.COLOR.1 — Photo mode toggle + multi-photo grid === */
+.photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
+.pmt-opt{flex:1;padding:7px 8px;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:10.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:all .18s}
+.pmt-opt.active{background:linear-gradient(180deg,rgba(99,102,241,0.2),rgba(67,56,202,0.1));color:#c4b5fd;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
+.pmt-opt svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.photo-multi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}
+.photo-cell{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.18)}
+.photo-cell.empty{display:flex;align-items:center;justify-content:center;border:1.5px dashed rgba(99,102,241,0.3);cursor:pointer;transition:all .15s}
+.photo-cell.empty:hover{background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.5)}
+.photo-cell.empty svg{width:18px;height:18px;stroke:#a5b4fc;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.photo-cell .ph-img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-cell .ph-num{position:absolute;top:3px;left:3px;padding:1px 5px;border-radius:100px;background:rgba(0,0,0,0.7);color:rgba(255,255,255,0.9);font-size:8.5px;font-weight:800;line-height:1.4}
+.photo-cell .ph-rm{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:rgba(239,68,68,0.85);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:inherit;line-height:1;padding:0}
+.photo-page-bar{display:flex;gap:5px;justify-content:center;margin-bottom:8px;flex-wrap:wrap}
+.photo-page-btn{min-width:30px;height:28px;padding:0 9px;border-radius:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.18);color:#a5b4fc;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:3px;transition:all .15s}
+.photo-page-btn:hover{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.35)}
+.photo-page-btn.active{background:linear-gradient(180deg,rgba(99,102,241,0.25),rgba(67,56,202,0.12));border-color:rgba(139,92,246,0.5);color:#c4b5fd;box-shadow:0 0 8px rgba(99,102,241,0.25)}
+.photo-page-btn.add-page{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.25);color:#86efac}
+.photo-page-btn.add-page:hover{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)}
+.photo-page-btn svg{width:11px;height:11px;stroke:currentColor;stroke-width:2.5;fill:none}
+.photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10px;color:#c4b5fd;font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
 .v4-pz-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .v4-pz-ic{
   width:44px;height:44px;border-radius:13px;flex-shrink:0;
@@ -5339,6 +5361,23 @@ function renderWizPage(step){
         var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
+        // S82.COLOR.1: Photo mode toggle (single / multi) — само за variant продукти
+        const _isVariant = (S.wizType === 'variant');
+        let _photoMode = S.wizData._photoMode;
+        if (!_photoMode) {
+            try { _photoMode = localStorage.getItem('_rms_photoMode') || 'single'; } catch(e) { _photoMode = 'single'; }
+            S.wizData._photoMode = _photoMode;
+        }
+        if (!_isVariant) _photoMode = 'single'; // за single продукти forced single
+        if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+        const _photoModeToggle = _isVariant ? (
+            '<div class="photo-mode-toggle">' +
+            '<button type="button" class="pmt-opt ' + (_photoMode==='single'?'active':'') + '" onclick="wizSetPhotoMode(\'single\')">' +
+            '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Една снимка</button>' +
+            '<button type="button" class="pmt-opt ' + (_photoMode==='multi'?'active':'') + '" onclick="wizSetPhotoMode(\'multi\')">' +
+            '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/></svg>Различни цветове</button>' +
+            '</div>'
+        ) : '';
         // S82.AI_STUDIO: AI controls visible after photo loaded
         const _aiState = S.wizData._aiState || 'idle'; // idle | processing | done | error
         const _aiColors = (S.wizData._aiDetectedColors || []);
@@ -5360,7 +5399,50 @@ function renderWizPage(step){
             : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
         const _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
         const _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
-        const photoPreview='<div class="v4-pz">'+_photoContent+_photoBtns+_photoTips+'</div>';
+        // S82.COLOR.1: Multi-photo grid render (когато _photoMode === 'multi')
+        let _multiGridHTML = '';
+        if (_photoMode === 'multi' && _isVariant) {
+            const _photos = S.wizData._photos || [];
+            const _curPage = (S.wizData._photoPage|0) || 1;
+            const _perPage = 5;
+            const _totalPages = Math.max(1, Math.ceil(_photos.length / _perPage) + ((_photos.length % _perPage === 0 && _photos.length < 30) ? 1 : 0));
+            const _maxPages = 6; // 30 снимки максимум
+            const _displayPage = Math.min(_curPage, _maxPages);
+            const _start = (_displayPage - 1) * _perPage;
+            const _end = _start + _perPage;
+            let _cellsHTML = '';
+            for (let i = _start; i < _end; i++) {
+                if (_photos[i]) {
+                    _cellsHTML += '<div class="photo-cell">' +
+                        '<span class="ph-num">' + (i+1) + '</span>' +
+                        '<button type="button" class="ph-rm" onclick="wizPhotoMultiRemove(' + i + ')">×</button>' +
+                        '<img class="ph-img" src="' + _photos[i].dataUrl + '" alt="">' +
+                        '</div>';
+                } else {
+                    _cellsHTML += '<div class="photo-cell empty" onclick="wizPhotoMultiPick()">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        '</div>';
+                }
+            }
+            let _pageBarHTML = '';
+            const _filledPages = Math.ceil(_photos.length / _perPage);
+            const _showPages = Math.min(_filledPages + 1, _maxPages);
+            for (let p = 1; p <= _showPages; p++) {
+                _pageBarHTML += '<button type="button" class="photo-page-btn ' + (p===_displayPage?'active':'') + '" onclick="wizPhotoPageGo(' + p + ')">' + p + '</button>';
+            }
+            if (_filledPages < _maxPages && _photos.length > 0 && _photos.length % _perPage === 0) {
+                _pageBarHTML += '<button type="button" class="photo-page-btn add-page" onclick="wizPhotoPageGo(' + (_filledPages+1) + ')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
+            }
+            const _infoText = _photos.length === 0
+                ? 'Снимай по 1 снимка за всеки цвят. AI ще ги разпознае автоматично.'
+                : 'Качени: <b>' + _photos.length + '</b> снимки на ' + _photos.length + ' цвята · Страница ' + _displayPage + ' от ' + _showPages;
+            _multiGridHTML = '<div class="photo-multi-info">' + _infoText + '</div>' +
+                '<div class="photo-multi-grid">' + _cellsHTML + '</div>' +
+                (_showPages > 1 || _photos.length > 0 ? '<div class="photo-page-bar">' + _pageBarHTML + '</div>' : '');
+        }
+        const photoPreview = (_photoMode === 'multi' && _isVariant)
+            ? '<div class="v4-pz">' + _photoModeToggle + _multiGridHTML + _photoBtns + '</div>'
+            : '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
         const photoButtons='';
         const photoTips='';
         const photoBlock=photoPreview+photoButtons+photoTips;
@@ -5968,6 +6050,82 @@ async function doStudioWhiteBg(){
 // /ai-color-detect.php, then updates S.wizData._photoDataUrl with the
 // bg-removed PNG and stores detected colours in S.wizData._aiDetectedColors.
 // Renders wizard at each state transition so the user sees progress.
+
+// === S82.COLOR.1 — Photo mode functions ===
+function wizSetPhotoMode(mode) {
+    if (mode !== 'single' && mode !== 'multi') return;
+    S.wizData._photoMode = mode;
+    try { localStorage.setItem('_rms_photoMode', mode); } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate(8);
+    renderWizard();
+}
+
+function wizPhotoMultiPick() {
+    if (document.getElementById('_rmsMultiPicker')) {
+        document.getElementById('_rmsMultiPicker').remove();
+    }
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.id = '_rmsMultiPicker';
+    inp.accept = 'image/*';
+    inp.multiple = true;
+    inp.style.display = 'none';
+    inp.onchange = function(e) {
+        const files = Array.from(e.target.files || []);
+        wizPhotoMultiAdd(files);
+        inp.remove();
+    };
+    document.body.appendChild(inp);
+    inp.click();
+}
+
+async function wizPhotoMultiAdd(files) {
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    const maxTotal = 30;
+    const room = maxTotal - S.wizData._photos.length;
+    if (room <= 0) {
+        if (typeof showToast === 'function') showToast('Максимум 30 снимки', 'error');
+        return;
+    }
+    const accepted = files.slice(0, room);
+    for (const file of accepted) {
+        try {
+            const dataUrl = await new Promise(function(resolve, reject) {
+                const fr = new FileReader();
+                fr.onload = function() { resolve(fr.result); };
+                fr.onerror = reject;
+                fr.readAsDataURL(file);
+            });
+            S.wizData._photos.push({
+                dataUrl: dataUrl,
+                file: file,
+                ai_color: null,
+                ai_hex: null,
+                ai_confidence: null
+            });
+        } catch (err) {
+            console.warn('[S82.COLOR.1] Грешка при четене на снимка:', err);
+        }
+    }
+    if (navigator.vibrate) navigator.vibrate(10);
+    renderWizard();
+}
+
+function wizPhotoMultiRemove(idx) {
+    if (!Array.isArray(S.wizData._photos)) return;
+    if (idx < 0 || idx >= S.wizData._photos.length) return;
+    if (!confirm('Премахни снимка №' + (idx+1) + '?')) return;
+    S.wizData._photos.splice(idx, 1);
+    if (navigator.vibrate) navigator.vibrate(8);
+    renderWizard();
+}
+
+function wizPhotoPageGo(page) {
+    S.wizData._photoPage = Math.max(1, Math.min(6, page|0));
+    if (navigator.vibrate) navigator.vibrate(5);
+    renderWizard();
+}
+
 async function wizAIProcessPhoto(){
     if(!S.wizData._photoDataUrl){showToast('Първо добави снимка','error');return}
     // Convert data URL → Blob → File for multipart upload
