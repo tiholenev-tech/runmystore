@@ -79,5 +79,79 @@
             document.body.classList.add('has-rms-shell');
         }
     });
+
+    // ─── Horizontal SWIPE NAVIGATION between bottom-nav modules ───
+    // Order matches the unified bottom-nav: AI ←→ Склад ←→ Справки ←→ Продажба.
+    // Ignores swipes that start on inputs / open drawers / overlays / scrollable areas.
+    var NAV_ORDER = ['chat.php', 'warehouse.php', 'stats.php', 'sale.php'];
+    var NAV_MAP = {
+        'chat.php':1<<31, // AI group fallback handled below
+        'simple.php':0,'life-board.php':0,'index.php':0,
+        'warehouse.php':1,'products.php':1,'inventory.php':1,'transfers.php':1,'deliveries.php':1,'suppliers.php':1,
+        'stats.php':2,'finance.php':2,'finance.html':2,
+        'sale.php':3
+    };
+    var SWIPE_THRESHOLD = 80;
+    var SWIPE_MAX_VERTICAL = 50;
+    var SWIPE_BLOCK_SELECTOR =
+        'input, textarea, select, button, [contenteditable], a[href], '
+      + '.modal-ov.open, .ov-bg.open, .preset-ov, .camera-ov, .camera-ov.open, '
+      + '.rec-ov.active, .drawer.open, .ws-sheet.open, .ws-overlay.open, '
+      + '.parked-overlay.open, .pay-sheet.open, .ew-panel.open, '
+      + '#wizModal[style*="display: flex"], #wizModal.open, '
+      + '.cam-header, video, canvas, '
+      + '[data-no-swipe], .v-axis-tabs, .period-bar, .rev-pills, '
+      + '.zt-tabs, .scroll-x, [data-horizontal-scroll]';
+
+    function isHorizScrollable(el) {
+        while (el && el !== document.body) {
+            if (el.scrollWidth > el.clientWidth + 4) {
+                var oc = getComputedStyle(el).overflowX;
+                if (oc === 'auto' || oc === 'scroll') return true;
+            }
+            el = el.parentElement;
+        }
+        return false;
+    }
+
+    function currentNavIndex() {
+        var name = (location.pathname.split('/').pop() || 'chat.php').toLowerCase();
+        if (name === '' ) name = 'chat.php';
+        if (NAV_MAP[name] !== undefined && NAV_MAP[name] !== (1<<31)) return NAV_MAP[name];
+        // Default fallback (chat / unknown root)
+        return 0;
+    }
+
+    var _sx = 0, _sy = 0, _sActive = false;
+
+    document.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) { _sActive = false; return; }
+        var t = e.target;
+        if (t && t.closest && t.closest(SWIPE_BLOCK_SELECTOR)) { _sActive = false; return; }
+        if (isHorizScrollable(t)) { _sActive = false; return; }
+        _sx = e.touches[0].clientX;
+        _sy = e.touches[0].clientY;
+        _sActive = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+        if (!_sActive) return;
+        _sActive = false;
+        if (e.changedTouches.length !== 1) return;
+        var dx = e.changedTouches[0].clientX - _sx;
+        var dy = e.changedTouches[0].clientY - _sy;
+        if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+        if (Math.abs(dy) > SWIPE_MAX_VERTICAL) return;
+        // Edge swipe within 24px from screen edge: ignore (often = browser back gesture)
+        if (_sx < 24 || _sx > (window.innerWidth - 24)) return;
+        var cur = currentNavIndex();
+        var nxt = (dx < 0) ? cur + 1 : cur - 1;
+        if (nxt < 0 || nxt >= NAV_ORDER.length) return;
+        if (NAV_ORDER[nxt] === (location.pathname.split('/').pop() || 'chat.php').toLowerCase()) return;
+        // small visual hint
+        document.body.style.transition = 'opacity .15s ease';
+        document.body.style.opacity = '.55';
+        location.href = NAV_ORDER[nxt];
+    }, { passive: true });
 })();
 </script>
