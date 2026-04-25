@@ -6215,16 +6215,30 @@ async function _camStart(facing) {
         throw new Error('браузърът не поддържа камера');
     }
     _camStop();
+    // S82.COLOR.8: ask for the highest resolution the device exposes.
+    // Browsers will cap at what the device/track actually supports.
     var constraints = {
         video: {
             facingMode: { ideal: facing },
-            width:  { ideal: 2560 },
-            height: { ideal: 1920 }
+            width:  { ideal: 4096 },
+            height: { ideal: 4096 }
         },
         audio: false
     };
     _camStream = await navigator.mediaDevices.getUserMedia(constraints);
     _camTrack = _camStream.getVideoTracks()[0];
+    // Try to push the track to its maximum capabilities after the fact (some devices need this).
+    if (_camTrack && _camTrack.applyConstraints && _camTrack.getCapabilities) {
+        try {
+            var caps = _camTrack.getCapabilities();
+            var advanced = {};
+            if (caps.width  && caps.width.max)  advanced.width  = caps.width.max;
+            if (caps.height && caps.height.max) advanced.height = caps.height.max;
+            if (Object.keys(advanced).length) {
+                await _camTrack.applyConstraints({ advanced: [advanced] });
+            }
+        } catch(e) { /* not all browsers support this — ignore */ }
+    }
     _imgCapture = null;
     if (window.ImageCapture && _camTrack) {
         try { _imgCapture = new ImageCapture(_camTrack); } catch(e) { _imgCapture = null; }
@@ -6268,16 +6282,29 @@ function wizCamRenderShootBar() {
 
 async function wizCamShoot() {
     var dataUrl = null;
-    // 1. Try ImageCapture.takePhoto() — full-sensor quality on Chrome Android.
+    var srcSize = null;
+    // 1. Try ImageCapture.takePhoto() at the camera's MAX photo resolution
+    //    (often 12-50MP on Chrome Android — bypasses the video stream cap).
     if (_imgCapture && typeof _imgCapture.takePhoto === 'function') {
         try {
-            var blob = await _imgCapture.takePhoto();
+            var photoOpts = {};
+            if (typeof _imgCapture.getPhotoCapabilities === 'function') {
+                try {
+                    var pcaps = await _imgCapture.getPhotoCapabilities();
+                    if (pcaps && pcaps.imageWidth && pcaps.imageWidth.max)  photoOpts.imageWidth  = pcaps.imageWidth.max;
+                    if (pcaps && pcaps.imageHeight && pcaps.imageHeight.max) photoOpts.imageHeight = pcaps.imageHeight.max;
+                    console.log('[S82.COLOR.8] photo caps:', pcaps);
+                } catch(_) {}
+            }
+            var blob = await _imgCapture.takePhoto(photoOpts);
             dataUrl = await _blobToDataUrl(blob);
+            srcSize = blob.size;
+            console.log('[S82.COLOR.8] ImageCapture shot:', Math.round(blob.size/1024) + 'KB');
         } catch(e) {
-            console.warn('[S82.COLOR.7] ImageCapture.takePhoto failed, fallback:', e);
+            console.warn('[S82.COLOR.8] ImageCapture.takePhoto failed, fallback:', e);
         }
     }
-    // 2. Fallback: canvas snapshot at the video's actual resolution (Safari, etc.).
+    // 2. Fallback: canvas snapshot at the video's actual resolution (Safari, ImageCapture-less devices).
     if (!dataUrl) {
         var v = document.getElementById('rmsCamVideo');
         if (!v || !v.videoWidth) {
@@ -6287,10 +6314,12 @@ async function wizCamShoot() {
         var c = document.createElement('canvas');
         c.width = v.videoWidth; c.height = v.videoHeight;
         c.getContext('2d').drawImage(v, 0, 0);
-        dataUrl = c.toDataURL('image/jpeg', 0.92);
+        dataUrl = c.toDataURL('image/jpeg', 0.95);
+        console.log('[S82.COLOR.8] Canvas shot:', v.videoWidth + 'x' + v.videoHeight);
     }
-    // 3. Downscale to keep POST under PHP's 8 MB limit (3+ photos × 4 MB blew through it before).
-    dataUrl = await _downscaleDataUrl(dataUrl, 1600, 0.85);
+    // 3. Downscale to keep POST under PHP's 8MB limit, but stay generous with quality.
+    //    2400px @ q=0.92 → ~600-900KB per photo, so 8-10 photos still fit.
+    dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92);
     _camPending = dataUrl;
     // Show preview, stop the live stream (saves battery during review).
     var stage = document.getElementById('rmsCamStage');
@@ -6391,8 +6420,8 @@ async function wizPhotoMultiAdd(files) {
                 fr.onerror = rej;
                 fr.readAsDataURL(file);
             });
-            // S82.COLOR.7: downscale gallery imports too — 12MP photos × 5 blew the 8MB POST limit.
-            dataUrl = await _downscaleDataUrl(dataUrl, 1600, 0.85);
+            // S82.COLOR.8: downscale gallery imports — 2400px @ 0.92 keeps quality high but bounded.
+            dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92);
             S.wizData._photos.push({ dataUrl: dataUrl, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
         } catch (err) { console.warn('[S82.COLOR.7] Read err:', err); }
     }
