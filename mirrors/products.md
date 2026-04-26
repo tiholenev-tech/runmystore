@@ -1544,7 +1544,37 @@ body::before{
 .cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
 .cam-tip-btn{padding:13px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
 
-/* S82.COLOR.15: live <video> + camera-picker UI */
+/* S82.COLOR.16: super-friendly first-time camera setup card for 50+yo non-tech users */
+.cam-setup{display:flex;flex-direction:column;gap:16px;padding:24px 20px 20px;max-width:420px;width:100%;overflow-y:auto;max-height:90vh}
+.cam-setup-header{text-align:center;margin-bottom:6px}
+.cam-setup-emoji{font-size:48px;margin-bottom:8px;animation:setupBounce 2.4s ease-in-out infinite}
+@keyframes setupBounce{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+.cam-setup-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.01em;margin-bottom:6px}
+.cam-setup-sub{font-size:13.5px;color:rgba(233,213,255,0.8);line-height:1.5}
+.cam-setup-steps{display:flex;flex-direction:column;gap:11px;margin:8px 0}
+.cam-setup-step{display:flex;gap:14px;align-items:flex-start;padding:14px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(99,102,241,0.08));border:1px solid rgba(139,92,246,0.32);opacity:0;transform:translateX(-12px);animation:setupStepIn 0.55s ease-out forwards}
+@keyframes setupStepIn{to{opacity:1;transform:translateX(0)}}
+.cam-setup-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,0.5);animation:setupNumPulse 2s ease-in-out infinite}
+@keyframes setupNumPulse{0%,100%{box-shadow:0 0 14px rgba(167,139,250,0.5)}50%{box-shadow:0 0 22px rgba(167,139,250,0.85)}}
+.cam-setup-step-body{flex:1;min-width:0}
+.cam-setup-step-title{font-size:14.5px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:3px}
+.cam-setup-step-desc{font-size:12px;color:rgba(233,213,255,0.72);line-height:1.5}
+.cam-setup-step-desc b{color:#fff}
+.cam-setup-tap{display:inline-block;padding:1px 7px;margin:0 2px;border-radius:5px;background:rgba(167,139,250,0.25);font-size:13px;border:1px solid rgba(167,139,250,0.4)}
+.cam-setup-app{display:inline-block;padding:1px 8px;margin:0 2px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:13px;font-weight:700;border:1px solid rgba(167,139,250,0.4);color:#fff}
+.cam-setup-flip{display:inline-block;font-size:16px;animation:setupFlipRot 2.4s linear infinite}
+@keyframes setupFlipRot{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.cam-setup-finale{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border:1.5px solid rgba(34,197,94,0.4);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-finale-icon{font-size:32px;animation:setupFinaleSparkle 1.8s ease-in-out infinite}
+@keyframes setupFinaleSparkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.15) rotate(8deg)}}
+.cam-setup-finale-text{font-size:13.5px;color:#fff;font-weight:600;line-height:1.4}
+.cam-setup-finale-text b{color:#86efac}
+.cam-setup-done-btn{margin-top:6px;padding:15px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 22px rgba(124,58,237,0.5);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-done-btn:active{transform:scale(0.98)}
+.cam-setup-done-btn svg{width:18px;height:18px}
+.cam-setup-skip{margin-top:4px;background:transparent;border:none;color:rgba(255,255,255,0.4);font-size:11.5px;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline}
+
+/* S82.COLOR.15: live <video> + camera-picker UI (kept for harmless reuse) */
 .cam-loop-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
 .cam-picker{display:flex;flex-direction:column;gap:14px;padding:20px;width:100%;max-width:420px;align-items:stretch}
 .cam-picker-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
@@ -6230,25 +6260,23 @@ function wizPhotoMultiGalleryPick() {
 }
 
 // S82.COLOR.11: native Samsung Camera per shot (real HDR / scene optimizer)
-// S82.COLOR.15: getUserMedia + ONE-TIME camera picker UI.
-// Z Flip's native intent doesn't honour capture="environment" and Samsung
-// doesn't remember the manual flip. Auto-flip is impossible from web sandbox.
+// S82.COLOR.16: native phone camera (full Samsung HDR/scene optimizer)
+// + super-friendly first-time setup wizard for 50+ year old non-tech users
+// + 1000px @ q=0.80 downscale (~80 KB per photo, RIOT-equivalent for storage cost).
 //
-// New approach: show the user EVERY video device with a live test preview.
-// They tap the one that's their main rear camera ONCE. We save the deviceId
-// in localStorage. All subsequent shots use that exact camera — 100% reliable
-// because the browser, not the OS app, owns the selection.
-//
-// Quality: ImageCapture.takePhoto({imageWidth: max}) on Chrome Android
-// returns full sensor (12-16MP on Z Flip main rear). Not Samsung HDR but
-// closest you can get without leaving the browser.
-var _camStream = null;
-var _camTrack = null;
-var _imgCapture = null;
+// Auto-flip is impossible from web sandbox — confirmed across 15 iterations.
+// Solution: teach user ONCE how Samsung Camera persistence works (last-used
+// camera in normal-mode launch becomes default for intent-mode launches).
 var _camPending = null;
-var _camDeviceId = null;
 
-async function wizPhotoCameraLoop() {
+function _camSetupSeen() {
+    try { return !!localStorage.getItem('_rms_cam_setup_done'); } catch(e) { return false; }
+}
+function _camSetupMark() {
+    try { localStorage.setItem('_rms_cam_setup_done', '1'); } catch(e) {}
+}
+
+function wizPhotoCameraLoop() {
     if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
     _camPending = null;
     var ov = document.createElement('div');
@@ -6256,36 +6284,63 @@ async function wizPhotoCameraLoop() {
     var photoCount = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0) + 1;
     ov.innerHTML =
         '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
-        '<div id="rmsCamStage" class="cam-loop-stage"><video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video></div>' +
+        '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
+        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
-    // Have we already saved the user's preferred camera?
-    try { _camDeviceId = localStorage.getItem('_rms_main_camera_id') || null; } catch(e) { _camDeviceId = null; }
-    if (!_camDeviceId) {
-        // First time — show picker.
-        await wizCamShowPicker();
+    document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
+    if (_camSetupSeen()) {
+        // Returning user — straight to camera.
+        wizCamRenderEmpty();
+        wizCamShoot();
     } else {
-        wizCamRenderShootBar();
-        try {
-            await _camStartByDeviceId(_camDeviceId);
-        } catch (err) {
-            console.warn('[S82.COLOR.15] saved camera failed, re-prompting:', err);
-            try { localStorage.removeItem('_rms_main_camera_id'); } catch(e){}
-            _camDeviceId = null;
-            await wizCamShowPicker();
-        }
+        wizCamShowSetup();
     }
 }
 
-// === Camera picker — shown once, lets user pick which camera is "main rear" ===
-async function wizCamShowPicker() {
+// === Super-friendly first-time setup card ===
+function wizCamShowSetup() {
     var stage = document.getElementById('rmsCamStage');
     if (stage) {
         stage.innerHTML =
-            '<div class="cam-picker">' +
-                '<div class="cam-picker-title">Избери задната камера</div>' +
-                '<div class="cam-picker-sub">Tap всяка камера за да я видиш. После tap "Запази тази" на главната задна камера. Прави се ВЕДНЪЖ.</div>' +
-                '<div id="rmsCamPickerList" class="cam-picker-list"><div style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">Зареждам камерите...</div></div>' +
+            '<div class="cam-setup">' +
+                '<div class="cam-setup-header">' +
+                    '<div class="cam-setup-emoji">📸</div>' +
+                    '<div class="cam-setup-title">Здравей! Първа настройка</div>' +
+                    '<div class="cam-setup-sub">Само 3 лесни стъпки и забравяш завинаги ✨</div>' +
+                '</div>' +
+                '<div class="cam-setup-steps">' +
+                    '<div class="cam-setup-step" style="animation-delay:0.1s">' +
+                        '<div class="cam-setup-num">1</div>' +
+                        '<div class="cam-setup-step-body">' +
+                            '<div class="cam-setup-step-title">Излез от това приложение</div>' +
+                            '<div class="cam-setup-step-desc">Натисни Home бутона на телефона <span class="cam-setup-tap">⌂</span></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cam-setup-step" style="animation-delay:0.3s">' +
+                        '<div class="cam-setup-num">2</div>' +
+                        '<div class="cam-setup-step-body">' +
+                            '<div class="cam-setup-step-title">Отвори <span class="cam-setup-app">📷 Camera</span></div>' +
+                            '<div class="cam-setup-step-desc">От началния екран — нормалната камера на телефона</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cam-setup-step" style="animation-delay:0.5s">' +
+                        '<div class="cam-setup-num">3</div>' +
+                        '<div class="cam-setup-step-body">' +
+                            '<div class="cam-setup-step-title">Снимай 1 пробна <span class="cam-setup-flip">🔄</span> със ЗАДНА камера</div>' +
+                            '<div class="cam-setup-step-desc">Каквото и да е — масата, ръката си. Важното е да е <b>задната</b> камера (тази която гледа напред, не към лицето ти)</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cam-setup-finale" style="animation-delay:0.75s">' +
+                    '<div class="cam-setup-finale-icon">🎉</div>' +
+                    '<div class="cam-setup-finale-text">Готово! Сега камерата тук винаги ще е <b>задна</b>.</div>' +
+                '</div>' +
+                '<button type="button" class="cam-setup-done-btn" onclick="wizCamSetupDone()" style="animation-delay:0.9s">' +
+                    'Хайде, опитваме!' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+                '</button>' +
+                '<button type="button" class="cam-setup-skip" onclick="wizCamSetupDone()">Пропусни — вече знам</button>' +
             '</div>';
     }
     var ctl = document.getElementById('rmsCamControls');
@@ -6293,191 +6348,73 @@ async function wizCamShowPicker() {
         ctl.innerHTML =
             '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
     }
-    try {
-        // Need a permission grant first to get camera labels populated.
-        var primer = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        primer.getTracks().forEach(function(t){ try { t.stop(); } catch(e){} });
-        var devs = await navigator.mediaDevices.enumerateDevices();
-        var cams = devs.filter(function(d){ return d.kind === 'videoinput'; });
-        console.log('[S82.COLOR.15] cameras for picker:', cams.map(function(d){ return d.label; }));
-        if (!cams.length) {
-            document.getElementById('rmsCamPickerList').innerHTML = '<div style="color:#fca5a5;padding:20px;text-align:center">Не намерих камери на този телефон.</div>';
-            return;
-        }
-        var html = '';
-        cams.forEach(function(d, i){
-            var label = d.label || ('Камера ' + (i+1));
-            html += '<div class="cam-picker-item" data-id="' + d.deviceId + '">' +
-                '<div class="cam-picker-item-info">' +
-                    '<div class="cam-picker-item-name">' + label + '</div>' +
-                    '<div class="cam-picker-item-sub">Tap "Виж" за да я тестваш</div>' +
-                '</div>' +
-                '<div class="cam-picker-item-actions">' +
-                    '<button type="button" class="cam-picker-test" onclick="wizCamPickerTest(\'' + d.deviceId.replace(/'/g, "\\'") + '\')">Виж</button>' +
-                    '<button type="button" class="cam-picker-save" onclick="wizCamPickerSave(\'' + d.deviceId.replace(/'/g, "\\'") + '\',\'' + label.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\')">Запази тази</button>' +
-                '</div>' +
-            '</div>';
-        });
-        document.getElementById('rmsCamPickerList').innerHTML = html;
-    } catch (err) {
-        console.error('[S82.COLOR.15] picker init err:', err);
-        document.getElementById('rmsCamPickerList').innerHTML = '<div style="color:#fca5a5;padding:20px;text-align:center">Камерата изисква разрешение. Дай го от настройките на browser-а и опитай пак.</div>';
-    }
 }
 
-async function wizCamPickerTest(deviceId) {
-    try {
-        await _camStartByDeviceId(deviceId);
-        // Replace the picker list with a small live preview + "use this" / "back" buttons.
-        var stage = document.getElementById('rmsCamStage');
-        if (stage) {
-            stage.innerHTML =
-                '<video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video>' +
-                '<div class="cam-picker-test-bar">' +
-                    '<button type="button" class="cam-picker-back" onclick="wizCamShowPicker()">‹ Назад към списъка</button>' +
-                    '<button type="button" class="cam-picker-use" onclick="wizCamPickerSaveCurrent(\'' + deviceId.replace(/'/g, "\\'") + '\')">✓ Използвай тази</button>' +
-                '</div>';
-            // Re-attach the new <video> to the existing stream.
-            var v = document.getElementById('rmsCamVideo');
-            if (v && _camStream) { v.srcObject = _camStream; v.style.display = 'block'; }
-        }
-    } catch (err) {
-        if (typeof showToast === 'function') showToast('Камерата не работи: ' + err.message, 'error');
-    }
+function wizCamSetupDone() {
+    _camSetupMark();
+    wizCamRenderEmpty();
+    wizCamShoot();
 }
 
-function wizCamPickerSaveCurrent(deviceId) {
-    try { localStorage.setItem('_rms_main_camera_id', deviceId); } catch(e){}
-    _camDeviceId = deviceId;
-    wizCamRenderShootBar();
-    if (typeof showToast === 'function') showToast('Запазена. Вече ще се отваря тази камера.', 'success');
-}
-
-function wizCamPickerSave(deviceId, label) {
-    wizCamPickerSaveCurrent(deviceId);
-    // Start streaming the saved one immediately so the user can shoot.
-    _camStartByDeviceId(deviceId).catch(function(err){
-        if (typeof showToast === 'function') showToast('Камера: ' + err.message, 'error');
-    });
-}
-
-// === Camera streaming + ImageCapture ===
-async function _camStartByDeviceId(deviceId) {
-    _camStop();
-    var stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId }, width: { ideal: 4096 }, height: { ideal: 4096 } },
-        audio: false
-    });
-    _camStream = stream;
-    _camTrack = stream.getVideoTracks()[0];
-    if (_camTrack && _camTrack.applyConstraints && _camTrack.getCapabilities) {
-        try {
-            var caps = _camTrack.getCapabilities();
-            var advanced = {};
-            if (caps.width  && caps.width.max)  advanced.width  = caps.width.max;
-            if (caps.height && caps.height.max) advanced.height = caps.height.max;
-            if (Object.keys(advanced).length) await _camTrack.applyConstraints({ advanced: [advanced] });
-        } catch(_){}
-    }
-    _imgCapture = null;
-    if (window.ImageCapture && _camTrack) {
-        try { _imgCapture = new ImageCapture(_camTrack); } catch(_){}
-    }
-    var v = document.getElementById('rmsCamVideo');
-    if (v) { v.srcObject = stream; v.style.display = 'block'; }
-}
-
-function _camStop() {
-    if (_camStream) {
-        _camStream.getTracks().forEach(function(t){ try { t.stop(); } catch(e){} });
-        _camStream = null;
-    }
-    _camTrack = null;
-    _imgCapture = null;
-}
-
-function wizCamRenderShootBar() {
-    var ctl = document.getElementById('rmsCamControls');
-    if (!ctl) return;
+function wizCamRenderEmpty() {
+    var stage = document.getElementById('rmsCamStage');
     var taken = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0);
-    ctl.innerHTML =
-        '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
-        '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
-        (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
-    // Small "change camera" link in case user wants to re-pick later.
-    var stage = document.getElementById('rmsCamStage');
-    if (stage && !stage.querySelector('.cam-change-link')) {
-        var lnk = document.createElement('button');
-        lnk.type = 'button';
-        lnk.className = 'cam-change-link';
-        lnk.textContent = 'Смени камера';
-        lnk.onclick = function(){ try { localStorage.removeItem('_rms_main_camera_id'); } catch(e){} _camDeviceId = null; wizCamShowPicker(); };
-        stage.appendChild(lnk);
+    var hint = taken
+        ? 'Снимка ' + taken + ' добавена. Tap кръглия бутон за следващата.'
+        : 'Tap кръглия бутон, за да отвориш камерата на телефона.';
+    if (stage) {
+        stage.innerHTML =
+            '<div class="cam-loop-empty">' +
+                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+                '<div class="cam-loop-empty-msg">' + hint + '</div>' +
+            '</div>';
     }
-}
-
-async function wizCamShoot() {
-    var dataUrl = null;
-    if (_imgCapture && typeof _imgCapture.takePhoto === 'function') {
-        try {
-            var photoOpts = {};
-            if (typeof _imgCapture.getPhotoCapabilities === 'function') {
-                try {
-                    var pcaps = await _imgCapture.getPhotoCapabilities();
-                    if (pcaps && pcaps.imageWidth && pcaps.imageWidth.max)  photoOpts.imageWidth  = pcaps.imageWidth.max;
-                    if (pcaps && pcaps.imageHeight && pcaps.imageHeight.max) photoOpts.imageHeight = pcaps.imageHeight.max;
-                } catch(_){}
-            }
-            var blob = await _imgCapture.takePhoto(photoOpts);
-            dataUrl = await _blobToDataUrl(blob);
-            console.log('[S82.COLOR.15] ImageCapture shot:', Math.round(blob.size/1024) + 'KB');
-        } catch(e) { console.warn('[S82.COLOR.15] ImageCapture failed, fallback:', e); }
-    }
-    if (!dataUrl) {
-        var v = document.getElementById('rmsCamVideo');
-        if (!v || !v.videoWidth) {
-            if (typeof showToast === 'function') showToast('Камерата не е готова', 'error');
-            return;
-        }
-        var c = document.createElement('canvas');
-        c.width = v.videoWidth; c.height = v.videoHeight;
-        c.getContext('2d').drawImage(v, 0, 0);
-        dataUrl = c.toDataURL('image/jpeg', 0.95);
-    }
-    dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92);
-    _camPending = dataUrl;
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
-    _camStop();
     var ctl = document.getElementById('rmsCamControls');
     if (ctl) {
         ctl.innerHTML =
-            '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Нова снимка</button>' +
-            '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща запис<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
-            '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
+            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
+            (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
     }
-    if (navigator.vibrate) navigator.vibrate(8);
 }
 
-function _blobToDataUrl(blob) {
-    return new Promise(function(resolve, reject) {
-        var fr = new FileReader();
-        fr.onload = function(){ resolve(fr.result); };
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-    });
+function wizCamShoot() {
+    // Synchronous click — preserves user gesture chain (iOS Safari requires this).
+    var inp = document.getElementById('rmsCamInput');
+    if (inp) inp.click();
 }
 
-async function wizCamRetake() {
-    _camPending = null;
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) stage.innerHTML = '<video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video>';
-    wizCamRenderShootBar();
-    if (_camDeviceId) {
-        try { await _camStartByDeviceId(_camDeviceId); } catch (err) {
-            if (typeof showToast === 'function') showToast('Камера: ' + err.message, 'error');
+function wizCamLoopOnFile(e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) {
+        wizCamRenderEmpty();
+        return;
+    }
+    var fr = new FileReader();
+    fr.onload = async function() {
+        var dataUrl = fr.result;
+        // S82.COLOR.16: aggressive downscale to 1000px @ q=0.80 → ~80 KB per photo.
+        // RIOT-equivalent compression — sweet spot for online-store storage cost.
+        try { dataUrl = await _downscaleDataUrl(dataUrl, 1000, 0.80); } catch(err) { console.warn('downscale err:', err); }
+        _camPending = dataUrl;
+        var stage = document.getElementById('rmsCamStage');
+        if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
+        var ctl = document.getElementById('rmsCamControls');
+        if (ctl) {
+            ctl.innerHTML =
+                '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Нова снимка</button>' +
+                '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща запис<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+                '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
         }
-    }
+        if (navigator.vibrate) navigator.vibrate(6);
+    };
+    fr.readAsDataURL(f);
+}
+
+function wizCamRetake() {
+    _camPending = null;
+    wizCamShoot();
 }
 
 async function wizCamAccept(continueShooting) {
@@ -6489,7 +6426,7 @@ async function wizCamAccept(continueShooting) {
     if (continueShooting && S.wizData._photos.length < 30) {
         var ctr = document.getElementById('rmsCamCounter');
         if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
-        await wizCamRetake();
+        wizCamShoot();
     } else {
         wizCamLoopClose();
         wizPhotoDetectColors();
@@ -6502,7 +6439,6 @@ function wizCamLoopFinish() {
 }
 
 function wizCamLoopClose() {
-    _camStop();
     _camPending = null;
     var ov = document.getElementById('rmsCamLoop');
     if (ov) ov.remove();
@@ -6564,8 +6500,8 @@ async function wizPhotoMultiAdd(files) {
                 fr.onerror = rej;
                 fr.readAsDataURL(file);
             });
-            // S82.COLOR.8: downscale gallery imports — 2400px @ 0.92 keeps quality high but bounded.
-            dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92);
+            // S82.COLOR.16: aggressive downscale 1000px @ q=0.80 → ~80 KB (RIOT-equivalent for online-store storage).
+            dataUrl = await _downscaleDataUrl(dataUrl, 1000, 0.80);
             S.wizData._photos.push({ dataUrl: dataUrl, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
         } catch (err) { console.warn('[S82.COLOR.7] Read err:', err); }
     }
