@@ -1533,6 +1533,36 @@ body::before{
 .photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
 .photo-multi-info b{color:var(--text-primary)}
 
+/* ═══ S82.STUDIO.2 — Step 4 inline AI prompt card (replaces step 5 entry) ═══ */
+.step4-ai-card{margin:14px auto 0;padding:16px 14px;border-radius:18px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.45);position:relative;overflow:hidden;max-width:480px;animation:s4aiFadeIn 0.32s ease}
+@keyframes s4aiFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.step4-ai-card.flash-attention{animation:s4aiPulse 1.6s ease}
+@keyframes s4aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}30%{box-shadow:0 0 0 6px rgba(167,139,250,0.45)}}
+.s4ai-summary{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.32);font-size:12.5px;color:#fff;font-weight:600;margin-bottom:12px;line-height:1.4}
+.s4ai-summary svg{width:18px;height:18px;flex-shrink:0;fill:none}
+.s4ai-summary b{color:#86efac;font-weight:800}
+.s4ai-summary.warn{background:rgba(251,191,36,0.10);border-color:rgba(251,191,36,0.35);color:#fef3c7}
+.s4ai-summary.warn b{color:#fbbf24}
+.s4ai-minqty{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:11px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.22);margin-bottom:12px}
+.s4ai-mq-label{font-size:11.5px;color:#fde68a;font-weight:700;flex:1;min-width:0;line-height:1.3}
+.s4ai-mq-hint{display:block;font-size:9.5px;color:rgba(251,191,36,0.7);font-weight:500;letter-spacing:0.02em;margin-top:1px}
+.s4ai-mq-stepper{display:flex;align-items:center;gap:0;flex-shrink:0}
+.s4ai-mq-stepper button{width:30px;height:32px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);color:#fbbf24;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.s4ai-mq-stepper button:first-child{border-radius:8px 0 0 8px;border-right:0}
+.s4ai-mq-stepper button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.s4ai-mq-stepper input{width:48px;height:32px;text-align:center;background:transparent;border:1px solid rgba(245,158,11,0.3);color:#fff;font-size:13px;font-weight:700;font-family:inherit;outline:none;-moz-appearance:textfield}
+.s4ai-mq-stepper input::-webkit-outer-spin-button,.s4ai-mq-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.s4ai-prompt{padding-top:4px}
+.s4ai-prompt-title{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;color:#fff;margin-bottom:8px;letter-spacing:-0.005em}
+.s4ai-prompt-title svg{width:18px;height:18px;flex-shrink:0;fill:none}
+.s4ai-prompt-list{font-size:11.5px;color:rgba(233,213,255,0.78);line-height:1.6;margin:0 0 12px;padding-left:18px;list-style:disc}
+.s4ai-prompt-list li{margin-bottom:1px}
+.s4ai-prompt-actions{display:flex;flex-direction:column;gap:7px}
+.s4ai-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
+.s4ai-btn:active{transform:scale(0.98)}
+.s4ai-btn.yes{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,0.4)}
+.s4ai-btn.no{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.12);font-weight:700;font-size:12px}
+
 /* ═══ S82.STUDIO.1.a — AI Studio modal (Phase 1: scaffold + plan lock + bg removal) ═══ */
 .studio-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9990;display:none;align-items:flex-end;justify-content:center;padding:0;animation:studioOvFade 0.25s ease-out}
 .studio-modal-ov.show{display:flex}
@@ -5952,9 +5982,72 @@ function renderWizPagePart2(step){
 
 ''; // S73.B.13: footer via helper
         var _footer=_v4ComputeFooter(S._wizActiveTab);
-        return '<div class="wiz-page active" style="padding-bottom:140px">'+
+        // S82.STUDIO.2: AI prompt card lives at the bottom of step 4 now (was step 5,
+        // which the user couldn't make sense of). Card shows only after at least one
+        // axis has values and after at least one quantity is in the matrix — otherwise
+        // the user would see a save button before they have anything to save.
+        var _step4AnyVals = (S.wizData.axes||[]).some(function(a){return a.values&&a.values.length>0});
+        var _step4HasQty = false;
+        if (S.wizData._matrix) {
+            for (var _mk in S.wizData._matrix) {
+                var _mc = S.wizData._matrix[_mk];
+                var _mq = (_mc && typeof _mc === 'object') ? _mc.qty : _mc;
+                if (parseInt(_mq) > 0) { _step4HasQty = true; break; }
+            }
+        }
+        var _aiCardH = '';
+        if (_step4AnyVals) {
+            // Compute compact summary for the card.
+            var _step4SumQty = 0, _step4SumCells = 0;
+            if (S.wizData._matrix) {
+                for (var _k2 in S.wizData._matrix) {
+                    var _c2 = S.wizData._matrix[_k2];
+                    var _q2 = parseInt((_c2 && typeof _c2 === 'object') ? _c2.qty : _c2) || 0;
+                    if (_q2 > 0) { _step4SumQty += _q2; _step4SumCells++; }
+                }
+            }
+            var _mqVal4=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
+            _aiCardH =
+                '<div id="wizStep4AICard" class="step4-ai-card">' +
+                    (_step4HasQty
+                        ? '<div class="s4ai-summary">' +
+                              '<svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+                              '<span><b>' + _step4SumCells + '</b> комбинации · общо <b>' + _step4SumQty + '</b> бр.</span>' +
+                          '</div>'
+                        : '<div class="s4ai-summary warn">' +
+                              '<svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+                              '<span>Натисни <b>"Колко бр.?"</b> по-горе, за да въведеш бройките.</span>' +
+                          '</div>') +
+                    '<div class="s4ai-minqty">' +
+                        '<label class="s4ai-mq-label">Мин. за поръчка <span class="s4ai-mq-hint">(сигнал при изчерпване)</span></label>' +
+                        '<div class="s4ai-mq-stepper">' +
+                            '<button type="button" onclick="var e=document.getElementById(\'s4MinQtyInp\');var v=Math.max(0,(parseInt(e.value)||0)-1);e.value=v;S.wizData.min_quantity=v">−</button>' +
+                            '<input type="number" id="s4MinQtyInp" value="' + _mqVal4 + '" min="0" oninput="S.wizData.min_quantity=parseInt(this.value)||0">' +
+                            '<button type="button" onclick="var e=document.getElementById(\'s4MinQtyInp\');var v=(parseInt(e.value)||0)+1;e.value=v;S.wizData.min_quantity=v">+</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="s4ai-prompt">' +
+                        '<div class="s4ai-prompt-title">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
+                            '✨ Искаш ли AI обработка?' +
+                        '</div>' +
+                        '<ul class="s4ai-prompt-list">' +
+                            '<li>Махане на фона на снимките</li>' +
+                            '<li>AI магия (модел носи дрехата)</li>' +
+                            '<li>SEO описание за онлайн магазин</li>' +
+                            '<li>Експорт CSV/PDF за магазини</li>' +
+                        '</ul>' +
+                        '<div class="s4ai-prompt-actions">' +
+                            '<button type="button" class="s4ai-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
+                            '<button type="button" class="s4ai-btn no" onclick="wizFinalAINo()">Не, само запази</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+        }
+        return '<div class="wiz-page active" style="padding-bottom:160px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
+            _aiCardH+
             '<div id="v4Footer" style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_footer+'</div>'+
             vskip+'</div>';
     }
@@ -8432,14 +8525,10 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
-            // S82.STUDIO.1: open AI Studio modal if user picked "Да, отвори AI Studio" in step 5.
-            if (S.wizData._openStudioAfterSave && typeof openStudioModal === 'function') {
-                S.wizData._openStudioAfterSave = false; // one-shot
-                setTimeout(function(){ openStudioModal(r.id); }, 350);
-            }
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
             }
+            // Build _printCombos for Step 6 (always — AI Studio also exposes a print export later).
             var _pc=[];
             if(S.wizData._matrix&&Object.keys(S.wizData._matrix).length){
                 var _sAx=null,_cAx=null;
@@ -8462,8 +8551,19 @@ async function wizSave(){
                 _pc=[{parts:[],printQty:parseInt(document.getElementById('wSingleQty')?.value)||1}];
             }
             S.wizData._printCombos=_pc;
-            wizGo(6);
-            loadScreen();
+            // S82.STUDIO.2: branch AFTER printCombos are built.
+            // YES path → open AI Studio directly (no print step flash).
+            // NO path → wizGo(6) print step as before.
+            if (S.wizData._openStudioAfterSave && typeof openStudioModal === 'function') {
+                S.wizData._openStudioAfterSave = false; // one-shot
+                openStudioModal(r.id);
+                // Hide the wizard frame underneath so when modal closes user is back on products list.
+                try { closeWizard(); } catch(_){}
+                loadScreen();
+            } else {
+                wizGo(6);
+                loadScreen();
+            }
         }else{showToast(r?.error||'Грешка','error')}
     }catch(e){showToast('Мрежова грешка','error')}
 }
