@@ -5410,9 +5410,85 @@ function fieldLabel(text,key,extra){
     return '<label class="fl">'+html+' '+extra+'</label>';
 }
 
+// ═══ S82.STUDIO.10: wizDraft cache — auto-saves the wizard state to
+// localStorage so accidental refresh / browser close / phone lock doesn't
+// lose the user's work. Up to ~5 MB per origin (enough for 30 photos
+// downscaled to 80 KB each + form fields). Cleared after successful save.
+function _wizDraftKey(){
+    var tid = (typeof CFG !== 'undefined' && CFG.tenantId) ? CFG.tenantId : 'anon';
+    return '_rms_wizDraft_' + tid;
+}
+function _wizSaveDraft(){
+    // Don't persist drafts that are already saved (post-success step 6)
+    // or too thin to be useful.
+    if (S.wizStep === 6) return;
+    if (S.wizSavedId) return;
+    if (!S.wizStep || S.wizStep < 3) return;
+    try {
+        var draft = {
+            t: Date.now(),
+            wizStep: S.wizStep,
+            wizType: S.wizType,
+            wizData: S.wizData,
+            wizEditId: S.wizEditId || null
+        };
+        localStorage.setItem(_wizDraftKey(), JSON.stringify(draft));
+    } catch (e) {
+        // QuotaExceededError most likely — strip photos and try once more.
+        try {
+            var trimmed = JSON.parse(JSON.stringify(draft || {}));
+            if (trimmed && trimmed.wizData) {
+                if (Array.isArray(trimmed.wizData._photos)) trimmed.wizData._photos = [];
+                trimmed.wizData._photoDataUrl = null;
+            }
+            localStorage.setItem(_wizDraftKey(), JSON.stringify(trimmed));
+        } catch(_) { console.warn('[wizDraft] save failed:', e); }
+    }
+}
+function _wizClearDraft(){
+    try { localStorage.removeItem(_wizDraftKey()); } catch(e) {}
+}
+function _wizGetDraft(){
+    try {
+        var s = localStorage.getItem(_wizDraftKey());
+        if (!s) return null;
+        var d = JSON.parse(s);
+        // Drop drafts older than 7 days to avoid stale ghost prompts.
+        if (!d || !d.t || Date.now() - d.t > 7 * 24 * 60 * 60 * 1000) {
+            _wizClearDraft();
+            return null;
+        }
+        return d;
+    } catch(e) { return null; }
+}
+function _wizDescribeDraft(d){
+    if (!d || !d.wizData) return '';
+    var nm = d.wizData.name || 'без име';
+    var ageMs = Date.now() - (d.t || 0);
+    var ageMin = Math.round(ageMs / 60000);
+    var age = ageMin < 1 ? 'току-що' : (ageMin < 60 ? ageMin + ' мин' : Math.round(ageMin/60) + ' ч');
+    return '"' + nm + '" · ' + age + ' назад';
+}
+// Auto-save trigger: call _wizSaveDraft at the end of every renderWizard.
+// Hook is set inside renderWizard itself.
+
 // ─── MANUAL WIZARD ───
 function openManualWizard(){
-    S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+    var draft = _wizGetDraft();
+    if (draft) {
+        var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
+        if (confirm(msg)) {
+            S.wizStep = draft.wizStep || 3;
+            S.wizType = draft.wizType || null;
+            S.wizData = draft.wizData || {};
+            S.wizEditId = draft.wizEditId || null;
+        } else {
+            _wizClearDraft();
+            S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+        }
+    } else {
+        S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+    }
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
@@ -5423,7 +5499,21 @@ function openManualWizard(){
 
 // ─── VOICE WIZARD — same steps, with skip buttons ───
 function openVoiceWizard(){
-    S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+    var draft = _wizGetDraft();
+    if (draft) {
+        var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
+        if (confirm(msg)) {
+            S.wizStep = draft.wizStep || 3;
+            S.wizType = draft.wizType || null;
+            S.wizData = draft.wizData || {};
+            S.wizEditId = draft.wizEditId || null;
+        } else {
+            _wizClearDraft();
+            S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+        }
+    } else {
+        S.wizStep=3;S.wizData={};S.wizType=null;S.wizEditId=null;
+    }
     S.wizVoiceMode=true;
     document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
     renderWizard();
@@ -5561,9 +5651,10 @@ function openMxOverlay(){
       var q=cell.qty!==undefined?cell.qty:'';
       var m=cell.min!==undefined?cell.min:'';
       var has=q!==''&&q!==null&&q>0;
-      // S82.STUDIO.5: removed the per-cell "мин." stepper — user said "това още в гриле уточтено,
-       // няма нужда от това нещо" (global min on step 4 covers it). Cells are now qty-only.
-      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="0 бр."></div></td>';
+      // S82.STUDIO.10: per-cell МКП stepper restored — user wants the auto-calc
+       // "type 5 → MKП auto = 2" with +/- adjustment, same as before. Works for both
+       // 2-axis matrix and single-axis (only colors / only sizes).
+      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="0 бр."><div class="mx-cell-lbl">МКП</div><div class="mx-cell-min-row"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',-1)">▼</button><input type="number" class="mx-cell-min" data-key="'+key+'" data-t="min" value="'+m+'" min="0" inputmode="numeric" placeholder="0"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',1)">▲</button></div></div></td>';
     });
     tb+='</tr>';
   });
@@ -5611,6 +5702,8 @@ function mxDone(){S._mxSnapshot=undefined;closeMxOverlay();renderWizard();if(nav
 
 async function renderWizard(){
     if(S.wizStep===6)wizCollectData();
+    // S82.STUDIO.10: persist draft on every render (covers axes/matrix/photo/form changes).
+    if (typeof _wizSaveDraft === 'function') _wizSaveDraft();
     let sb='';
     const uiIdx=WIZ_UI_INDEX[S.wizStep];
     for(let i=0;i<5;i++){
@@ -8936,6 +9029,8 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
+            // S82.STUDIO.10: clear the auto-saved draft now that the artikel is in DB.
+            if (typeof _wizClearDraft === 'function') _wizClearDraft();
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
             }
