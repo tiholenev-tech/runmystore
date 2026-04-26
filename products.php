@@ -1562,6 +1562,9 @@ body::before{
 .s4ai-btn:active{transform:scale(0.98)}
 .s4ai-btn.yes{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,0.4)}
 .s4ai-btn.no{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.12);font-weight:700;font-size:12px}
+/* S82.STUDIO.7: disabled state when matrix is empty — visually grey + still tappable to trigger toast */
+.s4ai-btn.disabled{opacity:0.4;cursor:not-allowed;filter:grayscale(0.6)}
+.step4-ai-card.awaiting-qty{border-color:rgba(251,191,36,0.5);box-shadow:0 0 0 1px rgba(251,191,36,0.2)}
 
 /* ═══ S82.STUDIO.1.a — AI Studio modal (Phase 1: scaffold + plan lock + bg removal) ═══ */
 .studio-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9990;display:none;align-items:flex-end;justify-content:center;padding:0;animation:studioOvFade 0.25s ease-out}
@@ -6076,10 +6079,11 @@ function renderWizPagePart2(step){
             }
         }
         var _aiCardH = '';
-        // S82.STUDIO.5: hide the AI prompt card entirely until at least one qty
-        // is in the matrix — user reported "the save buttons appear too early
-        // when qty is still 0, then the popup yells about 0 quantity".
-        if (_step4AnyVals && _step4HasQty) {
+        // S82.STUDIO.7: card is now ALWAYS visible whenever an axis has values
+        // (not gated on qty). User reported "the card never appeared even after I
+        // entered qtys" — likely a state-detection edge case. Safer to always show
+        // the card and let the buttons handle the empty-qty case via toast.
+        if (_step4AnyVals) {
             // Compute compact summary for the card.
             var _step4SumQty = 0, _step4SumCells = 0;
             if (S.wizData._matrix) {
@@ -6089,17 +6093,23 @@ function renderWizPagePart2(step){
                     if (_q2 > 0) { _step4SumQty += _q2; _step4SumCells++; }
                 }
             }
+            console.log('[S82.STUDIO.7] step4 render — _step4HasQty=' + _step4HasQty + ', cells=' + _step4SumCells + ', total=' + _step4SumQty + ', _matrix=', S.wizData._matrix);
             var _mqVal4=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
+            // Buttons disabled when no qty — visually greyed out + onclick toast.
+            var _btnDisabled = !_step4HasQty;
+            var _yesAttr = _btnDisabled ? 'onclick="wizStep4NeedQty()"' : 'onclick="wizFinalAIYes()"';
+            var _noAttr  = _btnDisabled ? 'onclick="wizStep4NeedQty()"' : 'onclick="wizFinalAINo()"';
+            var _btnCls  = _btnDisabled ? ' disabled' : '';
             _aiCardH =
-                '<div id="wizStep4AICard" class="step4-ai-card">' +
+                '<div id="wizStep4AICard" class="step4-ai-card' + (_btnDisabled ? ' awaiting-qty' : '') + '">' +
                     (_step4HasQty
                         ? '<div class="s4ai-summary">' +
                               '<svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
                               '<span><b>' + _step4SumCells + '</b> комбинации · общо <b>' + _step4SumQty + '</b> бр.</span>' +
                           '</div>'
-                        : '<div class="s4ai-summary warn">' +
+                        : '<div class="s4ai-summary warn" onclick="if(typeof openMxOverlay===\'function\')openMxOverlay()" style="cursor:pointer">' +
                               '<svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
-                              '<span>Натисни <b>"Колко бр.?"</b> по-горе, за да въведеш бройките.</span>' +
+                              '<span>Първо <b>въведи бройки</b> за всеки вариант → tap тук</span>' +
                           '</div>') +
                     '<div class="s4ai-minqty">' +
                         '<label class="s4ai-mq-label">Мин. за поръчка <span class="s4ai-mq-hint">(сигнал при изчерпване)</span></label>' +
@@ -6121,8 +6131,8 @@ function renderWizPagePart2(step){
                             '<li>Експорт CSV/PDF за магазини</li>' +
                         '</ul>' +
                         '<div class="s4ai-prompt-actions">' +
-                            '<button type="button" class="s4ai-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
-                            '<button type="button" class="s4ai-btn no" onclick="wizFinalAINo()">Не, само запази</button>' +
+                            '<button type="button" class="s4ai-btn yes' + _btnCls + '" ' + _yesAttr + '>Да, отвори AI Studio</button>' +
+                            '<button type="button" class="s4ai-btn no' + _btnCls + '" ' + _noAttr + '>Не, само запази</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>';
@@ -8367,6 +8377,12 @@ function _v4ComputeFooter(axIdx){
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
+}
+
+// S82.STUDIO.7: tapped a disabled YES/NO button — guide user to enter qtys first.
+function wizStep4NeedQty() {
+    if (typeof showToast === 'function') showToast('Първо въведи бройки за всеки вариант. Отварям матрицата...', 'error');
+    if (typeof openMxOverlay === 'function') setTimeout(openMxOverlay, 350);
 }
 
 // S82.STUDIO.6: scroll/flash the AI prompt card. If it doesn't exist (qty=0 yet)
