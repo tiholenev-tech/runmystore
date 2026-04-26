@@ -5547,7 +5547,9 @@ function openMxOverlay(){
       var q=cell.qty!==undefined?cell.qty:'';
       var m=cell.min!==undefined?cell.min:'';
       var has=q!==''&&q!==null&&q>0;
-      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="0 бр."><div class="mx-cell-lbl">мин.</div><div class="mx-cell-min-row"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',-1)">▼</button><input type="number" class="mx-cell-min" data-key="'+key+'" data-t="min" value="'+m+'" min="0" inputmode="numeric" placeholder="0"><button class="mx-min-step" onclick="mxStepMin(\''+key+'\',1)">▲</button></div></div></td>';
+      // S82.STUDIO.5: removed the per-cell "мин." stepper — user said "това още в гриле уточтено,
+       // няма нужда от това нещо" (global min on step 4 covers it). Cells are now qty-only.
+      tb+='<td class="mx-cell'+(has?' has-value':'')+'"><div class="mx-cell-inputs"><input type="number" class="mx-cell-qty" data-key="'+key+'" data-t="qty" value="'+q+'" min="0" inputmode="numeric" placeholder="0 бр."></div></td>';
     });
     tb+='</tr>';
   });
@@ -6074,7 +6076,10 @@ function renderWizPagePart2(step){
             }
         }
         var _aiCardH = '';
-        if (_step4AnyVals) {
+        // S82.STUDIO.5: hide the AI prompt card entirely until at least one qty
+        // is in the matrix — user reported "the save buttons appear too early
+        // when qty is still 0, then the popup yells about 0 quantity".
+        if (_step4AnyVals && _step4HasQty) {
             // Compute compact summary for the card.
             var _step4SumQty = 0, _step4SumCells = 0;
             if (S.wizData._matrix) {
@@ -8848,11 +8853,25 @@ async function wizSave(){
         return{size:finalSize,color:colorVal,qty:c.qty||0};
     });
 
-    // S81.BUGFIX.V3.EXT [B4]: confirm zero-qty save for NEW products
+    // S82.STUDIO.5: log full state for debug — user reports the 0-qty popup fires
+    // even when matrix has values.
+    console.log('[S82.STUDIO.5] wizSave — _matrix:', S.wizData._matrix, 'axes:', JSON.stringify((S.wizData.axes||[]).map(function(a){return {name:a.name, vals:a.values};})), 'combos:', JSON.parse(JSON.stringify(combos)));
     var _totalQty = S.wizType==='variant'
         ? variants.reduce(function(s,v){return s+(parseInt(v.qty)||0)},0)
         : (parseInt(singleQty)||0);
-    if (!S.wizEditId && _totalQty === 0) {
+    console.log('[S82.STUDIO.5] _totalQty=' + _totalQty + ', variants:', variants);
+    // S82.STUDIO.5: only show the popup when matrix is genuinely empty — if _matrix
+    // has at least one cell with qty>0, trust it (the variants array may have failed to
+    // pick it up for some other reason and we don't want to scare the user).
+    var _matrixHasQty = false;
+    if (S.wizData._matrix) {
+        for (var _mk5 in S.wizData._matrix) {
+            var _mc5 = S.wizData._matrix[_mk5];
+            var _mq5 = (_mc5 && typeof _mc5 === 'object') ? _mc5.qty : _mc5;
+            if (parseInt(_mq5) > 0) { _matrixHasQty = true; break; }
+        }
+    }
+    if (!S.wizEditId && _totalQty === 0 && !_matrixHasQty) {
         if (!confirm('Няма въведени бройки. Сигурен ли си, че искаш да запишеш артикула с 0 количество?')) return;
     }
 
