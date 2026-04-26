@@ -727,13 +727,32 @@ if ($ajax === 'sections') {
         echo json_encode(['ok'=>true]); exit;
     }
 
-    // ─── AI IMAGE ───
+    // ─── AI IMAGE (legacy stub) ───
     if ($ajax === 'ai_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $type = $input['type'] ?? 'bg_removal';
         if ($type === 'bg_removal') { $cr = DB::run("SELECT ai_credits_bg FROM tenants WHERE id=?",[$tenant_id])->fetchColumn(); if ($cr<=0) { echo json_encode(['error'=>'Нямаш кредити за бял фон']); exit; } }
         else { $cr = DB::run("SELECT ai_credits_tryon FROM tenants WHERE id=?",[$tenant_id])->fetchColumn(); if ($cr<=0) { echo json_encode(['error'=>'Нямаш кредити за AI Магия']); exit; } }
         echo json_encode(['status'=>'pending','message'=>'AI обработва снимката...']); exit;
+    }
+
+    // ─── S82.STUDIO.1: AI credits + plan info for the AI Studio modal header ───
+    if ($ajax === 'ai_credits') {
+        require_once __DIR__ . '/config/helpers.php';
+        $row = DB::run("SELECT id, plan, plan_effective, trial_ends_at, ai_credits_bg, ai_credits_tryon, ai_credits_bg_total, ai_credits_tryon_total FROM tenants WHERE id=?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$row) { http_response_code(404); echo json_encode(['error'=>'tenant not found']); exit; }
+        $eff = effectivePlan($row);
+        echo json_encode([
+            'plan'            => $eff,
+            'plan_real'       => $row['plan'] ?? 'free',
+            'trial_ends_at'   => $row['trial_ends_at'],
+            'bg_remaining'    => (int)($row['ai_credits_bg'] ?? 0),
+            'bg_total'        => (int)($row['ai_credits_bg_total'] ?? 0),
+            'tryon_remaining' => (int)($row['ai_credits_tryon'] ?? 0),
+            'tryon_total'     => (int)($row['ai_credits_tryon_total'] ?? 0),
+            'is_locked'       => ($eff === 'free'),
+        ]);
+        exit;
     }
 
     // ─── SAVE LABELS ───
@@ -1513,6 +1532,95 @@ body::before{
 
 .photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
 .photo-multi-info b{color:var(--text-primary)}
+
+/* ═══ S82.STUDIO.1.a — AI Studio modal (Phase 1: scaffold + plan lock + bg removal) ═══ */
+.studio-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9990;display:none;align-items:flex-end;justify-content:center;padding:0;animation:studioOvFade 0.25s ease-out}
+.studio-modal-ov.show{display:flex}
+@keyframes studioOvFade{from{opacity:0}to{opacity:1}}
+@media (min-width: 600px){
+    .studio-modal-ov{align-items:center;padding:24px}
+}
+.studio-modal{width:100%;max-width:480px;max-height:92vh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:studioCardIn 0.32s cubic-bezier(0.32, 0.72, 0, 1)}
+@media (min-width: 600px){
+    .studio-modal{border-radius:22px;max-height:88vh}
+}
+@keyframes studioCardIn{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.studio-modal-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border-subtle);flex-shrink:0;position:relative;z-index:5}
+.studio-modal-hdr h2{font-size:17px;font-weight:800;margin:0;flex:1;text-align:center;background:linear-gradient(135deg,#fff,var(--indigo-300));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.studio-mh-close,.studio-mh-help{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0;transition:all 0.18s}
+.studio-mh-close:hover,.studio-mh-help:hover{color:var(--indigo-300);border-color:rgba(99,102,241,0.4)}
+.studio-mh-help{font-size:15px}
+
+.studio-modal-body{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.studio-modal-body > * + *{margin-top:12px}
+
+.studio-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 20px;color:rgba(255,255,255,0.55);font-size:13px}
+.studio-spin{width:32px;height:32px;border-radius:50%;border:3px solid rgba(167,139,250,0.2);border-top-color:#a78bfa;animation:studioSpin 0.85s linear infinite}
+@keyframes studioSpin{to{transform:rotate(360deg)}}
+.studio-error{padding:30px 20px;text-align:center;color:#fca5a5;font-size:13px}
+
+/* Plan lock */
+.studio-lock{padding:8px 8px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.studio-lock-ico{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));display:flex;align-items:center;justify-content:center;box-shadow:0 0 26px rgba(99,102,241,0.5);margin-bottom:4px}
+.studio-lock-ico svg{width:24px;height:24px}
+.studio-lock-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.01em}
+.studio-lock-sub{font-size:12px;color:rgba(233,213,255,0.72);line-height:1.5;max-width:300px;margin-bottom:6px}
+.studio-lock-features{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:320px;margin-bottom:8px}
+.studio-lock-feat{padding:8px 9px;border-radius:9px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.22);font-size:11px;color:var(--indigo-300);display:flex;align-items:center;gap:6px;font-weight:600}
+.studio-lock-feat svg{width:12px;height:12px;flex-shrink:0;fill:none}
+.studio-lock-cta{padding:13px 24px;border-radius:100px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,58,237,0.45);width:100%;max-width:300px;transition:all 0.18s}
+.studio-lock-cta:active{transform:translateY(1px)}
+.studio-lock-skip{margin-top:4px;background:transparent;border:none;color:rgba(255,255,255,0.45);font-size:11.5px;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline}
+
+/* Credits bar */
+.studio-credits-bar{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.06));border:1px solid rgba(99,102,241,0.28);width:100%;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s}
+.studio-credits-bar:active{transform:scale(0.985)}
+.studio-cr-plan{padding:5px 11px;border-radius:100px;background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));color:#fff;font-size:10px;font-weight:800;letter-spacing:0.06em;flex-shrink:0;box-shadow:0 0 12px rgba(99,102,241,0.4)}
+.studio-cr-plan.start{background:linear-gradient(135deg,#0ea5e9,#0284c7);box-shadow:0 0 12px rgba(14,165,233,0.4)}
+.studio-cr-content{flex:1;min-width:0}
+.studio-cr-line{display:flex;align-items:center;gap:8px;font-size:12px;color:#fff;font-weight:600;margin-bottom:2px}
+.studio-cr-item b{color:#a5b4fc;font-size:14px;font-weight:800}
+.studio-cr-item.tryon b{color:#fbbf24}
+.studio-cr-sep{width:1px;height:14px;background:rgba(255,255,255,0.15)}
+.studio-cr-sub{font-size:10px;color:rgba(255,255,255,0.45);font-weight:500}
+.studio-cr-arrow{flex-shrink:0;color:rgba(255,255,255,0.4)}
+.studio-cr-arrow svg{width:14px;height:14px;display:block;fill:none}
+
+/* Studio sections */
+.studio-section{padding:14px 13px;border-radius:16px;background:rgba(15,15,40,0.55);border:1px solid var(--border-subtle);position:relative;overflow:hidden}
+.studio-section.studio-soon{opacity:0.55;pointer-events:none}
+.studio-section.studio-soon::after{content:'СКОРО';position:absolute;top:10px;right:10px;font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:var(--indigo-300);padding:3px 7px;border-radius:6px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25)}
+.studio-sect-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.studio-sect-ico{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,rgba(167,139,250,0.22),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.32);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--indigo-300)}
+.studio-sect-ico svg{width:19px;height:19px;fill:none}
+.studio-sect-title{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:-0.005em}
+.studio-sect-sub{font-size:11px;color:rgba(233,213,255,0.55);margin-top:1px}
+.studio-sect-price{margin-left:auto;font-size:11px;font-weight:700;color:#86efac;background:rgba(34,197,94,0.1);padding:3px 8px;border-radius:6px;border:1px solid rgba(34,197,94,0.25);flex-shrink:0}
+
+/* Bg removal grid */
+.studio-bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:10px}
+.studio-bg-empty{padding:24px 12px;text-align:center;color:rgba(255,255,255,0.4);font-size:12px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px dashed rgba(99,102,241,0.18)}
+.studio-bg-cell{display:flex;flex-direction:column;gap:6px;position:relative}
+.studio-bg-thumb{aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);position:relative}
+.studio-bg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.studio-bg-status{position:absolute;top:5px;left:5px;right:5px;padding:4px 8px;border-radius:7px;font-size:10px;font-weight:700;text-align:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.studio-bg-status.processing{background:rgba(0,0,0,0.7);color:#a5b4fc}
+.studio-bg-status.done{background:rgba(34,197,94,0.85);color:#fff}
+.studio-bg-status.error{background:rgba(239,68,68,0.85);color:#fff;cursor:help}
+.studio-bg-btn{padding:7px 8px;border-radius:9px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:none;color:#fff;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1.2}
+.studio-bg-btn svg{width:11px;height:11px;fill:none}
+.studio-bulk-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 14px rgba(124,58,237,0.35)}
+.studio-bulk-btn svg{width:14px;height:14px;fill:none}
+
+/* Export bar (Phase 4 — disabled placeholders for now) */
+.studio-export-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.studio-export-btn{padding:10px 6px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.55);font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.18s}
+.studio-export-btn svg{width:18px;height:18px;fill:none}
+.studio-export-btn.soon{opacity:0.45;cursor:not-allowed}
+
+.studio-done-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 16px rgba(22,163,74,0.35)}
+.studio-done-btn svg{width:14px;height:14px;fill:none}
 
 /* Camera loop fullscreen overlay (S82.COLOR.10: native phone camera + spinners) */
 .cam-loop-ov{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column}
@@ -6584,6 +6692,259 @@ function wizFinalAINo() {
     if (typeof wizSave === 'function') wizSave();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// S82.STUDIO.1.a — AI Studio modal (scaffold + plan lock + credits + bg removal)
+// Opens after wizSave success when user picked "Да, отвори AI Studio" in step 5.
+// Phase 1 ships: modal frame, plan-aware lock (FREE), credits bar (live from
+// ?ajax=ai_credits), single-photo bg removal via ai-image-processor.php.
+// Subsequent phases will add: AI Magic + Studio presets (Phase 2), SEO desc
+// (Phase 3), print + CSV/PDF + buy-credits modal (Phase 4).
+// ═══════════════════════════════════════════════════════════════════════════
+var _studioState = null; // { productId, credits, photos[] }
+
+async function openStudioModal(productId) {
+    if (document.getElementById('aiStudioModal')) {
+        document.getElementById('aiStudioModal').remove();
+    }
+    _studioState = { productId: productId, credits: null, photos: [] };
+    // Pull a snapshot of any photos the wizard captured (for bulk bg removal).
+    if (S && S.wizData && Array.isArray(S.wizData._photos)) {
+        _studioState.photos = S.wizData._photos.slice();
+    } else if (S && S.wizData && S.wizData._photoDataUrl) {
+        _studioState.photos = [{ dataUrl: S.wizData._photoDataUrl, ai_color: null, ai_hex: null, ai_confidence: null }];
+    }
+    // Build the shell immediately so the user sees feedback while we fetch credits.
+    var ov = document.createElement('div');
+    ov.id = 'aiStudioModal';
+    ov.className = 'studio-modal-ov show';
+    ov.onclick = function(e){ if (e.target === ov) closeStudioModal(); };
+    ov.innerHTML =
+        '<div class="glass studio-modal" id="aiStudioCard">' +
+            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
+            '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
+            '<div class="studio-modal-hdr">' +
+                '<button type="button" class="studio-mh-close" onclick="closeStudioModal()" aria-label="Затвори">✕</button>' +
+                '<h2>✨ AI Studio</h2>' +
+                '<button type="button" class="studio-mh-help" onclick="alert(\'AI Studio: автоматично махане на фон, AI магия за дрехи, SEO описание, печат, експорт — всичко за един артикул.\')" aria-label="Какво е това">?</button>' +
+            '</div>' +
+            '<div class="studio-modal-body" id="studioModalBody">' +
+                '<div class="studio-loading"><div class="studio-spin"></div><div>Зареждам AI Studio...</div></div>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    // Fetch credits + plan, then render the appropriate body (lock or sections).
+    try {
+        var r = await fetch('products.php?ajax=ai_credits', { credentials: 'same-origin' });
+        var j = await r.json();
+        _studioState.credits = j;
+        if (j && j.is_locked) {
+            studioRenderLock(j);
+        } else {
+            studioRenderSections(j);
+        }
+    } catch (err) {
+        console.error('[S82.STUDIO.1] credits fetch failed:', err);
+        document.getElementById('studioModalBody').innerHTML =
+            '<div class="studio-error">Не можах да заредя AI Studio. Опитай отново след малко.</div>';
+    }
+}
+
+function closeStudioModal() {
+    var ov = document.getElementById('aiStudioModal');
+    if (ov) ov.remove();
+    _studioState = null;
+}
+
+// ─── Plan-aware lock (shown to FREE tenants) ─────────────────────────────
+function studioRenderLock(credits) {
+    var body = document.getElementById('studioModalBody');
+    if (!body) return;
+    body.innerHTML =
+        '<div class="studio-lock">' +
+            '<div class="studio-lock-ico">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+            '</div>' +
+            '<div class="studio-lock-title">AI Studio е в START план</div>' +
+            '<div class="studio-lock-sub">Включи 50 безплатни AI снимки на месец със START · 4 месеца триал PRO без карта (300 снимки/мес)</div>' +
+            '<div class="studio-lock-features">' +
+                '<div class="studio-lock-feat"><svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Махане фон</div>' +
+                '<div class="studio-lock-feat"><svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SEO описание</div>' +
+                '<div class="studio-lock-feat"><svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Облечи на модел</div>' +
+                '<div class="studio-lock-feat"><svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Студийна снимка</div>' +
+            '</div>' +
+            '<button type="button" class="studio-lock-cta" onclick="window.location.href=\'/billing.php\'">Виж планове · 4 месеца безплатно</button>' +
+            '<button type="button" class="studio-lock-skip" onclick="closeStudioModal()">Сега не · отиди в артикулите</button>' +
+        '</div>';
+}
+
+// ─── Studio sections (shown to START / PRO / GOD tenants) ─────────────────
+function studioRenderSections(credits) {
+    var body = document.getElementById('studioModalBody');
+    if (!body) return;
+    var planLabel = (credits.plan || 'free').toUpperCase();
+    if (credits.plan === 'god') planLabel = 'PRO';
+    var planClass = (credits.plan === 'pro' || credits.plan === 'god') ? 'pro' : 'start';
+    body.innerHTML =
+        // Credits bar
+        '<button type="button" class="studio-credits-bar" id="studioCreditsBar" onclick="studioOpenBuyCredits()">' +
+            '<span class="studio-cr-plan ' + planClass + '">' + planLabel + '</span>' +
+            '<div class="studio-cr-content">' +
+                '<div class="studio-cr-line">' +
+                    '<span class="studio-cr-item"><b>' + credits.bg_remaining + '</b> бял фон</span>' +
+                    '<span class="studio-cr-sep"></span>' +
+                    '<span class="studio-cr-item tryon"><b>' + credits.tryon_remaining + '</b> AI магия</span>' +
+                '</div>' +
+                '<div class="studio-cr-sub">' + (credits.plan === 'god' ? 'Неограничени · god mode' : 'от ' + credits.bg_total + ' / ' + credits.tryon_total + ' включени · купи още') + '</div>' +
+            '</div>' +
+            '<div class="studio-cr-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>' +
+        '</button>' +
+
+        // Section 1: Bg removal (Phase 1 — wired)
+        '<div class="studio-section">' +
+            '<div class="studio-sect-head">' +
+                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>' +
+                '<div>' +
+                    '<div class="studio-sect-title">Махане на бял фон</div>' +
+                    '<div class="studio-sect-sub">Чист бял студиен изглед · birefnet AI</div>' +
+                '</div>' +
+                '<div class="studio-sect-price">0.03€</div>' +
+            '</div>' +
+            '<div class="studio-bg-grid" id="studioBgGrid"></div>' +
+            (_studioState.photos.length > 1 ? '<button type="button" class="studio-bulk-btn" onclick="studioBgRemoveAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Махни фона на ВСИЧКИ ' + _studioState.photos.length + ' снимки</button>' : '') +
+        '</div>' +
+
+        // Phase 2-4 placeholders
+        '<div class="studio-section studio-soon">' +
+            '<div class="studio-sect-head">' +
+                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+                '<div>' +
+                    '<div class="studio-sect-title">AI Магия — облечи на модел</div>' +
+                    '<div class="studio-sect-sub">6 модела · идва в S82.STUDIO.2</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<div class="studio-section studio-soon">' +
+            '<div class="studio-sect-head">' +
+                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
+                '<div>' +
+                    '<div class="studio-sect-title">AI SEO описание</div>' +
+                    '<div class="studio-sect-sub">Gemini · идва в S82.STUDIO.3</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<div class="studio-export-row">' +
+            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><div>Етикет</div></button>' +
+            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>CSV</div></button>' +
+            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>PDF</div></button>' +
+        '</div>' +
+
+        '<button type="button" class="studio-done-btn" onclick="closeStudioModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Готово · затвори</button>';
+
+    studioRenderBgGrid();
+}
+
+function studioRenderBgGrid() {
+    var grid = document.getElementById('studioBgGrid');
+    if (!grid) return;
+    if (!_studioState.photos.length) {
+        grid.innerHTML = '<div class="studio-bg-empty">Няма снимки за обработка. Добави снимки в стъпка 3 на wizard-а.</div>';
+        return;
+    }
+    var html = '';
+    _studioState.photos.forEach(function(p, i){
+        var statusBadge = '';
+        if (p._bgState === 'processing') statusBadge = '<div class="studio-bg-status processing">⏳ Обработва...</div>';
+        else if (p._bgState === 'done') statusBadge = '<div class="studio-bg-status done">✓ Готово</div>';
+        else if (p._bgState === 'error') statusBadge = '<div class="studio-bg-status error" title="' + (p._bgError||'грешка').replace(/"/g,'&quot;') + '">⚠ Грешка</div>';
+        html +=
+            '<div class="studio-bg-cell">' +
+                '<div class="studio-bg-thumb"><img src="' + (p.dataUrl) + '" alt=""></div>' +
+                statusBadge +
+                (p._bgState !== 'done' && p._bgState !== 'processing' ? '<button type="button" class="studio-bg-btn" onclick="studioBgRemoveOne(' + i + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Махни фона</button>' : '') +
+            '</div>';
+    });
+    grid.innerHTML = html;
+}
+
+async function studioBgRemoveOne(idx) {
+    if (!_studioState || !_studioState.photos[idx]) return;
+    var p = _studioState.photos[idx];
+    if (p._bgState === 'processing') return;
+    p._bgState = 'processing'; p._bgError = null;
+    studioRenderBgGrid();
+    try {
+        // Convert dataUrl → Blob → File for multipart upload to ai-image-processor.php
+        var arr = p.dataUrl.split(',');
+        var mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+        var bstr = atob(arr[1]);
+        var n = bstr.length;
+        var u8 = new Uint8Array(n);
+        while (n--) u8[n] = bstr.charCodeAt(n);
+        var blob = new Blob([u8], { type: mime });
+        var fd = new FormData();
+        fd.append('image', blob, 'photo_' + idx + '.jpg');
+        var r = await fetch('ai-image-processor.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        var j; try { j = await r.json(); } catch(e) { j = null; }
+        if (!r.ok || !j || !j.ok) {
+            var reason = (j && j.reason) || ('HTTP ' + r.status);
+            p._bgState = 'error';
+            p._bgError = reason;
+            studioRenderBgGrid();
+            if (typeof showToast === 'function') showToast('Bg: ' + reason, 'error');
+            // Refresh credits — quota may have ticked up if it was a quota error
+            await studioRefreshCredits();
+            return;
+        }
+        // Success: replace dataUrl with the bg-removed URL.
+        p.dataUrl = j.url;
+        p._bgState = 'done';
+        if (S.wizData._photos && S.wizData._photos[idx]) S.wizData._photos[idx].dataUrl = j.url;
+        else if (idx === 0 && S.wizData._photoDataUrl) S.wizData._photoDataUrl = j.url;
+        studioRenderBgGrid();
+        await studioRefreshCredits();
+        if (typeof showToast === 'function') showToast('Бял фон ✓ (остават ' + (j.remaining != null ? j.remaining : '?') + ')', 'success');
+    } catch (err) {
+        console.error('[S82.STUDIO.1] bg remove error:', err);
+        p._bgState = 'error'; p._bgError = err.message || 'мрежова грешка';
+        studioRenderBgGrid();
+        if (typeof showToast === 'function') showToast('Bg: мрежова грешка', 'error');
+    }
+}
+
+async function studioBgRemoveAll() {
+    if (!_studioState || !_studioState.photos.length) return;
+    var todo = [];
+    _studioState.photos.forEach(function(p, i){ if (p._bgState !== 'done' && p._bgState !== 'processing') todo.push(i); });
+    if (!todo.length) { if (typeof showToast === 'function') showToast('Всички снимки вече са обработени', ''); return; }
+    if (!confirm('Махни фона на ' + todo.length + ' снимки? Ще се изхарчат ' + todo.length + ' кредита.')) return;
+    for (var k = 0; k < todo.length; k++) {
+        await studioBgRemoveOne(todo[k]);
+    }
+}
+
+async function studioRefreshCredits() {
+    try {
+        var r = await fetch('products.php?ajax=ai_credits', { credentials: 'same-origin' });
+        var j = await r.json();
+        _studioState.credits = j;
+        var bar = document.getElementById('studioCreditsBar');
+        if (bar) {
+            var bg = bar.querySelector('.studio-cr-item:not(.tryon) b');
+            var ty = bar.querySelector('.studio-cr-item.tryon b');
+            if (bg) bg.textContent = j.bg_remaining;
+            if (ty) ty.textContent = j.tryon_remaining;
+        }
+    } catch(e) {}
+}
+
+// Phase 4 placeholder — opens "Buy credits" modal (Stripe in S88).
+function studioOpenBuyCredits() {
+    if (typeof showToast === 'function') showToast('Купи кредити — идва в S82.STUDIO.4', '');
+    // TODO Phase 4: render the 3-pack modal (€5 / €15 / €40).
+}
+
 async function doStudioTryon(){
     const prompt=document.getElementById('studioPromptClothes')?.value||'';
     showToast('AI генерира... 10-20 сек','');
@@ -8051,6 +8412,11 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
+            // S82.STUDIO.1: open AI Studio modal if user picked "Да, отвори AI Studio" in step 5.
+            if (S.wizData._openStudioAfterSave && typeof openStudioModal === 'function') {
+                S.wizData._openStudioAfterSave = false; // one-shot
+                setTimeout(function(){ openStudioModal(r.id); }, 350);
+            }
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
             }
