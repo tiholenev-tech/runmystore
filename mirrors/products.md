@@ -8354,32 +8354,39 @@ function _v4ComputeFooter(axIdx){
         var _axLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(axIdx+1)):ax.name;
         ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+esc(_axLbl.toLowerCase())+' за да продължиш</div>';
     }else{
-        // At least one axis has values — show actions.
-        var bMatrix='';
-        if(hasVals){
-            bMatrix='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
-        }
+        // S82.STUDIO.6: at least one axis has values. Show actions REGARDLESS of which tab
+        // the user is on — Колко бр.? and Към запис must always be reachable, otherwise
+        // colours-only flow gets stuck on the empty Вариация 2 tab with no buttons.
+        var bMatrix='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
         var bNext='';
         if(nextEmptyIdx>=0 && hasVals){
             var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
             bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit">'+esc(_nextLbl)+'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         }
-        // S82.STUDIO.2: scroll to the AI prompt card at the bottom of step 4 instead of
-        // routing to step 5. Card itself has the Yes/No save buttons (wizFinalAIYes/No).
         var bSave='<button type="button" onclick="wizScrollToAIPrompt()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Към запис</button>';
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
 }
 
-// S82.STUDIO.2: scroll the page so the AI prompt card at the bottom of step 4 is visible.
+// S82.STUDIO.6: scroll/flash the AI prompt card. If it doesn't exist (qty=0 yet)
+// — explain it's because no quantities are entered AND auto-open the matrix overlay.
 function wizScrollToAIPrompt() {
     var card = document.getElementById('wizStep4AICard');
     if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         card.classList.add('flash-attention');
         setTimeout(function(){ card.classList.remove('flash-attention'); }, 1600);
+        return;
     }
+    // No card — qty is still empty. Tell the user clearly what to do.
+    var anyVals = (S.wizData.axes||[]).some(function(a){return a.values&&a.values.length>0;});
+    if (!anyVals) {
+        if (typeof showToast === 'function') showToast('Първо избери поне един цвят или размер.', 'error');
+        return;
+    }
+    if (typeof showToast === 'function') showToast('Първо въведи бройки за всеки вариант. Отварям матрицата...', '');
+    if (typeof openMxOverlay === 'function') setTimeout(openMxOverlay, 350);
 }
 function _v4UpdateAfterToggle(axIdx){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
