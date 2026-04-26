@@ -7886,8 +7886,10 @@ function wizTogglePresetInline(axIdx,val,chip){
 function _v4ComputeFooter(axIdx){
     var ax=S.wizData.axes[axIdx]||{name:'',values:[]};
     var hasVals=ax.values&&ax.values.length>0;
-    // S78: намери първия друг axis без стойности — показваме го като опция,
-    // НО не го задължаваме. Пешо сам избира: матрица, друг axis или Запиши.
+    // S82.STUDIO.2: any-axis-has-values check — fixes the "no Save button on
+    // empty Вариация 2 tab" bug where users with colours-only products got stuck.
+    var anyAxisHasVals=(S.wizData.axes||[]).some(function(a){return a.values&&a.values.length>0});
+    // Find first OTHER empty axis to surface as a suggestion (still not required).
     var nextEmptyIdx=-1;
     for(var i=0;i<S.wizData.axes.length;i++){
         if(i===axIdx)continue;
@@ -7897,23 +7899,37 @@ function _v4ComputeFooter(axIdx){
     var nextAx=nextEmptyIdx>=0?S.wizData.axes[nextEmptyIdx]:null;
     var ftBack='<button type="button" onclick="wizGo(3)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
     var ftMid;
-    if(!hasVals){
-        var _axLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(axIdx+1)):ax.name;ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+esc(_axLbl.toLowerCase())+' за да продължиш</div>';
+    if(!hasVals && !anyAxisHasVals){
+        // Nothing entered anywhere — keep the original "pick a value" hint.
+        var _axLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(axIdx+1)):ax.name;
+        ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+esc(_axLbl.toLowerCase())+' за да продължиш</div>';
     }else{
-        var bMatrix='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
+        // At least one axis has values — show actions.
+        var bMatrix='';
+        if(hasVals){
+            bMatrix='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
+        }
         var bNext='';
-        if(nextEmptyIdx>=0){
+        if(nextEmptyIdx>=0 && hasVals){
             var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
             bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit">'+esc(_nextLbl)+'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         }
-        // S82.STUDIO.1.b: this button used to call wizSave() directly, which sent the user
-        // straight to step 6 (print labels) and skipped step 5 entirely — so the AI Studio
-        // prompt was never shown. Now it advances to step 5 where the user picks
-        // "Да, отвори AI Studio" / "Не, запази" and wizSave() fires from there.
-        var bSave='<button type="button" onclick="wizGo(5)" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Към запис</button>';
+        // S82.STUDIO.2: scroll to the AI prompt card at the bottom of step 4 instead of
+        // routing to step 5. Card itself has the Yes/No save buttons (wizFinalAIYes/No).
+        var bSave='<button type="button" onclick="wizScrollToAIPrompt()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Към запис</button>';
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
+}
+
+// S82.STUDIO.2: scroll the page so the AI prompt card at the bottom of step 4 is visible.
+function wizScrollToAIPrompt() {
+    var card = document.getElementById('wizStep4AICard');
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('flash-attention');
+        setTimeout(function(){ card.classList.remove('flash-attention'); }, 1600);
+    }
 }
 function _v4UpdateAfterToggle(axIdx){
     var ax=S.wizData.axes[axIdx];if(!ax)return;
