@@ -1514,16 +1514,36 @@ body::before{
 .photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
 .photo-multi-info b{color:var(--text-primary)}
 
-/* Camera loop fullscreen overlay (S82.COLOR.7: in-browser camera + flip + downscale) */
+/* Camera loop fullscreen overlay (S82.COLOR.10: native phone camera + spinners) */
 .cam-loop-ov{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column}
 .cam-loop-ov.show{display:flex}
 .cam-loop-stage{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;position:relative}
-.cam-loop-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
-.cam-loop-flip{position:absolute;top:calc(14px + env(safe-area-inset-top,0));right:14px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.55);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.cam-loop-flip svg{width:20px;height:20px}
 .cam-loop-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
 .cam-loop-empty-msg{color:rgba(255,255,255,0.55);font-size:13px;text-align:center;line-height:1.5;max-width:280px}
 .cam-loop-preview{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;display:block}
+
+/* Camera loading state — visible during the OS-camera app-switch flicker */
+.cam-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center}
+.cam-loader{display:flex;gap:8px}
+.cam-loader div{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#a5b4fc,#818cf8);box-shadow:0 0 14px rgba(139,92,246,0.6);opacity:0.3;animation:camLoaderPulse 1.2s infinite ease-in-out}
+.cam-loader div:nth-child(1){animation-delay:-0.32s}
+.cam-loader div:nth-child(2){animation-delay:-0.16s}
+@keyframes camLoaderPulse{0%,80%,100%{opacity:0.3;transform:scale(0.7)}40%{opacity:1;transform:scale(1.3)}}
+.cam-loading-msg{font-size:16px;font-weight:700;color:#fff;letter-spacing:0.01em}
+.cam-loading-sub{font-size:11.5px;color:rgba(255,255,255,0.5);max-width:280px;line-height:1.5}
+
+/* AI Vision processing overlay — fullscreen, sits ABOVE the wizard */
+.ai-working-ov{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:10000;display:flex;align-items:center;justify-content:center;animation:aiOvFade 0.22s ease;padding:20px}
+@keyframes aiOvFade{from{opacity:0}to{opacity:1}}
+.ai-working-card{padding:32px 26px;border-radius:24px;background:linear-gradient(135deg,rgba(124,58,237,0.32),rgba(99,102,241,0.18));border:1.5px solid rgba(139,92,246,0.55);box-shadow:0 0 50px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;gap:14px;min-width:260px;max-width:340px}
+.ai-working-orb{display:flex;gap:10px;margin-bottom:6px}
+.ai-working-orb div{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 16px rgba(167,139,250,0.7);animation:aiOrbPulse 1.4s infinite ease-in-out}
+.ai-working-orb div:nth-child(1){animation-delay:-0.32s}
+.ai-working-orb div:nth-child(2){animation-delay:-0.16s}
+@keyframes aiOrbPulse{0%,80%,100%{opacity:0.4;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
+.ai-working-title{font-size:18px;font-weight:800;color:#e9d5ff;letter-spacing:-0.01em}
+.ai-working-msg{font-size:13px;color:rgba(233,213,255,0.85);text-align:center;line-height:1.5;font-weight:600}
+.ai-working-hint{font-size:10.5px;color:rgba(233,213,255,0.5);text-align:center;letter-spacing:0.02em}
 .cam-loop-controls{padding:14px 14px calc(14px + env(safe-area-inset-bottom,0));background:rgba(0,0,0,0.9);display:flex;gap:8px;align-items:center;justify-content:center}
 .cam-loop-btn{padding:14px 18px;border-radius:14px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .cam-loop-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -6177,233 +6197,146 @@ function wizPhotoMultiGalleryPick() {
     inp.click();
 }
 
-// S82.COLOR.7: in-browser camera with FORCED rear (facingMode:'environment'),
-// ImageCapture for full-sensor quality where supported, canvas-snapshot fallback,
-// flip button, and aggressive client-side downscale so 3+ photos fit under PHP's
-// 8 MB POST limit. Replaces the unreliable <input capture> hint.
-var _camStream = null;
-var _camTrack = null;
-var _camFacing = 'environment';
-var _imgCapture = null;
-var _camPending = null; // last captured dataUrl awaiting accept/retake
+// S82.COLOR.10: native Samsung Camera per shot (real HDR / scene optimizer)
+// + smooth loop UX + loading spinner during the app-switch flicker so the
+// user never sees a blank screen while Android transitions to the camera.
+var _camPending = null;
 
 async function wizPhotoCameraLoop() {
     if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
     _camPending = null;
-    _camFacing = 'environment';
     var ov = document.createElement('div');
     ov.id = 'rmsCamLoop'; ov.className = 'cam-loop-ov show';
     var photoCount = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0) + 1;
     ov.innerHTML =
         '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
-        '<button type="button" class="cam-loop-flip" onclick="wizCamFlip()" title="Размени камера"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>' +
-        '<div id="rmsCamStage" class="cam-loop-stage"><video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video></div>' +
+        '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
+        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
-    wizCamRenderShootBar();
-    try {
-        await _camStart(_camFacing);
-    } catch (err) {
-        console.error('[S82.COLOR.7] camera start err:', err);
-        if (typeof showToast === 'function') showToast('Камера: ' + (err && err.message ? err.message : 'недостъпна') + '. Дай разрешение в браузъра.', 'error');
-        wizCamLoopClose();
-    }
+    document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
+    // Show the launching spinner immediately so the user sees something while
+    // Android boots the camera intent (~0.5-2 sec depending on device).
+    wizCamShowLaunching('Отваря камерата...');
+    setTimeout(function(){ var inp = document.getElementById('rmsCamInput'); if (inp) inp.click(); }, 80);
 }
 
-// S82.COLOR.9: 3-step camera selection that mirrors what native apps do.
-// Native (Instagram etc.) enumerate cameras by deviceId, not just facingMode.
-// On phones with 4+ cameras (Z Flip, Pixel) facingMode alone is unreliable.
-async function _camStart(facing) {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('браузърът не поддържа камера');
-    }
-    _camStop();
-
-    // Step 1: try facingMode "exact" (forces; rejects if device can't deliver).
-    try {
-        await _attachStream({
-            video: {
-                facingMode: { exact: facing },
-                width:  { ideal: 4096 },
-                height: { ideal: 4096 }
-            },
-            audio: false
-        });
-        console.log('[S82.COLOR.9] camera ok via facingMode exact:', _camTrack && _camTrack.label);
-        return;
-    } catch (e1) {
-        console.warn('[S82.COLOR.9] facingMode exact failed, trying device enumeration:', e1.message);
-    }
-
-    // Step 2: enumerateDevices and pick by label heuristic.
-    // Labels are only populated AFTER permission is granted, so this works on the second open onward.
-    try {
-        var devs = await navigator.mediaDevices.enumerateDevices();
-        var cams = devs.filter(function(d){ return d.kind === 'videoinput'; });
-        console.log('[S82.COLOR.9] available cameras:', cams.map(function(d){ return d.label || d.deviceId.slice(0,8); }));
-        var rxBack  = /back|rear|environment|outward|world/i;
-        var rxFront = /front|user|self|inward|face/i;
-        var rx = (facing === 'environment') ? rxBack : rxFront;
-        var pick = cams.find(function(d){ return d.label && rx.test(d.label); });
-        // If multiple back cameras (wide/ultrawide/tele), prefer the first non-ultrawide & non-tele match.
-        if (pick && facing === 'environment') {
-            var primary = cams.find(function(d){
-                return d.label && rxBack.test(d.label) && !/ultra|wide|tele|zoom|macro/i.test(d.label);
-            });
-            if (primary) pick = primary;
-        }
-        if (pick) {
-            try {
-                await _attachStream({
-                    video: {
-                        deviceId: { exact: pick.deviceId },
-                        width:  { ideal: 4096 },
-                        height: { ideal: 4096 }
-                    },
-                    audio: false
-                });
-                try { localStorage.setItem('_rms_cam_' + facing, pick.deviceId); } catch(e) {}
-                console.log('[S82.COLOR.9] camera ok via deviceId pick:', pick.label);
-                return;
-            } catch (e2) {
-                console.warn('[S82.COLOR.9] deviceId pick failed:', e2.message);
-            }
-        }
-    } catch (eEnum) {
-        console.warn('[S82.COLOR.9] enumerateDevices failed:', eEnum);
-    }
-
-    // Step 3: last-resort soft hint.
-    await _attachStream({
-        video: {
-            facingMode: { ideal: facing },
-            width:  { ideal: 4096 },
-            height: { ideal: 4096 }
-        },
-        audio: false
-    });
-    console.log('[S82.COLOR.9] camera ok via facingMode ideal (fallback):', _camTrack && _camTrack.label);
-}
-
-async function _attachStream(constraints) {
-    var stream = await navigator.mediaDevices.getUserMedia(constraints);
-    _camStream = stream;
-    _camTrack = stream.getVideoTracks()[0];
-    // Push the live track to its hardware maximum if applyConstraints supports it.
-    if (_camTrack && _camTrack.applyConstraints && _camTrack.getCapabilities) {
-        try {
-            var caps = _camTrack.getCapabilities();
-            var advanced = {};
-            if (caps.width  && caps.width.max)  advanced.width  = caps.width.max;
-            if (caps.height && caps.height.max) advanced.height = caps.height.max;
-            if (Object.keys(advanced).length) {
-                await _camTrack.applyConstraints({ advanced: [advanced] });
-            }
-        } catch(_) {}
-    }
-    _imgCapture = null;
-    if (window.ImageCapture && _camTrack) {
-        try { _imgCapture = new ImageCapture(_camTrack); } catch(_) { _imgCapture = null; }
-    }
-    var v = document.getElementById('rmsCamVideo');
-    if (v) {
-        v.srcObject = stream;
-        v.style.display = 'block';
-    }
-}
-
-function _camStop() {
-    if (_camStream) {
-        _camStream.getTracks().forEach(function(t){ try { t.stop(); } catch(e){} });
-        _camStream = null;
-    }
-    _camTrack = null;
-    _imgCapture = null;
-}
-
-async function wizCamFlip() {
-    var next = (_camFacing === 'environment') ? 'user' : 'environment';
-    try {
-        await _camStart(next);
-        _camFacing = next;
-        if (navigator.vibrate) navigator.vibrate(5);
-    } catch (err) {
-        if (typeof showToast === 'function') showToast('Размяна неуспешна: ' + err.message, 'error');
-    }
-}
-
-function wizCamRenderShootBar() {
-    var ctl = document.getElementById('rmsCamControls');
-    if (!ctl) return;
-    var taken = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0);
-    ctl.innerHTML =
-        '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
-        '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
-        (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
-}
-
-async function wizCamShoot() {
-    var dataUrl = null;
-    var srcSize = null;
-    // 1. Try ImageCapture.takePhoto() at the camera's MAX photo resolution
-    //    (often 12-50MP on Chrome Android — bypasses the video stream cap).
-    if (_imgCapture && typeof _imgCapture.takePhoto === 'function') {
-        try {
-            var photoOpts = {};
-            if (typeof _imgCapture.getPhotoCapabilities === 'function') {
-                try {
-                    var pcaps = await _imgCapture.getPhotoCapabilities();
-                    if (pcaps && pcaps.imageWidth && pcaps.imageWidth.max)  photoOpts.imageWidth  = pcaps.imageWidth.max;
-                    if (pcaps && pcaps.imageHeight && pcaps.imageHeight.max) photoOpts.imageHeight = pcaps.imageHeight.max;
-                    console.log('[S82.COLOR.8] photo caps:', pcaps);
-                } catch(_) {}
-            }
-            var blob = await _imgCapture.takePhoto(photoOpts);
-            dataUrl = await _blobToDataUrl(blob);
-            srcSize = blob.size;
-            console.log('[S82.COLOR.8] ImageCapture shot:', Math.round(blob.size/1024) + 'KB');
-        } catch(e) {
-            console.warn('[S82.COLOR.8] ImageCapture.takePhoto failed, fallback:', e);
-        }
-    }
-    // 2. Fallback: canvas snapshot at the video's actual resolution (Safari, ImageCapture-less devices).
-    if (!dataUrl) {
-        var v = document.getElementById('rmsCamVideo');
-        if (!v || !v.videoWidth) {
-            if (typeof showToast === 'function') showToast('Камерата не е готова', 'error');
-            return;
-        }
-        var c = document.createElement('canvas');
-        c.width = v.videoWidth; c.height = v.videoHeight;
-        c.getContext('2d').drawImage(v, 0, 0);
-        dataUrl = c.toDataURL('image/jpeg', 0.95);
-        console.log('[S82.COLOR.8] Canvas shot:', v.videoWidth + 'x' + v.videoHeight);
-    }
-    // 3. Downscale to keep POST under PHP's 8MB limit, but stay generous with quality.
-    //    2400px @ q=0.92 → ~600-900KB per photo, so 8-10 photos still fit.
-    dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92);
-    _camPending = dataUrl;
-    // Show preview, stop the live stream (saves battery during review).
+function wizCamShowLaunching(msg) {
     var stage = document.getElementById('rmsCamStage');
-    if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
-    _camStop();
+    if (stage) {
+        stage.innerHTML =
+            '<div class="cam-loading">' +
+                '<div class="cam-loader"><div></div><div></div><div></div></div>' +
+                '<div class="cam-loading-msg">' + (msg || 'Отваря камерата...') + '</div>' +
+                '<div class="cam-loading-sub">Снимай нормално и ще се върнеш тук автоматично</div>' +
+            '</div>';
+    }
     var ctl = document.getElementById('rmsCamControls');
     if (ctl) {
         ctl.innerHTML =
-            '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Снимай пак</button>' +
-            '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
-            '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
+            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
     }
-    if (navigator.vibrate) navigator.vibrate(8);
 }
 
-function _blobToDataUrl(blob) {
-    return new Promise(function(resolve, reject) {
-        var fr = new FileReader();
-        fr.onload = function(){ resolve(fr.result); };
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-    });
+function wizCamShowProcessing(msg) {
+    var stage = document.getElementById('rmsCamStage');
+    if (stage) {
+        stage.innerHTML =
+            '<div class="cam-loading">' +
+                '<div class="cam-loader"><div></div><div></div><div></div></div>' +
+                '<div class="cam-loading-msg">' + (msg || 'Подготвя снимката...') + '</div>' +
+            '</div>';
+    }
+}
+
+function wizCamRenderEmpty() {
+    var stage = document.getElementById('rmsCamStage');
+    var taken = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0);
+    var hint = taken
+        ? 'Снимка ' + taken + ' добавена. Tap кръглия бутон за следващата.'
+        : 'Tap кръглия бутон, за да отвориш камерата на телефона.';
+    if (stage) {
+        stage.innerHTML =
+            '<div class="cam-loop-empty">' +
+                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+                '<div class="cam-loop-empty-msg">' + hint + '</div>' +
+            '</div>';
+    }
+    var ctl = document.getElementById('rmsCamControls');
+    if (ctl) {
+        ctl.innerHTML =
+            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
+            (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
+    }
+}
+
+function wizCamShoot() {
+    wizCamShowLaunching('Отваря камерата...');
+    setTimeout(function(){ var inp = document.getElementById('rmsCamInput'); if (inp) inp.click(); }, 80);
+}
+
+function wizCamLoopOnFile(e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-pick the same file without page reload
+    if (!f) {
+        // user backed out of the system camera without taking a shot
+        wizCamRenderEmpty();
+        return;
+    }
+    wizCamShowProcessing('Подготвя снимката...');
+    var fr = new FileReader();
+    fr.onload = async function() {
+        var dataUrl = fr.result;
+        // Downscale before storing to keep POSTs reasonable (~600-900KB / photo).
+        try { dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92); } catch(err) { console.warn('downscale err:', err); }
+        _camPending = dataUrl;
+        var stage = document.getElementById('rmsCamStage');
+        if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
+        var ctl = document.getElementById('rmsCamControls');
+        if (ctl) {
+            ctl.innerHTML =
+                '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Снимай пак</button>' +
+                '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+                '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
+        }
+        if (navigator.vibrate) navigator.vibrate(6);
+    };
+    fr.readAsDataURL(f);
+}
+
+function wizCamRetake() {
+    _camPending = null;
+    wizCamShoot(); // re-run the launching → click flow
+}
+
+async function wizCamAccept(continueShooting) {
+    if (!_camPending) return;
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    S.wizData._photos.push({ dataUrl: _camPending, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
+    _camPending = null;
+    S.wizData._aiColorsApplied = false;
+    if (continueShooting && S.wizData._photos.length < 30) {
+        var ctr = document.getElementById('rmsCamCounter');
+        if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
+        // Auto-fire the next shot — user only had to tap "Следваща" and we keep them in flow.
+        wizCamShoot();
+    } else {
+        wizCamLoopClose();
+        wizPhotoDetectColors();
+    }
+}
+
+function wizCamLoopFinish() {
+    wizCamLoopClose();
+    wizPhotoDetectColors();
+}
+
+function wizCamLoopClose() {
+    _camPending = null;
+    var ov = document.getElementById('rmsCamLoop');
+    if (ov) ov.remove();
+    if (typeof renderWizard === 'function') renderWizard();
 }
 
 function _downscaleDataUrl(dataUrl, maxDim, quality) {
@@ -6418,51 +6351,30 @@ function _downscaleDataUrl(dataUrl, maxDim, quality) {
             c.getContext('2d').drawImage(img, 0, 0, dw, dh);
             resolve(c.toDataURL('image/jpeg', quality));
         };
-        img.onerror = function(){ resolve(dataUrl); }; // fall back to original if anything goes wrong
+        img.onerror = function(){ resolve(dataUrl); };
         img.src = dataUrl;
     });
 }
 
-async function wizCamRetake() {
-    _camPending = null;
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) stage.innerHTML = '<video id="rmsCamVideo" class="cam-loop-video" autoplay playsinline muted></video>';
-    wizCamRenderShootBar();
-    try {
-        await _camStart(_camFacing);
-    } catch (err) {
-        if (typeof showToast === 'function') showToast('Камера: ' + err.message, 'error');
-    }
+// === S82.COLOR.10: AI processing overlay — visible during Gemini Vision color detect ===
+function wizShowAIWorking(count) {
+    if (document.getElementById('rmsAIWorking')) document.getElementById('rmsAIWorking').remove();
+    var ov = document.createElement('div');
+    ov.id = 'rmsAIWorking';
+    ov.className = 'ai-working-ov';
+    ov.innerHTML =
+        '<div class="ai-working-card">' +
+            '<div class="ai-working-orb"><div></div><div></div><div></div></div>' +
+            '<div class="ai-working-title">✨ AI анализира</div>' +
+            '<div class="ai-working-msg">Разпознавам цветовете на ' + count + ' ' + (count === 1 ? 'снимка' : 'снимки') + '...</div>' +
+            '<div class="ai-working-hint">Обикновено отнема 3-8 секунди</div>' +
+        '</div>';
+    document.body.appendChild(ov);
 }
 
-async function wizCamAccept(continueShooting) {
-    if (!_camPending) return;
-    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
-    S.wizData._photos.push({ dataUrl: _camPending, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
-    _camPending = null;
-    S.wizData._aiColorsApplied = false;
-    if (continueShooting && S.wizData._photos.length < 30) {
-        var ctr = document.getElementById('rmsCamCounter');
-        if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
-        await wizCamRetake();
-    } else {
-        wizCamLoopClose();
-        wizPhotoDetectColors();
-    }
-}
-
-// "Готово" pressed without a pending preview — close and detect what we have.
-function wizCamLoopFinish() {
-    wizCamLoopClose();
-    wizPhotoDetectColors();
-}
-
-function wizCamLoopClose() {
-    _camStop();
-    _camPending = null;
-    var ov = document.getElementById('rmsCamLoop');
+function wizHideAIWorking() {
+    var ov = document.getElementById('rmsAIWorking');
     if (ov) ov.remove();
-    if (typeof renderWizard === 'function') renderWizard();
 }
 
 async function wizPhotoMultiAdd(files) {
@@ -6529,7 +6441,7 @@ async function wizPhotoDetectColors() {
         }
     });
     if (!todo.length) return;
-    if (typeof showToast === 'function') showToast('AI разпознава цветове...', '');
+    if (typeof wizShowAIWorking === 'function') wizShowAIWorking(todo.length);
     var fd = new FormData();
     var totalKB = 0;
     todo.forEach(function(p, i) {
@@ -6549,6 +6461,7 @@ async function wizPhotoDetectColors() {
         r = await fetch('ai-color-detect.php?multi=1', { method: 'POST', body: fd, credentials: 'same-origin' });
     } catch (err) {
         console.error('[S82.COLOR.7] AI fetch err:', err);
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
         if (typeof showToast === 'function') showToast('AI: мрежова грешка', 'error');
         _markPhotosFailed(todoIndices);
         renderWizard();
@@ -6557,6 +6470,7 @@ async function wizPhotoDetectColors() {
     try { j = await r.json(); } catch(e) { j = null; }
     console.log('[S82.COLOR.7] AI response status=' + r.status, j);
     if (!r.ok) {
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
         var reason = (j && j.reason) || ('HTTP ' + r.status + (r.status === 413 || r.status === 400 ? ' — снимките са твърде големи' : ''));
         if (typeof showToast === 'function') showToast('AI: ' + reason, 'error');
         _markPhotosFailed(todoIndices);
@@ -6565,6 +6479,7 @@ async function wizPhotoDetectColors() {
     }
     var results = (j && (j.results || j.colors)) || null;
     if (!Array.isArray(results) || !results.length) {
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
         if (typeof showToast === 'function') showToast('AI не разпозна цветове', 'error');
         _markPhotosFailed(todoIndices);
         renderWizard();
@@ -6595,6 +6510,7 @@ async function wizPhotoDetectColors() {
         }
     });
     S.wizData._aiColorsApplied = false;
+    if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
     if (typeof showToast === 'function') showToast('AI разпозна ' + applied + '/' + todoIndices.length + ' цвята', applied ? 'success' : 'error');
     renderWizard();
 }
