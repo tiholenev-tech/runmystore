@@ -1522,15 +1522,17 @@ body::before{
 .cam-loop-empty-msg{color:rgba(255,255,255,0.55);font-size:13px;text-align:center;line-height:1.5;max-width:280px}
 .cam-loop-preview{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;display:block}
 
-/* Camera loading state — visible during the OS-camera app-switch flicker */
-.cam-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center}
-.cam-loader{display:flex;gap:8px}
-.cam-loader div{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#a5b4fc,#818cf8);box-shadow:0 0 14px rgba(139,92,246,0.6);opacity:0.3;animation:camLoaderPulse 1.2s infinite ease-in-out}
+/* Camera loading state — visible during the OS-camera app-switch flicker (S82.COLOR.11: bolder so it actually registers) */
+.cam-loop-stage:has(.cam-loading){background:linear-gradient(135deg,#1a1033,#0a0518)}
+.cam-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px 28px;text-align:center;animation:camLoadFadeIn 0.18s ease}
+@keyframes camLoadFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.cam-loader{display:flex;gap:14px}
+.cam-loader div{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 28px rgba(167,139,250,0.85),0 0 50px rgba(99,102,241,0.5);opacity:0.35;animation:camLoaderPulse 1.2s infinite ease-in-out}
 .cam-loader div:nth-child(1){animation-delay:-0.32s}
 .cam-loader div:nth-child(2){animation-delay:-0.16s}
-@keyframes camLoaderPulse{0%,80%,100%{opacity:0.3;transform:scale(0.7)}40%{opacity:1;transform:scale(1.3)}}
-.cam-loading-msg{font-size:16px;font-weight:700;color:#fff;letter-spacing:0.01em}
-.cam-loading-sub{font-size:11.5px;color:rgba(255,255,255,0.5);max-width:280px;line-height:1.5}
+@keyframes camLoaderPulse{0%,80%,100%{opacity:0.35;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
+.cam-loading-msg{font-size:18px;font-weight:800;color:#fff;letter-spacing:0.01em;text-shadow:0 2px 12px rgba(167,139,250,0.4)}
+.cam-loading-sub{font-size:12.5px;color:rgba(233,213,255,0.65);max-width:280px;line-height:1.5;font-weight:500}
 
 /* AI Vision processing overlay — fullscreen, sits ABOVE the wizard */
 .ai-working-ov{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:10000;display:flex;align-items:center;justify-content:center;animation:aiOvFade 0.22s ease;padding:20px}
@@ -6197,10 +6199,13 @@ function wizPhotoMultiGalleryPick() {
     inp.click();
 }
 
-// S82.COLOR.10: native Samsung Camera per shot (real HDR / scene optimizer)
-// + smooth loop UX + loading spinner during the app-switch flicker so the
-// user never sees a blank screen while Android transitions to the camera.
+// S82.COLOR.11: native Samsung Camera per shot (real HDR / scene optimizer)
+// + smooth loop UX + loading spinner during the app-switch flicker.
+// CRITICAL: input.click() MUST be synchronous from the user gesture,
+// otherwise iOS Safari + some Android WebViews block the camera intent.
+// setTimeout/RAF breaks the gesture chain — keep it sync.
 var _camPending = null;
+var _camShootStart = 0; // for minimum spinner-visible duration
 
 async function wizPhotoCameraLoop() {
     if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
@@ -6215,10 +6220,10 @@ async function wizPhotoCameraLoop() {
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
     document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
-    // Show the launching spinner immediately so the user sees something while
-    // Android boots the camera intent (~0.5-2 sec depending on device).
+    // Paint the spinner FIRST, then click synchronously — same call stack as user gesture.
     wizCamShowLaunching('Отваря камерата...');
-    setTimeout(function(){ var inp = document.getElementById('rmsCamInput'); if (inp) inp.click(); }, 80);
+    _camShootStart = Date.now();
+    document.getElementById('rmsCamInput').click();
 }
 
 function wizCamShowLaunching(msg) {
@@ -6273,7 +6278,10 @@ function wizCamRenderEmpty() {
 
 function wizCamShoot() {
     wizCamShowLaunching('Отваря камерата...');
-    setTimeout(function(){ var inp = document.getElementById('rmsCamInput'); if (inp) inp.click(); }, 80);
+    _camShootStart = Date.now();
+    // Synchronous click — preserves the user gesture chain.
+    var inp = document.getElementById('rmsCamInput');
+    if (inp) inp.click();
 }
 
 function wizCamLoopOnFile(e) {
@@ -6290,6 +6298,9 @@ function wizCamLoopOnFile(e) {
         var dataUrl = fr.result;
         // Downscale before storing to keep POSTs reasonable (~600-900KB / photo).
         try { dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92); } catch(err) { console.warn('downscale err:', err); }
+        // Minimum spinner hold so user actually SEES the loading state — masks the perceptual gap.
+        var elapsed = Date.now() - _camShootStart;
+        if (elapsed < 700) await new Promise(function(r){ setTimeout(r, 700 - elapsed); });
         _camPending = dataUrl;
         var stage = document.getElementById('rmsCamStage');
         if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
