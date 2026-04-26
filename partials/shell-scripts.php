@@ -124,6 +124,17 @@
         return 0;
     }
 
+    // S82.STUDIO.8: swipe is only allowed on the four main shell pages.
+    // Sub-pages (products.php, inventory.php, deliveries.php, finance.php, etc.)
+    // are reachable but should NOT auto-navigate on swipe — user reported
+    // accidentally palm-swiping out of the wizard while adding a product.
+    function isSwipeAllowedHere() {
+        var name = (location.pathname.split('/').pop() || 'chat.php').toLowerCase();
+        if (name === '') name = 'chat.php';
+        // Only the 4 root tabs themselves can be swipe-navigated.
+        return NAV_ORDER.indexOf(name) !== -1;
+    }
+
     // ─── Prefetch neighbour modules so swipe feels instant ───
     // Runs after page is idle; browser silently fetches the HTML for the
     // tabs immediately to the left/right of the current one and caches them.
@@ -152,6 +163,8 @@
 
     document.addEventListener('touchstart', function (e) {
         if (e.touches.length !== 1) { _sActive = false; return; }
+        // S82.STUDIO.8: gate by current page — sub-modules don't get swipe nav.
+        if (!isSwipeAllowedHere()) { _sActive = false; return; }
         var t = e.target;
         if (t && t.closest && t.closest(SWIPE_BLOCK_SELECTOR)) { _sActive = false; return; }
         if (isHorizScrollable(t)) { _sActive = false; return; }
