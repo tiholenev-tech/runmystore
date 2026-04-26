@@ -18,8 +18,8 @@ ON DUPLICATE KEY UPDATE retail_price=VALUES(retail_price), cost_price=VALUES(cos
 """
 
 INVENTORY_TPL = """
-INSERT INTO inventory (product_id, store_id, quantity, min_quantity)
-VALUES ({pid}, {store_id}, {qty}, {min_qty})
+INSERT INTO inventory (tenant_id, product_id, store_id, quantity, min_quantity)
+VALUES ({{{{tenant_id}}}}, {pid}, {store_id}, {qty}, {min_qty})
 ON DUPLICATE KEY UPDATE quantity=VALUES(quantity), min_quantity=VALUES(min_quantity);
 """
 
@@ -29,14 +29,14 @@ VALUES ({sale_id}, {{{{tenant_id}}}}, {store_id}, {total}, '{status}', {user_id}
         NOW() - INTERVAL {days_ago} DAY)
 ON DUPLICATE KEY UPDATE total=VALUES(total), status=VALUES(status);
 
-INSERT INTO sale_items (sale_id, product_id, unit_price, quantity)
-VALUES ({sale_id}, {pid}, {unit_price}, {qty})
-ON DUPLICATE KEY UPDATE unit_price=VALUES(unit_price), quantity=VALUES(quantity);
+INSERT INTO sale_items (sale_id, product_id, unit_price, quantity, total)
+VALUES ({sale_id}, {pid}, {unit_price}, {qty}, {total})
+ON DUPLICATE KEY UPDATE unit_price=VALUES(unit_price), quantity=VALUES(quantity), total=VALUES(total);
 """
 
 RETURN_TPL = """
-INSERT INTO returns (id, sale_id, product_id, quantity, created_at)
-VALUES ({return_id}, {sale_id}, {pid}, {qty}, NOW() - INTERVAL {days_ago} DAY)
+INSERT INTO returns (id, tenant_id, sale_id, product_id, quantity, created_at)
+VALUES ({return_id}, {{{{tenant_id}}}}, {sale_id}, {pid}, {qty}, NOW() - INTERVAL {days_ago} DAY)
 ON DUPLICATE KEY UPDATE quantity=VALUES(quantity);
 """
 

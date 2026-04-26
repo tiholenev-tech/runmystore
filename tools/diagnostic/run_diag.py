@@ -132,12 +132,18 @@ def run(args) -> int:
 
     # Step 4: Seed all fixtures
     seed_errors = []
+    seed_ok = 0
     for s in scenarios:
         ok, err = seed_scenario(s, tenant_id)
-        if not ok:
+        if ok:
+            seed_ok += 1
+        else:
             seed_errors.append({'scenario_code': s['scenario_code'], 'error': err})
-    if seed_errors and not args.orchestrated:
-        print(f"⚠️  Seed errors: {len(seed_errors)} (continuing — verify ще покаже какви insights все пак излязоха)")
+    if not args.orchestrated:
+        print(f"Seed: {seed_ok} ok, {len(seed_errors)} errors")
+        if seed_errors:
+            for e in seed_errors[:5]:
+                print(f"  ⚠ {e['scenario_code']}: {e['error'][:100]}")
 
     # Step 5: Trigger compute-insights.php
     if not args.orchestrated:

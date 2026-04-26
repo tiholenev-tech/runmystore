@@ -140,3 +140,7 @@ def fundamental_for_topic(topic: str) -> str:
 
 def label_for_topic(topic: str) -> str:
     return TOPIC_LABEL_BG.get(topic, topic)
+
+
+# S81 alias — oracle_populate.py търси това име
+topic_to_category = category_for_topic

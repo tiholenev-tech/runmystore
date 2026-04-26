@@ -672,7 +672,7 @@ def high_return_rate_scenarios() -> List[dict]:
             'expected_topic': 'high_return_rate',
             'category': 'D', 'expected_should_appear': 1,
             'verification_type': 'value_range',
-            'verification_payload': {'field': 'return_rate_pct', 'min': 99, 'max': 101},
+            'verification_payload': {'field': 'rate', 'min': 99, 'max': 101},
             'scenario_description': 'Cartesian regression test c9a49f5',
             'fixture_sql': sql_cart,
         },

@@ -1,45 +1,23 @@
-"""
-seed_runner.py — universal scenario seeder.
+"""seed_runner.py — S81 v3 (positional argv + cross-tenant test cleanup)."""
 
-Workflow:
-  1. assert_safe_tenant(tenant_id) — refuse production
-  2. (optional) pristine wipe — clear test products/sales за чистен baseline
-  3. Loop scenarios: execute fixture_sql от seed_oracle row
-  4. Trigger compute-insights.php run
-  5. Read produced ai_insights → return за verification
-
-Tenant rules:
-  - tenant_id=7  → Тихол test (default)
-  - tenant_id=99 → AI evaluation shadow
-  - tenant_id=47 → ABORT (ЕНИ production)
-  - all others   → ABORT
-"""
-
-import sys
-import json
-import time
-import subprocess
+import sys, json, time, subprocess
 from pathlib import Path
 from typing import Optional
+import sqlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from core.db_helpers import (  # noqa: E402
+from core.db_helpers import (
     fetchall, fetchone, transaction, conn_ctx,
     assert_safe_tenant, ALLOWED_TENANTS,
 )
 
-
-# Range на test product IDs — никога не пипаме production products
 TEST_PRODUCT_ID_RANGE = (9000, 9999)
+TEST_SALE_ID_RANGE = (90000, 99999)
 TEST_USER_ID_RANGE = (8000, 8099)
 TEST_CUSTOMER_ID_RANGE = (7000, 7099)
 
 
 def fetch_active_scenarios(module: str = 'insights') -> list:
-    """Чете всички активни scenarios от seed_oracle (real S79+ schema).
-    
-    Merge-ва DB row с Python scenarios за fixture_sql (което не е в DB).
-    """
     db_rows = fetchall("""
         SELECT id, scenario_code, module_name, expected_topic, category,
                expected_should_appear, verification_type,
@@ -51,82 +29,74 @@ def fetch_active_scenarios(module: str = 'insights') -> list:
         WHERE module_name = %s AND COALESCE(is_active, 1) = 1
         ORDER BY category, expected_topic, scenario_code
     """, (module,))
-    
-    # Try to merge fixture_sql от Python scenarios (ако модулът е insights)
     fixture_map = {}
     if module == 'insights':
+        # S81 fix: ensure /var/www/runmystore in sys.path before import
+        import sys as _sys
+        _project_root = '/var/www/runmystore'
+        if _project_root not in _sys.path:
+            _sys.path.insert(0, _project_root)
         try:
             from tools.diagnostic.modules.insights.scenarios import all_scenarios
             for sc in all_scenarios():
                 fixture_map[sc['scenario_code']] = sc.get('fixture_sql', '')
-        except Exception:
-            pass
-    
+        except Exception as _e:
+            # S81: log instead of silent pass
+            print(f"[fetch_active_scenarios] WARNING: failed to load Python fixtures: {_e}", file=_sys.stderr)
     for row in db_rows:
         row['fixture_sql'] = fixture_map.get(row['scenario_code'], '')
-    
     return db_rows
 
 
 def cleanup_test_data(tenant_id: int) -> dict:
-    """
-    Pristine wipe — изтрива test fixtures (НЕ пипа production data на tenant).
-    Само products/inventory/sale_items в test ID range.
-    Връща counts на изтрити rows.
-    """
+    """S81 v3: wipe ALL test rows in dedicated ID ranges (cross-tenant safe).
+    ai_insights se trie SAMO за specified tenant_id (защитено от assert_safe_tenant)."""
     assert_safe_tenant(tenant_id)
     pmin, pmax = TEST_PRODUCT_ID_RANGE
+    smin, smax = TEST_SALE_ID_RANGE
+    cmin, cmax = TEST_CUSTOMER_ID_RANGE
     counts = {}
     with transaction() as c:
         cur = c.cursor()
-        # Cascade: sale_items → returns → inventory → products
         cur.execute(
-            "DELETE FROM sale_items WHERE product_id BETWEEN %s AND %s "
-            "AND sale_id IN (SELECT id FROM sales WHERE tenant_id=%s)",
-            (pmin, pmax, tenant_id)
-        )
+            "DELETE FROM sale_items WHERE product_id BETWEEN %s AND %s OR sale_id BETWEEN %s AND %s",
+            (pmin, pmax, smin, smax))
         counts['sale_items'] = cur.rowcount
         try:
             cur.execute(
-                "DELETE FROM returns WHERE product_id BETWEEN %s AND %s",
-                (pmin, pmax)
-            )
+                "DELETE FROM returns WHERE product_id BETWEEN %s AND %s OR sale_id BETWEEN %s AND %s",
+                (pmin, pmax, smin, smax))
             counts['returns'] = cur.rowcount
         except Exception:
-            counts['returns'] = 0  # таблицата може да не съществува
-        cur.execute(
-            "DELETE FROM inventory WHERE product_id BETWEEN %s AND %s",
-            (pmin, pmax)
-        )
+            counts['returns'] = 0
+        cur.execute("DELETE FROM sales WHERE id BETWEEN %s AND %s", (smin, smax))
+        counts['sales'] = cur.rowcount
+        cur.execute("DELETE FROM inventory WHERE product_id BETWEEN %s AND %s", (pmin, pmax))
         counts['inventory'] = cur.rowcount
-        cur.execute(
-            "DELETE FROM products WHERE id BETWEEN %s AND %s AND tenant_id=%s",
-            (pmin, pmax, tenant_id)
-        )
+        cur.execute("DELETE FROM products WHERE id BETWEEN %s AND %s", (pmin, pmax))
         counts['products'] = cur.rowcount
+        try:
+            cur.execute("DELETE FROM customers WHERE id BETWEEN %s AND %s", (cmin, cmax))
+            counts['customers'] = cur.rowcount
+        except Exception:
+            counts['customers'] = 0
+        cur.execute("DELETE FROM ai_insights WHERE tenant_id = %s", (tenant_id,))
+        counts['ai_insights'] = cur.rowcount
         cur.close()
     return counts
 
 
 def seed_scenario(scenario_row: dict, tenant_id: int) -> tuple:
-    """
-    Изпълнява fixture_sql на единичен сценарий.
-    Връща (success: bool, error: str | None).
-    """
     assert_safe_tenant(tenant_id)
     fixture = scenario_row.get('fixture_sql', '') or ''
     if not fixture.strip():
-        return True, None  # няма fixture (само verification expectation)
-
-    # Substitute {{tenant_id}} placeholder
+        return True, None
     fixture = fixture.replace('{{tenant_id}}', str(tenant_id))
-
     try:
         with transaction() as c:
             cur = c.cursor()
-            # Split by ; и execute statement-by-statement (mysql.connector не handle multi-statement)
-            for stmt in fixture.split(';'):
-                stmt_s = stmt.strip()
+            for stmt in sqlparse.split(fixture):
+                stmt_s = stmt.strip().rstrip(';').strip()
                 if stmt_s:
                     cur.execute(stmt_s)
             cur.close()
@@ -136,22 +106,16 @@ def seed_scenario(scenario_row: dict, tenant_id: int) -> tuple:
 
 
 def trigger_compute_insights(tenant_id: int, php_path: str = '/var/www/runmystore') -> tuple:
-    """
-    Извиква compute-insights.php през PHP CLI.
-    Връща (returncode, stdout, stderr, duration_seconds).
-    Вход: tenant_id env var; PHP скриптът разчита на стандартна invocation pattern.
-    """
+    """S81 v3: positional argv (compute-insights/cron-insights both use $argv[1])."""
     assert_safe_tenant(tenant_id)
     cron_php = f'{php_path}/cron-insights.php'
     if not Path(cron_php).exists():
-        # Fallback: try direct compute-insights.php
         cron_php = f'{php_path}/compute-insights.php'
     t0 = time.time()
     try:
         r = subprocess.run(
-            ['php', cron_php, '--tenant', str(tenant_id)],
-            capture_output=True, text=True, timeout=120, cwd=php_path
-        )
+            ['php', cron_php, str(tenant_id)],
+            capture_output=True, text=True, timeout=120, cwd=php_path)
         return r.returncode, r.stdout, r.stderr, time.time() - t0
     except subprocess.TimeoutExpired:
         return 124, '', 'TIMEOUT after 120s', time.time() - t0
@@ -160,16 +124,10 @@ def trigger_compute_insights(tenant_id: int, php_path: str = '/var/www/runmystor
 
 
 def fetch_actual_insights(tenant_id: int, expected_topic: str) -> Optional[dict]:
-    """
-    Чете най-новата ai_insights row за дадения topic + tenant.
-    Връща data_json decoded или None.
-    """
     row = fetchone("""
-        SELECT data_json
-        FROM ai_insights
+        SELECT data_json FROM ai_insights
         WHERE tenant_id = %s AND topic_id = %s
-        ORDER BY created_at DESC
-        LIMIT 1
+        ORDER BY created_at DESC LIMIT 1
     """, (tenant_id, expected_topic))
     if not row or not row.get('data_json'):
         return None

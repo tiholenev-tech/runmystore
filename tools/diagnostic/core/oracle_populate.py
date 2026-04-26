@@ -146,8 +146,8 @@ def populate(scenarios: list, module_name: str = 'insights', tenant_id: int = 7)
 
 def backfill_missing_categories(module_name: str = 'insights') -> int:
     """
-    Заpълва category за S79.INSIGHTS scenarios които са с default 'B'.
-    Използва oracle_rules.py за expected_topic → category mapping.
+    S81 fix: само попълва category ако е NULL или default 'B'. 
+    НЕ overwrite-ва explicit A/C/D категории зададени от scenarios.py.
     """
     try:
         from tools.diagnostic.modules.insights.oracle_rules import topic_to_category
@@ -155,7 +155,7 @@ def backfill_missing_categories(module_name: str = 'insights') -> int:
         return -1
 
     rows = fetchall("""
-        SELECT id, expected_topic, scenario_code
+        SELECT id, expected_topic, scenario_code, category
         FROM seed_oracle
         WHERE module_name = %s AND COALESCE(is_active, 1) = 1
     """, (module_name,))
@@ -164,17 +164,19 @@ def backfill_missing_categories(module_name: str = 'insights') -> int:
     with transaction() as c:
         cur = c.cursor()
         for r in rows:
+            current_cat = r.get('category')
+            # Skip ако вече има explicit non-default category (A, C, D)
+            if current_cat in ('A', 'C', 'D'):
+                continue
             topic = r['expected_topic']
             new_cat = topic_to_category(topic) if topic else 'B'
-            if new_cat:
-                cur.execute("""
-                    UPDATE seed_oracle SET category = %s WHERE id = %s
-                """, (new_cat, r['id']))
+            # Only update ако новата е different от текущата
+            if new_cat and new_cat != current_cat:
+                cur.execute("UPDATE seed_oracle SET category = %s WHERE id = %s", (new_cat, r['id']))
                 if cur.rowcount > 0:
                     updated += 1
         cur.close()
     return updated
-
 
 def get_summary(module_name: str = 'insights') -> dict:
     """Преглед — колко scenarios по категории."""
