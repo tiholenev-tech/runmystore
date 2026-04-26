@@ -128,6 +128,21 @@ function wmoText($code) {
 $plan_label = strtoupper($plan);
 
 // ══════════════════════════════════════════════
+// S82.STUDIO.NAV — AI Studio entry pending count
+// (products needing bg removal OR description — drives the badge)
+// ══════════════════════════════════════════════
+$ai_studio_count = 0;
+try {
+    $ai_studio_count = (int)DB::run(
+        "SELECT COUNT(*) FROM products
+         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
+         AND ((image_url IS NULL OR image_url = '' OR image_url LIKE 'data:%')
+              OR (description IS NULL OR description = ''))",
+        [$tenant_id]
+    )->fetchColumn();
+} catch (Throwable $e) { $ai_studio_count = 0; }
+
+// ══════════════════════════════════════════════
 // REVENUE — ALL PERIODS
 // ══════════════════════════════════════════════
 function periodData($tid, $sid, $r, $from, $to = null) {
