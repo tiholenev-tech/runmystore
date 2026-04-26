@@ -7906,7 +7906,11 @@ function _v4ComputeFooter(axIdx){
             var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
             bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit">'+esc(_nextLbl)+'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         }
-        var bSave='<button type="button" onclick="wizSave()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши</button>';
+        // S82.STUDIO.1.b: this button used to call wizSave() directly, which sent the user
+        // straight to step 6 (print labels) and skipped step 5 entirely — so the AI Studio
+        // prompt was never shown. Now it advances to step 5 where the user picks
+        // "Да, отвори AI Studio" / "Не, запази" and wizSave() fires from there.
+        var bSave='<button type="button" onclick="wizGo(5)" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Към запис</button>';
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
