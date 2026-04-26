@@ -1557,6 +1557,17 @@ body::before{
 .s4ai-prompt-title svg{width:18px;height:18px;flex-shrink:0;fill:none}
 .s4ai-prompt-list{font-size:11.5px;color:rgba(233,213,255,0.78);line-height:1.6;margin:0 0 12px;padding-left:18px;list-style:disc}
 .s4ai-prompt-list li{margin-bottom:1px}
+/* S82.STUDIO.9: visual feature grid replaces the bullet list */
+.s4ai-feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.s4ai-feat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:11px;background:rgba(0,0,0,0.25);border:1px solid rgba(139,92,246,0.18)}
+.s4ai-feat-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s4ai-feat-ico svg{width:22px;height:22px;fill:none}
+.s4ai-feat-ico.bg{background:linear-gradient(135deg,rgba(165,180,252,0.22),rgba(99,102,241,0.1));color:#a5b4fc;box-shadow:0 0 12px rgba(99,102,241,0.18)}
+.s4ai-feat-ico.magic{background:linear-gradient(135deg,rgba(251,191,36,0.22),rgba(245,158,11,0.1));color:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,0.18)}
+.s4ai-feat-ico.seo{background:linear-gradient(135deg,rgba(125,211,252,0.22),rgba(14,165,233,0.1));color:#7dd3fc;box-shadow:0 0 12px rgba(125,211,252,0.18)}
+.s4ai-feat-ico.exp{background:linear-gradient(135deg,rgba(240,171,252,0.22),rgba(192,38,211,0.1));color:#f0abfc;box-shadow:0 0 12px rgba(240,171,252,0.18)}
+.s4ai-feat-lbl{font-size:10.5px;font-weight:700;color:#fff;text-align:center;line-height:1.25}
+.s4ai-feat-sub{font-size:8.5px;font-weight:600;color:rgba(233,213,255,0.55);letter-spacing:0.02em}
 .s4ai-prompt-actions{display:flex;flex-direction:column;gap:7px}
 .s4ai-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
 .s4ai-btn:active{transform:scale(0.98)}
@@ -4242,7 +4253,7 @@ html{overflow-x:hidden;max-width:100vw}
     <button class="mx-close" onclick="mxCancel()" title="Назад — откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
-  <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:120px"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.5">Въведи бройка за всяка комбинация. <b style="color:#a5b4fc">Минимумът</b> се изчислява автоматично — стрелките ▲▼ корекция. Бутоните горе попълват всички клетки наведнъж.</div></div>
+  <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:160px"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.55">Въведи бройка за всяка комбинация (важи и за единична вариация — само цвят или само размер). <b style="color:#a5b4fc">МКП</b> (<b>М</b>инимално <b>К</b>оличество за <b>П</b>оръчка) се изчислява автоматично от системата за всеки вариант — когато наличността падне под МКП, артикулът се отбелязва за поръчка от доставчик.</div></div>
 <div class="mx-quick">
     <button class="mx-qchip" onclick="mxFillAll(1)">Всички = 1</button>
     <button class="mx-qchip" onclick="mxFillAll(2)">Всички = 2</button>
@@ -4252,7 +4263,7 @@ html{overflow-x:hidden;max-width:100vw}
   </div>
   <div class="mx-body-wrap"><table class="mx-table" id="mxTable"><thead id="mxThead"></thead><tbody id="mxTbody"></tbody></table></div>
   <div class="mx-bottom">
-    <div class="mx-stats"><div class="mx-stat"><div class="mx-stat-v" id="mxStatCells">0</div><div class="mx-stat-l">Попълнени</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatTotal">0</div><div class="mx-stat-l">Общо бр</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatMin">0</div><div class="mx-stat-l">Мин. сума</div></div></div>
+    <div class="mx-stats"><div class="mx-stat"><div class="mx-stat-v" id="mxStatCells">0</div><div class="mx-stat-l">Попълнени</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatTotal">0</div><div class="mx-stat-l">Общо бр</div></div><div class="mx-stat" title="МКП = Минимално Количество за Поръчка"><div class="mx-stat-v" id="mxStatMin">0</div><div class="mx-stat-l">МКП общо</div></div></div>
     <div style="display:flex;gap:8px"><button type="button" onclick="mxCancel()" style="flex:1;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Откажи</button><button class="mx-done" onclick="mxDone()" style="flex:2"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button></div>
   </div>
 </div>
@@ -6100,36 +6111,42 @@ function renderWizPagePart2(step){
             var _yesAttr = _btnDisabled ? 'onclick="wizStep4NeedQty()"' : 'onclick="wizFinalAIYes()"';
             var _noAttr  = _btnDisabled ? 'onclick="wizStep4NeedQty()"' : 'onclick="wizFinalAINo()"';
             var _btnCls  = _btnDisabled ? ' disabled' : '';
+            // S82.STUDIO.9: removed the min-qty stepper (lives in matrix overlay now);
+            // bullet list replaced with a 4-icon visual feature grid (more illustrative).
             _aiCardH =
                 '<div id="wizStep4AICard" class="step4-ai-card' + (_btnDisabled ? ' awaiting-qty' : '') + '">' +
                     (_step4HasQty
                         ? '<div class="s4ai-summary">' +
                               '<svg viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-                              '<span><b>' + _step4SumCells + '</b> комбинации · общо <b>' + _step4SumQty + '</b> бр.</span>' +
+                              '<span><b>' + _step4SumCells + '</b> комбинации · общо <b>' + _step4SumQty + '</b> бр. · МКП авто-изчислено</span>' +
                           '</div>'
                         : '<div class="s4ai-summary warn" onclick="if(typeof openMxOverlay===\'function\')openMxOverlay()" style="cursor:pointer">' +
                               '<svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
                               '<span>Първо <b>въведи бройки</b> за всеки вариант → tap тук</span>' +
                           '</div>') +
-                    '<div class="s4ai-minqty">' +
-                        '<label class="s4ai-mq-label">Мин. за поръчка <span class="s4ai-mq-hint">(сигнал при изчерпване)</span></label>' +
-                        '<div class="s4ai-mq-stepper">' +
-                            '<button type="button" onclick="var e=document.getElementById(\'s4MinQtyInp\');var v=Math.max(0,(parseInt(e.value)||0)-1);e.value=v;S.wizData.min_quantity=v">−</button>' +
-                            '<input type="number" id="s4MinQtyInp" value="' + _mqVal4 + '" min="0" oninput="S.wizData.min_quantity=parseInt(this.value)||0">' +
-                            '<button type="button" onclick="var e=document.getElementById(\'s4MinQtyInp\');var v=(parseInt(e.value)||0)+1;e.value=v;S.wizData.min_quantity=v">+</button>' +
-                        '</div>' +
-                    '</div>' +
                     '<div class="s4ai-prompt">' +
                         '<div class="s4ai-prompt-title">' +
                             '<svg viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
                             '✨ Искаш ли AI обработка?' +
                         '</div>' +
-                        '<ul class="s4ai-prompt-list">' +
-                            '<li>Махане на фона на снимките</li>' +
-                            '<li>AI магия (модел носи дрехата)</li>' +
-                            '<li>SEO описание за онлайн магазин</li>' +
-                            '<li>Експорт CSV/PDF за магазини</li>' +
-                        '</ul>' +
+                        '<div class="s4ai-feature-grid">' +
+                            '<div class="s4ai-feat">' +
+                                '<div class="s4ai-feat-ico bg"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="24" height="24" rx="3"/><circle cx="11" cy="11" r="2"/><path d="m28 20-7-7L4 28"/></svg></div>' +
+                                '<div class="s4ai-feat-lbl">Бял фон</div>' +
+                            '</div>' +
+                            '<div class="s4ai-feat">' +
+                                '<div class="s4ai-feat-ico magic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="9" r="4"/><path d="M7 28v-3a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v3"/><path d="M22 16l3-3M25 16l-3-3"/></svg></div>' +
+                                '<div class="s4ai-feat-lbl">AI Магия<br><span class="s4ai-feat-sub">модел носи</span></div>' +
+                            '</div>' +
+                            '<div class="s4ai-feat">' +
+                                '<div class="s4ai-feat-ico seo"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 4H8a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V11z"/><polyline points="19 4 19 11 27 11"/><line x1="10" y1="17" x2="22" y2="17"/><line x1="10" y1="22" x2="18" y2="22"/></svg></div>' +
+                                '<div class="s4ai-feat-lbl">SEO описание<br><span class="s4ai-feat-sub">за онлайн</span></div>' +
+                            '</div>' +
+                            '<div class="s4ai-feat">' +
+                                '<div class="s4ai-feat-ico exp"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4v18M9 15l7 7 7-7"/><line x1="5" y1="28" x2="27" y2="28"/></svg></div>' +
+                                '<div class="s4ai-feat-lbl">Експорт<br><span class="s4ai-feat-sub">CSV / PDF</span></div>' +
+                            '</div>' +
+                        '</div>' +
                         '<div class="s4ai-prompt-actions">' +
                             '<button type="button" class="s4ai-btn yes' + _btnCls + '" ' + _yesAttr + '>Да, отвори AI Studio</button>' +
                             '<button type="button" class="s4ai-btn no' + _btnCls + '" ' + _noAttr + '>Не, само запази</button>' +
