@@ -6177,7 +6177,7 @@ function wizPhotoMultiPick() {
     dr.innerHTML = '<div style="background:var(--bg-card,#0a0b14);border:1px solid var(--border-subtle);border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0));width:100%;max-width:480px">' +
         '<div style="font-size:13px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:12px">Добави снимка</div>' +
         '<div style="display:flex;gap:8px">' +
-            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
+            '<button type="button" onclick="wizPhotoSingleShot()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
             '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
         '</div>' +
         '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
@@ -6200,154 +6200,50 @@ function wizPhotoMultiGalleryPick() {
 }
 
 // S82.COLOR.11: native Samsung Camera per shot (real HDR / scene optimizer)
-// + smooth loop UX + loading spinner during the app-switch flicker.
-// CRITICAL: input.click() MUST be synchronous from the user gesture,
-// otherwise iOS Safari + some Android WebViews block the camera intent.
-// setTimeout/RAF breaks the gesture chain — keep it sync.
-var _camPending = null;
-var _camShootStart = 0; // for minimum spinner-visible duration
+// S82.COLOR.12: dropped the loop-overlay attempt entirely. Honest UX —
+// each tap on "+ Add" → drawer → "Снимай" → ONE native camera shot →
+// returns to the grid. Same pattern as Facebook / Instagram / Telegram
+// photo upload. Flicker is unavoidable but expected per shot — user
+// initiates each one explicitly. Quality stays full Samsung HDR.
 
-async function wizPhotoCameraLoop() {
-    if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
-    _camPending = null;
-    var ov = document.createElement('div');
-    ov.id = 'rmsCamLoop'; ov.className = 'cam-loop-ov show';
-    var photoCount = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0) + 1;
-    ov.innerHTML =
-        '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
-        '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
-        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
-        '<div class="cam-loop-controls" id="rmsCamControls"></div>';
-    document.body.appendChild(ov);
-    document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
-    // Paint the spinner FIRST, then click synchronously — same call stack as user gesture.
-    wizCamShowLaunching('Отваря камерата...');
-    _camShootStart = Date.now();
-    document.getElementById('rmsCamInput').click();
+function wizPhotoSingleShot() {
+    // Close the picker drawer first — but keep this function call SYNCHRONOUS
+    // so input.click() stays inside the user-gesture chain (iOS Safari rule).
+    var dr = document.getElementById('rmsPickerDrawer');
+    if (dr) dr.remove();
+    // Reuse a long-lived hidden input so we don't churn DOM.
+    var inp = document.getElementById('rmsCamInputSingle');
+    if (!inp) {
+        inp = document.createElement('input');
+        inp.type = 'file';
+        inp.id = 'rmsCamInputSingle';
+        inp.accept = 'image/*';
+        inp.setAttribute('capture', 'environment');
+        inp.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0';
+        inp.addEventListener('change', wizPhotoSingleOnFile);
+        document.body.appendChild(inp);
+    }
+    inp.value = ''; // allow re-pick same file
+    inp.click();
 }
 
-function wizCamShowLaunching(msg) {
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) {
-        stage.innerHTML =
-            '<div class="cam-loading">' +
-                '<div class="cam-loader"><div></div><div></div><div></div></div>' +
-                '<div class="cam-loading-msg">' + (msg || 'Отваря камерата...') + '</div>' +
-                '<div class="cam-loading-sub">Снимай нормално и ще се върнеш тук автоматично</div>' +
-            '</div>';
-    }
-    var ctl = document.getElementById('rmsCamControls');
-    if (ctl) {
-        ctl.innerHTML =
-            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
-    }
-}
-
-function wizCamShowProcessing(msg) {
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) {
-        stage.innerHTML =
-            '<div class="cam-loading">' +
-                '<div class="cam-loader"><div></div><div></div><div></div></div>' +
-                '<div class="cam-loading-msg">' + (msg || 'Подготвя снимката...') + '</div>' +
-            '</div>';
-    }
-}
-
-function wizCamRenderEmpty() {
-    var stage = document.getElementById('rmsCamStage');
-    var taken = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0);
-    var hint = taken
-        ? 'Снимка ' + taken + ' добавена. Tap кръглия бутон за следващата.'
-        : 'Tap кръглия бутон, за да отвориш камерата на телефона.';
-    if (stage) {
-        stage.innerHTML =
-            '<div class="cam-loop-empty">' +
-                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
-                '<div class="cam-loop-empty-msg">' + hint + '</div>' +
-            '</div>';
-    }
-    var ctl = document.getElementById('rmsCamControls');
-    if (ctl) {
-        ctl.innerHTML =
-            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
-            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
-            (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
-    }
-}
-
-function wizCamShoot() {
-    wizCamShowLaunching('Отваря камерата...');
-    _camShootStart = Date.now();
-    // Synchronous click — preserves the user gesture chain.
-    var inp = document.getElementById('rmsCamInput');
-    if (inp) inp.click();
-}
-
-function wizCamLoopOnFile(e) {
+async function wizPhotoSingleOnFile(e) {
     var f = e.target.files && e.target.files[0];
-    e.target.value = ''; // allow re-pick the same file without page reload
-    if (!f) {
-        // user backed out of the system camera without taking a shot
-        wizCamRenderEmpty();
-        return;
-    }
-    wizCamShowProcessing('Подготвя снимката...');
+    e.target.value = '';
+    if (!f) return; // user backed out of the OS camera
     var fr = new FileReader();
     fr.onload = async function() {
         var dataUrl = fr.result;
-        // Downscale before storing to keep POSTs reasonable (~600-900KB / photo).
-        try { dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92); } catch(err) { console.warn('downscale err:', err); }
-        // Minimum spinner hold so user actually SEES the loading state — masks the perceptual gap.
-        var elapsed = Date.now() - _camShootStart;
-        if (elapsed < 700) await new Promise(function(r){ setTimeout(r, 700 - elapsed); });
-        _camPending = dataUrl;
-        var stage = document.getElementById('rmsCamStage');
-        if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
-        var ctl = document.getElementById('rmsCamControls');
-        if (ctl) {
-            ctl.innerHTML =
-                '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Снимай пак</button>' +
-                '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
-                '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
-        }
+        try { dataUrl = await _downscaleDataUrl(dataUrl, 2400, 0.92); } catch(err) { console.warn('[S82.COLOR.12] downscale err:', err); }
+        if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+        S.wizData._photos.push({ dataUrl: dataUrl, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
+        S.wizData._aiColorsApplied = false;
         if (navigator.vibrate) navigator.vibrate(6);
+        renderWizard();
+        // Auto-fire AI for the just-added photo — wizPhotoDetectColors only processes ones with null confidence.
+        wizPhotoDetectColors();
     };
     fr.readAsDataURL(f);
-}
-
-function wizCamRetake() {
-    _camPending = null;
-    wizCamShoot(); // re-run the launching → click flow
-}
-
-async function wizCamAccept(continueShooting) {
-    if (!_camPending) return;
-    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
-    S.wizData._photos.push({ dataUrl: _camPending, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
-    _camPending = null;
-    S.wizData._aiColorsApplied = false;
-    if (continueShooting && S.wizData._photos.length < 30) {
-        var ctr = document.getElementById('rmsCamCounter');
-        if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
-        // Auto-fire the next shot — user only had to tap "Следваща" and we keep them in flow.
-        wizCamShoot();
-    } else {
-        wizCamLoopClose();
-        wizPhotoDetectColors();
-    }
-}
-
-function wizCamLoopFinish() {
-    wizCamLoopClose();
-    wizPhotoDetectColors();
-}
-
-function wizCamLoopClose() {
-    _camPending = null;
-    var ov = document.getElementById('rmsCamLoop');
-    if (ov) ov.remove();
-    if (typeof renderWizard === 'function') renderWizard();
 }
 
 function _downscaleDataUrl(dataUrl, maxDim, quality) {
