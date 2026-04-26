@@ -6877,8 +6877,13 @@ function studioRenderSections(credits) {
     var planLabel = (credits.plan || 'free').toUpperCase();
     if (credits.plan === 'god') planLabel = 'PRO';
     var planClass = (credits.plan === 'pro' || credits.plan === 'god') ? 'pro' : 'start';
+    var photos = _studioState.photos;
+    var firstPhoto = photos.length ? photos[0].dataUrl : null;
+    var doneAny = photos.some(function(p){ return p._bgState === 'done'; });
+    var donePhoto = doneAny ? photos.find(function(p){ return p._bgState === 'done'; }).dataUrl : null;
+
     body.innerHTML =
-        // Credits bar
+        // ─── CREDITS BAR ───
         '<button type="button" class="studio-credits-bar" id="studioCreditsBar" onclick="studioOpenBuyCredits()">' +
             '<span class="studio-cr-plan ' + planClass + '">' + planLabel + '</span>' +
             '<div class="studio-cr-content">' +
@@ -6892,50 +6897,319 @@ function studioRenderSections(credits) {
             '<div class="studio-cr-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>' +
         '</button>' +
 
-        // Section 1: Bg removal (Phase 1 — wired)
+        // ─── IMAGE COMPARE (before / after) ───
+        (firstPhoto ?
+        '<div class="studio-compare">' +
+            '<div class="studio-cmp-cell">' +
+                '<span class="studio-cmp-pill before">Оригинал</span>' +
+                '<img src="' + firstPhoto + '" alt="">' +
+            '</div>' +
+            '<div class="studio-cmp-cell">' +
+                '<span class="studio-cmp-pill after">След AI</span>' +
+                (donePhoto ? '<img src="' + donePhoto + '" alt="" style="background:#fff">' : '<div class="studio-cmp-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div>tap "Махни фона"</div></div>') +
+            '</div>' +
+        '</div>' : '') +
+
+        // ─── SECTION 1: Бял фон ───
         '<div class="studio-section">' +
             '<div class="studio-sect-head">' +
-                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>' +
-                '<div>' +
+                '<div class="studio-sect-ico bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>' +
+                '<div class="studio-sect-text">' +
                     '<div class="studio-sect-title">Махане на бял фон</div>' +
                     '<div class="studio-sect-sub">Чист бял студиен изглед · birefnet AI</div>' +
                 '</div>' +
                 '<div class="studio-sect-price">0.03€</div>' +
             '</div>' +
             '<div class="studio-bg-grid" id="studioBgGrid"></div>' +
-            (_studioState.photos.length > 1 ? '<button type="button" class="studio-bulk-btn" onclick="studioBgRemoveAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Махни фона на ВСИЧКИ ' + _studioState.photos.length + ' снимки</button>' : '') +
+            (photos.length > 1 ? '<button type="button" class="studio-bulk-btn" onclick="studioBgRemoveAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Махни фона на ВСИЧКИ ' + photos.length + ' снимки</button>' : '') +
         '</div>' +
 
-        // Phase 2-4 placeholders
-        '<div class="studio-section studio-soon">' +
+        // ─── SECTION 2: AI Магия (placeholder + UI grid) ───
+        '<div class="studio-section">' +
             '<div class="studio-sect-head">' +
-                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
-                '<div>' +
+                '<div class="studio-sect-ico magic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+                '<div class="studio-sect-text">' +
                     '<div class="studio-sect-title">AI Магия — облечи на модел</div>' +
-                    '<div class="studio-sect-sub">6 модела · идва в S82.STUDIO.2</div>' +
+                    '<div class="studio-sect-sub">Дрехите остават БЕЗ деформация</div>' +
                 '</div>' +
+                '<div class="studio-sect-price tryon">0.40€</div>' +
             '</div>' +
+            '<div class="studio-models-grid">' +
+                ['Жена','Мъж','Момиче','Момче','Тиин Ж','Тиин М'].map(function(lbl, i){
+                    var sel = (_studioState.magicModel === i) ? ' sel' : '';
+                    return '<button type="button" class="studio-model-btn' + sel + '" onclick="studioPickMagicModel(' + i + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>' +
+                        '<div class="studio-model-lbl">' + lbl + '</div>' +
+                    '</button>';
+                }).join('') +
+            '</div>' +
+            '<div class="studio-prompt-row">' +
+                '<input type="text" id="studioMagicPrompt" placeholder="допълни: стояща поза, лятна сцена, профил..." class="studio-prompt-input">' +
+            '</div>' +
+            '<button type="button" class="studio-gen-btn magic" onclick="studioGenerateMagic()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Генерирай на ' + (['Жена','Мъж','Момиче','Момче','Тиин Ж','Тиин М'][_studioState.magicModel || 0]) + '</button>' +
         '</div>' +
 
-        '<div class="studio-section studio-soon">' +
+        // ─── SECTION 3: Студийна снимка (preset chips) ───
+        '<div class="studio-section">' +
             '<div class="studio-sect-head">' +
-                '<div class="studio-sect-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
-                '<div>' +
-                    '<div class="studio-sect-title">AI SEO описание</div>' +
-                    '<div class="studio-sect-sub">Gemini · идва в S82.STUDIO.3</div>' +
+                '<div class="studio-sect-ico studio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+                '<div class="studio-sect-text">' +
+                    '<div class="studio-sect-title">Студийна снимка</div>' +
+                    '<div class="studio-sect-sub">Бижута · обувки · чанти · аксесоари</div>' +
                 '</div>' +
+                '<div class="studio-sect-price tryon">0.40€</div>' +
+            '</div>' +
+            '<div class="studio-preset-grid">' +
+                [
+                    {l:'Бижу на ръка', i:'<circle cx="12" cy="12" r="3"/>'},
+                    {l:'На кадифе', i:'<rect x="3" y="6" width="18" height="13" rx="2"/>'},
+                    {l:'На мрамор', i:'<path d="M3 12h18M3 6h18M3 18h18"/>'},
+                    {l:'Макро', i:'<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'},
+                    {l:'На дърво', i:'<path d="M12 2v20M2 12h20"/>'},
+                    {l:'Lifestyle', i:'<path d="M3 12c0-5 4-9 9-9s9 4 9 9"/><path d="M3 12c0 5 4 9 9 9s9-4 9-9"/>'},
+                    {l:'Обувка крак', i:'<path d="M3 12L12 4l9 8M5 10v10h14V10"/>'},
+                    {l:'Чанта рамо', i:'<rect x="6" y="8" width="12" height="12" rx="2"/><path d="M9 8V5a3 3 0 0 1 6 0v3"/>'}
+                ].map(function(p, i){
+                    var sel = (_studioState.studioPreset === i) ? ' sel' : '';
+                    return '<button type="button" class="studio-preset-chip' + sel + '" onclick="studioPickStudioPreset(' + i + ')">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + p.i + '</svg>' +
+                        p.l +
+                    '</button>';
+                }).join('') +
+            '</div>' +
+            '<div class="studio-prompt-row">' +
+                '<input type="text" id="studioStudioPrompt" placeholder="или опиши: пръстен в червена кутийка..." class="studio-prompt-input">' +
+            '</div>' +
+            '<button type="button" class="studio-gen-btn studio" onclick="studioGenerateStudio()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Генерирай студийна снимка</button>' +
+        '</div>' +
+
+        // ─── SECTION 4: SEO description ───
+        '<div class="studio-section">' +
+            '<div class="studio-sect-head">' +
+                '<div class="studio-sect-ico seo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>' +
+                '<div class="studio-sect-text">' +
+                    '<div class="studio-sect-title">AI SEO описание</div>' +
+                    '<div class="studio-sect-sub">За онлайн магазин · WooCommerce · Shopify</div>' +
+                '</div>' +
+            '</div>' +
+            '<textarea class="studio-seo-textarea" id="studioSEOArea" placeholder="Tap \'Генерирай\' за AI описание..." oninput="studioUpdateSEOStats()">' + (S.wizData.description || '').replace(/</g, '&lt;') + '</textarea>' +
+            '<div class="studio-seo-stats" id="studioSEOStats">0 думи · 0 символа</div>' +
+            '<div class="studio-seo-actions">' +
+                '<button type="button" class="studio-seo-btn primary" onclick="studioGenerateSEO()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Генерирай ново</button>' +
+                '<button type="button" class="studio-seo-btn" onclick="document.getElementById(\'studioSEOArea\').focus()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Редактирай</button>' +
             '</div>' +
         '</div>' +
 
-        '<div class="studio-export-row">' +
-            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><div>Етикет</div></button>' +
-            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>CSV</div></button>' +
-            '<button type="button" class="studio-export-btn soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>PDF</div></button>' +
+        // ─── EXPORT GRID ───
+        '<div class="studio-section">' +
+            '<div class="studio-sect-head">' +
+                '<div class="studio-sect-ico exp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>' +
+                '<div class="studio-sect-text">' +
+                    '<div class="studio-sect-title">Експорт &amp; печат</div>' +
+                    '<div class="studio-sect-sub">Етикет · CSV за магазин · PDF каталог</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="studio-export-row">' +
+                '<button type="button" class="studio-export-btn" onclick="studioExportLabel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><div class="seb-lbl">Етикет</div><div class="seb-sub">Bluetooth</div></button>' +
+                '<button type="button" class="studio-export-btn" onclick="studioExportCSV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg><div class="seb-lbl">CSV</div><div class="seb-sub">Woo / Shopify</div></button>' +
+                '<button type="button" class="studio-export-btn" onclick="studioExportPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13h2a2 2 0 0 1 0 4h-2v-4z"/></svg><div class="seb-lbl">PDF</div><div class="seb-sub">Каталог</div></button>' +
+            '</div>' +
         '</div>' +
 
         '<button type="button" class="studio-done-btn" onclick="closeStudioModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Готово · затвори</button>';
 
     studioRenderBgGrid();
+    studioUpdateSEOStats();
+}
+
+// ── Magic / Studio model + preset selectors ──
+function studioPickMagicModel(idx) {
+    if (!_studioState) return;
+    _studioState.magicModel = idx;
+    document.querySelectorAll('.studio-model-btn').forEach(function(b, i){ b.classList.toggle('sel', i === idx); });
+    var lbls = ['Жена','Мъж','Момиче','Момче','Тиин Ж','Тиин М'];
+    var btn = document.querySelector('.studio-gen-btn.magic');
+    if (btn) btn.lastChild.textContent = 'Генерирай на ' + lbls[idx];
+    if (navigator.vibrate) navigator.vibrate(5);
+}
+
+function studioPickStudioPreset(idx) {
+    if (!_studioState) return;
+    _studioState.studioPreset = idx;
+    document.querySelectorAll('.studio-preset-chip').forEach(function(b, i){ b.classList.toggle('sel', i === idx); });
+    if (navigator.vibrate) navigator.vibrate(5);
+}
+
+// ── AI Magic / Studio generation (placeholders until nano-banana-pro endpoint exists) ──
+function studioGenerateMagic() {
+    if (typeof showToast === 'function') showToast('AI Магия — backend (nano-banana-pro) идва. UI готов.', 'error');
+}
+function studioGenerateStudio() {
+    if (typeof showToast === 'function') showToast('Студийна снимка — backend (nano-banana-pro) идва. UI готов.', 'error');
+}
+
+// ── SEO description: textarea stats + Gemini generate ──
+function studioUpdateSEOStats() {
+    var ta = document.getElementById('studioSEOArea');
+    var st = document.getElementById('studioSEOStats');
+    if (!ta || !st) return;
+    var t = (ta.value || '').trim();
+    var w = t ? t.split(/\s+/).length : 0;
+    st.textContent = w + ' думи · ' + t.length + ' символа' + (w >= 40 ? ' · ✓ SEO ок' : '');
+    S.wizData.description = ta.value;
+}
+
+async function studioGenerateSEO() {
+    var ta = document.getElementById('studioSEOArea');
+    if (!ta) return;
+    var name = S.wizData.name || '';
+    if (!name) { if (typeof showToast === 'function') showToast('Първо въведи име на артикула', 'error'); return; }
+    ta.value = ''; ta.placeholder = 'AI генерира...';
+    studioUpdateSEOStats();
+    var cats = (typeof CFG !== 'undefined' && CFG.categories) ? CFG.categories.find(function(c){return c.id == S.wizData.category_id;}) : null;
+    var sups = (typeof CFG !== 'undefined' && CFG.suppliers) ? CFG.suppliers.find(function(s){return s.id == S.wizData.supplier_id;}) : null;
+    var axes = '';
+    if (S.wizData.axes) S.wizData.axes.forEach(function(a){ if (a.values && a.values.length) axes += a.name + ': ' + a.values.join(', ') + '. '; });
+    try {
+        var r = await fetch('products.php?ajax=ai_description', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ name: name, category: cats ? cats.name : '', supplier: sups ? sups.name : '', axes: axes, composition: S.wizData.composition || '' })
+        });
+        var j = await r.json();
+        if (j && j.description) {
+            ta.value = j.description;
+            S.wizData.description = j.description;
+            studioUpdateSEOStats();
+            if (typeof showToast === 'function') showToast('AI описание готово ✓', 'success');
+        } else {
+            ta.placeholder = 'Описанието не можа да се генерира';
+            if (typeof showToast === 'function') showToast('AI: грешка', 'error');
+        }
+    } catch (err) {
+        console.warn('[S82.STUDIO.D] SEO gen err:', err);
+        ta.placeholder = 'Мрежова грешка';
+        if (typeof showToast === 'function') showToast('Мрежова грешка', 'error');
+    }
+}
+
+// ── Exports ──
+async function studioExportLabel() {
+    var pid = _studioState ? _studioState.productId : null;
+    if (!pid) { if (typeof showToast === 'function') showToast('Артикулът не е запазен', 'error'); return; }
+    if (window.CapPrinter && typeof window.CapPrinter.print === 'function' && typeof window.CapPrinter._isCapacitor === 'function' && window.CapPrinter._isCapacitor()) {
+        try {
+            var prod = {
+                code: S.wizData.code || ('PRD' + pid),
+                name: S.wizData.name || '',
+                retail_price: parseFloat(S.wizData.retail_price) || 0,
+                barcode: S.wizData.barcode || ('200' + String(pid).padStart(9, '0'))
+            };
+            var store = { name: (typeof CFG !== 'undefined' && CFG.storeName) || 'Магазин', currency: (typeof CFG !== 'undefined' && CFG.currency) || 'EUR' };
+            var copies = parseInt(prompt('Колко етикета?', '1')) || 1;
+            await window.CapPrinter.print(prod, store, copies);
+            if (typeof showToast === 'function') showToast('Печатам ' + copies + ' етикет(а) ✓', 'success');
+        } catch (err) {
+            console.error('[S82.STUDIO.D] print err:', err);
+            if (typeof showToast === 'function') showToast('Печат: ' + (err.message || 'грешка'), 'error');
+        }
+    } else {
+        if (typeof showToast === 'function') showToast('Печатът работи само в мобилното приложение (DTM-5811 BLE)', 'error');
+    }
+}
+
+function studioExportCSV() {
+    var pid = _studioState ? _studioState.productId : null;
+    if (!pid) { if (typeof showToast === 'function') showToast('Артикулът не е запазен', 'error'); return; }
+    // Build minimal WooCommerce-compatible CSV row.
+    var rows = [];
+    var headers = ['SKU','Name','Type','Regular price','Description','Categories','Stock'];
+    rows.push(headers);
+    var basicRow = [
+        S.wizData.code || ('PRD' + pid),
+        S.wizData.name || '',
+        'simple',
+        (S.wizData.retail_price || 0).toString(),
+        (S.wizData.description || '').replace(/\n/g, ' '),
+        (typeof CFG !== 'undefined' && CFG.categories) ? (CFG.categories.find(function(c){return c.id==S.wizData.category_id;}) || {}).name || '' : '',
+        ''
+    ];
+    rows.push(basicRow);
+    var csv = rows.map(function(r){
+        return r.map(function(c){ var s = String(c == null ? '' : c); if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(',');
+    }).join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'product_' + pid + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    if (typeof showToast === 'function') showToast('CSV изтеглен ✓', 'success');
+}
+
+function studioExportPDF() {
+    var pid = _studioState ? _studioState.productId : null;
+    if (!pid) { if (typeof showToast === 'function') showToast('Артикулът не е запазен', 'error'); return; }
+    // Simple print-ready HTML page in a new window — user can save as PDF.
+    var w = window.open('', '_blank');
+    if (!w) { if (typeof showToast === 'function') showToast('Pop-up блокиран', 'error'); return; }
+    var photos = (_studioState.photos || []).map(function(p){ return '<img src="' + p.dataUrl + '" style="width:200px;height:200px;object-fit:cover;border:1px solid #ccc;margin:4px">'; }).join('');
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>' + (S.wizData.name || 'Артикул') + '</title>' +
+        '<style>body{font-family:system-ui,sans-serif;padding:30px;color:#222;max-width:800px;margin:auto}' +
+        'h1{font-size:22px;margin-bottom:8px}.meta{color:#666;font-size:12px;margin-bottom:18px}' +
+        '.gallery{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}' +
+        '.desc{font-size:13px;line-height:1.6;margin-top:10px}' +
+        '.price{font-size:24px;font-weight:700;color:#16a34a;margin:10px 0}</style></head><body>' +
+        '<h1>' + (S.wizData.name || '') + '</h1>' +
+        '<div class="meta">SKU: ' + (S.wizData.code || ('PRD' + pid)) + ' · Баркод: ' + (S.wizData.barcode || '') + '</div>' +
+        '<div class="price">' + (S.wizData.retail_price || 0) + ' лв</div>' +
+        '<div class="gallery">' + photos + '</div>' +
+        '<div class="desc">' + (S.wizData.description || '').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</div>' +
+        '<script>setTimeout(function(){window.print();},400);<\/script>' +
+        '</body></html>';
+    w.document.write(html); w.document.close();
+}
+
+// ── Buy credits modal (Stripe placeholder) ──
+function studioOpenBuyCredits() {
+    if (document.getElementById('studioBuyModal')) document.getElementById('studioBuyModal').remove();
+    var ov = document.createElement('div');
+    ov.id = 'studioBuyModal'; ov.className = 'studio-buy-ov';
+    ov.onclick = function(e){ if (e.target === ov) studioCloseBuyCredits(); };
+    ov.innerHTML =
+        '<div class="glass studio-buy-card">' +
+            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
+            '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
+            '<div class="studio-buy-hdr">' +
+                '<div class="studio-buy-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+                '<h3>Купи AI кредити</h3>' +
+                '<button type="button" class="studio-buy-x" onclick="studioCloseBuyCredits()">✕</button>' +
+            '</div>' +
+            '<div class="studio-buy-sub">Месечен PRO лимит: 300 фон + 20 AI магия. Допълнителните кредити НЕ изтичат — остават за следващите месеци.</div>' +
+            '<button type="button" class="studio-pack" onclick="studioBuyPack(5)">' +
+                '<div class="sp-price">5€</div>' +
+                '<div class="sp-info"><div class="sp-main"><b>100</b> фон или <b>10</b> магия</div><div class="sp-sub">Достатъчно за малка партида</div></div>' +
+            '</button>' +
+            '<button type="button" class="studio-pack popular" onclick="studioBuyPack(15)">' +
+                '<div class="sp-price">15€</div>' +
+                '<div class="sp-info"><div class="sp-main"><b>350</b> фон или <b>35</b> магия</div><div class="sp-sub">17% спестяване</div></div>' +
+                '<div class="sp-tag">препоръчан</div>' +
+            '</button>' +
+            '<button type="button" class="studio-pack" onclick="studioBuyPack(40)">' +
+                '<div class="sp-price">40€</div>' +
+                '<div class="sp-info"><div class="sp-main"><b>1000</b> фон или <b>100</b> магия</div><div class="sp-sub">33% спестяване · цял сезон</div></div>' +
+            '</button>' +
+            '<button type="button" class="studio-buy-cancel" onclick="studioCloseBuyCredits()">Затвори</button>' +
+        '</div>';
+    document.body.appendChild(ov);
+}
+function studioCloseBuyCredits() {
+    var ov = document.getElementById('studioBuyModal');
+    if (ov) ov.remove();
+}
+function studioBuyPack(amt) {
+    if (typeof showToast === 'function') showToast('Stripe плащания идват в S88. Засега — пиши на support.', '');
 }
 
 function studioRenderBgGrid() {
