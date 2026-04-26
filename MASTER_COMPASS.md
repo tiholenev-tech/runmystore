@@ -2,15 +2,19 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 24.04.2026  
-**Последна завършена сесия:** S79.SECURITY (e15f719, verified 25.04.2026) + S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE + S79.SELECTION_ENGINE
-**Паралелно в ход:** Chat 1.3 (products.php S79), Capacitor S82 (Claude Code)  
-**Следваща сесия:** S80 — DIAGNOSTIC.FRAMEWORK (cron + dashboard + 72/72 PASS)  
-**Текуща Phase:** A — Products Foundation  
+**Последна актуализация:** 26.04.2026  
+**Последна завършена сесия:** S80.DIAG (50% — verify pending S81) + S82.SHELL.AI_STUDIO (50% — Chat 1 продължава) + S79.SECURITY (verified) + S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE
+**Паралелно в ход:** Chat 1 (S82.AI_STUDIO frontend integration), Chat 2 кандидат за S81 (verify adaptation)
+**Следваща сесия:** Тихол УТРЕ (26.04) products.php finalize + реал product entry на tenant=7. Паралелно S81.DIAG.VERIFY (verify_engine + ai_insights schema reverse-engineer) + Chat 1 S82.AI_STUDIO.
+**Текуща Phase:** A1 (Foundation) → A2 (Operations Core, преди ЕНИ май)  
 **Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
 
-
-- **S79.SECURITY VERIFIED (25.04.2026):** /etc/runmystore/db.env архитектура (по-сигурна от original handoff plan). PDO + parse_ini_file. History scrubbed. P0 closed.
+- **S79.SECURITY VERIFIED (25.04.2026):** /etc/runmystore/db.env (по-сигурна от original plan). PDO + parse_ini_file. History scrubbed. P0 closed.
+- **S80.DIAGNOSTIC (25.04.2026 — 50%):** Infrastructure deployed (124 scenarios, 27+ файла, pymysql, cron готов), tenant=99 setup-нат (store=48, user=60, customer=181), pipeline бяга. 4 bugs остават за S81: category_for_topic typo, tenant filter, semicolon split, ai_insights data_json schema reverse-engineer. Tag v0.6.0 ОТЛОЖЕН.
+- **S82.SHELL.AI_STUDIO (25.04.2026 — 50%):** 13 commits, CRITICAL matrix qty data-loss bug fixed, AI backend готов (ai-image-processor + ai-color-detect + ai-image-credits, FREE 0/START 3/PRO 10), unified shell, theme toggle FOUC fix, swipe nav prefetch. Открита замърсеност: commit a44ee2d захвана файлове от Chat 2 заради git add -A.
+- **PROMO SPEC FINALIZED (25.04.2026):** 5 AI brainstorm consensus. Stack per-item NO per-cart YES. Returns prorated lenient. Касов бон отделен ОТСТЪПКА line (Н-18 Прил.1). Greedy под 50ms. AI 30дни/100tx, blacklist top20%, margin floor 15%. Phase A2 pull-up.
+- **ROADMAP REVISION (25.04.2026):** Pull-up promotions/transfers/deliveries/scan-document от Phase D към Phase A2/A3. Reason: Тихол + ЕНИ нужди реални от ден 1. НЕ са складова програма (правен trick — stock movements, не fiscal sales). Касов бон/loyalty/onboarding/AI-чат → Phase D.
+- **DEPLOY PATTERN (25.04.2026):** xz+base64 single paste за multi-file. /tmp/sNN_staging_YYYYMMDD_HHMM/ → diff → cp /var/www/. NO destructive в paste. Limit ≤11KB compressed. Git commit отделно.
 
 ---
 
@@ -919,6 +923,50 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 25.04.2026 — ROADMAP REVISION (Тихол решение)
+- Решение: Phase B/C/D пренаредени. Pull-up в Phase A2 (преди ЕНИ май): promotions, transfers, deliveries, scan-document (OCR), suppliers, inventory CoD, sale.php rewrite. Push-down в Phase D: касов бон/ФУ, loyalty migration, onboarding wizard, AI чат, settings advanced.
+- Защо: Тихол е първи клиент (5 магазина), ЕНИ е втори (10-15 май). RunMyStore НЕ Е складова програма (правен trick — записва "stock movements", не "fiscal sales") → касов бон не е блокер. AI чат не е MUST за ден 1 (voice search в numpad context е достатъчен за закон №1). Loyalty/onboarding далечно (post-launch).
+- Засегнати: всички REWORK queue entries за promotions/transfers/deliveries → променя сесийното им placement. ПЪЛЕН S78-S110 ROADMAP таблица трябва да се update-не отделно (отлагам).
+- Phase A1 → A2 → A3 → B → C → D → E структурата заменя стария A → B → C → D.
+
+## 25.04.2026 — PROMO SPEC FINALIZED (5 AI brainstorm consensus)
+- 5-те AI (Claude/Gemini/DeepSeek/ChatGPT/Kimi) дадоха конкретни препоръки. Резултат:
+  - Stack: per-item NO, per-cart YES (specificity-based blocking)
+  - Returns: prorated lenient (refund=платена цена, оставащите запазват discount)
+  - Касов бон: отделен ред "ОТСТЪПКА -X.XX лв" (Наредба Н-18 Приложение №1, конкретна реф от Kimi)
+  - Algorithm: greedy + recompute scratch + cache rules не cart, под 50ms p95
+  - AI suggestions: 30 дни/100 tx threshold, blacklist top 20% bestsellers, margin floor 15%
+- DB schema: promotions + promotion_rules (с specificity_level GENERATED COLUMN) + promotion_applications (audit с applied_unit_prices JSON)
+- Phase placement: A2 basic (2 сутиена -20%, 5 чорапа от 1 модел) → C AI suggest → D combo+B2B+loyalty
+- Реален use case Тихол: "2 сутиена -20%" (различни модели) + "5 чорапа от 1 модел -X%" работят паралелно (различни групи).
+
+## 25.04.2026 — S82.SHELL.AI_STUDIO (Chat 1, 13 commits)
+- Решение: унифициран shell за всички 7 модула (chat/products/sale/inventory/warehouse/stats/settings) + AI backend готов (НЕ frontend integration още).
+- CRITICAL bug fixed: matrix qty save data-loss (parseInt върху обект {qty,min} → NaN → save 0).
+- AI backend: /ai-image-processor.php (fal.ai birefnet) + /ai-color-detect.php (Gemini Vision) + /ai-image-credits.php (plan limits).
+- Migration 20260425_001 applied: ai_image_usage table.
+- Theme toggle с FOUC fix (inline script преди body render).
+- Swipe nav с prefetch (~50-100ms paint).
+- Открита грешка: commit a44ee2d "замърсен" — git add -A захвана untracked файлове от Chat 2 S80. → Iron rule на git add specific paths.
+
+## 25.04.2026 — S80.DIAGNOSTIC split S80 → S80 + S81
+- Решение: Chat 2 направи реалистично split вместо "95% complete" лъжа.
+- S80 (50% done): Infrastructure deployed (124 scenarios, 27+ файла, pymysql, cron готов). Tenant=99 setup (store=48, user=60, customer=181). Pipeline бяга end-to-end (3 runs в diagnostic_log).
+- S81 (verify adaptation, ~2-3h): category_for_topic typo fix, tenant filter в fetch_active_scenarios, multi-statement execution в seed_scenario, reverse-engineer ai_insights data_json schema, адаптация на 8 verify handlers, baseline run на tenant=99 с Cat A=100%/Cat D=100%, tag v0.6.0-s80-diagnostic, install crontab + ENV vars.
+- Защо split: ai_insights data_json структура е unknown без reverse-engineer на реални rows. Не е "30 минути" работа както първоначално казано.
+
+## 25.04.2026 — DEPLOY PATTERN (Chat 2 discovery)
+- Решение: За multi-file deploy НЕ heredoc файл-по-файл. Заместване: пиши в sandbox /tmp/, tar -cf - . | xz -9 | base64 -w 0, single paste decode → extract в /tmp/sNN_staging_YYYYMMDD_HHMM/ (НЕ /var/www/) → find . -type f преглед → diff срещу live → ПОТВЪРДИ ТИХОЛ → cp в /var/www/ → php -l + py_compile.
+- Защо: heredoc multi-file крашва SSH-а на размери >15KB. xz+base64 single paste = atomic, по-малко грешки.
+- ЗАБРАНЕНИ в paste: rm/chmod/chown/git reset/DROP/TRUNCATE/ALTER. Git commit отделно. Limit ≤11KB compressed.
+- STANDING RULE.
+
+## 25.04.2026 — STANDING RULE #22: НЕ САМО-ОДОБРЕНИЕ (no self-approval)
+- Контекст: Chat 2 написа в S80 plan v1.2 "✅ РЕШЕНИЯ ПОТВЪРДЕНИ ОТ ТИХОЛ: Cron ОСТАВА", когато Тихол беше казал обратното. Шеф-чатът хвана грешката.
+- Правило: Работните chat-ове НИКОГА не маркират собствени решения като "потвърдено от Тихол" преди реално потвърждение в съобщение. Използват "PROPOSED — чака одобрение".
+- Защита срещу: rework risk + trust erosion + неправилни handoff-и.
+- STANDING.
+
 ## 24.04.2026 - DIAGNOSTIC PROTOCOL = STANDING RULE #21 (IRON PROTOCOL addition)
 - Reshenie: vsyaka promyana na AI logika PREDI commit minava prez DIAGNOSTIC_PROTOCOL.md.
 - Zashto: S79 otkri realen bug (pfHighReturnRate Cartesian) koyto ne byeshe uloven mesetsi. Bez sistematichno testvane AI mozhe da dava greshni preporaki.
@@ -1327,6 +1375,24 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 10 | products.php main split | 21.04.2026 (S78 CC sweep) | Файлът е 8394 реда (5.6× над 1500 прага) — extract в partials/helpers; кандидат за rewrite | S80 | ⏳ pending |
 | 11 | products.php Q-секции (q1-q6 home) | 22.04.2026 (Тихол: "трябва AI да предлага действие иначе безсмислено") | Всеки артикул в Q-секция трябва да има AI-генериран action button: 'Поръчай 5 при Иванов' / 'Промо -20%' / 'Прехвърли в магазин 2' и т.н. Source: ai_insights.action_label + action_type + action_data вече съществуват в DB. Compute-insights.php трябва да попълва тези колони. UI render да чете и показва бутон под всеки item. Tap на бутона → execute action (без чат). | S81 (AI features) | ⏳ pending
 | 12 | products.php drawer detail screen | 22.04.2026 (свързано с #11) | Detail drawer също да показва AI primary action отгоре ("Препоръчвам: Поръчай 5 от Иванов — 320 лв profit/седм") + secondary actions. Бил е plain product card. | S81 | ⏳ pending
+| 23 | S80→S81 verify adaptation | 25.04.2026 | 4 bugs: category_for_topic typo (5min), tenant filter в fetch_active_scenarios (5min), multi-statement в seed_scenario (15min), reverse-engineer ai_insights data_json schema + 8 verify handlers (~90min). Baseline run tenant=99 → Cat A=100%/D=100%. Tag v0.6.0-s80-diagnostic. | **S81** | ⏳ pending P0 |
+| 24 | FAL_API_KEY add | 25.04.2026 (S82 AI Studio) | Тихол ръчно добавя FAL_API_KEY в /etc/runmystore/api.env. Без това bg removal endpoint връща 503. | Тихол | ⏳ pending P0 |
+| 25 | On-device test S82 matrix qty save | 25.04.2026 (S82 CRITICAL bug fix verify) | Samsung Z Flip6 — verify че matrix qty save bug fix работи коректно (parseInt {qty,min} → NaN → 0 беше data loss). | Тихол | ⏳ pending P0 |
+| 26 | S82 wizard hooks решение | 25.04.2026 | Тихол кажи: integrate в новия AI Studio модул или delete (wizAIProcessPhoto, AI Studio CTA в step 3, auto-populate в step 4). | Тихол → Chat 1 | ⏳ pending P1 |
+| 27 | S82 AI Studio location | 25.04.2026 | Тихол кажи: root /ai-studio.php (отделен модул accessible от bottom nav) или embedded overlay в products.php (от wizard step 3). | Тихол → Chat 1 | ⏳ pending P1 |
+| 28 | Tag v0.7.0-s82-shell | 25.04.2026 | След on-device test (RQ #25) → tag rollback point преди AI Studio frontend integration. | Chat 1 | ⏳ pending P1 |
+| 29 | products_fetch.php cleanup | 25.04.2026 | Файлът е 568KB, никой не го reference-ва. Кандидат за delete. | A1 финал | ⏳ pending P2 |
+| 30 | Orphaned dead code (toggleTheme/initTheme) | 25.04.2026 | Стари функции в 5 модула. Безвредно но мръсно. Cleanup при S82 finalize. | Chat 1 | ⏳ pending P2 |
+| 31 | promotions.php basic (Phase A2 — pull-up) | 25.04.2026 (5 AI brainstorm consensus) | Implementation: 2 типа правила (quantity_threshold + same_model_qty). Cart auto-apply в sale.php. Owner UI прост. БЕЗ AI suggestions, БЕЗ combo. ~3-4 сесии. PromotionEngine клас + DB schema (promotions+promotion_rules+promotion_applications). | Phase A2 (преди ЕНИ май) | ⏳ pending P0 |
+| 32 | scan-document.php (Phase A2 — pull-up) | 25.04.2026 (Тихол КРИТИЧНО ОТ ДЕН 1) | Basic Gemini Vision parse → Тихол approve → INSERT. БЕЗ 5-layer validation, БЕЗ BRRA API, БЕЗ accountant email (тези → Phase B). | Phase A2 | ⏳ pending P0 |
+| 33 | deliveries.php (Phase A2 — pull-up) | 25.04.2026 (Тихол MVP must) | Приемане на стока (с OCR от RQ #32) + voice. | Phase A2 | ⏳ pending P0 |
+| 34 | suppliers.php (Phase A2) | 25.04.2026 (без него няма доставки) | Каталог доставчици. БЕЗ EIK + BRRA lookup за MVP. | Phase A2 | ⏳ pending P0 |
+| 35 | transfers.php (Phase A2 — pull-up) | 25.04.2026 (Тихол multi-store от ден 1) | Между магазини. Multi-store resolver basic. | Phase A2 | ⏳ pending P0 |
+| 36 | inventory.php "Category of the Day" (Phase A2) | 25.04.2026 (Тихол MVP must) | PHP логика (НЕ AI) — кажи на Пешо коя категория да преброи, колко items, колко минути. | Phase A2 | ⏳ pending P0 |
+| 37 | sale.php rewrite (Phase A2 — pull-up от B) | 25.04.2026 | Voice + camera + numpad + дребно/едро. Като stock movement (не fiscal sale). PromotionEngine integration ОТ ДЕН 1 (RQ #31 готов преди rewrite). | Phase A2 | ⏳ pending P0 |
+| 38 | DOCS — S52 pricing планове в BIBLE | 25.04.2026 | Изтрит от userMemories. Постоянна BIBLE_v3_0_TECH секция: FREE €0 / START €19 / PRO €49+€9.99/store. Trial 1 мес PRO → ден 29 избор. | Когато BIBLE update | ⏳ P2 |
+| 39 | DOCS — Термо принтер info в BIBLE_TECH §Bluetooth Printer | 25.04.2026 | 200 бр поръчани, $15 cost, €19.99 sell, RunMyStore лого. ESC/POS. Първи пристига края на април 2026. Lock-in чрез лесен setup. | Когато BIBLE update | ⏳ P2 |
+| 40 | DOCS — biz_learned_data spec | 25.04.2026 | Phase 2 cross-tenant learning. Полета: id, business_type, field_type (subcategory/size/color/unit), value, usage_count, created_at. AI се учи от клиентите. | Phase D документация | ⏳ P2 |
 
 ---
 
@@ -1538,48 +1604,68 @@ DEPENDENCY: [описание]                — промяна в dependency t
 
 ---
 
-# 📊 PHASE OVERVIEW
+# 📊 PHASE OVERVIEW (REVISED 25.04.2026 — pull-up roadmap за ЕНИ май)
 
 ```
-Phase A — DB Foundation + Products (S78-S82)         ~40% ⏳
-  ├─ P0 bugs fixed                                  100% ✅ S78 + S79.FIX.B
-  ├─ S77 DB migrations                              100% ✅ S78
-  ├─ DB foundations 1 (migrations, audit, soft del) 100% ✅ S79.DB
-  ├─ audit_log extension (store_id, source)         100% ✅ S79.CRON_AUDIT
-  ├─ compute-insights.php (19 pf + cron 15min)      100% ✅ S79.INSIGHTS + CRON
-  ├─ DB guards (negative, FK, idempotency, cents)     0% ⏳ S80
-  ├─ DB::tx() deadlock retry                          0% ⏳ S80
-  ├─ Stock ledger + event queue                       0% ⏳ S81
-  ├─ Bluetooth print (CSV workaround live)           30% 🟡 S82 Capacitor in progress
-  ├─ Selection Engine (1000 topics + MMR)           100% ✅ S79.SELECTION_ENGINE
-  ├─ products.php главна — 6 секции + Hidden Inv    100% ✅ S79.FIX.B
-  ├─ products.php wizard rewrite                      0% ⏳ S80
-  ├─ AI Studio (background remove)                    0% ⏳ S81.AI (отложено)
-  ├─ products.php polish                              0% ⏳ S82
-  └─ ЕНИ first sale                                   0% ⏳ 10-15 май
+Phase A1 — Foundation (СЕГА → 5 май)                  ~55% ⏳
+  ├─ S79.SECURITY                                    100% ✅ (e15f719, verified 25.04)
+  ├─ S79.INSIGHTS (compute-insights.php 19 pf)       100% ✅
+  ├─ S79.SELECTION_ENGINE (MMR + 1000 topics)        100% ✅
+  ├─ S81.BUGFIX.V3.EXT (14 mobile bugs Z Flip6)      100% ✅
+  ├─ S80.DIAGNOSTIC framework infrastructure         100% ✅ deployed
+  ├─ S80→S81 verify adaptation (verify_engine)         0% ⏳ S81 (~2-3h)
+  ├─ S82 AI Studio backend (ai-image-* endpoints)    100% ✅
+  ├─ S82 AI Studio frontend integration               20% ⏳ Chat 1
+  ├─ products.php wizard P0 bugs (3 known)             0% ⏳ ТИХОЛ УТРЕ
+  ├─ DB guards (negative, FK, idempotency, cents)      0% ⏳ A1 финал
+  └─ Stock ledger (append-only)                        0% ⏳ A1 финал
 
-Phase B — Module Ecosystem + Real-time (S83-S96)      0% ⏳
-  ├─ orders.php v1                                    0% ⏳ S83
-  ├─ Lost demand + AI draft                           0% ⏳ S84
-  ├─ sale.php rewrite                                 0% ⏳ S85
-  ├─ deliveries.php                                   0% ⏳ S86
-  ├─ inventory v4 + warehouse hub                     0% ⏳ S87
-  ├─ Pusher real-time (CRITICAL)                      0% ⏳ S88
-  ├─ Multi-device FOR UPDATE (CRITICAL)               0% ⏳ S89
-  ├─ WooCommerce integration                          5% 🟡 S81.WOO_API skeleton → S90 full
-  ├─ Shopify integration                              0% ⏳ S91
-  ├─ transfers + multi-store                          0% ⏳ S92
-  ├─ stats.php rewrite                                0% ⏳ S93
-  ├─ /ai-action.php router                            0% ⏳ S94
-  ├─ Simple Mode = AI chat                            0% ⏳ S95
-  └─ Life Board v1 + i18n                             0% ⏳ S96
+Phase A2 — Operations Core (5-15 май, преди ЕНИ)       0% ⏳
+  ├─ products.php finalize + real product entry        0% ⏳ ТИХОЛ УТРЕ
+  ├─ suppliers.php                                     0% ⏳
+  ├─ scan-document.php (OCR — basic Gemini Vision)     0% ⏳ КРИТИЧНО ОТ ДЕН 1
+  ├─ deliveries.php (с OCR)                            0% ⏳
+  ├─ Bluetooth printer integration (DTM-5811 готов)   30% 🟡 Capacitor in progress
+  ├─ sale.php rewrite (stock movement, не fiscal)      0% ⏳
+  ├─ transfers.php                                     0% ⏳
+  ├─ inventory.php "Category of the Day"               0% ⏳
+  └─ promotions.php basic (PULL-UP от Phase D!)        0% ⏳
 
-Phase C — AI Safety (S97-S102)                        0% ⏳
+Phase B — AI слой + полиране (юни-юли)                 0% ⏳
+  ├─ AI чат базов (voice interface)                    0% ⏳
+  ├─ AI suggestions за промоции                        0% ⏳
+  ├─ stats.php (owner dashboard)                       0% ⏳
+  ├─ finance.php (приходи/разходи)                     0% ⏳
+  └─ orders.php basic (draft → sent → received)        0% ⏳
 
-Phase D — Launch (S103-S110)                          0% ⏳
+Phase C — Hardening (август-октомври)                  0% ⏳
+  ├─ AI Advisor (eval framework 90%+, tenant=99)       0% ⏳
+  ├─ Voice creation на промоции/продукти               0% ⏳
+  ├─ promotions combo + B2B + loyalty stack            0% ⏳
+  ├─ orders.php full (12 entry points)                 0% ⏳
+  ├─ Action Broker (ai-action.php router)              0% ⏳
+  ├─ Real-time Pusher (multi-device sync)              0% ⏳
+  └─ Stats advanced + 6Q dashboard                     0% ⏳
+
+Phase D — Pre-Launch (ноември)                         0% ⏳
+  ├─ WooCommerce + Shopify integrations                5% 🟡 skeleton (S81.WOO_API)
+  ├─ biz_learned_data (cross-tenant learning)          0% ⏳
+  ├─ Capacitor offline queue                           0% ⏳
+  ├─ GDPR (export/delete tenant)                       0% ⏳
+  ├─ Stripe Connect                                    0% ⏳
+  ├─ Settings polish + Onboarding wizard               0% ⏳
+  ├─ Loyalty migration (от donela.bg)                  0% ⏳
+  └─ Касов бон/ФУ (АКО legally нужно)                  0% ⏳
+
+Phase E — Public Launch (декември 2026 → януари 2027)  0% ⏳
+  ├─ App Store + Play Store                            0% ⏳
+  ├─ Marketing landing                                 0% ⏳
+  ├─ Public AI Sales Agent (€9.99/мес PRO add-on)      0% ⏳
+  ├─ Anomaly detection + health checks                 0% ⏳
+  └─ 500 golden tests CI gate                          0% ⏳
 ```
 
-**Overall: ~8% complete. Public launch target: септ 2026.**
+**Overall: ~12% complete. ЕНИ first sale target: 10-15 май 2026. Public launch: декември 2026.**
 
 ---
 
