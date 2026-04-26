@@ -1671,6 +1671,23 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 /* mic + send buttons — keep vivid brand gradient in both themes */
 
 /* END LIGHT THEME */
+
+/* ═══ S82.STUDIO.NAV — AI Studio entry button (magenta glow) ═══
+   Reference: chat-detailed-GLASS.html .qs / .studio-row / .studio-btn.
+   Lives between weather card and AI briefing — high-visibility door
+   to /ai-studio.php. Magenta hue (310/290) so it's distinct from the
+   indigo dashboard cards around it. */
+.ai-studio-row{display:flex;justify-content:flex-end;margin:0 0 14px;padding:0 4px}
+.ai-studio-btn{--hue1:310;--hue2:290;padding:9px 18px;display:inline-flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none;color:inherit;font-family:inherit;position:relative}
+.ai-studio-btn > *{position:relative;z-index:5}
+.ai-studio-btn .as-icon{display:flex;align-items:center;justify-content:center}
+.ai-studio-btn .as-icon svg{width:14px;height:14px;fill:hsl(310 90% 80%);stroke:hsl(310 90% 85%);stroke-width:1;filter:drop-shadow(0 0 8px hsl(310 90% 60% / .8))}
+.ai-studio-btn .as-text{display:flex;align-items:baseline;gap:5px;line-height:1.1}
+.ai-studio-btn .as-label{font-size:11px;font-weight:900;letter-spacing:.3px;color:hsl(310 95% 92%);text-shadow:0 0 10px hsl(310 85% 60% / .6)}
+.ai-studio-btn .as-sub{font-size:8px;color:hsl(310 70% 75%);font-weight:700}
+.ai-studio-badge{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:linear-gradient(135deg,hsl(0 90% 60%),hsl(355 90% 55%));color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px hsl(0 90% 55% / .8),inset 0 1px 0 rgba(255,255,255,.3);border:2px solid var(--bg-main);z-index:10}
+html[data-theme="light"] .ai-studio-btn .as-label{color:hsl(310 70% 35%);text-shadow:0 0 6px hsl(310 60% 70% / .35)}
+html[data-theme="light"] .ai-studio-btn .as-sub{color:hsl(310 50% 45%)}
 </style>
 </head>
 <body>
@@ -1790,6 +1807,30 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
     </div>
     <div class="indigo-sep"></div>
     <?php endif; ?>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- S82.STUDIO.NAV — AI Studio entry           -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="ai-studio-row">
+      <a href="/ai-studio.php" class="glass sm ai-studio-btn" aria-label="AI Studio">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <span class="as-icon">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </span>
+        <span class="as-text">
+          <span class="as-label">AI Studio</span>
+          <?php if ($ai_studio_count > 0): ?>
+          <span class="as-sub">· <?= $ai_studio_count ?> чакат</span>
+          <?php else: ?>
+          <span class="as-sub">· каталог &amp; снимки</span>
+          <?php endif; ?>
+        </span>
+        <?php if ($ai_studio_count > 0): ?>
+        <span class="ai-studio-badge"><?= $ai_studio_count > 99 ? '99+' : $ai_studio_count ?></span>
+        <?php endif; ?>
+      </a>
+    </div>
 
     <!-- ═══════════════════════════════════════════ -->
     <!-- AI BRIEFING                                 -->
