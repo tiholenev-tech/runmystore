@@ -1688,6 +1688,90 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 .ai-studio-badge{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:linear-gradient(135deg,hsl(0 90% 60%),hsl(355 90% 55%));color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px hsl(0 90% 55% / .8),inset 0 1px 0 rgba(255,255,255,.3);border:2px solid var(--bg-main);z-index:10}
 html[data-theme="light"] .ai-studio-btn .as-label{color:hsl(310 70% 35%);text-shadow:0 0 6px hsl(310 60% 70% / .35)}
 html[data-theme="light"] .ai-studio-btn .as-sub{color:hsl(310 50% 45%)}
+
+/* ═══════════════════════════════════════════════════════
+   S82.VISUAL — chat.php Life Board redesign
+   Reference: chat-detailed-GLASS.html (Tihol-approved mockup)
+   ═══════════════════════════════════════════════════════ */
+.qd{--hue1:255;--hue2:222}
+.qw{--hue1:200;--hue2:220}
+.lb-card.q1{--hue1:0;--hue2:340}
+.lb-card.q2{--hue1:280;--hue2:300}
+.lb-card.q3{--hue1:140;--hue2:160}
+.lb-card.q4{--hue1:175;--hue2:195}
+.lb-card.q5{--hue1:38;--hue2:28}
+.lb-card.q6{--hue1:220;--hue2:230}
+.lb-silent.q3{--hue1:140;--hue2:160}
+
+.s82-dash{padding:12px 14px 10px;margin-bottom:12px}
+.s82-dash > *{position:relative;z-index:5}
+.s82-dash-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px}
+.s82-dash-period-label{font-size:7.5px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px}
+.s82-dash-store select{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:7px;color:hsl(var(--hue1) 70% 75%);font-size:8.5px;font-weight:700;padding:1px 6px;font-family:inherit;cursor:pointer;outline:none;max-width:140px;text-overflow:ellipsis}
+.s82-dash-numrow{display:flex;align-items:baseline;gap:5px;margin-bottom:2px;flex-wrap:wrap}
+.s82-dash-num{font-size:24px;font-weight:900;letter-spacing:-.7px;color:hsl(var(--hue1) 70% 82%);text-shadow:0 0 14px hsl(var(--hue1) 70% 50% / .35);font-variant-numeric:tabular-nums}
+.s82-dash-cur{font-size:10px;color:var(--text-muted);font-weight:700}
+.s82-dash-pct{font-size:13px;font-weight:800;color:#4ade80;text-shadow:0 0 10px hsl(140 80% 50% / .45)}
+.s82-dash-pct.neg{color:#ef4444;text-shadow:0 0 10px hsl(0 80% 50% / .35)}
+.s82-dash-pct.zero{color:#94a3b8;text-shadow:none}
+.s82-dash-meta{font-size:8.5px;color:var(--text-muted);margin-bottom:7px;font-weight:600;line-height:1.5}
+.s82-dash-pills{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.s82-dash-pill{font-size:8px;padding:5px 10px;min-height:22px;border-radius:8px;cursor:pointer;border:1px solid transparent;letter-spacing:.2px;font-weight:700;background:rgba(255,255,255,.025);color:var(--text-muted);font-family:inherit}
+.s82-dash-pill.active{background:hsl(var(--hue1) 70% 50% / .18);border-color:hsl(var(--hue1) 70% 55% / .35);color:hsl(var(--hue1) 75% 82%);text-shadow:0 0 6px hsl(var(--hue1) 80% 60% / .35)}
+.s82-dash-divider{width:1px;height:14px;background:rgba(255,255,255,.08);margin:0 4px;align-self:center}
+
+.s82-weather{padding:11px 14px;margin-bottom:12px}
+.s82-weather > *{position:relative;z-index:5}
+.s82-weather-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.s82-weather-left{display:flex;align-items:center;gap:7px}
+.s82-weather-icon{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,hsl(45 90% 60%),hsl(35 90% 50%));display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px hsl(45 80% 50% / .55),inset 0 1px 0 rgba(255,255,255,.3);flex-shrink:0}
+.s82-weather-icon svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.s82-weather-cond{font-size:11px;font-weight:800;color:hsl(200 70% 85%);text-shadow:0 0 8px hsl(200 70% 50% / .35)}
+.s82-weather-temp{font-size:22px;font-weight:900;color:hsl(200 75% 88%);text-shadow:0 0 12px hsl(200 70% 55% / .4);letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.s82-weather-meta{font-size:8.5px;color:var(--text-muted);margin-bottom:7px;font-weight:600}
+.s82-weather-sug{font-size:9.5px;color:var(--text-secondary);line-height:1.4;font-weight:500;margin-bottom:9px}
+.s82-weather-week{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}
+.s82-weather-week::-webkit-scrollbar{display:none}
+.s82-weather-day{flex:1;min-width:34px;text-align:center;padding:5px 2px;background:rgba(255,255,255,.025);border-radius:7px;border:1px solid rgba(255,255,255,.03)}
+.s82-weather-day-name{font-size:7px;color:var(--text-muted);font-weight:700;letter-spacing:.3px}
+.s82-weather-day-temp{font-size:11px;font-weight:800;color:hsl(200 60% 80%);margin:2px 0;text-shadow:0 0 4px hsl(200 70% 50% / .3);font-variant-numeric:tabular-nums}
+.s82-weather-day-rain{font-size:7px;font-weight:700}
+.s82-weather-day-rain.dry{color:var(--text-muted)}
+.s82-weather-day-rain.wet{color:hsl(200 80% 70%);text-shadow:0 0 4px hsl(200 70% 50% / .35)}
+
+.lb-header{display:flex;align-items:center;justify-content:space-between;margin:6px 4px 8px}
+.lb-title{display:flex;align-items:center;gap:6px}
+.lb-title svg{width:14px;height:14px;fill:hsl(var(--hue1) 70% 75%);filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .55))}
+.lb-title-text{font-size:11px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;color:hsl(var(--hue1) 65% 82%);text-shadow:0 0 8px hsl(var(--hue1) 70% 55% / .4)}
+.lb-count{font-size:8.5px;color:var(--text-muted);font-weight:700}
+
+.lb-card{padding:12px 14px 10px;margin-bottom:10px;animation:cardin .35s ease both}
+.lb-card > *{position:relative;z-index:5}
+.lb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
+.lb-fq-tag{display:flex;align-items:center;gap:6px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:hsl(var(--hue1) 70% 75%);text-shadow:0 0 6px hsl(var(--hue1) 70% 55% / .35)}
+.lb-fq-emoji{font-size:13px;filter:drop-shadow(0 0 5px hsl(var(--hue1) 80% 55% / .55));line-height:1}
+.lb-dismiss{width:28px;height:28px;min-width:28px;border-radius:50%;border:none;background:transparent;color:var(--text-muted);font-size:16px;cursor:pointer;line-height:1;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
+.lb-dismiss:hover{color:var(--text-primary);background:rgba(255,255,255,.05)}
+.lb-card-title{font-size:13.5px;font-weight:900;letter-spacing:-.2px;line-height:1.22;color:hsl(var(--hue1) 90% 88%);text-shadow:0 0 8px hsl(var(--hue1) 80% 55% / .35);margin-bottom:5px}
+.lb-body{font-size:10.5px;color:var(--text-secondary);line-height:1.45;font-weight:500;margin-bottom:11px}
+.lb-actions{display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap}
+.lb-action{flex:1;min-width:64px;font-size:9.5px;font-weight:800;padding:8px 8px;min-height:32px;border-radius:9px;border:1px solid hsl(var(--hue1) 50% 30% / .55);background:hsl(var(--hue1) 45% 14% / .8);color:hsl(var(--hue1) 80% 80%);cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:all .15s var(--ease);text-shadow:0 0 5px hsl(var(--hue1) 80% 55% / .25);text-decoration:none;text-align:center;display:inline-flex;align-items:center;justify-content:center}
+.lb-action:hover,.lb-action:active{background:hsl(var(--hue1) 55% 20% / .9);border-color:hsl(var(--hue1) 65% 50% / .75);color:hsl(var(--hue1) 90% 88%)}
+.lb-action.primary{background:linear-gradient(135deg,hsl(var(--hue1) 70% 38%),hsl(var(--hue1) 70% 25%));border-color:hsl(var(--hue1) 75% 60% / .85);color:hsl(var(--hue1) 95% 95%);box-shadow:0 0 12px hsl(var(--hue1) 75% 55% / .4),inset 0 1px 0 hsl(var(--hue1) 80% 70% / .3);text-shadow:0 0 8px hsl(var(--hue1) 90% 65% / .5)}
+.lb-feedback{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.lb-fb-label{font-size:8px;color:var(--text-muted);font-weight:700;margin-right:5px;letter-spacing:.3px}
+.lb-fb-btn{width:32px;height:32px;min-width:32px;border-radius:8px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.025);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:all .15s;line-height:1;padding:0}
+.lb-fb-btn:hover{background:rgba(255,255,255,.06);transform:scale(1.08)}
+.lb-fb-btn.selected{background:hsl(var(--hue1) 50% 25% / .7);border-color:hsl(var(--hue1) 60% 50% / .55);box-shadow:0 0 8px hsl(var(--hue1) 60% 50% / .4)}
+
+.lb-silent{padding:24px 16px;text-align:center;margin-bottom:9px}
+.lb-silent > *{position:relative;z-index:5}
+.lb-silent-icon{font-size:32px;margin-bottom:8px;filter:drop-shadow(0 0 12px hsl(140 70% 50% / .55))}
+.lb-silent-text{font-size:11.5px;font-weight:800;color:hsl(140 75% 80%);margin-bottom:4px;text-shadow:0 0 8px hsl(140 70% 50% / .4)}
+.lb-silent-sub{font-size:9px;color:var(--text-muted);font-weight:500;line-height:1.4}
+
+.lb-see-more{text-align:right;margin:6px 4px 14px}
+.lb-see-more button{font-size:9.5px;color:hsl(var(--hue1) 70% 75%);font-weight:800;text-decoration:none;cursor:pointer;text-shadow:0 0 6px hsl(var(--hue1) 70% 55% / .4);background:none;border:none;font-family:inherit;padding:8px 4px;min-height:32px}
 </style>
 </head>
 <body>
@@ -1700,116 +1784,95 @@ html[data-theme="light"] .ai-studio-btn .as-sub{color:hsl(310 50% 45%)}
     <?php include __DIR__ . '/partials/header.php'; ?>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- REVENUE CARD                                -->
+    <!-- S82.VISUAL — DASHBOARD GLASS CARD (qd)      -->
     <!-- ═══════════════════════════════════════════ -->
-    <div class="glass rev-card" style="animation:cardin .5s ease both">
+    <?php
+        $cmp_today = (int)cmpPct($d0['rev'], $d0p['rev']);
+        $cmp_class = $cmp_today > 0 ? '' : ($cmp_today < 0 ? 'neg' : 'zero');
+        $cmp_sign  = $cmp_today > 0 ? '+' : '';
+    ?>
+    <div class="glass sm s82-dash qd" style="animation:cardin .5s ease both">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="rev-head">
-            <div class="rev-label"><span id="revLabel">ДНЕС</span> <a class="rev-link" href="stats.php">Справки →</a></div>
+        <div class="s82-dash-top">
+            <span class="s82-dash-period-label"><span id="revLabel">ДНЕС</span> · <?= htmlspecialchars($store_name) ?></span>
             <?php if (count($all_stores) > 1): ?>
-            <div class="store-sel">
-                <select onchange="location.href='?store='+this.value">
+            <span class="s82-dash-store">
+                <select onchange="location.href='?store='+this.value" aria-label="Магазин">
                     <?php foreach ($all_stores as $st): ?>
                     <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <svg viewBox="0 0 24 24" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <?php else: ?>
-            <div class="store-sel"><?= htmlspecialchars($store_name) ?></div>
+            </span>
             <?php endif; ?>
         </div>
-        <div class="rev-big">
-            <div class="rev-val" id="revNum">0</div>
-            <div class="rev-cur"><?= $cs ?></div>
-            <div class="rev-change" id="revPct">+0%</div>
-            <span class="rev-vs" id="revVs"></span>
+        <div class="s82-dash-numrow">
+            <span class="s82-dash-num" id="revNum">0</span>
+            <span class="s82-dash-cur"><?= $cs ?></span>
+            <span class="s82-dash-pct <?= $cmp_class ?>" id="revPct"><?= $cmp_sign . $cmp_today ?>%</span>
+            <span class="s82-dash-cur" id="revVs" style="margin-left:4px"></span>
         </div>
-        <div class="rev-compare" id="revCmp"></div>
-        <div class="rev-meta" id="revMeta">0 продажби</div>
+        <div class="s82-dash-meta">
+            <span id="revMeta">0 продажби</span>
+            <span id="revCmp" style="display:inline"></span>
+        </div>
         <?php if ($role === 'owner' && $confidence_pct < 100): ?>
         <div class="conf-warn" id="confWarn" style="display:none">
             <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             Данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>)
         </div>
         <?php endif; ?>
-        <div class="rev-pills">
-            <div class="rev-pill-group">
-                <button class="rev-pill active" onclick="setPeriod('today',this)">Днес</button>
-                <button class="rev-pill" onclick="setPeriod('7d',this)">7 дни</button>
-                <button class="rev-pill" onclick="setPeriod('30d',this)">30 дни</button>
-                <button class="rev-pill" onclick="setPeriod('365d',this)">365 дни</button>
-            </div>
+        <div class="s82-dash-pills">
+            <button type="button" class="s82-dash-pill rev-pill active" onclick="setPeriod('today',this)">Днес</button>
+            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('7d',this)">7 дни</button>
+            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('30d',this)">30 дни</button>
+            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('365d',this)">365 дни</button>
             <?php if ($role === 'owner'): ?>
-            <div class="rev-divider"></div>
-            <div class="rev-pill-group">
-                <button class="rev-pill active" id="modeRev" onclick="setMode('rev')">Оборот</button>
-                <button class="rev-pill" id="modeProfit" onclick="setMode('profit')">Печалба</button>
-            </div>
+            <span class="s82-dash-divider"></span>
+            <button type="button" class="s82-dash-pill rev-pill active" id="modeRev" onclick="setMode('rev')">Оборот</button>
+            <button type="button" class="s82-dash-pill rev-pill" id="modeProfit" onclick="setMode('profit')">Печалба</button>
             <?php endif; ?>
         </div>
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- HEALTH BAR                                  -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="glass sm health">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <div class="health-lbl">Точност</div>
-        <div class="health-track"><div class="health-fill" style="width:<?= $health ?>%"></div></div>
-        <div class="health-pct" style="color:<?= $health >= 80 ? '#86efac' : ($health >= 50 ? '#fcd34d' : '#fca5a5') ?>"><?= $health ?>%</div>
-        <div class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй →</div>
-        <div class="health-info" onclick="document.getElementById('healthTip').classList.toggle('open')">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        </div>
-    </div>
-    <div class="health-tooltip" id="healthTip">
-        <b>Какво е AI Точност?</b><br>
-        Колко добре AI познава магазина ти. Расте когато:<br>
-        • Въведеш <b>доставни цени</b> на артикулите<br>
-        • <b>Преброиш</b> стоката по рафтовете<br>
-        • Получиш <b>доставка</b> с фактура<br><br>
-        По-висока точност = по-умни съвети от AI.
-    </div>
-
-    <div class="indigo-sep"></div>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- WEATHER CARD                                -->
+    <!-- S82.VISUAL — WEATHER GLASS CARD (qw)        -->
     <!-- ═══════════════════════════════════════════ -->
     <?php if ($weather_today): ?>
-    <div class="glass sm weather">
+    <div class="glass sm s82-weather qw">
         <span class="shine"></span><span class="shine shine-bottom"></span>
-        <div class="weather-head">
-            <div class="weather-left">
-                <svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg>
-                <div class="weather-condition"><?= wmoText((int)$weather_today['weather_code']) ?></div>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="s82-weather-top">
+            <div class="s82-weather-left">
+                <div class="s82-weather-icon"><svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg></div>
+                <span class="s82-weather-cond"><?= wmoText((int)$weather_today['weather_code']) ?></span>
             </div>
-            <div class="weather-temp"><?= round($weather_today['temp_max']) ?>°</div>
+            <span class="s82-weather-temp"><?= round($weather_today['temp_max']) ?>°</span>
         </div>
-        <div class="weather-range"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
-        <div class="weather-sug"><?= htmlspecialchars($weather_suggestion) ?></div>
+        <div class="s82-weather-meta"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
+        <?php if ($weather_suggestion): ?>
+        <div class="s82-weather-sug"><?= htmlspecialchars($weather_suggestion) ?></div>
+        <?php endif; ?>
         <?php if (count($weather_week) >= 7): ?>
-        <div class="weather-week">
+        <div class="s82-weather-week">
             <?php foreach (array_slice($weather_week, 1, 7) as $wd):
                 $dname = $bg_days_full[(int)date('w', strtotime($wd['forecast_date']))];
                 $rain = (int)$wd['precipitation_prob'];
+                $rain_cls = $rain > 50 ? 'wet' : 'dry';
             ?>
-            <div class="weather-day">
-                <div class="weather-day-name"><?= $dname ?></div>
-                <div class="weather-day-temp"><?= round($wd['temp_max']) ?>°</div>
-                <div class="weather-day-rain" style="color:<?= $rain > 50 ? '#60a5fa' : '#4b5563' ?>"><?= $rain ?>%</div>
+            <div class="s82-weather-day">
+                <div class="s82-weather-day-name"><?= $dname ?></div>
+                <div class="s82-weather-day-temp"><?= round($wd['temp_max']) ?>°</div>
+                <div class="s82-weather-day-rain <?= $rain_cls ?>"><?= $rain ?>%</div>
             </div>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
     </div>
-    <div class="indigo-sep"></div>
     <?php endif; ?>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.STUDIO.NAV — AI Studio entry           -->
+    <!-- S82.STUDIO.NAV — AI Studio entry (KEEP)    -->
     <!-- ═══════════════════════════════════════════ -->
     <div class="ai-studio-row">
       <a href="/ai-studio.php" class="glass sm ai-studio-btn" aria-label="AI Studio">
@@ -1833,123 +1896,87 @@ html[data-theme="light"] .ai-studio-btn .as-sub{color:hsl(310 50% 45%)}
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- AI BRIEFING                                 -->
+    <!-- S82.VISUAL — LIFE BOARD (6 fundamental q)  -->
     <!-- ═══════════════════════════════════════════ -->
-    <div class="ai-meta">
-        <svg viewBox="0 0 24 20" fill="none"><rect x="2" y="8" width="3" height="7" rx="1.5" fill="currentColor" opacity=".6"><animate attributeName="height" values="7;14;7" dur="1.2s" repeatCount="indefinite"/><animate attributeName="y" values="8;4;8" dur="1.2s" repeatCount="indefinite"/></rect><rect x="7" y="4" width="3" height="12" rx="1.5" fill="currentColor" opacity=".75"><animate attributeName="height" values="12;6;12" dur="1.2s" begin="0.15s" repeatCount="indefinite"/><animate attributeName="y" values="4;7;4" dur="1.2s" begin="0.15s" repeatCount="indefinite"/></rect><rect x="12" y="2" width="3" height="16" rx="1.5" fill="currentColor" opacity=".9"><animate attributeName="height" values="16;8;16" dur="1.2s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="y" values="2;6;2" dur="1.2s" begin="0.3s" repeatCount="indefinite"/></rect><rect x="17" y="5" width="3" height="10" rx="1.5" fill="currentColor" opacity=".7"><animate attributeName="height" values="10;14;10" dur="1.2s" begin="0.45s" repeatCount="indefinite"/><animate attributeName="y" values="5;3;5" dur="1.2s" begin="0.45s" repeatCount="indefinite"/></rect></svg>
-        <span class="ai-meta-lbl">AI</span>
-        <span class="ai-meta-time">· <?= date('H:i') ?></span>
-    </div>
-
-    <?php /* S79_P5_TOP_STRIP_HTML — proactive pills top strip */ if (!empty($proactive_pills)): ?>
-    <div class="top-strip">
-        <?php foreach ($proactive_pills as $pp):
-            $pp_q = match($pp['fundamental_question']){ 'loss'=>'q1', 'order'=>'q5', default=>'' };
-            $pp_val = (float)($pp['value_numeric'] ?? 0);
-            // S79.FIX: EU формат + правилна единица (пари vs брой)
-            $pp_money_topics = ['zero_stock_with_sales','selling_at_loss','seller_discount_killer','zombie_45d'];
-            $pp_is_money = in_array($pp['topic_id'] ?? '', $pp_money_topics, true);
-            $pp_val_str = $pp_val > 0
-                ? ($pp_is_money ? fmtMoney($pp_val, $cs) : fmtQty($pp_val))
-                : '';
-        ?>
-        <div class="top-pill <?= $pp_q ?>" data-topic="<?= htmlspecialchars($pp['topic_id'], ENT_QUOTES) ?>" data-cat="<?= htmlspecialchars($pp['category'] ?? '', ENT_QUOTES) ?>" data-pid="<?= (int)($pp['product_id'] ?? 0) ?>" onclick="proactivePillTap(this, '<?= htmlspecialchars(addslashes($pp['title']), ENT_QUOTES) ?>')">
-            <span class="tp-txt"><?= htmlspecialchars($pp['title']) ?></span>
-            <?php if ($pp_val_str): ?><span class="tp-val"><?= $pp_val_str ?></span><?php endif; ?>
+    <div class="lb-header">
+        <div class="lb-title">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span class="lb-title-text">Life Board</span>
         </div>
-        <?php endforeach; ?>
+        <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
     </div>
-    <?php endif; ?>
 
-    <?php if (!empty($briefing)): ?>
-    <!-- PRO: 6-by-fq narrative briefing (BIBLE §6.5) -->
-    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Ето пълната картина за днес:</div>
-        <?php
+    <?php if (!empty($briefing)):
         $fq_meta = [
-            'loss'       => ['q'=>'q1', 'emoji'=>'🔴', 'name'=>'КАКВО ГУБИШ'],
-            'loss_cause' => ['q'=>'q2', 'emoji'=>'🟣', 'name'=>'ОТ КАКВО ГУБИШ'],
-            'gain'       => ['q'=>'q3', 'emoji'=>'🟢', 'name'=>'КАКВО ПЕЧЕЛИШ'],
-            'gain_cause' => ['q'=>'q4', 'emoji'=>'🔷', 'name'=>'ОТ КАКВО ПЕЧЕЛИШ'],
-            'order'      => ['q'=>'q5', 'emoji'=>'🟡', 'name'=>'ПОРЪЧАЙ'],
-            'anti_order' => ['q'=>'q6', 'emoji'=>'⚫', 'name'=>'НЕ ПОРЪЧВАЙ'],
+            'loss'       => ['q'=>'q1', 'emoji'=>'🔴', 'name'=>'Какво губиш'],
+            'loss_cause' => ['q'=>'q2', 'emoji'=>'🟣', 'name'=>'От какво губиш'],
+            'gain'       => ['q'=>'q3', 'emoji'=>'🟢', 'name'=>'Какво печелиш'],
+            'gain_cause' => ['q'=>'q4', 'emoji'=>'💎', 'name'=>'От какво печелиш'],
+            'order'      => ['q'=>'q5', 'emoji'=>'🟡', 'name'=>'Поръчай'],
+            'anti_order' => ['q'=>'q6', 'emoji'=>'⚪', 'name'=>'НЕ поръчвай'],
         ];
-        // Find the original index in $all_insights_for_js by topic_id for openSignalDetail()
         $topic_to_idx = [];
         foreach ($all_insights_for_js as $idx => $v) {
             $topic_to_idx[$v['topicId']] = $idx;
         }
         foreach ($briefing as $ins):
             $fq = $ins['fundamental_question'];
-            $meta = $fq_meta[$fq];
+            $meta = $fq_meta[$fq] ?? ['q'=>'q3','emoji'=>'•','name'=>''];
             $action = insightAction($ins);
             $idx_in_all = $topic_to_idx[$ins['topic_id']] ?? 0;
-            // Extract sub-items (top 3 affected products)
-            $items = [];
-            if (!empty($ins['data_json'])) {
-                $dj = json_decode($ins['data_json'], true);
-                if (!empty($dj['products'])) {
-                    $items = array_slice($dj['products'], 0, 3);
-                }
-            }
-        ?>
-        <div class="briefing-section <?= $meta['q'] ?>">
-            <div class="briefing-head">
-                <span class="briefing-emoji"><?= $meta['emoji'] ?></span>
-                <span class="briefing-name"><?= $meta['name'] ?></span>
-            </div>
-            <div class="briefing-title"><?= htmlspecialchars($ins['title']) ?></div>
-            <?php if (!empty($ins['detail_text'])): ?>
-            <div class="briefing-detail"><?= htmlspecialchars($ins['detail_text']) ?></div>
-            <?php endif; ?>
-            <?php if (!empty($items)): ?>
-            <div class="briefing-items">
-                <?php foreach ($items as $it):
-                    $it_qty = isset($it['qty']) ? (int)$it['qty'] : null;
-                    $it_name = $it['name'] ?? '';
-                ?>
-                <div class="briefing-item">
-                    <span class="bi-dot"></span>
-                    <span class="bi-name"><?= htmlspecialchars($it_name) ?></span>
-                    <?php if ($it_qty !== null): ?>
-                    <span class="bi-qty"><?= $it_qty ?> бр</span>
-                    <?php endif; ?>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-            <div class="briefing-actions">
-                <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
-                <a href="<?= htmlspecialchars($action['url']) ?>" class="briefing-btn-primary"><?= htmlspecialchars($action['label']) ?> →</a>
-                <?php elseif ($action['type'] === 'order_draft'): ?>
-                <button class="briefing-btn-primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
-                <?php else: ?>
-                <button class="briefing-btn-primary" onclick="openChatQ('<?= htmlspecialchars(addslashes($ins['title']), ENT_QUOTES) ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
-                <?php endif; ?>
-                <button class="briefing-btn-secondary" onclick="openSignalDetail(<?= $idx_in_all ?>)">Детайли</button>
-            </div>
+            $title_js = htmlspecialchars(addslashes($ins['title']), ENT_QUOTES);
+    ?>
+    <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'], ENT_QUOTES) ?>">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-top">
+            <span class="lb-fq-tag"><span class="lb-fq-emoji"><?= $meta['emoji'] ?></span> <?= $meta['name'] ?></span>
+            <button type="button" class="lb-dismiss" aria-label="Скрий" onclick="lbDismissCard(event,this)">×</button>
         </div>
-        <?php endforeach; ?>
-        <?php if ($remaining > 0): ?>
-        <button class="sig-more" onclick="openSignalBrowser()">Виж всички <?= count($insights) ?> сигнала →</button>
+        <div class="lb-card-title"><?= htmlspecialchars($ins['title']) ?></div>
+        <?php if (!empty($ins['detail_text'])): ?>
+        <div class="lb-body"><?= htmlspecialchars($ins['detail_text']) ?></div>
         <?php endif; ?>
+        <div class="lb-actions">
+            <button type="button" class="lb-action" onclick="openChatQ('<?= $title_js ?>')">Защо?</button>
+            <button type="button" class="lb-action" onclick="openSignalDetail(<?= $idx_in_all ?>)">Покажи</button>
+            <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
+            <a class="lb-action primary" href="<?= htmlspecialchars($action['url']) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
+            <?php elseif ($action['type'] === 'order_draft'): ?>
+            <button type="button" class="lb-action primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
+            <?php else: ?>
+            <button type="button" class="lb-action primary" onclick="openChatQ('<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
+            <?php endif; ?>
+        </div>
+        <div class="lb-feedback">
+            <span class="lb-fb-label">Полезно?</span>
+            <button type="button" class="lb-fb-btn" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
+            <button type="button" class="lb-fb-btn" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
+            <button type="button" class="lb-fb-btn" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
+        </div>
     </div>
+    <?php endforeach; ?>
+    <?php if ($remaining > 0): ?>
+    <div class="lb-see-more"><button type="button" onclick="openSignalBrowser()">Виж още <?= $remaining ?> теми →</button></div>
+    <?php endif; ?>
 
     <?php elseif (!empty($ghost_pills)): ?>
-    <!-- START/FREE: Ghost pill teaser -->
-    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
+    <div class="glass sm lb-silent q3" style="animation:cardin .4s .1s ease both">
         <span class="shine"></span><span class="shine shine-bottom"></span>
-        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> AI има съвет за теб...</div>
-        <button class="ghost-pill" onclick="showToast('Включи PRO за AI съвети')">Включи PRO</button>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-silent-icon">✨</div>
+        <div class="lb-silent-text"><?= htmlspecialchars($greeting) ?></div>
+        <div class="lb-silent-sub">AI има съвет за теб — включи PRO за пълен brief.</div>
+        <div style="margin-top:10px"><button type="button" class="lb-action primary" onclick="showToast('Включи PRO за AI съвети')" style="padding:8px 18px">Включи PRO</button></div>
     </div>
 
     <?php else: ?>
-    <!-- No insights / 1/4 silence -->
-    <div class="glass ai-bubble" style="animation:cardin .4s .1s ease both">
+    <div class="glass sm lb-silent q3" style="animation:cardin .4s .1s ease both">
         <span class="shine"></span><span class="shine shine-bottom"></span>
-        <div class="ai-bubble-text"><?= htmlspecialchars($greeting) ?> Попитай каквото искаш — говори или пиши.</div>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-silent-icon">🌿</div>
+        <div class="lb-silent-text">Всичко върви добре днес</div>
+        <div class="lb-silent-sub"><?= htmlspecialchars($greeting) ?> Няма нищо спешно — попитай каквото искаш.</div>
     </div>
     <?php endif; ?>
 
@@ -2180,7 +2207,7 @@ function updateRevenue() {
     $('revNum').textContent = fmt(val);
     const pctEl = $('revPct');
     pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
-    pctEl.className = 'rev-change ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
+    pctEl.className = 's82-dash-pct ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
 
     const labels = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
     const vsLabels = { today: 'спрямо вчера', '7d': 'спрямо предните 7 дни', '30d': 'спрямо предните 30 дни', '365d': 'спрямо предната година' };
@@ -2198,11 +2225,32 @@ function updateRevenue() {
 
 function setPeriod(period, el) {
     curPeriod = period;
-    document.querySelectorAll('.rev-pill-group:first-child .rev-pill').forEach(p => {
+    // Period pills are the first 4 .rev-pill buttons (today/7d/30d/365d).
+    // Mode pills (Оборот/Печалба) carry an id (modeRev/modeProfit) — exclude them.
+    document.querySelectorAll('.rev-pill').forEach(p => {
+        if (p.id === 'modeRev' || p.id === 'modeProfit') return;
         p.classList.toggle('active', p === el);
     });
     updateRevenue();
     vib(7);
+}
+
+// S82.VISUAL — Life Board card helpers (visual-only, no backend)
+function lbSelectFeedback(e, btn){
+    e.stopPropagation();
+    var card = btn.closest('.lb-card'); if (!card) return;
+    card.querySelectorAll('.lb-fb-btn').forEach(function(b){ b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    if (navigator.vibrate) navigator.vibrate(8);
+}
+function lbDismissCard(e, btn){
+    e.stopPropagation();
+    var card = btn.closest('.lb-card'); if (!card) return;
+    card.style.transition = 'opacity .25s, transform .25s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(60px)';
+    setTimeout(function(){ card.style.display = 'none'; }, 260);
+    if (navigator.vibrate) navigator.vibrate(8);
 }
 
 function setMode(mode) {
