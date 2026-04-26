@@ -1,16 +1,10 @@
 """
-db_helpers.py — DB connection + safety guards за tools/diagnostic/
-
-Чете credentials от /etc/runmystore/db.env (KEY=VALUE format, без [section]).
-Никога hardcoded creds. Никога raw mysqli — само mysql.connector с context manager.
-
-Tenant guard: всяка destructive операция изисква tenant_id IN (7, 99).
-Production tenants (47 ЕНИ, future clients) винаги забранени.
+db_helpers.py — DB connection + safety guards (PyMySQL).
 """
-
 import os
 import sys
-import mysql.connector
+import pymysql
+import pymysql.cursors
 from contextlib import contextmanager
 
 ENV_PATH = '/etc/runmystore/db.env'
@@ -19,7 +13,6 @@ PRODUCTION_TENANTS = (47,)
 
 
 def parse_env(path: str = ENV_PATH) -> dict:
-    """Parse KEY=VALUE format file (no INI sections)."""
     if not os.path.exists(path):
         raise FileNotFoundError(f"DB env file not found: {path}")
     cfg = {}
@@ -35,31 +28,29 @@ def parse_env(path: str = ENV_PATH) -> dict:
     required = ['DB_USER', 'DB_PASS']
     missing = [k for k in required if not cfg.get(k)]
     if missing:
-        raise ValueError(f"Missing required env keys in {path}: {missing}")
+        raise ValueError(f"Missing required env keys: {missing}")
     cfg.setdefault('DB_HOST', '127.0.0.1')
     cfg.setdefault('DB_NAME', 'runmystore')
     cfg.setdefault('DB_PORT', '3306')
     return cfg
 
 
-def get_conn(autocommit: bool = False):
+def get_conn(autocommit: bool = False, dict_rows: bool = True):
     cfg = parse_env()
-    return mysql.connector.connect(
+    return pymysql.connect(
         host=cfg['DB_HOST'],
         port=int(cfg['DB_PORT']),
         user=cfg['DB_USER'],
         password=cfg['DB_PASS'],
         database=cfg['DB_NAME'],
         autocommit=autocommit,
-        use_unicode=True,
         charset='utf8mb4',
-        collation='utf8mb4_unicode_ci',
+        cursorclass=pymysql.cursors.DictCursor if dict_rows else pymysql.cursors.Cursor,
     )
 
 
 @contextmanager
 def conn_ctx(autocommit: bool = False):
-    """Context manager wrapper — ensures connection is always closed."""
     conn = get_conn(autocommit=autocommit)
     try:
         yield conn
@@ -72,7 +63,6 @@ def conn_ctx(autocommit: bool = False):
 
 @contextmanager
 def transaction():
-    """Begin transaction — auto-commit on success, rollback on exception."""
     conn = get_conn(autocommit=False)
     try:
         yield conn
@@ -91,39 +81,32 @@ def transaction():
 
 
 def assert_safe_tenant(tenant_id: int) -> None:
-    """Hard guard: refuse to operate on production tenants."""
     tid = int(tenant_id)
     if tid in PRODUCTION_TENANTS:
-        raise SystemExit(
-            f"ABORT: tenant_id={tid} is PRODUCTION. "
-            f"Diagnostic операции категорично забранени."
-        )
+        raise SystemExit(f"ABORT: tenant_id={tid} is PRODUCTION.")
     if tid not in ALLOWED_TENANTS:
-        raise SystemExit(
-            f"ABORT: tenant_id={tid} не е в разрешения списък {ALLOWED_TENANTS}. "
-            f"Diagnostic може да оперира САМО на 7 (test) или 99 (eval)."
-        )
+        raise SystemExit(f"ABORT: tenant_id={tid} not in {ALLOWED_TENANTS}.")
 
 
-def fetchone(sql: str, params: tuple = ()):
+def fetchone(sql, params=()):
     with conn_ctx(autocommit=True) as c:
-        cur = c.cursor(dictionary=True)
+        cur = c.cursor()
         cur.execute(sql, params)
         row = cur.fetchone()
         cur.close()
         return row
 
 
-def fetchall(sql: str, params: tuple = ()):
+def fetchall(sql, params=()):
     with conn_ctx(autocommit=True) as c:
-        cur = c.cursor(dictionary=True)
+        cur = c.cursor()
         cur.execute(sql, params)
         rows = cur.fetchall()
         cur.close()
         return rows
 
 
-def execute(sql: str, params: tuple = ()) -> int:
+def execute(sql, params=()):
     with transaction() as c:
         cur = c.cursor()
         cur.execute(sql, params)
@@ -133,10 +116,6 @@ def execute(sql: str, params: tuple = ()) -> int:
 
 
 def get_notify_config() -> dict:
-    """
-    Чете NOTIFY_EMAIL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID от db.env.
-    Връща празни stringове ако липсват — caller проверява.
-    """
     cfg = parse_env()
     return {
         'email': cfg.get('NOTIFY_EMAIL', ''),
@@ -146,36 +125,29 @@ def get_notify_config() -> dict:
 
 
 if __name__ == '__main__':
-    print("db_helpers.py self-test")
+    print("db_helpers self-test")
     print("=" * 60)
     try:
         cfg = parse_env()
-        print(f"  ✓ Parsed {ENV_PATH}: {len(cfg)} keys")
-        print(f"  - DB_HOST={cfg['DB_HOST']} DB_NAME={cfg['DB_NAME']} DB_USER={cfg['DB_USER'][:3]}***")
+        print(f"  Parsed env: {len(cfg)} keys (host={cfg['DB_HOST']}, db={cfg['DB_NAME']})")
         with conn_ctx(autocommit=True) as c:
             cur = c.cursor()
-            cur.execute("SELECT VERSION(), DATABASE()")
-            ver, db = cur.fetchone()
-            print(f"  ✓ Connected: MySQL {ver}, db={db}")
+            cur.execute("SELECT VERSION() AS v, DATABASE() AS d")
+            r = cur.fetchone()
+            print(f"  Connected: MySQL {r['v']}, db={r['d']}")
             cur.execute("SHOW TABLES LIKE 'seed_oracle'")
-            so = cur.fetchone()
-            print(f"  - seed_oracle exists: {bool(so)}")
+            print(f"  seed_oracle: {bool(cur.fetchone())}")
             cur.execute("SHOW TABLES LIKE 'diagnostic_log'")
-            dl = cur.fetchone()
-            print(f"  - diagnostic_log exists: {bool(dl)}")
-        nc = get_notify_config()
-        print(f"  - NOTIFY_EMAIL: {'set' if nc['email'] else 'EMPTY (placeholder)'}")
-        print(f"  - TELEGRAM_BOT_TOKEN: {'set' if nc['telegram_token'] else 'EMPTY (placeholder)'}")
-        print(f"  - TELEGRAM_CHAT_ID: {'set' if nc['telegram_chat_id'] else 'EMPTY (placeholder)'}")
+            print(f"  diagnostic_log: {bool(cur.fetchone())}")
         try:
             assert_safe_tenant(47)
-            print("  ✗ FAIL: tenant=47 трябваше да бъде отхвърлен")
+            print("  FAIL: tenant=47 should be rejected")
             sys.exit(1)
         except SystemExit:
-            print("  ✓ Tenant guard работи (47 → ABORT)")
+            print("  Tenant guard OK (47 -> ABORT)")
         assert_safe_tenant(7)
-        print("  ✓ Tenant guard работи (7 → OK)")
-        print("\nALL CHECKS PASSED ✅")
+        print("  Tenant guard OK (7 -> OK)")
+        print("\nALL CHECKS PASSED")
     except Exception as e:
-        print(f"\n✗ FAILED: {e}")
+        print(f"\nFAILED: {type(e).__name__}: {e}")
         sys.exit(1)

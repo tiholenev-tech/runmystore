@@ -150,32 +150,16 @@ def run(args) -> int:
     results = []
     for s in scenarios:
         actual = fetch_actual_insights(tenant_id, s['expected_topic'])
-        # S80: Reconstruct payload от отделните DB колони (real schema)
-        payload = {}
-        if s.get('expected_product_id') is not None:
-            payload['product_id'] = int(s['expected_product_id'])
-        if s.get('expected_partner_product_id') is not None:
-            payload['a'] = int(s.get('expected_product_id') or 0)
-            payload['b'] = int(s['expected_partner_product_id'])
-        if s.get('expected_user_id') is not None:
-            payload['user_id'] = int(s['expected_user_id'])
-        if s.get('expected_customer_id') is not None:
-            payload['customer_id'] = int(s['expected_customer_id'])
-        if s.get('expected_rank_within') is not None:
-            payload['rank_max'] = int(s['expected_rank_within'])
-        if s.get('expected_value_min') is not None:
-            payload['min'] = float(s['expected_value_min'])
-        if s.get('expected_value_max') is not None:
-            payload['max'] = float(s['expected_value_max'])
-        # Recover original 'field' за value_range от may_also_appear_in
-        if s.get('verification_type') == 'value_range' and s.get('expected_may_also_appear_in'):
+        payload = s.get('verification_payload')
+        if isinstance(payload, (bytes, bytearray)):
+            payload = json.loads(payload.decode('utf-8'))
+        elif isinstance(payload, str) and payload:
             try:
-                meta = json.loads(s['expected_may_also_appear_in'])
-                if isinstance(meta, dict) and isinstance(meta.get('orig_payload'), dict):
-                    if meta['orig_payload'].get('field'):
-                        payload['field'] = meta['orig_payload']['field']
-            except Exception:
-                pass
+                payload = json.loads(payload)
+            except:
+                payload = {}
+        elif payload is None:
+            payload = {}
         passed, reason = verify(
             s['verification_type'], actual, payload, int(s['expected_should_appear'])
         )
@@ -271,7 +255,7 @@ def main():
     ap.add_argument('--trigger', default='manual',
                     choices=['manual','cron_weekly','cron_monthly',
                              'module_commit','user_command','milestone','suspicion'])
-    ap.add_argument('--tenant', default='99', type=str)
+    ap.add_argument('--tenant', default='7', type=str)
     ap.add_argument('--pristine', action='store_true', help="Wipe test products преди seed (RQ-S79-4)")
     ap.add_argument('--scenario', default=None, help="Run single scenario by code")
     ap.add_argument('--orchestrated', action='store_true', help="JSON output for Claude Code")
