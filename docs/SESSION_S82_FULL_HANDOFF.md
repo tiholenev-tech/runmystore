@@ -216,13 +216,17 @@ Throughout this session a parallel **S81.DIAG.VERIFY** Claude was committing in 
 
 ## 11. TODO FOR NEXT CLAUDE SESSION
 
-If picking this up:
+### ✅ Completed in this session (post-handoff additions)
+
+- **STUDIO.NAV** (`v0.7.31-s82-studio-nav-entry`) — added "AI Studio" entry button to `chat.php` between weather card and AI Briefing. Magenta glow (.qs hue 310/290) glass card matching `chat-detailed-GLASS.html` mockup. Shows live count of products awaiting bg removal OR description (badge appears only when count > 0). Tap → `/ai-studio.php`. Selective add (chat.php + this handoff doc only).
+
+### If picking this up next
 
 1. **Read** `/root/ai-studio-categories.html` (STUDIO.12 mockup)
 2. **Read** `/var/www/runmystore/products.php` lines 6800–7100 (current AI Studio modal)
 3. **Replace** `studioRenderSections()` body with the new mockup structure
 4. **Add** Стандартно/Настрой toggle + 5 category chips + 6 model grid (when Настрой mode)
 5. **Wire** generate buttons to call `ai-image-processor.php` (will need new endpoint when nano-banana is added)
-6. **Test** on tenant=7 (god mode), commit, tag v0.7.31-s82-studio-12
+6. **Test** on tenant=7 (god mode), commit, tag v0.7.32-s82-studio-12
 
 Backup before STUDIO.12 starts: `cp products.php /root/products.S82.STUDIO.12.bak.HHMMSS`
