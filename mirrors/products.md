@@ -1544,6 +1544,26 @@ body::before{
 .cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
 .cam-tip-btn{padding:13px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
 
+/* S82.COLOR.15: live <video> + camera-picker UI */
+.cam-loop-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.cam-picker{display:flex;flex-direction:column;gap:14px;padding:20px;width:100%;max-width:420px;align-items:stretch}
+.cam-picker-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
+.cam-picker-sub{font-size:12px;color:rgba(233,213,255,0.65);text-align:center;line-height:1.55;padding:0 8px}
+.cam-picker-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.cam-picker-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.25)}
+.cam-picker-item-info{display:flex;flex-direction:column;gap:2px}
+.cam-picker-item-name{font-size:13px;font-weight:700;color:#fff;word-break:break-word}
+.cam-picker-item-sub{font-size:10.5px;color:rgba(233,213,255,0.55)}
+.cam-picker-item-actions{display:flex;gap:6px}
+.cam-picker-test,.cam-picker-save{flex:1;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
+.cam-picker-test{background:rgba(255,255,255,0.08);color:#e9d5ff;border:1px solid rgba(255,255,255,0.12)}
+.cam-picker-save{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,0.35)}
+.cam-picker-test-bar{position:absolute;bottom:14px;left:14px;right:14px;display:flex;gap:8px;z-index:2}
+.cam-picker-back,.cam-picker-use{flex:1;padding:11px 14px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.cam-picker-back{background:rgba(0,0,0,0.5);color:#fff;border:1px solid rgba(255,255,255,0.15)}
+.cam-picker-use{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 14px rgba(22,163,74,0.4)}
+.cam-change-link{position:absolute;bottom:calc(80px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:100px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1}
+
 /* AI Vision processing overlay — fullscreen, sits ABOVE the wizard */
 .ai-working-ov{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:10000;display:flex;align-items:center;justify-content:center;animation:aiOvFade 0.22s ease;padding:20px}
 @keyframes aiOvFade{from{opacity:0}to{opacity:1}}
