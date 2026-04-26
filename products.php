@@ -1544,7 +1544,21 @@ body::before{
 .cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
 .cam-tip-btn{padding:13px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
 
-/* S82.COLOR.16: super-friendly first-time camera setup card for 50+yo non-tech users */
+/* S82.COLOR.17: compact one-line camera tip in the picker drawer */
+.cam-drawer-tip{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;margin-bottom:12px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,0.14),rgba(99,102,241,0.07));border:1px solid rgba(139,92,246,0.32);position:relative;overflow:hidden;animation:tipFadeIn 0.4s ease-out}
+.cam-drawer-tip::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(167,139,250,0.08) 50%,transparent 70%);background-size:200% 200%;animation:tipShine 4s ease-in-out infinite;pointer-events:none}
+@keyframes tipFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tipShine{0%,100%{background-position:200% 200%}50%{background-position:0% 0%}}
+.cam-drawer-tip-icon{font-size:22px;flex-shrink:0;line-height:1.2;animation:tipIconPulse 2.4s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(251,191,36,0.6))}
+@keyframes tipIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.cam-drawer-tip-text{font-size:11.5px;color:rgba(233,213,255,0.82);line-height:1.55;font-weight:500;flex:1;min-width:0;position:relative}
+.cam-drawer-tip-text b{color:#fff;font-weight:700}
+.cam-drawer-tip-app{display:inline-block;padding:1px 6px;margin:0 1px;border-radius:5px;background:rgba(167,139,250,0.22);font-size:11px;font-weight:700;border:1px solid rgba(167,139,250,0.35);color:#fff;white-space:nowrap}
+.cam-drawer-tip-or{display:inline-block;color:rgba(233,213,255,0.6);font-size:11px}
+.cam-drawer-tip-flip{display:inline-block;font-size:13px;animation:tipFlipRot 2.6s linear infinite;vertical-align:middle}
+@keyframes tipFlipRot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* S82.COLOR.16: super-friendly first-time camera setup card (now unused but kept inert) */
 .cam-setup{display:flex;flex-direction:column;gap:16px;padding:24px 20px 20px;max-width:420px;width:100%;overflow-y:auto;max-height:90vh}
 .cam-setup-header{text-align:center;margin-bottom:6px}
 .cam-setup-emoji{font-size:48px;margin-bottom:8px;animation:setupBounce 2.4s ease-in-out infinite}
@@ -6236,6 +6250,13 @@ function wizPhotoMultiPick() {
     dr.onclick = function(e) { if (e.target === dr) dr.remove(); };
     dr.innerHTML = '<div style="background:var(--bg-card,#0a0b14);border:1px solid var(--border-subtle);border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0));width:100%;max-width:480px">' +
         '<div style="font-size:13px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:12px">Добави снимка</div>' +
+        '<div class="cam-drawer-tip">' +
+            '<div class="cam-drawer-tip-icon">💡</div>' +
+            '<div class="cam-drawer-tip-text">' +
+                '<b>Ако се отвори селфи камерата:</b> излез, обърни я веднъж в нормалната <span class="cam-drawer-tip-app">📷 Camera</span> и Самсунг ще запомни задната завинаги. ' +
+                '<span class="cam-drawer-tip-or">Иначе — обръщай я с <span class="cam-drawer-tip-flip">🔄</span> в Camera всеки път.</span>' +
+            '</div>' +
+        '</div>' +
         '<div style="display:flex;gap:8px">' +
             '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
             '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
@@ -6260,21 +6281,15 @@ function wizPhotoMultiGalleryPick() {
 }
 
 // S82.COLOR.11: native Samsung Camera per shot (real HDR / scene optimizer)
-// S82.COLOR.16: native phone camera (full Samsung HDR/scene optimizer)
-// + super-friendly first-time setup wizard for 50+ year old non-tech users
-// + 1000px @ q=0.80 downscale (~80 KB per photo, RIOT-equivalent for storage cost).
+// S82.COLOR.17: native phone camera (full Samsung HDR) + drawer-level tip
+// + 1000px @ q=0.80 downscale (~80 KB per photo).
 //
-// Auto-flip is impossible from web sandbox — confirmed across 15 iterations.
-// Solution: teach user ONCE how Samsung Camera persistence works (last-used
-// camera in normal-mode launch becomes default for intent-mode launches).
+// User feedback on COLOR.16 fullscreen setup wizard: "много е сложно" — too
+// heavy for a 50+yo workflow. Solution: keep the camera loop minimal (just
+// open native camera immediately), and put a one-line friendly tip ABOVE
+// the Снимай/Галерия buttons in the picker drawer where the user actually
+// reads it BEFORE tapping Снимай.
 var _camPending = null;
-
-function _camSetupSeen() {
-    try { return !!localStorage.getItem('_rms_cam_setup_done'); } catch(e) { return false; }
-}
-function _camSetupMark() {
-    try { localStorage.setItem('_rms_cam_setup_done', '1'); } catch(e) {}
-}
 
 function wizPhotoCameraLoop() {
     if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
@@ -6289,71 +6304,8 @@ function wizPhotoCameraLoop() {
         '<div class="cam-loop-controls" id="rmsCamControls"></div>';
     document.body.appendChild(ov);
     document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
-    if (_camSetupSeen()) {
-        // Returning user — straight to camera.
-        wizCamRenderEmpty();
-        wizCamShoot();
-    } else {
-        wizCamShowSetup();
-    }
-}
-
-// === Super-friendly first-time setup card ===
-function wizCamShowSetup() {
-    var stage = document.getElementById('rmsCamStage');
-    if (stage) {
-        stage.innerHTML =
-            '<div class="cam-setup">' +
-                '<div class="cam-setup-header">' +
-                    '<div class="cam-setup-emoji">📸</div>' +
-                    '<div class="cam-setup-title">Здравей! Първа настройка</div>' +
-                    '<div class="cam-setup-sub">Само 3 лесни стъпки и забравяш завинаги ✨</div>' +
-                '</div>' +
-                '<div class="cam-setup-steps">' +
-                    '<div class="cam-setup-step" style="animation-delay:0.1s">' +
-                        '<div class="cam-setup-num">1</div>' +
-                        '<div class="cam-setup-step-body">' +
-                            '<div class="cam-setup-step-title">Излез от това приложение</div>' +
-                            '<div class="cam-setup-step-desc">Натисни Home бутона на телефона <span class="cam-setup-tap">⌂</span></div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="cam-setup-step" style="animation-delay:0.3s">' +
-                        '<div class="cam-setup-num">2</div>' +
-                        '<div class="cam-setup-step-body">' +
-                            '<div class="cam-setup-step-title">Отвори <span class="cam-setup-app">📷 Camera</span></div>' +
-                            '<div class="cam-setup-step-desc">От началния екран — нормалната камера на телефона</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="cam-setup-step" style="animation-delay:0.5s">' +
-                        '<div class="cam-setup-num">3</div>' +
-                        '<div class="cam-setup-step-body">' +
-                            '<div class="cam-setup-step-title">Снимай 1 пробна <span class="cam-setup-flip">🔄</span> със ЗАДНА камера</div>' +
-                            '<div class="cam-setup-step-desc">Каквото и да е — масата, ръката си. Важното е да е <b>задната</b> камера (тази която гледа напред, не към лицето ти)</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="cam-setup-finale" style="animation-delay:0.75s">' +
-                    '<div class="cam-setup-finale-icon">🎉</div>' +
-                    '<div class="cam-setup-finale-text">Готово! Сега камерата тук винаги ще е <b>задна</b>.</div>' +
-                '</div>' +
-                '<button type="button" class="cam-setup-done-btn" onclick="wizCamSetupDone()" style="animation-delay:0.9s">' +
-                    'Хайде, опитваме!' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
-                '</button>' +
-                '<button type="button" class="cam-setup-skip" onclick="wizCamSetupDone()">Пропусни — вече знам</button>' +
-            '</div>';
-    }
-    var ctl = document.getElementById('rmsCamControls');
-    if (ctl) {
-        ctl.innerHTML =
-            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
-    }
-}
-
-function wizCamSetupDone() {
-    _camSetupMark();
     wizCamRenderEmpty();
-    wizCamShoot();
+    wizCamShoot(); // straight to native camera
 }
 
 function wizCamRenderEmpty() {
