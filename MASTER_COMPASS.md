@@ -1390,8 +1390,8 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 3 | chat.php AI prompts | 19.04.2026 (AI tag per insight) | build-prompt.php добавя fundamental_question в context | **S79 ✅ done 22.04.2026** | ✅ closed |
 | 9 | chat.php Signal Detail | 22.04.2026 (S79 S79.FIX) | Добави fq-badge (q1-q6) в overlay header + priceFormat/qtyFormat в top-pill values | S79.FIX или CHAT 4 rewrite | ⏳ pending |
 | 10 | chat.php visual | 22.04.2026 (home-neon-v2 approved) | Пълен CSS rewrite към home-neon-v2 дизайн, запазвайки S79 PHP логика | CHAT 4 | ⏳ pending |
-| 4 | ВСИЧКИ модули — currency format | 17.04.2026 (i18n) | Замяна hardcoded "лв"/"€" с `priceFormat($amount, $tenant)` | S96 | ⏳ pending |
-| 5 | ВСИЧКИ модули — BG текст | 17.04.2026 (i18n) | Замяна с `t('key')` или $tenant['language'] check | S96 | ⏳ pending |
+| 4 | ВСИЧКИ модули — currency format | 17.04.2026 (i18n) | Замяна hardcoded "лв"/"€" с `priceFormat($amount, $tenant)` | S96 | 📋 audited 27.04.2026 (S87) — 206 sites; report: `docs/I18N_AUDIT_REPORT.md` §5; awaiting remediation (~6-10h mechanical) |
+| 5 | ВСИЧКИ модули — BG текст | 17.04.2026 (i18n) | Замяна с `t('key')` или $tenant['language'] check | S96 | 📋 audited 27.04.2026 (S87) — 3,764 BG_STRING + 141 LOCALE; 80 reusable t() keys; report: `docs/I18N_AUDIT_REPORT.md`; awaiting remediation (Phase B 17-22h + Phase 1 110-180h) |
 | 6 | products.php wizard state | 16.04.2026 (4 стъпки FINAL) | Премахни стария 3-accordion код остатъци | S80 | ⏳ pending |
 | 7 | warehouse.php navigation | 19.04.2026 (hub архитектура) | Всеки подмодул има breadcrumb "← Склад › [Име]" | S87 | ⏳ pending |
 | 8 | orders.php bottom nav | 19.04.2026 (orders НЕ е tab) | 4 таба bottom nav, НЕ 5 | S83 | ⏳ pending |

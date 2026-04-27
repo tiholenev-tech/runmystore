@@ -88,6 +88,7 @@
 - **S85.DIAG.FIX (27.04):** ✅ DONE — Cat A=100%/D=100% (51/51 PASS); pfHighestMargin escalated
 - **S87-S91 (4-8 май):** sale.php rewrite + transfers + inventory v4 + deliveries + orders
 - 📋 `docs/SALE_REWRITE_PLAN.md` ready for S87 (target 4 май) — 503 реда, 15 steps, 20 tests, 12 risks, 10 open Qs; flag-ва 3 broken sales/sale_items columns в текущ sale.php
+- 📋 I18N audit complete (5,204 violations across 75 files; products.php + products_fetch.php = 42%; 80 reusable t() keys identified) — see `docs/I18N_AUDIT_REPORT.md` + `docs/I18N_AUDIT_DATA.json`. Remediation TBD post-beta: Phase B 17-22h, Phase 1 110-180h. Closes COMPASS REWORK QUEUE #4+#5 analysis.
 - **S95 (14-15 май):** ENI launch (FIXED)
 
 Виж `docs/NEXT_SESSIONS_PLAN_27042026.md` за пълен 15-сесиен план.
