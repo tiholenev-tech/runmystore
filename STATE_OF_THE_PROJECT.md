@@ -62,7 +62,7 @@
 |---|---|---|---|
 | 1 | Toggle "Опростен →" в chat.php header — UNVERIFIED дали е visible бутон (Code #1 направи toggle само в life-board.php → chat.php, не bidirectional) | 🟡 P1 | S83 sutrin |
 | 3 | AI Studio modal в wizard step 5 — UNVERIFIED дали е новия дизайн (STUDIO.12 v0.7.23 беше mockup approval, не code merge) | 🟡 P1 | S83 verify |
-| 4 | Diagnostic Cat A=47.83% / D=21.43% (S81 pre-existing) — schema apply без 100% наруши Rule #21 | 🔴 P0 за beta | S85.DIAG.FIX |
+| 4 | Diagnostic Cat A=100% / D=100% (51/51 PASS, run #18) — S85.DIAG.FIX resolved | 🟢 RESOLVED 27.04.2026 | ✅ done; 1 PHP question escalated в `tools/diagnostic/REAL_BUGS_FOUND.md` §1 (pfHighestMargin sales filter) |
 | 5 | products.php 3 P0 bugs (от старите S78) — main nav buttons, Step 0 wizard call, mobile file picker | 🟡 P1 | S84 |
 | 6 | products.php Phase B (Step 3 redesign) — open task | 🟢 P2 | S84+ |
 | 7 | products.php Phase C (Step 4 color rows list) — open task | 🟢 P2 | S84+ |
@@ -76,7 +76,7 @@
 
 - **S83 (днес 27.04):** Real product entry tenant=7, минимум 50 артикула
 - **S84 (28.04):** BUGFIX BATCH + STUDIO.REWIRE
-- **S85 (29.04):** DIAGNOSTIC FIX (Cat A=100%/D=100%)
+- **S85.DIAG.FIX (27.04):** ✅ DONE — Cat A=100%/D=100% (51/51 PASS); pfHighestMargin escalated
 - **S87-S91 (4-8 май):** sale.php rewrite + transfers + inventory v4 + deliveries + orders
 - **S95 (14-15 май):** ENI launch (FIXED)
 
