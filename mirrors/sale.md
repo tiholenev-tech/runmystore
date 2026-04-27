@@ -846,7 +846,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 <div class="undo-bar" id="undoBar">
     <span class="undo-text" id="undoText"></span>
-    <button class="undo-btn" id="undoBtn">ОТМЕНИ</button>
+    <button class="undo-btn s87v3-tap" id="undoBtn">ОТМЕНИ</button>
 </div>
 
 <div class="rec-ov" id="recOv">
@@ -858,8 +858,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <div class="rec-transcript empty" id="recTranscript">Слушам...</div>
         <div class="rec-hint" id="recHint">Кажете артикул, количество или команда</div>
         <div class="rec-actions">
-            <button class="rec-btn-cancel" id="recCancel">Затвори</button>
-            <button class="rec-btn-send" id="recSend" disabled>🎤 Изпрати →</button>
+            <button class="rec-btn-cancel s87v3-tap" id="recCancel">Затвори</button>
+            <button class="rec-btn-send s87v3-tap" id="recSend" disabled>🎤 Изпрати →</button>
         </div>
     </div>
 </div>
@@ -882,8 +882,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <button class="lp-num" onclick="lpNum('⌫')">⌫</button>
     </div>
     <div class="lp-actions">
-        <button class="lp-cancel" onclick="closeLpPopup()">Откажи</button>
-        <button class="lp-ok" onclick="confirmLpPopup()">OK</button>
+        <button class="lp-cancel s87v3-tap" onclick="closeLpPopup()">Откажи</button>
+        <button class="lp-ok s87v3-tap" onclick="confirmLpPopup()">OK</button>
     </div>
 </div>
 
@@ -2250,6 +2250,46 @@ document.addEventListener('DOMContentLoaded', () => {
 const blinkStyle = document.createElement('style');
 blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}';
 document.head.appendChild(blinkStyle);
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable JS (idempotent)  */
+/* sale.php: numpad/keyboard untouched (rapid input) */
+/* ───────────────────────────────────────────── */
+(function s87v3_init(){
+    if (window.__s87v3_loaded) return;
+    window.__s87v3_loaded = true;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) {
+        var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+        var lastScroll = 0;
+        window.addEventListener('scroll', function(){
+            var y = window.scrollY;
+            if (headerEl) {
+                if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+                else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+            }
+            lastScroll = y;
+        }, { passive: true });
+    }
+    if (!reduced) {
+        var attachTap = function(){
+            document.querySelectorAll('.s87v3-tap').forEach(function(el){
+                if (el.__s87v3_tap) return;
+                el.__s87v3_tap = true;
+                var handler = function(){
+                    el.classList.remove('s87v3-released');
+                    void el.offsetWidth;
+                    el.classList.add('s87v3-released');
+                    setTimeout(function(){ el.classList.remove('s87v3-released'); }, 400);
+                };
+                el.addEventListener('touchend', handler, { passive: true });
+                el.addEventListener('mouseup', handler);
+            });
+        };
+        if (document.readyState !== 'loading') attachTap();
+        else document.addEventListener('DOMContentLoaded', attachTap);
+    }
+})();
 </script>
 
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
