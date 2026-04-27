@@ -36,10 +36,15 @@
 (function(window) {
   'use strict';
 
-  // BLE Service UUIDs (TSPL-compatible printers)
+  // BLE Service UUIDs (TSPL-compatible printers).
+  // ВНИМАНИЕ: D520BT advertise-ва af30 в scan packet, но при GATT connect
+  // експозира DIFFERENT services — actual data service е ff00 (Phomemo standard).
+  // Затова списъкът съдържа и двата: af30 (за scan filter в picker-а),
+  // ff00 (за discoverWriteEndpoint след connect).
   const SERVICE_UUIDS = [
     '000018f0-0000-1000-8000-00805f9b34fb',  // DTM-5811 (TSPL)
-    '0000af30-0000-1000-8000-00805f9b34fb'   // D520BT, Phomemo GT01 family (TSPL)
+    '0000ff00-0000-1000-8000-00805f9b34fb',  // D520BT data service (Phomemo standard) — priority
+    '0000af30-0000-1000-8000-00805f9b34fb'   // D520BT advertisement (GT01 family) — fallback
   ];
   // DTM-5811 known write characteristic — за други принтери discover-ваме dynamically
   const DTM_SERVICE_UUID  = '000018f0-0000-1000-8000-00805f9b34fb';
@@ -107,42 +112,49 @@
     return String(a || '').toLowerCase() === String(b || '').toLowerCase();
   }
 
-  // След connect — намира service от SERVICE_UUIDS и writable char.
-  // За DTM-5811 (000018f0) — пропуска scan-а и ползва известния 00002af1.
-  // За D520BT (0000af30) и нови принтери — discover-ва writable char.
-  // Връща { serviceUuid, writeCharUuid }.
+  // След connect — итерира SERVICE_UUIDS в priority order и за първия,
+  // който device-ът експозира, намира writable characteristic.
+  // 18f0 → ползва известния DTM_WRITE_CHAR_UUID (без scan на chars).
+  // ff00, af30 → discover-ва char с WRITE или WRITE_NO_RESPONSE.
+  // Логва всеки опит в overlay (Тихол вижда какво е пробвано).
   async function discoverWriteEndpoint(ble, deviceId, deviceName) {
     const services = await ble.getServices(deviceId);
-    let matched = null;
-    for (const svc of (services || [])) {
-      for (const known of SERVICE_UUIDS) {
-        if (uuidEq(svc.uuid, known)) { matched = svc; break; }
+    const presentUuids = (services || []).map(function(s){ return String(s.uuid).toLowerCase(); });
+    dbgLog('[D520BT-DEBUG] Device ' + (deviceName || '(no name)')
+      + ' exposes ' + presentUuids.length + ' services: ' + presentUuids.join(', '));
+
+    let chosen = null;
+    for (const known of SERVICE_UUIDS) {
+      const svc = (services || []).find(function(s){ return uuidEq(s.uuid, known); });
+      if (!svc) {
+        dbgLog('[D520BT-DEBUG]   try ' + known + ' — not exposed');
+        continue;
       }
-      if (matched) break;
-    }
-    if (!matched) {
-      const list = (services || []).map(function(s){ return s.uuid; }).join(', ');
-      throw new Error('Принтерът не advertise-ва TSPL service UUID. Намерени: ' + list);
+      if (uuidEq(known, DTM_SERVICE_UUID)) {
+        dbgLog('[D520BT-DEBUG]   try ' + known + ' — DTM service, use known writeChar ' + DTM_WRITE_CHAR_UUID);
+        chosen = { serviceUuid: svc.uuid, writeCharUuid: DTM_WRITE_CHAR_UUID };
+        break;
+      }
+      let writable = null;
+      for (const ch of (svc.characteristics || [])) {
+        const p = ch.properties || {};
+        if (p.write || p.writeWithoutResponse) { writable = ch; break; }
+      }
+      if (writable) {
+        dbgLog('[D520BT-DEBUG]   try ' + known + ' — FOUND writable char ' + writable.uuid);
+        chosen = { serviceUuid: svc.uuid, writeCharUuid: writable.uuid };
+        break;
+      }
+      dbgLog('[D520BT-DEBUG]   try ' + known + ' — present but NO writable char');
     }
 
-    let writeCharUuid = null;
-    if (uuidEq(matched.uuid, DTM_SERVICE_UUID)) {
-      writeCharUuid = DTM_WRITE_CHAR_UUID;
-    } else {
-      for (const ch of (matched.characteristics || [])) {
-        const p = ch.properties || {};
-        if (p.write || p.writeWithoutResponse) {
-          writeCharUuid = ch.uuid;
-          break;
-        }
-      }
+    if (!chosen) {
+      throw new Error('Не е намерен writable endpoint в TSPL services. Device exposes: '
+        + presentUuids.join(', '));
     }
-    if (!writeCharUuid) {
-      throw new Error('Не е намерена writable characteristic в service ' + matched.uuid);
-    }
-    dbgLog('[D520BT-DEBUG] Connected device ' + (deviceName || '(no name)')
-      + ': service=' + matched.uuid + ', writeChar=' + writeCharUuid);
-    return { serviceUuid: matched.uuid, writeCharUuid: writeCharUuid };
+    dbgLog('[D520BT-DEBUG] Selected ' + (deviceName || '(no name)')
+      + ': service=' + chosen.serviceUuid + ', writeChar=' + chosen.writeCharUuid);
+    return chosen;
   }
 
   // ASCII-only encoder (за command strings — TSPL commands)
