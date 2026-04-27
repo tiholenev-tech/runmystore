@@ -1,24 +1,22 @@
 <?php
 /**
- * ai-studio.php — Standalone AI Studio main page (S82.STUDIO.11)
+ * ai-studio.php — Standalone AI Studio main page (S84.STUDIO.REWIRE)
  *
  * Mockup source: /root/ai-studio-main-v2.html (approved by Tihol on 2026-04-26).
  *
- * READS existing data only — no DB schema changes (STUDIO.13 will add the
- * ai_category / ai_subtype columns + 3-credit-type refactor).
- * - Bulk counts: products WHERE image_url empty / description empty.
- * - Category counts: MOCK (no ai_category column yet — show all 5 with placeholder counts).
- * - History: last 8 from ai_image_usage (best-effort, may be empty).
- * - Credits: tenants.ai_credits_bg + ai_credits_tryon (description count is mocked).
- *
- * Reuses production rms-header + bottom-nav. Uses tokens from
- * partials/shell-init.php for plan / tenant context.
+ * Frontend reads through ai-studio-backend.php helpers — no direct
+ * tenants.ai_credits_* legacy columns.
+ *   - Credits bar: get_credit_balance($tenant_id, 'bg'|'desc'|'magic')
+ *   - Bulk + per-category counts: count_products_needing_ai($tenant_id, ?$category)
+ *   - History: last 8 from ai_spend_log
+ *   - Anti-abuse banner: check_anti_abuse($tenant_id)
  */
 
 session_start();
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/helpers.php';
 require_once __DIR__ . '/ai-image-credits.php';
+require_once __DIR__ . '/ai-studio-backend.php';
 
 if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
@@ -26,102 +24,133 @@ $tenant_id = (int)$_SESSION['tenant_id'];
 $user_id   = (int)$_SESSION['user_id'];
 
 // ───────────────────────────────────────────────────────────────────────
-// Read tenant + plan + credits
+// Tenant + plan
 // ───────────────────────────────────────────────────────────────────────
-$tenant = DB::run("SELECT id, plan, plan_effective, trial_ends_at,
-                          ai_credits_bg, ai_credits_bg_total,
-                          ai_credits_tryon, ai_credits_tryon_total
-                   FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC) ?: [];
-$plan_eff = function_exists('effectivePlan') ? effectivePlan($tenant) : ($tenant['plan'] ?? 'free');
+$tenant = DB::run(
+    "SELECT id, plan, plan_effective, trial_ends_at,
+            included_bg_per_month, included_desc_per_month, included_magic_per_month
+     FROM tenants WHERE id = ?",
+    [$tenant_id]
+)->fetch(PDO::FETCH_ASSOC) ?: [];
+$plan_eff   = function_exists('effectivePlan') ? effectivePlan($tenant) : ($tenant['plan'] ?? 'free');
 $plan_label = strtoupper($plan_eff);
 if ($plan_eff === 'god') $plan_label = 'PRO';
 $is_locked = ($plan_eff === 'free');
 
-$bg_remaining    = (int)($tenant['ai_credits_bg'] ?? 0);
-$bg_total        = (int)($tenant['ai_credits_bg_total'] ?? 0);
-$tryon_remaining = (int)($tenant['ai_credits_tryon'] ?? 0);
-$tryon_total     = (int)($tenant['ai_credits_tryon_total'] ?? 0);
-// STUDIO.13 will add a real desc column; for now mock (start = 100, used = mocked).
-$desc_remaining  = max(0, 100 - (int)($tenant['ai_credits_tryon'] === null ? 0 : 0));
-$desc_total      = 100;
+// ───────────────────────────────────────────────────────────────────────
+// Credits — real balances via backend helper
+// ───────────────────────────────────────────────────────────────────────
+$bal_bg    = get_credit_balance($tenant_id, 'bg');
+$bal_desc  = get_credit_balance($tenant_id, 'desc');
+$bal_magic = get_credit_balance($tenant_id, 'magic');
+
+$bg_remaining    = (int)$bal_bg['total'];
+$desc_remaining  = (int)$bal_desc['total'];
+$tryon_remaining = (int)$bal_magic['total'];
+
+$bg_total    = (int)($tenant['included_bg_per_month']    ?? 0) + (int)$bal_bg['purchased'];
+$desc_total  = (int)($tenant['included_desc_per_month']  ?? 0) + (int)$bal_desc['purchased'];
+$tryon_total = (int)($tenant['included_magic_per_month'] ?? 0) + (int)$bal_magic['purchased'];
+
 if ($plan_eff === 'god') {
-    $bg_remaining = $tryon_remaining = $desc_remaining = 999;
-    $bg_total = $tryon_total = $desc_total = 999;
+    $bg_remaining = $desc_remaining = $tryon_remaining = 999;
+    $bg_total     = $desc_total     = $tryon_total     = 999;
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// Bulk operation counts (real, from current schema)
+// Bulk + per-category counts via count_products_needing_ai()
 // ───────────────────────────────────────────────────────────────────────
-try {
-    $bulk_bg_count = (int)DB::run(
-        "SELECT COUNT(*) FROM products
-         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
-         AND (image_url IS NULL OR image_url = '' OR image_url LIKE 'data:%')",
-        [$tenant_id]
-    )->fetchColumn();
-} catch (Throwable $e) { $bulk_bg_count = 0; }
+$needs_total     = count_products_needing_ai($tenant_id);
+$bulk_bg_count   = (int)$needs_total['bg'];
+$bulk_desc_count = (int)$needs_total['desc'];
 
-try {
-    $bulk_desc_count = (int)DB::run(
-        "SELECT COUNT(*) FROM products
-         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
-         AND (description IS NULL OR description = '')",
-        [$tenant_id]
-    )->fetchColumn();
-} catch (Throwable $e) { $bulk_desc_count = 0; }
-
-// Pricing — STUDIO.11 uses approved €0.05 / €0.02 / €0.30. Hardcoded for now;
-// STUDIO.13 will move these to tenants.plan-aware overrides via a config helper.
-$PRICE_BG   = 0.05;
-$PRICE_DESC = 0.02;
-$PRICE_MAGIC = 0.30;
+$PRICE_BG    = defined('AI_BG_PRICE')    ? AI_BG_PRICE    : 0.05;
+$PRICE_DESC  = defined('AI_DESC_PRICE')  ? AI_DESC_PRICE  : 0.02;
+$PRICE_MAGIC = defined('AI_MAGIC_PRICE') ? AI_MAGIC_PRICE : 0.50;
 
 $bulk_bg_cost   = round($bulk_bg_count   * $PRICE_BG,   2);
 $bulk_desc_cost = round($bulk_desc_count * $PRICE_DESC, 2);
 
-// ───────────────────────────────────────────────────────────────────────
-// 5 categories — counts are MOCK (no ai_category column yet).
-// We approximate by spreading total products needing magic across categories.
-// ───────────────────────────────────────────────────────────────────────
-try {
-    $total_active = (int)DB::run(
-        "SELECT COUNT(*) FROM products
-         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL",
-        [$tenant_id]
-    )->fetchColumn();
-} catch (Throwable $e) { $total_active = 0; }
-
-// Mock distribution: roughly 40% clothes, 27% lingerie, 17% jewelry, 10% acc, 6% other.
 $AI_CATEGORIES = [
-    ['key' => 'clothes',  'label' => 'Дрехи',          'emoji' => '👕', 'sub' => '8 тениски · 3 рокли · 1 сако',       'count' => max(0, (int)round($total_active * 0.40))],
-    ['key' => 'lingerie', 'label' => 'Бельо и бански', 'emoji' => '👙', 'sub' => '4 сутиена · 3 бикини · 1 цял бански', 'count' => max(0, (int)round($total_active * 0.27))],
-    ['key' => 'jewelry',  'label' => 'Бижута',         'emoji' => '💎', 'sub' => '2 пръстена · 2 обеци · 1 гердан',     'count' => max(0, (int)round($total_active * 0.17))],
-    ['key' => 'acc',      'label' => 'Аксесоари',      'emoji' => '👜', 'sub' => '2 обувки · 1 чанта',                  'count' => max(0, (int)round($total_active * 0.10))],
-    ['key' => 'other',    'label' => 'Друго / Предмет','emoji' => '📦', 'sub' => 'Свободно описание — каквото и да е',  'count' => max(0, (int)round($total_active * 0.06))],
+    ['key' => 'clothes',  'label' => 'Дрехи',          'emoji' => '👕'],
+    ['key' => 'lingerie', 'label' => 'Бельо и бански', 'emoji' => '👙'],
+    ['key' => 'jewelry',  'label' => 'Бижута',         'emoji' => '💎'],
+    ['key' => 'acc',      'label' => 'Аксесоари',      'emoji' => '👜'],
+    ['key' => 'other',    'label' => 'Друго / Предмет','emoji' => '📦'],
 ];
+
+// Subtype breakdown — group products needing magic by ai_subtype so the
+// sub-line shows real counts ("8 тениски · 3 рокли") instead of a static label.
+$subtypes_by_cat = [];
+try {
+    $subtype_rows = DB::run(
+        "SELECT ai_category, ai_subtype, COUNT(*) AS c
+         FROM products
+         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
+           AND (ai_magic_image IS NULL OR ai_magic_image = '')
+           AND ai_category IS NOT NULL AND ai_subtype IS NOT NULL AND ai_subtype <> ''
+         GROUP BY ai_category, ai_subtype",
+        [$tenant_id]
+    )->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    foreach ($subtype_rows as $r) {
+        $subtypes_by_cat[$r['ai_category']][] = ['sub' => $r['ai_subtype'], 'c' => (int)$r['c']];
+    }
+} catch (Throwable $e) { $subtypes_by_cat = []; }
+
+$DEFAULT_SUBS = [
+    'clothes'  => 'Облечи на модел или студийна',
+    'lingerie' => 'Облечи на модел · студийна',
+    'jewelry'  => 'Студийна снимка близък план',
+    'acc'      => 'Студийна снимка с настройка',
+    'other'    => 'Свободно описание — каквото и да е',
+];
+
+foreach ($AI_CATEGORIES as &$cat) {
+    $counts = count_products_needing_ai($tenant_id, $cat['key']);
+    $cat['count'] = (int)$counts['magic'];
+    $rows = $subtypes_by_cat[$cat['key']] ?? [];
+    if ($rows) {
+        usort($rows, fn($a, $b) => $b['c'] - $a['c']);
+        $parts = [];
+        foreach (array_slice($rows, 0, 3) as $r) {
+            $parts[] = $r['c'] . ' ' . $r['sub'];
+        }
+        $cat['sub'] = $parts ? implode(' · ', $parts) : $DEFAULT_SUBS[$cat['key']];
+    } else {
+        $cat['sub'] = $DEFAULT_SUBS[$cat['key']];
+    }
+}
+unset($cat);
 $category_total = array_sum(array_column($AI_CATEGORIES, 'count'));
 
 // ───────────────────────────────────────────────────────────────────────
-// History — last 8 ai_image_usage rows (best-effort; column shape is loose).
+// History — last 8 from ai_spend_log
 // ───────────────────────────────────────────────────────────────────────
 $history = [];
 try {
     $history = DB::run(
-        "SELECT operation, day, last_at FROM ai_image_usage
+        "SELECT id, feature, category, status, created_at
+         FROM ai_spend_log
          WHERE tenant_id = ?
-         ORDER BY last_at DESC LIMIT 8",
+         ORDER BY created_at DESC LIMIT 8",
         [$tenant_id]
     )->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (Throwable $e) { $history = []; }
 
-// Map operations to category badge for display
 $OP_BADGE_MAP = [
     'bg_remove'    => ['emoji' => '🖼', 'tag' => 'clothes'],
     'color_detect' => ['emoji' => '🎨', 'tag' => 'other'],
     'tryon'        => ['emoji' => '✨', 'tag' => 'lingerie'],
+    'magic'        => ['emoji' => '💎', 'tag' => 'jewelry'],
     'studio'       => ['emoji' => '💎', 'tag' => 'jewelry'],
     'description'  => ['emoji' => '📝', 'tag' => 'acc'],
 ];
+$VALID_TAGS = ['clothes' => 1, 'lingerie' => 1, 'jewelry' => 1, 'acc' => 1, 'other' => 1];
+
+// ───────────────────────────────────────────────────────────────────────
+// Anti-abuse — soft warning + hard block banner
+// ───────────────────────────────────────────────────────────────────────
+$abuse = check_anti_abuse($tenant_id);
 
 require_once __DIR__ . '/partials/shell-init.php';
 ?>
@@ -346,6 +375,19 @@ body::before {
 @keyframes fab-ring { 0% { transform: scale(0.9); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
 .fab svg { width: 22px; height: 22px; stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Anti-abuse banner */
+.abuse-banner { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-bottom: 12px; border-radius: 14px; }
+.abuse-banner.soft { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); }
+.abuse-banner.hard { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.4); }
+.abuse-banner-ico { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.abuse-banner.soft .abuse-banner-ico { background: rgba(245,158,11,0.2); color: #fbbf24; }
+.abuse-banner.hard .abuse-banner-ico { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.abuse-banner-text { flex: 1; min-width: 0; }
+.abuse-banner-title { font-size: 12px; font-weight: 800; line-height: 1.2; }
+.abuse-banner.soft .abuse-banner-title { color: #fbbf24; }
+.abuse-banner.hard .abuse-banner-title { color: #fca5a5; }
+.abuse-banner-sub { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; line-height: 1.3; }
+
 /* Lock screen for FREE plan */
 .studio-lock-card { padding: 24px 20px; text-align: center; margin-bottom: 12px; }
 .studio-lock-card > * { position: relative; z-index: 5; }
@@ -375,6 +417,24 @@ body::before {
         <a href="/billing.php" class="studio-lock-cta">Виж планове · 4 месеца безплатно</a>
     </div>
     <?php else: ?>
+
+    <?php if (!empty($abuse['blocked'])): ?>
+    <div class="abuse-banner hard">
+        <div class="abuse-banner-ico">⚠</div>
+        <div class="abuse-banner-text">
+            <div class="abuse-banner-title">Дневният лимит за retry-и е достигнат</div>
+            <div class="abuse-banner-sub">Quality Guarantee retries за днес: <?= (int)$abuse['retries_today'] ?>. Опитай утре или се свържи с поддръжка.</div>
+        </div>
+    </div>
+    <?php elseif (!empty($abuse['soft_warning'])): ?>
+    <div class="abuse-banner soft">
+        <div class="abuse-banner-ico">!</div>
+        <div class="abuse-banner-text">
+            <div class="abuse-banner-title">Висок процент retry-и (<?= (int)round($abuse['retry_rate'] * 100) ?>%)</div>
+            <div class="abuse-banner-sub">Ако качеството не отговаря — провери стандартните настройки или ни пиши за съвет.</div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- ═══ HERO BANNER ═══ -->
     <div class="glass studio-card hero-banner">
@@ -533,10 +593,15 @@ body::before {
         <?php else: ?>
         <div class="hist-row">
             <?php foreach ($history as $h):
-                $op = $h['operation'] ?? '';
-                $badge = $OP_BADGE_MAP[$op] ?? ['emoji' => '✨', 'tag' => 'other'];
+                $feat   = (string)($h['feature']  ?? '');
+                $hcat   = (string)($h['category'] ?? '');
+                $status = (string)($h['status']   ?? '');
+                $badge  = $OP_BADGE_MAP[$feat] ?? ['emoji' => '✨', 'tag' => 'other'];
+                if ($hcat !== '' && isset($VALID_TAGS[$hcat])) $badge['tag'] = $hcat;
+                if ($status === 'refunded_loss') $badge['emoji'] = '↩';
+                $title = trim($feat . ($hcat ? " · $hcat" : '') . ' · ' . substr((string)($h['created_at'] ?? ''), 0, 10));
             ?>
-            <div class="hist-thumb real" title="<?= htmlspecialchars($op) ?> · <?= htmlspecialchars($h['day'] ?? '') ?>">
+            <div class="hist-thumb real" title="<?= htmlspecialchars($title) ?>">
                 <?= $badge['emoji'] ?>
                 <div class="hist-thumb-tag hist-tag-<?= htmlspecialchars($badge['tag']) ?>">✨</div>
             </div>

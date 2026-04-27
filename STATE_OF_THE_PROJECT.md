@@ -12,7 +12,7 @@
 ### Frontend modules
 - ✅ `chat.php` — v8 GLASS Life Board (6 q-cards q1-q6, glass dashboard, weather glass, AI Studio entry magenta button)
 - ✅ `life-board.php` — НОВ файл (580 реда), Лесен режим за Пешо (4 collapsible cards + 4 ops glass buttons + AI Studio entry)
-- ✅ `ai-studio.php` — standalone main page (5 категории cards, credits bar, bulk секция, история, FAB)
+- ✅ `ai-studio.php` — standalone main page (5 категории cards, credits bar, bulk секция, история, FAB) — S84.STUDIO.REWIRE: чете реални данни през ai-studio-backend.php helpers
 - ✅ `products.php` — wizard 8 стъпки работи, ⚠ 3 P0 bugs known + Phase B/C wizard redesign open
 - ✅ `warehouse.php` — hub скелет
 - ✅ `stats.php` — базово работи
@@ -60,7 +60,6 @@
 | # | Issue | Severity | Кога се решава |
 |---|---|---|---|
 | 1 | Toggle "Опростен →" в chat.php header — UNVERIFIED дали е visible бутон (Code #1 направи toggle само в life-board.php → chat.php, не bidirectional) | 🟡 P1 | S83 sutrin |
-| 2 | `/ai-studio.php` показва mock data (frontend чете `tenants.ai_credits_*` старите колони, не helper-ите) | 🟡 P1 | S84.STUDIO.REWIRE |
 | 3 | AI Studio modal в wizard step 5 — UNVERIFIED дали е новия дизайн (STUDIO.12 v0.7.23 беше mockup approval, не code merge) | 🟡 P1 | S83 verify |
 | 4 | Diagnostic Cat A=47.83% / D=21.43% (S81 pre-existing) — schema apply без 100% наруши Rule #21 | 🔴 P0 за beta | S85.DIAG.FIX |
 | 5 | products.php 3 P0 bugs (от старите S78) — main nav buttons, Step 0 wizard call, mobile file picker | 🟡 P1 | S84 |
