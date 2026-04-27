@@ -949,10 +949,14 @@ html,body{-webkit-user-select:none;user-select:none}
 - ❌ **Magnetic hover** ефекти (cursor-следящи трансформации) — performance killer на mobile
 - ❌ **Parallax scrolling** (background-attachment scroll-zависим) — лагва на iOS Safari
 - ❌ **Gradient animations** (`background-position` keyframes) — repaint hell
-- ❌ **Box-shadow transitions** в keyframes — не GPU-acceleratable
-- ❌ Animation duration `>800ms` — над budget-а, чувства се "счупено"
 - ❌ Transition / animation **без `cubic-bezier()` easing** (никога pure `linear` или дефолт)
-- ❌ Animate-ване на `width`, `height`, `top`, `left`, `margin`, `padding` (винаги `transform` + `opacity`)
+- ❌ Animate-ване на `width`, `height`, `top`, `left`, `margin`, `padding` (винаги `transform`/`opacity`/`filter`)
+- ❌ **v2 RULE:** Animations `< 400ms` (твърде бързи — не impact-ват)
+- ❌ **v2 RULE:** Stagger `< 100ms` между елементи (невидимо око)
+- ❌ **v2 RULE:** Scale change `< 0.05` (невидима трансформация)
+- ❌ **v2 RULE:** Subtle springs (bounce overshoot `< 5%`)
+- ❌ **v2 RULE:** Animations само на `opacity` (без `transform` = плоско, не usе се "пристигането")
+- ❌ **v2 RULE:** Без stagger (всички елементи едновременно = chaos)
 
 ---
 
@@ -995,11 +999,14 @@ html,body{-webkit-user-select:none;user-select:none}
 - [ ] `vib(6)` на tap feedback (G.6)
 - [ ] `tabular-nums` на всички числа (E.4)
 - [ ] Toast, typing dots, rec bar ако има AI chat (D.16-D.17)
-- [ ] Page entrance (`.app` има `animation: pageIn`) — § O.2
-- [ ] Card stagger клас на section групи (`.card-stagger`) — § O.3
-- [ ] `.spring-tap` на всички interactive (бутони, pills, cards) — § O.4
-- [ ] Overlay content fade-in (ако има modal `.ov-panel`) — § O.5
-- [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран — § O.6
+- [ ] Page entrance с blur+scale+translate combo (`pageIn`) — § O.2
+- [ ] Card stagger 150ms между елементи (`.card-stagger`) — § O.3
+- [ ] Glow pulse на важни cards (`.briefing-section`, `.rev-card`, `.health`) — § O.4
+- [ ] Spring tap със overshoot 6% (`.spring-tap` + JS released) — § O.5
+- [ ] Overlay choreography (panel slide + content stagger) — § O.6
+- [ ] Header `headerIn` (top), bottom-nav `navIn` (bottom) — § O.7
+- [ ] Count-up numbers където уместно (`animateCountUp`) — § O.8
+- [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран — § O.9
 
 ---
 
@@ -1011,81 +1018,198 @@ html,body{-webkit-user-select:none;user-select:none}
 | v1.1 | 2026-04-19 | S75.2 — Required Toggle pattern |
 | **v2.0** | **2026-04-23** | **S79.POLISH2 — ПЪЛНА NEON GLASS СПЕЦИФИКАЦИЯ от chat.php v8.** Цветова система с 6Q hue mapping, glass pattern conic-shine+glow, всички компоненти, 75vh overlays, hardware back, hue-matched buttons (color-mix in oklch), typography scale, animations, забранени patterns, adoption checklist. |
 | **v2.1** | **2026-04-27** | **S87.ANIMATIONS — 5 mandatory patterns. Live в chat.php.** § O Animation System v1: page entrance, card stagger, spring tap, overlay choreography, reduced-motion. Performance budget ≤800ms, само opacity+transform, GPU-only. |
+| **v2.2** | **2026-04-27** | **S87.ANIMATIONS v2 DRAMATIC — 8 expressive patterns** (scale+blur entrance, visible 150ms stagger, glow pulse, spring overshoot 6%, choreographed nav, count-up numbers). Live в chat.php. **Replaces v1.** |
 
 ---
 
-## § O — ANIMATION SYSTEM v1 (S87 — MANDATORY)
+## § O — ANIMATION SYSTEM v2 DRAMATIC (S87 — MANDATORY)
+
+> **Replaces v1.** v1 беше conservative (≤500ms, subtle springs, 70ms stagger) — invisible на потребителя.
+> v2 е **dramatic, visible, choreographed**. Премиум-app feeling.
 
 ### O.1 Philosophy
 
-1. **Анимацията е език**, не декорация. Всяко движение информира потребителя за състоянието (вход, действие, навигация).
-2. **Performance > visual.** GPU-only properties (`transform`, `opacity`). Никога `width/height/top/left/margin`.
-3. **Reduced-motion е задължителен.** `@media (prefers-reduced-motion: reduce)` НЕ е препоръка — е mandatory accessibility (WCAG 2.3.3).
-4. **5 patterns max.** Никакви ad-hoc keyframes извън тези 5. Дисциплина → cohesion.
-5. **≤ 800ms budget** за entrance анимации. Над това = чувства се "счупено".
+1. **VISIBLE > subtle.** Анимация ≤ 200ms = не я виждаш. ≥ 400ms = wow. Disциплината е "виж го или не го прави".
+2. **EXPRESSIVE > muted.** Spring overshoot 6-15%, не 2-3%. Scale changes ≥ 0.10, не 0.02.
+3. **CHOREOGRAPHED > simultaneous.** Header → revenue → cards → bottom nav. Не наведнъж — последователност.
+4. **SCALE + OPACITY + FILTER combo.** Не само `translate`. `Scale 0.85→1.0 + blur(8px)→0` = drama.
+5. **Stagger 150-180ms** между елементи (не 70ms — невидимо).
 
-### O.2 PATTERN 1 — PAGE ENTRANCE
+### O.2 Easing reference
+
+```
+cubic-bezier(0.16, 1, 0.3, 1)       — "expo-out", smooth dramatic finish
+cubic-bezier(0.34, 1.5, 0.64, 1)    — "spring-soft", visible bounce
+cubic-bezier(0.34, 1.8, 0.64, 1)    — "spring-medium", solid bounce
+cubic-bezier(0.34, 2.0, 0.64, 1)    — "spring-strong", strong overshoot
+```
+
+### O.3 PATTERN 1 — DRAMATIC PAGE ENTRANCE
 
 ```css
 @keyframes pageIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+    0%   { opacity: 0; transform: translateY(40px) scale(0.92); filter: blur(8px); }
+    60%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
-.app { animation: pageIn .5s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.app { animation: pageIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) both; }
 ```
 
-**Кога:** Първо зареждане на главния `.app` контейнер. Subtle fade + 12px lift.
+**Кога:** Първо зареждане. Blur + scale 0.92→1.0 + 40px slide. **Чувстваш как страницата „пристига от далеч"** — не се появява, а долита.
 
-### O.3 PATTERN 2 — CARD STAGGER
+### O.4 PATTERN 2 — DRAMATIC CARD STAGGER
 
 ```css
 @keyframes cardin {
-    from { opacity: 0; transform: translateY(8px) scale(.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    0%   { opacity: 0; transform: translateY(30px) scale(0.85); }
+    70%  { transform: translateY(-4px) scale(1.02); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .card-stagger > * {
     opacity: 0;
-    animation: cardin .45s cubic-bezier(0.34,1.56,0.64,1) both;
+    animation: cardin 0.7s cubic-bezier(0.34, 1.8, 0.64, 1) both;
 }
-.card-stagger > *:nth-child(1) { animation-delay: .05s; }
-.card-stagger > *:nth-child(2) { animation-delay: .12s; }
-.card-stagger > *:nth-child(3) { animation-delay: .19s; }
-.card-stagger > *:nth-child(4) { animation-delay: .26s; }
-.card-stagger > *:nth-child(5) { animation-delay: .33s; }
-.card-stagger > *:nth-child(6) { animation-delay: .40s; }
-.card-stagger > *:nth-child(7) { animation-delay: .47s; }
-.card-stagger > *:nth-child(8) { animation-delay: .54s; }
-.card-stagger > *:nth-child(n+9) { animation-delay: .60s; }
+.card-stagger > *:nth-child(1)  { animation-delay: 0.15s; }
+.card-stagger > *:nth-child(2)  { animation-delay: 0.30s; }
+.card-stagger > *:nth-child(3)  { animation-delay: 0.45s; }
+.card-stagger > *:nth-child(4)  { animation-delay: 0.60s; }
+.card-stagger > *:nth-child(5)  { animation-delay: 0.75s; }
+.card-stagger > *:nth-child(6)  { animation-delay: 0.90s; }
+.card-stagger > *:nth-child(7)  { animation-delay: 1.05s; }
+.card-stagger > *:nth-child(8)  { animation-delay: 1.20s; }
+.card-stagger > *:nth-child(n+9) { animation-delay: 1.35s; }
 ```
 
-**Кога:** Контейнер с няколко carded children (briefing sections, q-cards). Spring easing за лек "поп". Replaces ad-hoc `cardin` от § G.4.
+**Кога:** Container with multiple carded children. **150ms между = visible** каскада. Each card scales 0.85→1.02→1.0 (overshoot 2%), 0.7s. Виждаш кaскадата ясно.
 
-### O.4 PATTERN 3 — SPRING TAP FEEDBACK
+### O.5 PATTERN 3 — GLOW PULSE (нов)
 
 ```css
-.spring-tap { transition: transform .15s cubic-bezier(0.34,1.56,0.64,1); }
-.spring-tap:active { transform: scale(0.96); }
+@keyframes glowPulse {
+    0%   { box-shadow: 0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+    50%  { box-shadow: 0 0 30px 4px hsl(var(--hue1) 70% 60% / 0.4); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+}
+.briefing-section,
+.rev-card,
+.health {
+    animation:
+        cardin 0.7s cubic-bezier(0.34, 1.8, 0.64, 1) both,
+        glowPulse 1.2s ease-out 0.7s both;
+}
 ```
 
-**Кога:** ВСЕКИ interactive елемент (бутони, pills, nav-tab, header icons, cards).
-**Замества:** старите ad-hoc `:active{transform:scale(.96-.98)}` (§ G.5). Един клас вместо N декларации.
-**Adoption rule:** add `class="... spring-tap"` на: `.briefing-btn-primary`, `.briefing-btn-secondary`, `.nav-tab`, `.header-icon-btn`, `.top-pill`, `.rev-pill`, `.sig-card`.
+**Кога:** Важни cards „проблясват" с hue glow 1.2s след entrance. Очите са привлечени към важни елементи (revenue, health, briefing).
 
-### O.5 PATTERN 4 — OVERLAY CONTENT CHOREOGRAPHY
+### O.6 PATTERN 4 — EXPRESSIVE SPRING TAP (replace v1)
 
 ```css
+.spring-tap {
+    transition: transform 0.18s cubic-bezier(0.34, 1.8, 0.64, 1);
+}
+.spring-tap:active { transform: scale(0.92); }
+.spring-tap.released {
+    animation: springRelease 0.4s cubic-bezier(0.34, 2.0, 0.64, 1);
+}
+@keyframes springRelease {
+    0%   { transform: scale(0.92); }
+    50%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+```
+
+```javascript
+document.querySelectorAll('.spring-tap').forEach(el => {
+    el.addEventListener('touchend', () => {
+        el.classList.remove('released');
+        void el.offsetWidth; // force reflow
+        el.classList.add('released');
+        setTimeout(() => el.classList.remove('released'), 400);
+    });
+});
+```
+
+**Кога:** При тап → scale 0.92 (visible 8% compression). Пускане → overshoot 1.06 → settle 1.0. Истински spring physics, не subtle .96.
+
+### O.7 PATTERN 5 — DRAMATIC OVERLAY CHOREOGRAPHY (replace v1)
+
+```css
+@keyframes overlayPanelIn {
+    0%   { transform: translateY(100%) scale(0.95); }
+    100% { transform: translateY(0) scale(1); }
+}
 @keyframes overlayContentIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    0%   { opacity: 0; transform: translateY(40px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.ov-panel.open .ov-content {
-    animation: overlayContentIn .4s .15s cubic-bezier(0.25,0.46,0.45,0.94) both;
+.ov-panel.open {
+    animation: overlayPanelIn 0.55s cubic-bezier(0.34, 1.5, 0.64, 1) both;
 }
+.ov-panel.open .ov-content > * {
+    opacity: 0;
+    animation: overlayContentIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ov-panel.open .ov-content > *:nth-child(1) { animation-delay: 0.25s; }
+.ov-panel.open .ov-content > *:nth-child(2) { animation-delay: 0.35s; }
+.ov-panel.open .ov-content > *:nth-child(3) { animation-delay: 0.45s; }
+.ov-panel.open .ov-content > *:nth-child(4) { animation-delay: 0.55s; }
+.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay: 0.65s; }
 ```
 
-**Кога:** Когато overlay slide-up завърши (delay `.15s`), контентът се появява с втора фаза. Двуфазна choreography → усеща се "premium".
+**Кога:** Overlay slide-up със scale 0.95→1.0, после content stagger от 250ms delay, 100ms между. **True choreography:** panel slides → content settles.
 
-### O.6 PATTERN 5 — REDUCED MOTION (mandatory accessibility)
+### O.8 PATTERN 6 — HEADER + BOTTOM NAV CHOREOGRAPHY (нов)
+
+```css
+@keyframes headerIn {
+    0%   { opacity: 0; transform: translateY(-30px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes navIn {
+    0%   { opacity: 0; transform: translateY(60px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.header,    .rms-header     { animation: headerIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
+.bottom-nav,.rms-bottom-nav { animation: navIn    0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
+```
+
+**Кога:** Header пристига първи отгоре (0.1s delay), content зарежда чрез card-stagger, nav пристига последен отдолу (0.4s delay). **True app launch sequence.**
+
+### O.9 PATTERN 7 — NUMBER COUNT-UP (нов)
+
+```css
+.count-up { display: inline-block; transition: opacity 0.3s; }
+.count-up.animating { opacity: 0.7; }
+```
+
+```javascript
+function animateCountUp(el, finalValue, duration = 1200) {
+    const start = 0;
+    const startTime = performance.now();
+    el.classList.add('animating');
+    function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const current = Math.floor(start + (finalValue - start) * eased);
+        el.textContent = current.toLocaleString('bg-BG');
+        if (progress < 1) requestAnimationFrame(tick);
+        else { el.classList.remove('animating'); el.textContent = finalValue.toLocaleString('bg-BG'); }
+    }
+    requestAnimationFrame(tick);
+}
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        document.querySelectorAll('.rev-val[data-count], .count-up[data-count]').forEach(el => {
+            animateCountUp(el, parseInt(el.dataset.count));
+        });
+    }, 800); // след page entrance
+});
+```
+
+**Кога:** Revenue число брои от 0 до final value (1.2s, ease-out cubic). Visually impressive. `data-count="2453"` атрибут на target елемент.
+
+### O.10 PATTERN 8 — REDUCED MOTION FALLBACK (mandatory accessibility)
 
 ```css
 @media (prefers-reduced-motion: reduce) {
@@ -1093,44 +1217,57 @@ html,body{-webkit-user-select:none;user-select:none}
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
-    .app, .card-stagger > * { opacity: 1 !important; transform: none !important; }
+    .app, .card-stagger > *,
+    .header, .rms-header,
+    .bottom-nav, .rms-bottom-nav,
+    .ov-panel.open, .ov-panel.open .ov-content > * {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        animation: none !important;
+    }
 }
 ```
 
-**Защо:** WCAG 2.3.3 + потребители с vestibular disorders + iOS "Reduce Motion" toggle. **БЕЗ ИЗКЛЮЧЕНИЯ.**
+**Защо:** WCAG 2.3.3 + потребители с vestibular disorders + iOS "Reduce Motion" toggle. **БЕЗ ИЗКЛЮЧЕНИЯ.** Над v1 — добавя `filter: none` (заради pageIn blur) и `scroll-behavior: auto`.
 
-### O.7 Adoption rules (checklist)
+### O.11 Adoption rules (checklist)
 
-- [ ] Page entrance — `.app` има `animation: pageIn`
-- [ ] Card stagger клас на section групи (`.card-stagger`)
-- [ ] `.spring-tap` на всички interactive елементи
-- [ ] Overlay content fade-in (ако има `.ov-panel`)
-- [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран
+- [ ] Page entrance с blur+scale+translate (`pageIn` 0.85s)
+- [ ] Card stagger 150ms между елементи (`.card-stagger`)
+- [ ] Glow pulse на важни cards (`glowPulse` 1.2s @ 0.7s delay)
+- [ ] Spring tap със overshoot 6% (`.spring-tap` + `springRelease` JS)
+- [ ] Overlay choreography (panel slide + content stagger)
+- [ ] Header `headerIn` (top 0.1s), nav `navIn` (bottom 0.4s)
+- [ ] Count-up numbers където уместно (`animateCountUp`)
+- [ ] `@media (prefers-reduced-motion: reduce)` реализиран
 
-### O.8 Performance budget
+### O.12 Performance budget
 
-- ❌ **НЕ** анимирай: `width`, `height`, `top`, `left`, `margin`, `padding`, `box-shadow` (repaint hell, без GPU)
-- ✅ **САМО** `transform` (translate/scale/rotate) + `opacity` (composited на GPU)
-- ⚠ **≤ 5 елемента едновременно** в keyframe анимация (повече = jank на mid-tier Android)
-- ⚠ **GPU-only.** Ако елементът има `filter`/`backdrop-filter` + анимация → проверявай Chrome DevTools "Rendering > Paint flashing"
+- ✅ **САМО** `transform` (translate/scale/rotate) + `opacity` + `filter:blur()` (composited на GPU)
+- ❌ **НЕ** анимирай: `width`, `height`, `top`, `left`, `margin`, `padding` (repaint hell)
+- ⚠ `box-shadow` keyframes — допустимо ТОЛКОВА в `glowPulse` (1 елемент в момент). Не трябва да се мащабира до stagger на 8 елемента.
+- ⚠ **60fps target.** На mid-tier Android (Samsung A-серия) тествай Chrome DevTools "Rendering > Frame Rendering Stats". Drop под 50fps → throttle (rm `filter:blur`).
+- ⚠ **GPU-only.** Ако елементът има `filter`/`backdrop-filter` + анимация → провери "Paint flashing".
 
-### O.9 Reference
+### O.13 Reference
 
-**Live имплементация:** `chat.php` (S87.ANIMATIONS commit, 2026-04-27). Чети style блока 422-1796 за пълните 5 patterns в работещ контекст.
+**Live имплементация:** `chat.php` (S87.ANIMATIONS v2 DRAMATIC commit, 2026-04-27). Чети style блока за пълните 8 patterns в работещ контекст + `<script>` блока за `springRelease` и `animateCountUp` JS.
 
-### O.10 Forbidden patterns (виж § K за пълен списък)
+### O.14 Forbidden patterns (виж § K)
 
-- ❌ Magnetic hover (cursor-следящи трансформации)
-- ❌ Parallax scrolling (`background-attachment` зависимости)
-- ❌ Gradient animations (`background-position` keyframes)
-- ❌ Box-shadow transitions/keyframes
-- ❌ Duration `> 800ms`
-- ❌ Animation/transition без `cubic-bezier()` easing
-- ❌ Animate-ване на `width/height/top/left` (виж O.8)
+- ❌ Animations `< 400ms` (твърде бързи, не impact-ват)
+- ❌ Stagger `< 100ms` между елементи (невидим)
+- ❌ Scale change `< 0.05` (невидима)
+- ❌ Subtle springs (bounce overshoot `< 5%`)
+- ❌ Animations само на `opacity` (без transform = плоски)
+- ❌ Без stagger (всичко наведнъж = chaos)
+- ❌ Linear easing (винаги cubic-bezier)
 
 ---
 
-**КРАЙ НА DESIGN SYSTEM v2.1**
+**КРАЙ НА DESIGN SYSTEM v2.2**
 
 *Референтен модул: `chat.php` v8 (commit c2caaf5). Всеки нов модул ТРЯБВА да премине adoption checklist § M.*
