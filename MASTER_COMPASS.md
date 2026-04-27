@@ -941,6 +941,20 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 27.04.2026 — BIBLE schema sync с production reality (S87.BIBLE.SYNC)
+
+- **Решение:** `BIBLE_v3_0_TECH.md` §14 актуализиран спрямо `SHOW COLUMNS` на 13 production tables. Нова §14.9 "LIVE SCHEMA AUTHORITY" rule установена: **LIVE wins; BIBLE update-ва се при divergence**.
+- **Защо:** S87.SALE.DBFIX (commit `9f0d2bc`) откри 3 schema divergences между BIBLE и production (`sales.payment_method` ENUM, missing `subtotal/paid_amount/due_date/discount_amount`, missing `sale_items.returned_quantity`). BIBLE = remembered spec, може да drift-не. Production `SHOW COLUMNS` = ground truth. Без правилото, други чатове пишат INSERT-и срещу outdated BIBLE и въвеждат тихи bugs.
+- **Засегнати:** `BIBLE_v3_0_TECH.md` §14.1 (sales sync, sale_items sync, нова stock_movements секция), §14.2 (нови ai_credits_balance / ai_spend_log / ai_prompt_templates от S82.STUDIO.APPLY; ai_insights / ai_shown sync notes), нова §14.9 (LIVE SCHEMA AUTHORITY rule + verification protocol + 13-table verification matrix + 5-table partial-sync TODO).
+- **Rework:** 5 нови REWORK QUEUE entries (#48-52):
+  - #48 P0: `sale-save.php` L29 INSERT `sales.payment_status` (колоната липсва)
+  - #49 P0: `sale-save.php` L52 INSERT `sale_items.tenant_id` (колоната липсва)
+  - #50 P1: divergent field-order в `INSERT INTO stock_movements` между sale.php и sale-save.php
+  - #51 P1: `sale-save.php` orphan (никой не го calls — DELETE или S87 integrate)
+  - #52 P2: 5-table partial sync (products/inventory/tenants/stores/users) преди beta
+- **Документация:** `SHOW COLUMNS` output saved to `/tmp/live_schema.txt` за audit (272 lines, 13 tables). 5 confirmed-non-existent table names documented в §14.9 ("НЕ съществуват в live"): `parked_sales`, `tenant_ai_credits`, `ai_credit_purchases`, `ai_studio_operations`, `ai_vision_cache`.
+- **Непосредствен ефект:** Code #1/2/3 могат да четат BIBLE §14 със confidence (поне за sales/sale_items/stock_movements/AI tables). 5 partial tables маркирани explicitly като ⚠ — други чатове знаят да verify-нат със `SHOW COLUMNS` преди да пишат код.
+
 ## 27.04.2026 — S83 AI STUDIO ARCHITECTURE FINALIZED
 
 - **Решение 1:** AI Studio = standalone модул (НЕ wizard step), достъпен от wizard CTA (`?from_wizard=1`) или директно от chat.php.
@@ -1471,6 +1485,11 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 7 | fal.ai + Stripe + Gemini API keys в config/config.php pending. FAL_AI_API_KEY (bg + nano-banana-2 try-on), STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, GEMINI_API_KEY (Vision + SEO). | config/config.php, /etc/runmystore/db.env | 2026-04-27 (S83 architecture) | 🟡 pending S84 |
 | 8 | AI Studio S84 implementation — beta-critical (CSV = value prop за Пешо). 8 DB migrations + 9 endpoints + UI rewrite (ai-studio.php Лесен+Разширен+Wizard Bulk+Standalone Bulk Recovery) + Stripe Checkout + 4 нови файла (ai-studio-buy-credits.php, ai-studio-bulk.php, ai-studio-vision.php, ai-studio-stripe-webhook.php, csv-export.php). | ai-studio.php, products.php, ai-studio-action.php | 2026-04-27 (S83 architecture) | 🔴 P0 BETA SCOPE DECISION |
 | 9 | sale.php save path — 3 broken DB columns срещу live schema. ✅ DONE 27.04.2026 (S87.SALE.DBFIX): `sales.total_amount`→`total`, `sale_items.subtotal`→`total`, `payment_method='transfer'`→`'bank_transfer'` (live ENUM = `cash/card/bank_transfer/deferred`; BIBLE казва `bank` — outdated, live е truth). End-to-end INSERT verified на tenant=99 (transactional, rolled back). sale-save.php (orphan, не reference-нат от никой PHP/JS/HTML файл) също patched — но има 2 допълнителни bugs out-of-scope (`sales.payment_status` колона липсва, `sale_items.tenant_id` колона липсва) — оставени за S87 SALE rewrite (SALE_REWRITE_PLAN.md). | sale.php (L94, L106, L1065), sale-save.php (L29, L52) | 2026-04-27 (Code #2 SALE_REWRITE_PLAN.md flag) | ✅ DONE |
+| 48 | sale-save.php L29 INSERT-ва `sales.payment_status` — колоната НЕ СЪЩЕСТВУВА в live schema. Save fail-ва ако някой го извика. Засега сейф (orphan — никой не го calls), но timebomb. Fix в S87 sale rewrite или DELETE файла. | sale-save.php | 2026-04-27 (S87.BIBLE.SYNC SHOW COLUMNS verify) | 🔴 P0 critical |
+| 49 | sale-save.php L52 INSERT-ва `sale_items.tenant_id` — колоната НЕ СЪЩЕСТВУВА (sale_items няма tenant_id, само sale_id → join за tenant). Save fail-ва ако някой го извика. Същият orphan timebomb. | sale-save.php | 2026-04-27 (S87.BIBLE.SYNC SHOW COLUMNS verify) | 🔴 P0 critical |
+| 50 | sale.php + sale-save.php имат **divergent field order** в `INSERT INTO stock_movements (...)` — позиционните INSERT-и са крехки, грешен column → грешен value. Нужен единен truth + named-column rewrite. Reference: BIBLE §14.1 stock_movements (sync 27.04.2026). | sale.php, sale-save.php | 2026-04-27 (S87.BIBLE.SYNC) | 🟡 P1 verify в S87 sale rewrite |
+| 51 | sale-save.php е **orphan** — `grep -rn 'sale-save.php' /var/www/runmystore` връща нула references от PHP/JS/HTML/htaccess/JSON. Production save минава през `sale.php?action=save_sale` (in-page handler). Reшение: или DELETE файла, или integrate в S87 sale rewrite (Phase 2 plan вече предлага единен save-handler). | sale-save.php | 2026-04-27 (Code #2 grep audit) | 🟡 P1 cleanup в S87 |
+| 52 | BIBLE §14 partial-sync (5 таблици): `products`, `inventory`, `tenants`, `stores`, `users` имат повече колони в LIVE отколкото в BIBLE. Не блокират production (existing code знае реалните имена), но трябва да се актуализират преди beta launch (14-15.05). Виж BIBLE §14.9 LIVE SCHEMA AUTHORITY → "Partial-sync TODO". | docs/BIBLE_v3_0_TECH.md | 2026-04-27 (S87.BIBLE.SYNC partial verify) | 🟢 P2 преди beta |
 
 ---
 

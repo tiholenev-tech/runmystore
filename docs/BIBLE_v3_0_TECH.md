@@ -3575,44 +3575,168 @@ CREATE TABLE inventory (
 
 ### sales
 
+> **⚠ S87.BIBLE.SYNC (2026-04-27):** schema synced с production. `payment_method` ENUM, `status` ENUM, `subtotal`, `discount_amount`, `paid_amount`, `due_date`, `type`, `note`, `updated_at` — всички actualizirани спрямо `SHOW COLUMNS FROM sales`.
+
 ```sql
 CREATE TABLE sales (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tenant_id INT NOT NULL,
-    store_id INT NOT NULL,
-    user_id INT NOT NULL,
-    customer_id INT DEFAULT NULL,
-    total DECIMAL(12,2),                      -- НЕ total_amount!
-    discount_pct DECIMAL(5,2) DEFAULT 0,
-    payment_method ENUM('cash','card','bank','mixed') DEFAULT 'cash',
-    status ENUM('pending','completed','canceled') DEFAULT 'completed', -- НЕ cancelled (двойно L)
-    notes TEXT,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT UNSIGNED NOT NULL,
+    store_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,                 -- nullable! (анонимна продажба)
+    customer_id INT UNSIGNED DEFAULT NULL,
+    type ENUM('retail','wholesale','scanner') NOT NULL DEFAULT 'retail',
+    payment_method ENUM('cash','card','bank_transfer','deferred') NOT NULL DEFAULT 'cash',
+                                                       -- ❗ НЕ 'bank' / 'mixed' (стара BIBLE спецификация — outdated)
+                                                       -- 'deferred' = отложено плащане (due_date се попълва)
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,         -- сума ПРЕДИ discount
+    discount_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
+    discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0,  -- абсолютна сума на отстъпката
+    total DECIMAL(12,2) NOT NULL DEFAULT 0,            -- subtotal − discount_amount; НЕ total_amount!
+    paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0,      -- колко е реално платено (за deferred = 0 в start)
+    due_date DATE DEFAULT NULL,                        -- само за payment_method='deferred'
+    status ENUM('draft','completed','canceled','returned') NOT NULL DEFAULT 'completed',
+                                                       -- ❗ 'draft' замества старото 'pending'; 'returned' добавен (full return)
+                                                       -- НЕ cancelled (двойно L) — британски правопис
+    note TEXT DEFAULT NULL,                            -- ❗ note (single), НЕ notes (plural — стара BIBLE)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX (tenant_id, store_id, created_at),
-    INDEX (user_id, created_at)
+    INDEX (user_id, created_at),
+    INDEX (customer_id)
 );
 ```
 
 ### sale_items
 
+> **⚠ S87.BIBLE.SYNC (2026-04-27):** добавени `returned_quantity`, `total`; типове на `quantity` / `unit_price` сменени до DECIMAL(12,4).
+
 ```sql
 CREATE TABLE sale_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sale_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT,
-    unit_price DECIMAL(10,2),                 -- НЕ price!
-    cost_price DECIMAL(10,2),                 -- copy from product at sale time
-    discount_pct DECIMAL(5,2) DEFAULT 0,
-    FOREIGN KEY (sale_id) REFERENCES sales(id)
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    quantity DECIMAL(12,4) NOT NULL,                   -- ❗ DECIMAL не INT — kg/m/л продукти
+    returned_quantity INT NOT NULL DEFAULT 0,          -- ❗ partial return tracking; добавен 2026
+    unit_price DECIMAL(12,4) NOT NULL,                 -- ❗ DECIMAL(12,4) не (10,2); НЕ price!
+    cost_price DECIMAL(10,2) DEFAULT NULL,             -- snapshot from product at sale time (за margin calc)
+    discount_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
+    total DECIMAL(12,2) NOT NULL,                      -- ❗ line total (qty × unit_price − discount); добавен
+                                                       -- ❗ HE subtotal — стара BIBLE наименование, НЕ съществува в live!
+    FOREIGN KEY (sale_id) REFERENCES sales(id),
+    INDEX (sale_id),
+    INDEX (product_id)
 );
 ```
 
+### stock_movements
+
+> **⚠ S87.BIBLE.SYNC (2026-04-27):** липсваше изцяло в BIBLE. Добавена от live `SHOW COLUMNS FROM stock_movements`. Един row per stock change (sale, delivery, transfer, scrap, adjustment). Insertion order from live — авторитетен за `INSERT INTO stock_movements (...)` в production code.
+
+```sql
+CREATE TABLE stock_movements (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT UNSIGNED NOT NULL,
+    store_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,                 -- nullable (system-generated movements)
+    type ENUM(
+        'in','out','sale','delivery',
+        'transfer_in','transfer_out',
+        'return','scrap','waste',
+        'inventory_adjust','adjustment'                -- ❗ 'inventory_adjust' и 'adjustment' и двете живеят
+    ) NOT NULL,
+    quantity DECIMAL(12,4) NOT NULL,                   -- positive = +stock, negative = -stock
+    price DECIMAL(12,4) DEFAULT NULL,                  -- unit price (sale/delivery snapshot)
+    reference_id INT UNSIGNED DEFAULT NULL,            -- ID в свързаната таблица (sales.id, deliveries.id, transfers.id...)
+    reference_type VARCHAR(50) DEFAULT NULL,           -- 'sale' | 'delivery' | 'transfer' | 'scrap' | etc
+    note VARCHAR(1000) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (tenant_id, store_id, product_id),
+    INDEX (tenant_id, created_at),
+    INDEX (user_id)
+);
+```
+
+> **⚠ Field-order conflict (REWORK QUEUE #50):** `sale.php` и `sale-save.php` имат различен column order в `INSERT INTO stock_movements (...)`. PHP позиционните INSERT-и са крехки — ако се сбъркат, грешен column gets грешен value. Препоръка: винаги използвай **named columns** в INSERT, а не позиционен.
+
 ## 14.2 AI tables
+
+> **⚠ S87.BIBLE.SYNC (2026-04-27):** Production има три AI Studio таблици добавени от S82.STUDIO.APPLY (2026-04-26): `ai_credits_balance`, `ai_spend_log`, `ai_prompt_templates`. Старите BIBLE имена `tenant_ai_credits` / `ai_credit_purchases` / `ai_studio_operations` / `ai_vision_cache` **не съществуват в live** — били са planning-stage names. Live е truth.
+
+### ai_credits_balance (S82.STUDIO.APPLY)
+
+> Per-tenant AI credit balance — снимка на текущия баланс по 3 типа (бял фон, описание, магия). Decremented атомарно в DB transaction (S83 Решение 9). Един ред per tenant (UNIQUE на `tenant_id`).
+
+```sql
+CREATE TABLE ai_credits_balance (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT UNSIGNED NOT NULL UNIQUE,
+    credits INT NOT NULL DEFAULT 0,                     -- generic кредитен балaнс
+    bg_credits INT NOT NULL DEFAULT 0,                  -- бял фон remaining
+    desc_credits INT NOT NULL DEFAULT 0,                -- AI описание remaining
+    magic_credits INT NOT NULL DEFAULT 0,               -- магия (try-on / scene) remaining
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### ai_spend_log (S82.STUDIO.APPLY)
+
+> Append-only audit за всеки AI generation call (бял фон, описание, магия, vision). Quality Guarantee retry tracking чрез `parent_log_id` + `attempt_number`. Statuses: completed_paid (счетен), retry_free (безплатен втори опит), refunded_loss (отказан, кредит върнат).
+
+```sql
+CREATE TABLE ai_spend_log (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,
+    product_id INT UNSIGNED DEFAULT NULL,
+    feature VARCHAR(50) NOT NULL,                       -- 'bg_remove' | 'magic_tryon' | 'magic_scene' | 'description' | 'vision_detect'
+    category VARCHAR(20) DEFAULT NULL,                  -- AI category (clothes/jewelry/acc/other)
+    model VARCHAR(50) DEFAULT NULL,                     -- 'birefnet' | 'nano-banana-2' | 'gemini-2.5-flash' | etc
+    cost_eur DECIMAL(8,4) NOT NULL DEFAULT 0,           -- cost снимка (€0.05 / €0.30 / €0.50 / €0.02)
+    status ENUM('completed_paid','retry_free','refunded_loss') NOT NULL DEFAULT 'completed_paid',
+    parent_log_id INT UNSIGNED DEFAULT NULL,            -- свързва retries с първоначалния опит
+    attempt_number INT NOT NULL DEFAULT 1,              -- 1 = original, 2-3 = quality-guarantee retries
+    meta_json JSON DEFAULT NULL,                        -- input/output metadata (prompt template, image URL, etc)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (tenant_id, created_at),
+    INDEX (parent_log_id),
+    INDEX (product_id)
+);
+```
+
+### ai_prompt_templates (S82.STUDIO.APPLY)
+
+> Prompt templates per AI category (clothes / jewelry / acc / other) с success rate tracking + A/B test flag. Засега 4 placeholder rows (`is_active=0`) за clothes/jewelry/acc/other (REWORK QUEUE #44 — Тихол approve), lingerie готов.
+
+```sql
+CREATE TABLE ai_prompt_templates (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(20) NOT NULL,                      -- 'clothes' | 'jewelry' | 'acc' | 'other' | 'lingerie'
+    subtype VARCHAR(30) DEFAULT NULL,                   -- 'shirt' | 'dress' | 'ring' | 'necklace' | etc
+    template TEXT NOT NULL,
+    success_rate DECIMAL(5,2) DEFAULT NULL,             -- % качествени резултати (rolling)
+    usage_count INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_ab_test TINYINT(1) NOT NULL DEFAULT 0,
+    notes VARCHAR(500) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX (category, is_active)
+);
+```
+
+### ai_image_jobs / ai_image_usage (S81)
+
+> Pre-existing от S81 AI Image Studio (background removal queue). За пълна спецификация: `SHOW COLUMNS FROM ai_image_jobs` / `ai_image_usage`. Schema: queue (status pending/processing/done/failed), input_url, output_url, retries, error.
 
 ### ai_insights (от т. 6.4)
 
+> **⚠ S87.BIBLE.SYNC:** live schema е по-богата от спецификацията в т. 6.4. Текущи колони: `id, tenant_id, store_id, topic_id, category, grp, module, urgency, fundamental_question, plan_gate, role_gate, title, detail_text, action_label, action_type, action_url, action_data (json), data_json (json), value_numeric, product_count, created_at, expires_at, product_id, supplier_id`. `module` ENUM=('home','products','warehouse','stats','sale'). `fundamental_question` ENUM=('loss','loss_cause','gain','gain_cause','order','anti_order'). `action_type` ENUM=('deeplink','order_draft','chat','none').
+
 ### ai_shown (от т. 6.5)
+
+> **⚠ S87.BIBLE.SYNC:** live колони: `id, tenant_id, user_id, store_id, topic_id, category, product_id, shown_at, action, action_at`. `action` ENUM=('shown','tapped','dismissed','snoozed').
 
 ### ai_audit_log (от т. 10.3)
 
@@ -3833,6 +3957,63 @@ CREATE TABLE loyalty_customers (
     INDEX (tenant_id, qr_code)
 );
 ```
+
+---
+
+## 14.9 — LIVE SCHEMA AUTHORITY (S87.BIBLE.SYNC)
+
+> **Ground truth = production `SHOW COLUMNS`. BIBLE = remembered spec, may drift.** Когато BIBLE и LIVE се различават, **LIVE wins** — update BIBLE.
+
+**Last verified:** 2026-04-27 (S87.BIBLE.SYNC, 13 production tables).
+
+### Защо това правило е необходимо
+
+S87.SALE.DBFIX (commit `9f0d2bc`) откри 3 schema divergences между BIBLE и production:
+1. `sales.payment_method` ENUM в BIBLE: `('cash','card','bank','mixed')` → LIVE: `('cash','card','bank_transfer','deferred')`
+2. BIBLE липсваше `sales.subtotal`, `sales.paid_amount`, `sales.due_date`, `sales.discount_amount`
+3. BIBLE липсваше `sale_items.returned_quantity`, `sale_items.total`
+
+Тези divergences биха могли да въведат tihи bugs (broken INSERT-ове) ако друг разработчик пише код срещу BIBLE без да verify-не срещу live.
+
+### Verification protocol (преди ANY DB write code)
+
+```bash
+# Run преди да напишеш INSERT/UPDATE срещу таблица:
+mysql --defaults-extra-file=<creds> runmystore -e "SHOW COLUMNS FROM <table>"
+
+# Сравни с BIBLE §14. Ако се различават → update BIBLE преди да commit-неш code
+# който разчита на старата спецификация.
+```
+
+### Tables verified 2026-04-27 (13 tables)
+
+| Таблица | BIBLE синхронизирана | Бележки |
+|---|---|---|
+| sales | ✅ §14.1 (sync) | payment_method ENUM, subtotal/paid_amount/due_date/discount_amount/type/note/updated_at |
+| sale_items | ✅ §14.1 (sync) | returned_quantity, total, DECIMAL(12,4) qty/price |
+| stock_movements | ✅ §14.1 (нова секция) | type ENUM с 11 values; field-order conflict flag-нат (RQ #50) |
+| products | ⚠ §14.1 (partial) | AI Studio cols (ai_category/ai_subtype/ai_description/ai_magic_image), alt_codes, discount_pct, discount_ends_at, vat_rate, location, pack_size, shopify_product_id, has_variations ENUM не TINYINT, confidence_score TINYINT не DECIMAL — TODO sync |
+| inventory | ⚠ §14.1 (partial) | quantity DECIMAL(12,4), min_quantity, quantity_verified, last_verified_at, is_counted — TODO sync |
+| tenants | ⚠ §14.1 (partial) | AI Studio cols (ai_credits_*, included_*_per_month, *_used_this_month, colors_config), ui_mode, plan_effective, supato_mode — TODO sync |
+| stores | ⚠ §14.1 (partial) | company_id, phone, email, eik, vat_number, mol, deleted_at/by/reason — TODO sync |
+| users | ⚠ §14.1 (partial) | default_store_id, fcm_token, last_login_at, deleted_at/by/reason; pin/password_hash в BIBLE не съществуват в live (live has `password`) — TODO sync |
+| ai_credits_balance | ✅ §14.2 (нова) | S82.STUDIO.APPLY |
+| ai_spend_log | ✅ §14.2 (нова) | S82.STUDIO.APPLY |
+| ai_prompt_templates | ✅ §14.2 (нова) | S82.STUDIO.APPLY |
+| ai_insights | ✅ §14.2 (sync note) | live е по-богата от BIBLE т. 6.4 |
+| ai_shown | ✅ §14.2 (sync note) | action ENUM specified |
+
+### НЕ съществуват в live (BIBLE-only / planning-stage names)
+
+- `parked_sales` — функционалност "🅿 паркирана продажба" се имплементира in-memory или ще ползва `sales.status='draft'`
+- `tenant_ai_credits` — реалното име е `ai_credits_balance`
+- `ai_credit_purchases` — purchases са в `ai_spend_log` (status filter) или Stripe webhook log (S84)
+- `ai_studio_operations` — операциите са в `ai_spend_log` + `ai_image_jobs`
+- `ai_vision_cache` — vision cache schema TBD в S84
+
+### Partial-sync TODO (P2 — преди beta)
+
+`products`, `inventory`, `tenants`, `stores`, `users` имат повече колони в LIVE отколкото в BIBLE. Не са urgent (existing prod code знае реалните имена), но BIBLE трябва да се сметне до 100% актуален преди beta launch (14-15.05.2026). Tracked в REWORK QUEUE.
 
 ---
 

@@ -65,6 +65,7 @@
 ### Documentation / Architecture
 - ✅ `ai_studio_FINAL_v5.html` mockups approved (S83, V5 final — 5 phone-frames)
 - ✅ `SESSION_83_HANDOFF.md` — пълна AI Studio архитектура (1289 lines, 21 секции, pricing matrix, bulk правила, wizard vs standalone context, vision auto-detect, SEO workflow, credits flow, DB schema 8 changes, 9 endpoints, CSV Woo+Shopify mapping)
+- ✅ `BIBLE_v3_0_TECH.md` §14 sync с production schema (S87.BIBLE.SYNC, 13 tables verified, нова §14.9 LIVE SCHEMA AUTHORITY rule)
 
 ---
 
@@ -83,6 +84,7 @@
 | 10 | Legacy `tenants.ai_credits_*` колони — 30 дни grace, drop ~2026-05-27 | 🟢 P2 | S95+ |
 | 11 | products.variations photo persistence — wizard UI ✅, DB save ❌. Блокира AI Studio Wizard Bulk (Mockup ⑤). Files: products.php, product-save.php, product_variations table. | 🟡 P1 | S84 |
 | 12 | fal.ai + Stripe + Gemini API keys setup pending в config (FAL_AI_API_KEY, STRIPE_SECRET_KEY, GEMINI_API_KEY). Държат се в `/etc/runmystore/db.env`. | 🟢 P2 | S84 |
+| 13 | `sale-save.php` orphan + INSERT-ва несъществуващи колони (`sales.payment_status`, `sale_items.tenant_id`). Не блокира production защото никой не го извиква (grep verified), но е timebomb ако reference се добави. Виж REWORK QUEUE #48-51. | 🔴 P0 (latent) | S87 sale rewrite или DELETE |
 
 ---
 
