@@ -451,7 +451,7 @@ body::before{
 body.overlay-open{overflow:hidden}
 body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);pointer-events:none}
 
-.app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px 12px 20px;transition:filter .3s var(--ease),transform .3s var(--ease);animation:pageIn .5s cubic-bezier(0.25,0.46,0.45,0.94) both}
+.app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px 12px 20px;transition:filter .3s var(--ease),transform .3s var(--ease);animation:pageIn 0.85s cubic-bezier(0.16,1,0.3,1) both}
 
 /* ─────────────────────────────────────────── */
 /* GLASS BASE (conic-gradient shine + glow)    */
@@ -1457,27 +1457,51 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .action-button:active{background:rgba(99,102,241,.15)}
 
 /* ─────────────────────────────────────────── */
-/* S87.ANIMATIONS — Animation System v1        */
-/* DESIGN_SYSTEM § O (5 mandatory patterns)    */
+/* S87.ANIMATIONS v2 DRAMATIC — 8 patterns     */
+/* DESIGN_SYSTEM § O v2.2 (replace v1)         */
 /* ─────────────────────────────────────────── */
 
-/* PATTERN 1 — PAGE ENTRANCE (applied на .app) */
-@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* PATTERN 1 — DRAMATIC PAGE ENTRANCE (blur+scale+slide) */
+@keyframes pageIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.92); filter:blur(8px); }
+    60%  { opacity:1; filter:blur(0); }
+    100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
 
-/* PATTERN 2 — CARD STAGGER (replaces ad-hoc cardin) */
-@keyframes cardin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-.card-stagger > *{opacity:0;animation:cardin .45s cubic-bezier(0.34,1.56,0.64,1) both}
-.card-stagger > *:nth-child(1){animation-delay:.05s}
-.card-stagger > *:nth-child(2){animation-delay:.12s}
-.card-stagger > *:nth-child(3){animation-delay:.19s}
-.card-stagger > *:nth-child(4){animation-delay:.26s}
-.card-stagger > *:nth-child(5){animation-delay:.33s}
-.card-stagger > *:nth-child(6){animation-delay:.40s}
-.card-stagger > *:nth-child(7){animation-delay:.47s}
-.card-stagger > *:nth-child(8){animation-delay:.54s}
-.card-stagger > *:nth-child(n+9){animation-delay:.60s}
+/* PATTERN 2 — DRAMATIC CARD STAGGER (150ms visible cascade, scale 0.85→1.02→1.0) */
+@keyframes cardin{
+    0%   { opacity:0; transform:translateY(30px) scale(0.85); }
+    70%  { transform:translateY(-4px) scale(1.02); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.card-stagger > *{opacity:0;animation:cardin 0.7s cubic-bezier(0.34,1.8,0.64,1) both}
+.card-stagger > *:nth-child(1){animation-delay:.15s}
+.card-stagger > *:nth-child(2){animation-delay:.30s}
+.card-stagger > *:nth-child(3){animation-delay:.45s}
+.card-stagger > *:nth-child(4){animation-delay:.60s}
+.card-stagger > *:nth-child(5){animation-delay:.75s}
+.card-stagger > *:nth-child(6){animation-delay:.90s}
+.card-stagger > *:nth-child(7){animation-delay:1.05s}
+.card-stagger > *:nth-child(8){animation-delay:1.20s}
+.card-stagger > *:nth-child(n+9){animation-delay:1.35s}
 
-/* PATTERN 3 — SPRING TAP FEEDBACK (applied на всички interactive) */
+/* PATTERN 3 — GLOW PULSE (важни cards проблясват след entrance) */
+@keyframes glowPulse{
+    0%   { box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+    50%  { box-shadow:0 0 30px 4px hsl(var(--hue1) 70% 60% / 0.4); }
+    100% { box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+}
+.briefing-section,
+.rev-card,
+.health,
+.s82-dash,
+.s82-weather{
+    animation:
+        cardin 0.7s cubic-bezier(0.34,1.8,0.64,1) both,
+        glowPulse 1.2s ease-out 0.7s both
+}
+
+/* PATTERN 4 — EXPRESSIVE SPRING TAP (scale 0.92→1.06 overshoot) */
 .spring-tap,
 .briefing-btn-primary,.briefing-btn-secondary,
 .sig-btn-primary,.sig-btn-secondary,
@@ -1487,7 +1511,7 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .lb-action,.lb-dismiss,.lb-fb-btn,
 .chat-mic,.chat-send,
 .ov-back,.ov-close{
-    transition:transform .15s cubic-bezier(0.34,1.56,0.64,1)
+    transition:transform 0.18s cubic-bezier(0.34,1.8,0.64,1)
 }
 .spring-tap:active,
 .briefing-btn-primary:active,.briefing-btn-secondary:active,
@@ -1498,29 +1522,93 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .lb-action:active,.lb-dismiss:active,.lb-fb-btn:active,
 .chat-mic:active,.chat-send:active,
 .ov-back:active,.ov-close:active{
-    transform:scale(0.96)
+    transform:scale(0.92)
+}
+@keyframes springRelease{
+    0%   { transform:scale(0.92); }
+    50%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+}
+.spring-tap.released,
+.briefing-btn-primary.released,.briefing-btn-secondary.released,
+.sig-btn-primary.released,.sig-btn-secondary.released,
+.nav-tab.released,.header-icon-btn.released,.rms-icon-btn.released,
+.top-pill.released,.rev-pill.released,.s82-dash-pill.released,
+.sig-card.released,.sig-more.released,
+.lb-action.released,.lb-dismiss.released,.lb-fb-btn.released,
+.chat-mic.released,.chat-send.released,
+.ov-back.released,.ov-close.released{
+    animation:springRelease 0.4s cubic-bezier(0.34,2.0,0.64,1)
 }
 
-/* PATTERN 4 — OVERLAY CONTENT CHOREOGRAPHY */
-@keyframes overlayContentIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.ov-panel.open .ov-content,
+/* PATTERN 5 — DRAMATIC OVERLAY CHOREOGRAPHY (panel slide + content stagger) */
+@keyframes overlayPanelIn{
+    0%   { transform:translateY(100%) scale(0.95); }
+    100% { transform:translateY(0) scale(1); }
+}
+@keyframes overlayContentIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.95); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.ov-panel.open{
+    animation:overlayPanelIn 0.55s cubic-bezier(0.34,1.5,0.64,1) both
+}
+.ov-panel.open .ov-content > *,
 .ov-panel.open > .ov-header,
 .ov-panel.open > .chat-messages,
 .ov-panel.open > .sig-body,
 .ov-panel.open > .br-body,
 .ov-panel.open > .rec-bar,
 .ov-panel.open > .chat-input{
-    animation:overlayContentIn .4s .15s cubic-bezier(0.25,0.46,0.45,0.94) both
+    opacity:0;
+    animation:overlayContentIn 0.5s cubic-bezier(0.16,1,0.3,1) both
 }
+.ov-panel.open .ov-content > *:nth-child(1),
+.ov-panel.open > .ov-header                   { animation-delay:.25s }
+.ov-panel.open .ov-content > *:nth-child(2),
+.ov-panel.open > .chat-messages,
+.ov-panel.open > .sig-body,
+.ov-panel.open > .br-body                     { animation-delay:.35s }
+.ov-panel.open .ov-content > *:nth-child(3),
+.ov-panel.open > .rec-bar                     { animation-delay:.45s }
+.ov-panel.open .ov-content > *:nth-child(4),
+.ov-panel.open > .chat-input                  { animation-delay:.55s }
+.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay:.65s }
 
-/* PATTERN 5 — REDUCED MOTION (mandatory accessibility, WCAG 2.3.3) */
+/* PATTERN 6 — HEADER + BOTTOM NAV CHOREOGRAPHY */
+@keyframes headerIn{
+    0%   { opacity:0; transform:translateY(-30px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+@keyframes navIn{
+    0%   { opacity:0; transform:translateY(60px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+.header,.rms-header{animation:headerIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both}
+.bottom-nav,.rms-bottom-nav{animation:navIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.4s both}
+
+/* PATTERN 7 — NUMBER COUNT-UP (CSS support, JS в <script>) */
+.count-up{display:inline-block;transition:opacity 0.3s}
+.count-up.animating{opacity:0.7}
+
+/* PATTERN 8 — REDUCED MOTION FALLBACK (mandatory accessibility, WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{
         animation-duration:0.01ms !important;
         animation-iteration-count:1 !important;
         transition-duration:0.01ms !important;
+        scroll-behavior:auto !important;
     }
-    .app,.card-stagger > *{opacity:1 !important;transform:none !important}
+    .app,.card-stagger > *,
+    .header,.rms-header,
+    .bottom-nav,.rms-bottom-nav,
+    .ov-panel.open,.ov-panel.open .ov-content > *,
+    .briefing-section,.rev-card,.health,.s82-dash,.s82-weather{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+    }
 }
 
 /* Safe area (iOS / Capacitor) */
@@ -1902,7 +1990,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
             <?php endif; ?>
         </div>
         <div class="s82-dash-numrow">
-            <span class="s82-dash-num" id="revNum">0</span>
+            <span class="s82-dash-num count-up" id="revNum" data-count="0">0</span>
             <span class="s82-dash-cur"><?= $cs ?></span>
             <span class="s82-dash-pct <?= $cmp_class ?>" id="revPct"><?= $cmp_sign . $cmp_today ?>%</span>
             <span class="s82-dash-cur" id="revVs" style="margin-left:4px"></span>
@@ -2293,13 +2381,22 @@ function vib(n) { if (navigator.vibrate) navigator.vibrate(n || 6); }
 let curPeriod = 'today';
 let curMode = 'rev';
 
+let _revAnimatedOnce = false;
 function updateRevenue() {
     const d = P[curPeriod];
     const val = curMode === 'rev' ? d.rev : d.profit;
     const pct = curMode === 'rev' ? d.cmp_rev : d.cmp_prof;
     const sub = curMode === 'rev' ? d.sub_rev : d.sub_prof;
 
-    $('revNum').textContent = fmt(val);
+    const revEl = $('revNum');
+    if (!_revAnimatedOnce && typeof animateCountUp === 'function') {
+        // S87.ANIMATIONS v2 — count-up at first paint (delay so .app pageIn finishes)
+        _revAnimatedOnce = true;
+        revEl.dataset.count = String(Math.round(val));
+        setTimeout(() => animateCountUp(revEl, Math.round(val), 1200), 800);
+    } else {
+        revEl.textContent = fmt(val);
+    }
     const pctEl = $('revPct');
     pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
     pctEl.className = 's82-dash-pct ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
@@ -2787,6 +2884,66 @@ window.addEventListener('DOMContentLoaded', () => {
 document.querySelectorAll('.sig-card,.sig-more,.nav-tab,.header-icon-btn,.store-sel,.health-link,.health-info,.top-pill,.rev-pill').forEach(el => {
     el.addEventListener('click', () => vib(6));
 });
+
+// ═══════════════════════════════════════════════════════
+// S87.ANIMATIONS v2 — count-up + spring-tap touchend
+// ═══════════════════════════════════════════════════════
+function animateCountUp(el, finalValue, duration) {
+    duration = duration || 1200;
+    if (!el || isNaN(finalValue)) return;
+    const start = 0;
+    const startTime = performance.now();
+    el.classList.add('animating');
+    function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const current = Math.floor(start + (finalValue - start) * eased);
+        el.textContent = current.toLocaleString('bg-BG');
+        if (progress < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            el.classList.remove('animating');
+            el.textContent = finalValue.toLocaleString('bg-BG');
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+// Apply count-up на всички [data-count] elements after page entrance
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        document.querySelectorAll('.count-up[data-count]').forEach(el => {
+            const v = parseInt(el.dataset.count, 10);
+            if (!isNaN(v) && v > 0 && el.id !== 'revNum') {
+                // revNum се анимира от updateRevenue() (динамична стойност)
+                animateCountUp(el, v);
+            }
+        });
+    }, 800);
+});
+
+// Spring tap release — overshoot animation на touchend
+(function attachSpringRelease(){
+    const SEL = '.spring-tap, .briefing-btn-primary, .briefing-btn-secondary,'
+              + '.sig-btn-primary, .sig-btn-secondary,'
+              + '.nav-tab, .header-icon-btn, .rms-icon-btn,'
+              + '.top-pill, .rev-pill, .s82-dash-pill,'
+              + '.sig-card, .sig-more,'
+              + '.lb-action, .lb-dismiss, .lb-fb-btn,'
+              + '.chat-mic, .chat-send,'
+              + '.ov-back, .ov-close';
+    const handler = (el) => {
+        el.classList.remove('released');
+        void el.offsetWidth; // force reflow
+        el.classList.add('released');
+        setTimeout(() => el.classList.remove('released'), 400);
+    };
+    document.querySelectorAll(SEL).forEach(el => {
+        el.addEventListener('touchend', () => handler(el), { passive: true });
+        el.addEventListener('mouseup', () => handler(el));
+    });
+})();
 </script>
 
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
