@@ -11,6 +11,7 @@
 
 ### Frontend modules
 - ✅ `chat.php` — v8 GLASS Life Board (6 q-cards q1-q6, glass dashboard, weather glass, AI Studio entry magenta button)
+- ✅ chat.php — animation system v1 applied (S87)
 - ✅ `life-board.php` — НОВ файл (580 реда), Лесен режим за Пешо (4 collapsible cards + 4 ops glass buttons + AI Studio entry)
 - ✅ `ai-studio.php` — standalone main page (5 категории cards, credits bar, bulk секция, история, FAB) — S84.STUDIO.REWIRE: чете реални данни през ai-studio-backend.php helpers
 - ✅ `products.php` — wizard 8 стъпки работи, ⚠ 3 P0 bugs known + Phase B/C wizard redesign open
