@@ -87,6 +87,7 @@
 - **S84 (28.04):** BUGFIX BATCH + STUDIO.REWIRE
 - **S85.DIAG.FIX (27.04):** ✅ DONE — Cat A=100%/D=100% (51/51 PASS); pfHighestMargin escalated
 - **S87-S91 (4-8 май):** sale.php rewrite + transfers + inventory v4 + deliveries + orders
+- 📋 `docs/SALE_REWRITE_PLAN.md` ready for S87 (target 4 май) — 503 реда, 15 steps, 20 tests, 12 risks, 10 open Qs; flag-ва 3 broken sales/sale_items columns в текущ sale.php
 - **S95 (14-15 май):** ENI launch (FIXED)
 
 Виж `docs/NEXT_SESSIONS_PLAN_27042026.md` за пълен 15-сесиен план.
