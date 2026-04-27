@@ -1474,16 +1474,16 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
     70%  { transform:translateY(-4px) scale(1.02); }
     100% { opacity:1; transform:translateY(0) scale(1); }
 }
-.card-stagger > *{opacity:0;animation:cardin 0.7s cubic-bezier(0.34,1.8,0.64,1) both}
-.card-stagger > *:nth-child(1){animation-delay:.15s}
-.card-stagger > *:nth-child(2){animation-delay:.30s}
-.card-stagger > *:nth-child(3){animation-delay:.45s}
-.card-stagger > *:nth-child(4){animation-delay:.60s}
-.card-stagger > *:nth-child(5){animation-delay:.75s}
-.card-stagger > *:nth-child(6){animation-delay:.90s}
-.card-stagger > *:nth-child(7){animation-delay:1.05s}
-.card-stagger > *:nth-child(8){animation-delay:1.20s}
-.card-stagger > *:nth-child(n+9){animation-delay:1.35s}
+.card-stagger > *{opacity:0;animation:cardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both}
+.card-stagger > *:nth-child(1){animation-delay:0.30s}
+.card-stagger > *:nth-child(2){animation-delay:0.55s}
+.card-stagger > *:nth-child(3){animation-delay:0.80s}
+.card-stagger > *:nth-child(4){animation-delay:1.05s}
+.card-stagger > *:nth-child(5){animation-delay:1.30s}
+.card-stagger > *:nth-child(6){animation-delay:1.55s}
+.card-stagger > *:nth-child(7){animation-delay:1.80s}
+.card-stagger > *:nth-child(8){animation-delay:2.05s}
+.card-stagger > *:nth-child(n+9){animation-delay:2.30s}
 
 /* PATTERN 3 — GLOW PULSE (важни cards проблясват след entrance) */
 @keyframes glowPulse{
@@ -1497,8 +1497,8 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 .s82-dash,
 .s82-weather{
     animation:
-        cardin 0.7s cubic-bezier(0.34,1.8,0.64,1) both,
-        glowPulse 1.2s ease-out 0.7s both
+        cardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both,
+        glowPulse 1.6s ease-out 0.9s both
 }
 
 /* PATTERN 4 — EXPRESSIVE SPRING TAP (scale 0.92→1.06 overshoot) */
@@ -1564,16 +1564,16 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
     animation:overlayContentIn 0.5s cubic-bezier(0.16,1,0.3,1) both
 }
 .ov-panel.open .ov-content > *:nth-child(1),
-.ov-panel.open > .ov-header                   { animation-delay:.25s }
+.ov-panel.open > .ov-header                   { animation-delay:0.30s }
 .ov-panel.open .ov-content > *:nth-child(2),
 .ov-panel.open > .chat-messages,
 .ov-panel.open > .sig-body,
-.ov-panel.open > .br-body                     { animation-delay:.35s }
+.ov-panel.open > .br-body                     { animation-delay:0.50s }
 .ov-panel.open .ov-content > *:nth-child(3),
-.ov-panel.open > .rec-bar                     { animation-delay:.45s }
+.ov-panel.open > .rec-bar                     { animation-delay:0.70s }
 .ov-panel.open .ov-content > *:nth-child(4),
-.ov-panel.open > .chat-input                  { animation-delay:.55s }
-.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay:.65s }
+.ov-panel.open > .chat-input                  { animation-delay:0.90s }
+.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay:1.10s }
 
 /* PATTERN 6 — HEADER + BOTTOM NAV CHOREOGRAPHY */
 @keyframes headerIn{
@@ -1584,8 +1584,8 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
     0%   { opacity:0; transform:translateY(60px); }
     100% { opacity:1; transform:translateY(0); }
 }
-.header,.rms-header{animation:headerIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both}
-.bottom-nav,.rms-bottom-nav{animation:navIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.4s both}
+.header,.rms-header{animation:headerIn 0.7s cubic-bezier(0.16,1,0.3,1) 0s both}
+.bottom-nav,.rms-bottom-nav{animation:navIn 0.7s cubic-bezier(0.16,1,0.3,1) 1.8s both}
 
 /* PATTERN 7 — NUMBER COUNT-UP (CSS support, JS в <script>) */
 .count-up{display:inline-block;transition:opacity 0.3s}
@@ -2390,10 +2390,10 @@ function updateRevenue() {
 
     const revEl = $('revNum');
     if (!_revAnimatedOnce && typeof animateCountUp === 'function') {
-        // S87.ANIMATIONS v2 — count-up at first paint (delay so .app pageIn finishes)
+        // S87.ANIMATIONS v2.1 — spacious count-up (1.2s delay, 1.8s duration)
         _revAnimatedOnce = true;
         revEl.dataset.count = String(Math.round(val));
-        setTimeout(() => animateCountUp(revEl, Math.round(val), 1200), 800);
+        setTimeout(() => animateCountUp(revEl, Math.round(val), 1800), 1200);
     } else {
         revEl.textContent = fmt(val);
     }
@@ -2889,7 +2889,7 @@ document.querySelectorAll('.sig-card,.sig-more,.nav-tab,.header-icon-btn,.store-
 // S87.ANIMATIONS v2 — count-up + spring-tap touchend
 // ═══════════════════════════════════════════════════════
 function animateCountUp(el, finalValue, duration) {
-    duration = duration || 1200;
+    duration = duration || 1800;
     if (!el || isNaN(finalValue)) return;
     const start = 0;
     const startTime = performance.now();
@@ -2917,10 +2917,10 @@ window.addEventListener('load', () => {
             const v = parseInt(el.dataset.count, 10);
             if (!isNaN(v) && v > 0 && el.id !== 'revNum') {
                 // revNum се анимира от updateRevenue() (динамична стойност)
-                animateCountUp(el, v);
+                animateCountUp(el, v, 1800);
             }
         });
-    }, 800);
+    }, 1200);
 });
 
 // Spring tap release — overshoot animation на touchend

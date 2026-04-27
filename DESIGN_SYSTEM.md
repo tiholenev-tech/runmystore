@@ -999,14 +999,14 @@ html,body{-webkit-user-select:none;user-select:none}
 - [ ] `vib(6)` на tap feedback (G.6)
 - [ ] `tabular-nums` на всички числа (E.4)
 - [ ] Toast, typing dots, rec bar ако има AI chat (D.16-D.17)
-- [ ] Page entrance с blur+scale+translate combo (`pageIn`) — § O.2
-- [ ] Card stagger 150ms между елементи (`.card-stagger`) — § O.3
-- [ ] Glow pulse на важни cards (`.briefing-section`, `.rev-card`, `.health`) — § O.4
-- [ ] Spring tap със overshoot 6% (`.spring-tap` + JS released) — § O.5
-- [ ] Overlay choreography (panel slide + content stagger) — § O.6
-- [ ] Header `headerIn` (top), bottom-nav `navIn` (bottom) — § O.7
-- [ ] Count-up numbers където уместно (`animateCountUp`) — § O.8
-- [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран — § O.9
+- [ ] Page entrance с blur+scale+translate combo (`pageIn`) — § O.3
+- [ ] Card stagger 250ms между елементи (`.card-stagger`) — § O.4
+- [ ] Glow pulse на важни cards (`.briefing-section`, `.rev-card`, `.health`) — § O.5
+- [ ] Spring tap със overshoot 6% (`.spring-tap` + JS released) — § O.6
+- [ ] Overlay choreography (panel slide + content stagger 200ms) — § O.7
+- [ ] Header `headerIn` (top 0s), bottom-nav `navIn` (bottom 1.8s) — § O.8
+- [ ] Count-up numbers където уместно (`animateCountUp`) — § O.9
+- [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран — § O.10
 
 ---
 
@@ -1019,6 +1019,7 @@ html,body{-webkit-user-select:none;user-select:none}
 | **v2.0** | **2026-04-23** | **S79.POLISH2 — ПЪЛНА NEON GLASS СПЕЦИФИКАЦИЯ от chat.php v8.** Цветова система с 6Q hue mapping, glass pattern conic-shine+glow, всички компоненти, 75vh overlays, hardware back, hue-matched buttons (color-mix in oklch), typography scale, animations, забранени patterns, adoption checklist. |
 | **v2.1** | **2026-04-27** | **S87.ANIMATIONS — 5 mandatory patterns. Live в chat.php.** § O Animation System v1: page entrance, card stagger, spring tap, overlay choreography, reduced-motion. Performance budget ≤800ms, само opacity+transform, GPU-only. |
 | **v2.2** | **2026-04-27** | **S87.ANIMATIONS v2 DRAMATIC — 8 expressive patterns** (scale+blur entrance, visible 150ms stagger, glow pulse, spring overshoot 6%, choreographed nav, count-up numbers). Live в chat.php. **Replaces v1.** |
+| **v2.2.1** | **2026-04-27** | **S87.ANIMATIONS v2.1 — timing tweak (250ms stagger, 2.5s total launch).** Stretch на choreography за по-spacious WOW: card stagger 0.95s @ 250ms apart, header @ 0s, bottom-nav @ 1.8s, glow pulse 1.6s @ 0.9s, overlay content 200ms apart, count-up @ 1.2s × 1.8s. Same 8 patterns, по-spacious timing. |
 
 ---
 
@@ -1033,7 +1034,9 @@ html,body{-webkit-user-select:none;user-select:none}
 2. **EXPRESSIVE > muted.** Spring overshoot 6-15%, не 2-3%. Scale changes ≥ 0.10, не 0.02.
 3. **CHOREOGRAPHED > simultaneous.** Header → revenue → cards → bottom nav. Не наведнъж — последователност.
 4. **SCALE + OPACITY + FILTER combo.** Не само `translate`. `Scale 0.85→1.0 + blur(8px)→0` = drama.
-5. **Stagger 150-180ms** между елементи (не 70ms — невидимо).
+5. **Stagger 250ms** между елементи (v2.1: 150ms беше насечено, 250ms = spacious).
+
+⏱️ **TIMING SCALE:** total launch sequence ≈ 2.5s. Cards stagger 250ms apart. Header + nav anchor the sequence (header 0s, nav 1.8s).
 
 ### O.2 Easing reference
 
@@ -1067,20 +1070,20 @@ cubic-bezier(0.34, 2.0, 0.64, 1)    — "spring-strong", strong overshoot
 }
 .card-stagger > * {
     opacity: 0;
-    animation: cardin 0.7s cubic-bezier(0.34, 1.8, 0.64, 1) both;
+    animation: cardin 0.95s cubic-bezier(0.34, 1.8, 0.64, 1) both;
 }
-.card-stagger > *:nth-child(1)  { animation-delay: 0.15s; }
-.card-stagger > *:nth-child(2)  { animation-delay: 0.30s; }
-.card-stagger > *:nth-child(3)  { animation-delay: 0.45s; }
-.card-stagger > *:nth-child(4)  { animation-delay: 0.60s; }
-.card-stagger > *:nth-child(5)  { animation-delay: 0.75s; }
-.card-stagger > *:nth-child(6)  { animation-delay: 0.90s; }
-.card-stagger > *:nth-child(7)  { animation-delay: 1.05s; }
-.card-stagger > *:nth-child(8)  { animation-delay: 1.20s; }
-.card-stagger > *:nth-child(n+9) { animation-delay: 1.35s; }
+.card-stagger > *:nth-child(1)  { animation-delay: 0.30s; }
+.card-stagger > *:nth-child(2)  { animation-delay: 0.55s; }
+.card-stagger > *:nth-child(3)  { animation-delay: 0.80s; }
+.card-stagger > *:nth-child(4)  { animation-delay: 1.05s; }
+.card-stagger > *:nth-child(5)  { animation-delay: 1.30s; }
+.card-stagger > *:nth-child(6)  { animation-delay: 1.55s; }
+.card-stagger > *:nth-child(7)  { animation-delay: 1.80s; }
+.card-stagger > *:nth-child(8)  { animation-delay: 2.05s; }
+.card-stagger > *:nth-child(n+9) { animation-delay: 2.30s; }
 ```
 
-**Кога:** Container with multiple carded children. **150ms между = visible** каскада. Each card scales 0.85→1.02→1.0 (overshoot 2%), 0.7s. Виждаш кaскадата ясно.
+**Кога:** Container with multiple carded children. **250ms между = spacious WOW** каскада (v2.1: 150ms беше насечено). Each card scales 0.85→1.02→1.0 (overshoot 2%), 0.95s. Цялата stagger секвенция за 8 cards = ~3s.
 
 ### O.5 PATTERN 3 — GLOW PULSE (нов)
 
@@ -1094,12 +1097,12 @@ cubic-bezier(0.34, 2.0, 0.64, 1)    — "spring-strong", strong overshoot
 .rev-card,
 .health {
     animation:
-        cardin 0.7s cubic-bezier(0.34, 1.8, 0.64, 1) both,
-        glowPulse 1.2s ease-out 0.7s both;
+        cardin 0.95s cubic-bezier(0.34, 1.8, 0.64, 1) both,
+        glowPulse 1.6s ease-out 0.9s both;
 }
 ```
 
-**Кога:** Важни cards „проблясват" с hue glow 1.2s след entrance. Очите са привлечени към важни елементи (revenue, health, briefing).
+**Кога:** Важни cards „проблясват" с hue glow 1.6s, начало 0.9s след cardin start (v2.1: по-късно, по-дълго). Очите са привлечени към важни елементи (revenue, health, briefing) — по-видим "magic moment".
 
 ### O.6 PATTERN 4 — EXPRESSIVE SPRING TAP (replace v1)
 
@@ -1149,14 +1152,14 @@ document.querySelectorAll('.spring-tap').forEach(el => {
     opacity: 0;
     animation: overlayContentIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.ov-panel.open .ov-content > *:nth-child(1) { animation-delay: 0.25s; }
-.ov-panel.open .ov-content > *:nth-child(2) { animation-delay: 0.35s; }
-.ov-panel.open .ov-content > *:nth-child(3) { animation-delay: 0.45s; }
-.ov-panel.open .ov-content > *:nth-child(4) { animation-delay: 0.55s; }
-.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay: 0.65s; }
+.ov-panel.open .ov-content > *:nth-child(1) { animation-delay: 0.30s; }
+.ov-panel.open .ov-content > *:nth-child(2) { animation-delay: 0.50s; }
+.ov-panel.open .ov-content > *:nth-child(3) { animation-delay: 0.70s; }
+.ov-panel.open .ov-content > *:nth-child(4) { animation-delay: 0.90s; }
+.ov-panel.open .ov-content > *:nth-child(n+5) { animation-delay: 1.10s; }
 ```
 
-**Кога:** Overlay slide-up със scale 0.95→1.0, после content stagger от 250ms delay, 100ms между. **True choreography:** panel slides → content settles.
+**Кога:** Overlay slide-up със scale 0.95→1.0, после content stagger от 300ms delay, **200ms между** (v2.1: 100ms беше твърде бързо). **True choreography:** panel slides → content settles spacious.
 
 ### O.8 PATTERN 6 — HEADER + BOTTOM NAV CHOREOGRAPHY (нов)
 
@@ -1169,11 +1172,11 @@ document.querySelectorAll('.spring-tap').forEach(el => {
     0%   { opacity: 0; transform: translateY(60px); }
     100% { opacity: 1; transform: translateY(0); }
 }
-.header,    .rms-header     { animation: headerIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
-.bottom-nav,.rms-bottom-nav { animation: navIn    0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
+.header,    .rms-header     { animation: headerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0s both; }
+.bottom-nav,.rms-bottom-nav { animation: navIn    0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.8s both; }
 ```
 
-**Кога:** Header пристига първи отгоре (0.1s delay), content зарежда чрез card-stagger, nav пристига последен отдолу (0.4s delay). **True app launch sequence.**
+**Кога:** Header пристига първи отгоре (0s — веднага), content зарежда чрез card-stagger (250ms apart, ~3s общо), nav пристига последен отдолу (1.8s — след повечето cards). **True app launch sequence ~2.5s total.**
 
 ### O.9 PATTERN 7 — NUMBER COUNT-UP (нов)
 
@@ -1183,7 +1186,7 @@ document.querySelectorAll('.spring-tap').forEach(el => {
 ```
 
 ```javascript
-function animateCountUp(el, finalValue, duration = 1200) {
+function animateCountUp(el, finalValue, duration = 1800) {
     const start = 0;
     const startTime = performance.now();
     el.classList.add('animating');
@@ -1201,13 +1204,13 @@ function animateCountUp(el, finalValue, duration = 1200) {
 window.addEventListener('load', () => {
     setTimeout(() => {
         document.querySelectorAll('.rev-val[data-count], .count-up[data-count]').forEach(el => {
-            animateCountUp(el, parseInt(el.dataset.count));
+            animateCountUp(el, parseInt(el.dataset.count), 1800);
         });
-    }, 800); // след page entrance
+    }, 1200); // след повечето cards (v2.1: spacious)
 });
 ```
 
-**Кога:** Revenue число брои от 0 до final value (1.2s, ease-out cubic). Visually impressive. `data-count="2453"` атрибут на target елемент.
+**Кога:** Revenue число брои от 0 до final value (1.8s, ease-out cubic), стартира 1.2s след page load (когато cards още влизат). Visually impressive. `data-count="2453"` атрибут на target елемент.
 
 ### O.10 PATTERN 8 — REDUCED MOTION FALLBACK (mandatory accessibility)
 
@@ -1236,12 +1239,12 @@ window.addEventListener('load', () => {
 ### O.11 Adoption rules (checklist)
 
 - [ ] Page entrance с blur+scale+translate (`pageIn` 0.85s)
-- [ ] Card stagger 150ms между елементи (`.card-stagger`)
-- [ ] Glow pulse на важни cards (`glowPulse` 1.2s @ 0.7s delay)
+- [ ] Card stagger 250ms между елементи (`.card-stagger`, 0.95s duration)
+- [ ] Glow pulse на важни cards (`glowPulse` 1.6s @ 0.9s delay)
 - [ ] Spring tap със overshoot 6% (`.spring-tap` + `springRelease` JS)
-- [ ] Overlay choreography (panel slide + content stagger)
-- [ ] Header `headerIn` (top 0.1s), nav `navIn` (bottom 0.4s)
-- [ ] Count-up numbers където уместно (`animateCountUp`)
+- [ ] Overlay choreography (panel slide + content stagger 200ms)
+- [ ] Header `headerIn` (top 0s), nav `navIn` (bottom 1.8s)
+- [ ] Count-up numbers където уместно (`animateCountUp` 1.8s @ 1.2s delay)
 - [ ] `@media (prefers-reduced-motion: reduce)` реализиран
 
 ### O.12 Performance budget
@@ -1254,7 +1257,7 @@ window.addEventListener('load', () => {
 
 ### O.13 Reference
 
-**Live имплементация:** `chat.php` (S87.ANIMATIONS v2 DRAMATIC commit, 2026-04-27). Чети style блока за пълните 8 patterns в работещ контекст + `<script>` блока за `springRelease` и `animateCountUp` JS.
+**Live имплементация:** `chat.php` (S87.ANIMATIONS v2.1 timing tweak commit, 2026-04-27). Чети style блока за пълните 8 patterns в работещ контекст + `<script>` блока за `springRelease` и `animateCountUp` JS.
 
 ### O.14 Forbidden patterns (виж § K)
 
@@ -1268,6 +1271,6 @@ window.addEventListener('load', () => {
 
 ---
 
-**КРАЙ НА DESIGN SYSTEM v2.2**
+**КРАЙ НА DESIGN SYSTEM v2.2.1**
 
 *Референтен модул: `chat.php` v8 (commit c2caaf5). Всеки нов модул ТРЯБВА да премине adoption checklist § M.*
