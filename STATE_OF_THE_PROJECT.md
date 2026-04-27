@@ -18,6 +18,7 @@
 - ✅ `stats.php` — базово работи
 - ✅ `printer-setup.php` — Bluetooth pair UI + diagnostic log
 - ✅ `partials/header.php`, `partials/bottom-nav.php`, `partials/chat-input-bar.php` — production rms-shell
+- ✅ `admin/beta-readiness.php` — live dashboard (6 sections, auto-refresh 60s, owner+tenant=7 gated, mobile-friendly) — S86
 
 ### Backend
 - ✅ `ai-studio-backend.php` — 9 helper функции (get_credit_balance, consume_credit, refund_credit, check_retry_eligibility, check_anti_abuse, get_prompt_template, build_prompt, count_products_needing_ai, pre_flight_quality_check)
