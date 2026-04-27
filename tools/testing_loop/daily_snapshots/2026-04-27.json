@@ -1,0 +1,20 @@
+{
+  "ai_insights_last_created": "2026-04-27T05:37:00",
+  "ai_insights_total_live": 19,
+  "cron_last_ms": 6965,
+  "cron_last_status": "ok",
+  "cron_run_at": "2026-04-27T06:15:08",
+  "per_fundamental_question": {
+    "anti_order": 3,
+    "gain": 2,
+    "gain_cause": 5,
+    "loss": 3,
+    "loss_cause": 4,
+    "order": 2
+  },
+  "products_active": 47,
+  "sales_seeded_today": 23,
+  "snapshot_at": "2026-04-27T06:26:32",
+  "snapshot_date": "2026-04-27",
+  "tenant": 99
+}

@@ -303,6 +303,63 @@ foreach ($blockers as $b) {
 }
 $header_ready = !$has_p0;
 
+// ─── DATA: SECTION 7 — TESTING LOOP HEALTH (S87) ────────────────────────
+$loop_dir   = realpath(__DIR__ . '/../tools/testing_loop');
+$loop_path  = $loop_dir ? $loop_dir . '/latest.json' : null;
+$loop_data  = null;
+$loop_error = null;
+if ($loop_path && is_file($loop_path) && is_readable($loop_path)) {
+    $raw = @file_get_contents($loop_path);
+    $loop_data = $raw !== false ? json_decode($raw, true) : null;
+    if (!is_array($loop_data)) { $loop_data = null; $loop_error = 'parse failed'; }
+} else {
+    $loop_error = 'latest.json missing — cron not yet installed (виж TESTING_LOOP_PROTOCOL.md §Setup)';
+}
+
+$loop_diff_status = $loop_data['diff']['status'] ?? null;
+$loop_status = match (strtolower((string)($loop_diff_status ?? ''))) {
+    'healthy'      => 'ok',
+    'warning'      => 'warn',
+    'critical'     => 'bad',
+    'no_baseline'  => 'idle',
+    'error'        => 'warn',
+    default        => 'idle',
+};
+
+// 7-day insights total sparkline (ASCII) — read up to 7 newest snapshots
+$loop_sparkline = '';
+$loop_recent = [];
+if ($loop_dir && is_dir($loop_dir . '/daily_snapshots')) {
+    $files = glob($loop_dir . '/daily_snapshots/*.json') ?: [];
+    sort($files);
+    $files = array_slice($files, -7);
+    foreach ($files as $f) {
+        $r = @file_get_contents($f);
+        $j = $r !== false ? json_decode($r, true) : null;
+        if (is_array($j)) {
+            $loop_recent[] = [
+                'date'   => $j['snapshot_date']           ?? basename($f, '.json'),
+                'total'  => (int)($j['ai_insights_total_live'] ?? 0),
+                'status' => $j['diff']['status']          ?? null,
+            ];
+        }
+    }
+    if ($loop_recent) {
+        $vals  = array_map(fn($r) => $r['total'], $loop_recent);
+        $max   = max($vals) ?: 1;
+        $bars  = ['▁','▂','▃','▄','▅','▆','▇','█'];
+        $sp    = '';
+        foreach ($vals as $v) {
+            $idx = (int) round(($v / $max) * (count($bars) - 1));
+            $sp .= $bars[$idx];
+        }
+        $loop_sparkline = $sp;
+    }
+}
+
+$loop_anomaly_path = $loop_dir ? $loop_dir . '/ANOMALY_LOG.md' : null;
+$loop_anomaly_size = ($loop_anomaly_path && is_file($loop_anomaly_path)) ? filesize($loop_anomaly_path) : null;
+
 // ─── DATA: HEADER OVERALL READINESS ─────────────────────────────────────
 $days_to_eni = (int) ceil((strtotime('2026-05-14 00:00:00') - time()) / 86400);
 
@@ -311,6 +368,7 @@ $section_statuses = [
     $cat_status, $sales_status, $ins_status, $studio_status,
     $db_status, $cron_status, $disk_status, $diag_status,
     $header_ready ? 'ok' : 'bad',
+    $loop_status,
 ];
 $has_bad = in_array('bad', $section_statuses, true);
 $has_warn = in_array('warn', $section_statuses, true);
@@ -562,10 +620,55 @@ $overall_label = $has_bad ? 'BLOCKED' : ($has_warn ? 'AT RISK' : 'READY');
     <?php endif; ?>
   </div>
 
+  <!-- 7. TESTING LOOP HEALTH (S87) -->
+  <div class="card" style="grid-column: 1 / -1;">
+    <h2><span class="num">7.</span> 🔁 Testing Loop Health (tenant=99)
+      <span class="pill <?= status_class($loop_status) ?>" style="margin-left:auto">
+        <?= status_dot($loop_status) ?>
+        <?= htmlspecialchars(strtoupper((string)($loop_diff_status ?? 'no run'))) ?>
+      </span>
+    </h2>
+    <?php if (!$loop_data): ?>
+      <div class="row"><span class="k">latest.json</span>
+        <span class="v dim"><?= htmlspecialchars((string)($loop_error ?? 'unavailable')) ?></span></div>
+    <?php else: ?>
+      <div class="row"><span class="k">Last run</span>
+        <span class="v">
+          <?= htmlspecialchars((string)($loop_data['snapshot_at'] ?? '—')) ?>
+          <span class="dim"> · <?= ago($loop_data['snapshot_at'] ?? null) ?></span>
+        </span></div>
+      <div class="row"><span class="k">Live insights tenant=99</span>
+        <span class="v"><?= fmt_num((int)($loop_data['ai_insights_total_live'] ?? 0)) ?>
+          <span class="dim"> · 6/6 questions: <?= (int)($loop_data['diff']['today_summary']['questions_covered'] ?? -1) ?></span>
+        </span></div>
+      <div class="row"><span class="k">7-day insights sparkline</span>
+        <span class="v" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 1px;">
+          <?= htmlspecialchars($loop_sparkline ?: '—') ?>
+          <span class="dim"> · <?= count($loop_recent) ?> day<?= count($loop_recent) === 1 ? '' : 's' ?></span>
+        </span></div>
+      <div class="row"><span class="k">Diff reason</span>
+        <span class="v dim"><?= htmlspecialchars((string)($loop_data['diff']['reason'] ?? '—')) ?></span></div>
+      <?php if (!empty($loop_data['diff']['recommendations'])): ?>
+        <?php foreach ($loop_data['diff']['recommendations'] as $rec): ?>
+          <div class="row"><span class="k">  · recommendation</span>
+            <span class="v dim"><?= htmlspecialchars((string)$rec) ?></span></div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+      <div class="row"><span class="k">Anomaly log</span>
+        <span class="v">
+          <?php if ($loop_anomaly_size === null): ?>
+            <span class="dim">N/A</span>
+          <?php else: ?>
+            <a href="../tools/testing_loop/ANOMALY_LOG.md"><?= fmt_num((int)$loop_anomaly_size) ?> bytes</a>
+          <?php endif; ?>
+        </span></div>
+    <?php endif; ?>
+  </div>
+
 </div>
 
 <div class="footer">
-  S86.BETA.READINESS · auto-refresh 60s · server <?= htmlspecialchars(gethostname() ?: 'unknown') ?> · php <?= htmlspecialchars(PHP_VERSION) ?>
+  S86.BETA.READINESS + S87.TESTING_LOOP · auto-refresh 60s · server <?= htmlspecialchars(gethostname() ?: 'unknown') ?> · php <?= htmlspecialchars(PHP_VERSION) ?>
 </div>
 
 </body>

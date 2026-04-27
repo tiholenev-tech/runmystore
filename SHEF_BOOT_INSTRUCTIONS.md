@@ -35,6 +35,7 @@ PHASE 2 — STATUS REPORT (без въпроси към Тихол):
 - Активни Claude Code сесии: брой
 - Известни блокери:
 - Diagnostic Cat A/D статус:
+- TESTING LOOP: [read tools/testing_loop/latest.json status field — формат: "🟢 healthy / 🟡 warning / 🔴 critical · last run YYYY-MM-DD HH:MM · N live insights tenant=99". Ако latest.json липсва → "not yet running (cron not installed)". Виж TESTING_LOOP_PROTOCOL.md.]
 
 PHASE 3 — BOOT TEST (mandatory, само ако Тихол поиска):
 

@@ -941,6 +941,14 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 27.04.2026 — TESTING_LOOP_PROTOCOL активиран (S87)
+- **Решение:** Continuous AI insights validation на tenant=99 — daily 07:00 cron хвърля seed → `computeProductInsights(99)` → snapshot → diff → status JSON. 🟡/🔴 пишат в `tools/testing_loop/ANOMALY_LOG.md`.
+- **Защо:** Тихол не може manually да проверява insights всеки ден. Без auto-loop регресии в `compute-insights.php` или drop в seed данни могат да минат незабелязани седмици. Loop = early warning без да ангажира human attention докато всичко е 🟢.
+- **Засегнати:** `tools/testing_loop/` (нов dir: `daily_runner.py`, `snapshot_diff.py`, `daily_snapshots/`, `latest.json` symlink, `ANOMALY_LOG.md`), `TESTING_LOOP_PROTOCOL.md` (root spec), `admin/beta-readiness.php` (+1 секция Testing Loop Health), `STATE_OF_THE_PROJECT.md` (нова `## 🔁 STANDING PROTOCOLS` секция), `SHEF_BOOT_INSTRUCTIONS.md` (Phase 2 STATUS REPORT задължителен ред).
+- **Rework:** нищо. Loop е additive; не пипа production code (`compute-insights.php`, schema, helpers).
+- **Setup pending:** crontab line за www-data (manual install от Тихол — виж TESTING_LOOP_PROTOCOL.md §Setup).
+- **Promotion path:** при 7 поредни 🟢 дни → STANDING_RULE_#23.
+
 ## 26-27.04.2026 — S82.STUDIO MARATHON (3 паралелни Claude Code)
 - **Решение:** Marathon вечер преди real entry — 3 паралелни Claude Code инстанции с disjoint paths за да освободи следващите дни (sale.php / Bluetooth / transfers).
 - **Защо:** Logic 90% complete — bottleneck е код deployment скоростта. Browser chat era приключи. 3 паралелни сесии = ~2 седмици работа в 1 нощ.
