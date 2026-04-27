@@ -77,6 +77,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
     <button class="btn sec" id="btnScanAll">🔍 Сканирай всички BT (10s)</button>
     <button class="btn sec" id="btnPairDebug">🔗 Pair и анализирай</button>
     <button class="btn sec" id="btnTestRaw">🖨 Test minimal TSPL (D520BT)</button>
+    <button class="btn sec" id="btnTestCPCL">🖨 Test CPCL</button>
+    <button class="btn sec" id="btnTestESCPOS">🖨 Test ESC/POS</button>
+    <button class="btn sec" id="btnTestPhomemoInit">🖨 Test Phomemo Init</button>
   </div>
 </div>
 
@@ -180,6 +183,24 @@ $('btnTestRaw').addEventListener('click', async function(){
     $('btnTestRaw').disabled = false;
   }
 });
+
+function bindProtoTest(btnId, fnName, label) {
+  $(btnId).addEventListener('click', async function(){
+    try {
+      log('Sending ' + label + '...');
+      $(btnId).disabled = true;
+      var r = await window.CapPrinter[fnName]();
+      log('Готово: ' + r.bytes + ' байта (' + label + ')');
+    } catch(e) {
+      log(label + ' error: ' + (e.message || e));
+    } finally {
+      $(btnId).disabled = false;
+    }
+  });
+}
+bindProtoTest('btnTestCPCL',         'testCPCL',         'CPCL');
+bindProtoTest('btnTestESCPOS',       'testESCPOS',       'ESC/POS');
+bindProtoTest('btnTestPhomemoInit',  'testPhomemoInit',  'Phomemo Init');
 
 // Init: refresh now, on capacitor-ready event, and after a safety delay
 refreshStatus();
