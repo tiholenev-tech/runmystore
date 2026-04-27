@@ -380,6 +380,67 @@ body::before{
 
 /* Hide bottom nav globally for Лесен режим (uses partials/chat-input-bar.php only) */
 .rms-bottom-nav{display:none !important}
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable CORE block       */
+/* DESIGN_SYSTEM § O.3-O.10 + O.14 + O.20        */
+/* ───────────────────────────────────────────── */
+@keyframes s87v3_pageIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.92); filter:blur(8px); }
+    60%  { opacity:1; filter:blur(0); }
+    100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
+.s87v3-pagein{animation:s87v3_pageIn 0.85s cubic-bezier(0.16,1,0.3,1) both}
+@keyframes s87v3_cardin{
+    0%   { opacity:0; transform:translateY(30px) scale(0.85); }
+    70%  { transform:translateY(-4px) scale(1.02); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.s87v3-stagger > *{opacity:0;animation:s87v3_cardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both}
+.s87v3-stagger > *:nth-child(1){animation-delay:0.30s}
+.s87v3-stagger > *:nth-child(2){animation-delay:0.55s}
+.s87v3-stagger > *:nth-child(3){animation-delay:0.80s}
+.s87v3-stagger > *:nth-child(4){animation-delay:1.05s}
+.s87v3-stagger > *:nth-child(5){animation-delay:1.30s}
+.s87v3-stagger > *:nth-child(6){animation-delay:1.55s}
+.s87v3-stagger > *:nth-child(7){animation-delay:1.80s}
+.s87v3-stagger > *:nth-child(8){animation-delay:2.05s}
+.s87v3-stagger > *:nth-child(n+9){animation-delay:2.30s}
+@keyframes s87v3_springRelease{
+    0%   { transform:scale(0.92); }
+    50%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+}
+.s87v3-tap{transition:transform 0.18s cubic-bezier(0.34,1.8,0.64,1)}
+.s87v3-tap:active{transform:scale(0.92)}
+.s87v3-tap.s87v3-released{animation:s87v3_springRelease 0.4s cubic-bezier(0.34,2.0,0.64,1)}
+@keyframes s87v3_headerIn{
+    0%   { opacity:0; transform:translateY(-30px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+.rms-header,.header{animation:s87v3_headerIn 0.7s cubic-bezier(0.16,1,0.3,1) 0s both;transition:backdrop-filter 0.3s,background 0.3s}
+@keyframes s87v3_scrollIn{
+    from { opacity:0; transform:translateY(40px) scale(0.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.s87v3-scroll-reveal{opacity:0}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+@media (prefers-reduced-motion: reduce){
+    .s87v3-pagein,.s87v3-stagger > *,
+    .rms-header,.header,
+    .s87v3-tap,.s87v3-tap.s87v3-released,
+    .s87v3-scroll-reveal{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+        transition:none !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -387,13 +448,13 @@ body::before{
 <?php include __DIR__ . '/partials/header.php'; ?>
 
 <div class="lb-mode-row">
-    <a href="/chat.php" class="lb-mode-toggle" title="Подробен режим">
+    <a href="/chat.php" class="lb-mode-toggle s87v3-tap" title="Подробен режим">
         Подробен <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </a>
 </div>
 
-<div class="app">
-  <div class="scroll">
+<div class="app s87v3-pagein">
+  <div class="scroll s87v3-stagger">
 
     <!-- ─── Mini dashboard + mini weather ─── -->
     <div class="top-row">
@@ -459,27 +520,27 @@ body::before{
                     <span class="lb-fq-tag-mini"><?= $meta['name'] ?></span>
                     <span class="lb-collapsed-title"><?= htmlspecialchars($ins['title']) ?></span>
                 </div>
-                <button type="button" class="lb-expand-btn" aria-label="Разгъни"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+                <button type="button" class="lb-expand-btn s87v3-tap" aria-label="Разгъни"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
             </div>
             <div class="lb-expanded">
                 <?php if (!empty($ins['detail_text'])): ?>
                 <div class="lb-body"><?= htmlspecialchars($ins['detail_text']) ?></div>
                 <?php endif; ?>
                 <div class="lb-actions">
-                    <button type="button" class="lb-action" onclick="lbOpenChat(event,'<?= $title_js ?>')">Защо?</button>
+                    <button type="button" class="lb-action s87v3-tap" onclick="lbOpenChat(event,'<?= $title_js ?>')">Защо?</button>
                     <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
-                    <a class="lb-action" href="<?= htmlspecialchars($action['url']) ?>">Покажи</a>
-                    <a class="lb-action primary" href="<?= htmlspecialchars($action['url']) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
+                    <a class="lb-action s87v3-tap" href="<?= htmlspecialchars($action['url']) ?>">Покажи</a>
+                    <a class="lb-action primary s87v3-tap" href="<?= htmlspecialchars($action['url']) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
                     <?php else: ?>
-                    <button type="button" class="lb-action" onclick="lbOpenChat(event,'<?= $title_js ?>')">Покажи</button>
-                    <button type="button" class="lb-action primary" onclick="lbOpenChat(event,'<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
+                    <button type="button" class="lb-action s87v3-tap" onclick="lbOpenChat(event,'<?= $title_js ?>')">Покажи</button>
+                    <button type="button" class="lb-action primary s87v3-tap" onclick="lbOpenChat(event,'<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
                     <?php endif; ?>
                 </div>
                 <div class="lb-feedback">
                     <span class="lb-fb-label">Полезно?</span>
-                    <button type="button" class="lb-fb-btn" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
-                    <button type="button" class="lb-fb-btn" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
-                    <button type="button" class="lb-fb-btn" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
+                    <button type="button" class="lb-fb-btn s87v3-tap" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
+                    <button type="button" class="lb-fb-btn s87v3-tap" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
+                    <button type="button" class="lb-fb-btn s87v3-tap" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
                 </div>
             </div>
         </div>
@@ -500,25 +561,25 @@ body::before{
     <!-- ─── 4 big operational glass buttons ─── -->
     <div class="ops-section">
       <div class="ops-grid">
-        <a href="/sale.php" class="glass sm op-btn q3">
+        <a href="/sale.php" class="glass sm op-btn s87v3-tap q3">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <div class="op-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/></svg></div>
           <div class="op-label">Продай</div>
         </a>
-        <a href="/products.php" class="glass sm op-btn qd">
+        <a href="/products.php" class="glass sm op-btn s87v3-tap qd">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <div class="op-icon"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
           <div class="op-label">Стоката</div>
         </a>
-        <a href="<?= htmlspecialchars($op_deliveries_url) ?>" class="glass sm op-btn q5">
+        <a href="<?= htmlspecialchars($op_deliveries_url) ?>" class="glass sm op-btn s87v3-tap q5">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <div class="op-icon"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
           <div class="op-label">Доставка</div>
         </a>
-        <a href="<?= htmlspecialchars($op_orders_url) ?>" class="glass sm op-btn q2">
+        <a href="<?= htmlspecialchars($op_orders_url) ?>" class="glass sm op-btn s87v3-tap q2">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <div class="op-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
@@ -526,7 +587,7 @@ body::before{
         </a>
       </div>
       <div class="studio-row-bottom">
-        <a href="/ai-studio.php" class="glass sm studio-btn" aria-label="AI Studio">
+        <a href="/ai-studio.php" class="glass sm studio-btn s87v3-tap" aria-label="AI Studio">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <span class="studio-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
@@ -575,6 +636,60 @@ function lbOpenChat(e, q){
 }
 // chat-input-bar.php calls rmsOpenChat(); on Лесен → just route to chat.php
 window.rmsOpenChat = function(){ window.location.href = '/chat.php'; };
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable JS (idempotent)  */
+/* ───────────────────────────────────────────── */
+(function s87v3_init(){
+    if (window.__s87v3_loaded) return;
+    window.__s87v3_loaded = true;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) {
+        var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+        var lastScroll = 0;
+        window.addEventListener('scroll', function(){
+            var y = window.scrollY;
+            if (headerEl) {
+                if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+                else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+            }
+            lastScroll = y;
+        }, { passive: true });
+    }
+    if (!reduced && 'IntersectionObserver' in window) {
+        var obs = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 's87v3_scrollIn 0.7s cubic-bezier(0.34,1.8,0.64,1) both';
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        var attach = function(){
+            document.querySelectorAll('.s87v3-scroll-reveal').forEach(function(el){ obs.observe(el); });
+        };
+        if (document.readyState !== 'loading') attach();
+        else document.addEventListener('DOMContentLoaded', attach);
+    }
+    if (!reduced) {
+        var attachTap = function(){
+            document.querySelectorAll('.s87v3-tap').forEach(function(el){
+                if (el.__s87v3_tap) return;
+                el.__s87v3_tap = true;
+                var handler = function(){
+                    el.classList.remove('s87v3-released');
+                    void el.offsetWidth;
+                    el.classList.add('s87v3-released');
+                    setTimeout(function(){ el.classList.remove('s87v3-released'); }, 400);
+                };
+                el.addEventListener('touchend', handler, { passive: true });
+                el.addEventListener('mouseup', handler);
+            });
+        };
+        if (document.readyState !== 'loading') attachTap();
+        else document.addEventListener('DOMContentLoaded', attachTap);
+    }
+})();
 </script>
 </body>
 </html>
