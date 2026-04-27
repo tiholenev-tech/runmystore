@@ -2,12 +2,15 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 26.04.2026  
-**Последна завършена сесия:** S80.DIAG (50% — verify pending S81) + S82.SHELL.AI_STUDIO (50% — Chat 1 продължава) + S79.SECURITY (verified) + S81.BUGFIX.V3.EXT + S79.INSIGHTS.COMPLETE
-**Паралелно в ход:** Chat 1 (S82.AI_STUDIO frontend integration), Chat 2 кандидат за S81 (verify adaptation)
-**Следваща сесия:** Тихол УТРЕ (26.04) products.php finalize + реал product entry на tenant=7. Паралелно S81.DIAG.VERIFY (verify_engine + ai_insights schema reverse-engineer) + Chat 1 S82.AI_STUDIO.
-**Текуща Phase:** A1 (Foundation) → A2 (Operations Core, преди ЕНИ май)  
-**Първа реална продажба target:** ЕНИ магазин, 10-15 май 2026
+**Последна актуализация:** 27.04.2026  
+**Последна завършена сесия:** S82.STUDIO MARATHON — 26-27.04.2026 (3 паралелни Claude Code сесии: STUDIO.11/12/NAV/VISUAL frontend + STUDIO.BACKEND/APPLY backend) + S81.DIAG.VERIFY (pipeline functional, DOD pending S82.DIAG.FIX)
+**Паралелно в ход:** Тихол solo real product entry на tenant=7 (без Claude Code), очаква bug list за S84
+**Следваща сесия:** S83 = Real Entry Day (Тихол solo, 27.04) → S84 = BUGFIX BATCH + STUDIO.REWIRE (28.04, 2 паралелни Code)
+**Текуща Phase:** A1 (Foundation, ~65%) → A2 (Operations Core, преди ЕНИ 14-15 май)  
+**Първа реална продажба target:** ЕНИ магазин, 14-15 май 2026 (FIXED)
+
+- **S82.STUDIO MARATHON CLOSED (27.04.2026):** 3 паралелни Claude Code инстанции, disjoint paths, нула collision. Frontend Code #1: STUDIO.11 (`/ai-studio.php` standalone, mock data), STUDIO.12 (per-product modal в wizard step 5), STUDIO.NAV (magenta button в chat.php), STUDIO.VISUAL Phase 1+2 (chat.php v8 Life Board + life-board.php нов файл 580 реда). Backend Code #2: BACKEND (migration up.sql/down.sql + 9 helpers + ai-studio-action.php endpoint + cron-monthly.php), APPLY (live DB applied + crontab installed + lingerie real prompt seeded). Tags v0.7.30 → v0.7.33. Live commits: 9f8a0b8, 9e7fb6c, 9fa9985, fcf0ec1.
+- **S82.STUDIO known limitations:** /ai-studio.php показва mock data (frontend rewire към get_credit_balance() pending S84.STUDIO.REWIRE). 4 placeholder prompts (clothes/jewelry/acc/other) is_active=0. Diagnostic A=47.83%/D=21.43% pre-existing — НЕ regression от schema, но Rule #21 нарушен (apply без 100%). S82.DIAG.FIX е beta blocker.
 
 - **S79.SECURITY VERIFIED (25.04.2026):** /etc/runmystore/db.env (по-сигурна от original plan). PDO + parse_ini_file. History scrubbed. P0 closed.
 - **S80.DIAGNOSTIC (25.04.2026 — 50%):** Infrastructure deployed (124 scenarios, 27+ файла, pymysql, cron готов), tenant=99 setup-нат (store=48, user=60, customer=181), pipeline бяга. 4 bugs остават за S81: category_for_topic typo, tenant filter, semicolon split, ai_insights data_json schema reverse-engineer. Tag v0.6.0 ОТЛОЖЕН.
@@ -84,14 +87,18 @@
 |---|---|---|---|
 | `products.php` | 🟡 работи с 3 P0 бъга | 8394 | S78 fix → S79 главна → S80 wizard → S81 AI → S82 polish |
 | `sale.php` | 🟡 базово работи, нужен rewrite | — | S85 (voice primary + camera always-live + numpad) |
-| `chat.php` | 🟢 v7 + 6Q AI context + proactive pills + ai_shown tracking | 1605 | S79.FIX (fq-badge), CHAT 4 visual rewrite, S95 Simple Mode |
+| `chat.php` | 🟢 **v8 GLASS Life Board** (S82.VISUAL Phase 1) — 6 q-cards q1-q6 + dashboard glass + weather glass + AI Studio entry | 1605 → +Life Board section | ✅ S79.FIX done, ✅ CHAT 4 rewrite done в S82, S95 Simple Mode → SUPERSEDED от life-board.php |
 | `warehouse.php` | 🔴 само скелет | — | S87 (hub rewrite + 5 подмодула) |
 | `inventory.php` | 🟡 v3 работи, v4 rewrite | — | S87 (event-sourced, Smart Resolver, offline) |
 | `stats.php` | 🟡 базово | — | S93 (5 таба, role-based, drawer) |
 | `orders.php` | 🔴 не съществува | — | S83 (12 входа + 11 типа + 8 статуса) |
 | `deliveries.php` | 🔴 не съществува | — | S86 (OCR + voice + wizard) |
 | `transfers.php` | 🔴 не съществува | — | S92 (multi-store + resolver) |
-| `simple.php` / `life-board.php` | 🔴 не съществува | — | S95 (AI chat = home) |
+| `life-board.php` | 🟢 **CREATED** (S82.VISUAL Phase 2, 580 реда) — 4 collapsible cards (loss-heavy) + 4 ops glass buttons (Продай/Стоката/Доставка/Поръчка) + AI Studio entry + mini dashboard/weather. Bottom-nav скрит в Лесен режим. | 580 | ⚠ Toggle "Опростен →" в chat.php header — UNVERIFIED, P0 за S83 |
+| `ai-studio.php` | 🟢 LIVE STANDALONE (S82.STUDIO.11) — 5 категории cards, credits bar, bulk секция, история, FAB. ⚠ Mock data (frontend rewire към get_credit_balance() pending S84). | — | S84.STUDIO.REWIRE |
+| `ai-studio-backend.php` | 🟢 LIVE (S82.STUDIO.BACKEND) — 9 helper функции (get_credit_balance, consume_credit, refund_credit, check_retry_eligibility, check_anti_abuse, get_prompt_template, build_prompt, count_products_needing_ai, pre_flight_quality_check) + log helper. 23/23 smoke PASS. | — | — |
+| `ai-studio-action.php` | 🟢 LIVE (S82.STUDIO.BACKEND) — нов HTTP endpoint type=tryon\|studio\|retry\|refund. Quality Guarantee parent_log_id chain. | — | Frontend integration → S84 |
+| `cron-monthly.php` | 🟢 LIVE + INSTALLED в crontab (S82.STUDIO.APPLY) — 1-во число reset на bg/desc/magic_used_this_month | — | — |
 | `ai-action.php` | 🔴 не съществува | — | S94 (router + $MODULE_ACTIONS) |
 | `compute-insights.php` | ✅ 19 функции (products), 9 активни на tenant 7 | 1280 | S79.INSIGHTS done → S84 (+20 за warehouse/sale/stats) |
 | `selection-engine.php` | ✅ готов | 157 | MMR λ=0.75, 4 функции, FK CASCADE (S79.SELECTION_ENGINE) |
@@ -119,6 +126,12 @@
 | `inventory_events` (event-sourced) | 🔴 няма | S87 |
 | `ai_topics_catalog` (1000 теми) | ✅ S79.SELECTION_ENGINE |
 | `ai_topic_rotation` (MMR suppression) | ✅ S79.SELECTION_ENGINE |
+| `ai_credits_balance` (3-type credits split: bg/desc/magic) | ✅ S82.STUDIO.APPLY | S82 |
+| `ai_spend_log` (status enum + parent_log_id chain) | ✅ S82.STUDIO.APPLY | S82 |
+| `ai_prompt_templates` (5 seeded: 1 active lingerie, 4 placeholders) | ✅ S82.STUDIO.APPLY | S82 |
+| `tenants` AI Studio columns (+6: included_*_per_month + *_used_this_month) | ✅ S82.STUDIO.APPLY (2 PRO + 45 START seeded) | S82 |
+| `products` AI Studio columns (+4: ai_category, ai_subtype, ai_description, ai_magic_image) + idx_ai_category | ✅ S82.STUDIO.APPLY | S82 |
+| Crontab www-data monthly (1-во число reset) | ✅ S82.STUDIO.APPLY | S82 |
 
 ## Hardware / External
 
@@ -191,67 +204,70 @@
 | 6 | products.php `renderWizard()` | Нулира бройки при re-render (step 6) | (S78 fix приложен — retry verification в S79.FIX.B) | S78 ✅ done, retest pending |
 | 7 | products.php `listProducts` | sold_30d = 0 | LEFT JOIN sale_items aggregated subquery | S78 ✅ done |
 | 9 | products.php Q-секции тап | Артикулната карта в q1-q6 отваряше EDIT wizard (data risk) | `editProduct` → `openProductDetail` в `sec.items.map` render | **S79.FIX.B ✅ done** |
+| 10 | `chat.php` toggle "Опростен" header | UNVERIFIED — Code #1 не спомена изрично | Verify ръчно от Тихол сутрин 27.04; ако липсва → 5-min Code fix | **S83 P0** |
+| 11 | `/ai-studio.php` mock data | Frontend чете `tenants.ai_credits_*` (стария path), не новите helpers | Rewire към `get_credit_balance()` от backend | **S84 STUDIO.REWIRE** |
+| 12 | AI Studio modal в wizard step 5 — visible end-to-end | Тихол flag: "защо не се пилазват новите модули — лесен режим и AI Studio в добави артикул" | Verify entry day; ако broken → wizard hook fix | **S83 P0** |
 
 ---
 
-# 🎯 СЛЕДВАЩА ЗАДАЧА — S80 DIAGNOSTIC.FRAMEWORK
+# 🎯 СЛЕДВАЩА ЗАДАЧА — S83 REAL ENTRY DAY
 
-**Тип:** Фундамент — DB + P0 bugs + skeleton  
-**Модел:** Opus 4.7  
+**Тип:** Тихол solo (БЕЗ Claude Code сесии)  
+**Модел:** —  
 **Estimated duration:** 3-4 часа
 
-## Задачи
+## Цел
 
-### 1. DB миграция — всички S77 таблици
+Stress test на products.php wizard + AI Studio modal с реална стока на tenant=7. Bug-ове ще изскочат — записвай ги.
 
-SQL скрипт (от APPENDIX §11):
-- `ai_insights` + `fundamental_question` ENUM колона
-- `ai_shown` (cooldown tracking)
-- `search_log` (за lost_demand)
-- `lost_demand` с 4 нови колони (suggested_supplier_id, matched_product_id, resolved_order_id, times)
-- `supplier_orders` (8 статуса + 11 типа enum)
-- `supplier_order_items` (fundamental_question + source + ai_reasoning)
-- `supplier_order_events` (audit trail)
-- `idempotency_log` (multi-device race prevention)
-- `user_devices` (multi-device tracking)
+## Pre-flight checklist
 
-**Deployment:** Python скрипт `/tmp/s78_migrate.py` → backup → execute → verify → log.  
-**Tenant priority:** tenant_id=7 (test) → tenant_id=52 (ЕНИ).
+1. **Verify че се отварят новите модули:**
+   - `/life-board.php` (Лесен режим) — отвори от телефона
+   - AI Studio modal в "Добави артикул" wizard step 5 — стигни до стъпка 5
+   - Toggle "Опростен →" в chat.php header (top right)
+   
+2. **Force-quit + clear cache на телефона** (Capacitor app държи стара bundled версия)
 
-### 2. P0 bugs fix (#5, #6, #7)
+## Real entry задачи
 
-Всеки — отделен Python patch script в `/tmp/`.  
-Anchor-based replacement (не line numbers).  
-`php -l` след всеки → git commit → git push.
-
-### 3. compute-insights.php skeleton
-
-15 функции по fundamental_question:
-- **loss (3):** zero_stock_with_sales, below_min_urgent, running_out_today
-- **loss_cause (4):** selling_at_loss, no_cost_price, margin_below_15, seller_discount_killer
-- **gain (2):** top_profit_30d, profit_growth
-- **gain_cause (5):** highest_margin, trending_up, loyal_customers, basket_driver, size_leader
-- **order (2):** bestseller_low_stock, lost_demand_match
-- **anti_order (3):** zombie_45d, declining_trend, high_return_rate
-
-Всяка функция — signature + TODO body + `INSERT INTO ai_insights` заготовка.
+1. Минимум 50 артикула — единични + варианти (размер × цвят)
+2. Тествай Step 5 AI Studio (Стандартно режим + Настрой режим)
+3. Тествай bulk operations от `/ai-studio.php`
+4. Записвай bug-ове в `BUGS_FROM_REAL_ENTRY.md`
+5. Screenshot-и на counter-intuitive UX моменти
 
 ## Deliverables
 
-- ✅ Всички S77 таблици съществуват в production DB
-- ✅ 3/3 P0 bugs verified fixed
-- ✅ compute-insights.php с 15 skeleton функции в `/var/www/runmystore/`
-- ✅ Git tag: `v0.5.0-s78-foundation`
+- ✅ 50+ продукта влезли на tenant=7
+- ✅ `BUGS_FROM_REAL_ENTRY.md` с findings
+- ✅ Verify status за P0 bugs #10, #11, #12 (виж "Активни P0 bugs" таблица)
 
 ## Git
 
-```bash
-# След всеки успешен fix:
-cd /var/www/runmystore && git add -A && git commit -m "S78: [fix description]" && git push origin main
+Тихол solo → нула commits този ден.
 
-# Накрая на сесията:
-git tag v0.5.0-s78-foundation && git push --tags
-```
+---
+
+# 🎯 СЛЕДВАЩА КЛОД-СЕСИЯ — S84 BUGFIX BATCH + STUDIO.REWIRE
+
+**Тип:** 2 паралелни Claude Code  
+**Модел:** Opus 4.7  
+**Estimated duration:** 4-5 часа  
+**Дата:** 28.04.2026
+
+**Code #1 (frontend bugs от entry):**
+- Прочита `BUGS_FROM_REAL_ENTRY.md`
+- Fix-ва P0 bug-ове в `products.php` (3-те known + новите от entry)
+- Verify toggle "Опростен →" в chat.php header (RQ #41)
+- Verify AI Studio modal visible в wizard step 5 (RQ #43)
+
+**Code #2 (STUDIO.REWIRE):**
+- Rewire `ai-studio.php` да чете от `get_credit_balance()` (RQ #42)
+- Rewire wizard step 5 modal да вика `/ai-studio-action.php`
+- Disjoint paths: `ai-studio.php` + `partials/ai-studio-modal.php`
+
+**Виж docs/NEXT_SESSIONS_PLAN_27042026.md за пълен 15-сесиен план до 14-15.05 ENI launch.**
 
 ---
 
@@ -268,6 +284,8 @@ git tag v0.5.0-s78-foundation && git push --tags
 | `DOC_08_PRODUCTS.md` | §11-12 | P0 bugs + compute-insights |
 | `PRODUCTS_DESIGN_LOGIC.md` | §12, §14 | 15 compute-insights функции + DB queries |
 | `OPERATIONAL_RULES.md` | Цял | Python scripts only, git workflow, comm style |
+| docs/SESSION_S82_STUDIO_MARATHON_HANDOFF.md | ALL | S82 marathon closure — 3 паралелни Code сесии, всички tags, known limitations, P0 acции за S83 |
+| docs/NEXT_SESSIONS_PLAN_27042026.md | Plan | 15-сесиен plan от S83 до S96 ENI launch 14-15.05 |
 
 **Максимум: 9 файла. Не всичко.**
 
@@ -923,6 +941,24 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 26-27.04.2026 — S82.STUDIO MARATHON (3 паралелни Claude Code)
+- **Решение:** Marathon вечер преди real entry — 3 паралелни Claude Code инстанции с disjoint paths за да освободи следващите дни (sale.php / Bluetooth / transfers).
+- **Защо:** Logic 90% complete — bottleneck е код deployment скоростта. Browser chat era приключи. 3 паралелни сесии = ~2 седмици работа в 1 нощ.
+- **Засегнати:** chat.php (v8 redesign), life-board.php (нов файл), ai-studio.php (нов), ai-studio-backend.php (нов), ai-studio-action.php (нов), cron-monthly.php (нов), products.php (wizard step 5 modal), tenants/products schema (+10 колони), 3 нови таблици (ai_credits_balance, ai_spend_log, ai_prompt_templates).
+- **Rework:** REWORK #21 (life-board.php beta blocker) → ✅ DONE. REWORK #14 (Capacitor printer) → still in progress. NEW REWORK #41-46 added (виж REWORK QUEUE).
+
+## 27.04.2026 — Workflow shift: 90% Claude Code (от browser chat era)
+- **Решение:** От днес 90% от code работата минава през Claude Code инстанции, browser шеф-чат е САМО координация / dependency tree / mockup approval / decision making.
+- **Защо:** S82 marathon показа реалния скоростен ефект (3 паралелни disjoint paths = ~30-50x browser chat productivity).
+- **Засегнати:** Нула засегнат код, само workflow promote.
+- **Rework:** Шеф-чат capacity max 3 паралелни Code инстанции (над това = collision risk + capacity overrun).
+
+## 27.04.2026 — Beta launch ENI fixed на 14-15 май (3 седмици от днес)
+- **Решение:** Beta launch остава 14-15 май. Public launch — септември (по плана).
+- **Защо:** Real-world bottlenecks (hardware tests, ENI on-boarding, real product entry) не се ускоряват от Claude Code. Logic ускорение = ~70% спестено време; real-world ускорение = ~10%.
+- **Засегнати:** S83-S96 plan locked (виж docs/NEXT_SESSIONS_PLAN_27042026.md).
+- **Rework:** Phase A2 sessions S87-S96 prioritized — 15 сесии до launch.
+
 ## 25.04.2026 — ROADMAP REVISION (Тихол решение)
 - Решение: Phase B/C/D пренаредени. Pull-up в Phase A2 (преди ЕНИ май): promotions, transfers, deliveries, scan-document (OCR), suppliers, inventory CoD, sale.php rewrite. Push-down в Phase D: касов бон/ФУ, loyalty migration, onboarding wizard, AI чат, settings advanced.
 - Защо: Тихол е първи клиент (5 магазина), ЕНИ е втори (10-15 май). RunMyStore НЕ Е складова програма (правен trick — записва "stock movements", не "fiscal sales") → касов бон не е блокер. AI чат не е MUST за ден 1 (voice search в numpad context е достатъчен за закон №1). Loyalty/onboarding далечно (post-launch).
@@ -1367,7 +1403,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 18 | chat.php role checks + simple mode redirect | 23.04.2026 (ЗАКОН №8) | Добави current_role() + can() на всички SQL queries; redirect към life-board.php ако ui_mode=simple; pills hidden за seller | S81 или нова сесия | ⏳ pending |
 | 19 | products.php role checks | 23.04.2026 (ЗАКОН №8) | Seller НЕ вижда cost_price, retail_price на supplier level, profit columns; SQL conditional queries | S82 (разширен) | ⏳ pending |
 | 20 | stats.php role checks | 23.04.2026 (ЗАКОН №8) | Seller НЕ вижда profit/revenue charts, само own-sales summary | S93 (в rewrite сесията) | ⏳ pending |
-| 21 | life-board.php (Simple Mode) — минимална версия без AI | 23.04.2026 (beta blocker) | header + оборот + 4 бутона (Продай/Стоката/Доставка/Поръчка) + ЧЗВ (15-20 статични въпроса) + footer. БЕЗ AI insights cards. БЕЗ Voice FAB. Static PHP SQL за числата. | **S81 (beta blocker)** | ⏳ pending |
+| 21 | life-board.php (Simple Mode) | 23.04.2026 (beta blocker) | ✅ CLOSED в S82.VISUAL Phase 2 (27.04.2026) — 580 реда нов файл с 4 collapsible cards + 4 ops glass buttons + mini dashboard/weather + AI Studio entry. ⚠ Toggle "Опростен →" в chat.php header pending verify (P0 S83). | **S82.VISUAL** | ✅ DONE |
 | 22 | Shift management + daily summary | 23.04.2026 (beta scope) | Seller започва/затваря смяна; life-board показва "колко продадох днес" в края на деня | S86.5 (ако Тихол реши) | ❓ pending decision |
 | 9 | Capacitor bridge | 22.04.2026 (S82.CAPACITOR блокер) | Debug защо WebView не инжектира window.Capacitor. Варианти: hybrid mode, iframe, custom activity. | S82.CAPACITOR.2 | ⏳ pending |
 | 10 | iOS Capacitor | 22.04.2026 (Android-only сега) | След Android работи — добави iOS plugin като Universal Plugin wrapper | S85.5 | ⏳ pending |
@@ -1393,6 +1429,13 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 38 | DOCS — S52 pricing планове в BIBLE | 25.04.2026 | Изтрит от userMemories. Постоянна BIBLE_v3_0_TECH секция: FREE €0 / START €19 / PRO €49+€9.99/store. Trial 1 мес PRO → ден 29 избор. | Когато BIBLE update | ⏳ P2 |
 | 39 | DOCS — Термо принтер info в BIBLE_TECH §Bluetooth Printer | 25.04.2026 | 200 бр поръчани, $15 cost, €19.99 sell, RunMyStore лого. ESC/POS. Първи пристига края на април 2026. Lock-in чрез лесен setup. | Когато BIBLE update | ⏳ P2 |
 | 40 | DOCS — biz_learned_data spec | 25.04.2026 | Phase 2 cross-tenant learning. Полета: id, business_type, field_type (subcategory/size/color/unit), value, usage_count, created_at. AI се учи от клиентите. | Phase D документация | ⏳ P2 |
+| 41 | chat.php toggle "Опростен →" header verify | 27.04.2026 (S82.VISUAL postcheck) | Verify ръчно от Тихол; ако липсва → 5-min Code #1 add toggle button в production rms-header. | **S83 P0** | ⏳ pending |
+| 42 | /ai-studio.php frontend rewire към new helpers | 27.04.2026 (S82.STUDIO.APPLY findings) | Frontend чете `tenants.ai_credits_*` (стария path) → пренапиши да чете през get_credit_balance() от ai-studio-backend.php. Buttons → ai-studio-action.php (нов endpoint), не ai-image-processor.php. | **S84 STUDIO.REWIRE** | ⏳ pending P0 |
+| 43 | AI Studio modal wizard step 5 — verify visible | 27.04.2026 (Тихол flag: "не се пилазват новите модули") | Тихол entry day verify че при добавяне на артикул, в стъпка 5 modal-ът от STUDIO.12 (v0.7.23) реално се появява. Ако не → wizard hook fix. | **S83 P0** | ⏳ pending P0 |
+| 44 | 4 placeholder AI prompt templates approve | 27.04.2026 (S82.STUDIO.APPLY) | Тихол одобрява per template wording: clothes / jewelry / acc / other. Засега is_active=0. Lingerie готов. | Тихол spokojno | ⏳ pending P1 |
+| 45 | tenants.plan ENUM — добави 'biz' | 27.04.2026 (S82.STUDIO.APPLY finding) | Code #2 не extend-на ENUM защото нямаше 'biz' в production. Когато се отвори BIZ tier → ALTER TABLE + seed update. | Когато BIZ tier launch | ⏳ pending P2 |
+| 46 | DROP legacy tenants.ai_credits_* колони (30 дни grace) | 27.04.2026 (S82.STUDIO.APPLY backward-compat) | След 30-дневен grace period (drop date ~2026-05-27), нова migration премахва legacy `ai_credits_bg/tryon/total` колони. Преди drop verify че frontend rewire (RQ #42) е приключил. | ~2026-05-27 (S95+) | ⏳ pending P2 |
+| 47 | S82.DIAG.FIX (Cat A=100%/D=100%) — beta blocker | 27.04.2026 (S82.STUDIO.APPLY findings) | A=47.83% / D=21.43% pre-existing от S80/S81. Не regression от schema, но Rule #21 нарушен (apply без 100%). Преди ENI launch (14-15.05) → DOD met. Bugs: lost_demand_pos schema, basket_pair_b_pos missing total, negative scenarios overlap (10+ Cat A FAIL), positive items=0 (5+ FAIL). | **S85 (преди ENI)** | ⏳ pending P0 |
 
 ---
 
