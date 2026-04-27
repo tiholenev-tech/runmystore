@@ -6,6 +6,7 @@ scenarios.py — 50+ test scenarios за 19-те pf*() функции.
 from typing import List
 from .fixtures import (
     make_product, make_inventory, make_sale, make_return, make_customer,
+    make_parent_with_variations, make_product_variant,
     product_with_sales, product_zombie, product_silent,
 )
 
@@ -81,6 +82,8 @@ def below_min_urgent_scenarios() -> List[dict]:
 
 
 def running_out_today_scenarios() -> List[dict]:
+    # pfRunningOutToday: avg_daily = sold_30d / 30; alert when stock <= avg_daily.
+    # Need sold_30d ≥ 5 AND stock ≤ sold_30d/30 → avg_daily=1, stock=1 минимум.
     return [
         {
             'scenario_code': 'running_out_pos_0',
@@ -88,9 +91,9 @@ def running_out_today_scenarios() -> List[dict]:
             'category': 'A', 'expected_should_appear': 1,
             'verification_type': 'product_in_items',
             'verification_payload': {'product_id': 9021},
-            'scenario_description': 'Stock=2 high velocity',
+            'scenario_description': 'Stock=1 avg_daily≈1 (30 sales/30d)',
             'fixture_sql': product_with_sales(9021, 'TEST-ROT-1', 'FastRunner', 40, 20,
-                                               qty_in_stock=2, sale_count=7, days_ago_first=7),
+                                               qty_in_stock=1, sale_count=30, days_ago_first=29),
         },
         {
             'scenario_code': 'running_out_neg_0',
@@ -193,8 +196,8 @@ def margin_below_15_scenarios() -> List[dict]:
             'category': 'D', 'expected_should_appear': 0,
             'verification_type': 'not_exists',
             'verification_payload': {'product_id': 9053},
-            'scenario_description': 'exactly 15pct boundary',
-            'fixture_sql': product_with_sales(9053, 'TEST-MB15-3', 'BorderMargin', 11.5, 10,
+            'scenario_description': 'exactly 15pct boundary (retail=20, cost=17 → margin=15.0%)',
+            'fixture_sql': product_with_sales(9053, 'TEST-MB15-3', 'BorderMargin', 20, 17,
                                                qty_in_stock=20, sale_count=3),
         },
         {
@@ -211,15 +214,19 @@ def margin_below_15_scenarios() -> List[dict]:
 
 
 def seller_discount_killer_scenarios() -> List[dict]:
+    # pfSellerDiscountKiller: HAVING avg_disc > 20 AND items_count >= 10.
+    # Bad seller: 12 продажби с discount_pct=40 (avg=40 > 20). Good seller: 0 disconto.
     user_id_bad = 8050
     user_id_good = 8051
-    sql_bad = (
+    bad_lines = (
         make_product(9061, 'TEST-SDK-1', 'DiscountedItem', 100, 50)
-        + make_inventory(9061, 50)
-        + make_sale(90611, 9061, 60, qty=1, days_ago=2, user_id=user_id_bad)
-        + make_sale(90612, 9061, 60, qty=1, days_ago=3, user_id=user_id_bad)
-        + make_sale(90613, 9061, 60, qty=1, days_ago=4, user_id=user_id_bad)
+        + make_inventory(9061, 100)
     )
+    for i in range(12):
+        bad_lines += make_sale(90600 + i, 9061, 100, qty=1,
+                               days_ago=max(1, 25 - i), user_id=user_id_bad,
+                               discount_pct=40)
+    sql_bad = bad_lines
     sql_good = (
         make_product(9062, 'TEST-SDK-2', 'NormalSale', 100, 50)
         + make_inventory(9062, 50)
@@ -285,10 +292,11 @@ def top_profit_30d_scenarios() -> List[dict]:
             'verification_type': 'not_exists',
             'verification_payload': {'product_id': 9072},
             'scenario_description': 'sale 31d old (out of window)',
+            # sale_id 90720 колидира с top_profit_b_top (90710..90724) → използваме 90729.
             'fixture_sql': (
                 make_product(9072, 'TEST-TP30-2', 'TooOld', 200, 50)
                 + make_inventory(9072, 30)
-                + make_sale(90720, 9072, 200, qty=5, days_ago=31)
+                + make_sale(90729, 9072, 200, qty=5, days_ago=31)
             ),
         },
     ]
@@ -367,9 +375,18 @@ def highest_margin_scenarios() -> List[dict]:
 
 
 def trending_up_scenarios() -> List[dict]:
+    # pfTrendingUp: avg_30d ≥ 0.5 AND avg_7d > avg_30d * 1.5.
+    # 5 baseline sales (days 25..29) + 15 surge sales (всички в последните 7 дни)
+    # → avg_30d = 20/30 ≈ 0.667; avg_7d = 15/7 ≈ 2.14 > 1.0. PASS.
     sql_trend = make_product(9101, 'TEST-TU-1', 'Trending', 80, 40) + make_inventory(9101, 50)
-    for i in range(20):
-        sql_trend += make_sale(91010 + i, 9101, 80, qty=1, days_ago=20 - i)
+    base_id = 91010
+    sid = base_id
+    for d in range(25, 30):  # 5 baseline sales (days_ago 25..29)
+        sql_trend += make_sale(sid, 9101, 80, qty=1, days_ago=d)
+        sid += 1
+    for i in range(15):  # 15 surge sales в последните 7 дни (2-3/ден)
+        sql_trend += make_sale(sid, 9101, 80, qty=1, days_ago=(i % 7) + 1)
+        sid += 1
     return [
         {
             'scenario_code': 'trending_up_b_pos',
@@ -436,7 +453,7 @@ def loyal_customers_scenarios() -> List[dict]:
             'expected_topic': 'loyal_customers',
             'category': 'D', 'expected_should_appear': 0,
             'verification_type': 'not_exists',
-            'verification_payload': {},
+            'verification_payload': {'customer_id': 7051},
             'scenario_description': '2 buys not loyal',
             'fixture_sql': (
                 make_customer(7051, 'AlmostLoyal')
@@ -458,7 +475,13 @@ def basket_driver_scenarios() -> List[dict]:
     for i in range(5):
         sale_id = 91200 + i
         sql_pair += make_sale(sale_id, 9121, 50, qty=1, days_ago=10 - i)
-        sql_pair += "INSERT INTO sale_items (sale_id, product_id, unit_price, quantity) VALUES (" + str(sale_id) + ", 9122, 30, 1) ON DUPLICATE KEY UPDATE quantity=VALUES(quantity);\n"
+        # Втори line item за същата продажба — sale_items.total NOT NULL без default,
+        # затова го попълваме (30*1 = 30).
+        sql_pair += (
+            "INSERT INTO sale_items (sale_id, product_id, unit_price, quantity, total) "
+            f"VALUES ({sale_id}, 9122, 30, 1, 30) "
+            "ON DUPLICATE KEY UPDATE quantity=VALUES(quantity), total=VALUES(total);\n"
+        )
     return [
         {
             'scenario_code': 'basket_pair_b_pos',
@@ -482,13 +505,17 @@ def basket_driver_scenarios() -> List[dict]:
 
 
 def size_leader_scenarios() -> List[dict]:
-    parent_sql = make_product(9131, 'TEST-SL-PARENT', 'Sneaker', 100, 50) + make_inventory(9131, 0)
+    # pfSizeLeader: JOIN parent.has_variations=1, child.parent_id=parent.id.
+    parent_sql = make_parent_with_variations(9131, 'TEST-SL-PARENT', 'Sneaker', 100, 50)
     children_sql = ''
-    children_sql += make_product(9132, 'TEST-SL-S', 'SneakerS', 100, 50) + make_inventory(9132, 20)
-    children_sql += make_product(9133, 'TEST-SL-M', 'SneakerM', 100, 50) + make_inventory(9133, 20)
-    children_sql += make_product(9134, 'TEST-SL-L', 'SneakerL', 100, 50) + make_inventory(9134, 20)
+    children_sql += make_product_variant(9132, 9131, 'TEST-SL-S', 'SneakerS', 100, 50, size='S')
+    children_sql += make_inventory(9132, 20)
+    children_sql += make_product_variant(9133, 9131, 'TEST-SL-M', 'SneakerM', 100, 50, size='M')
+    children_sql += make_inventory(9133, 20)
+    children_sql += make_product_variant(9134, 9131, 'TEST-SL-L', 'SneakerL', 100, 50, size='L')
+    children_sql += make_inventory(9134, 20)
     for i in range(8):
-        children_sql += make_sale(91340 + i, 9133, 100, qty=1, days_ago=10 - i if i < 10 else 1)
+        children_sql += make_sale(91340 + i, 9133, 100, qty=1, days_ago=max(1, 10 - i))
     children_sql += make_sale(91350, 9132, 100, qty=1, days_ago=5)
     children_sql += make_sale(91351, 9134, 100, qty=1, days_ago=5)
     return [
@@ -506,7 +533,7 @@ def size_leader_scenarios() -> List[dict]:
             'expected_topic': 'size_leader',
             'category': 'D', 'expected_should_appear': 0,
             'verification_type': 'not_exists',
-            'verification_payload': {},
+            'verification_payload': {'product_id': 9135},
             'scenario_description': 'only 1 size',
             'fixture_sql': product_with_sales(9135, 'TEST-SL-SOLO', 'SingleSize', 100, 50,
                                                qty_in_stock=10, sale_count=5),
@@ -540,11 +567,19 @@ def bestseller_low_stock_scenarios() -> List[dict]:
 
 
 def lost_demand_match_scenarios() -> List[dict]:
+    # pfLostDemandMatch: requires resolved_order_id NULL/0, matched_product_id NOT NULL,
+    # last_asked_at >= NOW() - 14 DAY. Schema: query_text (NOT 'query'), store_id NOT NULL.
     sql_match = (
         make_product(9151, 'TEST-LDM-1', 'MatchedProduct', 70, 35)
         + make_inventory(9151, 0)
     )
-    sql_match += "INSERT IGNORE INTO lost_demand (tenant_id, query, matched_product_id, times, created_at) VALUES ({{tenant_id}}, 'matched product', 9151, 3, NOW() - INTERVAL 3 DAY);\n"
+    sql_match += (
+        "INSERT IGNORE INTO lost_demand "
+        "(tenant_id, store_id, query_text, source, matched_product_id, times, "
+        " first_asked_at, last_asked_at, created_at) "
+        "VALUES ({{tenant_id}}, 48, 'matched product', 'search', 9151, 3, "
+        " NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 3 DAY);\n"
+    )
     return [
         {
             'scenario_code': 'lost_demand_pos',
@@ -604,11 +639,14 @@ def zombie_45d_scenarios() -> List[dict]:
 
 
 def declining_trend_scenarios() -> List[dict]:
+    # pfDecliningTrend: HAVING avg_30d ≥ 0.5 AND avg_7d < avg_30d * 0.5.
+    # Trябва ≥15 продажби в дни 8..29 (за avg_30d≈0.5+), 0 в последните 7 → avg_7d=0.
     sql_decline = make_product(9171, 'TEST-DT-1', 'Declining', 80, 40) + make_inventory(9171, 30)
-    for i in range(15):
-        sql_decline += make_sale(91710 + i, 9171, 80, qty=1, days_ago=55 - i * 2)
-    sql_decline += make_sale(91730, 9171, 80, qty=1, days_ago=20)
-    sql_decline += make_sale(91731, 9171, 80, qty=1, days_ago=8)
+    sid = 91710
+    for i in range(22):  # 22 продажби равномерно в дни 8..29
+        days_ago = 8 + (i % 22)
+        sql_decline += make_sale(sid, 9171, 80, qty=1, days_ago=days_ago)
+        sid += 1
     return [
         {
             'scenario_code': 'declining_b_pos',
@@ -644,10 +682,13 @@ def high_return_rate_scenarios() -> List[dict]:
         sql_low += make_sale(sale_id, 9182, 80, qty=1, days_ago=20 - i)
         if i == 0:
             sql_low += make_return(91950, sale_id, 9182, qty=1, days_ago=15)
+    # high_return_d_cartesian: pfHighReturnRate изисква sold ≥ 5 — затова 5 продажби
+    # с 5 връщания → rate = 100% (Cartesian regression test).
     sql_cart = make_product(9183, 'TEST-HRR-CART', 'CartesianCheck', 100, 50) + make_inventory(9183, 30)
-    sale_id = 91830
-    sql_cart += make_sale(sale_id, 9183, 100, qty=1, days_ago=10)
-    sql_cart += make_return(91960, sale_id, 9183, qty=1, days_ago=9)
+    for i in range(5):
+        sale_id = 91830 + i
+        sql_cart += make_sale(sale_id, 9183, 100, qty=1, days_ago=15 - i * 2)
+        sql_cart += make_return(91960 + i, sale_id, 9183, qty=1, days_ago=14 - i * 2)
     return [
         {
             'scenario_code': 'high_return_pos_0',

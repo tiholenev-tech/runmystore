@@ -42,19 +42,30 @@ def verify_product_in_items(actual_data, payload, expected_should_appear) -> Tup
 def verify_pair_match(actual_data, payload, expected_should_appear) -> Tuple[bool, str]:
     """
     Проверка: двойка продукти заедно (basket_driver).
-    payload: {a: <pid>, b: <pid>}
+    payload: {a: <pid>, b: <pid>}.
+    Поддържаме две shapes:
+      • items с явни pair полета: product_a_id/product_b_id или a/b
+      • PHP pfBasketDriver текущо emit-ва индивидуални продукти — приемаме pair-а
+        за намерен, ако и двата pid-а са в items[*].product_id.
     """
     items = (actual_data or {}).get('items', []) or []
     a = int(payload.get('a', 0))
     b = int(payload.get('b', 0))
 
+    # Shape 1: explicit pair fields
     found = False
     for it in items:
         pa = int(it.get('product_a_id', it.get('a', 0)))
         pb = int(it.get('product_b_id', it.get('b', 0)))
-        if (pa, pb) == (a, b) or (pa, pb) == (b, a):
+        if pa and pb and ((pa, pb) == (a, b) or (pa, pb) == (b, a)):
             found = True
             break
+
+    # Shape 2: individual products (basket_driver flat list)
+    if not found:
+        flat_pids = {int(it.get('product_id', 0)) for it in items}
+        if a in flat_pids and b in flat_pids:
+            found = True
 
     if expected_should_appear == 1:
         return (found, f"pair ({a},{b}) {'намерена' if found else 'липсва'}")
@@ -72,19 +83,35 @@ def verify_seller_match(actual_data, payload, expected_should_appear) -> Tuple[b
 
 
 def verify_value_range(actual_data, payload, expected_should_appear) -> Tuple[bool, str]:
-    """payload: {field: 'profit_growth_pct', min: 50, max: 150} — стойност в интервал."""
+    """payload: {field: 'profit_growth_pct', min: 50, max: 150, [product_id: N]}.
+    Ако payload има product_id — стойността се чете от item-а на този product.
+    Иначе fallback към items[0]."""
     field = payload.get('field')
     vmin = payload.get('min')
     vmax = payload.get('max')
+    pid = payload.get('product_id')
     items = (actual_data or {}).get('items', []) or []
     if not items:
         if expected_should_appear == 0:
             return True, "няма items (коректно отсъства)"
         return False, f"очаквах {field} в [{vmin},{vmax}], но items е празен"
 
-    val = items[0].get(field) if field else None
+    target = None
+    if pid is not None:
+        for it in items:
+            if int(it.get('product_id', 0)) == int(pid):
+                target = it
+                break
+        if target is None:
+            if expected_should_appear == 0:
+                return True, f"product_id={pid} коректно отсъства"
+            return False, f"product_id={pid} не е в items (брой items={len(items)})"
+    else:
+        target = items[0]
+
+    val = target.get(field) if field else None
     if val is None:
-        return False, f"field={field} липсва в първия item"
+        return False, f"field={field} липсва в item"
     val = float(val)
     in_range = (vmin is None or val >= vmin) and (vmax is None or val <= vmax)
     if expected_should_appear == 1:
@@ -101,9 +128,36 @@ def verify_exists_only(actual_data, payload, expected_should_appear) -> Tuple[bo
 
 
 def verify_not_exists(actual_data, payload, expected_should_appear) -> Tuple[bool, str]:
-    """Проверка: insight НЕ трябва да съществува (отрицателен случай)."""
-    has_data = bool(actual_data) and bool((actual_data or {}).get('items'))
-    # not_exists implies expected_should_appear=0; ignore caller value
+    """Отрицателен случай — конкретната същност НЕ трябва да участва в insight-а.
+
+    Тъй като compute-insights.php прави UPSERT с ключ (tenant_id, store_id, topic_id),
+    в данните на топика обикновено вече има позиции от позитивни сценарии. Затова
+    проверката е entity-aware: ако payload съдържа product_id / user_id / pair / customer_id,
+    проверяваме отсъствието на тази същност, не отсъствието на самия insight.
+
+    Forecastvame multiple item shapes — pfSizeLeader пише `parent_id`/`child_id`
+    вместо `product_id`, pfBasketDriver пише `product_a_id`/`product_b_id` и т.н."""
+    items = (actual_data or {}).get('items', []) or []
+
+    if payload.get('product_id') is not None:
+        pid = int(payload['product_id'])
+        keys = ('product_id', 'parent_id', 'child_id', 'product_a_id', 'product_b_id')
+        for it in items:
+            for k in keys:
+                if k in it and int(it.get(k) or 0) == pid:
+                    return (False,
+                            f"product_id={pid} НЕ трябваше да се появи (намерен в поле {k})")
+        return (True, f"product_id={pid} коректно отсъства")
+    if payload.get('user_id') is not None:
+        return verify_seller_match(actual_data, payload, 0)
+    if payload.get('a') is not None and payload.get('b') is not None:
+        return verify_pair_match(actual_data, payload, 0)
+    if payload.get('customer_id') is not None:
+        cid = int(payload['customer_id'])
+        found = any(int(it.get('customer_id', 0)) == cid for it in items)
+        return (not found, f"customer_id={cid} {'грешно flagged' if found else 'коректно не е flagged'}")
+
+    has_data = bool(actual_data) and bool(items)
     return (not has_data, f"insight {'грешно съществува' if has_data else 'коректно липсва'}")
 
 

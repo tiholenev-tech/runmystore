@@ -152,6 +152,20 @@ def run(args) -> int:
     if rc != 0 and not args.orchestrated:
         print(f"⚠️  compute-insights.php returncode={rc}: {err[:300]}")
 
+    # S85.DIAG.FIX: build a lookup so verification_payload from scenarios.py може
+    # да попълни идентичности (customer_id и т.н.) когато seed_oracle колони липсват.
+    scenario_py_payloads = {}
+    try:
+        import sys as _sys
+        _project_root = '/var/www/runmystore'
+        if _project_root not in _sys.path:
+            _sys.path.insert(0, _project_root)
+        from tools.diagnostic.modules.insights.scenarios import all_scenarios as _all_sc
+        for _sc in _all_sc():
+            scenario_py_payloads[_sc['scenario_code']] = _sc.get('verification_payload', {}) or {}
+    except Exception:
+        pass
+
     # Step 6: Verify each scenario
     results = []
     for s in scenarios:
@@ -182,6 +196,13 @@ def run(args) -> int:
                         payload['field'] = meta['orig_payload']['field']
             except Exception:
                 pass
+
+        # S85.DIAG.FIX: добави липсващи идентичности от scenarios.py (single source of truth
+        # за нови сценарии); seed_oracle колоните остават приоритетни.
+        py_payload = scenario_py_payloads.get(s['scenario_code'], {})
+        for _k in ('product_id', 'user_id', 'customer_id', 'a', 'b', 'rank_max', 'field', 'min', 'max'):
+            if _k not in payload and _k in py_payload and py_payload[_k] is not None:
+                payload[_k] = py_payload[_k]
         passed, reason = verify(
             s['verification_type'], actual, payload, int(s['expected_should_appear'])
         )
