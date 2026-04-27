@@ -713,88 +713,89 @@
       return await this.print(testProduct, testStore, 1);
     },
 
-    // _sendRaw — connect (ако е нужно) и пращаме arbitrary bytes през stored
-    // service+writeChar. Помощник за testRaw / testCPCL / testESCPOS / testPhomemoInit.
-    async _sendRaw(bytes, label) {
-      if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
-      const ble = getBle();
-      const id = getSavedDeviceId();
-      if (!id) throw new Error('Няма сдвоен принтер');
-
-      if (!window.__bleInitialized) {
-        await ble.initialize({ androidNeverForLocation: false });
-        window.__bleInitialized = true;
-      }
-      if (!window.__blePrinterConnected) {
-        try {
-          await ble.connect(id, () => { window.__blePrinterConnected = false; });
-          window.__blePrinterConnected = true;
-        } catch (e) {
-          const msg = (e && e.message) ? e.message.toLowerCase() : '';
-          if (msg.includes('already') || msg.includes('connected')) {
-            window.__blePrinterConnected = true;
-          } else {
-            throw e;
-          }
-        }
-      }
-
-      dbgLog('[D520BT-DEBUG] Sending ' + label + ' — ' + bytes.length + ' bytes');
-      await writeChunked(ble, id, bytes);
-      dbgLog('[D520BT-DEBUG] ' + label + ': Готово ' + bytes.length + ' байта');
-      return { ok: true, bytes: bytes.length, protocol: label };
-    },
-
-    // testRaw — минимален TSPL без bitmap, без generateTSPL.
-    // За диагностика дали discovered service+writeChar реално приема писане.
-    async testRaw() {
-      const tspl =
-        'SIZE 50 mm,30 mm\r\n' +
-        'GAP 2 mm,0\r\n' +
-        'DIRECTION 1\r\n' +
-        'DENSITY 8\r\n' +
-        'SPEED 4\r\n' +
-        'CLS\r\n' +
-        'TEXT 50,50,"3",0,1,1,"TEST D520"\r\n' +
-        'PRINT 1,1\r\n';
-      return await this._sendRaw(asciiToBytes(tspl), 'TSPL raw');
-    },
-
-    // testCPCL — Citizen / Phomemo CPCL protocol probe
-    async testCPCL() {
-      const cpcl =
-        '! 0 200 200 240 1\r\n' +
-        'TEXT 4 0 30 40 TEST D520\r\n' +
-        'FORM\r\n' +
-        'PRINT\r\n';
-      return await this._sendRaw(asciiToBytes(cpcl), 'CPCL');
-    },
-
-    // testESCPOS — стандартен ESC/POS init + center text + cut
-    async testESCPOS() {
-      const bytes = new Uint8Array([
-        0x1B, 0x40,                                                  // ESC @ — init
-        0x1B, 0x61, 0x01,                                            // center align
-        0x54, 0x45, 0x53, 0x54, 0x20, 0x44, 0x35, 0x32, 0x30, 0x0A,  // "TEST D520\n"
-        0x1D, 0x56, 0x41, 0x03                                       // cut paper
-      ]);
-      return await this._sendRaw(bytes, 'ESC/POS');
-    },
-
-    // testPhomemoInit — хипотеза за Phomemo magic init sequence + ESC reset + text
-    async testPhomemoInit() {
-      const bytes = new Uint8Array([
-        0x1F, 0x11, 0x02, 0x04,                       // Phomemo magic init
-        0x1F, 0x11, 0x0B,                             // ?
-        0x1B, 0x40,                                   // ESC @ reset
-        0x54, 0x45, 0x53, 0x54, 0x0A,                 // "TEST\n"
-        0x0C                                          // form feed
-      ]);
-      return await this._sendRaw(bytes, 'Phomemo Init');
-    },
-
     forget() {
       clearDeviceId();
+    },
+
+    // ─── S88 protocol probes (deferred, reference only) ─────────────────
+    // D520BT не отговори на 4-те опитани протокола — приема BLE writes но
+    // не печата без пълен Phomemo raster protocol (3-5h work, deferred).
+    // Запазено за reference и за бъдещи нови принтери (нов TSPL модел може
+    // да работи директно с tspl() — multi-printer infra-та си стои).
+    // Извикване от console: window.CapPrinter._diagnostics.tspl()
+    _diagnostics: {
+      async sendRaw(bytes, label) {
+        if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
+        const ble = getBle();
+        const id = getSavedDeviceId();
+        if (!id) throw new Error('Няма сдвоен принтер');
+
+        if (!window.__bleInitialized) {
+          await ble.initialize({ androidNeverForLocation: false });
+          window.__bleInitialized = true;
+        }
+        if (!window.__blePrinterConnected) {
+          try {
+            await ble.connect(id, () => { window.__blePrinterConnected = false; });
+            window.__blePrinterConnected = true;
+          } catch (e) {
+            const msg = (e && e.message) ? e.message.toLowerCase() : '';
+            if (msg.includes('already') || msg.includes('connected')) {
+              window.__blePrinterConnected = true;
+            } else {
+              throw e;
+            }
+          }
+        }
+
+        dbgLog('[D520BT-DEBUG] Sending ' + label + ' — ' + bytes.length + ' bytes');
+        await writeChunked(ble, id, bytes);
+        dbgLog('[D520BT-DEBUG] ' + label + ': Готово ' + bytes.length + ' байта');
+        return { ok: true, bytes: bytes.length, protocol: label };
+      },
+
+      async tspl() {
+        const cmd =
+          'SIZE 50 mm,30 mm\r\n' +
+          'GAP 2 mm,0\r\n' +
+          'DIRECTION 1\r\n' +
+          'DENSITY 8\r\n' +
+          'SPEED 4\r\n' +
+          'CLS\r\n' +
+          'TEXT 50,50,"3",0,1,1,"TEST D520"\r\n' +
+          'PRINT 1,1\r\n';
+        return await this.sendRaw(asciiToBytes(cmd), 'TSPL raw');
+      },
+
+      async cpcl() {
+        const cmd =
+          '! 0 200 200 240 1\r\n' +
+          'TEXT 4 0 30 40 TEST D520\r\n' +
+          'FORM\r\n' +
+          'PRINT\r\n';
+        return await this.sendRaw(asciiToBytes(cmd), 'CPCL');
+      },
+
+      async escpos() {
+        const bytes = new Uint8Array([
+          0x1B, 0x40,                                                  // ESC @ — init
+          0x1B, 0x61, 0x01,                                            // center align
+          0x54, 0x45, 0x53, 0x54, 0x20, 0x44, 0x35, 0x32, 0x30, 0x0A,  // "TEST D520\n"
+          0x1D, 0x56, 0x41, 0x03                                       // cut paper
+        ]);
+        return await this.sendRaw(bytes, 'ESC/POS');
+      },
+
+      async phomemoInit() {
+        const bytes = new Uint8Array([
+          0x1F, 0x11, 0x02, 0x04,                       // Phomemo magic init
+          0x1F, 0x11, 0x0B,                             // ?
+          0x1B, 0x40,                                   // ESC @ reset
+          0x54, 0x45, 0x53, 0x54, 0x0A,                 // "TEST\n"
+          0x0C                                          // form feed
+        ]);
+        return await this.sendRaw(bytes, 'Phomemo Init');
+      }
     },
 
     showDebugOverlay: showDebugOverlay,

@@ -54,6 +54,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 <div class="card">
   <h3>1. Сдвояване</h3>
   <p>Натисни "Сдвои" и избери DTM-5811 от списъка. Прави се само веднъж. След това принтерът се разпознава автоматично.</p>
+  <p style="font-size:12px;color:var(--muted);margin-top:-4px">Подкрепяни принтери: DTM-5811 и съвместими TSPL модели.</p>
   <button class="btn" id="btnPair">🔗 Сдвои DTM-5811</button>
   <button class="btn danger" id="btnForget" style="display:none">❌ Забрави принтера</button>
 </div>
@@ -76,10 +77,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
     <p style="font-size:12px">Резултатите се показват директно на екрана (fullscreen overlay) с бутон "Копирай всичко".</p>
     <button class="btn sec" id="btnScanAll">🔍 Сканирай всички BT (10s)</button>
     <button class="btn sec" id="btnPairDebug">🔗 Pair и анализирай</button>
-    <button class="btn sec" id="btnTestRaw">🖨 Test minimal TSPL (D520BT)</button>
-    <button class="btn sec" id="btnTestCPCL">🖨 Test CPCL</button>
-    <button class="btn sec" id="btnTestESCPOS">🖨 Test ESC/POS</button>
-    <button class="btn sec" id="btnTestPhomemoInit">🖨 Test Phomemo Init</button>
   </div>
 </div>
 
@@ -171,36 +168,6 @@ $('btnPairDebug').addEventListener('click', async function(){
   }
 });
 
-$('btnTestRaw').addEventListener('click', async function(){
-  try {
-    log('Test raw TSPL...');
-    $('btnTestRaw').disabled = true;
-    var r = await window.CapPrinter.testRaw();
-    log('Done: ' + r.bytes + ' bytes sent');
-  } catch(e) {
-    log('TestRaw error: ' + (e.message || e));
-  } finally {
-    $('btnTestRaw').disabled = false;
-  }
-});
-
-function bindProtoTest(btnId, fnName, label) {
-  $(btnId).addEventListener('click', async function(){
-    try {
-      log('Sending ' + label + '...');
-      $(btnId).disabled = true;
-      var r = await window.CapPrinter[fnName]();
-      log('Готово: ' + r.bytes + ' байта (' + label + ')');
-    } catch(e) {
-      log(label + ' error: ' + (e.message || e));
-    } finally {
-      $(btnId).disabled = false;
-    }
-  });
-}
-bindProtoTest('btnTestCPCL',         'testCPCL',         'CPCL');
-bindProtoTest('btnTestESCPOS',       'testESCPOS',       'ESC/POS');
-bindProtoTest('btnTestPhomemoInit',  'testPhomemoInit',  'Phomemo Init');
 
 // Init: refresh now, on capacitor-ready event, and after a safety delay
 refreshStatus();
