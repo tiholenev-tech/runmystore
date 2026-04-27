@@ -417,11 +417,63 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
 /* S82.CAPACITOR safe-area */
 body{padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable CORE block       */
+/* DESIGN_SYSTEM § O.3-O.10 + O.14 + O.20        */
+/* ───────────────────────────────────────────── */
+@keyframes s87v3_pageIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.92); filter:blur(8px); }
+    60%  { opacity:1; filter:blur(0); }
+    100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
+.s87v3-pagein{animation:s87v3_pageIn 0.85s cubic-bezier(0.16,1,0.3,1) both}
+@keyframes s87v3_springRelease{
+    0%   { transform:scale(0.92); }
+    50%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+}
+.s87v3-tap{transition:transform 0.18s cubic-bezier(0.34,1.8,0.64,1)}
+.s87v3-tap:active{transform:scale(0.92)}
+.s87v3-tap.s87v3-released{animation:s87v3_springRelease 0.4s cubic-bezier(0.34,2.0,0.64,1)}
+@keyframes s87v3_headerIn{
+    0%   { opacity:0; transform:translateY(-30px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+@keyframes s87v3_navIn{
+    0%   { opacity:0; transform:translateY(60px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+.rms-header,.header{animation:s87v3_headerIn 0.7s cubic-bezier(0.16,1,0.3,1) 0s both;transition:backdrop-filter 0.3s,background 0.3s}
+.rms-bottom-nav,.bottom-nav{animation:s87v3_navIn 0.7s cubic-bezier(0.16,1,0.3,1) 1.8s both}
+@keyframes s87v3_scrollIn{
+    from { opacity:0; transform:translateY(40px) scale(0.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.s87v3-scroll-reveal{opacity:0}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+@media (prefers-reduced-motion: reduce){
+    .s87v3-pagein,
+    .rms-header,.header,
+    .rms-bottom-nav,.bottom-nav,
+    .s87v3-tap,.s87v3-tap.s87v3-released,
+    .s87v3-scroll-reveal{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+        transition:none !important;
+    }
+}
 </style>
 </head>
 <body>
 
-<div class="page-wrap">
+<div class="page-wrap s87v3-pagein">
 
     <?php include __DIR__ . '/partials/header.php'; ?>
     <div class="page-header">
@@ -439,7 +491,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     <?php endif; ?>
 
     <div class="wh-grid">
-        <a href="products.php" class="wh-card" style="--delay:0.05s">
+        <a href="products.php" class="wh-card s87v3-tap" style="--delay:0.05s">
             <?php if ($low_stock_count > 0): ?><div class="wh-badge b-red"><?= $low_stock_count ?></div><?php endif; ?>
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -448,7 +500,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="wh-sub <?= $low_stock_count > 0 ? 'danger' : '' ?>"><?= $low_stock_count > 0 ? $low_stock_count . ' под минимум' : $product_count . ' активни' ?></div>
         </a>
 
-        <a href="transfers.php" class="wh-card" style="--delay:0.1s">
+        <a href="transfers.php" class="wh-card s87v3-tap" style="--delay:0.1s">
             <?php if ($pending_transfers > 0): ?><div class="wh-badge b-amber"><?= $pending_transfers ?></div><?php endif; ?>
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m15 7 5 5-5 5"/><path d="m9 7-5 5 5 5"/></svg>
@@ -458,7 +510,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         </a>
 
         <?php if (!$is_seller): ?>
-        <a href="deliveries.php" class="wh-card" style="--delay:0.15s">
+        <a href="deliveries.php" class="wh-card s87v3-tap" style="--delay:0.15s">
             <?php if ($pending_deliveries > 0): ?><div class="wh-badge b-indigo"><?= $pending_deliveries ?></div><?php endif; ?>
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -467,7 +519,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="wh-sub"><?= $pending_deliveries > 0 ? $pending_deliveries . ' чакащи' : 'Получени стоки' ?></div>
         </a>
 
-        <a href="suppliers.php" class="wh-card" style="--delay:0.2s">
+        <a href="suppliers.php" class="wh-card s87v3-tap" style="--delay:0.2s">
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
@@ -475,7 +527,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="wh-sub"><?= $supplier_count ?> активни</div>
         </a>
 
-        <a href="inventory.php" class="wh-card" style="--delay:0.25s">
+        <a href="inventory.php" class="wh-card s87v3-tap" style="--delay:0.25s">
             <?php if ($active_inventory > 0): ?><div class="wh-badge b-amber"><?= $active_inventory ?></div><?php endif; ?>
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -484,7 +536,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="wh-sub"><?= $active_inventory > 0 ? $active_inventory . ' в ход' : 'Броене по артикул' ?></div>
         </a>
 
-        <a href="revision.php" class="wh-card" style="--delay:0.3s">
+        <a href="revision.php" class="wh-card s87v3-tap" style="--delay:0.3s">
             <div class="wh-icon">
                 <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
@@ -573,6 +625,60 @@ window.addEventListener('DOMContentLoaded', () => {
         animCount(el, parseFloat(el.dataset.count) || 0);
     });
 });
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable JS (idempotent)  */
+/* ───────────────────────────────────────────── */
+(function s87v3_init(){
+    if (window.__s87v3_loaded) return;
+    window.__s87v3_loaded = true;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) {
+        var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+        var lastScroll = 0;
+        window.addEventListener('scroll', function(){
+            var y = window.scrollY;
+            if (headerEl) {
+                if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+                else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+            }
+            lastScroll = y;
+        }, { passive: true });
+    }
+    if (!reduced && 'IntersectionObserver' in window) {
+        var obs = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 's87v3_scrollIn 0.7s cubic-bezier(0.34,1.8,0.64,1) both';
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        var attach = function(){
+            document.querySelectorAll('.s87v3-scroll-reveal').forEach(function(el){ obs.observe(el); });
+        };
+        if (document.readyState !== 'loading') attach();
+        else document.addEventListener('DOMContentLoaded', attach);
+    }
+    if (!reduced) {
+        var attachTap = function(){
+            document.querySelectorAll('.s87v3-tap').forEach(function(el){
+                if (el.__s87v3_tap) return;
+                el.__s87v3_tap = true;
+                var handler = function(){
+                    el.classList.remove('s87v3-released');
+                    void el.offsetWidth;
+                    el.classList.add('s87v3-released');
+                    setTimeout(function(){ el.classList.remove('s87v3-released'); }, 400);
+                };
+                el.addEventListener('touchend', handler, { passive: true });
+                el.addEventListener('mouseup', handler);
+            });
+        };
+        if (document.readyState !== 'loading') attachTap();
+        else document.addEventListener('DOMContentLoaded', attachTap);
+    }
+})();
 </script>
 
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
