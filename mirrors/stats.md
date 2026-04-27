@@ -863,11 +863,63 @@ body::before{
 /* S82.CAPACITOR safe-area */
 body{padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable CORE block       */
+/* DESIGN_SYSTEM § O.3-O.10 + O.14 + O.20        */
+/* ───────────────────────────────────────────── */
+@keyframes s87v3_pageIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.92); filter:blur(8px); }
+    60%  { opacity:1; filter:blur(0); }
+    100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
+.s87v3-pagein{animation:s87v3_pageIn 0.85s cubic-bezier(0.16,1,0.3,1) both}
+@keyframes s87v3_springRelease{
+    0%   { transform:scale(0.92); }
+    50%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+}
+.s87v3-tap{transition:transform 0.18s cubic-bezier(0.34,1.8,0.64,1)}
+.s87v3-tap:active{transform:scale(0.92)}
+.s87v3-tap.s87v3-released{animation:s87v3_springRelease 0.4s cubic-bezier(0.34,2.0,0.64,1)}
+@keyframes s87v3_headerIn{
+    0%   { opacity:0; transform:translateY(-30px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+@keyframes s87v3_navIn{
+    0%   { opacity:0; transform:translateY(60px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+.rms-header,.header{animation:s87v3_headerIn 0.7s cubic-bezier(0.16,1,0.3,1) 0s both;transition:backdrop-filter 0.3s,background 0.3s}
+.rms-bottom-nav,.bottom-nav{animation:s87v3_navIn 0.7s cubic-bezier(0.16,1,0.3,1) 1.8s both}
+@keyframes s87v3_scrollIn{
+    from { opacity:0; transform:translateY(40px) scale(0.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.s87v3-scroll-reveal{opacity:0}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+@media (prefers-reduced-motion: reduce){
+    .s87v3-pagein,
+    .rms-header,.header,
+    .rms-bottom-nav,.bottom-nav,
+    .s87v3-tap,.s87v3-tap.s87v3-released,
+    .s87v3-scroll-reveal{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+        transition:none !important;
+    }
+}
 </style>
 </head>
 <body>
 
-<div class="page-wrap">
+<div class="page-wrap s87v3-pagein">
 
     <?php include __DIR__ . '/partials/header.php'; ?>
     <div class="page-header">
@@ -890,10 +942,10 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         </div>
 
         <div class="period-bar" style="margin-top:10px">
-            <a href="?period=today&tab=<?= htmlspecialchars($active_tab) ?>" class="period-pill <?= $period==='today'?'active':'' ?>">Днес</a>
-            <a href="?period=week&tab=<?= htmlspecialchars($active_tab) ?>"  class="period-pill <?= $period==='week'?'active':'' ?>">Седмица</a>
-            <a href="?period=month&tab=<?= htmlspecialchars($active_tab) ?>" class="period-pill <?= $period==='month'?'active':'' ?>">Месец</a>
-            <button class="period-pill <?= $period==='custom'?'active':'' ?>" onclick="toggleDatePicker()" type="button">
+            <a href="?period=today&tab=<?= htmlspecialchars($active_tab) ?>" class="period-pill s87v3-tap <?= $period==='today'?'active':'' ?>">Днес</a>
+            <a href="?period=week&tab=<?= htmlspecialchars($active_tab) ?>"  class="period-pill s87v3-tap <?= $period==='week'?'active':'' ?>">Седмица</a>
+            <a href="?period=month&tab=<?= htmlspecialchars($active_tab) ?>" class="period-pill s87v3-tap <?= $period==='month'?'active':'' ?>">Месец</a>
+            <button class="period-pill s87v3-tap <?= $period==='custom'?'active':'' ?>" onclick="toggleDatePicker()" type="button">
                 <?= $period==='custom' ? htmlspecialchars($from.' → '.$to) : 'От – До' ?>
             </button>
         </div>
@@ -910,7 +962,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
         <div class="tabs-bar">
             <?php foreach (['overview'=>'Обзор','sales'=>'Продажби','products'=>'Стоки','finance'=>'Финанси','anomalies'=>'Аномалии'] as $k=>$v): ?>
-            <button class="tab-btn <?= $active_tab===$k?'active':'' ?>" onclick="switchTab('<?=$k?>',event)"><?=$v?></button>
+            <button class="tab-btn s87v3-tap <?= $active_tab===$k?'active':'' ?>" onclick="switchTab('<?=$k?>',event)"><?=$v?></button>
             <?php endforeach; ?>
         </div>
     </div>
@@ -923,7 +975,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <div id="tab-overview" class="tab-content" <?= $active_tab!=='overview'?'style="display:none"':'' ?>>
 
             <?php if ($role === 'owner'): ?>
-            <div class="health-wrap" onclick="openDrawer('health')">
+            <div class="health-wrap s87v3-tap" onclick="openDrawer('health')">
                 <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Здраве на бизнеса</div>
                 <div class="health-score <?= $hclass ?>" id="healthNum">0</div>
                 <div class="health-label"><?= $hlabel ?></div>
@@ -933,13 +985,13 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <?php endif; ?>
 
             <div class="grid-2">
-                <div class="stat-card" onclick="openDrawer('revenue')" style="animation-delay:.05s">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('revenue')" style="animation-delay:.05s">
                     <div class="label">Оборот</div>
                     <div class="value shimmer-text" data-count="<?= round($sales_summary['revenue']) ?>">0</div>
                     <div class="sub"><?= $currency ?></div>
                     <div class="tap-hint">↗ Натисни за детайли</div>
                 </div>
-                <div class="stat-card" onclick="openDrawer('transactions')" style="animation-delay:.1s">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('transactions')" style="animation-delay:.1s">
                     <div class="label">Транзакции</div>
                     <div class="value" data-count="<?= $sales_summary['transactions'] ?>">0</div>
                     <div class="sub">продажби</div>
@@ -948,21 +1000,21 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             </div>
 
             <div class="grid-2">
-                <div class="stat-card" onclick="openDrawer('avg_ticket')" style="animation-delay:.15s">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('avg_ticket')" style="animation-delay:.15s">
                     <div class="label">Средна сметка</div>
                     <div class="value" data-count="<?= round($sales_summary['avg_ticket']) ?>">0</div>
                     <div class="sub"><?= $currency ?></div>
                     <div class="tap-hint">↗ Натисни за детайли</div>
                 </div>
                 <?php if ($role === 'owner'): ?>
-                <div class="stat-card" onclick="openDrawer('profit')" style="animation-delay:.2s">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('profit')" style="animation-delay:.2s">
                     <div class="label">Печалба</div>
                     <div class="value" data-count="<?= round($profit) ?>">0</div>
                     <div class="sub"><?= $margin_pct ?>% марж</div>
                     <div class="tap-hint">↗ Натисни за детайли</div>
                 </div>
                 <?php else: ?>
-                <div class="stat-card" onclick="openDrawer('low_stock')" style="animation-delay:.2s">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('low_stock')" style="animation-delay:.2s">
                     <div class="label">Ниски наличности</div>
                     <div class="value" style="<?= count($low_stock)>0?'color:#ef4444':'' ?>" data-count="<?= count($low_stock) ?>">0</div>
                     <div class="sub">под минимум</div>
@@ -1002,12 +1054,12 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             </div>
 
             <div class="grid-2">
-                <div class="stat-card" onclick="openDrawer('revenue')">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('revenue')">
                     <div class="label">Общо</div>
                     <div class="value shimmer-text" data-count="<?= round($sales_summary['revenue']) ?>">0</div>
                     <div class="sub"><?= $currency ?></div>
                 </div>
-                <div class="stat-card" onclick="openDrawer('avg_ticket')">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('avg_ticket')">
                     <div class="label">Средна сметка</div>
                     <div class="value" data-count="<?= round($sales_summary['avg_ticket']) ?>">0</div>
                     <div class="sub"><?= $currency ?></div>
@@ -1082,7 +1134,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <?php else: ?>
             <?php if ($role === 'owner'): ?>
             <div class="grid-2">
-                <div class="stat-card" onclick="openDrawer('profit')">
+                <div class="stat-card s87v3-tap" onclick="openDrawer('profit')">
                     <div class="label">Печалба</div>
                     <div class="value shimmer-text" data-count="<?= round($profit) ?>">0</div>
                     <div class="sub"><?= $currency ?> · <?= $margin_pct ?>% марж</div>
@@ -1259,6 +1311,60 @@ window.addEventListener('DOMContentLoaded',function(){
         },100);
     }
 });
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable JS (idempotent)  */
+/* ───────────────────────────────────────────── */
+(function s87v3_init(){
+    if (window.__s87v3_loaded) return;
+    window.__s87v3_loaded = true;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) {
+        var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+        var lastScroll = 0;
+        window.addEventListener('scroll', function(){
+            var y = window.scrollY;
+            if (headerEl) {
+                if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+                else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+            }
+            lastScroll = y;
+        }, { passive: true });
+    }
+    if (!reduced && 'IntersectionObserver' in window) {
+        var obs = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 's87v3_scrollIn 0.7s cubic-bezier(0.34,1.8,0.64,1) both';
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        var attach = function(){
+            document.querySelectorAll('.s87v3-scroll-reveal').forEach(function(el){ obs.observe(el); });
+        };
+        if (document.readyState !== 'loading') attach();
+        else document.addEventListener('DOMContentLoaded', attach);
+    }
+    if (!reduced) {
+        var attachTap = function(){
+            document.querySelectorAll('.s87v3-tap').forEach(function(el){
+                if (el.__s87v3_tap) return;
+                el.__s87v3_tap = true;
+                var handler = function(){
+                    el.classList.remove('s87v3-released');
+                    void el.offsetWidth;
+                    el.classList.add('s87v3-released');
+                    setTimeout(function(){ el.classList.remove('s87v3-released'); }, 400);
+                };
+                el.addEventListener('touchend', handler, { passive: true });
+                el.addEventListener('mouseup', handler);
+            });
+        };
+        if (document.readyState !== 'loading') attachTap();
+        else document.addEventListener('DOMContentLoaded', attachTap);
+    }
+})();
 </script>
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body>
