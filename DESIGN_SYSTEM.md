@@ -957,6 +957,8 @@ html,body{-webkit-user-select:none;user-select:none}
 - ❌ **v2 RULE:** Subtle springs (bounce overshoot `< 5%`)
 - ❌ **v2 RULE:** Animations само на `opacity` (без `transform` = плоско, не usе се "пристигането")
 - ❌ **v2 RULE:** Без stagger (всички елементи едновременно = chaos)
+- ❌ **v3 RULE (S87 v3):** Button gradients със saturation > 60% (бутоните трябва да са приглушени — виж § O.20)
+- ❌ **v3 RULE (S87 v3):** Box-shadow / glow на бутони с opacity > 0.30 (избягвай "ярко" чувство — виж § O.20)
 
 ---
 
@@ -1007,6 +1009,13 @@ html,body{-webkit-user-select:none;user-select:none}
 - [ ] Header `headerIn` (top 0s), bottom-nav `navIn` (bottom 1.8s) — § O.8
 - [ ] Count-up numbers където уместно (`animateCountUp`) — § O.9
 - [ ] `@media (prefers-reduced-motion: reduce)` блок реализиран — § O.10
+- [ ] **v3 G1** Scroll-driven reveal на cards под viewport (`.scroll-reveal` + IntersectionObserver) + sticky-header blur on scroll — § O.14
+- [ ] **v3 G2** State transitions: `cardExpand` (signal → detail), `swipeOut` (delete), `messagePop` (нов message) — § O.15
+- [ ] **v3 G3** Live data: `animateNumberChange()` smooth-tween + `bounceBadge()` + health-fill 0.8s ease-out — § O.16
+- [ ] **v3 G4** Micro-animations: toast slide-in/out, overlay close reverse choreography, elastic pull — § O.17
+- [ ] **v3 G5** Context changes: blur-out → navigate → blur-in (`.context-out`/`.context-in`); period pill re-animates numbers — § O.18
+- [ ] **v3 G6** AI magic: pillSlideIn (нов signal), checkDraw (success), skeleton shimmer (loading) — § O.19
+- [ ] **v3 G7** Button color refinement: muted saturations/glows on `.briefing-btn-primary`, `.rev-pill.active`, `.nav-tab.active`, `.top-pill.q*`, `.input-bar-inner` — § O.20
 
 ---
 
@@ -1020,6 +1029,7 @@ html,body{-webkit-user-select:none;user-select:none}
 | **v2.1** | **2026-04-27** | **S87.ANIMATIONS — 5 mandatory patterns. Live в chat.php.** § O Animation System v1: page entrance, card stagger, spring tap, overlay choreography, reduced-motion. Performance budget ≤800ms, само opacity+transform, GPU-only. |
 | **v2.2** | **2026-04-27** | **S87.ANIMATIONS v2 DRAMATIC — 8 expressive patterns** (scale+blur entrance, visible 150ms stagger, glow pulse, spring overshoot 6%, choreographed nav, count-up numbers). Live в chat.php. **Replaces v1.** |
 | **v2.2.1** | **2026-04-27** | **S87.ANIMATIONS v2.1 — timing tweak (250ms stagger, 2.5s total launch).** Stretch на choreography за по-spacious WOW: card stagger 0.95s @ 250ms apart, header @ 0s, bottom-nav @ 1.8s, glow pulse 1.6s @ 0.9s, overlay content 200ms apart, count-up @ 1.2s × 1.8s. Same 8 patterns, по-spacious timing. |
+| **v2.3** | **2026-04-27** | **S87.ANIMATIONS v3 FULL PACK — 6 advanced animation groups (scroll-driven, state transitions, live data, micro-animations, context changes, AI magic moments) + button color refinement (от ai_studio_FINAL_v5.html mockup).** Adds § O.14 scroll reveal + sticky header blur, § O.15 cardExpand/swipeOut/messagePop, § O.16 animateNumberChange + badgeBounce + health-fill transition, § O.17 toast slide + overlay close + elastic pull, § O.18 context blur-out/blur-in + period re-animate, § O.19 pillSlideIn + checkDraw + skeleton shimmer, § O.20 muted button tokens (sat ≤ 50%, glow opacity ≤ 0.25). Live в chat.php. |
 
 ---
 
@@ -1259,7 +1269,253 @@ window.addEventListener('load', () => {
 
 **Live имплементация:** `chat.php` (S87.ANIMATIONS v2.1 timing tweak commit, 2026-04-27). Чети style блока за пълните 8 patterns в работещ контекст + `<script>` блока за `springRelease` и `animateCountUp` JS.
 
-### O.14 Forbidden patterns (виж § K)
+### O.14 PATTERN 9 — SCROLL-DRIVEN REVEAL + STICKY HEADER BLUR (v3 G1)
+
+**Защо:** дълги списъци (life-board cards >4) лагват page-entrance choreography. Cards под viewport-а трябва да „пристигат" при scroll, а не наведнъж в началото.
+
+```css
+@keyframes scrollIn{
+    from { opacity:0; transform:translateY(40px) scale(0.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.scroll-reveal{opacity:0}
+.rms-header,.header{transition:backdrop-filter 0.3s,background 0.3s}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+```
+
+```javascript
+const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.style.animation = 'scrollIn 0.7s cubic-bezier(0.34,1.8,0.64,1) both';
+            obs.unobserve(e.target);
+        }
+    });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+window.addEventListener('load', () => {
+    document.querySelectorAll('.scroll-reveal').forEach(el => obs.observe(el));
+});
+
+// Sticky header blur on scroll past 30px
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+    const h = document.querySelector('.rms-header') || document.querySelector('.header');
+    if (window.scrollY > 30 && lastScroll <= 30) h?.classList.add('scrolled');
+    else if (window.scrollY <= 30 && lastScroll > 30) h?.classList.remove('scrolled');
+    lastScroll = window.scrollY;
+}, { passive: true });
+```
+
+**Apply:** auto-tag `.lb-card` от индекс 4+ като `.scroll-reveal` в JS (cards под viewport на phone).
+
+### O.15 PATTERN 10 — STATE TRANSITIONS (v3 G2)
+
+**Защо:** signal → detail expand, swipe-to-delete на dismiss и нови chat messages се нуждаят от character — не плоско appear/disappear.
+
+```css
+@keyframes cardExpand{
+    0%   { transform:scale(1); border-radius:14px; }
+    50%  { transform:scale(0.96); }
+    100% { transform:scale(1.02); border-radius:24px; }
+}
+.sig-card.expanding{animation:cardExpand 0.45s cubic-bezier(0.34,1.5,0.64,1) forwards;z-index:100}
+
+@keyframes swipeOut{
+    0%   { transform:translateX(0); opacity:1; max-height:200px; }
+    50%  { transform:translateX(120%); opacity:0; }
+    100% { transform:translateX(120%); opacity:0; max-height:0; margin:0; padding:0; }
+}
+.swipe-out{animation:swipeOut 0.5s cubic-bezier(0.5,0,0.75,0) forwards;overflow:hidden}
+
+@keyframes messagePop{
+    0%   { opacity:0; transform:scale(0.85) translateY(10px); }
+    60%  { transform:scale(1.04) translateY(-2px); }
+    100% { opacity:1; transform:scale(1) translateY(0); }
+}
+.msg-ai.new,.msg-user.new{animation:messagePop 0.5s cubic-bezier(0.34,1.6,0.64,1) both}
+```
+
+**JS hook:** `addMessageWithAnimation(role, txt)` — генерира `.msg-ai.new` / `.msg-user.new` за тъмен pop-in. (`max-height` не е GPU-композитен, но ползва се само при swipe-to-delete на 1 елемент в момент — приемливо.)
+
+### O.16 PATTERN 11 — LIVE DATA UPDATES (v3 G3)
+
+**Защо:** числа които се мръдват (revenue, badges, fill bars) трябва да бъдат „живи", не просто да щракват от старата на новата стойност.
+
+```javascript
+function animateNumberChange(el, newValue, duration = 600) {
+    const oldValue = parseInt(el.textContent.replace(/\D/g, '')) || 0;
+    const startTime = performance.now();
+    function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(oldValue + (newValue - oldValue) * eased);
+        el.textContent = current.toLocaleString('bg-BG');
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+```
+
+```css
+@keyframes badgeBounce{
+    0%{transform:scale(1)} 30%{transform:scale(1.4)} 60%{transform:scale(0.9)} 100%{transform:scale(1)}
+}
+.badge.bounce,.bi-qty.bounce,.tp-val.bounce{
+    animation:badgeBounce 0.5s cubic-bezier(0.34,2.0,0.64,1) both;display:inline-block
+}
+
+.health-fill{transition:width 0.8s cubic-bezier(0.16,1,0.3,1)}
+```
+
+**Кога:** `animateNumberChange` за period/mode превключване на dashboard числа. `bounceBadge(el)` при нов unread count. Health-fill width tween — при `confidence_pct` промяна.
+
+### O.17 PATTERN 12 — MICRO-ANIMATIONS (v3 G4)
+
+**Защо:** toast slide-in, overlay close (reverse choreography), pull-to-refresh elastic — малки моменти които правят app-а да изглежда жив.
+
+```css
+@keyframes toastIn{
+    0%{opacity:0;transform:translateX(-50%) translateY(40px) scale(0.9)}
+    60%{transform:translateX(-50%) translateY(-6px) scale(1.02)}
+    100%{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1)}
+}
+@keyframes toastOut{
+    0%{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    100%{opacity:0;transform:translateX(-50%) translateY(40px)}
+}
+.toast.show{animation:toastIn 0.4s cubic-bezier(0.34,1.8,0.64,1) both}
+.toast.hiding{animation:toastOut 0.3s cubic-bezier(0.5,0,0.75,0) both}
+
+@keyframes overlayContentOut{from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(20px)}}
+@keyframes overlayPanelOut{from{transform:translateY(0)} to{transform:translateY(100%)}}
+.ov-panel.closing .ov-content > *,
+.ov-panel.closing > .ov-header,.ov-panel.closing > .chat-messages,
+.ov-panel.closing > .sig-body,.ov-panel.closing > .br-body,
+.ov-panel.closing > .rec-bar,.ov-panel.closing > .chat-input{
+    animation:overlayContentOut 0.25s cubic-bezier(0.5,0,0.75,0) both
+}
+.ov-panel.closing{animation:overlayPanelOut 0.45s 0.15s cubic-bezier(0.5,0,0.75,0) both}
+
+@keyframes elasticPull{
+    0%{transform:translateY(0)} 50%{transform:translateY(8px) scaleY(1.02)} 100%{transform:translateY(0)}
+}
+.elastic-pull{animation:elasticPull 0.5s cubic-bezier(0.34,1.6,0.64,1) both;transform-origin:top center}
+```
+
+**JS hook:** existing `showToast()` се wrap-ва така че при auto-hide да добави `.hiding` 320ms преди `.show` removal. Existing `closeChat/closeSignal/closeSignalBrowser` се wrap-ват: добавят `.closing` на panel-а, чакат 600ms, чак тогава викат оригинала (panel slide + content fade-out стартират едновременно с малко delay на panel-а).
+
+### O.18 PATTERN 13 — CONTEXT CHANGES (v3 G5)
+
+**Защо:** Лесен ↔ Подробен navigation, period (Днес/7д/30д/365д) — context promяната трябва да „диша", не да щракне моментално.
+
+```css
+@keyframes contextOut{
+    from{opacity:1;transform:scale(1);filter:blur(0)}
+    to  {opacity:0;transform:scale(0.96);filter:blur(8px)}
+}
+@keyframes contextIn{
+    from{opacity:0;transform:scale(1.04);filter:blur(8px)}
+    to  {opacity:1;transform:scale(1);filter:blur(0)}
+}
+.app.context-out{animation:contextOut 0.25s cubic-bezier(0.5,0,0.75,0) both}
+.app.context-in {animation:contextIn 0.4s 0.05s cubic-bezier(0.34,1.5,0.64,1) both}
+```
+
+```javascript
+function changeContext(targetUrl){
+    const app = document.querySelector('.app');
+    app.classList.add('context-out');
+    setTimeout(() => { window.location.href = targetUrl; }, 250);
+}
+```
+
+**Period pill:** `setPeriod()` се wrap-ва — след оригиналния `updateRevenue()`, ако вече е имало първоначален count-up, `revNum` се re-tween-ва с `animateNumberChange()` (700ms). Не се вика count-up отново, защото това е „live data update" не „first arrival".
+
+### O.19 PATTERN 14 — AI MAGIC MOMENTS (v3 G6)
+
+**Защо:** AI-driven moments (нов signal pristiga, success confirm, loading) са моментите където app-ът „усеща се умен". Не unimpressive default loading spinners.
+
+```css
+@keyframes pillSlideIn{
+    0%{opacity:0;transform:translateX(-30px) scale(0.85)}
+    60%{transform:translateX(4px) scale(1.05)}
+    100%{opacity:1;transform:translateX(0) scale(1)}
+}
+.top-pill.new{
+    animation:pillSlideIn 0.6s cubic-bezier(0.34,1.8,0.64,1) both,
+              glowPulse 1.5s ease-out 0.4s both
+}
+
+@keyframes checkDraw{
+    from{stroke-dashoffset:30;opacity:0}
+    to  {stroke-dashoffset:0;opacity:1}
+}
+.check-svg{stroke-dasharray:30;stroke-dashoffset:30;animation:checkDraw 0.5s 0.1s cubic-bezier(0.34,1.5,0.64,1) both}
+
+@keyframes shimmer{
+    0%{background-position:-200% 0} 100%{background-position:200% 0}
+}
+.skeleton{
+    background:linear-gradient(90deg,
+        hsl(var(--hue1) 30% 15% / .3) 0%,
+        hsl(var(--hue1) 30% 25% / .5) 50%,
+        hsl(var(--hue1) 30% 15% / .3) 100%);
+    background-size:200% 100%;
+    animation:shimmer 1.5s infinite linear;
+    border-radius:14px
+}
+```
+
+**JS hook:** `spawnTopPill(html)` — insert-ва нов `.top-pill.new` в `.top-strip` за slide-in + автоматично re-uses `glowPulse` от § O.5. Auto-removes `.new` след 2.2s.
+
+### O.20 PATTERN 15 — BUTTON COLOR REFINEMENT (v3 G7)
+
+**Защо (Тихол feedback):** v2 буtoните бяха „прекалено ярки". Reference: `ai_studio_FINAL_v5.html` (S83 mockup). Сравнение показа, че `.briefing-btn-primary` стиловете на chat.php вече match-ват mockup-а (color-mix 35%/20%, glow .35) — но Тихол иска ВСЕ ОЩЕ по-приглушено за всички interactive accent surfaces.
+
+**ANALYSIS — текущи vs нови стойности:**
+
+| Селектор | Property | v2.2 (преди) | v2.3 (сега) |
+|---|---|---|---|
+| `.briefing-btn-primary` | gradient stops | `color-mix 35% / 20%` | `color-mix 25% / 12%` |
+| `.briefing-btn-primary` | border | `color-mix 50%` | `color-mix 35%` |
+| `.briefing-btn-primary` | box-shadow opacity | `35%` | `22%` |
+| `.briefing-btn-primary:active` | shadow opacity | `25%` | `16%` |
+| `.rev-pill.active` | gradient | `hsl 60% 45% / 65% 40%` | `hsl 48% 38% / 52% 33%` |
+| `.rev-pill.active` | shadow opacity | `0.40` | `0.25` |
+| `.rev-pill.active` | text-shadow opacity | `0.50` | `0.30` |
+| `.nav-tab.active` | text-shadow opacity | `0.50` | `0.30` |
+| `.nav-tab.active svg` | drop-shadow opacity | `0.60` | `0.35` |
+| `.top-pill.q1/q5` | border opacity | `40%` | `25%` |
+| `.top-pill.q1/q5` | bg opacity | `20% / 8%` | `12% / 5%` |
+| `.top-pill.q1/q5` | shadow opacity | `25%` | `18%` |
+| `.input-bar-inner` | gradient sat | `35% 15%` | `25% 12%` |
+| `.input-bar-inner` | border opacity | `0.60` | `0.50` |
+| `.input-bar-inner` | glow opacity | `0.20` | `0.12` |
+
+**Token reference (за нови модули):**
+
+```css
+/* Muted button defaults — § O.20 */
+--btn-saturation: 50%;       /* upper bound (не повече) */
+--btn-lightness: 38%;        /* upper bound */
+--btn-glow-opacity: 0.25;    /* outer shadow upper bound */
+--btn-text-shadow-opacity: 0.30;
+--btn-color-mix-pct: 25%;    /* primary gradient stop */
+--btn-color-mix-pct-2: 12%;  /* secondary gradient stop */
+```
+
+**ВАЖНО — НЕ се пипат:**
+- 6Q hue mappings (q1-q6) — те са semantic, не стилистични
+- `.glass` shine + glow conic-gradient layers (§ C.2) — fundamentally правилни
+- Spring tap behavior (§ O.6) — само visual цветове, не motion
+
+**Reference:** `chat.php` (S87.ANIMATIONS v3 commit, 2026-04-27). Всички 7 групи + button refinement live в един blob.
+
+### O.21 Forbidden patterns (виж § K)
 
 - ❌ Animations `< 400ms` (твърде бързи, не impact-ват)
 - ❌ Stagger `< 100ms` между елементи (невидим)
@@ -1268,9 +1524,11 @@ window.addEventListener('load', () => {
 - ❌ Animations само на `opacity` (без transform = плоски)
 - ❌ Без stagger (всичко наведнъж = chaos)
 - ❌ Linear easing (винаги cubic-bezier)
+- ❌ **v3:** Button gradients със saturation > 60% (виж § O.20)
+- ❌ **v3:** Box-shadow / glow на бутони с opacity > 0.30 (виж § O.20)
 
 ---
 
-**КРАЙ НА DESIGN SYSTEM v2.2.1**
+**КРАЙ НА DESIGN SYSTEM v2.3**
 
-*Референтен модул: `chat.php` v8 (commit c2caaf5). Всеки нов модул ТРЯБВА да премине adoption checklist § M.*
+*Референтен модул: `chat.php` v8 (S87.ANIMATIONS v3 FULL PACK commit, 2026-04-27). Всеки нов модул ТРЯБВА да премине adoption checklist § M.*

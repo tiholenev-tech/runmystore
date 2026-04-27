@@ -632,13 +632,14 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
 }
 .rev-pill:not(.active):active{color:rgba(255,255,255,.85)}
 .rev-pill.active{
-    background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 65% 40%));
+    /* S87.ANIMATIONS v3 §O.20 — muted active pill (sat 60→48%, lit 45→38%, glow .4→.25, text .5→.30) */
+    background:linear-gradient(135deg,hsl(var(--hue1) 48% 38%),hsl(var(--hue2) 52% 33%));
     color:white;font-weight:800;
     box-shadow:
-        0 2px 8px hsl(var(--hue1) 60% 45% / .4),
-        inset 0 1px 0 rgba(255,255,255,.2),
-        inset 0 0 12px hsl(var(--hue1) 70% 60% / .15);
-    text-shadow:0 0 8px hsl(var(--hue1) 80% 70% / .5)
+        0 2px 8px hsl(var(--hue1) 48% 38% / .25),
+        inset 0 1px 0 rgba(255,255,255,.14),
+        inset 0 0 12px hsl(var(--hue1) 60% 55% / .10);
+    text-shadow:0 0 8px hsl(var(--hue1) 70% 65% / .30)
 }
 .rev-divider{width:1px;height:24px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1),transparent);margin:0 4px}
 .conf-warn{
@@ -748,27 +749,28 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
     transition:transform .15s,box-shadow .2s
 }
 .top-pill:active{transform:scale(.96)}
+/* S87.ANIMATIONS v3 §O.20 — muted top pills (border 40→25%, bg 20→12%, shadow .25→.18) */
 .top-pill.q1{
     --qc:hsl(0,85%,55%);
-    border-color:color-mix(in oklch,var(--qc) 40%,transparent);
+    border-color:color-mix(in oklch,var(--qc) 25%,transparent);
     background:linear-gradient(135deg,
-        color-mix(in oklch,var(--qc) 20%,hsl(220 30% 8%)),
-        color-mix(in oklch,var(--qc) 8%,hsl(220 30% 6%)));
+        color-mix(in oklch,var(--qc) 12%,hsl(220 30% 8%)),
+        color-mix(in oklch,var(--qc) 5%,hsl(220 30% 6%)));
     box-shadow:
-        0 2px 10px color-mix(in oklch,var(--qc) 25%,transparent),
-        inset 0 1px 0 rgba(255,255,255,.1),
-        inset 0 0 16px color-mix(in oklch,var(--qc) 12%,transparent)
+        0 2px 10px color-mix(in oklch,var(--qc) 18%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.08),
+        inset 0 0 16px color-mix(in oklch,var(--qc) 8%,transparent)
 }
 .top-pill.q5{
     --qc:hsl(38,90%,55%);
-    border-color:color-mix(in oklch,var(--qc) 40%,transparent);
+    border-color:color-mix(in oklch,var(--qc) 25%,transparent);
     background:linear-gradient(135deg,
-        color-mix(in oklch,var(--qc) 20%,hsl(220 30% 8%)),
-        color-mix(in oklch,var(--qc) 8%,hsl(220 30% 6%)));
+        color-mix(in oklch,var(--qc) 12%,hsl(220 30% 8%)),
+        color-mix(in oklch,var(--qc) 5%,hsl(220 30% 6%)));
     box-shadow:
-        0 2px 10px color-mix(in oklch,var(--qc) 25%,transparent),
-        inset 0 1px 0 rgba(255,255,255,.1),
-        inset 0 0 16px color-mix(in oklch,var(--qc) 12%,transparent)
+        0 2px 10px color-mix(in oklch,var(--qc) 18%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.08),
+        inset 0 0 16px color-mix(in oklch,var(--qc) 8%,transparent)
 }
 .top-pill .tp-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-pill .tp-val{font-weight:900;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -912,21 +914,22 @@ body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);poin
     align-items:center;justify-content:center;gap:4px;
     letter-spacing:.02em;
     transition:transform .15s,box-shadow .15s;
+    /* S87.ANIMATIONS v3 §O.20 — muted button (35→25%, 20→12%, glow .35→.22) */
     background:linear-gradient(135deg,
-        color-mix(in oklch,var(--qcol) 35%,hsl(220 30% 10%)) 0%,
-        color-mix(in oklch,var(--qcol) 20%,hsl(220 30% 8%)) 100%);
-    border-color:color-mix(in oklch,var(--qcol) 50%,transparent);
+        color-mix(in oklch,var(--qcol) 25%,hsl(220 30% 10%)) 0%,
+        color-mix(in oklch,var(--qcol) 12%,hsl(220 30% 8%)) 100%);
+    border-color:color-mix(in oklch,var(--qcol) 35%,transparent);
     color:white;
     box-shadow:
-        0 4px 14px color-mix(in oklch,var(--qcol) 35%,transparent),
-        inset 0 1px 0 rgba(255,255,255,.12),
-        inset 0 0 20px color-mix(in oklch,var(--qcol) 10%,transparent)
+        0 4px 14px color-mix(in oklch,var(--qcol) 22%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.10),
+        inset 0 0 20px color-mix(in oklch,var(--qcol) 8%,transparent)
 }
 .briefing-btn-primary:active{
     transform:scale(.97);
     box-shadow:
-        0 2px 8px color-mix(in oklch,var(--qcol) 25%,transparent),
-        inset 0 1px 0 rgba(255,255,255,.08)
+        0 2px 8px color-mix(in oklch,var(--qcol) 16%,transparent),
+        inset 0 1px 0 rgba(255,255,255,.06)
 }
 .briefing-btn-secondary{
     padding:10px 16px;
@@ -994,10 +997,11 @@ body.overlay-open .input-bar{opacity:0;pointer-events:none;transform:translateY(
 .input-bar-inner{
     display:flex;align-items:center;gap:8px;
     padding:10px 14px;border-radius:100px;
-    background:linear-gradient(135deg,hsl(var(--hue1) 35% 15% / .85),hsl(var(--hue2) 35% 12% / .7));
-    border:1px solid hsl(var(--hue1) 30% 25% / .6);
+    /* S87.ANIMATIONS v3 §O.20 — muted input bar (sat 35→25%, lit 15→12%, glow .2→.12) */
+    background:linear-gradient(135deg,hsl(var(--hue1) 25% 12% / .85),hsl(var(--hue2) 25% 10% / .7));
+    border:1px solid hsl(var(--hue1) 22% 22% / .5);
     backdrop-filter:blur(20px);
-    box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 16px hsl(var(--hue1) 60% 45% / .2)
+    box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 16px hsl(var(--hue1) 50% 45% / .12)
 }
 .input-waves{display:flex;gap:2px;align-items:flex-end;height:14px;flex-shrink:0}
 .input-wave-bar{width:3px;border-radius:100px;animation:wavebar 1.2s ease-in-out infinite}
@@ -1046,8 +1050,9 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 }
 .nav-tab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .nav-tab-label{font-size:9px;font-weight:700;letter-spacing:.02em}
-.nav-tab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
-.nav-tab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
+/* S87.ANIMATIONS v3 §O.20 — muted nav active (text .5→.30, drop .6→.35) */
+.nav-tab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .30)}
+.nav-tab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .35))}
 
 /* ═══════════════════════════════════════════════════════ */
 /* 75vh OVERLAY (Chat + Signal Detail + Signal Browser)   */
@@ -1609,6 +1614,167 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
         filter:none !important;
         animation:none !important;
     }
+}
+
+/* ─────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 FULL PACK — 6 advanced groups */
+/* DESIGN_SYSTEM § O.14-O.19                   */
+/* ─────────────────────────────────────────── */
+
+/* GROUP 1 — SCROLL-DRIVEN (§O.14) */
+@keyframes scrollIn{
+    from { opacity:0; transform:translateY(40px) scale(0.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.rms-header,.header{transition:backdrop-filter 0.3s,background 0.3s}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+
+/* GROUP 2 — STATE TRANSITIONS (§O.15) */
+@keyframes cardExpand{
+    0%   { transform:scale(1); border-radius:14px; }
+    50%  { transform:scale(0.96); }
+    100% { transform:scale(1.02); border-radius:24px; }
+}
+.sig-card.expanding{
+    animation:cardExpand 0.45s cubic-bezier(0.34,1.5,0.64,1) forwards;
+    z-index:100
+}
+@keyframes swipeOut{
+    0%   { transform:translateX(0); opacity:1; max-height:200px; }
+    50%  { transform:translateX(120%); opacity:0; }
+    100% { transform:translateX(120%); opacity:0; max-height:0; margin:0; padding:0; }
+}
+.swipe-out{animation:swipeOut 0.5s cubic-bezier(0.5,0,0.75,0) forwards;overflow:hidden}
+@keyframes messagePop{
+    0%   { opacity:0; transform:scale(0.85) translateY(10px); }
+    60%  { transform:scale(1.04) translateY(-2px); }
+    100% { opacity:1; transform:scale(1) translateY(0); }
+}
+.msg-ai.new,.msg-user.new{
+    animation:messagePop 0.5s cubic-bezier(0.34,1.6,0.64,1) both
+}
+
+/* GROUP 3 — LIVE DATA (§O.16) */
+@keyframes badgeBounce{
+    0%   { transform:scale(1); }
+    30%  { transform:scale(1.4); }
+    60%  { transform:scale(0.9); }
+    100% { transform:scale(1); }
+}
+.badge.bounce,.bi-qty.bounce,.tp-val.bounce{
+    animation:badgeBounce 0.5s cubic-bezier(0.34,2.0,0.64,1) both;
+    display:inline-block
+}
+.health-fill{transition:width 0.8s cubic-bezier(0.16,1,0.3,1)}
+
+/* GROUP 4 — MICRO-ANIMATIONS (§O.17) */
+@keyframes toastIn{
+    0%   { opacity:0; transform:translateX(-50%) translateY(40px) scale(0.9); }
+    60%  { transform:translateX(-50%) translateY(-6px) scale(1.02); }
+    100% { opacity:1; transform:translateX(-50%) translateY(-6px) scale(1); }
+}
+@keyframes toastOut{
+    0%   { opacity:1; transform:translateX(-50%) translateY(-6px); }
+    100% { opacity:0; transform:translateX(-50%) translateY(40px); }
+}
+.toast.show{animation:toastIn 0.4s cubic-bezier(0.34,1.8,0.64,1) both}
+.toast.hiding{animation:toastOut 0.3s cubic-bezier(0.5,0,0.75,0) both}
+@keyframes overlayContentOut{
+    from { opacity:1; transform:translateY(0); }
+    to   { opacity:0; transform:translateY(20px); }
+}
+@keyframes overlayPanelOut{
+    from { transform:translateY(0); }
+    to   { transform:translateY(100%); }
+}
+.ov-panel.closing .ov-content > *,
+.ov-panel.closing > .ov-header,
+.ov-panel.closing > .chat-messages,
+.ov-panel.closing > .sig-body,
+.ov-panel.closing > .br-body,
+.ov-panel.closing > .rec-bar,
+.ov-panel.closing > .chat-input{
+    animation:overlayContentOut 0.25s cubic-bezier(0.5,0,0.75,0) both
+}
+.ov-panel.closing{
+    animation:overlayPanelOut 0.45s 0.15s cubic-bezier(0.5,0,0.75,0) both
+}
+@keyframes elasticPull{
+    0%   { transform:translateY(0); }
+    50%  { transform:translateY(8px) scaleY(1.02); }
+    100% { transform:translateY(0); }
+}
+.elastic-pull{animation:elasticPull 0.5s cubic-bezier(0.34,1.6,0.64,1) both;transform-origin:top center}
+
+/* GROUP 5 — CONTEXT CHANGES (§O.18) */
+@keyframes contextOut{
+    from { opacity:1; transform:scale(1); filter:blur(0); }
+    to   { opacity:0; transform:scale(0.96); filter:blur(8px); }
+}
+@keyframes contextIn{
+    from { opacity:0; transform:scale(1.04); filter:blur(8px); }
+    to   { opacity:1; transform:scale(1); filter:blur(0); }
+}
+.app.context-out{animation:contextOut 0.25s cubic-bezier(0.5,0,0.75,0) both}
+.app.context-in {animation:contextIn 0.4s 0.05s cubic-bezier(0.34,1.5,0.64,1) both}
+
+/* GROUP 6 — AI MAGIC MOMENTS (§O.19) */
+@keyframes pillSlideIn{
+    0%   { opacity:0; transform:translateX(-30px) scale(0.85); }
+    60%  { transform:translateX(4px) scale(1.05); }
+    100% { opacity:1; transform:translateX(0) scale(1); }
+}
+.top-pill.new{
+    animation:pillSlideIn 0.6s cubic-bezier(0.34,1.8,0.64,1) both,
+              glowPulse 1.5s ease-out 0.4s both
+}
+@keyframes checkDraw{
+    from { stroke-dashoffset:30; opacity:0; }
+    to   { stroke-dashoffset:0; opacity:1; }
+}
+.check-svg{
+    stroke-dasharray:30;stroke-dashoffset:30;
+    animation:checkDraw 0.5s 0.1s cubic-bezier(0.34,1.5,0.64,1) both
+}
+@keyframes shimmer{
+    0%   { background-position:-200% 0; }
+    100% { background-position:200% 0; }
+}
+.skeleton{
+    background:linear-gradient(90deg,
+        hsl(var(--hue1) 30% 15% / .3) 0%,
+        hsl(var(--hue1) 30% 25% / .5) 50%,
+        hsl(var(--hue1) 30% 15% / .3) 100%);
+    background-size:200% 100%;
+    animation:shimmer 1.5s infinite linear;
+    border-radius:14px
+}
+
+/* GROUP 1 — Scroll-reveal helper (set by JS for cards below viewport) */
+.scroll-reveal{opacity:0}
+
+/* Reduced-motion guard for v3 groups */
+@media (prefers-reduced-motion: reduce){
+    .scroll-reveal,
+    .sig-card.expanding,.swipe-out,.msg-ai.new,.msg-user.new,
+    .badge.bounce,.bi-qty.bounce,.tp-val.bounce,
+    .toast.show,.toast.hiding,
+    .ov-panel.closing,.ov-panel.closing .ov-content > *,
+    .ov-panel.closing > .ov-header,.ov-panel.closing > .chat-messages,
+    .ov-panel.closing > .sig-body,.ov-panel.closing > .br-body,
+    .ov-panel.closing > .rec-bar,.ov-panel.closing > .chat-input,
+    .elastic-pull,.app.context-out,.app.context-in,
+    .top-pill.new,.check-svg,.skeleton{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+    }
+    .health-fill{transition:none !important}
 }
 
 /* Safe area (iOS / Capacitor) */
@@ -2922,6 +3088,190 @@ window.addEventListener('load', () => {
         });
     }, 1200);
 });
+
+// ═══════════════════════════════════════════════════════
+// S87.ANIMATIONS v3 FULL PACK — Groups 1-6 JS hooks
+// DESIGN_SYSTEM § O.14-O.19
+// ═══════════════════════════════════════════════════════
+
+// GROUP 1 — Scroll-driven reveal + sticky-header blur (§O.14)
+(function s87v3_scroll(){
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+    var lastScroll = 0;
+    window.addEventListener('scroll', function(){
+        var y = window.scrollY;
+        if (headerEl) {
+            if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+            else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+        }
+        lastScroll = y;
+    }, { passive: true });
+    if (!('IntersectionObserver' in window)) return;
+    var obs = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+            if (entry.isIntersecting) {
+                entry.target.style.animation = 'scrollIn 0.7s cubic-bezier(0.34,1.8,0.64,1) both';
+                obs.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    window.addEventListener('load', function(){
+        // Auto-tag .lb-card from index 4+ as scroll-reveal (below the fold on phone)
+        var cards = document.querySelectorAll('.lb-card');
+        for (var i = 4; i < cards.length; i++) cards[i].classList.add('scroll-reveal');
+        document.querySelectorAll('.scroll-reveal').forEach(function(el){
+            obs.observe(el);
+        });
+    });
+})();
+
+// GROUP 2 — State transitions: addMessageWithAnimation hook (§O.15)
+function addMessageWithAnimation(role, txt){
+    // role: 'ai' | 'user'
+    var g = document.createElement('div');
+    g.className = 'msg-group';
+    var t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+    if (role === 'user') {
+        g.innerHTML = '<div class="msg-meta right">' + t + '</div>'
+                    + '<div class="msg-user new">' + esc(txt) + '</div>';
+    } else {
+        g.innerHTML = '<div class="msg-meta">'
+                    + '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+                    + 'AI · ' + t + '</div>'
+                    + '<div class="msg-ai new">' + esc(txt) + '</div>';
+    }
+    var typing = document.getElementById('typing');
+    var box = document.getElementById('chatMessages');
+    if (box && typing) box.insertBefore(g, typing);
+    else if (box) box.appendChild(g);
+    if (typeof scrollChatBottom === 'function') scrollChatBottom();
+    return g;
+}
+
+// GROUP 3 — Live data: smooth number transition + badge bounce (§O.16)
+function animateNumberChange(el, newValue, duration){
+    if (!el) return;
+    duration = duration || 600;
+    var oldValue = parseInt(String(el.textContent).replace(/\D/g, ''), 10) || 0;
+    if (oldValue === newValue) return;
+    var startTime = performance.now();
+    function tick(now){
+        var progress = Math.min((now - startTime) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        var current = Math.floor(oldValue + (newValue - oldValue) * eased);
+        el.textContent = current.toLocaleString('bg-BG');
+        if (progress < 1) requestAnimationFrame(tick);
+        else el.textContent = newValue.toLocaleString('bg-BG');
+    }
+    requestAnimationFrame(tick);
+}
+function bounceBadge(el){
+    if (!el) return;
+    el.classList.remove('bounce');
+    void el.offsetWidth;
+    el.classList.add('bounce');
+    setTimeout(function(){ el.classList.remove('bounce'); }, 520);
+}
+
+// GROUP 4 — Micro-animations: graceful overlay close + toast hide + elastic pull (§O.17)
+(function s87v3_overlayClose(){
+    // Wrap close functions so panel uses 'closing' choreography before unmount
+    function wrapClose(name, panelId){
+        var orig = window[name];
+        if (typeof orig !== 'function') return;
+        window[name] = function(){
+            var args = arguments;
+            var p = document.getElementById(panelId);
+            if (p && p.classList.contains('open') && !p.classList.contains('closing') &&
+                !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+                p.classList.add('closing');
+                setTimeout(function(){
+                    p.classList.remove('closing');
+                    orig.apply(window, args);
+                }, 600);
+            } else {
+                orig.apply(window, args);
+            }
+        };
+    }
+    // Defer wrapping until DOM ready (orig functions defined earlier in this script)
+    if (document.readyState !== 'loading') {
+        wrapClose('closeChat', 'chatPanel');
+        wrapClose('closeSignal', 'sigPanel');
+        wrapClose('closeSignalBrowser', 'brPanel');
+    } else {
+        document.addEventListener('DOMContentLoaded', function(){
+            wrapClose('closeChat', 'chatPanel');
+            wrapClose('closeSignal', 'sigPanel');
+            wrapClose('closeSignalBrowser', 'brPanel');
+        });
+    }
+})();
+
+// Toast graceful hide (overrides showToast's removal step)
+(function s87v3_toastHide(){
+    var origToast = window.showToast;
+    if (typeof origToast !== 'function') return;
+    window.showToast = function(m){
+        var t = document.getElementById('toast');
+        if (!t) { origToast(m); return; }
+        t.classList.remove('hiding');
+        t.textContent = m;
+        t.classList.add('show');
+        clearTimeout(t._s87Timer);
+        t._s87Timer = setTimeout(function(){
+            t.classList.remove('show');
+            t.classList.add('hiding');
+            setTimeout(function(){ t.classList.remove('hiding'); }, 320);
+        }, 2800);
+    };
+})();
+
+// GROUP 5 — Context changes: changeContext + period pill re-trigger (§O.18)
+function changeContext(targetUrl){
+    var app = document.querySelector('.app');
+    if (!app || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        window.location.href = targetUrl;
+        return;
+    }
+    app.classList.add('context-out');
+    setTimeout(function(){ window.location.href = targetUrl; }, 250);
+}
+
+// Период pill change → re-trigger num animation на dashboard num (using v3 animateNumberChange)
+(function s87v3_periodSmoothNum(){
+    var origSetPeriod = window.setPeriod;
+    if (typeof origSetPeriod !== 'function') return;
+    window.setPeriod = function(period, el){
+        origSetPeriod(period, el);
+        // After updateRevenue() runs, smooth-tween revNum from old to new (only after first count-up)
+        try {
+            if (typeof _revAnimatedOnce !== 'undefined' && _revAnimatedOnce && typeof P !== 'undefined') {
+                var d = P[period];
+                if (d) {
+                    var val = (typeof curMode !== 'undefined' && curMode === 'profit') ? d.profit : d.rev;
+                    var revEl = document.getElementById('revNum');
+                    if (revEl) animateNumberChange(revEl, Math.round(val), 700);
+                }
+            }
+        } catch(_) {}
+    };
+})();
+
+// GROUP 6 — AI magic moments helper: tag inserted top-pill as .new for slide-in glow (§O.19)
+function spawnTopPill(html){
+    var strip = document.querySelector('.top-strip');
+    if (!strip) return null;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html.trim();
+    var el = tmp.firstChild;
+    if (!el) return null;
+    el.classList.add('top-pill', 'new');
+    strip.insertBefore(el, strip.firstChild);
+    setTimeout(function(){ el.classList.remove('new'); }, 2200);
+    return el;
+}
 
 // Spring tap release — overshoot animation на touchend
 (function attachSpringRelease(){
