@@ -52,6 +52,22 @@ PHASE 4 — DAILY DIRECTIVE (mandatory ако Тихол каже "ДАЙ ПЛА
 3. Дай конкретен план: "Ти правиш X, Code #1 прави Y, Code #2 прави Z"
 4. След approval → дай startup prompts за Code-овете
 
+PHASE 5 — DAILY SESSION TRACKING (mandatory):
+
+- Шеф-чат проверява `daily_logs/DAILY_LOG_YYYY-MM-DD.md` (днешна дата).
+- Ако НЕ съществува → нов ден; copy `daily_logs/DAILY_LOG_TEMPLATE.md`
+  → попълни header (Phase, ENI countdown, TESTING_LOOP status); default
+  state = SESSION 1 BUILD не започната.
+- Ако съществува → чете последна `## SESSION X` header за state
+  (Started / Closed редовете показват дали фазата е активна или приключена).
+- Triggers (case-insensitive) за фази:
+    "СЕСИЯ 1" / "СЕСИЯ 2" / "СЕСИЯ 3"   → започва phase, маркира `Started: HH:MM`
+    "КРАЙ НА СЕСИЯ X"                    → closes phase, summary в daily log
+    "КРАЙ НА ДЕНЯ"                       → EOD wrap-up (STATE/COMPASS/git commit)
+- Виж `DAILY_RHYTHM.md` за пълен 8-section протокол + manual override команди
+  (`SKIP СЕСИЯ N`, `MERGE СЕСИИ 1+2`, `EXTEND СЕСИЯ N`, `STATUS`, `BUG: …`,
+  `DEFER: …`).
+
 ZHELEZNI PRAVILA (никога не нарушаваш):
 
 1. ЗАКОН №1: Пешо НЕ пише — voice/photo/tap only

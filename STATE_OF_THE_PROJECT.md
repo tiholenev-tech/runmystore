@@ -78,6 +78,7 @@
 ## 🔁 STANDING PROTOCOLS
 
 - **TESTING_LOOP** (active since 27.04.2026, S87): tenant=99 daily auto-seed (`tools/seed/sales_populate.py`) → `compute-insights.php::computeProductInsights(99)` → snapshot → diff → see `tools/testing_loop/latest.json` for current status (🟢/🟡/🔴). Anomalies logged to `tools/testing_loop/ANOMALY_LOG.md`. Шеф-чат reads this at boot. Spec: `TESTING_LOOP_PROTOCOL.md` (root). Crontab: `0 7 * * *` за www-data (manual install от Тихол).
+- **DAILY_RHYTHM** (active since 27.04.2026, S87): 3-фазен дневен ритъм. SESSION 1 BUILD (08-12) → SESSION 2 TEST (13-17) → SESSION 3 FIX (18-21). 1 шеф-чат целия ден. Triggers: „СЕСИЯ 1/2/3", „КРАЙ НА СЕСИЯ X", „КРАЙ НА ДЕНЯ". Spec: `DAILY_RHYTHM.md`. Daily logs: `daily_logs/DAILY_LOG_YYYY-MM-DD.md`. Templates: `templates/session_{1_build,2_test,3_fix}.md`.
 
 ---
 

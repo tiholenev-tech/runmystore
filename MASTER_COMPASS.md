@@ -941,6 +941,14 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 27.04.2026 — DAILY_RHYTHM_PROTOCOL активиран
+- **Решение:** 3-фазен дневен ритъм с 1 шеф-чат за деня. SESSION 1 BUILD (08-12) → SESSION 2 TEST (13-17) → SESSION 3 FIX (18-21). Triggers: „СЕСИЯ 1/2/3", „КРАЙ НА СЕСИЯ X", „КРАЙ НА ДЕНЯ".
+- **Защо:** предотвратяване на ad-hoc решения и context drift между чатове. Гарантира daily test feedback (S2 преди EOD); P0 откритията получават fix-окно същия ден (S3) вместо да висят до утре. 1 шеф-чат за целия ден = ~80% по-малко drift спрямо отваряне на нов чат при всяка задача.
+- **Засегнати:** всички работни сесии (Code #1/2/3 получават startup prompts от шеф-чат-а в S1), шеф-чат boot procedure (нова Phase 5 — daily session tracking), STATE структура (нова `## 🔁 STANDING PROTOCOLS` секция получи 2-ри entry под TESTING_LOOP).
+- **Rework:** нищо — additive протокол.
+- **Документация:** `DAILY_RHYTHM.md` (root, 337 реда, 8 sections + quick reference). Daily logs: `daily_logs/DAILY_LOG_YYYY-MM-DD.md` (от template, append-only). Session templates: `templates/session_{1_build,2_test,3_fix}.md` (~130 реда всеки — pre-flight, decision tree, common pitfalls, examples, closing checklist).
+- **Promotion path:** при 7 поредни дни без skip → STANDING_RULE_#24.
+
 ## 27.04.2026 — TESTING_LOOP_PROTOCOL активиран (S87)
 - **Решение:** Continuous AI insights validation на tenant=99 — daily 07:00 cron хвърля seed → `computeProductInsights(99)` → snapshot → diff → status JSON. 🟡/🔴 пишат в `tools/testing_loop/ANOMALY_LOG.md`.
 - **Защо:** Тихол не може manually да проверява insights всеки ден. Без auto-loop регресии в `compute-insights.php` или drop в seed данни могат да минат незабелязани седмици. Loop = early warning без да ангажира human attention докато всичко е 🟢.

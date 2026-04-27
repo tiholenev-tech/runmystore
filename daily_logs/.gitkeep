@@ -1,0 +1,2 @@
+# Keep daily_logs/ in git even when only the template lives here.
+# Daily logs are committed at end-of-day per DAILY_RHYTHM.md §5.4.
