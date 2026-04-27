@@ -60,7 +60,7 @@
 
 | # | Issue | Severity | Кога се решава |
 |---|---|---|---|
-| 1 | Toggle "Опростен →" в chat.php header — UNVERIFIED дали е visible бутон (Code #1 направи toggle само в life-board.php → chat.php, не bidirectional) | 🟡 P1 | S83 sutrin |
+| 1 | Toggle "Лесен ↔ Подробен" — ✅ RESOLVED 27.04.2026 (S86.CHAT.TOGGLE: chat.php toggle verified visible, tap target 30px → 44px min, bidirectional confirmed; life-board.php side already had reverse toggle) | 🟢 RESOLVED 27.04.2026 | ✅ done |
 | 3 | AI Studio modal в wizard step 5 — UNVERIFIED дали е новия дизайн (STUDIO.12 v0.7.23 беше mockup approval, не code merge) | 🟡 P1 | S83 verify |
 | 4 | Diagnostic Cat A=100% / D=100% (51/51 PASS, run #18) — S85.DIAG.FIX resolved | 🟢 RESOLVED 27.04.2026 | ✅ done; 1 PHP question escalated в `tools/diagnostic/REAL_BUGS_FOUND.md` §1 (pfHighestMargin sales filter) |
 | 5 | products.php 3 P0 bugs (от старите S78) — main nav buttons, Step 0 wizard call, mobile file picker | 🟡 P1 | S84 |

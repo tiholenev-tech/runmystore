@@ -1689,24 +1689,26 @@ html[data-theme="light"] .chat-ta::placeholder{color:var(--text-muted)}
 html[data-theme="light"] .ai-studio-btn .as-label{color:hsl(310 70% 35%);text-shadow:0 0 6px hsl(310 60% 70% / .35)}
 html[data-theme="light"] .ai-studio-btn .as-sub{color:hsl(310 50% 45%)}
 
-/* ═══ S83.PRE_ENTRY.FIX — toggle "Лесен →" (reverse of life-board.lb-mode-toggle) ═══ */
+/* ═══ S86.CHAT.TOGGLE — bidirectional "Лесен ↔ Подробен" (44×44 tap target) ═══ */
 .cb-mode-row{
     display:flex;justify-content:flex-end;
-    padding:6px 12px 0;
+    padding:8px 12px 2px;
     max-width:480px;margin:0 auto;position:relative;z-index:3
 }
 .cb-mode-toggle{
-    display:inline-flex;align-items:center;gap:4px;
-    padding:6px 12px;border-radius:14px;
-    height:30px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    color:hsl(310 70% 80%);
-    background:rgba(217,70,239,.08);
-    border:1px solid rgba(217,70,239,.20);
+    display:inline-flex;align-items:center;gap:6px;
+    padding:10px 16px;border-radius:14px;
+    min-height:44px;font-size:11px;font-weight:800;letter-spacing:.04em;
+    color:hsl(310 75% 82%);
+    background:rgba(217,70,239,.10);
+    border:1px solid rgba(217,70,239,.24);
     text-decoration:none;font-family:inherit;cursor:pointer;
-    box-shadow:0 0 8px hsl(310 70% 50% / .18)
+    box-shadow:0 0 10px hsl(310 70% 50% / .22),inset 0 1px 0 hsl(310 70% 70% / .12);
+    transition:all .15s var(--ease)
 }
-.cb-mode-toggle svg{width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(217,70,239,.06);border-color:rgba(217,70,239,.22)}
+.cb-mode-toggle:hover,.cb-mode-toggle:active{background:rgba(217,70,239,.16);border-color:rgba(217,70,239,.38);color:hsl(310 85% 90%)}
+.cb-mode-toggle svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(217,70,239,.07);border-color:rgba(217,70,239,.26)}
 
 /* ═══════════════════════════════════════════════════════
    S82.VISUAL — chat.php Life Board redesign
