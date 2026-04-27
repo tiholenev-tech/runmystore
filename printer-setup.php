@@ -66,6 +66,19 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 
 <div id="log">Log:</div>
 
+<!-- ═══ S87.D520BT.HUNT — DEBUG секция (премахни след като намерим UUID) ═══ -->
+<div class="card" style="margin-top:24px;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.05)">
+  <h3 style="color:#fbbf24">DEBUG (S87)</h3>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:8px">
+    <input type="checkbox" id="dbgToggle" style="width:18px;height:18px"> Показвай debug
+  </label>
+  <div id="dbgPanel" style="display:none">
+    <p style="font-size:12px">Резултатите се показват директно на екрана (fullscreen overlay) с бутон "Копирай всичко".</p>
+    <button class="btn sec" id="btnScanAll">🔍 Сканирай всички BT (10s)</button>
+    <button class="btn sec" id="btnPairDebug">🔗 Pair и анализирай</button>
+  </div>
+</div>
+
 <script>
 var $ = function(id){return document.getElementById(id)};
 var logEl = $('log');
@@ -120,6 +133,37 @@ $('btnTest').addEventListener('click', async function(){
     log('✗ Грешка: ' + (e.message || e));
   } finally {
     refreshStatus();
+  }
+});
+
+// ═══ S87.D520BT.HUNT — DEBUG handlers ═══
+$('dbgToggle').addEventListener('change', function(){
+  $('dbgPanel').style.display = this.checked ? 'block' : 'none';
+});
+
+$('btnScanAll').addEventListener('click', async function(){
+  try {
+    log('Scan starting (10s)...');
+    $('btnScanAll').disabled = true;
+    var n = await window.CapPrinter.scanDebug(10000);
+    log('Scan complete. ' + n + ' устройства видени.');
+  } catch(e) {
+    log('Scan error: ' + (e.message || e));
+  } finally {
+    $('btnScanAll').disabled = false;
+  }
+});
+
+$('btnPairDebug').addEventListener('click', async function(){
+  try {
+    log('Pair+analyze...');
+    $('btnPairDebug').disabled = true;
+    var r = await window.CapPrinter.pairDebug();
+    log('Done: ' + (r.name || r.deviceId));
+  } catch(e) {
+    log('PairDebug error: ' + (e.message || e));
+  } finally {
+    $('btnPairDebug').disabled = false;
   }
 });
 

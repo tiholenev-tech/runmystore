@@ -103,6 +103,108 @@
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  // ----- Debug overlay (full-screen, on-device) -----
+  // Тихол няма chrome inspect setup, console.log не е видим.
+  // Затова паралелно с console.log трупаме output във fullscreen overlay.
+
+  let __dbgOverlayEl = null;
+  let __dbgPreEl = null;
+
+  function ensureDebugOverlay() {
+    if (__dbgOverlayEl && document.body.contains(__dbgOverlayEl)) return;
+
+    const ov = document.createElement('div');
+    ov.id = 'capPrinterDebugOverlay';
+    ov.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:99999',
+      'background:rgba(0,0,0,0.95)', 'color:#fff',
+      'font-family:Menlo,Consolas,monospace', 'font-size:12px',
+      'display:flex', 'flex-direction:column'
+    ].join(';');
+
+    const bar = document.createElement('div');
+    bar.style.cssText = [
+      'display:flex', 'gap:8px', 'padding:10px',
+      'background:#111', 'border-bottom:1px solid #333',
+      'flex-wrap:wrap'
+    ].join(';');
+
+    const btnCopy = document.createElement('button');
+    btnCopy.textContent = 'Копирай всичко';
+    btnCopy.style.cssText = 'padding:10px 14px;background:#6366f1;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnCopy.onclick = async function() {
+      const txt = __dbgPreEl ? __dbgPreEl.textContent : '';
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(txt);
+          btnCopy.textContent = 'OK Копирано';
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = txt; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); ta.remove();
+          btnCopy.textContent = 'OK Копирано (fallback)';
+        }
+      } catch (e) {
+        btnCopy.textContent = 'ERR ' + (e && e.message || e);
+      }
+      setTimeout(function(){ btnCopy.textContent = 'Копирай всичко'; }, 2000);
+    };
+
+    const btnClear = document.createElement('button');
+    btnClear.textContent = 'Изчисти';
+    btnClear.style.cssText = 'padding:10px 14px;background:#374151;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnClear.onclick = function() { if (__dbgPreEl) __dbgPreEl.textContent = ''; };
+
+    const btnClose = document.createElement('button');
+    btnClose.textContent = 'Затвори';
+    btnClose.style.cssText = 'padding:10px 14px;background:#ef4444;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px;margin-left:auto';
+    btnClose.onclick = function() {
+      if (__dbgOverlayEl && __dbgOverlayEl.parentNode) {
+        __dbgOverlayEl.parentNode.removeChild(__dbgOverlayEl);
+      }
+      __dbgOverlayEl = null;
+      __dbgPreEl = null;
+    };
+
+    bar.appendChild(btnCopy);
+    bar.appendChild(btnClear);
+    bar.appendChild(btnClose);
+
+    const pre = document.createElement('pre');
+    pre.style.cssText = [
+      'flex:1', 'margin:0', 'padding:12px',
+      'overflow:auto', 'white-space:pre-wrap', 'word-break:break-all',
+      'color:#e5e7eb', 'background:#000'
+    ].join(';');
+    pre.textContent = '';
+
+    ov.appendChild(bar);
+    ov.appendChild(pre);
+    document.body.appendChild(ov);
+
+    __dbgOverlayEl = ov;
+    __dbgPreEl = pre;
+  }
+
+  function showDebugOverlay(text) {
+    ensureDebugOverlay();
+    if (!__dbgPreEl) return;
+    const ts = new Date().toISOString().substr(11, 12);
+    __dbgPreEl.textContent += '[' + ts + '] ' + String(text) + '\n';
+    __dbgPreEl.scrollTop = __dbgPreEl.scrollHeight;
+  }
+
+  // dbgLog — пише и в console.log (за adb logcat), и в on-screen overlay.
+  function dbgLog() {
+    const args = Array.prototype.slice.call(arguments);
+    try { console.log.apply(console, args); } catch (_) {}
+    const line = args.map(function(a){
+      if (typeof a === 'string') return a;
+      try { return JSON.stringify(a); } catch (_) { return String(a); }
+    }).join(' ');
+    showDebugOverlay(line);
+  }
+
   function hasCyrillic(s) {
     return /[\u0400-\u04FF]/.test(String(s || ''));
   }
@@ -320,13 +422,17 @@
       const ble = getBle();
       await ble.initialize({ androidNeverForLocation: false });
 
+      // S87.PRINTER.MULTI — без namePrefix филтър.
+      // Filter-ваме САМО по TSPL service UUID — така виждаме всички
+      // TSPL-съвместими принтери (DTM-5811, D520BT, future), не само "DTM*".
       const device = await ble.requestDevice({
-        namePrefix: PRINTER_NAME_FILTER,
         services: [SERVICE_UUID],
         optionalServices: [SERVICE_UUID]
       }).catch(async () => {
-        // Fallback без service filter ако първият сканира не намери
-        return await ble.requestDevice({ namePrefix: PRINTER_NAME_FILTER });
+        // Fallback: някои Android BLE stack-ове не advertise-ват service UUID
+        // в scan packet-а → service-filtered scan връща празен списък.
+        // Last-resort: показваме всички BT устройства (потребителят избира ръчно).
+        return await ble.requestDevice({});
       });
 
       if (!device || !device.deviceId) {
@@ -336,6 +442,98 @@
       await ble.connect(device.deviceId, () => clearDeviceId());
       return device.deviceId;
     },
+
+    // ═══════════════════════════════════════════════════════════════════
+    // S87.D520BT.HUNT — TEMPORARY DEBUG (REMOVE once D520BT UUID known)
+    // ═══════════════════════════════════════════════════════════════════
+    // Manual invocation from JS console / adb logcat:
+    //   await window.CapPrinter.pairDebug()      → unfiltered picker, then
+    //                                              connect + enumerate GATT
+    //   await window.CapPrinter.scanDebug(8000)  → 8s programmatic LE scan,
+    //                                              log every device's
+    //                                              advertised service UUIDs
+    // All output prefixed with [D520BT-DEBUG] for adb logcat filtering:
+    //   adb logcat -s chromium:V | grep D520BT-DEBUG
+    // ───────────────────────────────────────────────────────────────────
+
+    async pairDebug() {
+      if (!isCapacitor()) throw new Error('Не си в мобилно приложение');
+      const ble = getBle();
+      await ble.initialize({ androidNeverForLocation: false });
+      dbgLog('[D520BT-DEBUG] Opening UNFILTERED picker — pick D520BT...');
+      const device = await ble.requestDevice({});
+      if (!device || !device.deviceId) throw new Error('No device picked');
+      dbgLog('[D520BT-DEBUG] Picked:', JSON.stringify({
+        name: device.name || '(no name)',
+        deviceId: device.deviceId
+      }));
+      dbgLog('[D520BT-DEBUG] Connecting to enumerate GATT...');
+      await ble.connect(device.deviceId, function() {
+        dbgLog('[D520BT-DEBUG] Disconnected (callback)');
+      });
+      try {
+        const services = await ble.getServices(device.deviceId);
+        dbgLog('[D520BT-DEBUG] Services count:', services.length);
+        services.forEach(function(svc, si) {
+          dbgLog('[D520BT-DEBUG] [' + si + '] service UUID: ' + svc.uuid);
+          (svc.characteristics || []).forEach(function(ch, ci) {
+            const props = ch.properties || {};
+            const flags = [];
+            if (props.read) flags.push('READ');
+            if (props.write) flags.push('WRITE');
+            if (props.writeWithoutResponse) flags.push('WRITE_NO_RESP');
+            if (props.notify) flags.push('NOTIFY');
+            if (props.indicate) flags.push('INDICATE');
+            dbgLog('[D520BT-DEBUG]   [' + si + '.' + ci + '] char UUID: '
+                        + ch.uuid + '  [' + flags.join(',') + ']');
+          });
+        });
+        dbgLog('[D520BT-DEBUG] FULL DUMP:', JSON.stringify(services, null, 2));
+      } catch (e) {
+        dbgLog('[D520BT-DEBUG] getServices error:', e && e.message ? e.message : e);
+        throw e;
+      } finally {
+        try { await ble.disconnect(device.deviceId); } catch (_) {}
+        dbgLog('[D520BT-DEBUG] Done. Disconnected.');
+      }
+      return { name: device.name, deviceId: device.deviceId };
+    },
+
+    async scanDebug(durationMs) {
+      durationMs = durationMs || 8000;
+      if (!isCapacitor()) throw new Error('Не си в мобилно приложение');
+      const ble = getBle();
+      await ble.initialize({ androidNeverForLocation: false });
+      dbgLog('[D520BT-DEBUG] Starting LE scan for ' + durationMs + 'ms...');
+      const seen = {};
+      let seenCount = 0;
+      try {
+        await ble.requestLEScan({}, function(result) {
+          const key = (result.device && result.device.deviceId) || '';
+          if (!key || seen[key]) return;
+          seen[key] = true;
+          seenCount++;
+          dbgLog('[D520BT-DEBUG] Found: ' + JSON.stringify({
+            name: (result.device && result.device.name) || result.localName || '(unnamed)',
+            deviceId: key,
+            rssi: result.rssi,
+            uuids: result.uuids || [],
+            mfgData: result.manufacturerData ? Object.keys(result.manufacturerData) : []
+          }));
+        });
+      } catch (e) {
+        dbgLog('[D520BT-DEBUG] requestLEScan unavailable on this BLE plugin version:',
+                    e && e.message ? e.message : e);
+        throw e;
+      }
+      await sleep(durationMs);
+      try { await ble.stopLEScan(); } catch (_) {}
+      dbgLog('[D520BT-DEBUG] Scan complete. Unique devices: ' + seenCount);
+      return seenCount;
+    },
+    // ═══════════════════════════════════════════════════════════════════
+    // END S87.D520BT.HUNT
+    // ═══════════════════════════════════════════════════════════════════
 
     async connect() {
       if (!isCapacitor()) {
@@ -426,10 +624,13 @@
       clearDeviceId();
     },
 
+    showDebugOverlay: showDebugOverlay,
+
     _generateTSPL: generateTSPL,
     _isCapacitor: isCapacitor,
     _getDeviceId: getSavedDeviceId,
-    _renderTextBitmap: renderTextBitmap
+    _renderTextBitmap: renderTextBitmap,
+    _dbgLog: dbgLog
   };
 
   window.CapPrinter = CapPrinter;
