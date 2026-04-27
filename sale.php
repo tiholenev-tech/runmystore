@@ -789,6 +789,53 @@ body::before{
 /* S82.CAPACITOR safe-area */
 body{padding-bottom:env(safe-area-inset-bottom);}
 .bottom-nav,.btm-nav,nav.bottom,[class*="bottom-nav"]{padding-bottom:calc(8px + env(safe-area-inset-bottom)) !important;box-sizing:content-box;}
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable CORE block       */
+/* DESIGN_SYSTEM § O.3-O.10 + O.14 + O.20        */
+/* sale.php: skipped numpad/keyboard tap (rapid input workflow) */
+/* ───────────────────────────────────────────── */
+@keyframes s87v3_pageIn{
+    0%   { opacity:0; transform:translateY(40px) scale(0.92); filter:blur(8px); }
+    60%  { opacity:1; filter:blur(0); }
+    100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
+.s87v3-pagein{animation:s87v3_pageIn 0.85s cubic-bezier(0.16,1,0.3,1) both}
+@keyframes s87v3_springRelease{
+    0%   { transform:scale(0.92); }
+    50%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+}
+.s87v3-tap{transition:transform 0.18s cubic-bezier(0.34,1.8,0.64,1)}
+.s87v3-tap:active{transform:scale(0.92)}
+.s87v3-tap.s87v3-released{animation:s87v3_springRelease 0.4s cubic-bezier(0.34,2.0,0.64,1)}
+@keyframes s87v3_headerIn{
+    0%   { opacity:0; transform:translateY(-30px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+@keyframes s87v3_navIn{
+    0%   { opacity:0; transform:translateY(60px); }
+    100% { opacity:1; transform:translateY(0); }
+}
+.rms-header,.header{animation:s87v3_headerIn 0.7s cubic-bezier(0.16,1,0.3,1) 0s both;transition:backdrop-filter 0.3s,background 0.3s}
+.rms-bottom-nav,.bottom-nav{animation:s87v3_navIn 0.7s cubic-bezier(0.16,1,0.3,1) 1.8s both}
+.rms-header.scrolled,.header.scrolled{
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+    background:linear-gradient(180deg,hsl(220 25% 6% / .95),hsl(220 25% 4% / .85));
+}
+@media (prefers-reduced-motion: reduce){
+    .s87v3-pagein,
+    .rms-header,.header,
+    .rms-bottom-nav,.bottom-nav,
+    .s87v3-tap,.s87v3-tap.s87v3-released{
+        opacity:1 !important;
+        transform:none !important;
+        filter:none !important;
+        animation:none !important;
+        transition:none !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -799,7 +846,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 
 <div class="undo-bar" id="undoBar">
     <span class="undo-text" id="undoText"></span>
-    <button class="undo-btn" id="undoBtn">ОТМЕНИ</button>
+    <button class="undo-btn s87v3-tap" id="undoBtn">ОТМЕНИ</button>
 </div>
 
 <div class="rec-ov" id="recOv">
@@ -811,8 +858,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <div class="rec-transcript empty" id="recTranscript">Слушам...</div>
         <div class="rec-hint" id="recHint">Кажете артикул, количество или команда</div>
         <div class="rec-actions">
-            <button class="rec-btn-cancel" id="recCancel">Затвори</button>
-            <button class="rec-btn-send" id="recSend" disabled>🎤 Изпрати →</button>
+            <button class="rec-btn-cancel s87v3-tap" id="recCancel">Затвори</button>
+            <button class="rec-btn-send s87v3-tap" id="recSend" disabled>🎤 Изпрати →</button>
         </div>
     </div>
 </div>
@@ -835,8 +882,8 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <button class="lp-num" onclick="lpNum('⌫')">⌫</button>
     </div>
     <div class="lp-actions">
-        <button class="lp-cancel" onclick="closeLpPopup()">Откажи</button>
-        <button class="lp-ok" onclick="confirmLpPopup()">OK</button>
+        <button class="lp-cancel s87v3-tap" onclick="closeLpPopup()">Откажи</button>
+        <button class="lp-ok s87v3-tap" onclick="confirmLpPopup()">OK</button>
     </div>
 </div>
 
@@ -845,7 +892,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     <div class="nf-text">Няма такъв артикул</div>
 </div>
 
-<div class="sale-wrap" id="saleWrap">
+<div class="sale-wrap s87v3-pagein" id="saleWrap">
 
     <?php include __DIR__ . '/partials/header.php'; ?>
 
@@ -853,14 +900,14 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div class="cam-overlay">
             <div class="cam-top">
-                <button class="cam-btn" onclick="location.href='warehouse.php'">←</button>
+                <button class="cam-btn s87v3-tap" onclick="location.href='warehouse.php'">←</button>
                 <span class="cam-title" id="camTitle"><?= $page_title ?></span>
                 <div class="cam-right">
-                    <button class="cam-btn" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
+                    <button class="cam-btn s87v3-tap" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
                         🅿️<span class="park-badge" id="parkedCount">0</span>
                     </button>
-                    <button class="cam-btn" id="btnWholesale" onclick="openWholesale()">👤</button>
-                    <button class="cam-btn" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
+                    <button class="cam-btn s87v3-tap" id="btnWholesale" onclick="openWholesale()">👤</button>
+                    <button class="cam-btn s87v3-tap" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
                 </div>
             </div>
             <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
@@ -907,10 +954,10 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     </div>
 
     <div class="action-bar" id="actionBar">
-        <button class="btn-pay" id="btnPay" disabled onclick="openPayment()">
+        <button class="btn-pay s87v3-tap" id="btnPay" disabled onclick="openPayment()">
             💵 ПЛАТИ <span id="payAmount">0</span> <?= $currency ?>
         </button>
-        <button class="btn-park" onclick="parkSale()">🅿️</button>
+        <button class="btn-park s87v3-tap" onclick="parkSale()">🅿️</button>
     </div>
 
     <div class="numpad-zone" id="numpadZone">
@@ -1083,7 +1130,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="pay-change-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
         </div>
     </div>
-    <button class="btn-confirm" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
+    <button class="btn-confirm s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
 </div>
 
 <div class="ws-overlay" id="wsOverlay" onclick="closeWholesale()"></div>
@@ -2203,6 +2250,46 @@ document.addEventListener('DOMContentLoaded', () => {
 const blinkStyle = document.createElement('style');
 blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}';
 document.head.appendChild(blinkStyle);
+
+/* ───────────────────────────────────────────── */
+/* S87.ANIMATIONS v3 — portable JS (idempotent)  */
+/* sale.php: numpad/keyboard untouched (rapid input) */
+/* ───────────────────────────────────────────── */
+(function s87v3_init(){
+    if (window.__s87v3_loaded) return;
+    window.__s87v3_loaded = true;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) {
+        var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
+        var lastScroll = 0;
+        window.addEventListener('scroll', function(){
+            var y = window.scrollY;
+            if (headerEl) {
+                if (y > 30 && lastScroll <= 30) headerEl.classList.add('scrolled');
+                else if (y <= 30 && lastScroll > 30) headerEl.classList.remove('scrolled');
+            }
+            lastScroll = y;
+        }, { passive: true });
+    }
+    if (!reduced) {
+        var attachTap = function(){
+            document.querySelectorAll('.s87v3-tap').forEach(function(el){
+                if (el.__s87v3_tap) return;
+                el.__s87v3_tap = true;
+                var handler = function(){
+                    el.classList.remove('s87v3-released');
+                    void el.offsetWidth;
+                    el.classList.add('s87v3-released');
+                    setTimeout(function(){ el.classList.remove('s87v3-released'); }, 400);
+                };
+                el.addEventListener('touchend', handler, { passive: true });
+                el.addEventListener('mouseup', handler);
+            });
+        };
+        if (document.readyState !== 'loading') attachTap();
+        else document.addEventListener('DOMContentLoaded', attachTap);
+    }
+})();
 </script>
 
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
