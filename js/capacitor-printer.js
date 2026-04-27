@@ -36,12 +36,18 @@
 (function(window) {
   'use strict';
 
-  // DTM-5811 BLE UUIDs (TSPL service)
-  const SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
-  const WRITE_CHAR_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
+  // BLE Service UUIDs (TSPL-compatible printers)
+  const SERVICE_UUIDS = [
+    '000018f0-0000-1000-8000-00805f9b34fb',  // DTM-5811 (TSPL)
+    '0000af30-0000-1000-8000-00805f9b34fb'   // D520BT, Phomemo GT01 family (TSPL)
+  ];
+  // DTM-5811 known write characteristic — за други принтери discover-ваме dynamically
+  const DTM_SERVICE_UUID  = '000018f0-0000-1000-8000-00805f9b34fb';
+  const DTM_WRITE_CHAR_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
 
-  const STORAGE_KEY = 'rms_printer_device_id';
-  const PRINTER_NAME_FILTER = 'DTM';
+  const STORAGE_KEY         = 'rms_printer_device_id';
+  const STORAGE_KEY_SERVICE = 'rms_printer_service_uuid';
+  const STORAGE_KEY_WRITE   = 'rms_printer_write_char_uuid';
 
   // Max BLE write chunk (DTM-5811 default MTU = 20 bytes safe)
   const CHUNK_SIZE = 100;
@@ -73,8 +79,70 @@
     try { localStorage.setItem(STORAGE_KEY, id); } catch (e) {}
   }
 
+  function getSavedServiceUuid() {
+    try { return localStorage.getItem(STORAGE_KEY_SERVICE); } catch (e) { return null; }
+  }
+
+  function saveServiceUuid(uuid) {
+    try { localStorage.setItem(STORAGE_KEY_SERVICE, uuid); } catch (e) {}
+  }
+
+  function getSavedWriteCharUuid() {
+    try { return localStorage.getItem(STORAGE_KEY_WRITE); } catch (e) { return null; }
+  }
+
+  function saveWriteCharUuid(uuid) {
+    try { localStorage.setItem(STORAGE_KEY_WRITE, uuid); } catch (e) {}
+  }
+
   function clearDeviceId() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY_SERVICE);
+      localStorage.removeItem(STORAGE_KEY_WRITE);
+    } catch (e) {}
+  }
+
+  function uuidEq(a, b) {
+    return String(a || '').toLowerCase() === String(b || '').toLowerCase();
+  }
+
+  // След connect — намира service от SERVICE_UUIDS и writable char.
+  // За DTM-5811 (000018f0) — пропуска scan-а и ползва известния 00002af1.
+  // За D520BT (0000af30) и нови принтери — discover-ва writable char.
+  // Връща { serviceUuid, writeCharUuid }.
+  async function discoverWriteEndpoint(ble, deviceId, deviceName) {
+    const services = await ble.getServices(deviceId);
+    let matched = null;
+    for (const svc of (services || [])) {
+      for (const known of SERVICE_UUIDS) {
+        if (uuidEq(svc.uuid, known)) { matched = svc; break; }
+      }
+      if (matched) break;
+    }
+    if (!matched) {
+      const list = (services || []).map(function(s){ return s.uuid; }).join(', ');
+      throw new Error('Принтерът не advertise-ва TSPL service UUID. Намерени: ' + list);
+    }
+
+    let writeCharUuid = null;
+    if (uuidEq(matched.uuid, DTM_SERVICE_UUID)) {
+      writeCharUuid = DTM_WRITE_CHAR_UUID;
+    } else {
+      for (const ch of (matched.characteristics || [])) {
+        const p = ch.properties || {};
+        if (p.write || p.writeWithoutResponse) {
+          writeCharUuid = ch.uuid;
+          break;
+        }
+      }
+    }
+    if (!writeCharUuid) {
+      throw new Error('Не е намерена writable characteristic в service ' + matched.uuid);
+    }
+    dbgLog('[D520BT-DEBUG] Connected device ' + (deviceName || '(no name)')
+      + ': service=' + matched.uuid + ', writeChar=' + writeCharUuid);
+    return { serviceUuid: matched.uuid, writeCharUuid: writeCharUuid };
   }
 
   // ASCII-only encoder (за command strings — TSPL commands)
@@ -396,9 +464,13 @@
   // ----- BLE Write (chunked) -----
 
   async function writeChunked(ble, deviceId, bytes) {
+    // Backwards-compat: ако сме paired с DTM-5811 преди S88 (без stored UUIDs),
+    // localStorage няма service/writeChar — fallback към DTM известните UUIDs.
+    const serviceUuid   = getSavedServiceUuid()   || DTM_SERVICE_UUID;
+    const writeCharUuid = getSavedWriteCharUuid() || DTM_WRITE_CHAR_UUID;
     for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
       const chunk = bytes.slice(i, i + CHUNK_SIZE);
-      await ble.write(deviceId, SERVICE_UUID, WRITE_CHAR_UUID, bytesToDataView(chunk));
+      await ble.write(deviceId, serviceUuid, writeCharUuid, bytesToDataView(chunk));
       await sleep(5);
     }
   }
@@ -422,12 +494,10 @@
       const ble = getBle();
       await ble.initialize({ androidNeverForLocation: false });
 
-      // S87.PRINTER.MULTI — без namePrefix филтър.
-      // Filter-ваме САМО по TSPL service UUID — така виждаме всички
-      // TSPL-съвместими принтери (DTM-5811, D520BT, future), не само "DTM*".
+      // S88.PRINTER.MULTI — filter по списък TSPL service UUIDs (DTM-5811, D520BT...).
       const device = await ble.requestDevice({
-        services: [SERVICE_UUID],
-        optionalServices: [SERVICE_UUID]
+        services: SERVICE_UUIDS,
+        optionalServices: SERVICE_UUIDS
       }).catch(async () => {
         // Fallback: някои Android BLE stack-ове не advertise-ват service UUID
         // в scan packet-а → service-filtered scan връща празен списък.
@@ -438,8 +508,19 @@
       if (!device || !device.deviceId) {
         throw new Error('Не е избран принтер');
       }
-      saveDeviceId(device.deviceId);
       await ble.connect(device.deviceId, () => clearDeviceId());
+
+      // Discover service + write characteristic за този конкретен принтер.
+      try {
+        const ep = await discoverWriteEndpoint(ble, device.deviceId, device.name);
+        saveDeviceId(device.deviceId);
+        saveServiceUuid(ep.serviceUuid);
+        saveWriteCharUuid(ep.writeCharUuid);
+      } catch (e) {
+        try { await ble.disconnect(device.deviceId); } catch (_) {}
+        clearDeviceId();
+        throw e;
+      }
       return device.deviceId;
     },
 
