@@ -58,6 +58,10 @@
 - ✅ Backups: `/root/*.sql`, `/root/*.bak.*`
 - ✅ Diagnostic protocol: `tools/diagnostic/` (pymysql, 124 scenarios)
 
+### Documentation / Architecture
+- ✅ `ai_studio_FINAL_v5.html` mockups approved (S83, V5 final — 5 phone-frames)
+- ✅ `SESSION_83_HANDOFF.md` — пълна AI Studio архитектура (1289 lines, 21 секции, pricing matrix, bulk правила, wizard vs standalone context, vision auto-detect, SEO workflow, credits flow, DB schema 8 changes, 9 endpoints, CSV Woo+Shopify mapping)
+
 ---
 
 ## ⚠️ KNOWN ISSUES (verified 27.04.2026)
@@ -73,6 +77,8 @@
 | 8 | tenants.plan ENUM няма 'biz' | 🟢 P2 | Когато BIZ launch |
 | 9 | 4 placeholder AI prompt templates (clothes/jewelry/acc/other) — `is_active=0` | 🟢 P2 | Тихол approve |
 | 10 | Legacy `tenants.ai_credits_*` колони — 30 дни grace, drop ~2026-05-27 | 🟢 P2 | S95+ |
+| 11 | products.variations photo persistence — wizard UI ✅, DB save ❌. Блокира AI Studio Wizard Bulk (Mockup ⑤). Files: products.php, product-save.php, product_variations table. | 🟡 P1 | S84 |
+| 12 | fal.ai + Stripe + Gemini API keys setup pending в config (FAL_AI_API_KEY, STRIPE_SECRET_KEY, GEMINI_API_KEY). Държат се в `/etc/runmystore/db.env`. | 🟢 P2 | S84 |
 
 ---
 
@@ -86,6 +92,7 @@
 ## 🚧 КОЕ В ПРОЦЕС / СКОРО
 
 - **S83 (днес 27.04):** Real product entry tenant=7, минимум 50 артикула
+- 📋 **S84 — AI Studio implementation phase (Phase 1-4 plan ready)** — DB migrations + 9 backend endpoints + UI rewrite (ai-studio.php, products.php) + Stripe Checkout + 4 нови файла. Spec: `SESSION_83_HANDOFF.md`.
 - **S84 (28.04):** BUGFIX BATCH + STUDIO.REWIRE
 - **S85.DIAG.FIX (27.04):** ✅ DONE — Cat A=100%/D=100% (51/51 PASS); pfHighestMargin escalated
 - **S87-S91 (4-8 май):** sale.php rewrite + transfers + inventory v4 + deliveries + orders

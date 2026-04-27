@@ -941,6 +941,21 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 27.04.2026 — S83 AI STUDIO ARCHITECTURE FINALIZED
+
+- **Решение 1:** AI Studio = standalone модул (НЕ wizard step), достъпен от wizard CTA (`?from_wizard=1`) или директно от chat.php.
+- **Решение 2:** 3 режима — Лесен / Разширен / Купи кредити. Toggle Лесен↔Разширен.
+- **Решение 3:** 2 bulk потока — Wizard bulk (САМО варианти на текущ артикул, -20%, само бял фон) и Standalone bulk recovery (всички стари артикули, recovery банери).
+- **Решение 4:** Магия ВИНАГИ per-артикул (никога bulk).
+- **Решение 5:** Pricing — 5 пакета × 3 типа (Стартов / Среден -10% / Голям -20% / Макси -30% / МЕГА -50%). Бял фон €0.05, Магия €0.50, SEO €0.02.
+- **Решение 6:** CSV export Woo + Shopify — value prop за Пешо.
+- **Решение 7:** Vision auto-detect (Gemini 2.5 Flash, €0.02/снимка, cache, confidence routing LAW №8).
+- **Решение 8:** Quality Guarantee — 2 безплатни retry на магия + refund.
+- **Решение 9:** Credits decrement в DB transaction (атомарна).
+- **Засегнати:** products.php, ai-studio.php (rewrite), ai-studio-action.php (9 endpoints), ai-studio-buy-credits.php (NEW), ai-studio-vision.php (NEW), ai-studio-stripe-webhook.php (NEW), csv-export.php (NEW), 8 DB schema changes.
+- **Документация:** SESSION_83_HANDOFF.md (1289 lines, 21 секции), ai_studio_FINAL_v5.html.
+- **Implementation:** S84 Phase 1-4.
+
 ## 27.04.2026 — DAILY_RHYTHM_PROTOCOL активиран
 - **Решение:** 3-фазен дневен ритъм с 1 шеф-чат за деня. SESSION 1 BUILD (08-12) → SESSION 2 TEST (13-17) → SESSION 3 FIX (18-21). Triggers: „СЕСИЯ 1/2/3", „КРАЙ НА СЕСИЯ X", „КРАЙ НА ДЕНЯ".
 - **Защо:** предотвратяване на ad-hoc решения и context drift между чатове. Гарантира daily test feedback (S2 преди EOD); P0 откритията получават fix-окно същия ден (S3) вместо да висят до утре. 1 шеф-чат за целия ден = ~80% по-малко drift спрямо отваряне на нов чат при всяка задача.
@@ -1452,6 +1467,9 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 45 | tenants.plan ENUM — добави 'biz' | 27.04.2026 (S82.STUDIO.APPLY finding) | Code #2 не extend-на ENUM защото нямаше 'biz' в production. Когато се отвори BIZ tier → ALTER TABLE + seed update. | Когато BIZ tier launch | ⏳ pending P2 |
 | 46 | DROP legacy tenants.ai_credits_* колони (30 дни grace) | 27.04.2026 (S82.STUDIO.APPLY backward-compat) | След 30-дневен grace period (drop date ~2026-05-27), нова migration премахва legacy `ai_credits_bg/tryon/total` колони. Преди drop verify че frontend rewire (RQ #42) е приключил. | ~2026-05-27 (S95+) | ⏳ pending P2 |
 | 47 | S82.DIAG.FIX (Cat A=100%/D=100%) — beta blocker | 27.04.2026 (S82.STUDIO.APPLY findings) | A=47.83% / D=21.43% pre-existing от S80/S81. Не regression от schema, но Rule #21 нарушен (apply без 100%). Преди ENI launch (14-15.05) → DOD met. Bugs: lost_demand_pos schema, basket_pair_b_pos missing total, negative scenarios overlap (10+ Cat A FAIL), positive items=0 (5+ FAIL). | **S85 (преди ENI)** | ⏳ pending P0 |
+| 6 | products.variations photo persistence — wizard UI ✅, DB save ❌. Блокира AI Studio Wizard Bulk (Mockup ⑤ от SESSION_83_HANDOFF.md). | products.php, product-save.php, product_variations | 2026-04-27 (S83 architecture) | 🟡 audited, awaiting fix S84 |
+| 7 | fal.ai + Stripe + Gemini API keys в config/config.php pending. FAL_AI_API_KEY (bg + nano-banana-2 try-on), STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, GEMINI_API_KEY (Vision + SEO). | config/config.php, /etc/runmystore/db.env | 2026-04-27 (S83 architecture) | 🟡 pending S84 |
+| 8 | AI Studio S84 implementation — beta-critical (CSV = value prop за Пешо). 8 DB migrations + 9 endpoints + UI rewrite (ai-studio.php Лесен+Разширен+Wizard Bulk+Standalone Bulk Recovery) + Stripe Checkout + 4 нови файла (ai-studio-buy-credits.php, ai-studio-bulk.php, ai-studio-vision.php, ai-studio-stripe-webhook.php, csv-export.php). | ai-studio.php, products.php, ai-studio-action.php | 2026-04-27 (S83 architecture) | 🔴 P0 BETA SCOPE DECISION |
 
 ---
 
