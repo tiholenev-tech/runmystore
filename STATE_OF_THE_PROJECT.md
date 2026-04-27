@@ -18,7 +18,9 @@
 - ✅ `stats.php` — базово работи
 - ✅ `printer-setup.php` — Bluetooth pair UI + diagnostic log
 - ✅ `partials/header.php`, `partials/bottom-nav.php`, `partials/chat-input-bar.php` — production rms-shell
-- ✅ `admin/beta-readiness.php` — live dashboard (6 sections, auto-refresh 60s, owner+tenant=7 gated, mobile-friendly) — S86
+- ✅ `admin/beta-readiness.php` — live dashboard (7 sections incl. Testing Loop Health, auto-refresh 60s, owner+tenant=7 gated, mobile-friendly) — S86 + S87
+- ✅ `tools/testing_loop/` — continuous AI insights validation (daily_runner.py + snapshot_diff.py + ANOMALY_LOG.md, tenant=99 isolated lab) — S87
+- ✅ `tools/seed/sales_populate.py` — realistic sales seeder (tenant=99): peak hours, weekend boost, basket/return/discount distributions; `--count` + `--backfill-days` + `--dry-run`; tenant guard {7,99}; docs in `tools/seed/SALES_SEEDER.md` — S87
 
 ### Backend
 - ✅ `ai-studio-backend.php` — 9 helper функции (get_credit_balance, consume_credit, refund_credit, check_retry_eligibility, check_anti_abuse, get_prompt_template, build_prompt, count_products_needing_ai, pre_flight_quality_check)
@@ -70,6 +72,12 @@
 | 8 | tenants.plan ENUM няма 'biz' | 🟢 P2 | Когато BIZ launch |
 | 9 | 4 placeholder AI prompt templates (clothes/jewelry/acc/other) — `is_active=0` | 🟢 P2 | Тихол approve |
 | 10 | Legacy `tenants.ai_credits_*` колони — 30 дни grace, drop ~2026-05-27 | 🟢 P2 | S95+ |
+
+---
+
+## 🔁 STANDING PROTOCOLS
+
+- **TESTING_LOOP** (active since 27.04.2026, S87): tenant=99 daily auto-seed (`tools/seed/sales_populate.py`) → `compute-insights.php::computeProductInsights(99)` → snapshot → diff → see `tools/testing_loop/latest.json` for current status (🟢/🟡/🔴). Anomalies logged to `tools/testing_loop/ANOMALY_LOG.md`. Шеф-чат reads this at boot. Spec: `TESTING_LOOP_PROTOCOL.md` (root). Crontab: `0 7 * * *` за www-data (manual install от Тихол).
 
 ---
 
