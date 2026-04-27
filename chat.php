@@ -2185,6 +2185,33 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
+    <!-- S87.HEALTH.RESTORE — STORE HEALTH BAR (AI Точност) -->
+    <!-- DESIGN_SYSTEM § D.5 + BIBLE §25                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <?php $h_color = $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171'); ?>
+    <div class="glass sm health">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <span class="health-lbl">Точност</span>
+        <div class="health-track">
+            <div class="health-fill" style="width:<?= (int)$health ?>%"></div>
+        </div>
+        <span class="health-pct" style="color:<?= $h_color ?>"><?= (int)$health ?>%</span>
+        <span class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй &rarr;</span>
+        <span class="health-info" onclick="document.querySelector('.health-tooltip').classList.toggle('open')" aria-label="Какво е AI точност?">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </span>
+    </div>
+    <div class="health-tooltip">
+        <b>Какво е AI Точност?</b><br>
+        Колко добре AI познава магазина ти. Расте когато:<br>
+        &bull; Въведеш <b>доставни цени</b> на артикулите<br>
+        &bull; <b>Преброиш</b> стоката по рафтовете<br>
+        &bull; Получиш <b>доставка</b> с фактура<br><br>
+        По-висока точност = по-умни съвети от AI.
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
     <!-- S82.VISUAL — WEATHER GLASS CARD (qw)        -->
     <!-- ═══════════════════════════════════════════ -->
     <?php if ($weather_today): ?>
