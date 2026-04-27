@@ -45,6 +45,7 @@
 - ✅ tenants AI Studio columns (+6: `included_*_per_month`, `*_used_this_month`)
 - ✅ products AI Studio columns (+4: `ai_category`, `ai_subtype`, `ai_description`, `ai_magic_image`)
 - ✅ Crontab www-data installed (monthly 1-во число reset)
+- ✅ ai_insights populated за tenant=7 (30 живи · 5 на всеки fundamental_question · seed top-up `tools/seed/insights_populate.py`)
 
 ### Dev infrastructure
 - ✅ GitHub repo: `tiholenev-tech/runmystore`, main branch
