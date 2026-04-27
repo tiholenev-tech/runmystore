@@ -451,7 +451,7 @@ body::before{
 body.overlay-open{overflow:hidden}
 body.overlay-open .app{filter:blur(6px) brightness(.5);transform:scale(.97);pointer-events:none}
 
-.app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px 12px 20px;transition:filter .3s var(--ease),transform .3s var(--ease)}
+.app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px 12px 20px;transition:filter .3s var(--ease),transform .3s var(--ease);animation:pageIn .5s cubic-bezier(0.25,0.46,0.45,0.94) both}
 
 /* ─────────────────────────────────────────── */
 /* GLASS BASE (conic-gradient shine + glow)    */
@@ -1456,7 +1456,72 @@ body.overlay-open .bottom-nav{opacity:0;pointer-events:none}
 }
 .action-button:active{background:rgba(99,102,241,.15)}
 
-@keyframes cardin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ─────────────────────────────────────────── */
+/* S87.ANIMATIONS — Animation System v1        */
+/* DESIGN_SYSTEM § O (5 mandatory patterns)    */
+/* ─────────────────────────────────────────── */
+
+/* PATTERN 1 — PAGE ENTRANCE (applied на .app) */
+@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* PATTERN 2 — CARD STAGGER (replaces ad-hoc cardin) */
+@keyframes cardin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.card-stagger > *{opacity:0;animation:cardin .45s cubic-bezier(0.34,1.56,0.64,1) both}
+.card-stagger > *:nth-child(1){animation-delay:.05s}
+.card-stagger > *:nth-child(2){animation-delay:.12s}
+.card-stagger > *:nth-child(3){animation-delay:.19s}
+.card-stagger > *:nth-child(4){animation-delay:.26s}
+.card-stagger > *:nth-child(5){animation-delay:.33s}
+.card-stagger > *:nth-child(6){animation-delay:.40s}
+.card-stagger > *:nth-child(7){animation-delay:.47s}
+.card-stagger > *:nth-child(8){animation-delay:.54s}
+.card-stagger > *:nth-child(n+9){animation-delay:.60s}
+
+/* PATTERN 3 — SPRING TAP FEEDBACK (applied на всички interactive) */
+.spring-tap,
+.briefing-btn-primary,.briefing-btn-secondary,
+.sig-btn-primary,.sig-btn-secondary,
+.nav-tab,.header-icon-btn,.rms-icon-btn,
+.top-pill,.rev-pill,.s82-dash-pill,
+.sig-card,.sig-more,
+.lb-action,.lb-dismiss,.lb-fb-btn,
+.chat-mic,.chat-send,
+.ov-back,.ov-close{
+    transition:transform .15s cubic-bezier(0.34,1.56,0.64,1)
+}
+.spring-tap:active,
+.briefing-btn-primary:active,.briefing-btn-secondary:active,
+.sig-btn-primary:active,.sig-btn-secondary:active,
+.nav-tab:active,.header-icon-btn:active,.rms-icon-btn:active,
+.top-pill:active,.rev-pill:active,.s82-dash-pill:active,
+.sig-card:active,.sig-more:active,
+.lb-action:active,.lb-dismiss:active,.lb-fb-btn:active,
+.chat-mic:active,.chat-send:active,
+.ov-back:active,.ov-close:active{
+    transform:scale(0.96)
+}
+
+/* PATTERN 4 — OVERLAY CONTENT CHOREOGRAPHY */
+@keyframes overlayContentIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.ov-panel.open .ov-content,
+.ov-panel.open > .ov-header,
+.ov-panel.open > .chat-messages,
+.ov-panel.open > .sig-body,
+.ov-panel.open > .br-body,
+.ov-panel.open > .rec-bar,
+.ov-panel.open > .chat-input{
+    animation:overlayContentIn .4s .15s cubic-bezier(0.25,0.46,0.45,0.94) both
+}
+
+/* PATTERN 5 — REDUCED MOTION (mandatory accessibility, WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+    }
+    .app,.card-stagger > *{opacity:1 !important;transform:none !important}
+}
 
 /* Safe area (iOS / Capacitor) */
 body{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
@@ -1766,7 +1831,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
 .lb-title-text{font-size:11px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;color:hsl(var(--hue1) 65% 82%);text-shadow:0 0 8px hsl(var(--hue1) 70% 55% / .4)}
 .lb-count{font-size:8.5px;color:var(--text-muted);font-weight:700}
 
-.lb-card{padding:12px 14px 10px;margin-bottom:10px;animation:cardin .35s ease both}
+.lb-card{padding:12px 14px 10px;margin-bottom:10px}
 .lb-card > *{position:relative;z-index:5}
 .lb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
 .lb-fq-tag{display:flex;align-items:center;gap:6px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:hsl(var(--hue1) 70% 75%);text-shadow:0 0 6px hsl(var(--hue1) 70% 55% / .35)}
@@ -1797,7 +1862,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
 </head>
 <body>
 
-<div class="app" id="app">
+<div class="app card-stagger" id="app">
 
     <!-- ═══════════════════════════════════════════ -->
     <!-- HEADER (S82.SHELL — unified partial)        -->
@@ -1821,7 +1886,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
         $cmp_class = $cmp_today > 0 ? '' : ($cmp_today < 0 ? 'neg' : 'zero');
         $cmp_sign  = $cmp_today > 0 ? '+' : '';
     ?>
-    <div class="glass sm s82-dash qd" style="animation:cardin .5s ease both">
+    <div class="glass sm s82-dash qd">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="s82-dash-top">
@@ -1991,7 +2056,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
     <?php endif; ?>
 
     <?php elseif (!empty($ghost_pills)): ?>
-    <div class="glass sm lb-silent q3" style="animation:cardin .4s .1s ease both">
+    <div class="glass sm lb-silent q3">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="lb-silent-icon">✨</div>
@@ -2001,7 +2066,7 @@ html[data-theme="light"] .cb-mode-toggle{color:hsl(310 60% 40%);background:rgba(
     </div>
 
     <?php else: ?>
-    <div class="glass sm lb-silent q3" style="animation:cardin .4s .1s ease both">
+    <div class="glass sm lb-silent q3">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="lb-silent-icon">🌿</div>
