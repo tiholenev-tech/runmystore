@@ -19,6 +19,7 @@
 - ✅ `warehouse.php` — hub скелет
 - ✅ `stats.php` — базово работи
 - ✅ `printer-setup.php` — Bluetooth pair UI + diagnostic log
+- ✅ `sale.php` — 3 broken DB columns fixed (S87.SALE.DBFIX): `total_amount`→`total`, `subtotal`→`total` (sale_items), `payment_method='transfer'`→`'bank_transfer'`. End-to-end INSERT verified срещу live schema на tenant=99.
 - ✅ `partials/header.php`, `partials/bottom-nav.php`, `partials/chat-input-bar.php` — production rms-shell
 - ✅ `admin/beta-readiness.php` — live dashboard (7 sections incl. Testing Loop Health, auto-refresh 60s, owner+tenant=7 gated, mobile-friendly) — S86 + S87
 - ✅ `tools/testing_loop/` — continuous AI insights validation (daily_runner.py + snapshot_diff.py + ANOMALY_LOG.md, tenant=99 isolated lab) — S87
@@ -97,7 +98,7 @@
 - **S84 (28.04):** BUGFIX BATCH + STUDIO.REWIRE
 - **S85.DIAG.FIX (27.04):** ✅ DONE — Cat A=100%/D=100% (51/51 PASS); pfHighestMargin escalated
 - **S87-S91 (4-8 май):** sale.php rewrite + transfers + inventory v4 + deliveries + orders
-- 📋 `docs/SALE_REWRITE_PLAN.md` ready for S87 (target 4 май) — 503 реда, 15 steps, 20 tests, 12 risks, 10 open Qs; flag-ва 3 broken sales/sale_items columns в текущ sale.php
+- 📋 `docs/SALE_REWRITE_PLAN.md` ready for S87 (target 4 май) — 503 реда, 15 steps, 20 tests, 12 risks, 10 open Qs. ✅ 3-те broken sales/sale_items columns flag-нати са FIXED в S87.SALE.DBFIX (targeted preview). Plan-ът остава в сила за full rewrite (voice + camera + numpad + дребно/едро + PromotionEngine).
 - 📋 I18N audit complete (5,204 violations across 75 files; products.php + products_fetch.php = 42%; 80 reusable t() keys identified) — see `docs/I18N_AUDIT_REPORT.md` + `docs/I18N_AUDIT_DATA.json`. Remediation TBD post-beta: Phase B 17-22h, Phase 1 110-180h. Closes COMPASS REWORK QUEUE #4+#5 analysis.
 - **S95 (14-15 май):** ENI launch (FIXED)
 

@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $discount_amount = round($subtotal * ($discount_pct / 100), 2);
         $total = round($subtotal - $discount_amount, 2);
 
-        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total_amount, discount_amount, discount_pct, payment_method, status, created_at)
+        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total, discount_amount, discount_pct, payment_method, status, created_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
             [$tenant_id, $store_id, $user_id, $customer_id, $total, $discount_amount, $discount_pct, $payment_method]);
         $sale_id = $pdo->lastInsertId();
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $idp = floatval($it['discount_pct'] ?? 0);
             $ist = round($price * $qty * (1 - $idp / 100), 2);
 
-            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount_pct, subtotal) VALUES (?, ?, ?, ?, ?, ?)",
+            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?)",
                 [$sale_id, $pid, $qty, $price, $idp, $ist]);
             DB::run("UPDATE inventory SET quantity = GREATEST(quantity - ?, 0) WHERE product_id = ? AND store_id = ?",
                 [$qty, $pid, $store_id]);
@@ -1062,7 +1062,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
     <div class="pay-methods">
         <button class="pm-chip active" data-method="cash" onclick="setPayMethod('cash')">💵 Брой</button>
         <button class="pm-chip" data-method="card" onclick="setPayMethod('card')">💳 Карта</button>
-        <button class="pm-chip" data-method="transfer" onclick="setPayMethod('transfer')">🏦 Превод</button>
+        <button class="pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">🏦 Превод</button>
         <button class="pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">⏳ Отложено</button>
     </div>
     <div id="cashSection">

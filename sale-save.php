@@ -26,7 +26,7 @@ try {
 
     // 1. Insert sale
     $stmt = $pdo->prepare("
-        INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total_amount, discount_amount, payment_method, payment_status, created_at)
+        INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total, discount_amount, payment_method, payment_status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     $disc_amount = 0;
@@ -49,7 +49,7 @@ try {
 
         // sale_items
         $stmt2 = $pdo->prepare("
-            INSERT INTO sale_items (tenant_id, sale_id, product_id, quantity, unit_price, discount_pct, line_total)
+            INSERT INTO sale_items (tenant_id, sale_id, product_id, quantity, unit_price, discount_pct, total)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt2->execute([$tenant_id, $sale_id, $product_id, $qty, $price, $disc, $line_total]);
