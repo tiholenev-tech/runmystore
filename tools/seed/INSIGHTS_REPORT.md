@@ -93,3 +93,9 @@ Exit code is `0` only when DoD passes (`total ≥ 18` AND `min_per_fq ≥ 2`), s
 1. If `products.php` *still* renders empty after this run, the bug is on the read side (likely a `role_gate`/`plan_gate` filter or a missing join). That falls outside this session's scope (`products.php` is forbidden).
 2. Three under-represented buckets (loss/gain/order) point at gaps in `compute-insights.php` coverage for small catalogs — worth a future S84+ ticket to add cron-side fallbacks (e.g. weekend revenue trend, basket-size momentum) so seeding becomes unnecessary.
 3. Add a weekly/daily seed-cron entry once Tihol confirms the visual is right.
+
+---
+
+## Commit carrier
+
+The S83.INSIGHTS work landed on `main` as commit **e5c2929** ("mirrors: auto-sync PHP→MD for Claude fetch"). The misleading title is a known race with `/usr/local/bin/sync-md-mirrors.sh` (every 5 min), which runs `git add mirrors/ && git commit -m "mirrors: …"` without path-scoping the commit, so it sweeps up anything else already in the index. Content is correct; only the message is wrong. Future S83-class commits should use `git commit --only <paths>` to dodge this race.
