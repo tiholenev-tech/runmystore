@@ -76,6 +76,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
     <p style="font-size:12px">Резултатите се показват директно на екрана (fullscreen overlay) с бутон "Копирай всичко".</p>
     <button class="btn sec" id="btnScanAll">🔍 Сканирай всички BT (10s)</button>
     <button class="btn sec" id="btnPairDebug">🔗 Pair и анализирай</button>
+    <button class="btn sec" id="btnTestRaw">🖨 Test minimal TSPL (D520BT)</button>
   </div>
 </div>
 
@@ -164,6 +165,19 @@ $('btnPairDebug').addEventListener('click', async function(){
     log('PairDebug error: ' + (e.message || e));
   } finally {
     $('btnPairDebug').disabled = false;
+  }
+});
+
+$('btnTestRaw').addEventListener('click', async function(){
+  try {
+    log('Test raw TSPL...');
+    $('btnTestRaw').disabled = true;
+    var r = await window.CapPrinter.testRaw();
+    log('Done: ' + r.bytes + ' bytes sent');
+  } catch(e) {
+    log('TestRaw error: ' + (e.message || e));
+  } finally {
+    $('btnTestRaw').disabled = false;
   }
 });
 

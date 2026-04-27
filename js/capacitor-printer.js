@@ -713,6 +713,49 @@
       return await this.print(testProduct, testStore, 1);
     },
 
+    // testRaw — минимален TSPL без bitmap, без generateTSPL.
+    // За диагностика дали discovered service+writeChar реално приема писане.
+    async testRaw() {
+      if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
+      const ble = getBle();
+      const id = getSavedDeviceId();
+      if (!id) throw new Error('Няма сдвоен принтер');
+
+      const tspl =
+        'SIZE 50 mm,30 mm\r\n' +
+        'GAP 2 mm,0\r\n' +
+        'DIRECTION 1\r\n' +
+        'DENSITY 8\r\n' +
+        'SPEED 4\r\n' +
+        'CLS\r\n' +
+        'TEXT 50,50,"3",0,1,1,"TEST D520"\r\n' +
+        'PRINT 1,1\r\n';
+      const bytes = asciiToBytes(tspl);
+
+      if (!window.__bleInitialized) {
+        await ble.initialize({ androidNeverForLocation: false });
+        window.__bleInitialized = true;
+      }
+      if (!window.__blePrinterConnected) {
+        try {
+          await ble.connect(id, () => { window.__blePrinterConnected = false; });
+          window.__blePrinterConnected = true;
+        } catch (e) {
+          const msg = (e && e.message) ? e.message.toLowerCase() : '';
+          if (msg.includes('already') || msg.includes('connected')) {
+            window.__blePrinterConnected = true;
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      dbgLog('[D520BT-DEBUG] testRaw: sending ' + bytes.length + ' bytes raw TSPL');
+      await writeChunked(ble, id, bytes);
+      dbgLog('[D520BT-DEBUG] testRaw: Изпратени ' + bytes.length + ' байта');
+      return { ok: true, bytes: bytes.length };
+    },
+
     forget() {
       clearDeviceId();
     },
