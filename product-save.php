@@ -145,6 +145,68 @@ if ($name === '') {
     echo json_encode(['error' => 'Въведи наименование']); exit;
 }
 
+// ── S88.BUG#6: pre-INSERT duplicate guard (skipped if user already confirmed) ──
+// Only on create (edit explicitly updates a known id). Compares against parent
+// products of the same tenant. Skipped when confirm_duplicate flag is set.
+$confirm_duplicate = !empty($data['confirm_duplicate']);
+if (($action ?? 'create') === 'create' && !$confirm_duplicate) {
+    $dup_matches = [];
+    $dup_fields  = [];
+
+    // Name match (case-insensitive, trimmed)
+    $rows = DB::run(
+        "SELECT id, name, code, barcode FROM products
+         WHERE tenant_id=? AND parent_id IS NULL AND is_active=1
+           AND LOWER(TRIM(name)) = LOWER(TRIM(?))
+         LIMIT 5",
+        [$tenant_id, $name]
+    )->fetchAll(PDO::FETCH_ASSOC);
+    if ($rows) {
+        $dup_fields[] = 'name';
+        foreach ($rows as $r) { $r['by'] = 'name'; $dup_matches[$r['id']] = $r; }
+    }
+
+    // Code match (exact, only if user provided a code)
+    $code_in = trim((string)($data['code'] ?? ''));
+    if ($code_in !== '') {
+        $rows = DB::run(
+            "SELECT id, name, code, barcode FROM products
+             WHERE tenant_id=? AND parent_id IS NULL AND is_active=1 AND code=?
+             LIMIT 5",
+            [$tenant_id, $code_in]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        if ($rows) {
+            $dup_fields[] = 'code';
+            foreach ($rows as $r) { $r['by'] = 'code'; $dup_matches[$r['id']] = $r; }
+        }
+    }
+
+    // Barcode match (exact, only if user provided a non-empty barcode)
+    $bc_in = trim((string)($data['barcode'] ?? ''));
+    if ($bc_in !== '') {
+        $rows = DB::run(
+            "SELECT id, name, code, barcode FROM products
+             WHERE tenant_id=? AND is_active=1 AND barcode=?
+             LIMIT 5",
+            [$tenant_id, $bc_in]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        if ($rows) {
+            $dup_fields[] = 'barcode';
+            foreach ($rows as $r) { $r['by'] = 'barcode'; $dup_matches[$r['id']] = $r; }
+        }
+    }
+
+    if ($dup_matches) {
+        echo json_encode([
+            'duplicate' => true,
+            'fields'    => array_values(array_unique($dup_fields)),
+            'matches'   => array_values($dup_matches),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+// ── /S88.BUG#6 ──
+
 // VAT rate
 $vat = DB::run(
     "SELECT v.standard_rate FROM tenants t
