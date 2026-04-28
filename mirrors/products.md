@@ -6046,12 +6046,14 @@ function renderWizPage(step){
         '</div>';
     }
 
-    // ═══ STEP 3: ОСНОВНИ (S73.B.2 — rewrite per add-product.html) ═══
+    // ═══ STEP 3: ОСНОВНИ (S88B-1 rewrite — per Тихол spec) ═══
     if(step===3){
+        if(!S.wizType){setTimeout(function(){wizGo(1)},0);return '<div class="wiz-page active"></div>';}
         const nm=S.wizData.name||'';
         const pr=S.wizData.retail_price||'';
         const bc=S.wizData.barcode||'';
         const cm=S.wizData.composition||'';
+        const cdv=S.wizData.code||'';
         const qt=(S.wizData.quantity===undefined?1:S.wizData.quantity);
         const un=S.wizData.unit||'бр';
         const isSingle=(S.wizType==='single');
@@ -6065,111 +6067,115 @@ function renderWizPage(step){
         var _unitOpts='';units.forEach(function(u){_unitOpts+='<option value="'+u+'" '+(u===un?'selected':'')+'>'+u+'</option>'});
         var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
+        // S88B-1: photo block moved to Step 2. Show small thumbnail header instead.
         const _hasPhoto=!!S.wizData._photoDataUrl;
-        // S82.COLOR.4: photo mode toggle (single | multi). Multi is meaningful only for variant type.
-        var _photoMode = S.wizData._photoMode;
-        if (!_photoMode) {
-            try { _photoMode = localStorage.getItem('_rms_photoMode') || 'single'; } catch(e) { _photoMode = 'single'; }
-            S.wizData._photoMode = _photoMode;
-        }
-        if (S.wizType !== 'variant') _photoMode = 'single';
-        var _photoModeToggle = '';
-        if (S.wizType === 'variant') {
-            _photoModeToggle =
-                '<div class="photo-mode-toggle">' +
-                    '<button type="button" class="pmt-opt' + (_photoMode==='single'?' active':'') + '" onclick="wizSetPhotoMode(\'single\')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Една снимка</button>' +
-                    '<button type="button" class="pmt-opt' + (_photoMode==='multi'?' active':'') + '" onclick="wizSetPhotoMode(\'multi\')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Различни цветове</button>' +
-                '</div>';
-        }
+        const _photoUrl=S.wizData._photoDataUrl||'';
+        const photoThumb=_hasPhoto
+            ? '<div onclick="wizGo(2)" style="display:flex;align-items:center;gap:10px;padding:8px;margin-bottom:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(99,102,241,0.18);cursor:pointer"><img src="'+_photoUrl+'" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:11px;color:#cbd5e1;font-weight:600">Снимка добавена</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Tap за да я смениш</div></div><div style="color:#818cf8;font-size:14px">›</div></div>'
+            : '<div onclick="wizGo(2)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:12px;border-radius:12px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.12);cursor:pointer"><div style="width:34px;height:34px;border-radius:8px;background:rgba(99,102,241,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#a5b4fc"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;color:#cbd5e1;font-weight:600">Без снимка</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Tap за да добавиш</div></div><div style="color:#818cf8;font-size:14px">›</div></div>';
+        // Empty placeholder kept so any remaining `photoBlock` references render nothing.
         var photoBlock = '';
         if (_photoMode === 'multi') {
             var _photos = Array.isArray(S.wizData._photos) ? S.wizData._photos : [];
-            var _gridH = '<div class="photo-multi-grid">';
-            _photos.forEach(function(p, i){
-                var conf = (p.ai_confidence === null || p.ai_confidence === undefined) ? null : p.ai_confidence;
-                var confLabel = '';
-                var confCls = 'photo-color-conf';
-                if (conf === null) { confLabel = 'AI...'; confCls += ' detecting'; }
-                else if (conf >= 0.75) { confLabel = Math.round(conf*100) + '%'; }
-                else if (conf >= 0.5)  { confLabel = Math.round(conf*100) + '%'; confCls += ' warn'; }
-                else { confLabel = '?'; confCls += ' warn'; }
-                var swHex = p.ai_hex || '#666';
-                var nm = (p.ai_color || '').replace(/"/g,'&quot;');
-                _gridH +=
-                    '<div class="photo-multi-cell">' +
-                        '<div class="photo-multi-thumb">' +
-                            '<img class="ph-img" src="' + p.dataUrl + '" alt="">' +
-                            '<span class="ph-num">' + (i+1) + '</span>' +
-                            '<button type="button" class="ph-rm" onclick="wizPhotoMultiRemove(' + i + ')">×</button>' +
-                        '</div>' +
-                        '<div class="photo-color-input">' +
-                            '<span class="photo-color-swatch" style="background:' + swHex + '"></span>' +
-                            '<input type="text" value="' + nm + '" placeholder="цвят..." oninput="wizPhotoSetColor(' + i + ',this.value)">' +
-                            '<span class="' + confCls + '">' + confLabel + '</span>' +
-                        '</div>' +
-                    '</div>';
+        // S88B-1: build supplier / category / origin options from CFG
+        var _supOpts='<option value="">— Избери доставчик —</option>';
+        (CFG.suppliers||[]).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'','bg')}).forEach(function(sp){
+            var sel=(S.wizData.supplier_id==sp.id)?' selected':'';
+            _supOpts+='<option value="'+sp.id+'"'+sel+'>'+esc(sp.name)+'</option>';
+        });
+        var _catOpts='<option value="">— Избери категория —</option>';
+        (CFG.categories||[]).filter(function(c){return !c.parent_id}).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'','bg')}).forEach(function(c){
+            var sel=(S.wizData.category_id==c.id)?' selected':'';
+            _catOpts+='<option value="'+c.id+'"'+sel+'>'+esc(c.name)+'</option>';
+        });
+        var _subOpts='<option value="">— Няма —</option>';
+        var _parentCatId=S.wizData.category_id||0;
+        if(_parentCatId){
+            (CFG.categories||[]).filter(function(c){return c.parent_id==_parentCatId}).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'','bg')}).forEach(function(c){
+                var sel=(S.wizData.subcategory_id==c.id)?' selected':'';
+                _subOpts+='<option value="'+c.id+'"'+sel+'>'+esc(c.name)+'</option>';
             });
-            _gridH +=
-                '<div class="photo-multi-cell">' +
-                    '<div class="photo-empty-add" onclick="wizPhotoMultiPick()">' +
-                        '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                        '<span>Добави</span>' +
-                    '</div>' +
-                '</div>';
-            _gridH += '</div>';
-            var _info = '<div class="photo-multi-info">Снимки по цвят: <b>' + _photos.length + '</b> · AI разпознава цветовете автоматично</div>';
-            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _info + _gridH + '</div>';
-        } else {
-            var _photoContent = _hasPhoto
-                ? '<img src="' + S.wizData._photoDataUrl + '" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
-                : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
-            var _photoBtns = '<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
-            var _photoTips = '<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
-            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
+        }
+        var _origins=['България','Турция','Италия','Гърция','Германия','Полша','Китай','Бангладеш','Виетнам','Индия','Друго'];
+        var _origOpts='<option value="">— Избери —</option>';
+        _origins.forEach(function(o){
+            var sel=(S.wizData.origin_country==o)?' selected':'';
+            _origOpts+='<option value="'+o+'"'+sel+'>'+o+'</option>';
+        });
+
+        // Markup % display — computed from cost+retail. Editable: changes cost backwards.
+        var _ml=parseFloat(S.wizData.markup_pct);
+        if(isNaN(_ml)){
+            var _r=parseFloat(S.wizData.retail_price)||0,_c=parseFloat(S.wizData.cost_price)||0;
+            _ml=(_c>0&&_r>0)?Math.round(((_r-_c)/_c)*100):'';
         }
 
-        const copyPrev=hasLast
-            ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
-            : '';
+        // Field row helpers — input + ↻ copy-from-last button
+        function _row(labelHtml, inputHtml, hintHtml){
+            var _hint=hintHtml?'<span class="hint">'+hintHtml+'</span>':'';
+            return '<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">'+labelHtml+_hint+'</label>'+inputHtml+'</div>';
+        }
+        function _inputWithCopy(input, field){
+            return '<div style="display:flex;gap:6px;align-items:center">'+input+wizCopyBtn(field)+'</div>';
+        }
 
-        const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle='<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>'+_ttWarn;
+        // Build form fields (HTML strings)
+        var fName='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Име *</label><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним"></div>';
+        var fRetail=_row('Цена дребно *', _inputWithCopy('<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizRecalcMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1">','retail_price'));
+        // Cost + Markup side by side. Markup field shows when cost>0.
+        var _markupShow=(parseFloat(S.wizData.cost_price)||0)>0;
+        var fCostMarkup='<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px">'+
+            '<div class="fg" style="flex:1.3;min-width:0;margin:0"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Доставна цена<span class="hint" style="font-size:9px;color:rgba(255,255,255,0.45);margin-left:4px">(колко плащаш)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizRecalcMarkup();renderWizard()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1">'+wizCopyBtn('cost_price')+'</div></div>'+
+            (_markupShow?'<div class="fg" style="flex:0.9;min-width:0;margin:0"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">'+esc(t('wizard.markup_pct','Markup %'))+'</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup(this.value)" value="'+_ml+'" placeholder="0" style="flex:1">'+wizCopyBtn('markup_pct')+'</div></div>':'')+
+        '</div>';
 
-        // S82.COLOR.4: prominent AI Studio CTA + _aiState/_aiCTA*/_aiAutoTrigger removed (replaced by photo-mode toggle + step 5 final prompt).
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
-        const qtyBlock=isSingle
-            ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'+'<div class="fg">'+fieldLabel('Мин. количество','name','<span class="hint">(за сигнали)</span>')+'<div style="display:flex;border:1px solid rgba(245,158,11,0.15);border-radius:12px;overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-right:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-left:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">+</button></div></div>'
-            : '';
+        var fMinQty='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Минимално количество<span class="hint" style="font-size:9px;color:rgba(255,255,255,0.45);margin-left:4px">(сигнал ако стигнеш)</span></label><div style="display:flex;gap:6px;align-items:center"><div style="display:flex;flex:1;border:1px solid rgba(245,158,11,0.18);border-radius:10px;overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:42px;background:rgba(245,158,11,0.08);border:none;color:#fbbf24;font-size:18px;cursor:pointer;font-family:inherit">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:42px;background:rgba(245,158,11,0.08);border:none;color:#fbbf24;font-size:18px;cursor:pointer;font-family:inherit">+</button></div>'+wizCopyBtn('min_quantity')+'</div></div>';
 
-        const stickyFooter='<div style="padding:16px 12px;margin:24px 0 64px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);display:flex;gap:8px"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGo('+nextStep+')" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
+        var fSingleQty=isSingle?'<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Брой</label><div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:42px;background:rgba(99,102,241,0.08);border:none;color:#a5b4fc;font-size:18px;cursor:pointer;font-family:inherit">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:42px;background:rgba(99,102,241,0.08);border:none;color:#a5b4fc;font-size:18px;cursor:pointer;font-family:inherit">+</button></div></div>':'';
 
-        return '<div class="wiz-page active">'+
-            typeToggle+
-            copyPrev+
+        var fSupplier='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">'+esc(t('wizard.supplier','Доставчик'))+'</label><div style="display:flex;gap:6px;align-items:center"><div style="flex:1;position:relative"><select class="fc" id="wSup" onchange="S.wizData.supplier_id=this.value?parseInt(this.value):null" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_supOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>'+wizCopyBtn('supplier_id')+'</div></div>';
+
+        var fCategory='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Категория</label><div style="display:flex;gap:6px;align-items:center"><div style="flex:1;position:relative"><select class="fc" id="wCat" onchange="S.wizData.category_id=this.value?parseInt(this.value):null;S.wizData.subcategory_id=null;renderWizard()" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_catOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>'+wizCopyBtn('category_id')+'</div></div>';
+
+        var fSubcat='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">'+esc(t('wizard.subcategory','Подкатегория'))+'</label><div style="display:flex;gap:6px;align-items:center"><div style="flex:1;position:relative"><select class="fc" id="wSubcat" onchange="S.wizData.subcategory_id=this.value?parseInt(this.value):null" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit"'+(_parentCatId?'':' disabled')+'>'+_subOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>'+wizCopyBtn('subcategory_id')+'</div></div>';
+
+        var fColor=isSingle?'<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Цвят</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wColor" value="'+esc(S.wizData.color||'')+'" placeholder="напр. Черен" oninput="S.wizData.color=this.value.trim()||null" style="flex:1">'+wizCopyBtn('color')+'</div></div>':'';
+        var fSize=isSingle?'<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Размер</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wSize" value="'+esc(S.wizData.size||'')+'" placeholder="напр. M или 42" oninput="S.wizData.size=this.value.trim()||null" style="flex:1">'+wizCopyBtn('size')+'</div></div>':'';
+
+        var fComposition='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">Материя / Състав<span class="hint" style="font-size:9px;color:rgba(255,255,255,0.45);margin-left:4px">(за AI описание)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" value="'+esc(cm)+'" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1">'+wizCopyBtn('composition')+'</div></div>';
+
+        var fOrigin='<div class="fg" style="margin-bottom:14px"><label class="fl" style="display:block;font-size:11px;color:#a5b4fc;font-weight:600;margin-bottom:6px">'+esc(t('wizard.origin','Произход'))+'</label><div style="display:flex;gap:6px;align-items:center"><div style="flex:1;position:relative"><select class="fc" id="wOrigin" onchange="S.wizData.origin_country=this.value||null;S.wizData.is_domestic=(this.value===\'България\'?1:0)" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_origOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>'+wizCopyBtn('origin_country')+'</div></div>';
+
+        // Collapsible: барkode + код (auto if empty)
+        var fBarcodeCode='<details style="margin:8px 0 14px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);padding:10px"><summary style="cursor:pointer;font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;list-style:none;display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>Баркод и артикулен номер<span style="font-size:9px;color:rgba(255,255,255,0.35);font-weight:400;margin-left:4px">(авто ако празни)</span></summary>'+
+            '<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">'+
+                '<div><label style="display:block;font-size:10px;color:rgba(255,255,255,0.5);font-weight:600;margin-bottom:4px">Баркод</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="auto-generated" style="flex:1;font-size:11px;padding:8px"><button type="button" class="abtn" onclick="wizScanBarcode()" style="width:36px;padding:6px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4);font-family:inherit" title="Сканирай"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+                '<div><label style="display:block;font-size:10px;color:rgba(255,255,255,0.5);font-weight:600;margin-bottom:4px">Артикулен номер</label><input type="text" class="fc" id="wCode" oninput="S.wizData.code=this.value.trim()" value="'+esc(cdv)+'" placeholder="auto-generated" style="font-size:11px;padding:8px"></div>'+
+            '</div></details>';
+
+        // Layout per Тихол spec
+        var fields;
+        if(isSingle){
+            fields=fName+fRetail+fCostMarkup+fMinQty+fSingleQty+fSupplier+fCategory+fSubcat+fColor+fSize+fComposition+fOrigin+fBarcodeCode;
+        }else{
+            fields=fName+fRetail+fCostMarkup+fSupplier+fCategory+fSubcat+fMinQty+fComposition+fOrigin+fBarcodeCode;
+        }
+
+        return '<div class="wiz-page active" style="padding:16px 16px 80px">'+
+            photoThumb+
             '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px">'+
               '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
               '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
-              '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
-              photoBlock+
-              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div></div>'+
-              '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+'</div></div>'+
-                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div></div>'+
-              '</div>'+
-              qtyBlock+
-              '<div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px"><div style="height:1px;flex:1;background:linear-gradient(to right,transparent,rgba(99,102,241,0.3))"></div><div style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase">Пожелателно</div><div style="height:1px;flex:1;background:linear-gradient(to left,transparent,rgba(59,130,246,0.3))"></div></div>'+
-              '<div class="fg">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(колко плащаш на доставчик)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1">'+mic('cost_price')+'</div></div>'+
-              '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
-              '<div class="fg">'+fieldLabel('Състав / Материя','name','<span class="hint">(за AI)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" value="'+esc(cm)+'" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1">'+mic('composition')+'</div></div>'+
-              '<div class="fg">'+fieldLabel('Мерна единица','name')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
+              fields+
             '</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
-              '<button type="button" onclick="closeWizard()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
-              '<button type="button" onclick="showToast(\'Печат — S73.B.6\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-              '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');document.getElementById(\'wName\').focus();return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');document.getElementById(\'wPrice\').focus();return}wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
-              (S.wizType==='variant'?'<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');document.getElementById(\'wName\').focus();return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');document.getElementById(\'wPrice\').focus();return}wizGo(4)" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'')+
+              '<button type="button" onclick="wizGo(2)" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
+              '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');document.getElementById(\'wName\').focus();return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');document.getElementById(\'wPrice\').focus();return}wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.18),rgba(22,163,74,0.06));border:1px solid rgba(34,197,94,0.45);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+
+              (S.wizType==='variant'?'<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');document.getElementById(\'wName\').focus();return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');document.getElementById(\'wPrice\').focus();return}wizGo(4)" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'')+
             '</div>'+
             vskip+
-            '</div>';
+        '</div>';
     }
     return renderWizPagePart2(step);
 }
