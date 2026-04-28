@@ -15,10 +15,14 @@ Workflow:
  10. Output (human or JSON)
 
 Exit codes:
-  0 = всички A+D PASS
+  0 = всички A+D PASS, Cat E 100%
   1 = A или D fail (rollback signal)
-  2 = B или C fail (warning)
+  2 = B/C/E < threshold (warning, 🟡)
   3 = gap detected (липсват oracle entries)
+
+S88.DIAG.EXTEND: Cat E (Migration & ENUM regression) се изпълнява извън seed/verify
+pipeline-а — директни DB checks от scenarios.run_cat_e_scenarios(). При --category E
+само Cat E се изпълнява (skip seed + compute-insights).
 """
 
 import sys
@@ -90,8 +94,47 @@ def calc_category_rate(results: list, category: str) -> float | None:
     return round(100.0 * passed / len(cat_results), 2)
 
 
+def _run_cat_e_only(args, tenant_id: int) -> int:
+    """S88.DIAG.EXTEND: --category E shortcut — bypass seed/verify, само DB checks."""
+    t0 = time.time()
+    sys.path.insert(0, '/var/www/runmystore')
+    from tools.diagnostic.modules.insights.scenarios import run_cat_e_scenarios
+    cat_e_results = run_cat_e_scenarios(tenant_id)
+    passed = sum(1 for r in cat_e_results if r['status'] == 'PASS')
+    failed = len(cat_e_results) - passed
+    rate = round(100.0 * passed / len(cat_e_results), 2) if cat_e_results else None
+    duration = int(time.time() - t0)
+    if args.orchestrated:
+        print(json.dumps({
+            'category_filter': 'E',
+            'metrics': {
+                'total_scenarios': len(cat_e_results),
+                'passed': passed, 'failed': failed,
+                'cat_e_rate': rate, 'duration': duration,
+            },
+            'results': cat_e_results,
+        }, ensure_ascii=False))
+    else:
+        print()
+        print(f"═══ DIAGNOSTIC RUN (Cat E only) — tenant={tenant_id} ═══")
+        print(f"Total: {len(cat_e_results)} | PASS: {passed} | FAIL: {failed}")
+        icon_e = '✅' if (rate or 0) >= 100 else '🟡'
+        print(f"Категория E: {rate if rate is not None else '—'}%  {icon_e}")
+        print()
+        for r in cat_e_results:
+            mark = '✅' if r['status'] == 'PASS' else '❌'
+            print(f"  {mark} {r['name']} — {r['details']}")
+        print(f"\nDuration: {duration}s")
+    return 0 if failed == 0 else 2
+
+
 def run(args) -> int:
     """Main runner. Връща exit code."""
+    if args.category == 'E':
+        tenant_id = int(args.tenant)
+        assert_safe_tenant(tenant_id)
+        return _run_cat_e_only(args, tenant_id)
+
     t0 = time.time()
     tenant_id = int(args.tenant)
     assert_safe_tenant(tenant_id)
@@ -223,24 +266,52 @@ def run(args) -> int:
         for r in results if not r['passed']
     ]
 
+    # S88.DIAG.EXTEND: Cat E (Migration & ENUM regression) — DB-direct checks,
+    # няма seed/verify. Изпълняват се ВИНАГИ след стандартния pipeline.
+    cat_e_results = []
+    cat_e_rate = None
+    cat_e_failures = []
+    try:
+        sys.path.insert(0, '/var/www/runmystore')
+        from tools.diagnostic.modules.insights.scenarios import run_cat_e_scenarios
+        cat_e_results = run_cat_e_scenarios(tenant_id)
+        cat_e_passed = sum(1 for r in cat_e_results if r['status'] == 'PASS')
+        if cat_e_results:
+            cat_e_rate = round(100.0 * cat_e_passed / len(cat_e_results), 2)
+        cat_e_failures = [
+            {'scenario_code': r['name'], 'category': 'E', 'reason': r['details']}
+            for r in cat_e_results if r['status'] != 'PASS'
+        ]
+    except Exception as _e:
+        cat_e_failures = [{'scenario_code': 'cat_e_runner', 'category': 'E',
+                           'reason': f'runner exception: {type(_e).__name__}: {_e}'}]
+
+    failures.extend(cat_e_failures)
+    total_with_e = len(results) + len(cat_e_results)
+    passed_with_e = passed_count + (len(cat_e_results) - len(cat_e_failures))
+    failed_with_e = failed_count + len(cat_e_failures)
+
     metrics = {
         'trigger_type': args.trigger,
         'module_name': args.module,
         'git_commit_sha': get_git_sha(),
-        'total_scenarios': len(results),
-        'passed': passed_count,
-        'failed': failed_count,
+        'total_scenarios': total_with_e,
+        'passed': passed_with_e,
+        'failed': failed_with_e,
         'skipped': 0,
         'cat_a_rate': calc_category_rate(results, 'A'),
         'cat_b_rate': calc_category_rate(results, 'B'),
         'cat_c_rate': calc_category_rate(results, 'C'),
         'cat_d_rate': calc_category_rate(results, 'D'),
+        'cat_e_rate': cat_e_rate,
+        'category_e': cat_e_results,
         'failures': failures,
         'duration': int(time.time() - t0),
-        'notes': f"compute-insights rc={rc}; seed_errors={len(seed_errors)}",
+        'notes': f"compute-insights rc={rc}; seed_errors={len(seed_errors)}; cat_e={len(cat_e_results)}",
     }
 
-    # Step 8: Insert log row
+    # Step 8: Insert log row (note: cat_e_rate НЕ се пише в diagnostic_log —
+    # ZERO touched live DB schema; Cat E живее само в snapshot/console output).
     log_id = insert_diag_log(metrics)
     metrics['log_id'] = log_id
 
@@ -264,13 +335,15 @@ def run(args) -> int:
     else:
         a = metrics['cat_a_rate']; d = metrics['cat_d_rate']
         b = metrics['cat_b_rate']; c = metrics['cat_c_rate']
+        e = metrics['cat_e_rate']
         print()
         print(f"═══ DIAGNOSTIC RUN #{log_id} — tenant={tenant_id} ═══")
-        print(f"Total: {metrics['total_scenarios']} | PASS: {passed_count} | FAIL: {failed_count}")
+        print(f"Total: {metrics['total_scenarios']} | PASS: {passed_with_e} | FAIL: {failed_with_e}")
         print(f"Категория A: {a if a is not None else '—'}%   {'✅' if (a or 0) >= 100 else '❌'}")
         print(f"Категория B: {b if b is not None else '—'}%")
         print(f"Категория C: {c if c is not None else '—'}%")
         print(f"Категория D: {d if d is not None else '—'}%   {'✅' if (d or 0) >= 100 else '❌'}")
+        print(f"Категория E: {e if e is not None else '—'}%   {'✅' if (e or 0) >= 100 else '🟡'}")
         if failures:
             print(f"\nFailures ({len(failures)}):")
             for f in failures[:15]:
@@ -289,6 +362,7 @@ def run(args) -> int:
     if d is not None and d < 100: return 1
     if metrics['cat_b_rate'] is not None and metrics['cat_b_rate'] < 60: return 2
     if metrics['cat_c_rate'] is not None and metrics['cat_c_rate'] < 60: return 2
+    if metrics['cat_e_rate'] is not None and metrics['cat_e_rate'] < 100: return 2
     return 0
 
 
@@ -301,6 +375,8 @@ def main():
     ap.add_argument('--tenant', default='99', type=str)
     ap.add_argument('--pristine', action='store_true', help="Wipe test products преди seed (RQ-S79-4)")
     ap.add_argument('--scenario', default=None, help="Run single scenario by code")
+    ap.add_argument('--category', default=None, choices=['E'],
+                    help="Filter to category. Currently only 'E' (Cat E only — Migration/ENUM regression)")
     ap.add_argument('--orchestrated', action='store_true', help="JSON output for Claude Code")
     ap.add_argument('--skip-gap-check', action='store_true', help="Bypass gap detector (override only)")
     ap.add_argument('--verbose', action='store_true')
