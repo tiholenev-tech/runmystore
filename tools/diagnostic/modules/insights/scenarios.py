@@ -1,6 +1,9 @@
 """
 scenarios.py — 50+ test scenarios за 19-те pf*() функции.
-Категории: A (критични) / B (важни) / C (декорация) / D (граници).
+Категории: A (критични) / B (важни) / C (декорация) / D (граници) / E (миграции).
+
+Cat E (S88.DIAG.EXTEND): regression срещу AIBRAIN_WIRE миграция (commit 2a43852).
+Не seed-ва fixtures — директно ходи в DB и проверява schema/data invariants.
 """
 
 from typing import List
@@ -756,15 +759,256 @@ def all_scenarios() -> List[dict]:
 
 def stats() -> dict:
     s = all_scenarios()
-    by_cat = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+    by_cat = {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0}
     by_topic = {}
     for sc in s:
         by_cat[sc['category']] = by_cat.get(sc['category'], 0) + 1
         t = sc['expected_topic']
         by_topic[t] = by_topic.get(t, 0) + 1
+    by_cat['E'] = len(cat_e_scenarios())
     return {
-        'total': len(s),
+        'total': len(s) + by_cat['E'],
         'by_category': by_cat,
         'by_topic': by_topic,
         'topics_covered': len(by_topic),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Cat E — Migration & ENUM regression (S88.DIAG.EXTEND)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Cat E проверки НЕ seed-ват fixtures и НЕ извикват compute-insights. Те ходят
+# директно в DB и/или четат migration-файлове, за да гарантират:
+#   * AIBRAIN_WIRE ENUM extend-а (commit 2a43852) е приложен и persistent;
+#   * round-trip DOWN→UP е безопасен (rows recoverable от action_data.intent);
+#   * data integrity: action_type NOT NULL, intent matches stem, action_label
+#     populated за всички FQ.
+#
+# Контракт на check-функциите:
+#   def _check_xxx(conn, tenant_id) -> tuple[str, str]
+#     return ('PASS'|'FAIL', details_string)
+#
+# run_cat_e_scenarios(tenant_id) връща list of:
+#   {'name': str, 'status': 'PASS'|'FAIL', 'details': str, 'description': str}
+
+_NEW_ENUM_VALUES = ('navigate_chart', 'navigate_product', 'transfer_draft', 'dismiss')
+_LEGACY_ENUM_VALUES = ('deeplink', 'order_draft', 'chat', 'none')
+_AIBRAIN_MIGRATION_BASENAME = '20260428_002_ai_insights_action_type_extend'
+
+
+def _check_enum_extension_persists(conn, tenant_id: int):
+    """ENUM column actually contains all 4 new values след AIBRAIN_WIRE migration."""
+    cur = conn.cursor()
+    cur.execute("SHOW COLUMNS FROM ai_insights LIKE 'action_type'")
+    row = cur.fetchone() or {}
+    cur.close()
+    type_str = (row.get('Type') or '').lower()
+    missing = [v for v in _NEW_ENUM_VALUES if f"'{v}'" not in type_str]
+    if missing:
+        return ('FAIL', f"ENUM action_type missing values: {missing}; got: {type_str}")
+    return ('PASS', f"ENUM contains all 4 new values: {', '.join(_NEW_ENUM_VALUES)}")
+
+
+def _check_rollback_safety(conn, tenant_id: int):
+    """
+    DOWN migration safely revert-ва ENUM (без MySQL 1265 truncated):
+      * up.sql — ALTER MODIFY включва всички 4 нови + NOT NULL DEFAULT 'none';
+      * down.sql — има UPDATE-към-'none' стъпка ПРЕДИ ALTER (data normaliz.);
+      * data — за tenant_id, всички rows с new-ENUM action_type имат
+        action_data.intent (re-derivation source оцелява round-trip).
+    """
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parents[4]  # .../runmystore
+    up_path = repo_root / 'migrations' / f'{_AIBRAIN_MIGRATION_BASENAME}.up.sql'
+    down_path = repo_root / 'migrations' / f'{_AIBRAIN_MIGRATION_BASENAME}.down.sql'
+
+    if not up_path.is_file():
+        return ('FAIL', f'up migration missing: {up_path}')
+    if not down_path.is_file():
+        return ('FAIL', f'down migration missing: {down_path}')
+
+    up_sql = up_path.read_text(encoding='utf-8').lower()
+    down_sql = down_path.read_text(encoding='utf-8').lower()
+
+    for v in _NEW_ENUM_VALUES:
+        if f"'{v}'" not in up_sql:
+            return ('FAIL', f"up.sql липсва нова стойност '{v}'")
+    if 'not null' not in up_sql or "default 'none'" not in up_sql:
+        return ('FAIL', "up.sql не tighten-ва NOT NULL DEFAULT 'none'")
+
+    update_pos = down_sql.find("update ai_insights set action_type='none'")
+    alter_pos = down_sql.find('alter table ai_insights')
+    if update_pos == -1:
+        return ('FAIL', "down.sql липсва UPDATE към 'none' (предотвратява MySQL 1265)")
+    if alter_pos == -1:
+        return ('FAIL', "down.sql липсва ALTER TABLE")
+    if update_pos > alter_pos:
+        return ('FAIL', 'down.sql: UPDATE трябва да е ПРЕДИ ALTER, иначе data truncated')
+
+    cur = conn.cursor()
+    placeholders = ','.join(['%s'] * len(_NEW_ENUM_VALUES))
+    cur.execute(
+        f"""SELECT COUNT(*) AS total,
+                  SUM(JSON_EXTRACT(action_data, '$.intent') IS NOT NULL) AS with_intent
+              FROM ai_insights
+             WHERE tenant_id=%s AND action_type IN ({placeholders})""",
+        (tenant_id, *_NEW_ENUM_VALUES),
+    )
+    row = cur.fetchone() or {}
+    cur.close()
+    total = int(row.get('total') or 0)
+    with_intent = int(row.get('with_intent') or 0)
+    if total == 0:
+        return ('PASS', f'no new-ENUM rows for tenant={tenant_id}; round-trip vacuously safe '
+                        '(static migration check passed)')
+    if with_intent < total:
+        unrecoverable = total - with_intent
+        return ('FAIL', f'tenant={tenant_id}: {unrecoverable}/{total} rows с new ENUM action_type '
+                        'нямат action_data.intent — DOWN→UP round-trip ще ги загуби')
+    return ('PASS', f'static migration files OK; tenant={tenant_id}: {total}/{total} rows '
+                    'recoverable от action_data.intent')
+
+
+def _check_action_type_not_null(conn, tenant_id: int):
+    """ai_insights.action_type е NOT NULL за tenant_id (no NULL leakage)."""
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) AS c FROM ai_insights WHERE tenant_id=%s AND action_type IS NULL",
+        (tenant_id,),
+    )
+    row = cur.fetchone() or {}
+    cur.close()
+    null_count = int(row.get('c') or 0)
+    if null_count > 0:
+        return ('FAIL', f'tenant={tenant_id}: {null_count} rows с NULL action_type '
+                        '(NOT NULL DEFAULT \'none\' invariant нарушен)')
+    return ('PASS', f'tenant={tenant_id}: 0 NULL action_type rows')
+
+
+def _check_action_data_intent_match(conn, tenant_id: int):
+    """
+    За всяка row с action_type IN (4 new ENUM values), action_data.intent ==
+    action_type stem (semantic identity). Mismatch = pump/upsert bug.
+    """
+    cur = conn.cursor()
+    placeholders = ','.join(['%s'] * len(_NEW_ENUM_VALUES))
+    cur.execute(
+        f"""SELECT id, action_type,
+                   JSON_UNQUOTE(JSON_EXTRACT(action_data, '$.intent')) AS intent
+              FROM ai_insights
+             WHERE tenant_id=%s AND action_type IN ({placeholders})""",
+        (tenant_id, *_NEW_ENUM_VALUES),
+    )
+    rows = cur.fetchall() or []
+    cur.close()
+    total = len(rows)
+    mismatches = [r for r in rows if (r.get('intent') or '') != (r.get('action_type') or '')]
+    if total == 0:
+        return ('PASS', f'tenant={tenant_id}: no rows с new-ENUM action_type (vacuously matched)')
+    if mismatches:
+        sample = mismatches[:3]
+        sample_str = '; '.join(
+            f"id={r.get('id')} type={r.get('action_type')} intent={r.get('intent')!r}"
+            for r in sample
+        )
+        return ('FAIL', f'tenant={tenant_id}: {len(mismatches)}/{total} mismatches; sample: {sample_str}')
+    return ('PASS', f'tenant={tenant_id}: {total}/{total} rows intent==action_type')
+
+
+def _check_q1_q6_action_label_populated(conn, tenant_id: int):
+    """
+    За всяка fundamental_question (q1..q6 = loss/loss_cause/gain/gain_cause/order/anti_order),
+    COUNT(action_label IS NOT NULL) = COUNT(*). action_label е presentation
+    contract към products.php loadSections.
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT fundamental_question AS fq,
+                  COUNT(*) AS total,
+                  SUM(action_label IS NOT NULL AND action_label <> '') AS labeled
+             FROM ai_insights
+            WHERE tenant_id=%s AND module='products'
+              AND (expires_at IS NULL OR expires_at > NOW())
+            GROUP BY fundamental_question""",
+        (tenant_id,),
+    )
+    rows = cur.fetchall() or []
+    cur.close()
+    if not rows:
+        return ('PASS', f'tenant={tenant_id}: no live products insights (vacuously labeled)')
+    gaps = [r for r in rows if int(r.get('labeled') or 0) < int(r.get('total') or 0)]
+    if gaps:
+        gap_str = ', '.join(
+            f"{r.get('fq')}={r.get('labeled')}/{r.get('total')}" for r in gaps
+        )
+        return ('FAIL', f'tenant={tenant_id}: action_label липсва — {gap_str}')
+    summary = ', '.join(f"{r.get('fq')}:{r.get('total')}" for r in rows)
+    return ('PASS', f'tenant={tenant_id}: action_label populated за всички FQ ({summary})')
+
+
+def cat_e_scenarios() -> List[dict]:
+    """
+    Cat E (Migration & ENUM regression). Each entry has 'check' callable, не fixture_sql.
+    Не се вкарват в seed_oracle table — изпълняват се директно от run_cat_e_scenarios().
+    """
+    return [
+        {
+            'scenario_code': 'enum_extension_persists',
+            'category': 'E',
+            'description': 'ai_insights.action_type ENUM съдържа 4 нови стойности (AIBRAIN_WIRE)',
+            'check': _check_enum_extension_persists,
+        },
+        {
+            'scenario_code': 'rollback_safety',
+            'category': 'E',
+            'description': 'DOWN/UP migration round-trip е безопасен (UPDATE→none + intent re-derivation)',
+            'check': _check_rollback_safety,
+        },
+        {
+            'scenario_code': 'action_type_not_null',
+            'category': 'E',
+            'description': 'ai_insights.action_type няма NULL rows (NOT NULL invariant)',
+            'check': _check_action_type_not_null,
+        },
+        {
+            'scenario_code': 'action_data_intent_match',
+            'category': 'E',
+            'description': 'action_data.intent съвпада с action_type за rows с new-ENUM action_type',
+            'check': _check_action_data_intent_match,
+        },
+        {
+            'scenario_code': 'q1_q6_action_label_populated',
+            'category': 'E',
+            'description': 'action_label е populated за всички 6 fundamental_question values',
+            'check': _check_q1_q6_action_label_populated,
+        },
+    ]
+
+
+def run_cat_e_scenarios(tenant_id: int) -> List[dict]:
+    """
+    Orchestrate Cat E checks. Returns list of {name, status, details, description}.
+    Connection-управлението е local: всеки run отваря+затваря една conn-ция.
+    """
+    import sys as _sys
+    from pathlib import Path as _Path
+    _diag_root = _Path(__file__).resolve().parents[2]
+    if str(_diag_root) not in _sys.path:
+        _sys.path.insert(0, str(_diag_root))
+    from core.db_helpers import conn_ctx  # noqa: E402
+
+    results: List[dict] = []
+    with conn_ctx(autocommit=True) as conn:
+        for sc in cat_e_scenarios():
+            try:
+                status, details = sc['check'](conn, tenant_id)
+            except Exception as e:  # noqa: BLE001
+                status, details = 'FAIL', f'exception: {type(e).__name__}: {e}'
+            results.append({
+                'name': sc['scenario_code'],
+                'status': status,
+                'details': details,
+                'description': sc['description'],
+            })
+    return results
