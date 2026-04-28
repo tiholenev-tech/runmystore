@@ -998,6 +998,118 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         transition:none !important;
     }
 }
+
+/* ─── S87B V5 PATTERNS (1:1 от docs/SALE_V5_MOCKUP.html) ─── */
+
+/* TABS PILL — дребно/едро */
+.tabs-pill{display:flex;gap:3px;padding:3px;background:rgba(0,0,0,0.3);border-radius:100px;border:1px solid rgba(255,255,255,0.05);margin:8px 12px 6px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03),inset 0 0 12px rgba(0,0,0,0.4)}
+:root[data-theme="light"] .tabs-pill{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.10)}
+.tabs-pill .tab{flex:1;padding:10px 12px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:0.04em;cursor:pointer;font-family:inherit;border:none;background:transparent;color:rgba(255,255,255,0.5);transition:all 0.2s var(--ease,cubic-bezier(0.5,1,0.89,1));display:flex;align-items:center;justify-content:center;gap:5px}
+:root[data-theme="light"] .tabs-pill .tab{color:rgba(15,23,42,0.55)}
+.tabs-pill .tab.active{color:white;background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 65% 40%));box-shadow:0 2px 8px hsl(var(--hue1) 60% 45% / 0.4),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 0 12px hsl(var(--hue1) 70% 60% / 0.15);text-shadow:0 0 8px hsl(var(--hue1) 80% 70% / 0.5)}
+.tabs-pill .tab svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* BULK BANNER — паркирани */
+.bulk-banner{position:relative;margin:8px 12px;padding:14px;border-radius:18px;border:1px solid;cursor:pointer;backdrop-filter:blur(8px);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 6px 20px rgba(0,0,0,0.3);font-family:inherit;width:calc(100% - 24px);text-align:left}
+.bulk-banner.amber{border-color:hsl(38 90% 55% / 0.4);background:linear-gradient(135deg,hsl(38 70% 12% / 0.5),rgba(0,0,0,0.2)),linear-gradient(hsl(220 25% 6% / 0.8));box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 6px 20px hsl(38 90% 55% / 0.15)}
+.bulk-banner.amber::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:18px 0 0 18px;background:hsl(38 90% 55%);box-shadow:0 0 20px 1px hsl(38 90% 55%);opacity:0.9}
+.bulk-banner.amber::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,hsl(38 90% 55% / 0.3) 0%,transparent 60%);opacity:0.2;pointer-events:none}
+:root[data-theme="light"] .bulk-banner.amber{background:linear-gradient(135deg,hsl(38 70% 92% / 0.85),rgba(255,255,255,0.92));border-color:hsl(38 90% 55% / 0.45)}
+.bulk-row{display:flex;align-items:center;gap:12px;position:relative;z-index:5}
+.bulk-icon{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 18px hsl(38 90% 55% / 0.35)}
+.bulk-icon svg{width:22px;height:22px;fill:none;stroke:hsl(38 90% 80%);stroke-width:2;filter:drop-shadow(0 0 6px hsl(38 90% 55%))}
+.bulk-info{flex:1;min-width:0}
+.bulk-num-row{display:flex;align-items:baseline;gap:5px;margin-bottom:1px}
+.bulk-num{font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,#fff 0%,hsl(38 90% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+:root[data-theme="light"] .bulk-num{background:linear-gradient(135deg,#78350f,#d97706);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.bulk-num-suffix{font-size:11px;color:var(--text-muted);font-weight:700}
+.bulk-title{font-size:11px;font-weight:700;color:#e2e8f0;line-height:1.3;letter-spacing:-0.01em}
+:root[data-theme="light"] .bulk-title{color:#0f172a}
+.bulk-arrow{color:rgba(255,255,255,0.3);font-size:18px;flex-shrink:0;align-self:center;font-weight:600}
+
+/* SET ROW — cart items */
+.set-row{display:flex;align-items:center;gap:11px;margin:6px 0;padding:11px 13px;border-radius:14px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);position:relative;overflow:hidden}
+:root[data-theme="light"] .set-row{background:rgba(255,255,255,0.65);border-color:rgba(15,23,42,0.06);box-shadow:inset 0 1px 0 rgba(255,255,255,0.5)}
+.set-row.selected{background:linear-gradient(135deg,hsl(var(--hue1) 30% 20% / 0.6),hsl(var(--hue2) 35% 16% / 0.5));border-color:hsl(var(--hue1) 50% 50% / 0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 14px hsl(var(--hue1) 60% 45% / 0.25)}
+:root[data-theme="light"] .set-row.selected{background:linear-gradient(135deg,hsl(var(--hue1) 50% 88%),hsl(var(--hue2) 55% 92%));border-color:hsl(var(--hue1) 40% 75%)}
+.set-icon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,hsl(var(--hue1) 30% 25% / 0.6),hsl(var(--hue2) 35% 20% / 0.5));border:1px solid hsl(var(--hue1) 30% 30% / 0.4);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 8px hsl(var(--hue1) 60% 40% / 0.2);font-size:18px}
+:root[data-theme="light"] .set-icon{background:linear-gradient(135deg,hsl(var(--hue1) 50% 88%),hsl(var(--hue2) 55% 92%));border-color:hsl(var(--hue1) 40% 75%)}
+.set-text{flex:1;min-width:0}
+.set-val{font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set-val-sub{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:1px;font-variant-numeric:tabular-nums}
+.set-qty{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.set-qty-btn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
+:root[data-theme="light"] .set-qty-btn{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.12)}
+.set-qty-val{font-size:13px;font-weight:900;min-width:18px;text-align:center;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.set-total{font-size:12px;font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:60px;text-align:right}
+.set-row .ci-delete{position:absolute;right:0;top:0;bottom:0;width:80px;background:linear-gradient(90deg,transparent,#dc2626 30%);color:white;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;font-size:11px;font-weight:800;letter-spacing:0.04em;transform:translateX(100%);transition:transform 0.2s;border-radius:0 14px 14px 0}
+.set-row.swiped .ci-delete{transform:translateX(0)}
+
+/* STAT NUM — payment hero */
+.stat-num{font-size:34px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;font-variant-numeric:tabular-nums;display:inline-block}
+:root[data-theme="light"] .stat-num{background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num.lg{font-size:54px}
+.stat-cur{font-size:14px;color:var(--text-muted);font-weight:700;margin-left:6px}
+.stat-label{font-size:9px;font-weight:900;letter-spacing:0.1em;color:hsl(var(--hue1) 50% 70%);text-transform:uppercase;text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / 0.3)}
+
+/* PKG CARD — payment methods */
+.pkg-card{position:relative;cursor:pointer;margin:6px 0;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:linear-gradient(135deg,rgba(255,255,255,0.025),rgba(0,0,0,0.15)),linear-gradient(hsl(220 25% 6% / 0.6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 12px rgba(0,0,0,0.2);overflow:hidden;transition:transform 0.15s var(--ease,cubic-bezier(0.5,1,0.89,1));font-family:inherit;width:100%;text-align:left}
+:root[data-theme="light"] .pkg-card{background:linear-gradient(135deg,rgba(255,255,255,0.85),rgba(241,245,249,0.92));border-color:rgba(15,23,42,0.08)}
+.pkg-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:linear-gradient(180deg,var(--qcol,transparent) 0%,transparent 100%);box-shadow:0 0 20px 1px var(--qcol,transparent);opacity:0.9}
+.pkg-card::after{content:'';position:absolute;top:-1px;right:-1px;width:80px;height:80px;background:radial-gradient(circle at top right,var(--qcol,transparent) 0%,transparent 60%);opacity:0.15;pointer-events:none}
+.pkg-card.q-blue{--qcol:hsl(220,80%,60%)}
+.pkg-card.q-violet{--qcol:hsl(280,70%,62%)}
+.pkg-card.q-amber{--qcol:hsl(38,90%,55%)}
+.pkg-card.q3{--qcol:hsl(145,70%,50%)}
+.pkg-card.q-fire{--qcol:hsl(15,95%,58%)}
+.pkg-card.q-indigo{--qcol:hsl(255,70%,65%)}
+.pkg-card.featured{border-color:color-mix(in oklch,var(--qcol) 40%,rgba(255,255,255,0.06));box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 14px color-mix(in oklch,var(--qcol) 25%,transparent),0 0 30px color-mix(in oklch,var(--qcol) 10%,transparent)}
+.pkg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pkg-emoji{font-size:18px;filter:drop-shadow(0 0 8px var(--qcol,transparent))}
+.pkg-name{font-size:11px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:var(--qcol);text-shadow:0 0 10px var(--qcol);flex:1}
+.pkg-sub{font-size:11px;color:var(--text-secondary);font-weight:500;line-height:1.4}
+.pkg-active-badge{font-size:9px;font-weight:900;padding:4px 9px;border-radius:100px;background:linear-gradient(135deg,hsl(145 70% 45%),hsl(160 70% 40%));color:white;letter-spacing:0.04em;box-shadow:0 0 8px hsl(145 70% 50% / 0.4)}
+.pkg-arrow{color:rgba(255,255,255,0.3);font-size:14px;font-weight:600;margin-left:auto}
+:root[data-theme="light"] .pkg-arrow{color:rgba(15,23,42,0.25)}
+
+/* PKG BUY — mega sell button */
+.pkg-buy{width:100%;margin-top:14px;padding:14px 16px;border-radius:100px;font-size:13px;font-weight:900;text-align:center;cursor:pointer;border:1px solid;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:0.06em;transition:transform 0.15s,box-shadow 0.15s;background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 60%,hsl(220 30% 10%)) 0%,color-mix(in oklch,var(--qcol) 40%,hsl(220 30% 8%)) 100%);border-color:color-mix(in oklch,var(--qcol) 50%,transparent);color:white;box-shadow:0 6px 20px color-mix(in oklch,var(--qcol) 50%,transparent),inset 0 1px 0 rgba(255,255,255,0.18),inset 0 0 24px color-mix(in oklch,var(--qcol) 18%,transparent)}
+.pkg-buy.mega{--qcol:hsl(255,70%,65%)}
+.pkg-buy:disabled{opacity:0.4;pointer-events:none}
+.pkg-buy:active{transform:scale(0.97)}
+.pkg-buy svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5}
+
+/* BRIEFING SECTION — ресто (q3 green) */
+.briefing-section{position:relative;z-index:5;margin:8px 0;padding:14px 14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:linear-gradient(135deg,rgba(255,255,255,0.025),rgba(0,0,0,0.15)),linear-gradient(hsl(220 25% 6% / 0.6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 12px rgba(0,0,0,0.2);overflow:hidden}
+:root[data-theme="light"] .briefing-section{background:linear-gradient(135deg,rgba(255,255,255,0.85),rgba(241,245,249,0.92));border-color:rgba(15,23,42,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,0.6),0 4px 12px rgba(99,102,241,0.05)}
+.briefing-section::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:linear-gradient(180deg,var(--qcol,transparent) 0%,transparent 100%);box-shadow:0 0 20px 1px var(--qcol,transparent);opacity:0.9}
+.briefing-section::after{content:'';position:absolute;top:-1px;right:-1px;width:80px;height:80px;background:radial-gradient(circle at top right,var(--qcol,transparent) 0%,transparent 60%);opacity:0.12;pointer-events:none}
+.briefing-section.q3{--qcol:hsl(145,70%,50%)}
+.briefing-head{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.briefing-emoji{font-size:14px;filter:drop-shadow(0 0 6px var(--qcol,transparent))}
+.briefing-name{font-size:9px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:var(--qcol);text-shadow:0 0 10px var(--qcol)}
+.briefing-amount{font-size:32px;font-weight:900;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,#fff 0%,hsl(145 70% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+:root[data-theme="light"] .briefing-amount{background:linear-gradient(135deg,#14532d,#16a34a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+/* DETECT — клиент даде (purple side accent) */
+.detect{position:relative;margin:10px 0;padding:11px 13px 11px 16px;border-radius:14px;border:1px solid hsl(280 70% 60% / 0.25);background:linear-gradient(135deg,hsl(280 50% 15% / 0.35),rgba(0,0,0,0.15)),linear-gradient(hsl(220 25% 6% / 0.6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 12px rgba(0,0,0,0.2);overflow:hidden}
+:root[data-theme="light"] .detect{background:linear-gradient(135deg,hsl(280 60% 96% / 0.85),rgba(255,255,255,0.92));border-color:hsl(280 50% 75% / 0.45)}
+.detect::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:hsl(280 70% 62%);box-shadow:0 0 20px 1px hsl(280 70% 62%);opacity:0.9}
+.detect-row{display:flex;align-items:center;gap:10px}
+.detect-icon{width:32px;height:32px;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 0 12px hsl(280 70% 62% / 0.3);font-size:15px}
+.detect-text{flex:1;min-width:0}
+.detect-label{font-size:9px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:hsl(280 70% 75%);text-shadow:0 0 8px hsl(280 70% 62% / 0.3)}
+.detect-val{font-size:13px;font-weight:800;color:var(--text-primary);margin-top:2px;letter-spacing:-0.01em;font-variant-numeric:tabular-nums}
+
+/* SECTION divider */
+.v5-section{display:flex;align-items:center;gap:8px;margin:14px 0 8px}
+.v5-section-label{font-size:9px;font-weight:900;letter-spacing:0.1em;color:hsl(var(--hue1) 50% 70%);text-transform:uppercase;text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / 0.25)}
+.v5-section-line{flex:1;height:1px;background:linear-gradient(90deg,hsl(var(--hue1) 60% 50% / 0.3),transparent)}
+
+/* SUCCESS HERO */
+.success-hero{text-align:center;padding:14px 0 16px}
+.success-circle{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(160 70% 40%));display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 0 30px hsl(145 70% 50% / 0.5),0 0 0 4px hsl(145 70% 50% / 0.15),inset 0 1px 0 rgba(255,255,255,0.3);font-size:32px}
+
 </style>
 </head>
 <body>
@@ -1068,7 +1180,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
                     <button class="cam-btn s87v3-tap" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
                         🅿️<span class="park-badge" id="parkedCount">0</span>
                     </button>
-                    <button class="cam-btn s87v3-tap" id="btnWholesale" onclick="openWholesale()">👤</button>
+                    <button class="cam-btn s87v3-tap" id="btnWholesale" onclick="openWholesale()" style="display:none">👤</button>
                     <button class="cam-btn s87v3-tap" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
                 </div>
             </div>
@@ -1083,6 +1195,35 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             </div>
         </div>
     </div>
+
+    <!-- V5 TABS PILL: ДРЕБНО / ЕДРО -->
+    <div class="tabs-pill" id="tabsPill">
+        <button class="tab active" id="tabRetail" type="button" onclick="setRetailMode()">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            ДРЕБНО
+        </button>
+        <button class="tab" id="tabWholesale" type="button" onclick="openWholesale()">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            ЕДРО
+        </button>
+    </div>
+
+    <!-- V5 BULK BANNER: Паркирани (показва се само ако има parked) -->
+    <button type="button" class="bulk-banner amber" id="bulkParked" style="display:none" onclick="openParked()">
+        <div class="bulk-row">
+            <div class="bulk-icon">
+                <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+            </div>
+            <div class="bulk-info">
+                <div class="bulk-num-row">
+                    <span class="bulk-num" id="bulkParkedNum">0</span>
+                    <span class="bulk-num-suffix">паркирани</span>
+                </div>
+                <div class="bulk-title" id="bulkParkedTitle">—</div>
+            </div>
+            <span class="bulk-arrow">›</span>
+        </div>
+    </button>
 
     <div class="search-bar">
         <div class="search-display" id="searchDisplay">
@@ -1261,38 +1402,97 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 </div><div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
 <div class="pay-sheet" id="paySheet">
     <div class="pay-handle"></div>
-    <div class="pay-header">
-        <div>
-            <div class="pay-due">ДЪЛЖИМО</div>
-            <div class="pay-due-amount" id="payDueAmount">0,00 <?= $currency ?></div>
-        </div>
-        <button class="pay-close" onclick="closePayment()">✕</button>
+
+    <!-- V5 HERO: stat-num.lg -->
+    <div style="text-align:center;padding:14px 0 10px;position:relative">
+        <button class="pay-close" onclick="closePayment()" style="position:absolute;top:6px;right:10px">✕</button>
+        <div class="stat-label" style="margin-bottom:6px">Общо за плащане</div>
+        <span class="stat-num lg" id="payDueAmount">0,00</span><span class="stat-cur" id="payDueCur"><?= $currency ?></span>
+    </div>
+
+    <!-- V5 SECTION: Начин на плащане -->
+    <div class="v5-section">
+        <span class="v5-section-label">Начин на плащане</span>
+        <div class="v5-section-line"></div>
     </div>
     <div class="pay-methods">
-        <button class="pm-chip active" data-method="cash" onclick="setPayMethod('cash')">💵 Брой</button>
-        <button class="pm-chip" data-method="card" onclick="setPayMethod('card')">💳 Карта</button>
-        <button class="pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">🏦 Превод</button>
-        <button class="pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">⏳ Отложено</button>
+        <button type="button" class="pkg-card q3 featured pm-chip active" data-method="cash" onclick="setPayMethod('cash')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">💵</span>
+                <span class="pkg-name">В БРОЙ</span>
+                <span class="pkg-active-badge" id="pmBadgeCash">АКТИВНО</span>
+            </div>
+            <div class="pkg-sub">Готово за приключване</div>
+        </button>
+        <button type="button" class="pkg-card q-blue pm-chip" data-method="card" onclick="setPayMethod('card')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">💳</span>
+                <span class="pkg-name">КАРТА</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">Чрез POS терминал · без ресто</div>
+        </button>
+        <button type="button" class="pkg-card q-violet pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">🏦</span>
+                <span class="pkg-name">ПРЕВОД</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">Банкова сметка</div>
+        </button>
+        <button type="button" class="pkg-card q-amber pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">⏳</span>
+                <span class="pkg-name">ОТЛОЖЕНО</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">На кредит / на изплащане</div>
+        </button>
     </div>
+
     <div id="cashSection">
-        <div class="pay-received">
-            <div class="pay-recv-label">Получено:</div>
-            <div class="pay-recv-amount" id="payRecvAmount">0,00 <?= $currency ?></div>
+        <!-- V5 SECTION: Бързи банкноти -->
+        <div class="v5-section">
+            <span class="v5-section-label">Бързи банкноти</span>
+            <div class="v5-section-line"></div>
         </div>
         <div class="pay-banknotes">
-            <button class="bn-chip exact" onclick="payBanknote('exact')">Точна</button>
             <button class="bn-chip" onclick="payBanknote(5)">5</button>
             <button class="bn-chip" onclick="payBanknote(10)">10</button>
             <button class="bn-chip" onclick="payBanknote(20)">20</button>
             <button class="bn-chip" onclick="payBanknote(50)">50</button>
             <button class="bn-chip" onclick="payBanknote(100)">100</button>
+            <button class="bn-chip" onclick="payBanknote(200)">200</button>
+            <button class="bn-chip" onclick="payBanknote(500)">500</button>
+            <button class="bn-chip exact" onclick="payBanknote('exact')">ТОЧНО</button>
         </div>
-        <div class="pay-change" id="payChangeBox" style="display:none">
-            <div class="pay-change-label">РЕСТО</div>
-            <div class="pay-change-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
+
+        <!-- V5 DETECT (purple) — Клиент даде -->
+        <div class="detect" id="payRecvBox">
+            <div class="detect-row">
+                <div class="detect-icon">🎤</div>
+                <div class="detect-text">
+                    <div class="detect-label">Клиент даде</div>
+                    <div class="detect-val" id="payRecvAmount">0,00 <?= $currency ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V5 BRIEFING SECTION q3 (green) — РЕСТО -->
+        <div class="briefing-section q3" id="payChangeBox" style="display:none">
+            <div class="briefing-head">
+                <span class="briefing-emoji">🟢</span>
+                <span class="briefing-name">РЕСТО</span>
+            </div>
+            <div class="briefing-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
         </div>
     </div>
-    <button class="btn-confirm s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
+
+    <!-- V5 PKG-BUY.MEGA: SELL -->
+    <button type="button" class="pkg-buy mega s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        ПОТВЪРДИ ПЛАЩАНЕ
+    </button>
 </div>
 
 <div class="ws-overlay" id="wsOverlay" onclick="closeWholesale()"></div>
@@ -1528,12 +1728,27 @@ function render() {
     const btnParked = document.getElementById('btnParkedBadge');
     const parkedCount = document.getElementById('parkedCount');
 
-    // Parked badge
+    // Parked badge (legacy + V5 bulk-banner)
     if (STATE.parked.length > 0) {
-        btnParked.style.display = '';
-        parkedCount.textContent = STATE.parked.length;
+        if (btnParked) btnParked.style.display = '';
+        if (parkedCount) parkedCount.textContent = STATE.parked.length;
     } else {
-        btnParked.style.display = 'none';
+        if (btnParked) btnParked.style.display = 'none';
+    }
+    // V5 bulk-banner.amber for parked
+    const bulkParked = document.getElementById('bulkParked');
+    const bulkParkedNum = document.getElementById('bulkParkedNum');
+    const bulkParkedTitle = document.getElementById('bulkParkedTitle');
+    if (bulkParked) {
+        if (STATE.parked.length > 0) {
+            bulkParked.style.display = '';
+            bulkParkedNum.textContent = STATE.parked.length;
+            bulkParkedTitle.textContent = STATE.parked.map((p, i) =>
+                'Парк ' + (i + 1) + ' · ' + fmtPrice(p.total) + ' ' + STATE.currency
+            ).join(' + ');
+        } else {
+            bulkParked.style.display = 'none';
+        }
     }
 
     // Header wholesale
@@ -1543,12 +1758,25 @@ function render() {
         ? (STATE.customerName || 'Едро')
         : '<?= $page_title ?>';
 
+    // V5 tabs-pill active state
+    const tabRetail = document.getElementById('tabRetail');
+    const tabWholesale = document.getElementById('tabWholesale');
+    if (tabRetail && tabWholesale) {
+        tabRetail.classList.toggle('active', !STATE.isWholesale);
+        tabWholesale.classList.toggle('active', STATE.isWholesale);
+        if (STATE.isWholesale && STATE.customerName) {
+            tabWholesale.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' + esc(STATE.customerName).toUpperCase();
+        } else {
+            tabWholesale.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>ЕДРО';
+        }
+    }
+
     // Cart
     if (STATE.cart.length === 0) {
         empty.style.display = '';
         summary.style.display = 'none';
         btnPay.disabled = true;
-        zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+        zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
         return;
     }
 
@@ -1556,24 +1784,45 @@ function render() {
     summary.style.display = '';
 
     // Remove old items
-    zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+    zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
 
-    // Build cart items
+    // Build cart items (V5 set-row pattern)
     STATE.cart.forEach((item, idx) => {
         const div = document.createElement('div');
-        div.className = 'cart-item' + (idx === STATE.selectedIndex ? ' selected' : '');
+        div.className = 'set-row' + (idx === STATE.selectedIndex ? ' selected' : '');
         const lineTotal = item.unit_price * item.quantity * (1 - (item.discount_pct || 0) / 100);
+        const unitSub = fmtPrice(item.unit_price) + ' ' + STATE.currency + '/бр' + (item.code ? ' · ' + esc(item.code) : '');
         div.innerHTML = `
-            <div class="ci-info">
-                <div class="ci-name">${esc(item.name)}</div>
-                <div class="ci-meta">${esc(item.code || '')}${item.meta ? ' · ' + esc(item.meta) : ''}</div>
+            <div class="set-icon">📦</div>
+            <div class="set-text">
+                <div class="set-val">${esc(item.name)}</div>
+                <div class="set-val-sub">${unitSub}</div>
             </div>
-            <div class="ci-right">
-                <div class="ci-qty">x${item.quantity}</div>
-                <div class="ci-price">${fmtPrice(lineTotal)}</div>
+            <div class="set-qty">
+                <button class="set-qty-btn" type="button" data-act="dec">−</button>
+                <span class="set-qty-val">${item.quantity}</span>
+                <button class="set-qty-btn" type="button" data-act="inc">+</button>
             </div>
+            <div class="set-total">${fmtPrice(lineTotal)}</div>
             <div class="ci-delete">Изтрий</div>
         `;
+        // qty +/- handlers
+        const decBtn = div.querySelector('[data-act="dec"]');
+        const incBtn = div.querySelector('[data-act="inc"]');
+        if (decBtn) decBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (STATE.cart[idx].quantity > 1) {
+                STATE.cart[idx].quantity--;
+                render();
+            } else {
+                removeItem(idx);
+            }
+        });
+        if (incBtn) incBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            STATE.cart[idx].quantity++;
+            render();
+        });
 
         // Tap = select + qty mode
         div.addEventListener('click', (e) => {
@@ -1955,9 +2204,10 @@ function openPayment() {
     if (STATE.cart.length === 0) return;
     STATE.payMethod = 'cash';
     STATE.receivedAmount = 0;
-    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === 'cash'));
+    updatePmCardActive('cash');
     document.getElementById('cashSection').style.display = '';
-    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal()) + ' ' + STATE.currency;
+    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal());
+    document.getElementById('payDueCur').textContent = STATE.currency;
     document.getElementById('payRecvAmount').textContent = '0,00 ' + STATE.currency;
     document.getElementById('payChangeBox').style.display = 'none';
     document.getElementById('btnConfirm').disabled = true;
@@ -1966,6 +2216,38 @@ function openPayment() {
 
     document.getElementById('payOverlay').classList.add('open');
     document.getElementById('paySheet').classList.add('open');
+}
+
+// V5 pkg-card payment method active state (.featured + АКТИВНО badge)
+function updatePmCardActive(method) {
+    document.querySelectorAll('.pm-chip').forEach(c => {
+        const isActive = c.dataset.method === method;
+        c.classList.toggle('active', isActive);
+        c.classList.toggle('featured', isActive);
+        // Toggle q3 (green featured) on the active card; restore default color on others
+        const m = c.dataset.method;
+        const colorMap = {cash:'q3', card:'q-blue', bank_transfer:'q-violet', deferred:'q-amber'};
+        // Always keep the card's own color class — only featured highlights active
+        // Show "АКТИВНО" badge only on active; arrow only on inactive
+        const badge = c.querySelector('.pkg-active-badge');
+        const arrow = c.querySelector('.pkg-arrow');
+        if (isActive) {
+            if (badge) badge.style.display = '';
+            else {
+                const head = c.querySelector('.pkg-head');
+                if (head) {
+                    if (arrow) arrow.style.display = 'none';
+                    const span = document.createElement('span');
+                    span.className = 'pkg-active-badge';
+                    span.textContent = 'АКТИВНО';
+                    head.appendChild(span);
+                }
+            }
+        } else {
+            if (badge) badge.remove();
+            if (arrow) arrow.style.display = '';
+        }
+    });
 }
 
 function closePayment() {
@@ -1977,7 +2259,7 @@ function closePayment() {
 
 function setPayMethod(method) {
     STATE.payMethod = method;
-    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === method));
+    updatePmCardActive(method);
 
     const cashSec = document.getElementById('cashSection');
     const btnConfirm = document.getElementById('btnConfirm');
@@ -2073,6 +2355,11 @@ function confirmPayment() {
 }
 
 // ─── WHOLESALE ───
+function setRetailMode() {
+    // V5 tabs-pill: ДРЕБНО клавиш → switch to retail (no client)
+    if (!STATE.isWholesale) return; // already retail
+    selectClient(null, null);
+}
 function openWholesale() {
     document.getElementById('wsOverlay').classList.add('open');
     document.getElementById('wsSheet').classList.add('open');
