@@ -941,6 +941,34 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 28.04.2026 — S88.DIAG.EXTEND — Cat E (Migration & ENUM regression) активирана
+
+- **Промяна:** Diagnostic Framework вече има 5-та категория — **Cat E (Migration & ENUM regression)**.
+  5 нови scenarios покриват AIBRAIN_WIRE миграцията (commit 2a43852):
+  1. `enum_extension_persists` — ENUM action_type съдържа 4-те нови стойности
+     (navigate_chart, navigate_product, transfer_draft, dismiss).
+  2. `rollback_safety` — DOWN/UP migration round-trip е безопасен (UPDATE→none
+     стъпка ПРЕДИ ALTER + intent re-derivation за tenant=7 rows).
+  3. `action_type_not_null` — 0 NULL rows (NOT NULL DEFAULT 'none' invariant).
+  4. `action_data_intent_match` — за rows с new-ENUM action_type, intent==stem.
+  5. `q1_q6_action_label_populated` — action_label IS NOT NULL за всички 6 FQ.
+- **Защо:** AIBRAIN_WIRE разшири ENUM и заключи NOT NULL — без regression cover
+  всеки бъдещ pump/upsert bug или DOWN→UP накатывает loss на tenant=7 production
+  данни. Cat E е data-integrity safety net срещу schema/code drift.
+- **Архитектура:** Cat E е DB-direct (БЕЗ seed/verify pipeline). `scenarios.py`
+  експозира `cat_e_scenarios()` + `run_cat_e_scenarios(tenant_id)`. `run_diag.py`
+  винаги изпълнява Cat E след стандартния A/B/C/D pipeline; `--category E` е
+  shortcut за Cat-E-only run. `daily_runner.py` слага `category_e` ключ в
+  daily snapshot.
+- **Threshold semantics:** Cat E < 100% → 🟡 (yellow, exit code 2 = warning),
+  НЕ fail. Не trigger-ва telegram alert (само Cat A/D). diagnostic_log row
+  НЕ съхранява cat_e_pass_rate (ZERO touched live DB schema — Cat E живее
+  само в snapshot/console).
+- **Counters update:** stats() = 57 total (52 + 5). Diagnostic Run #24:
+  57/57 PASS (Cat A/B/C/D/E всички 100%, exit 0).
+- **Cron install:** `INSTALL_CRON.md` документира crontab line за www-data —
+  Тихол прави manual install, runner-ът НЕ executeва crontab modify.
+
 ## 27.04.2026 — END OF DAY SESSION 1 — 17+ sessions затворени
 
 - **Решение:** S84 AI Studio implementation = TOP PRIORITY за следваща BUILD сесия (28.04 СЕСИЯ 1)
