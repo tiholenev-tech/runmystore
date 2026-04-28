@@ -9349,10 +9349,44 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
+            // S88B-1 / Task E: persist field snapshot for "Копирай от последния" + per-field ↻.
+            // Stores both *_id (for save flow) and *_name (for dropdown label rehydration on next wizard open).
+            try {
+                var supName='', catName='', subName='';
+                if (S.wizData.supplier_id){var _s=(CFG.suppliers||[]).find(function(x){return x.id==S.wizData.supplier_id});if(_s)supName=_s.name;}
+                if (S.wizData.category_id){var _c=(CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id});if(_c)catName=_c.name;}
+                if (S.wizData.subcategory_id){var _sub=document.getElementById('wSubcat');if(_sub){for(var i=0;i<_sub.options.length;i++){if(_sub.options[i].value==S.wizData.subcategory_id){subName=_sub.options[i].textContent;break}}}}
+                var snap={
+                    retail_price: S.wizData.retail_price||null,
+                    cost_price: S.wizData.cost_price||null,
+                    markup_pct: (parseFloat(S.wizData.cost_price)>0&&parseFloat(S.wizData.retail_price)>0) ? Math.round(((S.wizData.retail_price-S.wizData.cost_price)/S.wizData.cost_price)*100) : null,
+                    min_quantity: S.wizData.min_quantity||null,
+                    supplier_id: S.wizData.supplier_id||null,
+                    supplier_name: supName,
+                    category_id: S.wizData.category_id||null,
+                    category_name: catName,
+                    subcategory_id: S.wizData.subcategory_id||null,
+                    subcategory_name: subName,
+                    color: S.wizType==='single' ? (S.wizData.color||null) : null,
+                    size: S.wizType==='single' ? (S.wizData.size||null) : null,
+                    composition: S.wizData.composition||null,
+                    origin_country: S.wizData.origin_country||null
+                };
+                localStorage.setItem('_rms_lastWizProductFields', JSON.stringify(snap));
+            } catch(e) { /* localStorage quota or denied — non-fatal */ }
             // S82.STUDIO.10: clear the auto-saved draft now that the artikel is in DB.
             if (typeof _wizClearDraft === 'function') _wizClearDraft();
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
+            }
+            // S88B-1 / Task G + Task H: ensure variant-mode parent gets a main image when only multi-photos were uploaded.
+            // Picks photo with is_main=true (set via Q7 Make-Main button) or falls back to the first photo.
+            if (S.wizType==='variant' && !S.wizData._photoDataUrl && Array.isArray(S.wizData._photos) && S.wizData._photos.length) {
+                var _mainPhoto = S.wizData._photos.find(function(p){return p && p.is_main && p.dataUrl})
+                              || S.wizData._photos.find(function(p){return p && p.dataUrl});
+                if (_mainPhoto && _mainPhoto.dataUrl && _mainPhoto.dataUrl.startsWith('data:')) {
+                    api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:_mainPhoto.dataUrl})}).then(function(img){if(img&&img.ok)console.log('Parent photo (is_main) saved')}).catch(function(){});
+                }
             }
             // S88.BUG1: per-variation images from multi-photo wizard
             if (r.variant_ids_by_color && Array.isArray(S.wizData._photos)) {
