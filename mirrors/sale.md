@@ -1171,16 +1171,25 @@ body.sale-page #numpadZone{ display:none !important }
 /* 1.11 — Cart gets all available space (FIX1: reserve bottom for sticky action+summary) */
 body.sale-page #cartZone{ flex:1 1 auto;min-height:0;padding-bottom:108px }
 
-/* FIX1 — Pin summary-bar + action-bar to viewport bottom so ПЛАТИ is always reachable.
-   Without this, after hiding bottom-nav and shrinking buttons, layout could push action-bar
-   below the visible viewport on small phones (header padding-top + 100dvh wrap = overflow). */
+/* FIX1 (S87D.UX_FIX2) — Pin summary-bar + action-bar to VIEWPORT bottom.
+   Root cause discovered: .sale-wrap has animation `s87v3_pageIn` which uses transform/filter
+   in keyframes; with animation-fill-mode both, the final transform is held forever, which
+   makes .sale-wrap a containing block for ALL fixed-position descendants. So position:fixed
+   on .action-bar becomes effectively position:absolute relative to .sale-wrap → bottom:0 lands
+   below viewport on small phones. Killing the animation on sale-page restores viewport-based fixed positioning. */
+body.sale-page #saleWrap{
+    animation:none !important;
+    transform:none !important;
+    filter:none !important;
+    will-change:auto !important;
+}
 body.sale-page .summary-bar{
-    position:fixed;left:0;right:0;
-    bottom:calc(56px + env(safe-area-inset-bottom, 0px));
+    position:fixed !important;left:0;right:0;
+    bottom:calc(56px + env(safe-area-inset-bottom, 0px)) !important;
     max-width:480px;margin:0 auto;z-index:90;
 }
 body.sale-page .action-bar{
-    position:fixed;left:0;right:0;bottom:0;
+    position:fixed !important;left:0;right:0;bottom:0 !important;
     max-width:480px;margin:0 auto;z-index:91;
     padding:8px 12px max(8px, env(safe-area-inset-bottom)) 12px !important;
 }
