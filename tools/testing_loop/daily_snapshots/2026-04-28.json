@@ -1,0 +1,111 @@
+{
+  "ai_insights_last_created": "2026-04-28T05:36:46",
+  "ai_insights_total_live": 19,
+  "category_e": {
+    "ran": true,
+    "rate": 100.0,
+    "results": [
+      {
+        "description": "ai_insights.action_type ENUM съдържа 4 нови стойности (AIBRAIN_WIRE)",
+        "details": "ENUM contains all 4 new values: navigate_chart, navigate_product, transfer_draft, dismiss",
+        "name": "enum_extension_persists",
+        "status": "PASS"
+      },
+      {
+        "description": "DOWN/UP migration round-trip е безопасен (UPDATE→none + intent re-derivation)",
+        "details": "no new-ENUM rows for tenant=99; round-trip vacuously safe (static migration check passed)",
+        "name": "rollback_safety",
+        "status": "PASS"
+      },
+      {
+        "description": "ai_insights.action_type няма NULL rows (NOT NULL invariant)",
+        "details": "tenant=99: 0 NULL action_type rows",
+        "name": "action_type_not_null",
+        "status": "PASS"
+      },
+      {
+        "description": "action_data.intent съвпада с action_type за rows с new-ENUM action_type",
+        "details": "tenant=99: no rows с new-ENUM action_type (vacuously matched)",
+        "name": "action_data_intent_match",
+        "status": "PASS"
+      },
+      {
+        "description": "action_label е populated за всички 6 fundamental_question values",
+        "details": "tenant=99: action_label populated за всички FQ (gain_cause:5, loss:3, order:2, anti_order:3, loss_cause:4, gain:2)",
+        "name": "q1_q6_action_label_populated",
+        "status": "PASS"
+      }
+    ],
+    "summary": "5/5 PASS"
+  },
+  "cron_last_ms": 1866,
+  "cron_last_status": "ok",
+  "cron_run_at": "2026-04-28T05:36:46",
+  "cron_step": {
+    "exit_code": 0,
+    "ran": true,
+    "stderr": "",
+    "stdout": "{\"ok\":true,\"result_keys\":[\"zero_stock_with_sales\",\"below_min_urgent\",\"running_out_today\",\"selling_at_loss\",\"no_cost_price\",\"margin_below_15\",\"seller_discount_killer\",\"top_profit_30d\",\"profit_growth\",\"highest_margin\",\"trending_up\",\"loyal_customers\",\"basket_driver\",\"size_leader\",\"bestseller_low_stock\",\"lost_demand_match\",\"zombie_45d\",\"declining_trend\",\"high_return_rate\"]}"
+  },
+  "diff": {
+    "checks": {
+      "cron_age_min": 0.2,
+      "cron_status": "ok",
+      "drop_pct": 0.0,
+      "questions_covered": 6
+    },
+    "reason": "all checks passed: drop 0.0%, 6/6 questions covered, cron 0m ago",
+    "recommendations": [],
+    "status": "healthy",
+    "today_summary": {
+      "cron_run_at": "2026-04-28T05:36:46",
+      "cron_status": "ok",
+      "date": "2026-04-28",
+      "fq": {
+        "anti_order": 3,
+        "gain": 2,
+        "gain_cause": 5,
+        "loss": 3,
+        "loss_cause": 4,
+        "order": 2
+      },
+      "questions_covered": 6,
+      "total_live": 19
+    },
+    "yesterday_summary": {
+      "cron_run_at": "2026-04-27T06:15:08",
+      "cron_status": "ok",
+      "date": "2026-04-27",
+      "fq": {
+        "anti_order": 3,
+        "gain": 2,
+        "gain_cause": 5,
+        "loss": 3,
+        "loss_cause": 4,
+        "order": 2
+      },
+      "questions_covered": 6,
+      "total_live": 19
+    }
+  },
+  "per_fundamental_question": {
+    "anti_order": 3,
+    "gain": 2,
+    "gain_cause": 5,
+    "loss": 3,
+    "loss_cause": 4,
+    "order": 2
+  },
+  "products_active": 48,
+  "sales_seeded_today": 12,
+  "seed_step": {
+    "exit_code": 0,
+    "ran": true,
+    "skipped_reason": null,
+    "stderr": "",
+    "stdout": "[WROTE] Seeded 15 sales (31 items, 3 returns) for tenant=99\nTime range: 2026-04-28 05:10 to 2026-04-28 05:32\nInventory delta: -22 units across 14 products\n"
+  },
+  "snapshot_at": "2026-04-28T05:36:55",
+  "snapshot_date": "2026-04-28",
+  "tenant": 99
+}

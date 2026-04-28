@@ -213,6 +213,29 @@ def step_snapshot() -> dict[str, Any]:
         snap["snapshot_error"] = str(e)
     return snap
 
+# ─── STEP 3b: CAT E — Migration & ENUM regression (S88.DIAG.EXTEND) ────
+def step_cat_e() -> dict[str, Any]:
+    """
+    Run Cat E (5 DB-direct checks) от scenarios.run_cat_e_scenarios. Failure тук
+    е 🟡 (yellow) per S88.DIAG.EXTEND — не fatal за runner-а.
+    """
+    out: dict[str, Any] = {"ran": False, "rate": None, "results": [], "summary": ""}
+    try:
+        sys.path.insert(0, str(REPO_ROOT))
+        from tools.diagnostic.modules.insights.scenarios import run_cat_e_scenarios
+        results = run_cat_e_scenarios(TENANT)
+        passed = sum(1 for r in results if r.get('status') == 'PASS')
+        total = len(results)
+        out["ran"] = True
+        out["results"] = results
+        out["rate"] = round(100.0 * passed / total, 2) if total else None
+        out["summary"] = f"{passed}/{total} PASS"
+        info(f"step_cat_e: {out['summary']} (rate={out['rate']}%)")
+    except Exception as e:                              # noqa: BLE001
+        out["error"] = f"{type(e).__name__}: {e}"
+        error(f"step_cat_e: {e}")
+    return out
+
 # ─── STEP 4: WRITE SNAPSHOT FILE (atomic) ──────────────────────────────
 def step_write_snapshot(snap: dict[str, Any]) -> Path:
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -371,6 +394,10 @@ def main() -> int:
 
     snap = step_snapshot()
 
+    # S88.DIAG.EXTEND: Cat E (Migration & ENUM regression) — 5 direct DB checks.
+    cat_e_result = step_cat_e()
+    snap["category_e"] = cat_e_result
+
     if seed_result is not None: snap["seed_step"] = seed_result
     if cron_result is not None: snap["cron_step"] = cron_result
 
@@ -398,6 +425,7 @@ def main() -> int:
         "diff_status": (diff_result or {}).get("status") if diff_result else "skipped",
         "seed_ran":  bool((seed_result or {}).get("ran")),
         "cron_ran":  bool((cron_result or {}).get("ran")),
+        "cat_e":     cat_e_result.get("summary") or "skipped",
         "git":       git_result or "skipped",
     }
     info(f"daily_runner end: {json.dumps(summary, default=str)}")
