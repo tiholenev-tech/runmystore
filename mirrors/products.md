@@ -5883,55 +5883,18 @@ async function renderWizard(){
             });
         },60);
     }
-    // Subcategory loader + Supplier→Category filter for step 3
+    // S88B-1: Step 3 — option setup is inline in the markup (CFG-driven). Just restore
+    // input values for fields the new markup doesn't already pre-fill via attributes.
     if(S.wizStep===3){
-        // Force restore all fields from saved data (belt-and-suspenders)
         const _el=id=>document.getElementById(id);
         if(_el('wName')&&S.wizData.name)_el('wName').value=S.wizData.name;
         if(_el('wCode')&&S.wizData.code)_el('wCode').value=S.wizData.code;
         if(_el('wPrice')&&S.wizData.retail_price)_el('wPrice').value=S.wizData.retail_price;
         if(_el('wWprice')&&S.wizData.wholesale_price)_el('wWprice').value=S.wizData.wholesale_price;
         if(_el('wBarcode')&&S.wizData.barcode)_el('wBarcode').value=S.wizData.barcode;
-        if(_el('wSup')&&S.wizData.supplier_id)_el('wSup').value=S.wizData.supplier_id;
-        const wSup=document.getElementById('wSup');
-        const wCat=document.getElementById('wCat');
-        // When supplier changes → reload categories for this supplier
-        if(wSup){wSup.onchange=async function(){
-            const supId=this.value;
-            const sel=document.getElementById('wCat');
-            const subsel=document.getElementById('wSubcat');
-            sel.innerHTML='<option value="">— Избери —</option>';
-            if(subsel)subsel.innerHTML='<option value="">— Няма —</option>';
-            if(!supId){
-                // No supplier — show all categories
-                CFG.categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
-                if(S.wizData.category_id)sel.value=S.wizData.category_id;
-                if(sel.value&&wCat)wCat.onchange();
-                return;
-            }
-            const d=await api('products.php?ajax=categories&store_id='+CFG.storeId+'&sup='+supId);
-            if(d&&d.length){
-                d.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
-            }
-            // No fallback — show only supplier's categories (+ Нова via inline add)
-            // Re-select saved category after rebuild
-            if(S.wizData.category_id)sel.value=S.wizData.category_id;
-            // Trigger subcategory load for saved category
-            if(sel.value&&wCat)wCat.onchange();
-        };if(S.wizData.supplier_id)await wSup.onchange()}
-        // When category changes → reload subcategories
-        if(wCat){wCat.onchange=async function(){
-            const id=this.value;const sel=document.getElementById('wSubcat');
-            sel.innerHTML='<option value="">\u2014 Няма \u2014</option>';
-            if(!id)return;
-            const d=await api('products.php?ajax=subcategories&parent_id='+id);
-            if(d&&d.length)d.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
-            // Re-select saved subcategory
-            if(S.wizData.subcategory_id)sel.value=S.wizData.subcategory_id;
-        };
-        // S73: always trigger subcategory load if category selected (after supplier rebuild)
-        if(S.wizData.category_id)await wCat.onchange();
-        }
+        if(_el('wOrigin')&&S.wizData.origin_country)_el('wOrigin').value=S.wizData.origin_country;
+        if(_el('wColor')&&S.wizData.color)_el('wColor').value=S.wizData.color;
+        if(_el('wSize')&&S.wizData.size)_el('wSize').value=S.wizData.size;
     }
 }
 
@@ -9231,20 +9194,47 @@ function wizCollectData(){
     if(el('wWprice'))S.wizData.wholesale_price=parseFloat(el('wWprice').value)||0;
     if(el('wCostPrice'))S.wizData.cost_price=parseFloat(el('wCostPrice').value)||0;
     if(el('wBarcode'))S.wizData.barcode=el('wBarcode').value.trim();
-    if(el('wSupDD'))S.wizData.supplier_id=el('wSupDD')._selectedId||S.wizData.supplier_id||null;
-    if(el('wCatDD'))S.wizData.category_id=el('wCatDD')._selectedId||S.wizData.category_id||null;
-    if(el('wSubcat'))S.wizData.subcategory_id=el('wSubcat').value||null;
+    // S88B-1: native <select> dropdowns (wSup/wCat/wSubcat) — read .value directly.
+    if(el('wSup'))S.wizData.supplier_id=el('wSup').value?parseInt(el('wSup').value):null;
+    if(el('wCat'))S.wizData.category_id=el('wCat').value?parseInt(el('wCat').value):null;
+    if(el('wSubcat'))S.wizData.subcategory_id=el('wSubcat').value?parseInt(el('wSubcat').value):null;
+    // Legacy fallback for any remaining wSupDD/wCatDD code paths.
+    if(el('wSupDD')&&el('wSupDD')._selectedId)S.wizData.supplier_id=el('wSupDD')._selectedId;
+    if(el('wCatDD')&&el('wCatDD')._selectedId)S.wizData.category_id=el('wCatDD')._selectedId;
     if(el('wUnit'))S.wizData.unit=el('wUnit').value||'бр';
     if(el('wMinQty'))S.wizData.min_quantity=parseInt(el('wMinQty').value)||0;
     if(el('wDesc'))S.wizData.description=el('wDesc').value;
-    if(el('wOrigin'))S.wizData.origin_country=el('wOrigin').value;
+    if(el('wOrigin'))S.wizData.origin_country=el('wOrigin').value||null;
     if(el('wComposition'))S.wizData.composition=el('wComposition').value;
+    // S88B-1: single-mode color/size text inputs + Markup % field
+    if(el('wColor'))S.wizData.color=el('wColor').value.trim()||null;
+    if(el('wSize'))S.wizData.size=el('wSize').value.trim()||null;
+    if(el('wMarkupPct'))S.wizData.markup_pct=parseFloat(el('wMarkupPct').value)||null;
     if(S.wizStep===6&&S.wizData._printCombos){
         S.wizData._printCombos.forEach(function(c,i){
             var inp=document.getElementById('lblQty'+i);
             if(inp)c.printQty=parseInt(inp.value)||0;
         });
     }
+}
+
+// S88B-1: Markup % helpers — recalc display from cost+retail; apply user-entered markup back to cost.
+function wizRecalcMarkup(){
+    var r=parseFloat(S.wizData.retail_price)||0, c=parseFloat(S.wizData.cost_price)||0;
+    if(c>0&&r>0){S.wizData.markup_pct=Math.round(((r-c)/c)*100)}
+    else{S.wizData.markup_pct=null}
+    var mEl=document.getElementById('wMarkupPct');
+    if(mEl){mEl.value=(S.wizData.markup_pct===null||S.wizData.markup_pct===undefined)?'':S.wizData.markup_pct}
+}
+function wizApplyMarkup(val){
+    var m=parseFloat(val);
+    var r=parseFloat(S.wizData.retail_price)||0;
+    if(isNaN(m)||r<=0){return}
+    S.wizData.markup_pct=m;
+    var newCost=r/(1+m/100);
+    S.wizData.cost_price=Math.round(newCost*100)/100;
+    var cEl=document.getElementById('wCostPrice');
+    if(cEl)cEl.value=S.wizData.cost_price;
 }
 
 function wizQtyAdj(idx,delta){

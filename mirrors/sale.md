@@ -70,6 +70,28 @@ if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
     exit;
 }
 
+// ─── AJAX: Refetch Prices (S87 Bug #6 — wholesale toggle memory bug fix) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'refetch_prices') {
+    header('Content-Type: application/json; charset=utf-8');
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $ids = array_filter(array_map('intval', $body['product_ids'] ?? []));
+    if (empty($ids)) { echo json_encode([]); exit; }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $rows = DB::run(
+        "SELECT id, retail_price, wholesale_price FROM products WHERE tenant_id = ? AND id IN ($placeholders)",
+        array_merge([$tenant_id], $ids)
+    )->fetchAll(PDO::FETCH_ASSOC);
+    $out = [];
+    foreach ($rows as $r) {
+        $out[(int)$r['id']] = [
+            'retail' => (float)$r['retail_price'],
+            'wholesale' => (float)($r['wholesale_price'] ?: $r['retail_price']),
+        ];
+    }
+    echo json_encode($out);
+    exit;
+}
+
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
     header('Content-Type: application/json; charset=utf-8');
@@ -124,10 +146,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#08090d">
 <title><?= $page_title ?> — RunMyStore.ai</title>
 <link href="./css/vendors/aos.css" rel="stylesheet"/>
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>"/>
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <style>
 /* ═══════════════════════════════════════════════════════════
@@ -233,18 +259,20 @@ body::after{
     text-shadow:none;
 }
 .cam-btn{
-    width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-    border-radius:8px;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);
-    color:rgba(165,180,252,0.8);font-size:16px;border:none;cursor:pointer;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    border-radius:100px;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);
+    color:rgba(255,255,255,0.85);font-size:14px;border:1px solid rgba(255,255,255,0.08);cursor:pointer;font-family:inherit;
+    transition:all 0.15s;
 }
-.cam-btn:active{background:rgba(99,102,241,0.3);transform:scale(0.9)}
-.cam-right{display:flex;gap:4px}
+.cam-btn:active{background:hsl(var(--hue1) 60% 45% / 0.4);transform:scale(0.9);border-color:hsl(var(--hue1) 60% 55% / 0.4)}
+.cam-right{display:flex;gap:6px}
 .park-badge{
     position:absolute;top:-3px;right:-3px;
-    min-width:14px;height:14px;border-radius:7px;
-    background:var(--danger);color:#fff;font-size:8px;font-weight:800;
-    display:flex;align-items:center;justify-content:center;padding:0 3px;
-    box-shadow:0 0 6px rgba(239,68,68,0.5);
+    min-width:16px;height:16px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(38 90% 55%),hsl(38 90% 45%));
+    color:#fff;font-size:9px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;padding:0 4px;
+    box-shadow:0 0 8px hsl(38 90% 55% / 0.55),inset 0 1px 0 rgba(255,255,255,0.2);font-variant-numeric:tabular-nums;
 }
 /* Scan zone corners */
 .scan-corner{position:absolute;width:16px;height:16px;z-index:3}
@@ -330,21 +358,23 @@ body::after{
 /* ═══ SEARCH RESULTS ═══ */
 .search-results{
     max-height:0;overflow-y:auto;flex-shrink:0;
-    background:rgba(15,15,40,0.95);backdrop-filter:blur(12px);
+    background:var(--bg-card-strong);backdrop-filter:blur(12px);
     border-bottom:1px solid var(--border-subtle);
     transition:max-height 0.25s ease;
+    margin:0 8px;border-radius:0 0 14px 14px;
 }
-.search-results.open{max-height:200px}
+.search-results.open{max-height:240px;border:1px solid var(--border-subtle);border-top:none}
 .sr-item{
     display:flex;align-items:center;justify-content:space-between;
-    padding:10px 14px;border-bottom:1px solid rgba(99,102,241,0.08);
+    padding:11px 14px;border-bottom:1px solid var(--border-subtle);
     cursor:pointer;transition:background 0.15s;
 }
+.sr-item:last-child{border-bottom:none}
 .sr-item:active{background:rgba(99,102,241,0.12)}
-.sr-code{font-size:11px;color:var(--indigo-400);font-weight:600;margin-right:8px;min-width:50px}
-.sr-name{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sr-price{font-size:13px;font-weight:700;color:var(--indigo-300);margin-left:8px;white-space:nowrap}
-.sr-stock{font-size:10px;color:var(--text-secondary);margin-left:4px}
+.sr-code{font-size:10px;color:var(--indigo-300);font-weight:800;margin-right:8px;min-width:54px;letter-spacing:0.04em}
+.sr-name{flex:1;font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-price{font-size:13px;font-weight:900;color:var(--indigo-300);margin-left:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sr-stock{font-size:9px;color:var(--text-muted);margin-left:6px;font-weight:700;font-variant-numeric:tabular-nums}
 .sr-stock.zero{color:var(--danger)}
 
 /* ═══ CART ═══ */
@@ -354,55 +384,68 @@ body::after{
 }
 .cart-empty{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    height:100%;gap:12px;color:var(--text-secondary);
+    height:100%;gap:14px;color:var(--text-muted);padding:40px 20px;
 }
-.cart-empty-icon{font-size:48px;opacity:0.3}
-.cart-empty-text{font-size:14px;font-weight:500}
+.cart-empty-icon{font-size:54px;opacity:0.25;filter:drop-shadow(0 0 12px hsl(var(--hue1) 60% 50% / 0.3))}
+.cart-empty-text{font-size:13px;font-weight:600;letter-spacing:0.02em}
+/* V5 — set-row pattern: glass card with shine, indigo selected accent */
 .cart-item{
-    display:flex;align-items:center;padding:10px 14px;
-    border-bottom:1px solid rgba(99,102,241,0.06);
+    display:flex;align-items:center;gap:11px;padding:11px 13px;
+    margin:6px 8px;border-radius:14px;
+    background:var(--bg-card);border:1px solid var(--border-subtle);
     position:relative;overflow:hidden;
-    animation:fadeUp 0.2s ease both;
-    cursor:pointer;transition:background 0.15s;
+    animation:cardIn 0.25s ease both;
+    cursor:pointer;transition:all 0.15s;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.cart-item:active{background:rgba(99,102,241,0.08)}
-.cart-item.selected{background:rgba(99,102,241,0.12);border-left:3px solid var(--indigo-500)}
+:root[data-theme="light"] .cart-item{background:rgba(255,255,255,0.65);border-color:rgba(15,23,42,0.06);box-shadow:inset 0 1px 0 rgba(255,255,255,0.5)}
+.cart-item:active{background:rgba(99,102,241,0.10)}
+.cart-item.selected{
+    border-color:hsl(var(--hue1) 65% 55% / 0.5);
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 25% / 0.6),hsl(var(--hue2) 35% 20% / 0.5));
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 rgba(255,255,255,0.06);
+}
+:root[data-theme="light"] .cart-item.selected{background:linear-gradient(135deg,hsl(var(--hue1) 50% 88%),hsl(var(--hue2) 55% 92%));border-color:hsl(var(--hue1) 40% 75%)}
 .ci-info{flex:1;min-width:0}
-.ci-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-meta{font-size:11px;color:var(--text-secondary);margin-top:2px}
-.ci-right{text-align:right;flex-shrink:0;margin-left:8px}
-.ci-qty{font-size:13px;font-weight:700;color:var(--indigo-300)}
-.ci-price{font-size:14px;font-weight:700;margin-top:2px}
+.ci-name{font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-meta{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.ci-right{text-align:right;flex-shrink:0;margin-left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:60px}
+.ci-qty{font-size:11px;font-weight:900;color:var(--indigo-300);font-variant-numeric:tabular-nums}
+.ci-price{font-size:13px;font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums}
 .ci-delete{
-    position:absolute;right:0;top:0;bottom:0;width:70px;
-    background:var(--danger);color:#fff;font-size:12px;font-weight:700;
-    display:flex;align-items:center;justify-content:center;
-    transform:translateX(100%);transition:transform 0.2s;
+    position:absolute;right:0;top:0;bottom:0;width:72px;
+    background:hsl(0 70% 55%);color:#fff;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;letter-spacing:0.04em;
+    transform:translateX(100%);transition:transform 0.2s;border-radius:0 14px 14px 0;
 }
 .cart-item.swiped .ci-delete{transform:translateX(0)}
 
 /* ═══ SUMMARY BAR ═══ */
+/* V5 — Summary bar: stat-num gradient on total */
 .summary-bar{
     display:flex;align-items:center;justify-content:space-between;
     height:44px;padding:0 14px;flex-shrink:0;
-    background:var(--bg-card);border-top:1px solid var(--border-subtle);
+    background:var(--bg-card-strong);backdrop-filter:blur(8px);
+    border-top:1px solid var(--border-subtle);
     border-bottom:1px solid var(--border-subtle);
 }
-.sum-count{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.sum-count{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.02em;font-variant-numeric:tabular-nums}
 .sum-discount{
-    width:36px;height:28px;border-radius:8px;
-    background:rgba(99,102,241,0.1);border:1px solid var(--border-subtle);
-    color:var(--indigo-300);font-size:13px;font-weight:700;
+    width:36px;height:28px;border-radius:100px;
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:12px;font-weight:800;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
     transition:all 0.2s;
 }
 .sum-discount:active{background:rgba(99,102,241,0.2);transform:scale(0.92)}
-.sum-discount.active{background:rgba(234,179,8,0.15);border-color:rgba(234,179,8,0.4);color:var(--warning)}
-.sum-total{font-size:15px;font-weight:800}
+.sum-discount.active{background:rgba(234,179,8,0.18);border-color:rgba(234,179,8,0.45);color:var(--warning);box-shadow:0 0 12px rgba(234,179,8,0.3)}
+.sum-total{font-size:13px;font-weight:800;color:var(--text-secondary);letter-spacing:0.02em}
 .sum-total .amount{
-    background:linear-gradient(90deg,var(--indigo-400) 25%,#c7d2fe 50%,var(--indigo-400) 75%);
-    background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    font-size:18px;font-weight:900;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;
+    background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
 }
+:root[data-theme="light"] .sum-total .amount{background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .sum-total .amount.changed{animation:shimmer 1.5s linear 1}
 
 /* ═══ ACTION BAR ═══ */
@@ -512,17 +555,19 @@ body::after{
     display:flex;align-items:center;justify-content:space-between;
     margin-bottom:16px;
 }
-.pay-due{font-size:13px;color:var(--text-secondary)}
+/* V5 — stat-label uppercase + stat-num.lg gradient */
+.pay-due{font-size:9px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:hsl(var(--hue1) 50% 70%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / 0.25)}
 .pay-due-amount{
-    font-size:28px;font-weight:900;
-    background:linear-gradient(135deg,#f1f5f9,#a5b4fc);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    font-size:42px;font-weight:900;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums;
+    background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
 }
+:root[data-theme="light"] .pay-due-amount{background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .pay-close{
-    width:32px;height:32px;border-radius:10px;
-    background:rgba(99,102,241,0.1);border:1px solid var(--border-subtle);
-    color:var(--indigo-300);font-size:16px;display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
+    width:32px;height:32px;border-radius:100px;
+    background:var(--bg-card);border:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:14px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;backdrop-filter:blur(6px);
 }
 .pay-methods{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 /* V5 — pkg-card pill style: pill, indigo border on active, glow */
@@ -547,10 +592,10 @@ body::after{
 
 /* Payment received section */
 .pay-received{margin-bottom:12px}
-.pay-recv-label{font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+.pay-recv-label{font-size:9px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
 .pay-recv-amount{
-    font-size:24px;font-weight:800;color:var(--text-primary);
-    text-align:center;padding:8px 0;
+    font-size:24px;font-weight:900;color:var(--text-primary);letter-spacing:-0.02em;
+    text-align:center;padding:8px 0;font-variant-numeric:tabular-nums;
 }
 /* V5 — Banknotes pill grid */
 .pay-banknotes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:6px 0 14px}
@@ -642,22 +687,25 @@ body::after{
     box-shadow:0 -20px 60px rgba(99,102,241,0.2);
 }
 .ws-sheet.open{transform:translateY(0)}
-.ws-title{font-size:15px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:16px}
+.ws-title{font-size:14px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:16px;letter-spacing:-0.01em}
 .ws-item{
     display:flex;align-items:center;justify-content:space-between;
-    padding:12px 14px;border-bottom:1px solid rgba(99,102,241,0.08);
-    cursor:pointer;transition:background 0.15s;border-radius:10px;margin-bottom:2px;
+    padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-subtle);
+    cursor:pointer;transition:all 0.15s;border-radius:14px;margin-bottom:6px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.ws-item:active{background:rgba(99,102,241,0.1)}
-.ws-name{font-size:14px;font-weight:600}
-.ws-phone{font-size:12px;color:var(--text-secondary)}
+:root[data-theme="light"] .ws-item{background:rgba(255,255,255,0.65)}
+.ws-item:active{background:rgba(99,102,241,0.10);transform:scale(0.99)}
+.ws-name{font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.01em}
+.ws-phone{font-size:10px;color:var(--text-muted);font-weight:600;margin-top:2px}
 .ws-retail{
-    padding:12px 14px;border-radius:10px;cursor:pointer;
-    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
-    color:#fca5a5;font-size:13px;font-weight:700;text-align:center;
+    padding:12px 14px;border-radius:100px;cursor:pointer;
+    background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.30);
+    color:#fca5a5;font-size:12px;font-weight:800;text-align:center;letter-spacing:0.04em;
     margin-top:8px;transition:all 0.15s;
 }
-.ws-retail:active{background:rgba(239,68,68,0.15)}
+:root[data-theme="light"] .ws-retail{color:hsl(0 60% 45%)}
+.ws-retail:active{background:rgba(239,68,68,0.20)}
 
 /* ═══ PARKED SALES OVERLAY ═══ */
 .parked-overlay{
@@ -671,26 +719,37 @@ body::after{
     opacity:0;transform:scale(0.95);transition:all 0.3s;
 }
 .parked-overlay.open .parked-container{opacity:1;transform:scale(1)}
+/* V5 — pkg-card style: glass with side accent bar */
 .parked-card{
-    background:var(--bg-card);border:1px solid var(--border-subtle);
-    border-radius:16px;padding:16px;backdrop-filter:blur(12px);
+    position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.025),rgba(0,0,0,0.15));
+    border:1px solid var(--border-subtle);
+    border-radius:14px;padding:16px;backdrop-filter:blur(8px);
     cursor:pointer;transition:all 0.2s;animation:cardIn 0.3s ease both;
+    overflow:hidden;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 12px rgba(0,0,0,0.2);
+}
+:root[data-theme="light"] .parked-card{background:linear-gradient(135deg,rgba(255,255,255,0.85),rgba(241,245,249,0.92))}
+.parked-card::before{
+    content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;
+    background:linear-gradient(180deg,hsl(38 90% 55%) 0%,transparent 100%);
+    box-shadow:0 0 20px 1px hsl(38 90% 55%);opacity:0.9;
 }
 .parked-card:active{transform:scale(0.97);border-color:var(--border-glow)}
 .pc-header{display:flex;justify-content:space-between;margin-bottom:8px}
-.pc-client{font-size:13px;font-weight:700;color:var(--indigo-300)}
-.pc-time{font-size:11px;color:var(--text-secondary)}
-.pc-info{font-size:12px;color:var(--text-secondary)}
-.pc-total{font-size:16px;font-weight:800;margin-top:6px}
+.pc-client{font-size:11px;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:hsl(38 90% 65%);text-shadow:0 0 8px hsl(38 90% 55% / 0.3)}
+.pc-time{font-size:10px;color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums}
+.pc-info{font-size:11px;color:var(--text-secondary);font-weight:600}
+.pc-total{font-size:18px;font-weight:900;margin-top:6px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:var(--text-primary)}
 .pc-delete{
-    float:right;padding:4px 10px;border-radius:8px;
-    background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
-    color:#fca5a5;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;
+    float:right;padding:5px 12px;border-radius:100px;
+    background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.30);
+    color:#fca5a5;font-size:10px;font-weight:800;cursor:pointer;margin-top:8px;letter-spacing:0.04em;
 }
-.pc-delete:active{background:rgba(239,68,68,0.2)}
+:root[data-theme="light"] .pc-delete{color:hsl(0 60% 45%)}
+.pc-delete:active{background:rgba(239,68,68,0.20)}
 .parked-title{
-    text-align:center;font-size:16px;font-weight:800;color:var(--text-primary);
-    margin-bottom:8px;flex-shrink:0;
+    text-align:center;font-size:14px;font-weight:800;color:var(--text-primary);
+    margin-bottom:8px;flex-shrink:0;letter-spacing:-0.01em;
 }
 
 /* ═══ VOICE OVERLAY — products.php rec-ov/rec-box style ═══ */
@@ -754,37 +813,42 @@ body::after{
 /* Buttons row */
 .rec-actions{display:flex;gap:8px}
 .rec-btn-cancel{
-    flex:1;height:44px;border-radius:12px;
+    flex:1;height:44px;border-radius:100px;
     border:1px solid var(--border-subtle);background:var(--bg-card);
-    color:var(--indigo-300);font-size:14px;font-weight:600;
-    cursor:pointer;font-family:inherit;
+    color:var(--indigo-300);font-size:13px;font-weight:700;
+    cursor:pointer;font-family:inherit;backdrop-filter:blur(6px);letter-spacing:0.02em;
     display:flex;align-items:center;justify-content:center;
 }
+:root[data-theme="light"] .rec-btn-cancel{background:rgba(255,255,255,0.85)}
 .rec-btn-cancel:active{background:rgba(99,102,241,0.12)}
 .rec-btn-send{
-    flex:2;height:44px;border-radius:12px;border:none;
-    background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
-    color:#fff;font-size:14px;font-weight:700;
+    flex:2;height:44px;border-radius:100px;
+    background:linear-gradient(135deg,
+        color-mix(in oklch, hsl(var(--hue1) 65% 55%) 35%, hsl(220 30% 10%)) 0%,
+        color-mix(in oklch, hsl(var(--hue1) 65% 55%) 20%, hsl(220 30% 8%)) 100%);
+    border:1px solid hsl(var(--hue1) 65% 55% / 0.5);
+    color:#fff;font-size:13px;font-weight:800;letter-spacing:0.02em;
     cursor:pointer;font-family:inherit;
     display:flex;align-items:center;justify-content:center;gap:6px;
-    box-shadow:0 4px 16px rgba(99,102,241,0.35);
+    box-shadow:0 4px 14px hsl(var(--hue1) 65% 55% / 0.35),inset 0 1px 0 rgba(255,255,255,0.12);
     transition:all 0.2s;
 }
 .rec-btn-send:active{transform:scale(0.97)}
 .rec-btn-send:disabled{opacity:0.3;pointer-events:none}
 
 /* ═══ TOAST ═══ */
+/* V5 — Toast: pill, glass, indigo glow */
 .toast{
-    position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-100px);
-    z-index:500;padding:12px 24px;border-radius:14px;
-    background:rgba(15,15,40,0.95);border:1px solid var(--border-glow);
+    position:fixed;top:calc(60px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) translateY(-100px);
+    z-index:500;padding:10px 20px;border-radius:100px;
+    background:var(--bg-card-strong);border:1px solid var(--border-glow);
     backdrop-filter:blur(16px);color:var(--text-primary);
-    font-size:14px;font-weight:600;white-space:nowrap;
-    box-shadow:0 8px 32px rgba(99,102,241,0.3);
+    font-size:12px;font-weight:700;white-space:nowrap;letter-spacing:0.02em;
+    box-shadow:0 8px 32px hsl(var(--hue1) 60% 45% / 0.30),inset 0 1px 0 rgba(255,255,255,0.06);
     transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
 .toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{border-color:rgba(34,197,94,0.4);box-shadow:0 8px 32px rgba(34,197,94,0.2)}
+.toast.success{border-color:hsl(145 70% 50% / 0.5);box-shadow:0 8px 32px hsl(145 70% 50% / 0.25)}
 
 /* ═══ BOTTOM NAV ═══ */
 .bottom-nav{
@@ -1002,10 +1066,10 @@ body{padding-bottom:env(safe-area-inset-bottom);}
                     <button class="cam-btn s87v3-tap" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
                 </div>
             </div>
-            <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
-            <div class="scan-corner sc-tr"><svg viewBox="0 0 16 16"><path d="M16 5V1a1 1 0 00-1-1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
-            <div class="scan-corner sc-bl"><svg viewBox="0 0 16 16"><path d="M0 11v4a1 1 0 001 1h4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
-            <div class="scan-corner sc-br"><svg viewBox="0 0 16 16"><path d="M16 11v4a1 1 0 01-1 1h-4" fill="none" stroke="#22c55e" stroke-width="2" stroke-opacity="0.6"/></svg></div>
+            <div class="scan-corner sc-tl"><svg viewBox="0 0 16 16"><path d="M0 5V1a1 1 0 011-1h4" fill="none" stroke="hsl(255 70% 65%)" stroke-width="2" stroke-opacity="0.7"/></svg></div>
+            <div class="scan-corner sc-tr"><svg viewBox="0 0 16 16"><path d="M16 5V1a1 1 0 00-1-1h-4" fill="none" stroke="hsl(255 70% 65%)" stroke-width="2" stroke-opacity="0.7"/></svg></div>
+            <div class="scan-corner sc-bl"><svg viewBox="0 0 16 16"><path d="M0 11v4a1 1 0 001 1h4" fill="none" stroke="hsl(255 70% 65%)" stroke-width="2" stroke-opacity="0.7"/></svg></div>
+            <div class="scan-corner sc-br"><svg viewBox="0 0 16 16"><path d="M16 11v4a1 1 0 01-1 1h-4" fill="none" stroke="hsl(255 70% 65%)" stroke-width="2" stroke-opacity="0.7"/></svg></div>
             <div class="scan-laser"></div>
             <div class="cam-status">
                 <div class="scan-dot"></div>
@@ -1292,6 +1356,45 @@ function toggleTheme(){
     if(navigator.vibrate)navigator.vibrate(5);
 }
 
+// ─── S87.DEBUG OVERLAY (Bug #1: търсачката не реагира — за phone debug без Chrome inspect) ───
+// Toggle: long-press на 'sale-wrap' wrapper за 3s — показва/скрива overlay
+window.__rms_debug = false;
+function debugLog(msg){
+    try {
+        if (!window.__rms_debug) return;
+        var dbg = document.getElementById('dbgOverlay');
+        if (!dbg) {
+            dbg = document.createElement('div');
+            dbg.id='dbgOverlay';
+            dbg.style.cssText='position:fixed;top:calc(50px + env(safe-area-inset-top,0px));left:8px;right:8px;max-height:180px;overflow-y:auto;background:rgba(0,0,0,.85);color:#0f0;font:10px/1.3 monospace;padding:8px;z-index:9999;border-radius:8px;border:1px solid rgba(0,255,0,.3);pointer-events:none;white-space:pre-wrap';
+            document.body.appendChild(dbg);
+        }
+        var t = new Date().toTimeString().slice(0,8);
+        dbg.innerHTML += '<div>[' + t + '] ' + (msg || '').toString().slice(0, 200) + '</div>';
+        dbg.scrollTop = dbg.scrollHeight;
+    } catch(_) {}
+}
+// Long-press 'СКЕНЕР АКТИВЕН' status text → toggle debug
+document.addEventListener('DOMContentLoaded', function(){
+    var camStatus = document.querySelector('.cam-status');
+    if (!camStatus) return;
+    var lpTimer;
+    camStatus.addEventListener('touchstart', function(){
+        lpTimer = setTimeout(function(){
+            window.__rms_debug = !window.__rms_debug;
+            var existing = document.getElementById('dbgOverlay');
+            if (existing) existing.remove();
+            if (window.__rms_debug) {
+                debugLog('🟢 Debug overlay ON — long-press status за изключване');
+                debugLog('UA: ' + navigator.userAgent.slice(0,80));
+                debugLog('viewport: ' + window.innerWidth + 'x' + window.innerHeight);
+            }
+        }, 1800);
+    }, {passive:true});
+    camStatus.addEventListener('touchend', function(){ clearTimeout(lpTimer); });
+    camStatus.addEventListener('touchmove', function(){ clearTimeout(lpTimer); });
+});
+
 // ─── STATE ───
 const STATE = {
     cart: [],               // [{product_id, code, name, meta, unit_price, quantity, discount_pct, image}]
@@ -1322,6 +1425,33 @@ const STATE = {
 // ─── FORMAT HELPERS ───
 function fmtPrice(n) {
     return parseFloat(n).toLocaleString('bg-BG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+/* S87 Bug #10 — EUR/BGN dual display per Закон №4 (BIBLE) until 2026-08-08.
+ * Returns "1.95 € (3.82 лв)" if BGN tenant before deadline, else single currency.
+ * Rate: 1.95583 (fixed per BNB).
+ */
+const BGN_EUR_RATE = 1.95583;
+const DUAL_DEADLINE = new Date('2026-08-08T00:00:00');
+function priceFormat(n, opts) {
+    opts = opts || {};
+    var primary = parseFloat(n) || 0;
+    var cur = STATE.currency || 'лв';
+    var dual = opts.dual !== false && new Date() < DUAL_DEADLINE;
+    var primaryStr = fmtPrice(primary) + ' ' + cur;
+    if (!dual) return primaryStr;
+    // Compute secondary
+    var secondary, secCur;
+    if (cur === 'лв' || cur === 'BGN') {
+        secondary = primary / BGN_EUR_RATE;
+        secCur = '€';
+    } else if (cur === '€' || cur === 'EUR') {
+        secondary = primary * BGN_EUR_RATE;
+        secCur = 'лв';
+    } else {
+        return primaryStr;
+    }
+    return primaryStr + ' (' + fmtPrice(secondary) + ' ' + secCur + ')';
 }
 
 function getTotal() {
@@ -1599,6 +1729,7 @@ function setNumpadCtx(ctx) {
 
 // ─── NUMPAD INPUT ───
 function numPress(key) {
+    debugLog('numPress("' + key + '") ctx=' + STATE.numpadCtx);
     if (key === 'C') {
         STATE.numpadInput = '';
         if (STATE.numpadCtx === 'code') {
@@ -1714,9 +1845,14 @@ function showNoResult() {
 }
 
 function doSearch(q) {
+    debugLog('doSearch("' + q + '")');
     fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
-        .then(r => r.json())
+        .then(r => {
+            debugLog('search HTTP ' + r.status);
+            return r.json();
+        })
         .then(results => {
+            debugLog('search results: ' + (Array.isArray(results) ? results.length : '!array') + ' items');
             const container = document.getElementById('searchResults');
             container.innerHTML = '';
             if (results.length === 0) {
@@ -1742,7 +1878,10 @@ function doSearch(q) {
             });
             container.classList.add('open');
         })
-        .catch(err => console.error('Search error:', err));
+        .catch(err => {
+            console.error('Search error:', err);
+            debugLog('❌ search error: ' + (err && err.message ? err.message : String(err)).slice(0, 100));
+        });
 }
 
 function closeSearchResults() {
@@ -1760,6 +1899,7 @@ function toggleKeyboard() {
 }
 
 function kbPress(key) {
+    debugLog('kbPress("' + key + '")');
     if (key === '⌫') {
         STATE.searchText = STATE.searchText.slice(0, -1);
     } else {
@@ -1949,11 +2089,30 @@ function selectClient(id, name) {
         STATE.customerId = id;
         STATE.customerName = name;
     }
-    // Recalculate prices in cart
-    STATE.cart.forEach(it => {
-        // We'd need to refetch prices — for now keep current
+    // S87 Bug #6: refetch prices when wholesale toggles (was TODO/noop before)
+    if (STATE.cart.length === 0) { render(); return; }
+    const ids = STATE.cart.map(it => it.product_id);
+    debugLog('refetch prices for ' + ids.length + ' items, wholesale=' + STATE.isWholesale);
+    fetch('sale.php?action=refetch_prices', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({product_ids: ids}),
+    })
+    .then(r => r.json())
+    .then(prices => {
+        STATE.cart.forEach(it => {
+            const p = prices[it.product_id];
+            if (p) {
+                it.unit_price = STATE.isWholesale ? p.wholesale : p.retail;
+            }
+        });
+        render();
+    })
+    .catch(err => {
+        debugLog('❌ refetch failed: ' + err);
+        showToast('Не успях да обновя цените', '', 3000);
+        render();
     });
-    render();
 }
 
 // ─── PARKING ───
@@ -2091,10 +2250,36 @@ async function startCamera() {
         video.srcObject = stream;
         STATE.cameraActive = true;
         startBarcodeScanner();
+        debugLog('camera started');
     } catch (e) {
-        console.warn('Camera not available');
+        console.warn('Camera not available', e);
+        debugLog('❌ camera: ' + (e && e.name ? e.name : String(e)).slice(0, 60));
+        // S87 Bug #11: fallback UX toast for browsers without BarcodeDetector
+        if (!('BarcodeDetector' in window)) {
+            showToast('Камерата не сканира — въведи код ръчно', '', 4000);
+        }
     }
 }
+
+// S87 Bug #3: Camera lifecycle — release stream on hide, restart on show
+function stopCamera() {
+    const video = document.getElementById('cameraVideo');
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+    }
+    if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = null; }
+    STATE.cameraActive = false;
+    debugLog('camera stopped');
+}
+document.addEventListener('visibilitychange', function(){
+    if (document.hidden) {
+        stopCamera();
+    } else if (!STATE.cameraActive) {
+        startCamera();
+    }
+});
+window.addEventListener('pagehide', stopCamera);
 
 function flashCamScan() {
     const el = document.getElementById('camHeader');
