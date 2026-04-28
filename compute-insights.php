@@ -137,6 +137,43 @@ function pfRoleGateFor(string $fq, string $topic): string {
 }
 
 /**
+ * S88: Default action mapping per fundamental_question — "умен служител" tone.
+ * intent = семантичното действие (което UI може да рендерира директно).
+ * type   = валидна стойност от ai_insights.action_type ENUM
+ *          ('deeplink','order_draft','chat','none').
+ * Когато pf*() не задава action_label/action_type, pfUpsert използва тези defaults.
+ */
+function pfDefaultAction(string $fq): array {
+    $map = [
+        'loss'       => ['label' => 'Поръчай 5 преди да свършат', 'intent' => 'order_draft',     'type' => 'order_draft'],
+        'loss_cause' => ['label' => 'Виж тренда',                  'intent' => 'navigate_chart',  'type' => 'deeplink'],
+        'gain'       => ['label' => 'Виж бестселър',               'intent' => 'navigate_product','type' => 'deeplink'],
+        'gain_cause' => ['label' => 'Дублирай в магазин 2',        'intent' => 'transfer_draft',  'type' => 'order_draft'],
+        'order'      => ['label' => 'Поръчай 10 от доставчика',    'intent' => 'order_draft',     'type' => 'order_draft'],
+        'anti_order' => ['label' => 'НЕ поръчвай — стои 6 мес',    'intent' => 'dismiss',         'type' => 'none'],
+    ];
+    return $map[$fq] ?? ['label' => null, 'intent' => 'none', 'type' => 'none'];
+}
+
+/**
+ * S88: Гарантирай че всеки items[] обект има `id` ключ (products.php loadSections
+ * чете `it['id']`). pf*() функциите пишат само `product_id` — без този sweep всички
+ * items биват филтрирани и q1-q6 секциите се рендерират празни.
+ */
+function pfNormalizeItems(?array $detail): ?array {
+    if (!is_array($detail) || !isset($detail['items']) || !is_array($detail['items'])) {
+        return $detail;
+    }
+    foreach ($detail['items'] as $k => $it) {
+        if (!is_array($it)) continue;
+        if (!isset($it['id']) && isset($it['product_id'])) {
+            $detail['items'][$k]['id'] = (int)$it['product_id'];
+        }
+    }
+    return $detail;
+}
+
+/**
  * Idempotent UPSERT в ai_insights.
  * Dedup ключ: tenant_id + topic_id + product_id (NULL-safe) + fundamental_question
  */
@@ -157,17 +194,43 @@ function pfUpsert(int $tenant_id, array $i): array {
     $urgency     = in_array($urgency_in, $valid_urg, true) ? $urgency_in : 'info';
     if ($urgency_in === 'opportunity') $urgency = 'info';
     
-    // Map action_type: 'url' → 'deeplink'
-    $atype_in    = $i['action_type'] ?? 'none';
-    $atype_map   = ['url' => 'deeplink', 'chat' => 'chat', 'order_draft' => 'order_draft', 'deeplink' => 'deeplink', 'none' => 'none'];
+    // S88: Default action mapping per FQ ("умен служител" tone). pf*() може да override-ва.
+    $defaults    = pfDefaultAction($fq);
+
+    // Map action_type: 'url' → 'deeplink'; non-enum semantic types (navigate_chart,
+    // navigate_product, transfer_draft, dismiss) се събират в action_data.intent
+    // и mapват към най-близкия валиден ENUM. Запазваме оригинала.
+    $atype_in    = $i['action_type'] ?? $defaults['type'];
+    $atype_map   = [
+        'url'              => 'deeplink',
+        'chat'             => 'chat',
+        'order_draft'      => 'order_draft',
+        'deeplink'         => 'deeplink',
+        'none'             => 'none',
+        'navigate_chart'   => 'deeplink',
+        'navigate_product' => 'deeplink',
+        'transfer_draft'   => 'order_draft',
+        'dismiss'          => 'none',
+    ];
     $action_typ  = $atype_map[$atype_in] ?? 'none';
-    
+
     $title       = mb_substr($i['pill_text'] ?? $i['title'] ?? '', 0, 255);
     $value       = $i['value_numeric'] ?? null;
-    $data_json   = isset($i['detail']) ? json_encode($i['detail'], JSON_UNESCAPED_UNICODE) : null;
-    $action_lbl  = $i['action_label'] ?? null;
+    // S88: items нормализация — добавяме `id` ключ за да loadSections в products.php ги вижда.
+    $detail_norm = pfNormalizeItems($i['detail'] ?? null);
+    $data_json   = ($detail_norm !== null) ? json_encode($detail_norm, JSON_UNESCAPED_UNICODE) : null;
+    // S88: action_label fallback към FQ default — "умен служител" tone.
+    $action_lbl  = $i['action_label'] ?? $defaults['label'];
     $action_url  = $i['action_url']   ?? null;
-    $action_dat  = isset($i['action_data']) ? json_encode($i['action_data'], JSON_UNESCAPED_UNICODE) : null;
+    // S88: action_data винаги съдържа `intent` (raw user-intended action_type) и `fq`
+    // за да фронтендът може да рендерира семантичното действие, дори ако ENUM ограничи action_type.
+    $action_data_arr = $i['action_data'] ?? [];
+    if (!is_array($action_data_arr)) $action_data_arr = [];
+    if (!isset($action_data_arr['intent'])) {
+        $action_data_arr['intent'] = ($atype_in !== 'none' && $atype_in !== null) ? $atype_in : $defaults['intent'];
+    }
+    if (!isset($action_data_arr['fq'])) $action_data_arr['fq'] = $fq;
+    $action_dat  = json_encode($action_data_arr, JSON_UNESCAPED_UNICODE);
     $expires_at  = pfExpiresAt($fq);
     $role_gate   = pfRoleGateFor($fq, $topic_id);
     $plan_gate   = pfPlanGateFor($fq);

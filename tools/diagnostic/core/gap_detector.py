@@ -31,6 +31,8 @@ NON_INSIGHT_PF = {
     'pfDB', 'pfTableExists', 'pfColumnExists', 'pfDefaultStoreId',
     'pfCategoryFor', 'pfPlanGateFor', 'pfExpiresAt', 'pfRoleGateFor',
     'pfUpsert',
+    # S88.AIBRAIN.PUMP — нови pfUpsert helpers (не са topic producers).
+    'pfDefaultAction', 'pfNormalizeItems',
 }
 
 

@@ -49,6 +49,18 @@ EXPIRES_DAYS = 7
 
 FQ_ORDER = ["loss", "loss_cause", "gain", "gain_cause", "order", "anti_order"]
 
+# S88.AIBRAIN.PUMP — "умен служител" tone, единен per fundamental_question.
+# action_type ENUM е ('deeplink','order_draft','chat','none') — semantic intent
+# (navigate_chart, navigate_product, transfer_draft, dismiss) се пази в action_data.intent.
+FQ_DEFAULT_ACTION = {
+    "loss":       {"label": "Поръчай 5 преди да свършат", "intent": "order_draft",     "type": "order_draft"},
+    "loss_cause": {"label": "Виж тренда",                  "intent": "navigate_chart",  "type": "deeplink"},
+    "gain":       {"label": "Виж бестселър",               "intent": "navigate_product","type": "deeplink"},
+    "gain_cause": {"label": "Дублирай в магазин 2",        "intent": "transfer_draft",  "type": "order_draft"},
+    "order":      {"label": "Поръчай 10 от доставчика",    "intent": "order_draft",     "type": "order_draft"},
+    "anti_order": {"label": "НЕ поръчвай — стои 6 мес",    "intent": "dismiss",         "type": "none"},
+}
+
 
 # ─────────────────────────────────────────────────────────────────────────
 # DB
@@ -182,6 +194,39 @@ SEED_TEMPLATES = {
             "action_url": "",
             "value_numeric": 1.45,
         },
+        {
+            "topic": "high_margin_winners",
+            "category": "product_mix",
+            "urgency": "info",
+            "role_gate": "owner",
+            "title": "{N} артикула с над 60% марж и стабилни продажби",
+            "action_label": "Виж списък",
+            "action_type": "deeplink",
+            "action_url": "/products.php?filter=margin_60",
+            "value_numeric": 60.00,
+        },
+        {
+            "topic": "store2_replication_candidates",
+            "category": "product_mix",
+            "urgency": "info",
+            "role_gate": "owner",
+            "title": "{N} продукта печелят добре — заслужават дублиране в магазин 2",
+            "action_label": "Дублирай асортимента",
+            "action_type": "order_draft",
+            "action_url": "",
+            "value_numeric": 0.00,
+        },
+        {
+            "topic": "loyal_customer_basket",
+            "category": "audience",
+            "urgency": "info",
+            "role_gate": "owner",
+            "title": "Постоянни клиенти държат {N} лидер-артикула в кошницата",
+            "action_label": "Виж тренда",
+            "action_type": "chat",
+            "action_url": "",
+            "value_numeric": 5.00,
+        },
     ],
     "order": [
         {
@@ -287,8 +332,12 @@ def fetch_default_store_id(cur, tenant_id: int) -> int:
 
 def build_data_json(template: dict, products: list, n: int) -> dict:
     sliced = products[:n] if products else []
+    # S88: items имат и `id` (read by products.php loadSections), и `product_id`
+    # (read by everything else в системата) — двойният ключ е дотогава докато
+    # loadSections мигрира към product_id.
     items = [
         {
+            "id": int(p["id"]),
             "product_id": int(p["id"]),
             "name": p["name"][:80],
         }
@@ -333,9 +382,24 @@ def upsert_seed(
 
     n = max(1, min(len(products), 10))
     title = render_title(template, n)
-    data_json = json.dumps(build_data_json(template, products, n), ensure_ascii=False)
+    data_obj = build_data_json(template, products, n)
+    data_json = json.dumps(data_obj, ensure_ascii=False)
     value_numeric = float(template.get("value_numeric", 0))
     product_count = n if template.get("category") in {"stock_health", "supply", "product_mix"} else None
+
+    # S88.AIBRAIN.PUMP — единен per-FQ tone ("умен служител"). Override-ваме template
+    # action_label/action_type с FQ default, така че всички живи insights имат
+    # консистентна call-to-action независимо от topic_id.
+    fq_action = FQ_DEFAULT_ACTION.get(fq, {"label": template["action_label"], "intent": "none", "type": "none"})
+    action_label = fq_action["label"][:100]
+    action_type = fq_action["type"]
+    action_data = json.dumps({
+        "intent": fq_action["intent"],
+        "fq": fq,
+        "topic_id": topic_id,
+        "items": data_obj.get("items", []),
+        "count": data_obj.get("count", 0),
+    }, ensure_ascii=False)
 
     common = {
         "store_id": store_id,
@@ -349,9 +413,10 @@ def upsert_seed(
         "role_gate": template["role_gate"],
         "title": title,
         "detail_text": "",
-        "action_label": template["action_label"][:100],
-        "action_type": template["action_type"],
+        "action_label": action_label,
+        "action_type": action_type,
         "action_url": template["action_url"][:255],
+        "action_data": action_data,
         "data_json": data_json,
         "value_numeric": value_numeric,
         "product_count": product_count,
@@ -366,7 +431,8 @@ def upsert_seed(
                 urgency=%(urgency)s, plan_gate=%(plan_gate)s, role_gate=%(role_gate)s,
                 title=%(title)s, detail_text=%(detail_text)s,
                 action_label=%(action_label)s, action_type=%(action_type)s,
-                action_url=%(action_url)s, data_json=%(data_json)s,
+                action_url=%(action_url)s, action_data=%(action_data)s,
+                data_json=%(data_json)s,
                 value_numeric=%(value_numeric)s, product_count=%(product_count)s,
                 expires_at=%(expires_at)s
             WHERE id=%(id)s
@@ -380,14 +446,14 @@ def upsert_seed(
         INSERT INTO ai_insights
             (tenant_id, store_id, topic_id, category, grp, module, urgency,
              fundamental_question, plan_gate, role_gate, title, detail_text,
-             action_label, action_type, action_url, data_json,
+             action_label, action_type, action_url, action_data, data_json,
              value_numeric, product_count, created_at, expires_at)
         VALUES
             (%(tenant_id)s, %(store_id)s, %(topic_id)s, %(category)s, %(grp)s,
              %(module)s, %(urgency)s, %(fundamental_question)s, %(plan_gate)s,
              %(role_gate)s, %(title)s, %(detail_text)s, %(action_label)s,
-             %(action_type)s, %(action_url)s, %(data_json)s, %(value_numeric)s,
-             %(product_count)s, NOW(), %(expires_at)s)
+             %(action_type)s, %(action_url)s, %(action_data)s, %(data_json)s,
+             %(value_numeric)s, %(product_count)s, NOW(), %(expires_at)s)
         """,
         {**common, "tenant_id": tenant_id},
     )
