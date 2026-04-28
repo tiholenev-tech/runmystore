@@ -38,8 +38,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     $q = trim($_GET['q'] ?? '');
     if (strlen($q) < 1) { echo json_encode([]); exit; }
     $like = "%$q%";
+    // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
     $results = DB::run("
         SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+               p.parent_id, p.color, p.size, p.image_url,
                COALESCE(i.quantity, 0) as stock
         FROM products p
         LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
@@ -48,7 +50,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
         ORDER BY
           CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
           p.name
-        LIMIT 10
+        LIMIT 30
     ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode($results);
     exit;
@@ -1178,6 +1180,128 @@ body.sale-page .cam-title{ display:none }
 /* re-balance cam-top now that we have 3 visible children: ← + cam-tabs + cam-right */
 body.sale-page .cam-top{ gap:8px }
 
+/* ═══════════════════════════════════════════════════════════
+   S87D Phase 2 — SEARCH OVERLAY (full-screen, native keyboard)
+   ═══════════════════════════════════════════════════════════ */
+.search-ov{
+    position:fixed;inset:0;background:var(--bg-main);z-index:200;
+    display:flex;flex-direction:column;animation:srchOvIn 0.2s ease-out;
+}
+@keyframes srchOvIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.search-ov-state{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.search-ov-head{
+    display:flex;align-items:center;gap:10px;
+    padding:max(12px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+}
+:root[data-theme="light"] .search-ov-head{border-bottom-color:rgba(15,23,42,0.06)}
+.search-ov-back,.search-ov-close{
+    width:34px;height:34px;border-radius:100px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);
+    color:var(--text-secondary);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-family:inherit;
+}
+:root[data-theme="light"] .search-ov-back,
+:root[data-theme="light"] .search-ov-close{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.10)}
+.search-ov-title{
+    flex:1;font-size:14px;font-weight:800;color:var(--text-primary);
+    letter-spacing:-0.01em;text-align:center;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.search-ov-input-row{display:flex;gap:8px;padding:10px 14px;align-items:center}
+#srchOvInput{
+    flex:1;padding:14px 16px;font-size:16px;font-weight:600;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);
+    border-radius:100px;color:var(--text-primary);font-family:inherit;
+    outline:none;
+}
+:root[data-theme="light"] #srchOvInput{background:rgba(255,255,255,0.85);border-color:rgba(15,23,42,0.12)}
+#srchOvInput:focus{border-color:hsl(var(--hue1) 60% 50%);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
+.search-ov-mic{
+    width:44px;height:44px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / 0.45);
+}
+.search-ov-meta{
+    padding:6px 16px;font-size:11px;color:var(--text-muted);
+    font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
+}
+.search-ov-results,.search-ov-variants{
+    flex:1;overflow-y:auto;padding:4px 12px 24px;
+    -webkit-overflow-scrolling:touch;
+}
+/* Master row */
+.srch-master{
+    display:flex;align-items:center;gap:11px;padding:14px;
+    margin:5px 0;border-radius:14px;background:rgba(255,255,255,0.025);
+    border:1px solid rgba(255,255,255,0.05);cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
+    font-family:inherit;width:100%;text-align:left;
+}
+:root[data-theme="light"] .srch-master{background:rgba(255,255,255,0.65);border-color:rgba(15,23,42,0.06)}
+.srch-master:active{transform:scale(0.99);background:hsl(var(--hue1) 30% 18% / 0.5)}
+:root[data-theme="light"] .srch-master:active{background:hsl(var(--hue1) 50% 90%)}
+.srch-master-ico{
+    width:42px;height:42px;border-radius:11px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 25% / 0.6),hsl(var(--hue2) 35% 20% / 0.5));
+    border:1px solid hsl(var(--hue1) 30% 30% / 0.4);
+    display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+    overflow:hidden;
+}
+.srch-master-ico img{width:100%;height:100%;object-fit:cover;display:block}
+.srch-master-info{flex:1;min-width:0}
+.srch-master-name{
+    font-size:13px;font-weight:800;color:var(--text-primary);
+    letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.srch-master-meta{font-size:10px;color:var(--text-muted);font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.srch-master-arrow{color:rgba(255,255,255,0.3);font-size:18px;flex-shrink:0;font-weight:600}
+:root[data-theme="light"] .srch-master-arrow{color:rgba(15,23,42,0.3)}
+/* Variant row */
+.srch-variant{
+    display:flex;align-items:center;gap:10px;padding:11px 12px;
+    margin:5px 0;border-radius:12px;background:rgba(255,255,255,0.025);
+    border:1px solid rgba(255,255,255,0.05);
+}
+:root[data-theme="light"] .srch-variant{background:rgba(255,255,255,0.65);border-color:rgba(15,23,42,0.06)}
+.srch-variant-color{
+    width:18px;height:18px;border-radius:50%;flex-shrink:0;
+    border:1.5px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.1);
+}
+.srch-variant-info{flex:1;min-width:0}
+.srch-variant-name{font-size:12px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srch-variant-stock{font-size:9px;color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.srch-variant-stock.zero{color:#fca5a5}
+:root[data-theme="light"] .srch-variant-stock.zero{color:#dc2626}
+.srch-variant-price{font-size:12px;font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums;margin-right:6px}
+.srch-variant-add{
+    width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    font-family:inherit;font-size:18px;font-weight:900;line-height:1;
+    box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.4);
+}
+.srch-variant-add:active{transform:scale(0.92)}
+.srch-variant-add:disabled{opacity:0.35;cursor:not-allowed}
+/* Toast */
+.srch-toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    padding:10px 20px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(145 70% 45%),hsl(160 70% 40%));
+    color:#fff;font-size:12px;font-weight:800;letter-spacing:0.04em;
+    box-shadow:0 6px 20px hsl(145 70% 50% / 0.4);z-index:300;
+    animation:srchToastIn 0.3s ease,srchToastOut 0.3s ease 1.5s forwards;
+}
+@keyframes srchToastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes srchToastOut{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+/* Empty/loading state */
+.srch-empty{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;font-weight:600}
+
 </style>
 </head>
 <body class="sale-page">
@@ -1604,6 +1728,44 @@ body.sale-page .cam-top{ gap:8px }
 
 <?php /* sale.php — chat input intentionally OMITTED (POS scanner — no AI distraction during checkout) */ ?>
 <?php include __DIR__ . '/partials/bottom-nav.php'; ?>
+
+<!-- ═══ S87D — SEARCH OVERLAY (full-screen, native keyboard) ═══ -->
+<div class="search-ov" id="searchOverlay" style="display:none">
+    <!-- STATE A: master products list -->
+    <div class="search-ov-state" id="srchStateA">
+        <div class="search-ov-head">
+            <button class="search-ov-back" type="button" onclick="closeSearchOverlay()" aria-label="Назад">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="search-ov-title">Търсене на артикул</span>
+            <button class="search-ov-close" type="button" onclick="closeSearchOverlay()" aria-label="Затвори">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="search-ov-input-row">
+            <input type="text" id="srchOvInput" placeholder="Име, код или баркод" autocomplete="off" autocapitalize="off" inputmode="search">
+            <button class="search-ov-mic" type="button" onclick="srchOvVoice()" aria-label="Глас">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+        </div>
+        <div class="search-ov-meta" id="srchOvMeta">Започни писане за резултати</div>
+        <div class="search-ov-results" id="srchOvResults"></div>
+    </div>
+
+    <!-- STATE B: variants screen -->
+    <div class="search-ov-state" id="srchStateB" style="display:none">
+        <div class="search-ov-head">
+            <button class="search-ov-back" type="button" onclick="srchOvBackToMaster()" aria-label="Назад">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="search-ov-title" id="srchOvVariantsTitle">Варианти</span>
+            <button class="search-ov-close" type="button" onclick="closeSearchOverlay()" aria-label="Затвори">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="search-ov-variants" id="srchOvVariants"></div>
+    </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════
@@ -2927,6 +3089,244 @@ document.addEventListener('DOMContentLoaded', () => {
 const blinkStyle = document.createElement('style');
 blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}';
 document.head.appendChild(blinkStyle);
+
+/* ═══════════════════════════════════════════════════════════
+   S87D Phase 2 — SEARCH OVERLAY (full-screen, native keyboard,
+   master/variant grouping by parent_id with name fallback)
+   ═══════════════════════════════════════════════════════════ */
+let srchOvCurrentMaster = null;
+let srchOvDebounce = null;
+
+function openSearchOverlay() {
+    const ov = document.getElementById('searchOverlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    document.getElementById('srchStateA').style.display = 'flex';
+    document.getElementById('srchStateB').style.display = 'none';
+    document.body.classList.add('overlay-open');
+    const input = document.getElementById('srchOvInput');
+    input.value = '';
+    document.getElementById('srchOvResults').innerHTML = '';
+    document.getElementById('srchOvMeta').textContent = 'Започни писане за резултати';
+    setTimeout(() => input.focus(), 100); // triggers native keyboard
+}
+
+function closeSearchOverlay() {
+    const ov = document.getElementById('searchOverlay');
+    if (!ov) return;
+    ov.style.display = 'none';
+    document.body.classList.remove('overlay-open');
+    srchOvCurrentMaster = null;
+}
+
+function srchOvBackToMaster() {
+    document.getElementById('srchStateA').style.display = 'flex';
+    document.getElementById('srchStateB').style.display = 'none';
+    srchOvCurrentMaster = null;
+    setTimeout(() => document.getElementById('srchOvInput').focus(), 100);
+}
+
+function srchOvSearch(q) {
+    document.getElementById('srchOvMeta').textContent = 'Търся...';
+    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(results => {
+            const masters = srchOvGroupByMaster(results || []);
+            srchOvRenderMasters(masters);
+            const total = (results || []).length;
+            const mCount = masters.length;
+            document.getElementById('srchOvMeta').textContent =
+                'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') +
+                ' · ' + total + (total === 1 ? ' вариант' : ' варианта');
+        })
+        .catch(err => {
+            document.getElementById('srchOvMeta').textContent = 'Грешка при търсене';
+            console.error('srchOvSearch error', err);
+        });
+}
+
+// Group by parent_id; if NULL → group by name; fallback group key = id (single-row)
+function srchOvGroupByMaster(results) {
+    const masters = {};
+    results.forEach(p => {
+        const key = p.parent_id ? ('p' + p.parent_id) : ('n:' + (p.name || '').toLowerCase());
+        if (!masters[key]) {
+            masters[key] = {
+                key: key,
+                name: p.name || '—',
+                image: p.image_url || null,
+                variants: [],
+                minPrice: parseFloat(p.retail_price) || 0,
+                maxPrice: parseFloat(p.retail_price) || 0,
+            };
+        }
+        masters[key].variants.push(p);
+        const price = parseFloat(p.retail_price) || 0;
+        if (price < masters[key].minPrice) masters[key].minPrice = price;
+        if (price > masters[key].maxPrice) masters[key].maxPrice = price;
+        if (!masters[key].image && p.image_url) masters[key].image = p.image_url;
+    });
+    return Object.values(masters);
+}
+
+function srchOvRenderMasters(masters) {
+    const c = document.getElementById('srchOvResults');
+    c.innerHTML = '';
+    if (masters.length === 0) {
+        c.innerHTML = '<div class="srch-empty">Няма намерени артикули</div>';
+        return;
+    }
+    masters.forEach((m, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'srch-master s87v3-tap';
+        const variantText = m.variants.length === 1 ? '1 вариант' : (m.variants.length + ' варианта');
+        const priceText = (m.minPrice === m.maxPrice)
+            ? fmtPrice(m.minPrice)
+            : ('от ' + fmtPrice(m.minPrice));
+        const ico = m.image
+            ? '<img src="' + esc(m.image) + '" alt="" loading="lazy">'
+            : '📦';
+        btn.innerHTML =
+            '<div class="srch-master-ico">' + ico + '</div>' +
+            '<div class="srch-master-info">' +
+                '<div class="srch-master-name">' + esc(m.name) + '</div>' +
+                '<div class="srch-master-meta">' + variantText + ' · ' + priceText + '</div>' +
+            '</div>' +
+            '<span class="srch-master-arrow">›</span>';
+        btn.addEventListener('click', () => {
+            // Single-variant fast path: skip State B, addToCart directly
+            if (m.variants.length === 1) {
+                srchOvAddProduct(m.variants[0]);
+            } else {
+                srchOvOpenVariants(m);
+            }
+        });
+        c.appendChild(btn);
+    });
+}
+
+function srchOvOpenVariants(master) {
+    srchOvCurrentMaster = master;
+    document.getElementById('srchStateA').style.display = 'none';
+    document.getElementById('srchStateB').style.display = 'flex';
+    document.getElementById('srchOvVariantsTitle').textContent = master.name;
+
+    const c = document.getElementById('srchOvVariants');
+    c.innerHTML = '';
+    master.variants.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'srch-variant';
+        const stock = parseInt(v.stock || 0);
+        const stockCls = stock === 0 ? 'srch-variant-stock zero' : 'srch-variant-stock';
+        const colorBg = srchOvColorToCss(v.color);
+        const variantTitle = [v.color, v.size].filter(x => x && String(x).trim()).join(' · ') || (v.code || '—');
+        div.innerHTML =
+            '<span class="srch-variant-color" style="background:' + colorBg + '"></span>' +
+            '<div class="srch-variant-info">' +
+                '<div class="srch-variant-name">' + esc(variantTitle) + '</div>' +
+                '<div class="' + stockCls + '">' + stock + ' бр</div>' +
+            '</div>' +
+            '<span class="srch-variant-price">' + fmtPrice(parseFloat(v.retail_price) || 0) + '</span>' +
+            '<button type="button" class="srch-variant-add" aria-label="Добави">+</button>';
+        const addBtn = div.querySelector('.srch-variant-add');
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            srchOvAddProduct(v);
+        });
+        c.appendChild(div);
+    });
+}
+
+// Map a Bulgarian/English color name to a CSS color (rough fallback)
+function srchOvColorToCss(name) {
+    if (!name) return 'rgba(255,255,255,0.12)';
+    const n = String(name).trim().toLowerCase();
+    const map = {
+        'червен':'#e11d48','red':'#e11d48',
+        'син':'#2563eb','blue':'#2563eb',
+        'тъмносин':'#1e3a8a','navy':'#1e3a8a',
+        'зелен':'#16a34a','green':'#16a34a',
+        'жълт':'#eab308','yellow':'#eab308',
+        'черен':'#1a1a1a','black':'#1a1a1a',
+        'бял':'#f8fafc','white':'#f8fafc',
+        'сив':'#94a3b8','grey':'#94a3b8','gray':'#94a3b8',
+        'кафяв':'#92400e','brown':'#92400e',
+        'розов':'#ec4899','pink':'#ec4899',
+        'оранжев':'#f97316','orange':'#f97316',
+        'лилав':'#9333ea','purple':'#9333ea','виолетов':'#9333ea',
+        'бежов':'#d6c2a4','beige':'#d6c2a4',
+    };
+    if (map[n]) return map[n];
+    // Try first word
+    const first = n.split(/\s+/)[0];
+    if (map[first]) return map[first];
+    return 'rgba(255,255,255,0.12)';
+}
+
+function srchOvAddProduct(product) {
+    if (typeof addToCart === 'function') {
+        addToCart(product);
+    }
+    showSrchToast('✓ ' + (product.name || 'Артикул') + ' добавен');
+}
+
+function showSrchToast(msg) {
+    const old = document.querySelector('.srch-toast');
+    if (old) old.remove();
+    const t = document.createElement('div');
+    t.className = 'srch-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { if (t.parentNode) t.remove(); }, 2000);
+}
+
+function srchOvVoice() {
+    if (typeof startVoice === 'function') {
+        // existing handler: opens recording overlay; user dictates → injected via voice flow
+        startVoice();
+    }
+}
+
+// Wire input live-search + Enter
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('srchOvInput');
+    if (!input) return;
+    input.addEventListener('input', (e) => {
+        const q = e.target.value.trim();
+        clearTimeout(srchOvDebounce);
+        if (q.length < 1) {
+            document.getElementById('srchOvResults').innerHTML = '';
+            document.getElementById('srchOvMeta').textContent = 'Започни писане за резултати';
+            return;
+        }
+        srchOvDebounce = setTimeout(() => srchOvSearch(q), 250);
+    });
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const q = e.target.value.trim();
+            if (q.length >= 1) {
+                clearTimeout(srchOvDebounce);
+                srchOvSearch(q);
+            }
+        }
+    });
+});
+
+// Hardware back (Capacitor) → State B → State A → close
+document.addEventListener('backbutton', (e) => {
+    const ov = document.getElementById('searchOverlay');
+    if (ov && ov.style.display === 'flex') {
+        e.preventDefault();
+        const stateB = document.getElementById('srchStateB');
+        if (stateB && stateB.style.display === 'flex') {
+            srchOvBackToMaster();
+        } else {
+            closeSearchOverlay();
+        }
+    }
+});
 
 /* ───────────────────────────────────────────── */
 /* S87.ANIMATIONS v3 — portable JS (idempotent)  */
