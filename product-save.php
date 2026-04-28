@@ -269,6 +269,7 @@ try {
             foreach ($colors as $c) { $combos[] = ['size' => null, 'color' => $c, 'qty' => 0]; }
         }
 
+        $variant_ids_by_color = [];
         foreach ($combos as $v) {
             $v_size  = trim($v['size'] ?? '') ?: null;
             $v_color = trim($v['color'] ?? '') ?: null;
@@ -283,6 +284,12 @@ try {
                 $v_code, $v_name, $v_barcode, $unit, $cost_price, $retail_price,
                 $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color, $origin_country, $composition, $is_domestic);
 
+            if ($v_color) {
+                $key = mb_strtolower($v_color);
+                if (!isset($variant_ids_by_color[$key])) $variant_ids_by_color[$key] = [];
+                $variant_ids_by_color[$key][] = $cid;
+            }
+
             foreach ($all_stores as $st) {
                 $qty_to_set = ($st['id'] == ($_SESSION['store_id'] ?? 0)) ? $v_qty : 0;
                 DB::run("INSERT INTO inventory (tenant_id, store_id, product_id, quantity) VALUES (?,?,?,?)
@@ -292,7 +299,7 @@ try {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'id' => $pid, 'variants' => count($combos)]);
+        echo json_encode(['success' => true, 'id' => $pid, 'variants' => count($combos), 'variant_ids_by_color' => $variant_ids_by_color]);
         exit;
     }
 
@@ -302,6 +309,7 @@ try {
             $code, $name, null, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
 
+        $variant_ids_by_color = [];
         foreach ($variants_json as $v) {
             $v_size    = trim($v['size'] ?? '') ?: null;
             $v_color   = trim($v['color'] ?? '') ?: null;
@@ -316,6 +324,12 @@ try {
                 $v_code, $v_name, $v_barcode, $unit, $cost_price, $v_price,
                 $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color, $origin_country, $composition, $is_domestic);
 
+            if ($v_color) {
+                $key = mb_strtolower($v_color);
+                if (!isset($variant_ids_by_color[$key])) $variant_ids_by_color[$key] = [];
+                $variant_ids_by_color[$key][] = $cid;
+            }
+
             foreach ($all_stores as $st) {
                 DB::run("INSERT IGNORE INTO inventory (tenant_id,store_id,product_id,quantity) VALUES (?,?,?,0)",
                     [$tenant_id, $st['id'], $cid]);
@@ -323,7 +337,7 @@ try {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'id' => $pid, 'variants' => count($variants_json)]);
+        echo json_encode(['success' => true, 'id' => $pid, 'variants' => count($variants_json), 'variant_ids_by_color' => $variant_ids_by_color]);
         exit;
     }
 
