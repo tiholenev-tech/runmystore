@@ -235,6 +235,16 @@ if ($needBarcode) {
 // ── EDIT ──────────────────────────────────────────────────
 if ($action === 'edit' && $id > 0) {
     try {
+        // S88.BUG#7: snapshot OLD product for revert history.
+        $old = DB::run(
+            "SELECT name, code, barcode, category_id, supplier_id,
+                    cost_price, retail_price, wholesale_price, unit,
+                    min_quantity, location, description, size, color,
+                    vat_rate, origin_country, composition, is_domestic
+             FROM products WHERE id=? AND tenant_id=?",
+            [$id, $tenant_id]
+        )->fetch(PDO::FETCH_ASSOC) ?: [];
+
         DB::run("
             UPDATE products SET
                 name=?, code=?, barcode=?, category_id=?, supplier_id=?,
@@ -248,8 +258,21 @@ if ($action === 'edit' && $id > 0) {
             $origin_country, $composition, $is_domestic,
             $id, $tenant_id]);
 
-        DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,new_values) VALUES (?,?,?,?,?,?)",
-            [$tenant_id, $user_id, 'products', $id, 'edit', json_encode(['name'=>$name])]);
+        // S88.BUG#7: write DEEP audit (old + new) so revert can restore. action='update' (enum).
+        $new = [
+            'name'=>$name, 'code'=>$code, 'barcode'=>$barcode,
+            'category_id'=>$category_id, 'supplier_id'=>$supplier_id,
+            'cost_price'=>$cost_price, 'retail_price'=>$retail_price,
+            'wholesale_price'=>$wholesale_price, 'unit'=>$unit,
+            'min_quantity'=>$min_quantity, 'location'=>$location,
+            'description'=>$description, 'size'=>$size_single, 'color'=>$color_single,
+            'vat_rate'=>$vat_rate, 'origin_country'=>$origin_country,
+            'composition'=>$composition, 'is_domestic'=>$is_domestic,
+        ];
+        DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,old_values,new_values) VALUES (?,?,?,?,?,?,?)",
+            [$tenant_id, $user_id, 'products', $id, 'update',
+             json_encode($old, JSON_UNESCAPED_UNICODE),
+             json_encode($new, JSON_UNESCAPED_UNICODE)]);
 
         echo json_encode(['success' => true, 'id' => $id]);
         exit;

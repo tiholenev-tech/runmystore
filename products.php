@@ -307,6 +307,70 @@ if ($ajax === 'sections') {
         exit;
     }
 
+    // ─── S88.BUG#7: product history (audit_log timeline) ───
+    if ($ajax === 'product_history') {
+        $pid = (int)($_GET['id'] ?? 0);
+        if (!$pid) { echo json_encode(['error' => 'no_id']); exit; }
+        $rows = DB::run(
+            "SELECT a.id, a.user_id, a.action, a.old_values, a.new_values, a.created_at, a.source,
+                    u.name AS user_name
+             FROM audit_log a LEFT JOIN users u ON u.id = a.user_id
+             WHERE a.tenant_id=? AND a.table_name='products' AND a.record_id=?
+             ORDER BY a.id DESC LIMIT 50",
+            [$tenant_id, $pid]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['rows' => $rows], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // ─── S88.BUG#7: revert a single audit_log change ───
+    if ($ajax === 'revert_change') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { echo json_encode(['error' => 'method']); exit; }
+        $hid = (int)($_POST['history_id'] ?? 0);
+        if (!$hid) { echo json_encode(['error' => 'no_history_id']); exit; }
+        $row = DB::run(
+            "SELECT record_id, old_values FROM audit_log
+             WHERE id=? AND tenant_id=? AND table_name='products' AND action='update'",
+            [$hid, $tenant_id]
+        )->fetch(PDO::FETCH_ASSOC);
+        if (!$row || empty($row['old_values'])) { echo json_encode(['error' => 'no_snapshot']); exit; }
+        $old = json_decode($row['old_values'], true) ?: [];
+        $pid = (int)$row['record_id'];
+
+        // Snapshot CURRENT before reverting (so the revert itself is reversible)
+        $cur = DB::run(
+            "SELECT name, code, barcode, category_id, supplier_id,
+                    cost_price, retail_price, wholesale_price, unit,
+                    min_quantity, location, description, size, color,
+                    vat_rate, origin_country, composition, is_domestic
+             FROM products WHERE id=? AND tenant_id=?",
+            [$pid, $tenant_id]
+        )->fetch(PDO::FETCH_ASSOC);
+        if (!$cur) { echo json_encode(['error' => 'product_gone']); exit; }
+
+        // Whitelist columns from old_values
+        $cols = ['name','code','barcode','category_id','supplier_id',
+                 'cost_price','retail_price','wholesale_price','unit',
+                 'min_quantity','location','description','size','color',
+                 'vat_rate','origin_country','composition','is_domestic'];
+        $sets = []; $params = [];
+        foreach ($cols as $c) {
+            if (array_key_exists($c, $old)) { $sets[] = "$c=?"; $params[] = $old[$c]; }
+        }
+        if (!$sets) { echo json_encode(['error' => 'empty_snapshot']); exit; }
+        $params[] = $pid; $params[] = $tenant_id;
+        DB::run("UPDATE products SET " . implode(',', $sets) . ", updated_at=NOW() WHERE id=? AND tenant_id=?", $params);
+
+        DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,source_detail,old_values,new_values) VALUES (?,?,?,?,?,?,?,?)",
+            [$tenant_id, $user_id, 'products', $pid, 'update',
+             'revert_of:' . $hid,
+             json_encode($cur, JSON_UNESCAPED_UNICODE),
+             json_encode($old, JSON_UNESCAPED_UNICODE)]);
+
+        echo json_encode(['ok' => true, 'reverted_to' => $hid]);
+        exit;
+    }
+
     // ─── S88.BUG#3: last saved parent product (for "📋 Като предния") ───
     if ($ajax === 'last_product') {
         $row = DB::run(
@@ -5132,6 +5196,7 @@ async function openProductDetail(id){
     h+=`<button class="abtn" onclick="openImageStudio(${p.id})">✨ AI Снимка</button>`;
     h+=`<button class="abtn primary" onclick="location.href='sale.php?product=${p.id}'">💰 Продажба</button>`;
     h+=`<button class="abtn" onclick="openLabels(${p.id})">🏷 Етикет</button>`;
+    if(CFG.canAdd)h+=`<button class="abtn" onclick="openProductHistoryS88(${p.id})">📜 История · Върни</button>`;
     h+=`</div>`;
     document.getElementById('detailBody').innerHTML=h;
 }
@@ -9528,6 +9593,83 @@ function injectLikePrevControlsS88(){
     }
 }
 // ───────── /S88.BUG#3 ─────────
+
+// ───────── S88.BUG#7: history timeline + per-change revert ─────────
+async function openProductHistoryS88(productId){
+    var d = await api('products.php?ajax=product_history&id='+productId);
+    if (!d){ showToast('Грешка при четене на история','error'); return; }
+    var rows = d.rows || [];
+    var existing = document.getElementById('s88HistModal');
+    if (existing) existing.remove();
+    var ov = document.createElement('div');
+    ov.id = 's88HistModal';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:14px';
+    var labels = {
+        name:'име', code:'код', barcode:'баркод',
+        retail_price:'цена', cost_price:'себестойност', wholesale_price:'едр.цена',
+        category_id:'категория', supplier_id:'доставчик',
+        unit:'мерна', min_quantity:'мин.кол.', location:'място',
+        description:'описание', size:'размер', color:'цвят',
+        vat_rate:'ДДС', origin_country:'страна', composition:'материя',
+        is_domestic:'местно'
+    };
+    var listH = rows.map(function(r, idx){
+        var actBg = r.action === 'create' ? 'rgba(34,197,94,0.12)' : (r.action === 'delete' ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.10)');
+        var actCol = r.action === 'create' ? '#86efac' : (r.action === 'delete' ? '#fca5a5' : '#a5b4fc');
+        var actIcon = r.action === 'create' ? '➕' : (r.action === 'delete' ? '🗑' : '✏️');
+        var diffH = '';
+        if (r.action === 'update' && r.old_values && r.new_values){
+            try{
+                var oldV = JSON.parse(r.old_values), newV = JSON.parse(r.new_values);
+                var changes = [];
+                for (var k in newV){
+                    if (oldV[k] === undefined) continue;
+                    var a = oldV[k], b = newV[k];
+                    if ((a==null?'':String(a)) !== (b==null?'':String(b))){
+                        changes.push('<div style="font-size:10.5px;color:#cbd5e1;margin-top:3px"><span style="color:#a5b4fc">'+(labels[k]||k)+':</span> <span style="color:#fca5a5;text-decoration:line-through">'+esc(String(a==null?'∅':a))+'</span> → <span style="color:#86efac">'+esc(String(b==null?'∅':b))+'</span></div>');
+                    }
+                }
+                diffH = changes.slice(0,8).join('');
+                if (changes.length > 8) diffH += '<div style="font-size:9px;color:#94a3b8;margin-top:3px">…и още '+(changes.length-8)+' промени</div>';
+            }catch(_){}
+        }
+        var canRevert = (r.action === 'update' && r.old_values);
+        var revertBtn = canRevert
+            ? '<button onclick="revertChangeS88('+r.id+','+productId+')" style="margin-top:6px;padding:6px 10px;border-radius:8px;background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(217,119,6,0.06));border:1px solid rgba(245,158,11,0.45);color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer">↶ Върни и презапиши</button>'
+            : '';
+        var sourceTag = r.source_detail && r.source_detail.indexOf('revert_of:') === 0
+            ? '<span style="margin-left:6px;padding:1px 6px;border-radius:6px;background:rgba(245,158,11,0.15);color:#fcd34d;font-size:9px;font-weight:700">REVERT</span>'
+            : '';
+        return '<div style="padding:10px;border:1px solid rgba(99,102,241,0.18);border-radius:10px;margin:6px 0;background:rgba(255,255,255,0.02)">'
+             + '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">'
+             +   '<span style="padding:2px 8px;border-radius:6px;background:'+actBg+';color:'+actCol+';font-weight:700">'+actIcon+' '+r.action+'</span>'
+             +   sourceTag
+             +   '<span style="color:#94a3b8;font-size:10px">'+esc(r.created_at||'')+(r.user_name?' · '+esc(r.user_name):'')+'</span>'
+             + '</div>'
+             + diffH
+             + revertBtn
+             + '</div>';
+    }).join('');
+    if (!rows.length) listH = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Няма записани промени.</div>';
+    ov.innerHTML =
+        '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:16px;padding:14px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:#fff">📜 История · Артикул #'+productId+'</div><button onclick="document.getElementById(\'s88HistModal\').remove()" style="background:none;border:none;color:#cbd5e1;font-size:18px;cursor:pointer">✕</button></div>'
+      + '<div style="overflow-y:auto;flex:1;padding-right:4px">' + listH + '</div>'
+      + '</div>';
+    document.body.appendChild(ov);
+    ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
+}
+
+async function revertChangeS88(historyId, productId){
+    if (!confirm('Върни тази промяна? (Текущото състояние ще се запази в история, така че можеш да го върнеш отново.)')) return;
+    var fd = new FormData(); fd.append('history_id', historyId);
+    var r = await fetch('products.php?ajax=revert_change', { method: 'POST', body: fd, credentials: 'same-origin' }).then(function(x){return x.json()}).catch(function(){return null});
+    if (!r || r.error){ showToast('Грешка: '+(r&&r.error?r.error:'unknown'),'error'); return; }
+    showToast('Върнато ✓','success');
+    document.getElementById('s88HistModal')?.remove();
+    if (typeof openProductDetail === 'function') openProductDetail(productId);
+}
+// ───────── /S88.BUG#7 ─────────
 
 async function wizAddInline(type){
     if(type==='supplier'){
