@@ -3897,6 +3897,7 @@ html{overflow-x:hidden;max-width:100vw}
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js"></script>
+<link rel="stylesheet" href="css/aibrain-modals.css">
 </head>
 <body>
 
@@ -11386,6 +11387,7 @@ window.addEventListener('popstate', function(e){
 
 <?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
+<script src="js/aibrain-modals.js"></script>
 </body>
 </html>
 
