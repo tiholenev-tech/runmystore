@@ -96,8 +96,11 @@ if ($ajax === 'sections') {
     ];
 
     // Взимаме всички insights за този tenant/store
+    // S88.PRODUCTS.AIBRAIN_WIRE: action_label/action_type/action_data позволяват
+    // фронтендът да рендерира call-to-action бутон под всеки item.
     $insights = DB::run(
-        "SELECT topic_id, fundamental_question, title, detail_text, data_json, value_numeric, product_count
+        "SELECT topic_id, fundamental_question, title, detail_text, data_json, value_numeric, product_count,
+                action_label, action_type, action_data
          FROM ai_insights
          WHERE tenant_id=? AND store_id=? AND expires_at > NOW()
          ORDER BY urgency='critical' DESC, urgency='warning' DESC, value_numeric DESC",
@@ -111,6 +114,18 @@ if ($ajax === 'sections') {
 
         $data = $ins['data_json'] ? json_decode($ins['data_json'], true) : null;
         $items = $data['items'] ?? [];
+
+        // S88: action payload — извлечен веднъж per insight, разпределен на всеки item.
+        // intent (от action_data) е семантичен (включва navigate_chart/transfer_draft/...);
+        // type е валиден ENUM за rotate-aware UI диспетчер.
+        $actionData = $ins['action_data'] ? json_decode($ins['action_data'], true) : [];
+        if (!is_array($actionData)) $actionData = [];
+        $actionPayload = [
+            'label'  => $ins['action_label'] ?? null,
+            'type'   => $ins['action_type'] ?? null,
+            'intent' => $actionData['intent'] ?? ($ins['action_type'] ?? null),
+            'topic'  => $ins['topic_id'],
+        ];
 
         // Взимаме първите 4 артикула от insight-а
         foreach (array_slice($items, 0, 4) as $it) {
@@ -168,6 +183,7 @@ if ($ajax === 'sections') {
                 'image_url' => $it['image_url'] ?? null,
                 'category_name' => $it['category_name'] ?? null,
                 'subcategory_name' => $it['subcategory_name'] ?? null,
+                'action' => $actionPayload,
             ];}
 
         // S79 A2.6: total per insight (once)
@@ -3744,6 +3760,16 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .art-ctx.q5{color:#fcd34d}
 .art-ctx.q6{color:rgba(255,255,255,.55)}
 .art-ctx b{font-weight:900}
+
+/* S88.PRODUCTS.AIBRAIN_WIRE — call-to-action button под art-ctx (mobile 375px optimized) */
+.art-action{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:9.5px;font-weight:900;letter-spacing:.01em;text-align:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.12);cursor:pointer;position:relative;z-index:6;transition:background .15s ease;font-family:inherit;line-height:1.2}
+.art-action:hover{background:rgba(255,255,255,.14)}
+.art-action.q1{background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(239,68,68,.08));border-color:rgba(239,68,68,.3);color:#fecaca}
+.art-action.q2{background:linear-gradient(135deg,rgba(192,132,252,.18),rgba(192,132,252,.08));border-color:rgba(192,132,252,.3);color:#e9d5ff}
+.art-action.q3{background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(34,197,94,.08));border-color:rgba(34,197,94,.3);color:#bbf7d0}
+.art-action.q4{background:linear-gradient(135deg,rgba(45,212,191,.18),rgba(45,212,191,.08));border-color:rgba(45,212,191,.3);color:#99f6e4}
+.art-action.q5{background:linear-gradient(135deg,rgba(251,191,36,.20),rgba(251,191,36,.08));border-color:rgba(251,191,36,.35);color:#fde68a}
+.art-action.q6{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.6)}
 
 .view-all{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;margin:18px 0 8px;cursor:pointer;--radius:14px;color:hsl(var(--hue1) 60% 85%);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .view-all svg{width:13px;height:13px;stroke:currentColor;stroke-width:2.5;fill:none;position:relative;z-index:5}
