@@ -116,6 +116,12 @@ $name            = trim($data['name'] ?? '');
 $code            = trim($data['code'] ?? '') ?: null;
 $barcode         = trim($data['barcode'] ?? '') ?: null;
 $category_id     = (int)($data['category_id'] ?? 0) ?: null;
+// S88B-1 / Q2: subcategory IS a category (categories.parent_id). When wizard sends both,
+// subcategory wins — it's the leaf the user actually selected.
+$subcategory_id  = (int)($data['subcategory_id'] ?? 0) ?: null;
+if ($subcategory_id) {
+    $category_id = $subcategory_id;
+}
 $supplier_id     = (int)($data['supplier_id'] ?? 0) ?: null;
 $cost_price      = (float)($data['cost_price'] ?? 0);
 $retail_price    = (float)($data['retail_price'] ?? 0);

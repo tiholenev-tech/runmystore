@@ -9306,12 +9306,19 @@ async function wizSave(){
     const payload={
         name:S.wizData.name,barcode:S.wizData.barcode,
         retail_price:S.wizData.retail_price,wholesale_price:S.wizData.wholesale_price,
-        cost_price:parseFloat(S.wizData.cost_price)||0,supplier_id:S.wizData.supplier_id,category_id:S.wizData.category_id,
+        cost_price:parseFloat(S.wizData.cost_price)||0,
+        supplier_id:S.wizData.supplier_id||null,
+        category_id:S.wizData.category_id||null,
+        // S88B-1 / Q2: subcategory IS a category (categories.parent_id). Server picks subcategory_id over category_id when present.
+        subcategory_id:S.wizData.subcategory_id||null,
         code:S.wizData.code,unit:S.wizData.unit,min_quantity:S.wizData.min_quantity,
         description:S.wizData.description,
         origin_country:S.wizData.origin_country||null,
         composition:S.wizData.composition||null,
         is_domestic:S.wizData.is_domestic?1:0,
+        // S88B-1: single-mode color/size go to products.color/size columns (NOT axes).
+        color:S.wizType==='variant'?null:(S.wizData.color||null),
+        size:S.wizType==='variant'?null:(S.wizData.size||null),
         product_type:S.wizType==='variant'?'variant':'simple',
         sizes,colors,variants:S.wizType==='variant'?variants:[{size:null,color:null,qty:singleQty}],
         initial_qty:singleQty,
