@@ -9379,6 +9379,15 @@ async function wizSave(){
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
                 api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:S.wizData._photoDataUrl})}).then(function(img){if(img&&img.ok)console.log('Photo saved')}).catch(function(){});
             }
+            // S88B-1 / Task G + Task H: ensure variant-mode parent gets a main image when only multi-photos were uploaded.
+            // Picks photo with is_main=true (set via Q7 Make-Main button) or falls back to the first photo.
+            if (S.wizType==='variant' && !S.wizData._photoDataUrl && Array.isArray(S.wizData._photos) && S.wizData._photos.length) {
+                var _mainPhoto = S.wizData._photos.find(function(p){return p && p.is_main && p.dataUrl})
+                              || S.wizData._photos.find(function(p){return p && p.dataUrl});
+                if (_mainPhoto && _mainPhoto.dataUrl && _mainPhoto.dataUrl.startsWith('data:')) {
+                    api('products.php?ajax=upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:r.id,image:_mainPhoto.dataUrl})}).then(function(img){if(img&&img.ok)console.log('Parent photo (is_main) saved')}).catch(function(){});
+                }
+            }
             // S88.BUG1: per-variation images from multi-photo wizard
             if (r.variant_ids_by_color && Array.isArray(S.wizData._photos)) {
                 S.wizData._photos.forEach(function(p) {
