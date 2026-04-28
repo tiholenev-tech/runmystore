@@ -307,6 +307,57 @@ if ($ajax === 'sections') {
         exit;
     }
 
+    // ─── S88.BUG#3: last saved parent product (for "📋 Като предния") ───
+    if ($ajax === 'last_product') {
+        $row = DB::run(
+            "SELECT id, code, name, category_id, supplier_id, unit, cost_price,
+                    retail_price, wholesale_price, vat_rate, min_quantity, location,
+                    description, origin_country, composition, is_domestic, image_url
+             FROM products
+             WHERE tenant_id=? AND parent_id IS NULL AND is_active=1
+             ORDER BY id DESC LIMIT 1",
+            [$tenant_id]
+        )->fetch(PDO::FETCH_ASSOC);
+        if (!$row) { echo json_encode(['error' => 'no_previous']); exit; }
+        $sum_qty = (int)DB::run(
+            "SELECT COALESCE(SUM(i.quantity),0) FROM inventory i
+             WHERE i.product_id=? AND i.store_id=?",
+            [(int)$row['id'], $store_id]
+        )->fetchColumn();
+
+        // Suggest next code: increment trailing number, fallback append "-2".
+        $base = $row['code'] ?? '';
+        $next = '';
+        if ($base !== '' && preg_match('/^(.*?)(\d+)(\D*)$/', $base, $m)) {
+            $prefix = $m[1]; $num = $m[2]; $suffix = $m[3];
+            $width = strlen($num);
+            $cand = $num;
+            for ($try = 1; $try < 1000; $try++) {
+                $cand = str_pad((int)$num + $try, $width, '0', STR_PAD_LEFT);
+                $test = $prefix . $cand . $suffix;
+                $exists = DB::run(
+                    "SELECT 1 FROM products WHERE tenant_id=? AND code=? LIMIT 1",
+                    [$tenant_id, $test]
+                )->fetchColumn();
+                if (!$exists) { $next = $test; break; }
+            }
+        }
+        if ($next === '' && $base !== '') {
+            for ($try = 2; $try < 1000; $try++) {
+                $test = $base . '-' . $try;
+                $exists = DB::run(
+                    "SELECT 1 FROM products WHERE tenant_id=? AND code=? LIMIT 1",
+                    [$tenant_id, $test]
+                )->fetchColumn();
+                if (!$exists) { $next = $test; break; }
+            }
+        }
+        $row['next_code']    = $next ?: $base;
+        $row['source_qty']   = $sum_qty;
+        echo json_encode($row, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // ─── HOME STATS ───
     if ($ajax === 'home_stats') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
@@ -3824,7 +3875,7 @@ html{overflow-x:hidden;max-width:100vw}
         <div class="add-modes">
             <button class="add-mode voice" onclick="event.stopPropagation();openVoiceWizard()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
             <button class="add-mode" onclick="event.stopPropagation();openManualWizard()"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-            <button class="add-mode" onclick="event.stopPropagation();showToast('Още опции — идват в S82','')"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg></button>
+            <button class="add-mode" onclick="event.stopPropagation();openMoreAddOptionsS88(this)"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg></button>
         </div>
     </div>
 
@@ -9388,6 +9439,95 @@ function showDuplicatesModalS88(matches, fields){
     });
 }
 // ───────── /S88.BUG#6 ─────────
+
+// ───────── S88.BUG#3: "..." menu + "📋 Като предния" duplicate flow ─────────
+function openMoreAddOptionsS88(anchor){
+    var existing = document.getElementById('s88MoreMenu');
+    if (existing){ existing.remove(); return; }
+    var ov = document.createElement('div');
+    ov.id = 's88MoreMenu';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;justify-content:center;padding:0';
+    ov.innerHTML =
+        '<div style="background:#0f1224;border-top:1px solid rgba(99,102,241,0.4);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:14px 14px 22px">'
+        + '<div style="width:38px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 10px"></div>'
+        + '<button id="s88MoreLikePrev" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.5);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px">📋 Като предния</button>'
+        + '<button id="s88MoreClose" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">Отказ</button>'
+        + '</div>';
+    document.body.appendChild(ov);
+    var close = function(){ ov.remove(); };
+    document.getElementById('s88MoreClose').onclick = close;
+    ov.onclick = function(e){ if (e.target === ov) close(); };
+    document.getElementById('s88MoreLikePrev').onclick = function(){ close(); openLikePreviousWizardS88(); };
+}
+
+async function openLikePreviousWizardS88(){
+    var d = await api('products.php?ajax=last_product');
+    if (!d || d.error){
+        showToast('Няма предишен артикул за копиране','error');
+        return;
+    }
+    // Confirm with snippet of source so user sees what's being cloned
+    if (!confirm('Копирай "' + (d.name||'') + '" (#' + d.id + ')?\n\nКодът ще е "' + (d.next_code||'') + '", баркодът ще е празен, количеството = 0.')) return;
+
+    if (typeof openManualWizard === 'function') openManualWizard();
+    // Initialize wizData clone — schedule on next tick to run after openManualWizard renders.
+    setTimeout(function(){
+        S.wizEditId = null;
+        S.wizSavedId = null;
+        S.wizType = 'single';
+        S.wizStep = 3;
+        S.wizData = {
+            name: (d.name || '') + ' (копие)',
+            code: d.next_code || '',
+            barcode: '',
+            retail_price: parseFloat(d.retail_price) || 0,
+            wholesale_price: parseFloat(d.wholesale_price) || 0,
+            cost_price: parseFloat(d.cost_price) || 0,
+            supplier_id: d.supplier_id || null,
+            category_id: d.category_id || null,
+            unit: d.unit || 'бр',
+            min_quantity: parseInt(d.min_quantity) || 0,
+            description: d.description || '',
+            origin_country: d.origin_country || '',
+            composition: d.composition || '',
+            is_domestic: parseInt(d.is_domestic) || 0,
+            axes: [],
+            _photoDataUrl: null,
+            _likePrevSource: { id: d.id, sourceQty: parseInt(d.source_qty)||0, copyQty: false, imageUrl: d.image_url || '' }
+        };
+        if (typeof renderWizard === 'function') renderWizard();
+        showToast('📋 Като предния — провери преди save','success');
+        // After render, inject "Копирай количество" checkbox + image-from-source banner
+        setTimeout(injectLikePrevControlsS88, 50);
+    }, 80);
+}
+
+function injectLikePrevControlsS88(){
+    var src = S.wizData && S.wizData._likePrevSource;
+    if (!src) return;
+    if (document.getElementById('s88LikePrevBox')) return;
+    var box = document.createElement('div');
+    box.id = 's88LikePrevBox';
+    box.style.cssText = 'margin:8px 12px;padding:10px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.35);font-size:11px;color:#c4b5fd';
+    var imgH = src.imageUrl ? '<img src="'+src.imageUrl+'" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-right:8px;vertical-align:middle">' : '';
+    box.innerHTML = imgH
+        + '<b style="color:#fff">📋 Като предния</b> (#' + src.id + ') — снимката е копирана.'
+        + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer">'
+        + '<input type="checkbox" id="s88CopyQty" '+(src.copyQty?'checked':'')+' onchange="S.wizData._likePrevSource.copyQty=this.checked;var q=document.getElementById(\'wSingleQty\');if(q)q.value=this.checked?'+(src.sourceQty||0)+':0">'
+        + '<span>Копирай количество (' + (src.sourceQty||0) + ' бр.)</span></label>';
+    var wizBody = document.querySelector('#wizModal .wiz-body, #wizModal');
+    if (wizBody) wizBody.insertBefore(box, wizBody.firstChild);
+    // If image was on source, load it into the wizard photo state so it gets uploaded after save.
+    if (src.imageUrl && !S.wizData._photoDataUrl){
+        // Use as URL — wizSave only uploads dataUrl. Workaround: fetch as data URL.
+        fetch(src.imageUrl).then(function(r){return r.blob()}).then(function(b){
+            var rd = new FileReader();
+            rd.onload = function(){ S.wizData._photoDataUrl = rd.result; };
+            rd.readAsDataURL(b);
+        }).catch(function(){});
+    }
+}
+// ───────── /S88.BUG#3 ─────────
 
 async function wizAddInline(type){
     if(type==='supplier'){
