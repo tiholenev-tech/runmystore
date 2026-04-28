@@ -1302,6 +1302,129 @@ body.sale-page .cam-top{ gap:8px }
 /* Empty/loading state */
 .srch-empty{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;font-weight:600}
 
+/* ═══════════════════════════════════════════════════════════
+   S87D Phase 3 — PAYMENT (full-screen, simplified)
+   ═══════════════════════════════════════════════════════════ */
+body.sale-page .pay-overlay{
+    position:fixed;inset:0;background:var(--bg-main);z-index:200;
+    overflow-y:auto;padding-bottom:30px;
+    display:none;flex-direction:column;
+    opacity:1 !important;pointer-events:auto !important;
+    backdrop-filter:none;border-radius:0;
+}
+body.sale-page .pay-overlay::before{
+    content:'';position:fixed;inset:0;
+    background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.22) 0%,transparent 60%),
+               radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.22) 0%,transparent 60%);
+    z-index:-1;pointer-events:none;
+}
+body.sale-page .pay-head{
+    display:flex;align-items:center;gap:10px;
+    padding:max(12px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+}
+:root[data-theme="light"] body.sale-page .pay-head{border-bottom-color:rgba(15,23,42,0.06)}
+body.sale-page .pay-back{
+    width:34px;height:34px;border-radius:100px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);
+    color:var(--text-secondary);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
+}
+:root[data-theme="light"] body.sale-page .pay-back{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.10)}
+body.sale-page .pay-page-title{
+    flex:1;font-size:14px;font-weight:800;letter-spacing:-0.01em;
+    color:var(--text-primary);text-align:center;
+}
+body.sale-page .pay-total-hero{text-align:center;padding:20px 0 16px}
+body.sale-page .pay-total-hero .stat-label{display:block;margin-bottom:8px}
+body.sale-page .pay-total-hero .stat-num.lg{display:inline}
+
+body.sale-page .pay-methods-row{display:flex;gap:6px;padding:0 14px 12px}
+body.sale-page .pay-method-pill{
+    flex:1;padding:11px;border-radius:100px;font-size:11px;font-weight:800;
+    letter-spacing:0.06em;background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);
+    cursor:pointer;font-family:inherit;
+}
+:root[data-theme="light"] body.sale-page .pay-method-pill{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.10)}
+body.sale-page .pay-method-pill.active{
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 45%),hsl(var(--hue2) 70% 38%));
+    color:#fff;border-color:hsl(var(--hue1) 60% 55%);
+    box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+    text-shadow:0 0 8px rgba(255,255,255,0.3);
+}
+
+body.sale-page .pay-input-block{
+    position:relative;margin:0 14px 10px;padding:14px 18px;
+    border-radius:18px;background:rgba(255,255,255,0.025);
+    border:1px solid rgba(255,255,255,0.06);
+}
+:root[data-theme="light"] body.sale-page .pay-input-block{background:rgba(255,255,255,0.85);border-color:rgba(15,23,42,0.10)}
+body.sale-page .pay-input-label{
+    font-size:9px;font-weight:900;letter-spacing:0.1em;
+    text-transform:uppercase;color:hsl(var(--hue1) 50% 72%);
+    margin-bottom:6px;
+}
+:root[data-theme="light"] body.sale-page .pay-input-label{color:hsl(var(--hue1) 55% 45%)}
+body.sale-page .pay-recv-input{
+    width:calc(100% - 30px);background:transparent;border:none;outline:none;
+    color:var(--text-primary);font-size:32px;font-weight:900;
+    letter-spacing:-0.03em;font-variant-numeric:tabular-nums;
+    font-family:inherit;text-align:left;padding:0;
+}
+body.sale-page .pay-input-cur{
+    position:absolute;right:18px;top:50%;transform:translateY(-2px);
+    font-size:18px;color:var(--text-muted);font-weight:700;
+}
+
+body.sale-page .pay-bn-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 14px 12px;
+}
+body.sale-page .pay-bn{
+    padding:13px 4px;border-radius:100px;background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);color:var(--text-primary);
+    font-size:14px;font-weight:800;cursor:pointer;text-align:center;
+    font-variant-numeric:tabular-nums;font-family:inherit;transition:all 0.12s;
+}
+:root[data-theme="light"] body.sale-page .pay-bn{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.10)}
+body.sale-page .pay-bn:active{transform:scale(0.96)}
+body.sale-page .pay-bn-exact{
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 32%),hsl(var(--hue2) 60% 26%));
+    border-color:hsl(var(--hue1) 55% 45%);
+    color:hsl(var(--hue1) 60% 92%);font-size:12px;font-weight:900;
+    letter-spacing:0.04em;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.35);
+}
+
+body.sale-page .pay-resto{
+    margin:6px 14px 14px;padding:14px 18px;border-radius:14px;
+    background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.30);
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+}
+body.sale-page .pay-resto-lbl{
+    font-size:9px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:#86efac;
+}
+:root[data-theme="light"] body.sale-page .pay-resto-lbl{color:#15803d}
+body.sale-page .pay-resto-val{
+    font-size:24px;font-weight:900;color:#4ade80;
+    font-variant-numeric:tabular-nums;letter-spacing:-0.02em;
+}
+:root[data-theme="light"] body.sale-page .pay-resto-val{color:#15803d}
+
+body.sale-page .pay-confirm-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:calc(100% - 28px);margin:8px 14px 14px;padding:18px;
+    border-radius:100px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 70% 50%),hsl(var(--hue2) 75% 42%));
+    border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;
+    font-size:14px;font-weight:900;letter-spacing:0.04em;cursor:pointer;
+    font-family:inherit;
+    box-shadow:0 12px 32px hsl(var(--hue1) 60% 40% / 0.45),
+               0 0 32px hsl(var(--hue1) 60% 50% / 0.35),
+               inset 0 1px 0 rgba(255,255,255,0.28);
+    text-shadow:0 0 14px rgba(255,255,255,0.35);
+}
+body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+
 </style>
 </head>
 <body class="sale-page">
@@ -1601,99 +1724,55 @@ body.sale-page .cam-top{ gap:8px }
         <?php endif; ?>
     </div>
 
-</div><div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
-<div class="pay-sheet" id="paySheet">
-    <div class="pay-handle"></div>
+</div>
+<!-- ═══ S87D — PAYMENT (full-screen, simplified, 3 methods, editable input) ═══ -->
+<div class="pay-overlay" id="payOverlay" style="display:none">
+    <div class="pay-head">
+        <button class="pay-back" type="button" onclick="closePayment()" aria-label="Назад">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="pay-page-title">ПЛАЩАНЕ</span>
+        <span style="width:34px"></span>
+    </div>
 
-    <!-- V5 HERO: stat-num.lg -->
-    <div style="text-align:center;padding:14px 0 10px;position:relative">
-        <button class="pay-close" onclick="closePayment()" style="position:absolute;top:6px;right:10px">✕</button>
-        <div class="stat-label" style="margin-bottom:6px">Общо за плащане</div>
+    <div class="pay-total-hero">
+        <div class="stat-label">Сума за плащане</div>
         <span class="stat-num lg" id="payDueAmount">0,00</span><span class="stat-cur" id="payDueCur"><?= $currency ?></span>
     </div>
 
-    <!-- V5 SECTION: Начин на плащане -->
-    <div class="v5-section">
-        <span class="v5-section-label">Начин на плащане</span>
-        <div class="v5-section-line"></div>
-    </div>
-    <div class="pay-methods">
-        <button type="button" class="pkg-card q3 featured pm-chip active" data-method="cash" onclick="setPayMethod('cash')">
-            <div class="pkg-head">
-                <span class="pkg-emoji">💵</span>
-                <span class="pkg-name">В БРОЙ</span>
-                <span class="pkg-active-badge" id="pmBadgeCash">АКТИВНО</span>
-            </div>
-            <div class="pkg-sub">Готово за приключване</div>
-        </button>
-        <button type="button" class="pkg-card q-blue pm-chip" data-method="card" onclick="setPayMethod('card')">
-            <div class="pkg-head">
-                <span class="pkg-emoji">💳</span>
-                <span class="pkg-name">КАРТА</span>
-                <span class="pkg-arrow">›</span>
-            </div>
-            <div class="pkg-sub">Чрез POS терминал · без ресто</div>
-        </button>
-        <button type="button" class="pkg-card q-violet pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">
-            <div class="pkg-head">
-                <span class="pkg-emoji">🏦</span>
-                <span class="pkg-name">ПРЕВОД</span>
-                <span class="pkg-arrow">›</span>
-            </div>
-            <div class="pkg-sub">Банкова сметка</div>
-        </button>
-        <button type="button" class="pkg-card q-amber pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">
-            <div class="pkg-head">
-                <span class="pkg-emoji">⏳</span>
-                <span class="pkg-name">ОТЛОЖЕНО</span>
-                <span class="pkg-arrow">›</span>
-            </div>
-            <div class="pkg-sub">На кредит / на изплащане</div>
-        </button>
+    <div class="pay-methods-row">
+        <button class="pay-method-pill active pm-chip" type="button" data-method="cash" onclick="setPayMethod('cash')">КЕШ</button>
+        <button class="pay-method-pill pm-chip" type="button" data-method="card" onclick="setPayMethod('card')">КАРТА</button>
+        <button class="pay-method-pill pm-chip" type="button" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">ПРЕВОД</button>
     </div>
 
     <div id="cashSection">
-        <!-- V5 SECTION: Бързи банкноти -->
-        <div class="v5-section">
-            <span class="v5-section-label">Бързи банкноти</span>
-            <div class="v5-section-line"></div>
-        </div>
-        <div class="pay-banknotes">
-            <button class="bn-chip" onclick="payBanknote(5)">5</button>
-            <button class="bn-chip" onclick="payBanknote(10)">10</button>
-            <button class="bn-chip" onclick="payBanknote(20)">20</button>
-            <button class="bn-chip" onclick="payBanknote(50)">50</button>
-            <button class="bn-chip" onclick="payBanknote(100)">100</button>
-            <button class="bn-chip" onclick="payBanknote(200)">200</button>
-            <button class="bn-chip" onclick="payBanknote(500)">500</button>
-            <button class="bn-chip exact" onclick="payBanknote('exact')">ТОЧНО</button>
+        <div class="pay-input-block">
+            <div class="pay-input-label">Точна сума получена</div>
+            <input type="text" inputmode="decimal" id="payRecvAmount" class="pay-recv-input" value="0,00" onkeyup="payCalcChange()" onchange="payCalcChange()" oninput="payCalcChange()" autocomplete="off">
+            <span class="pay-input-cur"><?= $currency ?></span>
         </div>
 
-        <!-- V5 DETECT (purple) — Клиент даде -->
-        <div class="detect" id="payRecvBox">
-            <div class="detect-row">
-                <div class="detect-icon">🎤</div>
-                <div class="detect-text">
-                    <div class="detect-label">Клиент даде</div>
-                    <div class="detect-val" id="payRecvAmount">0,00 <?= $currency ?></div>
-                </div>
-            </div>
+        <div class="pay-bn-grid">
+            <button class="pay-bn" type="button" onclick="payBanknote(5)">5</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(10)">10</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(20)">20</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(50)">50</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(100)">100</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(200)">200</button>
+            <button class="pay-bn" type="button" onclick="payBanknote(500)">500</button>
+            <button class="pay-bn pay-bn-exact" type="button" onclick="payExact()">ТОЧНО</button>
         </div>
 
-        <!-- V5 BRIEFING SECTION q3 (green) — РЕСТО -->
-        <div class="briefing-section q3" id="payChangeBox" style="display:none">
-            <div class="briefing-head">
-                <span class="briefing-emoji">🟢</span>
-                <span class="briefing-name">РЕСТО</span>
-            </div>
-            <div class="briefing-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
+        <div class="pay-resto" id="payChangeBox">
+            <span class="pay-resto-lbl">РЕСТО:</span>
+            <span class="pay-resto-val" id="payChangeAmount">0,00 <?= $currency ?></span>
         </div>
     </div>
 
-    <!-- V5 PKG-BUY.MEGA: SELL -->
-    <button type="button" class="pkg-buy mega s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        ПОТВЪРДИ ПЛАЩАНЕ
+    <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        ПОТВЪРДИ ПЛАЩАНЕ <span id="payConfirmAmount">0,00 <?= $currency ?></span>
     </button>
 </div>
 
@@ -2451,109 +2530,100 @@ function closeDiscount() {
     setNumpadCtx('code');
 }
 
-// ─── PAYMENT ───
+// ─── PAYMENT (S87D simplified — full-screen, 3 methods, editable input) ───
 function openPayment() {
     if (STATE.cart.length === 0) return;
+    const total = getTotal();
     STATE.payMethod = 'cash';
-    STATE.receivedAmount = 0;
-    updatePmCardActive('cash');
-    document.getElementById('cashSection').style.display = '';
-    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal());
-    document.getElementById('payDueCur').textContent = STATE.currency;
-    document.getElementById('payRecvAmount').textContent = '0,00 ' + STATE.currency;
-    document.getElementById('payChangeBox').style.display = 'none';
-    document.getElementById('btnConfirm').disabled = true;
-    setNumpadCtx('received');
-    STATE.numpadInput = '';
+    STATE.receivedAmount = total; // default: exact amount
 
-    document.getElementById('payOverlay').classList.add('open');
-    document.getElementById('paySheet').classList.add('open');
-}
+    // Hero
+    document.getElementById('payDueAmount').textContent = fmtPrice(total).replace(/\s.*$/, '');
+    document.getElementById('payDueCur').textContent = ' ' + STATE.currency;
 
-// V5 pkg-card payment method active state (.featured + АКТИВНО badge)
-function updatePmCardActive(method) {
-    document.querySelectorAll('.pm-chip').forEach(c => {
-        const isActive = c.dataset.method === method;
-        c.classList.toggle('active', isActive);
-        c.classList.toggle('featured', isActive);
-        // Toggle q3 (green featured) on the active card; restore default color on others
-        const m = c.dataset.method;
-        const colorMap = {cash:'q3', card:'q-blue', bank_transfer:'q-violet', deferred:'q-amber'};
-        // Always keep the card's own color class — only featured highlights active
-        // Show "АКТИВНО" badge only on active; arrow only on inactive
-        const badge = c.querySelector('.pkg-active-badge');
-        const arrow = c.querySelector('.pkg-arrow');
-        if (isActive) {
-            if (badge) badge.style.display = '';
-            else {
-                const head = c.querySelector('.pkg-head');
-                if (head) {
-                    if (arrow) arrow.style.display = 'none';
-                    const span = document.createElement('span');
-                    span.className = 'pkg-active-badge';
-                    span.textContent = 'АКТИВНО';
-                    head.appendChild(span);
-                }
-            }
-        } else {
-            if (badge) badge.remove();
-            if (arrow) arrow.style.display = '';
-        }
-    });
+    // Methods → reset to cash active
+    setPayMethod('cash', /*skipShow*/true);
+
+    // Editable input pre-filled with total
+    document.getElementById('payRecvAmount').value = total.toFixed(2).replace('.', ',');
+
+    // Confirm label
+    document.getElementById('payConfirmAmount').textContent = fmtPrice(total) + ' ' + STATE.currency;
+
+    payCalcChange();
+
+    document.getElementById('payOverlay').style.display = 'flex';
+    document.body.classList.add('overlay-open');
 }
 
 function closePayment() {
-    document.getElementById('payOverlay').classList.remove('open');
-    document.getElementById('paySheet').classList.remove('open');
-    setNumpadCtx('code');
-    STATE.numpadInput = '';
+    document.getElementById('payOverlay').style.display = 'none';
+    document.body.classList.remove('overlay-open');
 }
 
-function setPayMethod(method) {
+function setPayMethod(method, skipShow) {
     STATE.payMethod = method;
-    updatePmCardActive(method);
+    document.querySelectorAll('.pay-method-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.method === method);
+    });
 
     const cashSec = document.getElementById('cashSection');
     const btnConfirm = document.getElementById('btnConfirm');
-
     if (method === 'cash') {
         cashSec.style.display = '';
-        setNumpadCtx('received');
-        btnConfirm.disabled = STATE.receivedAmount < getTotal();
+        payCalcChange();
     } else {
+        // Card / bank_transfer: no resto needed — confirm always enabled
         cashSec.style.display = 'none';
-        setNumpadCtx('code');
         btnConfirm.disabled = false;
+        document.getElementById('payConfirmAmount').textContent = fmtPrice(getTotal()) + ' ' + STATE.currency;
     }
 }
 
-function payBanknote(val) {
-    if (val === 'exact') {
-        STATE.receivedAmount = getTotal();
-    } else {
-        STATE.receivedAmount = parseFloat(val) || 0;
-    }
-    STATE.numpadInput = '';
-    updatePayment();
+function payBanknote(amt) {
+    const recvInput = document.getElementById('payRecvAmount');
+    const cur = parseFloat((recvInput.value || '0').replace(',', '.')) || 0;
+    const next = cur + parseFloat(amt);
+    recvInput.value = next.toFixed(2).replace('.', ',');
+    payCalcChange();
 }
 
-function updatePayment() {
+function payExact() {
     const total = getTotal();
-    document.getElementById('payRecvAmount').textContent = fmtPrice(STATE.receivedAmount) + ' ' + STATE.currency;
+    document.getElementById('payRecvAmount').value = total.toFixed(2).replace('.', ',');
+    payCalcChange();
+}
 
-    const changeBox = document.getElementById('payChangeBox');
+function payCalcChange() {
+    const total = getTotal();
+    const inputVal = (document.getElementById('payRecvAmount').value || '0').replace(',', '.');
+    const recv = parseFloat(inputVal) || 0;
+    STATE.receivedAmount = recv;
+
+    const change = recv - total;
+    document.getElementById('payChangeAmount').textContent = fmtPrice(Math.max(0, change)) + ' ' + STATE.currency;
+    document.getElementById('payConfirmAmount').textContent = fmtPrice(total) + ' ' + STATE.currency;
+
     const btnConfirm = document.getElementById('btnConfirm');
-
-    if (STATE.receivedAmount >= total) {
-        const change = STATE.receivedAmount - total;
-        document.getElementById('payChangeAmount').textContent = fmtPrice(change) + ' ' + STATE.currency;
-        changeBox.style.display = '';
-        btnConfirm.disabled = false;
+    if (STATE.payMethod === 'cash') {
+        btnConfirm.disabled = recv < total;
     } else {
-        changeBox.style.display = 'none';
-        btnConfirm.disabled = true;
+        btnConfirm.disabled = false;
     }
 }
+
+// Legacy alias — older callers (voice/numpad) set STATE.receivedAmount; sync input then recalc
+function updatePayment() {
+    const inp = document.getElementById('payRecvAmount');
+    if (inp && typeof STATE.receivedAmount === 'number') {
+        const cur = parseFloat((inp.value || '0').replace(',', '.')) || 0;
+        if (Math.abs(cur - STATE.receivedAmount) > 0.0001) {
+            inp.value = STATE.receivedAmount.toFixed(2).replace('.', ',');
+        }
+    }
+    payCalcChange();
+}
+function updatePmCardActive() { /* no-op: legacy V5 pkg-card replaced by simple pills */ }
 
 function confirmPayment() {
     const data = {
