@@ -6072,9 +6072,8 @@ function renderWizPage(step){
             photoBlock = '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
         }
 
-        const copyPrev=hasLast
-            ? '<div onclick="showToast(\'Както предния — S74\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;margin-bottom:10px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(59,130,246,0.2));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M17 1H7a2 2 0 0 0-2 2v16l7-3 7 3V3a2 2 0 0 0-2-2z"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:#e2e8f0">Както предния артикул</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px">Копирай данни</div></div><div style="color:#818cf8;font-size:15px">›</div></div>'
-            : '';
+        // S88B-1: Step 3 copyPrev card stub removed. Bulk-copy lives on Step 0 (wizCopyPrevProductFull) and per-field ↻ buttons (Task D).
+        const copyPrev='';
 
         const _ttCls=S.wizType?'':' needs-select';const _ttWarn=S.wizType?'':'<div class="v4-tt-warn">▲ Избери първо тип на артикула</div>';const typeToggle='<div class="v4-type-toggle'+_ttCls+'"><button type="button" class="v4-tt-opt'+(S.wizType==="single"?" active":"")+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==="variant"?" active":"")+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>'+_ttWarn;
 
@@ -9350,6 +9349,31 @@ async function wizSave(){
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
+            // S88B-1 / Task E: persist field snapshot for "Копирай от последния" + per-field ↻.
+            // Stores both *_id (for save flow) and *_name (for dropdown label rehydration on next wizard open).
+            try {
+                var supName='', catName='', subName='';
+                if (S.wizData.supplier_id){var _s=(CFG.suppliers||[]).find(function(x){return x.id==S.wizData.supplier_id});if(_s)supName=_s.name;}
+                if (S.wizData.category_id){var _c=(CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id});if(_c)catName=_c.name;}
+                if (S.wizData.subcategory_id){var _sub=document.getElementById('wSubcat');if(_sub){for(var i=0;i<_sub.options.length;i++){if(_sub.options[i].value==S.wizData.subcategory_id){subName=_sub.options[i].textContent;break}}}}
+                var snap={
+                    retail_price: S.wizData.retail_price||null,
+                    cost_price: S.wizData.cost_price||null,
+                    markup_pct: (parseFloat(S.wizData.cost_price)>0&&parseFloat(S.wizData.retail_price)>0) ? Math.round(((S.wizData.retail_price-S.wizData.cost_price)/S.wizData.cost_price)*100) : null,
+                    min_quantity: S.wizData.min_quantity||null,
+                    supplier_id: S.wizData.supplier_id||null,
+                    supplier_name: supName,
+                    category_id: S.wizData.category_id||null,
+                    category_name: catName,
+                    subcategory_id: S.wizData.subcategory_id||null,
+                    subcategory_name: subName,
+                    color: S.wizType==='single' ? (S.wizData.color||null) : null,
+                    size: S.wizType==='single' ? (S.wizData.size||null) : null,
+                    composition: S.wizData.composition||null,
+                    origin_country: S.wizData.origin_country||null
+                };
+                localStorage.setItem('_rms_lastWizProductFields', JSON.stringify(snap));
+            } catch(e) { /* localStorage quota or denied — non-fatal */ }
             // S82.STUDIO.10: clear the auto-saved draft now that the artikel is in DB.
             if (typeof _wizClearDraft === 'function') _wizClearDraft();
             if(S.wizData._photoDataUrl&&S.wizData._photoDataUrl.startsWith('data:')){
