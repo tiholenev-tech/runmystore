@@ -1402,38 +1402,97 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 </div><div class="pay-overlay" id="payOverlay" onclick="closePayment()"></div>
 <div class="pay-sheet" id="paySheet">
     <div class="pay-handle"></div>
-    <div class="pay-header">
-        <div>
-            <div class="pay-due">ДЪЛЖИМО</div>
-            <div class="pay-due-amount" id="payDueAmount">0,00 <?= $currency ?></div>
-        </div>
-        <button class="pay-close" onclick="closePayment()">✕</button>
+
+    <!-- V5 HERO: stat-num.lg -->
+    <div style="text-align:center;padding:14px 0 10px;position:relative">
+        <button class="pay-close" onclick="closePayment()" style="position:absolute;top:6px;right:10px">✕</button>
+        <div class="stat-label" style="margin-bottom:6px">Общо за плащане</div>
+        <span class="stat-num lg" id="payDueAmount">0,00</span><span class="stat-cur" id="payDueCur"><?= $currency ?></span>
+    </div>
+
+    <!-- V5 SECTION: Начин на плащане -->
+    <div class="v5-section">
+        <span class="v5-section-label">Начин на плащане</span>
+        <div class="v5-section-line"></div>
     </div>
     <div class="pay-methods">
-        <button class="pm-chip active" data-method="cash" onclick="setPayMethod('cash')">💵 Брой</button>
-        <button class="pm-chip" data-method="card" onclick="setPayMethod('card')">💳 Карта</button>
-        <button class="pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">🏦 Превод</button>
-        <button class="pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">⏳ Отложено</button>
+        <button type="button" class="pkg-card q3 featured pm-chip active" data-method="cash" onclick="setPayMethod('cash')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">💵</span>
+                <span class="pkg-name">В БРОЙ</span>
+                <span class="pkg-active-badge" id="pmBadgeCash">АКТИВНО</span>
+            </div>
+            <div class="pkg-sub">Готово за приключване</div>
+        </button>
+        <button type="button" class="pkg-card q-blue pm-chip" data-method="card" onclick="setPayMethod('card')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">💳</span>
+                <span class="pkg-name">КАРТА</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">Чрез POS терминал · без ресто</div>
+        </button>
+        <button type="button" class="pkg-card q-violet pm-chip" data-method="bank_transfer" onclick="setPayMethod('bank_transfer')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">🏦</span>
+                <span class="pkg-name">ПРЕВОД</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">Банкова сметка</div>
+        </button>
+        <button type="button" class="pkg-card q-amber pm-chip" data-method="deferred" onclick="setPayMethod('deferred')">
+            <div class="pkg-head">
+                <span class="pkg-emoji">⏳</span>
+                <span class="pkg-name">ОТЛОЖЕНО</span>
+                <span class="pkg-arrow">›</span>
+            </div>
+            <div class="pkg-sub">На кредит / на изплащане</div>
+        </button>
     </div>
+
     <div id="cashSection">
-        <div class="pay-received">
-            <div class="pay-recv-label">Получено:</div>
-            <div class="pay-recv-amount" id="payRecvAmount">0,00 <?= $currency ?></div>
+        <!-- V5 SECTION: Бързи банкноти -->
+        <div class="v5-section">
+            <span class="v5-section-label">Бързи банкноти</span>
+            <div class="v5-section-line"></div>
         </div>
         <div class="pay-banknotes">
-            <button class="bn-chip exact" onclick="payBanknote('exact')">Точна</button>
             <button class="bn-chip" onclick="payBanknote(5)">5</button>
             <button class="bn-chip" onclick="payBanknote(10)">10</button>
             <button class="bn-chip" onclick="payBanknote(20)">20</button>
             <button class="bn-chip" onclick="payBanknote(50)">50</button>
             <button class="bn-chip" onclick="payBanknote(100)">100</button>
+            <button class="bn-chip" onclick="payBanknote(200)">200</button>
+            <button class="bn-chip" onclick="payBanknote(500)">500</button>
+            <button class="bn-chip exact" onclick="payBanknote('exact')">ТОЧНО</button>
         </div>
-        <div class="pay-change" id="payChangeBox" style="display:none">
-            <div class="pay-change-label">РЕСТО</div>
-            <div class="pay-change-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
+
+        <!-- V5 DETECT (purple) — Клиент даде -->
+        <div class="detect" id="payRecvBox">
+            <div class="detect-row">
+                <div class="detect-icon">🎤</div>
+                <div class="detect-text">
+                    <div class="detect-label">Клиент даде</div>
+                    <div class="detect-val" id="payRecvAmount">0,00 <?= $currency ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V5 BRIEFING SECTION q3 (green) — РЕСТО -->
+        <div class="briefing-section q3" id="payChangeBox" style="display:none">
+            <div class="briefing-head">
+                <span class="briefing-emoji">🟢</span>
+                <span class="briefing-name">РЕСТО</span>
+            </div>
+            <div class="briefing-amount" id="payChangeAmount">0,00 <?= $currency ?></div>
         </div>
     </div>
-    <button class="btn-confirm s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>✅ ПОТВЪРДИ ПЛАЩАНЕ</button>
+
+    <!-- V5 PKG-BUY.MEGA: SELL -->
+    <button type="button" class="pkg-buy mega s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        ПОТВЪРДИ ПЛАЩАНЕ
+    </button>
 </div>
 
 <div class="ws-overlay" id="wsOverlay" onclick="closeWholesale()"></div>
@@ -1717,7 +1776,7 @@ function render() {
         empty.style.display = '';
         summary.style.display = 'none';
         btnPay.disabled = true;
-        zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+        zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
         return;
     }
 
@@ -1725,24 +1784,45 @@ function render() {
     summary.style.display = '';
 
     // Remove old items
-    zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+    zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
 
-    // Build cart items
+    // Build cart items (V5 set-row pattern)
     STATE.cart.forEach((item, idx) => {
         const div = document.createElement('div');
-        div.className = 'cart-item' + (idx === STATE.selectedIndex ? ' selected' : '');
+        div.className = 'set-row' + (idx === STATE.selectedIndex ? ' selected' : '');
         const lineTotal = item.unit_price * item.quantity * (1 - (item.discount_pct || 0) / 100);
+        const unitSub = fmtPrice(item.unit_price) + ' ' + STATE.currency + '/бр' + (item.code ? ' · ' + esc(item.code) : '');
         div.innerHTML = `
-            <div class="ci-info">
-                <div class="ci-name">${esc(item.name)}</div>
-                <div class="ci-meta">${esc(item.code || '')}${item.meta ? ' · ' + esc(item.meta) : ''}</div>
+            <div class="set-icon">📦</div>
+            <div class="set-text">
+                <div class="set-val">${esc(item.name)}</div>
+                <div class="set-val-sub">${unitSub}</div>
             </div>
-            <div class="ci-right">
-                <div class="ci-qty">x${item.quantity}</div>
-                <div class="ci-price">${fmtPrice(lineTotal)}</div>
+            <div class="set-qty">
+                <button class="set-qty-btn" type="button" data-act="dec">−</button>
+                <span class="set-qty-val">${item.quantity}</span>
+                <button class="set-qty-btn" type="button" data-act="inc">+</button>
             </div>
+            <div class="set-total">${fmtPrice(lineTotal)}</div>
             <div class="ci-delete">Изтрий</div>
         `;
+        // qty +/- handlers
+        const decBtn = div.querySelector('[data-act="dec"]');
+        const incBtn = div.querySelector('[data-act="inc"]');
+        if (decBtn) decBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (STATE.cart[idx].quantity > 1) {
+                STATE.cart[idx].quantity--;
+                render();
+            } else {
+                removeItem(idx);
+            }
+        });
+        if (incBtn) incBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            STATE.cart[idx].quantity++;
+            render();
+        });
 
         // Tap = select + qty mode
         div.addEventListener('click', (e) => {
@@ -2124,9 +2204,10 @@ function openPayment() {
     if (STATE.cart.length === 0) return;
     STATE.payMethod = 'cash';
     STATE.receivedAmount = 0;
-    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === 'cash'));
+    updatePmCardActive('cash');
     document.getElementById('cashSection').style.display = '';
-    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal()) + ' ' + STATE.currency;
+    document.getElementById('payDueAmount').textContent = fmtPrice(getTotal());
+    document.getElementById('payDueCur').textContent = STATE.currency;
     document.getElementById('payRecvAmount').textContent = '0,00 ' + STATE.currency;
     document.getElementById('payChangeBox').style.display = 'none';
     document.getElementById('btnConfirm').disabled = true;
@@ -2135,6 +2216,38 @@ function openPayment() {
 
     document.getElementById('payOverlay').classList.add('open');
     document.getElementById('paySheet').classList.add('open');
+}
+
+// V5 pkg-card payment method active state (.featured + АКТИВНО badge)
+function updatePmCardActive(method) {
+    document.querySelectorAll('.pm-chip').forEach(c => {
+        const isActive = c.dataset.method === method;
+        c.classList.toggle('active', isActive);
+        c.classList.toggle('featured', isActive);
+        // Toggle q3 (green featured) on the active card; restore default color on others
+        const m = c.dataset.method;
+        const colorMap = {cash:'q3', card:'q-blue', bank_transfer:'q-violet', deferred:'q-amber'};
+        // Always keep the card's own color class — only featured highlights active
+        // Show "АКТИВНО" badge only on active; arrow only on inactive
+        const badge = c.querySelector('.pkg-active-badge');
+        const arrow = c.querySelector('.pkg-arrow');
+        if (isActive) {
+            if (badge) badge.style.display = '';
+            else {
+                const head = c.querySelector('.pkg-head');
+                if (head) {
+                    if (arrow) arrow.style.display = 'none';
+                    const span = document.createElement('span');
+                    span.className = 'pkg-active-badge';
+                    span.textContent = 'АКТИВНО';
+                    head.appendChild(span);
+                }
+            }
+        } else {
+            if (badge) badge.remove();
+            if (arrow) arrow.style.display = '';
+        }
+    });
 }
 
 function closePayment() {
@@ -2146,7 +2259,7 @@ function closePayment() {
 
 function setPayMethod(method) {
     STATE.payMethod = method;
-    document.querySelectorAll('.pm-chip').forEach(c => c.classList.toggle('active', c.dataset.method === method));
+    updatePmCardActive(method);
 
     const cashSec = document.getElementById('cashSection');
     const btnConfirm = document.getElementById('btnConfirm');
