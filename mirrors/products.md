@@ -7872,6 +7872,28 @@ function wizPinnedAddValue(pgi){
     var pg=S._wizPinnedGroups[pgi];if(!pg)return;
     // Support comma-separated
     var vals=raw.split(',').map(function(v){return v.trim()}).filter(function(v){return v.length>0});
+    // S88.BUG#4: only fuzzy match for SINGLE-value entry (skip on bulk paste)
+    if (vals.length === 1 && typeof fuzzyConfirmAdd === 'function') {
+        var single = vals[0];
+        fuzzyConfirmAdd((pg.label||'размер').toLowerCase(), single, pg.vals||[],
+            function(existing){
+                var existingName = (typeof existing === 'string') ? existing : (existing.name || existing);
+                if (pg.vals.indexOf(existingName) === -1) pg.vals.push(existingName);
+                inp.value='';
+                _wizSavePinnedGroups();
+                renderWizard();
+                showToast('Използван: '+existingName,'success');
+            },
+            function(){
+                if (pg.vals.indexOf(single) === -1) pg.vals.push(single);
+                inp.value='';
+                _wizSavePinnedGroups();
+                renderWizard();
+                showToast('Добавен ✓','success');
+            }
+        );
+        return;
+    }
     vals.forEach(function(v){if(pg.vals.indexOf(v)===-1)pg.vals.push(v)});
     inp.value='';
     _wizSavePinnedGroups();
@@ -8411,19 +8433,35 @@ function wizAddHexColor(){
     if(!name){showToast('Дай име на цвета','error');return}
     var ax=S.wizData.axes[S._wizActiveTab];
     if(!ax){showToast('Няма активна вариация','error');return}
-    if(ax.values.indexOf(name)===-1){
-        ax.values.push(name);
-        if(!CFG.colors.find(function(c){return c.name===name})){
-            CFG.colors.push({name:name,hex:hex,_custom:true});
+    // S88.BUG#4: fuzzy match against existing colors (CFG + already in axis)
+    var candidates = (CFG.colors||[]).map(function(c){return c.name||c}).concat(ax.values||[]);
+    fuzzyConfirmAdd('цвят', name, candidates,
+        function(existing){
+            var existingName = (typeof existing === 'string') ? existing : (existing.name || existing);
+            if (ax.values.indexOf(existingName) === -1){
+                ax.values.push(existingName);
+                showToast('Използван: '+existingName,'success');
+            } else {
+                showToast(existingName+' вече е избран','');
+            }
+            if(nameInp)nameInp.value='';
+            renderWizard();
+        },
+        function(){
+            if(ax.values.indexOf(name)===-1){
+                ax.values.push(name);
+                if(!CFG.colors.find(function(c){return c.name===name})){
+                    CFG.colors.push({name:name,hex:hex,_custom:true});
+                }
+                _wizSaveCustomColors();
+                showToast(name+' добавен','success');
+                if(nameInp)nameInp.value='';
+                renderWizard();
+            }else{
+                showToast('Вече е добавен','error');
+            }
         }
-        // Save custom colors to localStorage
-        _wizSaveCustomColors();
-        showToast(name+' добавен','success');
-        if(nameInp)nameInp.value='';
-        renderWizard();
-    }else{
-        showToast('Вече е добавен','error');
-    }
+    );
 }
 
 function _wizSaveCustomColors(){
@@ -8688,8 +8726,21 @@ function wizAddAxisValue(axIdx){
     const inp=document.getElementById('axVal'+axIdx);
     const val=inp?.value.trim();
     if(!val)return;
-    S.wizData.axes[axIdx].values.push(val);
-    renderWizard();
+    // S88.BUG#4: fuzzy match against already-added values on this axis
+    const ax=S.wizData.axes[axIdx]; if(!ax) return;
+    fuzzyConfirmAdd((ax.name||'размер').toLowerCase(), val, ax.values||[],
+        function(existing){
+            const existingName = (typeof existing === 'string') ? existing : (existing.name || existing);
+            if (ax.values.indexOf(existingName) === -1) ax.values.push(existingName);
+            if(inp) inp.value='';
+            renderWizard();
+        },
+        function(){
+            ax.values.push(val);
+            if(inp) inp.value='';
+            renderWizard();
+        }
+    );
 }
 
 function wizComboQty(idx,delta){
@@ -9097,17 +9148,37 @@ function wizAddSubcat(){
     const name=document.getElementById('inlSubcatName')?.value.trim();
     const parentId=document.getElementById('wCatDD')?._selectedId||S.wizData.category_id;
     if(!name||!parentId){showToast('Избери категория и въведи име','error');return}
-    api('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(name)+'&parent_id='+parentId}).then(d=>{
-        if(d?.id){
-            if(d.duplicate){showToast('Подкатегория "'+d.name+'" вече съществува','error')}
-            else{showToast('Подкатегория добавена ✓','success')}
-            const sel=document.getElementById('wSubcat');
-            const o=document.createElement('option');o.value=d.id;o.textContent=d.name;o.selected=true;
-            sel.appendChild(o);
-            S.wizData.subcategory_id=d.id;
-            document.getElementById('inlSubcat').classList.remove('open');
+    // S88.BUG#4: fuzzy match against existing subcategories of this parent
+    const subSel = document.getElementById('wSubcat');
+    const existingSubs = [];
+    if (subSel) {
+        for (let i=0; i<subSel.options.length; i++){
+            const o = subSel.options[i];
+            if (o.value) existingSubs.push({ id: o.value, name: o.textContent });
         }
-    });
+    }
+    const doCreate = function(){
+        api('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(name)+'&parent_id='+parentId}).then(d=>{
+            if(d?.id){
+                if(d.duplicate){showToast('Подкатегория "'+d.name+'" вече съществува','error')}
+                else{showToast('Подкатегория добавена ✓','success')}
+                const sel=document.getElementById('wSubcat');
+                const o=document.createElement('option');o.value=d.id;o.textContent=d.name;o.selected=true;
+                sel.appendChild(o);
+                S.wizData.subcategory_id=d.id;
+                document.getElementById('inlSubcat').classList.remove('open');
+            }
+        });
+    };
+    fuzzyConfirmAdd('подкатегория', name, existingSubs,
+        function(existing){
+            if (subSel){ subSel.value = existing.id; }
+            S.wizData.subcategory_id = existing.id;
+            document.getElementById('inlSubcat')?.classList.remove('open');
+            showToast('Използвана: '+existing.name,'success');
+        },
+        doCreate
+    );
 }
 
 function wizTypeGuard(e){
@@ -9211,17 +9282,100 @@ document.getElementById('photoInput').addEventListener('change',async function()
 // Inline add helpers
 function toggleInl(id){document.getElementById(id)?.classList.toggle('open')}
 
+// ───────── S88.BUG#4: fuzzy match (Levenshtein, 80% threshold) ─────────
+function _levenshtein(a, b){
+    a = (a||'').toLowerCase().trim(); b = (b||'').toLowerCase().trim();
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    const m = a.length, n = b.length;
+    const dp = new Array(n + 1);
+    for (let j = 0; j <= n; j++) dp[j] = j;
+    for (let i = 1; i <= m; i++){
+        let prev = dp[0]; dp[0] = i;
+        for (let j = 1; j <= n; j++){
+            const tmp = dp[j];
+            dp[j] = (a.charCodeAt(i-1) === b.charCodeAt(j-1))
+                ? prev
+                : Math.min(prev, dp[j], dp[j-1]) + 1;
+            prev = tmp;
+        }
+    }
+    return dp[n];
+}
+// Returns null or {match:<original candidate>, name:<display name>, score:0-100}
+function fuzzyMatch80(input, candidates){
+    if (!input || !candidates || !candidates.length) return null;
+    const inp = String(input).toLowerCase().trim();
+    if (!inp) return null;
+    let best = null, bestScore = 0;
+    for (const c of candidates){
+        if (c == null) continue;
+        const name = (typeof c === 'string') ? c : (c.name || '');
+        const cand = String(name).toLowerCase().trim();
+        if (!cand) continue;
+        let sim;
+        if (cand === inp) { sim = 1; }
+        else {
+            const dist = _levenshtein(inp, cand);
+            const maxLen = Math.max(inp.length, cand.length);
+            sim = maxLen ? 1 - (dist / maxLen) : 0;
+        }
+        if (sim > bestScore) { bestScore = sim; best = { match: c, name: name, score: Math.round(sim * 100) }; }
+    }
+    return (best && best.score >= 80) ? best : null;
+}
+// onUseExisting(matchedCandidate), onAddNew() — call exactly one.
+function fuzzyConfirmAdd(label, input, candidates, onUseExisting, onAddNew){
+    const m = fuzzyMatch80(input, candidates);
+    if (!m){ onAddNew(); return; }
+    const msg = 'Вече има "' + m.name + '" (' + m.score + '% близко до "' + input + '").\n\n'
+              + 'OK = използвай съществуващото "' + m.name + '"\n'
+              + 'Откажи = добави "' + input + '" като ново';
+    if (confirm(msg)) onUseExisting(m.match);
+    else onAddNew();
+}
+// ───────── /S88.BUG#4 ─────────
+
 async function wizAddInline(type){
     if(type==='supplier'){
         const n=document.getElementById('inlSupName')?.value.trim();
         if(!n)return;
-        const d=await api('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){if(d.duplicate){showToast('Доставчик "'+d.name+'" вече съществува','error');S.wizData.supplier_id=d.id;const ss=document.getElementById('wSup');if(ss)ss.value=d.id;document.getElementById('inlSup')?.classList.remove('open')}else{CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();if(!S._wizMicVoiceAdd){openSupCatModal(d.id,d.name)}S._wizMicVoiceAdd=false}}
+        // S88.BUG#4: fuzzy match before creating new supplier
+        fuzzyConfirmAdd('доставчик', n, CFG.suppliers||[],
+            function(existing){
+                S.wizData.supplier_id=existing.id;
+                const ss=document.getElementById('wSup'); if(ss)ss.value=existing.id;
+                const sd=document.getElementById('wSupDD'); if(sd){sd.value=existing.name; sd._selectedId=existing.id;}
+                document.getElementById('inlSup')?.classList.remove('open');
+                showToast('Използван: '+existing.name,'success');
+                wizMarkDone&&wizMarkDone('supplier'); wizHighlightNext&&wizHighlightNext();
+            },
+            async function(){
+                const d=await api('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
+                if(d?.id){if(d.duplicate){showToast('Доставчик "'+d.name+'" вече съществува','error');S.wizData.supplier_id=d.id;const ss=document.getElementById('wSup');if(ss)ss.value=d.id;document.getElementById('inlSup')?.classList.remove('open')}else{CFG.suppliers.push({id:d.id,name:d.name});S.wizData.supplier_id=d.id;showToast('Добавен ✓','success');renderWizard();if(!S._wizMicVoiceAdd){openSupCatModal(d.id,d.name)}S._wizMicVoiceAdd=false}}
+            }
+        );
     }else{
         const n=document.getElementById('inlCatName')?.value.trim();
         if(!n)return;
-        const d=await api('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
-        if(d?.id){if(d.duplicate){showToast('Категория "'+d.name+'" вече съществува','error');S.wizData.category_id=d.id;const cs=document.getElementById('wCat');if(cs)cs.value=d.id;document.getElementById('inlCat')?.classList.remove('open')}else{CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}}
+        // S88.BUG#4: fuzzy match before creating new category (only top-level, parent_id null)
+        const topCats = (CFG.categories||[]).filter(c => !c.parent_id);
+        fuzzyConfirmAdd('категория', n, topCats,
+            function(existing){
+                S.wizData.category_id=existing.id;
+                const cs=document.getElementById('wCat'); if(cs)cs.value=existing.id;
+                const cd=document.getElementById('wCatDD'); if(cd){cd.value=existing.name; cd._selectedId=existing.id;}
+                document.getElementById('inlCat')?.classList.remove('open');
+                showToast('Използвана: '+existing.name,'success');
+                if(typeof wizLoadSubcats==='function') wizLoadSubcats(existing.id);
+                wizMarkDone&&wizMarkDone('category'); wizHighlightNext&&wizHighlightNext();
+            },
+            async function(){
+                const d=await api('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)});
+                if(d?.id){if(d.duplicate){showToast('Категория "'+d.name+'" вече съществува','error');S.wizData.category_id=d.id;const cs=document.getElementById('wCat');if(cs)cs.value=d.id;document.getElementById('inlCat')?.classList.remove('open')}else{CFG.categories.push({id:d.id,name:d.name});S.wizData.category_id=d.id;showToast('Добавена ✓','success');renderWizard()}}
+            }
+        );
     }
 }
 
