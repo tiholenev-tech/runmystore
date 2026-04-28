@@ -1168,8 +1168,30 @@ body.sale-page .btn-park{ height:38px;font-size:16px }
 body.sale-page #keyboardZone{ display:none !important }
 body.sale-page #numpadZone{ display:none !important }
 
-/* 1.11 — Cart gets all available space */
-body.sale-page #cartZone{ flex:1 1 auto;min-height:260px }
+/* 1.11 — Cart gets all available space (FIX1: reserve bottom for sticky action+summary) */
+body.sale-page #cartZone{ flex:1 1 auto;min-height:0;padding-bottom:108px }
+
+/* FIX1 — Pin summary-bar + action-bar to viewport bottom so ПЛАТИ is always reachable.
+   Without this, after hiding bottom-nav and shrinking buttons, layout could push action-bar
+   below the visible viewport on small phones (header padding-top + 100dvh wrap = overflow). */
+body.sale-page .summary-bar{
+    position:fixed;left:0;right:0;
+    bottom:calc(56px + env(safe-area-inset-bottom, 0px));
+    max-width:480px;margin:0 auto;z-index:90;
+}
+body.sale-page .action-bar{
+    position:fixed;left:0;right:0;bottom:0;
+    max-width:480px;margin:0 auto;z-index:91;
+    padding:8px 12px max(8px, env(safe-area-inset-bottom)) 12px !important;
+}
+/* set-qty-val: visible-as-tappable cue (FIX2 — free quantity entry) */
+body.sale-page .set-qty-val{
+    cursor:pointer;padding:4px 6px;border-radius:8px;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+    min-width:30px;
+}
+:root[data-theme="light"] body.sale-page .set-qty-val{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.08)}
+body.sale-page .set-qty-val:active{background:hsl(var(--hue1) 60% 50% / 0.2)}
 
 /* search-display visually clickable */
 body.sale-page .search-display{ cursor:pointer }
