@@ -96,8 +96,11 @@ if ($ajax === 'sections') {
     ];
 
     // Взимаме всички insights за този tenant/store
+    // S88.PRODUCTS.AIBRAIN_WIRE: action_label/action_type/action_data позволяват
+    // фронтендът да рендерира call-to-action бутон под всеки item.
     $insights = DB::run(
-        "SELECT topic_id, fundamental_question, title, detail_text, data_json, value_numeric, product_count
+        "SELECT topic_id, fundamental_question, title, detail_text, data_json, value_numeric, product_count,
+                action_label, action_type, action_data
          FROM ai_insights
          WHERE tenant_id=? AND store_id=? AND expires_at > NOW()
          ORDER BY urgency='critical' DESC, urgency='warning' DESC, value_numeric DESC",
@@ -111,6 +114,18 @@ if ($ajax === 'sections') {
 
         $data = $ins['data_json'] ? json_decode($ins['data_json'], true) : null;
         $items = $data['items'] ?? [];
+
+        // S88: action payload — извлечен веднъж per insight, разпределен на всеки item.
+        // intent (от action_data) е семантичен (включва navigate_chart/transfer_draft/...);
+        // type е валиден ENUM за rotate-aware UI диспетчер.
+        $actionData = $ins['action_data'] ? json_decode($ins['action_data'], true) : [];
+        if (!is_array($actionData)) $actionData = [];
+        $actionPayload = [
+            'label'  => $ins['action_label'] ?? null,
+            'type'   => $ins['action_type'] ?? null,
+            'intent' => $actionData['intent'] ?? ($ins['action_type'] ?? null),
+            'topic'  => $ins['topic_id'],
+        ];
 
         // Взимаме първите 4 артикула от insight-а
         foreach (array_slice($items, 0, 4) as $it) {
@@ -168,6 +183,7 @@ if ($ajax === 'sections') {
                 'image_url' => $it['image_url'] ?? null,
                 'category_name' => $it['category_name'] ?? null,
                 'subcategory_name' => $it['subcategory_name'] ?? null,
+                'action' => $actionPayload,
             ];}
 
         // S79 A2.6: total per insight (once)
@@ -3744,6 +3760,16 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .art-ctx.q5{color:#fcd34d}
 .art-ctx.q6{color:rgba(255,255,255,.55)}
 .art-ctx b{font-weight:900}
+
+/* S88.PRODUCTS.AIBRAIN_WIRE — call-to-action button под art-ctx (mobile 375px optimized) */
+.art-action{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:9.5px;font-weight:900;letter-spacing:.01em;text-align:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.12);cursor:pointer;position:relative;z-index:6;transition:background .15s ease;font-family:inherit;line-height:1.2}
+.art-action:hover{background:rgba(255,255,255,.14)}
+.art-action.q1{background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(239,68,68,.08));border-color:rgba(239,68,68,.3);color:#fecaca}
+.art-action.q2{background:linear-gradient(135deg,rgba(192,132,252,.18),rgba(192,132,252,.08));border-color:rgba(192,132,252,.3);color:#e9d5ff}
+.art-action.q3{background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(34,197,94,.08));border-color:rgba(34,197,94,.3);color:#bbf7d0}
+.art-action.q4{background:linear-gradient(135deg,rgba(45,212,191,.18),rgba(45,212,191,.08));border-color:rgba(45,212,191,.3);color:#99f6e4}
+.art-action.q5{background:linear-gradient(135deg,rgba(251,191,36,.20),rgba(251,191,36,.08));border-color:rgba(251,191,36,.35);color:#fde68a}
+.art-action.q6{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.6)}
 
 .view-all{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;margin:18px 0 8px;cursor:pointer;--radius:14px;color:hsl(var(--hue1) 60% 85%);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .view-all svg{width:13px;height:13px;stroke:currentColor;stroke-width:2.5;fill:none;position:relative;z-index:5}
@@ -11128,6 +11154,16 @@ function loadSections() {
                     const photoContent = it.image_url
                         ? `<img src="${it.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
                         : (emoji ? `<span class="art-emoji">${emoji}</span>` : `<svg class="art-svg-fallback" viewBox="0 0 48 48" fill="none"> <defs>  <linearGradient id="ngg1" x1="0" y1="0" x2="1" y2="1">   <stop offset="0" stop-color="currentColor" stop-opacity=".85"/>   <stop offset="1" stop-color="currentColor" stop-opacity=".35"/>  </linearGradient>  <filter id="ngf1" x="-30%" y="-30%" width="160%" height="160%">   <feGaussianBlur stdDeviation="1.5" result="b"/>   <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>  </filter> </defs> <!-- Хексагонален rim с glow --> <polygon points="24,5 39,13 39,32 24,40 9,32 9,13"   stroke="url(#ngg1)" stroke-width="1.5" fill="none" filter="url(#ngf1)" opacity=".8"/> <polygon points="24,10 35,16 35,30 24,36 13,30 13,16"   stroke="currentColor" stroke-width=".8" fill="none" opacity=".5"/> <!-- Централен символ — звезда/кристал --> <path d="M24 17 L27 22 L32 22.5 L28 26 L29 31 L24 28.5 L19 31 L20 26 L16 22.5 L21 22 Z"   fill="url(#ngg1)" stroke="currentColor" stroke-width=".4" filter="url(#ngf1)"/> <circle cx="24" cy="23" r="1.5" fill="currentColor" opacity=".9"/></svg>`);
+                    /* S88.PRODUCTS.AIBRAIN_WIRE: action button — handler dispatch-ва според intent.
+                       Payload се пази в window.__aiAct keyed by ключ; onclick предава ключа. */
+                    const act = it.action || {};
+                    let actionBtn = '';
+                    if (act.label) {
+                        const actKey = `${q}-${it.id}-${act.topic||''}`;
+                        window.__aiAct = window.__aiAct || {};
+                        window.__aiAct[actKey] = act;
+                        actionBtn = `<button class="art-action ${q}" onclick="event.stopPropagation();handleAiAction('${actKey.replace(/'/g,"\\'")}', ${it.id})">${escapeHtml(act.label)}</button>`;
+                    }
                     return `
                     <div class="glass sm ${q} art" onclick="openProductDetail(${it.id})" data-fix="S79.FIX.B-BUG9">
                         <span class="shine"></span><span class="shine shine-bottom"></span>
@@ -11141,6 +11177,7 @@ function loadSections() {
                             <div class="art-stk ${it.stkClass}">${it.stkText}</div>
                         </div>
                         <div class="art-ctx ${q}">${it.ctx}</div>
+                        ${actionBtn}
                     </div>`;
                 }).join('');
             });
@@ -11148,6 +11185,46 @@ function loadSections() {
         .catch(e => console.error('loadSections:', e));
 }
 function escapeHtml(t){return (t||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
+
+/* S88.PRODUCTS.AIBRAIN_WIRE — call-to-action dispatcher.
+   intent (от ai_insights.action_data.intent) се прехвърля през ENUM-extended action_type
+   към конкретен UI handler. unknown intent → product detail (safest fallback). */
+function handleAiAction(actKey, productId) {
+    const act = (window.__aiAct || {})[actKey] || {};
+    const intent = act.intent || act.type || 'none';
+    const topic = act.topic || '';
+    /* TODO S89: реални handlers (order modal, transfer modal, chart navigation, dismiss API).
+       За сега минимална логика: navigate_product → openProductDetail; останалите → console + product detail. */
+    switch (intent) {
+        case 'navigate_product':
+        case 'deeplink':
+            if (typeof openProductDetail === 'function') openProductDetail(productId);
+            break;
+        case 'navigate_chart':
+            console.log('[AI Action] navigate_chart →', topic, 'product=', productId);
+            if (typeof openProductDetail === 'function') openProductDetail(productId);
+            break;
+        case 'order_draft':
+        case 'transfer_draft':
+            console.log('[AI Action]', intent, '→ topic=', topic, 'product=', productId);
+            if (typeof openProductDetail === 'function') openProductDetail(productId);
+            break;
+        case 'chat':
+            console.log('[AI Action] chat →', topic, 'product=', productId);
+            if (typeof openChatOverlay === 'function') openChatOverlay({topic, productId});
+            else if (typeof openProductDetail === 'function') openProductDetail(productId);
+            break;
+        case 'dismiss':
+            console.log('[AI Action] dismiss →', topic);
+            /* без UI промяна за сега; S89 ще скрие card-а локално */
+            break;
+        case 'none':
+        default:
+            console.log('[AI Action] no-op intent=', intent, 'topic=', topic);
+            if (typeof openProductDetail === 'function') openProductDetail(productId);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => { if (document.querySelector('#scrHome')) loadSections(); });
 
 /* ═══ S79.FIX.B-HIDDEN-INV-UI: Store Health renderer ═══ */
