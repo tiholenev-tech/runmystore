@@ -1,0 +1,18 @@
+{
+  "wizard.copy_from_last": "📋 Копирай от последния",
+  "wizard.copy_field_from_last": "Копирай това поле от последния",
+  "wizard.make_main_photo": "Направи главна",
+  "wizard.type_single": "Единичен",
+  "wizard.type_variant": "С вариации (размер и цвят)",
+  "wizard.type_variants": "С вариации (размер и цвят)",
+  "wizard.skip_photo": "Може да пропуснеш",
+  "wizard.markup_pct": "Надценка %",
+  "wizard.category": "Категория",
+  "wizard.subcategory": "Подкатегория",
+  "wizard.supplier": "Доставчик",
+  "wizard.origin": "Произход",
+  "wizard.no_previous": "Няма предишен артикул",
+  "wizard.copied_from_last": "Попълнено от последния",
+  "wizard.field_empty_in_last": "Това поле е празно в последния",
+  "wizard.photo_main_set": "Главна снимка избрана"
+}
