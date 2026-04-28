@@ -450,9 +450,12 @@ body::after{
 
 /* ═══ ACTION BAR ═══ */
 .action-bar{
-    display:flex;align-items:center;gap:8px;padding:8px 12px;flex-shrink:0;
-    background:rgba(3,7,18,0.93);
+    display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0;
+    background:linear-gradient(180deg,hsl(220 25% 6% / 0.85),hsl(220 25% 4% / 0.95));
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--border-subtle);
 }
+:root[data-theme="light"] .action-bar{background:linear-gradient(180deg,hsl(215deg 40% 99% / 0.85),hsl(215deg 40% 97% / 0.95))}
 /* V5 — act-block.indigo style: pill with gradient + inset glow */
 .btn-pay{
     flex:3;height:42px;border-radius:100px;cursor:pointer;
@@ -478,7 +481,8 @@ body::after{
 .btn-park:active{background:rgba(99,102,241,0.12);transform:scale(0.95)}
 
 /* ═══ NUMPAD ═══ */
-.numpad-zone{flex-shrink:0;background:rgba(3,7,18,0.97);padding:0 8px 132px;backdrop-filter:blur(16px)}
+.numpad-zone{flex-shrink:0;background:linear-gradient(180deg,hsl(220 25% 6% / 0.92),hsl(220 25% 4% / 0.97));padding:0 8px calc(132px + env(safe-area-inset-bottom,0px));backdrop-filter:blur(16px)}
+:root[data-theme="light"] .numpad-zone{background:linear-gradient(180deg,hsl(215deg 40% 99% / 0.92),hsl(215deg 40% 97% / 0.97))}
 .numpad-ctx{
     display:flex;align-items:center;justify-content:center;
     height:0;gap:0;margin-bottom:0;overflow:hidden;
@@ -518,20 +522,22 @@ body::after{
 
 /* ═══ LETTER KEYBOARD ═══ */
 .keyboard-zone{
-    flex-shrink:0;background:rgba(3,7,18,0.97);padding:4px 4px 80px;
+    flex-shrink:0;background:linear-gradient(180deg,hsl(220 25% 6% / 0.92),hsl(220 25% 4% / 0.97));padding:4px 4px calc(80px + env(safe-area-inset-bottom,0px));
     backdrop-filter:blur(16px);display:none;
 }
+:root[data-theme="light"] .keyboard-zone{background:linear-gradient(180deg,hsl(215deg 40% 99% / 0.92),hsl(215deg 40% 97% / 0.97))}
 .keyboard-zone.visible{display:block}
 .kb-row{display:flex;justify-content:center;gap:3px;margin-bottom:3px}
 .kb-key{
-    min-width:30px;height:38px;border-radius:8px;
+    min-width:30px;height:38px;border-radius:10px;
     border:1px solid var(--border-subtle);background:var(--bg-card);
-    color:var(--text-primary);font-size:14px;font-weight:600;font-family:inherit;
+    color:var(--text-primary);font-size:14px;font-weight:700;font-family:inherit;
     display:flex;align-items:center;justify-content:center;
-    cursor:pointer;transition:all 0.1s;padding:0 2px;
+    cursor:pointer;transition:all 0.1s;padding:0 2px;backdrop-filter:blur(4px);
 }
-.kb-key:active{background:rgba(99,102,241,0.2);transform:scale(0.9)}
-.kb-key.wide{min-width:50px;font-size:11px;color:var(--indigo-300);font-weight:700}
+:root[data-theme="light"] .kb-key{background:rgba(255,255,255,0.85)}
+.kb-key:active{background:hsl(var(--hue1) 60% 45% / 0.25);transform:scale(0.9);border-color:var(--border-glow)}
+.kb-key.wide{min-width:50px;font-size:11px;color:var(--indigo-300);font-weight:800;letter-spacing:0.04em}
 .kb-key.space{flex:1;max-width:120px}
 
 /* ═══ PAYMENT SHEET ═══ */
