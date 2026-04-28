@@ -656,17 +656,28 @@ function pfProfitGrowth(int $tenant_id): int {
 // =============================================================
 
 function pfHighestMargin(int $tenant_id): int {
+    // S88: гарантирай поне една реализирана продажба в последните 30 дни.
+    // Без тази клауза артикул с теоретично висок марж и нула продажби пак излиза като "печеливш".
     $sql = "
-        SELECT id AS product_id, name, code, retail_price, cost_price,
-               ROUND(((retail_price - cost_price) / retail_price) * 100, 1) AS margin_pct
-        FROM products
-        WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
-          AND cost_price IS NOT NULL AND cost_price > 0
-          AND retail_price > cost_price AND retail_price > 0
+        SELECT p.id AS product_id, p.name, p.code, p.retail_price, p.cost_price,
+               ROUND(((p.retail_price - p.cost_price) / p.retail_price) * 100, 1) AS margin_pct
+        FROM products p
+        WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL
+          AND p.cost_price IS NOT NULL AND p.cost_price > 0
+          AND p.retail_price > p.cost_price AND p.retail_price > 0
+          AND EXISTS (
+              SELECT 1
+              FROM sale_items si
+              JOIN sales s ON s.id = si.sale_id
+              WHERE s.tenant_id = ?
+                AND s.status = 'completed'
+                AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                AND si.product_id = p.id
+          )
         ORDER BY margin_pct DESC
         LIMIT 10";
     $st = pfDB()->prepare($sql);
-    $st->execute([$tenant_id]);
+    $st->execute([$tenant_id, $tenant_id]);
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
     if (empty($rows)) return 0;
 
