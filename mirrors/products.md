@@ -9079,7 +9079,20 @@ async function wizSave(){
 
     showToast('Запазвам...','');
     try{
-        const r=await api('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        let r=await api('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        // S88.BUG#6: duplicate guard. r.duplicate === true → user picks via modal.
+        if (r && r.duplicate === true && Array.isArray(r.matches) && r.matches.length){
+            const choice = await showDuplicatesModalS88(r.matches, r.fields||[]);
+            if (choice === 'cancel') { showToast('Отказан','error'); return; }
+            if (choice === 'open' && r.matches[0]?.id){
+                closeWizard();
+                if (typeof openProductDetail === 'function') openProductDetail(r.matches[0].id);
+                return;
+            }
+            // 'save' → resubmit with confirm_duplicate
+            payload.confirm_duplicate = 1;
+            r = await api('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        }
         if(r&&(r.success||r.id)){
             showToast('Артикулът е добавен!','success');
             S.wizSavedId=r.id;S.wizEditId=r.id;_wizSaveAxesToLocal();
@@ -9336,6 +9349,45 @@ function fuzzyConfirmAdd(label, input, candidates, onUseExisting, onAddNew){
     else onAddNew();
 }
 // ───────── /S88.BUG#4 ─────────
+
+// ───────── S88.BUG#6: duplicates modal (3 options) ─────────
+function showDuplicatesModalS88(matches, fields){
+    return new Promise(function(resolve){
+        var existing = document.getElementById('s88DupModal');
+        if (existing) existing.remove();
+        var fieldNames = { name:'име', code:'код', barcode:'баркод' };
+        var labelMap = (fields||[]).map(function(f){return fieldNames[f]||f;}).join(', ');
+        var first = matches[0] || {};
+        var listH = matches.slice(0,5).map(function(m){
+            var byTxt = fieldNames[m.by] || m.by;
+            return '<div style="padding:8px 10px;border:1px solid rgba(99,102,241,0.2);border-radius:8px;margin:4px 0;background:rgba(99,102,241,0.06);font-size:11px;color:#cbd5e1">'
+                + '<b style="color:#fff">'+(m.name||'')+'</b>'
+                + (m.code ? ' · код <span style="color:#a5b4fc">'+m.code+'</span>' : '')
+                + (m.barcode ? ' · ШК <span style="color:#a5b4fc">'+m.barcode+'</span>' : '')
+                + ' <span style="opacity:.7">(съвпада по '+byTxt+')</span></div>';
+        }).join('');
+        var ov = document.createElement('div');
+        ov.id = 's88DupModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+        ov.innerHTML =
+            '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:16px;padding:18px;max-width:380px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.6)">'
+            + '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px">⚠ Дубликат в '+labelMap+'</div>'
+            + '<div style="font-size:11px;color:#a5b4fc;margin-bottom:10px">Има артикул(и) с подобни данни:</div>'
+            + listH
+            + '<div style="display:flex;flex-direction:column;gap:6px;margin-top:14px">'
+            + '<button id="s88DupSave" style="padding:10px;border-radius:10px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Запази въпреки това</button>'
+            + '<button id="s88DupOpen" style="padding:10px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:700;cursor:pointer">📂 Отвори съществуващия (#'+(first.id||'?')+')</button>'
+            + '<button id="s88DupCancel" style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">✕ Отказ</button>'
+            + '</div></div>';
+        document.body.appendChild(ov);
+        var done = function(v){ ov.remove(); resolve(v); };
+        document.getElementById('s88DupSave').onclick   = function(){ done('save'); };
+        document.getElementById('s88DupOpen').onclick   = function(){ done('open'); };
+        document.getElementById('s88DupCancel').onclick = function(){ done('cancel'); };
+        ov.onclick = function(e){ if (e.target === ov) done('cancel'); };
+    });
+}
+// ───────── /S88.BUG#6 ─────────
 
 async function wizAddInline(type){
     if(type==='supplier'){
