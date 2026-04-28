@@ -1110,9 +1110,77 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 .success-hero{text-align:center;padding:14px 0 16px}
 .success-circle{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(160 70% 40%));display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 0 30px hsl(145 70% 50% / 0.5),0 0 0 4px hsl(145 70% 50% / 0.15),inset 0 1px 0 rgba(255,255,255,0.3);font-size:32px}
 
+/* ═══════════════════════════════════════════════════════════
+   S87D.SALE.UX_FINAL — Layout cleanup overrides
+   ═══════════════════════════════════════════════════════════ */
+/* 1.1 — Hide bottom nav on sale.php */
+body.sale-page .rms-bottom-nav,
+body.sale-page .bottom-nav { display:none !important; }
+body.sale-page.has-rms-shell { padding-bottom:0 !important; }
+
+/* 1.2 — Disable swipe / pull-to-refresh on sale wrap */
+body.sale-page #saleWrap{ touch-action:pan-y; overscroll-behavior:contain }
+
+/* 1.3 — Tabs inside cam-overlay (replaces standalone tabs-pill) */
+body.sale-page #tabsPill{ display:none !important }
+.cam-tabs{
+    display:flex;gap:3px;padding:2px;background:rgba(0,0,0,0.5);
+    border-radius:100px;backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.12);
+}
+.cam-tab{
+    padding:5px 11px;border-radius:100px;font-size:9px;font-weight:800;
+    letter-spacing:0.06em;background:transparent;border:none;
+    color:rgba(255,255,255,0.65);font-family:inherit;cursor:pointer;
+    display:flex;align-items:center;gap:4px;
+}
+.cam-tab svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2}
+.cam-tab.active{
+    background:linear-gradient(135deg,hsl(255 65% 45%),hsl(222 70% 38%));
+    color:#fff;box-shadow:0 2px 8px hsl(255 60% 45% / 0.5),inset 0 1px 0 rgba(255,255,255,0.2);
+    text-shadow:0 0 8px rgba(255,255,255,0.3);
+}
+
+/* 1.5 — Enlarge camera scan area */
+body.sale-page .cam-header{
+    height:calc(130px + env(safe-area-inset-top,0px)) !important;
+}
+body.sale-page .scan-corner{ width:20px;height:20px }
+body.sale-page .sc-tl{ top:36px;left:14% }
+body.sale-page .sc-tr{ top:36px;right:14% }
+body.sale-page .sc-bl{ bottom:34px;left:14% }
+body.sale-page .sc-br{ bottom:34px;right:14% }
+body.sale-page .scan-laser{
+    box-shadow:0 0 12px hsl(var(--hue1) 70% 60% / 0.85),0 0 28px hsl(var(--hue1) 70% 50% / 0.5);
+    height:2.5px;
+}
+body.sale-page .cam-status{ bottom:10px }
+body.sale-page .cam-status span{ font-size:10px;letter-spacing:0.10em }
+
+/* 1.7 — Smaller pay/park buttons */
+body.sale-page .action-bar{ padding:8px 12px !important }
+body.sale-page .btn-pay{ height:38px;font-size:13px;padding:0 14px }
+body.sale-page .btn-park{ height:38px;font-size:16px }
+
+/* 1.8 — Hide custom keyboard + numpad on sale.php (search uses overlay) */
+body.sale-page #keyboardZone{ display:none !important }
+body.sale-page #numpadZone{ display:none !important }
+
+/* 1.11 — Cart gets all available space */
+body.sale-page #cartZone{ flex:1 1 auto;min-height:260px }
+
+/* search-display visually clickable */
+body.sale-page .search-display{ cursor:pointer }
+body.sale-page #btnKeyboard{ display:none }
+
+/* hide redundant cam-title (cam-tabs take its place) */
+body.sale-page .cam-title{ display:none }
+/* re-balance cam-top now that we have 3 visible children: ← + cam-tabs + cam-right */
+body.sale-page .cam-top{ gap:8px }
+
 </style>
 </head>
-<body>
+<body class="sale-page">
 
 <div class="green-flash" id="greenFlash"></div>
 
@@ -1133,7 +1201,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <div class="rec-hint" id="recHint">Кажете артикул, количество или команда</div>
         <div class="rec-actions">
             <button class="rec-btn-cancel s87v3-tap" id="recCancel">Затвори</button>
-            <button class="rec-btn-send s87v3-tap" id="recSend" disabled>🎤 Изпрати →</button>
+            <button class="rec-btn-send s87v3-tap" id="recSend" disabled><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Изпрати →</button>
         </div>
     </div>
 </div>
@@ -1176,6 +1244,16 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="cam-top">
                 <button class="cam-btn s87v3-tap" onclick="location.href='warehouse.php'">←</button>
                 <span class="cam-title" id="camTitle"><?= $page_title ?></span>
+                <div class="cam-tabs" id="camTabs">
+                    <button class="cam-tab active" id="camTabRetail" type="button" onclick="setRetailMode()">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+                        ДРЕБНО
+                    </button>
+                    <button class="cam-tab" id="camTabWholesale" type="button" onclick="openWholesale()">
+                        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        ЕДРО
+                    </button>
+                </div>
                 <div class="cam-right">
                     <button class="cam-btn s87v3-tap" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
                         🅿️<span class="park-badge" id="parkedCount">0</span>
@@ -1191,7 +1269,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <div class="scan-laser"></div>
             <div class="cam-status">
                 <div class="scan-dot"></div>
-                <span>Скенер активен — насочи към баркод</span>
+                <span>НАСОЧИ КЪМ БАРКОДА</span>
             </div>
         </div>
     </div>
@@ -1229,7 +1307,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         <div class="search-display" id="searchDisplay">
             <span class="placeholder">🔍 Код, име или баркод</span>
         </div>
-        <button class="search-btn" id="btnVoiceSearch" onclick="startVoice()">🎤</button>
+        <button class="search-btn" id="btnVoiceSearch" onclick="startVoice()" aria-label="Гласово търсене"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
         <button class="search-btn" id="btnKeyboard" onclick="toggleKeyboard()">АБВ</button>
     </div>
 
@@ -1283,7 +1361,7 @@ body{padding-bottom:env(safe-area-inset-bottom);}
             <button class="np-btn fn clear" onclick="numPress('C')">C</button>
             <button class="np-btn" onclick="numPress('0')">0</button>
             <button class="np-btn ok" onclick="numOk()">OK</button>
-            <button class="np-btn mic" onclick="startVoice()">🎤</button>
+            <button class="np-btn mic" onclick="startVoice()" aria-label="Глас"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
         </div>
     </div>
 
@@ -1758,7 +1836,7 @@ function render() {
         ? (STATE.customerName || 'Едро')
         : '<?= $page_title ?>';
 
-    // V5 tabs-pill active state
+    // V5 tabs-pill active state (legacy, hidden via CSS on sale-page) + S87D cam-tabs
     const tabRetail = document.getElementById('tabRetail');
     const tabWholesale = document.getElementById('tabWholesale');
     if (tabRetail && tabWholesale) {
@@ -1768,6 +1846,18 @@ function render() {
             tabWholesale.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' + esc(STATE.customerName).toUpperCase();
         } else {
             tabWholesale.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>ЕДРО';
+        }
+    }
+    const camTabRetail = document.getElementById('camTabRetail');
+    const camTabWholesale = document.getElementById('camTabWholesale');
+    if (camTabRetail && camTabWholesale) {
+        camTabRetail.classList.toggle('active', !STATE.isWholesale);
+        camTabWholesale.classList.toggle('active', STATE.isWholesale);
+        const wsSvg = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+        if (STATE.isWholesale && STATE.customerName) {
+            camTabWholesale.innerHTML = wsSvg + esc(STATE.customerName).toUpperCase();
+        } else {
+            camTabWholesale.innerHTML = wsSvg + 'ЕДРО';
         }
     }
 
@@ -2814,6 +2904,23 @@ document.addEventListener('touchend', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     render();
     startCamera(); // always-on camera scanner
+
+    // S87D — search-display tap → open Search Overlay (native keyboard)
+    const sd = document.getElementById('searchDisplay');
+    if (sd) {
+        sd.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (typeof openSearchOverlay === 'function') openSearchOverlay();
+        });
+    }
+    // S87D — АБВ → also opens overlay (custom keyboard removed on sale.php)
+    const btnKb = document.getElementById('btnKeyboard');
+    if (btnKb) {
+        btnKb.onclick = (e) => {
+            e.stopPropagation();
+            if (typeof openSearchOverlay === 'function') openSearchOverlay();
+        };
+    }
 });
 
 // CSS blink animation for cursor
