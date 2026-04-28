@@ -1168,8 +1168,30 @@ body.sale-page .btn-park{ height:38px;font-size:16px }
 body.sale-page #keyboardZone{ display:none !important }
 body.sale-page #numpadZone{ display:none !important }
 
-/* 1.11 — Cart gets all available space */
-body.sale-page #cartZone{ flex:1 1 auto;min-height:260px }
+/* 1.11 — Cart gets all available space (FIX1: reserve bottom for sticky action+summary) */
+body.sale-page #cartZone{ flex:1 1 auto;min-height:0;padding-bottom:108px }
+
+/* FIX1 — Pin summary-bar + action-bar to viewport bottom so ПЛАТИ is always reachable.
+   Without this, after hiding bottom-nav and shrinking buttons, layout could push action-bar
+   below the visible viewport on small phones (header padding-top + 100dvh wrap = overflow). */
+body.sale-page .summary-bar{
+    position:fixed;left:0;right:0;
+    bottom:calc(56px + env(safe-area-inset-bottom, 0px));
+    max-width:480px;margin:0 auto;z-index:90;
+}
+body.sale-page .action-bar{
+    position:fixed;left:0;right:0;bottom:0;
+    max-width:480px;margin:0 auto;z-index:91;
+    padding:8px 12px max(8px, env(safe-area-inset-bottom)) 12px !important;
+}
+/* set-qty-val: visible-as-tappable cue (FIX2 — free quantity entry) */
+body.sale-page .set-qty-val{
+    cursor:pointer;padding:4px 6px;border-radius:8px;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+    min-width:30px;
+}
+:root[data-theme="light"] body.sale-page .set-qty-val{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.08)}
+body.sale-page .set-qty-val:active{background:hsl(var(--hue1) 60% 50% / 0.2)}
 
 /* search-display visually clickable */
 body.sale-page .search-display{ cursor:pointer }
@@ -2108,6 +2130,7 @@ function render() {
         summary.style.display = 'none';
         btnPay.disabled = true;
         zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
+        if (typeof s87dDraftSave === 'function') s87dDraftSave(); // FIX5: clear draft if cart empty
         return;
     }
 
@@ -2140,6 +2163,7 @@ function render() {
         // qty +/- handlers
         const decBtn = div.querySelector('[data-act="dec"]');
         const incBtn = div.querySelector('[data-act="inc"]');
+        const qtyVal = div.querySelector('.set-qty-val');
         if (decBtn) decBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (STATE.cart[idx].quantity > 1) {
@@ -2153,6 +2177,11 @@ function render() {
             e.stopPropagation();
             STATE.cart[idx].quantity++;
             render();
+        });
+        // FIX2: tap on quantity value → opens lp-popup (free numeric entry, e.g. 58 бр)
+        if (qtyVal) qtyVal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openLpPopup(idx);
         });
 
         // Tap = select + qty mode
@@ -2200,6 +2229,9 @@ function render() {
 
     // Discount button state
     document.getElementById('sumDiscountBtn').classList.toggle('active', STATE.discountPct > 0);
+
+    // FIX5: persist cart as draft on every render so accidental nav-away is recoverable
+    if (typeof s87dDraftSave === 'function') s87dDraftSave();
 }
 
 function esc(s) {
@@ -3159,6 +3191,141 @@ document.addEventListener('DOMContentLoaded', () => {
 const blinkStyle = document.createElement('style');
 blinkStyle.textContent = '@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}';
 document.head.appendChild(blinkStyle);
+
+/* ═══════════════════════════════════════════════════════════
+   S87D Phase 4 — DRAFT save/restore + browser/hardware back guard
+   FIX3,4,5: protect against accidental navigate-away while cart has items.
+   ═══════════════════════════════════════════════════════════ */
+const RMS_DRAFT_KEY = 'rms_sale_draft_v1';
+
+function s87dDraftSave() {
+    try {
+        if (!STATE || !STATE.cart || STATE.cart.length === 0) {
+            localStorage.removeItem(RMS_DRAFT_KEY);
+            return;
+        }
+        const draft = {
+            cart: STATE.cart,
+            discountPct: STATE.discountPct || 0,
+            customerId: STATE.customerId || null,
+            customerName: STATE.customerName || null,
+            isWholesale: !!STATE.isWholesale,
+            ts: Date.now(),
+        };
+        localStorage.setItem(RMS_DRAFT_KEY, JSON.stringify(draft));
+    } catch (_) { /* quota / private mode — ignore */ }
+}
+function s87dDraftClear() {
+    try { localStorage.removeItem(RMS_DRAFT_KEY); } catch (_) {}
+}
+function s87dDraftLoad() {
+    try {
+        const raw = localStorage.getItem(RMS_DRAFT_KEY);
+        if (!raw) return null;
+        const d = JSON.parse(raw);
+        // expire after 24h
+        if (!d || !d.ts || (Date.now() - d.ts) > 86400000) {
+            s87dDraftClear();
+            return null;
+        }
+        return d;
+    } catch (_) { return null; }
+}
+
+// Save on tab close/refresh — render() also calls s87dDraftSave directly (see below)
+window.addEventListener('beforeunload', () => { s87dDraftSave(); });
+window.addEventListener('pagehide', () => { s87dDraftSave(); });
+
+// Restore prompt on load (only if cart still empty)
+document.addEventListener('DOMContentLoaded', () => {
+    const d = s87dDraftLoad();
+    if (!d || !d.cart || d.cart.length === 0) return;
+    if (STATE.cart && STATE.cart.length > 0) return; // already populated (e.g. server-side)
+
+    const ageMin = Math.round((Date.now() - d.ts) / 60000);
+    const ageStr = ageMin < 1 ? 'преди малко' : (ageMin < 60 ? 'преди ' + ageMin + ' мин' : 'преди ' + Math.round(ageMin/60) + ' ч');
+    const cnt = d.cart.reduce((s, it) => s + (parseInt(it.quantity) || 0), 0);
+
+    setTimeout(() => {
+        if (confirm('Намерена незавършена продажба (' + cnt + ' арт., ' + ageStr + '). Възстанови?')) {
+            STATE.cart = d.cart;
+            STATE.discountPct = d.discountPct || 0;
+            STATE.customerId = d.customerId || null;
+            STATE.customerName = d.customerName || null;
+            STATE.isWholesale = !!d.isWholesale;
+            render();
+        } else {
+            s87dDraftClear();
+        }
+    }, 400);
+});
+
+/* Browser/Hardware BACK protection
+   - Open overlay (search/payment) pushes a history entry; popstate pops it & closes overlay (no navigate)
+   - On main sale screen with non-empty cart, popstate triggers confirm before navigating away
+*/
+let s87dHistoryGuardArmed = false;
+function s87dArmHistoryGuard(tag) {
+    history.pushState({ rmsOverlay: tag }, '', location.href);
+    s87dHistoryGuardArmed = true;
+}
+function s87dDisarmHistoryGuard() {
+    s87dHistoryGuardArmed = false;
+}
+
+window.addEventListener('popstate', (e) => {
+    // 1) overlays handle first
+    const sov = document.getElementById('searchOverlay');
+    if (sov && sov.style.display === 'flex') {
+        const stateB = document.getElementById('srchStateB');
+        if (stateB && stateB.style.display === 'flex') {
+            srchOvBackToMaster();
+            s87dArmHistoryGuard('search');
+        } else {
+            closeSearchOverlay();
+            s87dDisarmHistoryGuard();
+        }
+        return;
+    }
+    const pov = document.getElementById('payOverlay');
+    if (pov && pov.style.display === 'flex') {
+        closePayment();
+        s87dDisarmHistoryGuard();
+        return;
+    }
+    // 2) main screen: cart non-empty → save draft + confirm
+    if (STATE && STATE.cart && STATE.cart.length > 0) {
+        s87dDraftSave();
+        // Re-arm one history step so the user can still back out — but warn first
+        history.pushState({ rmsGuard: true }, '', location.href);
+        if (confirm('Имате ' + STATE.cart.length + ' арт. в кошницата. Запазени са като чернова. Излез ли?')) {
+            // pop the guard we just pushed, then go back for real
+            history.go(-2);
+        }
+    }
+});
+
+// Wrap openers to push history state — so back button maps to overlay close.
+// Deferred until DOMContentLoaded so the wrapped functions are already declared.
+document.addEventListener('DOMContentLoaded', () => {
+    const _oOpenSearch = window.openSearchOverlay;
+    if (typeof _oOpenSearch === 'function') {
+        window.openSearchOverlay = function() {
+            _oOpenSearch.apply(this, arguments);
+            s87dArmHistoryGuard('search');
+        };
+    }
+    const _oOpenPay = window.openPayment;
+    if (typeof _oOpenPay === 'function') {
+        window.openPayment = function() {
+            _oOpenPay.apply(this, arguments);
+            s87dArmHistoryGuard('pay');
+        };
+    }
+});
+
+// On successful confirmPayment we should clear draft (cart auto-clears + render saves empty)
+// — already covered: after confirmPayment STATE.cart=[] → render() → s87dDraftSave removes key.
 
 /* ═══════════════════════════════════════════════════════════
    S87D Phase 2 — SEARCH OVERLAY (full-screen, native keyboard,
