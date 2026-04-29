@@ -405,7 +405,118 @@
 
 **R5.** Reorder: при връщане на доставка ако падне под min_quantity → orders.php trigger.
 
+------
+
+## S. PAYMENT LIFECYCLE (НОВО)
+
+**S1.** `deliveries.payment_status` ENUM('unpaid','partial','paid') DEFAULT 'unpaid' — задължителна колона на deliveries.
+
+**S2.** `suppliers.payment_terms_days` INT DEFAULT 0 — нова колона. 0 = плащане при доставка. 30 = 30 дни кредит. AI учи от историята (ако всеки път плащаш Marina на 30-я ден → suggest payment_terms_days=30 onboarding).
+
+**S3.** `deliveries.due_date` DATE NULL — computed при commit: created_at + suppliers.payment_terms_days. NULL ако payment_terms_days=0 (cash on delivery).
+
+**S4.** AI Brain insight `payment_due_reminder` се генерира от cron daily 08:00 за всички deliveries с `payment_status IN ('unpaid','partial')` AND `due_date <= NOW() + 3 дни`. Severity HIGH ако `due_date < NOW()` (просрочено).
+
+**S5.** Платежният модул (бъдещ) НЕ е scope тук. Сега само се записват факти в `accounts_payable` (R1). Бъдещ модул чете оттам и update-ва `payment_status`.
+
+**S6.** При Detailed Mode (Митко) — секция "Неплатени" в supplier dashboard с total amount due + due_date list. Tap на доставка → отваря delivery detail с [Маркирай платено] бутон.
+
+**S7.** При Simple Mode (Пешо) — proactive insight в life-board: "Утре трябва да платиш Marina €450". Voice: "плати ли си Marina?" → AI отговаря.
+
+**S8.** Partial payments: `payments` таблица (бъдеща, не сега) с FK към delivery. За beta — само full payment toggle.
+
 ---
+
+## T. PACK_SIZE UX (НОВО)
+
+**T1.** Review screen в delivery: всеки ред с `pack_size > 1` показва toggle "📦 пакети / 🔢 бройки". Default визуализация = бройки (общо), но пакети са visible отдолу: "(= 10 пакета × 12)".
+
+**T2.** OCR auto-extract на pack_size:
+- Pattern matching на текст в OCR резултата: "10 кутии × 12", "10 куф. по 12", "10 х 12"
+- Ако намери → `delivery_items.pack_size=12`, `quantity=120`
+- Ако не намери, но `name` съдържа "кутия" / "опаковка" / "пакет" → AI пита Пешо при review: "Това на пакети ли е? Колко в пакет?"
+
+**T3.** Stepper input в review row е bound към единици (бройки). Toggle на pack mode → стъпката става × pack_size (един + добавя цял пакет).
+
+**T4.** Inventory record-ът след commit винаги е в **бройки** (не пакети). pack_size се запазва на `delivery_items` ниво за audit и за следваща auto-detection.
+
+**T5.** Бизнес правило: `pack_size` може да varies между доставки на същия продукт (Marina праща в кутии от 12, друг supplier в кутии от 10). Не насилваме unification — всяка доставка пише свой pack_size.
+
+**T6.** Voice flow: "30 пакета чорапи по 12 в пакет от Marina" → AI parse → 30 пакета × 12 = 360 бройки + pack_size=12. Confirm: "30 пакета = 360 чорапи. Да?"
+
+**T7.** Edge case: фактура казва "10 кутии 50€", без бройка-в-кутия. AI пита: "Колко чорапи в кутия?" → попълва pack_size + бройки.
+
+---
+
+## U. ORDER LIFECYCLE (РАЗШИРЕНО — допълнение към G + N)
+
+**U1.** `purchase_orders.status` ENUM добавя `'stale'` (към existing draft/sent/partially_received/received/cancelled).
+
+**U2.** Cron daily 09:00 проверява: всички `purchase_orders` със `status='sent'` AND `created_at < NOW() - 14 days` AND **0 свързани deliveries** → SET `status='stale'`.
+
+**U3.** AI Brain insight `order_stale_no_delivery` (нов type, добавя се към M1 списъка) — severity MEDIUM, role_gate='owner','manager'. Текст: "Поръчка от 14.04 към Marina не е доставена. Да я отменим или да попитам?"
+
+**U4.** Action на insight: 3 бутона:
+- [Обади се] → отваря Митко Detailed pricing call screen, или Пешо voice prompt "обади се на Marina"
+- [Отмени поръчката] → status='cancelled', insight resolved
+- [Чакай още] → snooze 7 дни, insight се връща
+
+**U5.** Reconciliation на partial deliveries: ако от 50 поръчани са дошли 30 в първа доставка → status='partially_received'. След 14 дни без втора доставка → `status='stale'` за останалите 20. AI insight reflect-ва само останалите.
+
+**U6.** Auto-merge logic: ако нова доставка от същия supplier пристигне и съдържа артикули от stale order → автоматично се закача към оригиналния order, status се обновява. Никакво питане.
+
+---
+
+## V. BONUS / МОСТРИ — DEEP (РАЗШИРЕНО — допълнение към G5)
+
+**V1.** `delivery_items.is_bonus=1` НЕ update-ва `inventory.cost_basis` (Weighted Average Cost). Existing WAC се запазва. Ако продуктът е нов → cost_basis = NULL (не 0), AI пита Пешо при първа продажба или go to default retail.
+
+**V2.** Sales report financial separation:
+- Gross margin от purchased items: (revenue - WAC × qty)
+- Gross margin от bonus items: 100% (revenue - 0)
+- Reports показват ОТДЕЛНО → Митко вижда реалната рентабилност
+
+**V3.** AI Brain learning: "Marina ти дава средно 8% мостри за година" → patterns в `pricing_patterns` или нова `supplier_bonus_history` таблица. Бъдеща версия (defer).
+
+**V4.** Bonus VAT handling: `delivery_items.vat_rate_applied=0` за is_bonus rows (мостри обикновено без ДДС). Митко може да override в Detailed.
+
+**V5.** Inventory valuation report (бъдещ модул) trябва да отбелязва: "1500 бройки в склад, от които 87 бонус (€0 cost) → average cost = X €/бр". Прозрачност за owner.
+
+**V6.** Frontend hint: ред с is_bonus=1 в delivery review → green pill "БОНУС" вдясно. Cost field disabled (read-only €0). AI prompt при първи bonus: "Това безплатно ли е?" → confirm.
+
+---
+
+## W. SUPPLIER_PRODUCT_CODE FLOW (РАЗШИРЕНО — допълнение към N8)
+
+**W1.** Дефиниция: код който supplier-ът ползва за този product (тяхна вътрешна номенклатура). Не баркод. Не наш SKU. Пример: Marina пише "MAR-CHR-42BLK" за черни чорапи 42 — това е техният код.
+
+**W2.** Извличане:
+- OCR auto-extract: ако фактурата има колона "Код" / "Артикул" / "SKU" → извлича в `delivery_items.supplier_product_code`
+- При първа доставка от нов supplier → AI може да пропусне (не знае кой е код, кой е barcode)
+- Пешо НЕ въвежда ръчно (Закон №1)
+
+**W3.** Auto-matching на следваща доставка:
+- При нова OCR от същия supplier → за всеки delivery_item търси предишен `supplier_product_code` match
+- Ако намери → linkproductId автоматично, без Пешо да избира
+- Confidence boost +0.15 (от I5 supplier templates)
+
+**W4.** Множествени codes: ако Marina има 3 различни кода за същия наш product (rebrand, version) → всички се запазват в `supplier_product_code_history` (бъдеща таблица). За beta — само last_seen в delivery_items.
+
+**W5.** Празна стойност = OK. Не е блокер. Просто matching няма да работи между доставки → fallback на name/barcode similarity (slower, less accurate).
+
+**W6.** Index на `delivery_items.(tenant_id, supplier_id, supplier_product_code)` — fast lookup. Trябва да е добавен в N11 indexes list.
+
+**W7.** UX визуализация: при review screen, ако delivery_item има supplier_product_code от предишна доставка → tih indicator "⚡ позната" (visual cue че auto-match-нато). Tap за detail.
+
+---
+
+## ПРЕРАВНОВЕСЕН БРОЙ
+
+**Нови решения от Append: 30 (S1-S8, T1-T7, U1-U6, V1-V6, W1-W7)**
+
+**ФИНАЛНИ РЕШЕНИЯ: 124 + 30 = 154**
+
+(110 от ПАС 1 + 14 от ПАС 2 + 30 от ПАС 3 шеф-чат append)
 
 ## БРОЙ
 **ФИНАЛНИ РЕШЕНИЯ: 124** (110 от ПАС 1 + 14 нови от ПАС 2 + 9 корекции inline)
