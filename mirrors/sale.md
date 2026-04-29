@@ -3518,32 +3518,39 @@ function srchOvVoice() {
     }
 }
 
-// Wire #searchInput live-search + Enter (inline, debounced 250ms, AbortController)
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('searchInput');
-    if (!input) return;
-    input.addEventListener('input', (e) => {
-        const q = e.target.value.trim();
-        STATE.searchText = q;
-        clearTimeout(srchOvDebounce);
-        if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
-        if (q.length < 1) {
-            inlineSearchClose();
-            return;
-        }
-        srchOvDebounce = setTimeout(() => doInlineSearch(q), 250);
-    });
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const q = e.target.value.trim();
-            if (q.length >= 1) {
-                clearTimeout(srchOvDebounce);
-                doInlineSearch(q);
+// S87G.B1 — Wire #searchInput live-search (input + keyup, debounced 250ms, min 2 chars, AbortController)
+(function wireLiveSearch(){
+    function doWire(){
+        const input = document.getElementById('searchInput');
+        if (!input || input.__s87gWired) return;
+        input.__s87gWired = true;
+        const onChange = () => {
+            const q = (input.value || '').trim();
+            STATE.searchText = q;
+            clearTimeout(srchOvDebounce);
+            if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
+            if (q.length < 2) {
+                inlineSearchClose();
+                return;
             }
-        }
-    });
-});
+            srchOvDebounce = setTimeout(() => doInlineSearch(q), 250);
+        };
+        input.addEventListener('input', onChange);
+        input.addEventListener('keyup', onChange);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = (input.value || '').trim();
+                if (q.length >= 2) {
+                    clearTimeout(srchOvDebounce);
+                    doInlineSearch(q);
+                }
+            }
+        });
+    }
+    if (document.readyState !== 'loading') doWire();
+    else document.addEventListener('DOMContentLoaded', doWire);
+})();
 
 // Hardware back (Capacitor): inline-variants → masters; otherwise close inline
 document.addEventListener('backbutton', (e) => {
