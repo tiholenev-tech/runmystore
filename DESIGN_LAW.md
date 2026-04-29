@@ -1,4 +1,4 @@
-# 🎨 DESIGN LAW — RunMyStore.ai
+# DESIGN LAW — RunMyStore.ai
 
 > Пълен опис на дизайна. Всеки елемент описан детайлно. Без препратки към други файлове.
 
@@ -58,7 +58,7 @@
 - Color swatch в продуктова карта (28×28 кръг показващ "този продукт е черен/бял/син")
 - Plan/tier indicator с brand-specific цвят
 - Brand logo gradient (когато показва конкретна марка)
-- Иконка на категория с реален emoji (👕 / 💎)
+- Иконка на категория с SVG (продуктова икона)
 
 **Какво НЕ е product visual:**
 - Border на цялата карта — структурно, ползва q-default
@@ -245,52 +245,150 @@ Mobile-first. Ширина 480px max. Центриран.
 
 ---
 
-# 7. GLASS КАРТА (основният компонент)
+# 7. GLASS КАРТА — EXACT CODE FROM `chat.php` (БУКВАЛНО, НЕ ПИПАЙ)
 
-## 7.1 Базови стилове
+## 7.0 ВАЖНО — ПРОЧЕТИ ПРЕДИ ВСИЧКО
+
+Този блок CSS е извлечен **буквално от `chat.php` commit `c2caaf5` (production)**. Това е авторитативният работещ код. Никога не "оптимизирай", не "подобрявай", не "сменяй стойности". Не променяй интервали. Не променяй опацитети. Не превключвай към модерни синтаксиси (`oklab` → `oklch`, `rgba` → `color()`).
+
+**COPY-PASTE 1:1.** Ако нещо не работи — проблемът е друг (browser, CSS специфичност), не кода.
+
+## 7.1 EXACT CSS BLOCK
+
 ```css
-.glass {
-    border-radius: 22px;
-    border: 1px solid hsl(var(--hue2), 12%, 20%);
+/* ─────────────────────────────────────────── */
+/* GLASS BASE (conic-gradient shine + glow)    */
+/* ─────────────────────────────────────────── */
+.glass{
+    position:relative;
+    border-radius:var(--radius);
+    border:var(--border) solid var(--border-color);
     background:
-        linear-gradient(235deg, hsl(var(--hue1) 50% 10% / 0.8), transparent 33%),
-        linear-gradient(45deg, hsl(var(--hue2) 50% 10% / 0.8), transparent 33%),
-        linear-gradient(hsl(220deg 25% 4.8% / 0.78));
-    backdrop-filter: blur(12px);
-    box-shadow:
-        hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
-        hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
-    isolation: isolate;
-    position: relative;
+        linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),
+        linear-gradient(hsl(220deg 25% 4.8% / .78));
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    isolation:isolate
 }
-.glass.sm { border-radius: 14px; }
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+.glass .shine,
+.glass .shine::before,
+.glass .shine::after{
+    pointer-events:none;
+    border-radius:0;
+    border-top-right-radius:inherit;
+    border-bottom-left-radius:inherit;
+    border:1px solid transparent;
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    right:calc(var(--border) * -1);top:calc(var(--border) * -1);
+    left:auto;z-index:1;
+    --start:12%;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;
+    mask-clip:padding-box,border-box;
+    mask-composite:subtract
+}
+.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none}
+.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
+.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
+.glass .glow{
+    pointer-events:none;
+    border-top-right-radius:calc(var(--radius) * 2.5);
+    border-bottom-left-radius:calc(var(--radius) * 2.5);
+    border:calc(var(--radius) * 1.25) solid transparent;
+    inset:calc(var(--radius) * -2);
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    left:auto;bottom:auto;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mask-mode:luminance;mask-size:29%;
+    opacity:1;
+    filter:blur(12px) saturate(1.25) brightness(0.5);
+    mix-blend-mode:plus-lighter;
+    z-index:3
+}
+.glass .glow.glow-bottom{inset:calc(var(--radius) * -2);top:auto;right:auto}
+.glass .glow::before,.glass .glow::after{
+    content:"";position:absolute;inset:0;
+    border:inherit;border-radius:inherit;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract;
+    filter:saturate(2) brightness(1)
+}
+.glass .glow::after{
+    --lit:70%;--sat:100%;--start:15%;--end:35%;
+    border-width:calc(var(--radius) * 1.75);
+    border-radius:calc(var(--radius) * 2.75);
+    inset:calc(var(--radius) * -.25);
+    z-index:4;opacity:.75
+}
+.glass.sm{--radius:var(--radius-sm)}
 ```
 
-## 7.2 4-span задължителен pattern
-**Всяка `.glass` карта има точно 4 spans вътре:**
+## 7.2 ROOT VARS които трябва да са дефинирани (БУКВАЛНО)
+
+```css
+:root{
+    --hue1:255; --hue2:222;
+    --border:1px;
+    --border-color:hsl(var(--hue2),12%,20%);
+    --radius:22px; --radius-sm:14px;
+    --ease:cubic-bezier(0.5,1,0.89,1);
+}
+```
+
+## 7.3 HTML PATTERN — 4 spans вътре в всяка glass карта
+
 ```html
-<div class="glass">
+<div class="glass q-default">
     <span class="shine"></span>
     <span class="shine shine-bottom"></span>
     <span class="glow"></span>
     <span class="glow glow-bottom"></span>
-    <!-- съдържание тук -->
+    <!-- съдържание -->
 </div>
 ```
 
-**Какво правят:**
-- `.shine` (горе-вдясно) — конусен gradient hue1, ярка тънка линия в десния горен ъгъл
-- `.shine-bottom` (долу-вляво) — конусен gradient hue2, ярка тънка линия в левия долен ъгъл
-- `.glow` (горе-вдясно) — размит neon glow с noise mask, hue1
-- `.glow-bottom` (долу-вляво) — размит neon glow, hue2
+**Никога не пропускаш span-овете.** Без тях няма shine/glow.
 
-## 7.3 Съдържанието вътре
-**Винаги:** Всеки елемент-съдържание вътре в `.glass` трябва да има:
+## 7.4 СЪДЪРЖАНИЕТО ВЪТРЕ В GLASS
+
+Всеки content елемент вътре в `.glass` ТРЯБВА да има:
+
 ```css
 position: relative;
 z-index: 5;
 ```
-Иначе се крие зад псевдо-елементите.
+
+Без това content-ът е **под** shine/glow псевдо-елементите.
+
+Удобен patterни:
+```css
+.glass > *:not(.shine):not(.glow) { position: relative; z-index: 5; }
+```
+
+## 7.5 GLOW PULSE (анимация след entrance — както в chat.php)
+
+За карти които искаш да "проблеснат" след влизане:
+
+```css
+@keyframes glowPulse{
+    0%   { box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+    50%  { box-shadow:0 0 30px 4px hsl(var(--hue1) 70% 60% / 0.4); }
+    100% { box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0); }
+}
+.glass.glow-on-enter {
+    animation: glowPulse 1.6s ease-out 0.9s both;
+}
+```
+
+Изпълнява се **веднъж** (0.9s след cardin entrance, продължава 1.6s, после спира). Не infinite — иначе разсейва.
 
 ---
 
@@ -984,6 +1082,8 @@ transition: ... var(--ease);
 - Padding/margin не от scale-а
 - Cursor `default` на clickable — винаги `pointer`
 - Custom hue извън таблицата 2.5
+- **Emoji в UI** — НЕ слагаш `💡`, `✨`, `🔴`, `🟢`, `📷` и т.н. в production интерфейса. Винаги SVG icons. Emoji-та са само в product data (например title на продукт от потребителя ако той е написал — но не в твой UI текст)
+- **Emoji в код коментари** — допустимо в README/документация, но не в production CSS/HTML файлове
 
 ## 16.2 ВИНАГИ правиш
 - Body 3-layer background + noise overlay
