@@ -357,6 +357,37 @@ body::after{
 }
 .search-btn#btnKeyboard{font-size:11px;font-weight:800;letter-spacing:0.04em}
 
+/* S87E — real text input replaces search-display (inline search) */
+.search-input{
+    flex:1;height:36px;padding:0 14px;font-size:13px;font-weight:500;font-family:inherit;
+    background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:100px;
+    color:var(--text-primary);outline:none;backdrop-filter:blur(6px);
+    -webkit-appearance:none;appearance:none;
+}
+:root[data-theme="light"] .search-input{background:rgba(255,255,255,0.85)}
+.search-input::placeholder{color:var(--text-muted);font-size:12px;font-weight:500}
+.search-input:focus{border-color:hsl(var(--hue1) 60% 50%);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
+
+/* S87E — inline search results (no overlay) */
+.s-results-inline{
+    flex-shrink:0;max-height:50vh;overflow-y:auto;
+    margin:6px 8px 0;padding:4px 4px 8px;
+    background:var(--bg-card-strong);backdrop-filter:blur(12px);
+    border:1px solid var(--border-subtle);border-radius:14px;
+    -webkit-overflow-scrolling:touch;
+}
+:root[data-theme="light"] .s-results-inline{background:rgba(255,255,255,0.92)}
+.s-results-inline-meta{
+    padding:6px 10px;font-size:10px;color:var(--text-muted);
+    font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+}
+.s-results-inline-back{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;
+    background:transparent;border:none;color:var(--indigo-300);
+    font-size:12px;font-weight:800;letter-spacing:0.02em;cursor:pointer;font-family:inherit;
+}
+.s-results-inline-back:active{transform:scale(0.97)}
+
 /* ═══ SEARCH RESULTS ═══ */
 .search-results{
     max-height:0;overflow-y:auto;flex-shrink:0;
@@ -1183,16 +1214,22 @@ body.sale-page #saleWrap{
     filter:none !important;
     will-change:auto !important;
 }
+/* S87E.BUG#1 — action-bar sticky in flow (flex column auto-pushes to bottom) */
 body.sale-page .summary-bar{
-    position:fixed !important;left:0;right:0;
-    bottom:calc(56px + env(safe-area-inset-bottom, 0px)) !important;
-    max-width:480px;margin:0 auto;z-index:90;
+    position:static !important;left:auto;right:auto;bottom:auto !important;
+    max-width:none !important;margin:0;z-index:auto;
 }
 body.sale-page .action-bar{
-    position:fixed !important;left:0;right:0;bottom:0 !important;
-    max-width:480px;margin:0 auto;z-index:91;
-    padding:8px 12px max(8px, env(safe-area-inset-bottom)) 12px !important;
+    display:flex !important;
+    position:sticky !important;
+    bottom:0 !important;
+    z-index:10;
+    padding:10px 12px max(10px, env(safe-area-inset-bottom)) 12px !important;
+    background:linear-gradient(180deg,transparent 0%,var(--bg-main) 30%) !important;
+    margin-top:auto !important;
+    left:auto;right:auto;max-width:none !important;
 }
+body.sale-page #cartZone{ padding-bottom:0 !important }
 /* set-qty-val: visible-as-tappable cue (FIX2 — free quantity entry) */
 body.sale-page .set-qty-val{
     cursor:pointer;padding:4px 6px;border-radius:8px;
@@ -1202,9 +1239,7 @@ body.sale-page .set-qty-val{
 :root[data-theme="light"] body.sale-page .set-qty-val{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.08)}
 body.sale-page .set-qty-val:active{background:hsl(var(--hue1) 60% 50% / 0.2)}
 
-/* search-display visually clickable */
-body.sale-page .search-display{ cursor:pointer }
-body.sale-page #btnKeyboard{ display:none }
+/* (S87E) search-display + btnKeyboard removed; see #searchInput rules above */
 
 /* hide redundant cam-title (cam-tabs take its place) */
 body.sale-page .cam-title{ display:none }
@@ -1212,58 +1247,8 @@ body.sale-page .cam-title{ display:none }
 body.sale-page .cam-top{ gap:8px }
 
 /* ═══════════════════════════════════════════════════════════
-   S87D Phase 2 — SEARCH OVERLAY (full-screen, native keyboard)
+   S87E — INLINE SEARCH RESULTS (master/variant rows reused)
    ═══════════════════════════════════════════════════════════ */
-.search-ov{
-    position:fixed;inset:0;background:var(--bg-main);z-index:200;
-    display:flex;flex-direction:column;animation:srchOvIn 0.2s ease-out;
-}
-@keyframes srchOvIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.search-ov-state{display:flex;flex-direction:column;height:100vh;height:100dvh}
-.search-ov-head{
-    display:flex;align-items:center;gap:10px;
-    padding:max(12px,calc(env(safe-area-inset-top,0px) + 8px)) 14px 12px;
-    border-bottom:1px solid rgba(255,255,255,0.06);
-}
-:root[data-theme="light"] .search-ov-head{border-bottom-color:rgba(15,23,42,0.06)}
-.search-ov-back,.search-ov-close{
-    width:34px;height:34px;border-radius:100px;
-    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);
-    color:var(--text-secondary);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    font-family:inherit;
-}
-:root[data-theme="light"] .search-ov-back,
-:root[data-theme="light"] .search-ov-close{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.10)}
-.search-ov-title{
-    flex:1;font-size:14px;font-weight:800;color:var(--text-primary);
-    letter-spacing:-0.01em;text-align:center;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.search-ov-input-row{display:flex;gap:8px;padding:10px 14px;align-items:center}
-#srchOvInput{
-    flex:1;padding:14px 16px;font-size:16px;font-weight:600;
-    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);
-    border-radius:100px;color:var(--text-primary);font-family:inherit;
-    outline:none;
-}
-:root[data-theme="light"] #srchOvInput{background:rgba(255,255,255,0.85);border-color:rgba(15,23,42,0.12)}
-#srchOvInput:focus{border-color:hsl(var(--hue1) 60% 50%);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
-.search-ov-mic{
-    width:44px;height:44px;border-radius:50%;
-    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
-    border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / 0.45);
-}
-.search-ov-meta{
-    padding:6px 16px;font-size:11px;color:var(--text-muted);
-    font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
-}
-.search-ov-results,.search-ov-variants{
-    flex:1;overflow-y:auto;padding:4px 12px 24px;
-    -webkit-overflow-scrolling:touch;
-}
 /* Master row */
 .srch-master{
     display:flex;align-items:center;gap:11px;padding:14px;
@@ -1533,8 +1518,8 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
                     </button>
                 </div>
                 <div class="cam-right">
-                    <button class="cam-btn s87v3-tap" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none">
-                        🅿️<span class="park-badge" id="parkedCount">0</span>
+                    <button class="cam-btn s87v3-tap" id="btnParkedBadge" onclick="openParked()" style="position:relative;display:none" aria-label="Паркирани">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg><span class="park-badge" id="parkedCount">0</span>
                     </button>
                     <button class="cam-btn s87v3-tap" id="btnWholesale" onclick="openWholesale()" style="display:none">👤</button>
                     <button class="cam-btn s87v3-tap" id="themeToggle" type="button" aria-label="Светла/тъмна тема" onclick="toggleTheme()" style="font-size:14px"><span id="themeIconSun" style="display:none">☀️</span><span id="themeIconMoon">🌙</span></button>
@@ -1582,14 +1567,13 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
     </button>
 
     <div class="search-bar">
-        <div class="search-display" id="searchDisplay">
-            <span class="placeholder">🔍 Код, име или баркод</span>
-        </div>
+        <input type="text" id="searchInput" class="search-input" inputmode="search" placeholder="Код, име или баркод" autocomplete="off" autocapitalize="off">
         <button class="search-btn" id="btnVoiceSearch" onclick="startVoice()" aria-label="Гласово търсене"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-        <button class="search-btn" id="btnKeyboard" onclick="toggleKeyboard()">АБВ</button>
     </div>
 
-    <div class="search-results" id="searchResults"></div>
+    <div id="searchResultsInline" class="s-results-inline" style="display:none"></div>
+    <!-- legacy hidden numpad-driven results container (kept for code paths that may still reference) -->
+    <div class="search-results" id="searchResults" style="display:none"></div>
 
     <div class="discount-chips" id="discountChips">
         <button class="dc-chip" onclick="applyDiscount(5)">5%</button>
@@ -1601,7 +1585,7 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
 
     <div class="cart-zone" id="cartZone">
         <div class="cart-empty" id="cartEmpty">
-            <span class="cart-empty-icon">🛒</span>
+            <span class="cart-empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
             <span class="cart-empty-text">Сканирай или въведи код</span>
         </div>
     </div>
@@ -1614,9 +1598,12 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
 
     <div class="action-bar" id="actionBar">
         <button class="btn-pay s87v3-tap" id="btnPay" disabled onclick="openPayment()">
-            💵 ПЛАТИ <span id="payAmount">0</span> <?= $currency ?>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            ПЛАТИ <span id="payAmount">0</span> <?= $currency ?>
         </button>
-        <button class="btn-park s87v3-tap" onclick="parkSale()">🅿️</button>
+        <button class="btn-park s87v3-tap" onclick="parkSale()" aria-label="Паркирай">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </button>
     </div>
 
     <div class="numpad-zone" id="numpadZone">
@@ -1839,43 +1826,7 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
 <?php /* sale.php — chat input intentionally OMITTED (POS scanner — no AI distraction during checkout) */ ?>
 <?php include __DIR__ . '/partials/bottom-nav.php'; ?>
 
-<!-- ═══ S87D — SEARCH OVERLAY (full-screen, native keyboard) ═══ -->
-<div class="search-ov" id="searchOverlay" style="display:none">
-    <!-- STATE A: master products list -->
-    <div class="search-ov-state" id="srchStateA">
-        <div class="search-ov-head">
-            <button class="search-ov-back" type="button" onclick="closeSearchOverlay()" aria-label="Назад">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <span class="search-ov-title">Търсене на артикул</span>
-            <button class="search-ov-close" type="button" onclick="closeSearchOverlay()" aria-label="Затвори">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
-        <div class="search-ov-input-row">
-            <input type="text" id="srchOvInput" placeholder="Име, код или баркод" autocomplete="off" autocapitalize="off" inputmode="search">
-            <button class="search-ov-mic" type="button" onclick="srchOvVoice()" aria-label="Глас">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            </button>
-        </div>
-        <div class="search-ov-meta" id="srchOvMeta">Започни писане за резултати</div>
-        <div class="search-ov-results" id="srchOvResults"></div>
-    </div>
-
-    <!-- STATE B: variants screen -->
-    <div class="search-ov-state" id="srchStateB" style="display:none">
-        <div class="search-ov-head">
-            <button class="search-ov-back" type="button" onclick="srchOvBackToMaster()" aria-label="Назад">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <span class="search-ov-title" id="srchOvVariantsTitle">Варианти</span>
-            <button class="search-ov-close" type="button" onclick="closeSearchOverlay()" aria-label="Затвори">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
-        <div class="search-ov-variants" id="srchOvVariants"></div>
-    </div>
-</div>
+<!-- S87E — search overlay removed; search is now inline (#searchInput + #searchResultsInline) -->
 
 <script>
 /* ═══════════════════════════════════════════════════════════
@@ -2784,7 +2735,7 @@ function parkSale() {
         total: getTotal(),
     });
     saveParked();
-    showToast('🅿️ Продажба паркирана');
+    showToast('Продажба паркирана');
 
     STATE.cart = [];
     STATE.selectedIndex = -1;
