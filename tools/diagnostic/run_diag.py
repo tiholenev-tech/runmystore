@@ -154,13 +154,15 @@ def run(args) -> int:
                 print("\nSpri и добави сценарии. Or use --skip-gap-check за bypass.")
             return 3
 
-    # Step 2: Pristine wipe (optional)
-    if args.pristine:
-        if not args.orchestrated:
-            print(f"Pristine wipe на tenant_id={tenant_id} (test products в range 9000-9999)...")
-        counts = cleanup_test_data(tenant_id)
-        if not args.orchestrated:
-            print(f"  изтрити: {counts}")
+    # Step 2: Pristine wipe — винаги, не опционално.
+    # sale_items няма unique key на (sale_id, product_id), затова SALE_TPL-ското
+    # ON DUPLICATE KEY UPDATE никога не fire-ва: всеки run без cleanup трупа нови
+    # редове и инфлира `sold` в pf-те (S88C: F1/F2/F3/F4/F5/F6 регресии).
+    # --pristine флагът остава като explicit-verbose toggle за обратна съвместимост.
+    counts = cleanup_test_data(tenant_id)
+    if args.pristine and not args.orchestrated:
+        print(f"Pristine wipe на tenant_id={tenant_id} (test products в range 9000-9999)...")
+        print(f"  изтрити: {counts}")
 
     # Step 3: Fetch scenarios
     scenarios = fetch_active_scenarios(module=args.module)

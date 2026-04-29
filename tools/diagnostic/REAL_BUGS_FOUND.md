@@ -149,3 +149,62 @@ The product/owner decision in item #1 is still pending.
   is achieved on real production data.
 - **Cat E = 5/5 PASS** (ENUM/migration whitelist regression check) — first time green
   since the category was introduced.
+
+---
+
+# S88C.DIAG.SCENARIO_FIX addendum — 2026-04-29
+
+**Session:** S88C.DIAG.SCENARIO_FIX
+**Closes:** F1 / F2 / F3 / F4 / F5 / F6 above (single root cause).
+
+## F7. (P1, framework) `sale_items` няма unique key → SALE_TPL никога не upsert-ва
+
+**Symptom.** F1–F6 от S88 verify run (51/57 на tenant=99) са причинени от един общ bug,
+не от регресия в pf функциите. Всеки `run_diag.py` без `--pristine` трупа нови
+`sale_items` редове за същите `(sale_id, product_id)` двойки → `SUM(si.quantity)` в
+pf-те расте линейно с броя runs → `sold` денoминаторите гонят `returned/sold`,
+co-occurrence ranks и threshold filter-те.
+
+**Root cause.** `sale_items` schema (`SHOW CREATE TABLE`):
+```
+PRIMARY KEY (`id`),                  ← auto_increment, винаги unique
+KEY `sale_id` (`sale_id`),           ← non-unique
+KEY `product_id` (`product_id`),     ← non-unique
+```
+`fixtures.SALE_TPL` пише `INSERT INTO sale_items (sale_id, product_id, …) VALUES (…)
+ON DUPLICATE KEY UPDATE …` — но няма unique key на `(sale_id, product_id)`, и `id` не е
+in INSERT-а, така че auto_increment генерира нов и `ON DUPLICATE KEY UPDATE` никога не
+се активира. INSERT е append-only.
+
+**Empirical proof.** Преди fix-а: `SELECT COUNT(*) FROM sale_items WHERE product_id=9181`
+върна 60 (10 distinct sale_ids × 6 runs). Pristine wipe изтри 1694 sale_items от
+tenant=99 test range. След cleanup и един seed: 10 редове за 9181, тестовете 57/57.
+
+**Fix applied (S88C).** `tools/diagnostic/run_diag.py` — `cleanup_test_data(tenant_id)`
+се извиква безусловно преди seeding, не само под `--pristine`. Test PK ranges (9000-9999
+products, 90000-99999 sales, 7000-7099 customers) са dedicated, така че wipe-ът е
+безопасен. `--pristine` флагът остава като verbose-print toggle.
+
+**Why not the schema?** Добавянето на `UNIQUE KEY (sale_id, product_id)` би било
+правилният production-side fix, но: (а) production sale_items съдържа реални редове
+от `sale.php` checkout flow, (б) реален checkout *може* легитимно да добави same product
+като отделен line (различна цена, бонус, return-and-resell). Schema change → out of
+scope за diagnostic-only session.
+
+**Status.** ✅ Closed. tenant=99 = 57/57 PASS на 3 идемпотентни run-а (logs #31, #32, #33).
+
+## F1–F6. (resolved by F7 fix)
+
+Всички 6 P1 регресии от S88 verify run са artifact на F7. След F7 fix-а:
+- F1 `high_return_pos_0`: sold=10 → rate 4/10=40% > 15% threshold → ✅
+- F2/F3 `basket_pair_b_pos` / `c_rank`: pair (9121,9122) с правилен co-occurrence count → ✅
+- F4 `high_return_d_cartesian`: sold=5, returned=5 → rate=100% (в [99,101]) → ✅
+- F5 `highest_margin_d_no_sales`: pfHighestMargin вече има EXISTS clause за sold≥1 (S88
+  edit) — product 9092 (no sales) се изключва коректно → ✅. Item #1 escalation от
+  S85.DIAG.FIX **е closed** — Option B беше избран от Тихол в S88.AIBRAIN.ACTIONS.
+- F6 `zombie_d_exact_45`: pfZombie45d използва `>` (не `>=`) за boundary — product 9163
+  (точно 45 дни) се изключва коректно → ✅. Hipothesis за off-by-one беше грешна.
+
+Pre-S88 baseline run #24 (100% на tenant=99) е минал защото sale_items inflation-а още
+не беше натрупан до точката, в която прескача thresholds. F7 е latent bug, експониран
+post-S88.
