@@ -387,15 +387,23 @@ if ($ajax === 'sections') {
         exit;
     }
 
-    // ─── S88.BUG#3: last saved parent product (for "📋 Като предния") ───
+    // ─── S88.BUG#3 + S88.KP: last saved parent product (for "Като предния") ───
     if ($ajax === 'last_product') {
+        // S88.KP: extended payload — names + variant axes for the new wizard UI
         $row = DB::run(
-            "SELECT id, code, name, category_id, supplier_id, unit, cost_price,
-                    retail_price, wholesale_price, vat_rate, min_quantity, location,
-                    description, origin_country, composition, is_domestic, image_url
-             FROM products
-             WHERE tenant_id=? AND parent_id IS NULL AND is_active=1
-             ORDER BY id DESC LIMIT 1",
+            "SELECT p.id, p.code, p.name, p.category_id, p.subcategory_id, p.supplier_id,
+                    p.unit, p.cost_price, p.retail_price, p.wholesale_price, p.vat_rate,
+                    p.min_quantity, p.location, p.description, p.origin_country,
+                    p.composition, p.is_domestic, p.image_url,
+                    sup.name AS supplier_name,
+                    cat.name AS category_name,
+                    sub.name AS subcategory_name
+             FROM products p
+             LEFT JOIN suppliers  sup ON sup.id = p.supplier_id
+             LEFT JOIN categories cat ON cat.id = p.category_id
+             LEFT JOIN categories sub ON sub.id = p.subcategory_id
+             WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
+             ORDER BY p.id DESC LIMIT 1",
             [$tenant_id]
         )->fetch(PDO::FETCH_ASSOC);
         if (!$row) { echo json_encode(['error' => 'no_previous']); exit; }
@@ -404,6 +412,30 @@ if ($ajax === 'sections') {
              WHERE i.product_id=? AND i.store_id=?",
             [(int)$row['id'], $store_id]
         )->fetchColumn();
+
+        // S88.KP: detect variant structure of source — group children by color → sizes[]
+        $children = DB::run(
+            "SELECT color, size FROM products
+             WHERE tenant_id=? AND parent_id=? AND is_active=1
+             ORDER BY color, size",
+            [$tenant_id, (int)$row['id']]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $colors_map = [];
+        $sizes_set  = [];
+        foreach ($children as $c) {
+            $col = $c['color'] !== null ? trim((string)$c['color']) : '';
+            $sz  = $c['size']  !== null ? trim((string)$c['size'])  : '';
+            if ($col === '' && $sz === '') continue;
+            if (!isset($colors_map[$col])) $colors_map[$col] = [];
+            if ($sz !== '' && !in_array($sz, $colors_map[$col], true)) $colors_map[$col][] = $sz;
+            if ($sz !== '' && !in_array($sz, $sizes_set, true)) $sizes_set[] = $sz;
+        }
+        $row['has_variants'] = count($children) > 0 ? 1 : 0;
+        $row['variant_axes'] = [
+            'colors'   => array_keys($colors_map),
+            'sizes'    => array_values($sizes_set),
+            'by_color' => $colors_map,
+        ];
 
         // Suggest next code: increment trailing number, fallback append "-2".
         $base = $row['code'] ?? '';
@@ -3894,6 +3926,122 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 /* Bug 3 — horizontal scroll root: html + #app + .app clamp */
 html{overflow-x:hidden;max-width:100vw}
 .app,#app,.wiz-page{overflow-x:hidden;max-width:100vw}
+
+/* ═══════════════════════════════════════════════
+   S88.KP — "Като предния" wizard (DESIGN_LAW §2,§7,§8,§10,§16)
+   ═══════════════════════════════════════════════ */
+.q-magic{--hue1:280;--hue2:310}
+.q-gain{--hue1:145;--hue2:165}
+#kpModal{position:fixed;inset:0;z-index:9990;background:#08090d;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));background-image:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%)}
+.kp-app{position:relative;z-index:2;max-width:480px;margin:0 auto;width:100%;padding:0 12px 20px}
+.kp-header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:8px;padding:max(10px,calc(env(safe-area-inset-top,0px) + 10px)) 14px 12px;margin:0 -12px 14px;background:rgba(3,7,18,0.93);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(99,102,241,0.1)}
+.kp-back{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;font-family:inherit;transition:all 0.2s var(--ease)}
+.kp-back:hover{color:var(--indigo-300);border-color:rgba(99,102,241,0.4)}
+.kp-back svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kp-title-area{flex:1;min-width:0}
+.kp-title{font-size:13px;font-weight:800;color:var(--text-primary);line-height:1.1}
+.kp-subtitle{font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kp-save{padding:9px 16px;border-radius:100px;background:linear-gradient(135deg,hsl(145,70%,38%),hsl(165,70%,32%));color:hsl(145,95%,96%);font-weight:900;font-size:11px;letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;gap:5px;border:1.5px solid hsl(145,75%,60%,0.85);box-shadow:0 0 16px hsl(145,75%,55%,0.45),inset 0 1px 0 hsl(145,80%,70%,0.3);text-shadow:0 0 7px hsl(145,90%,70%,0.5);flex-shrink:0;font-family:inherit;transition:transform 0.15s var(--ease)}
+.kp-save:active{transform:translateY(1px)}
+.kp-save svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.kp-photo-hero{height:200px;margin-bottom:14px;border-radius:22px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));border:1.5px dashed rgba(99,102,241,0.32);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all 0.25s var(--ease)}
+.kp-photo-hero.has-photo{border-style:solid;padding:0;border-color:rgba(99,102,241,0.6)}
+.kp-photo-hero img{width:100%;height:100%;object-fit:cover}
+.kp-photo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.65) 100%);display:flex;align-items:flex-end;justify-content:center;padding:14px;pointer-events:none}
+.kp-photo-overlay-text{font-size:11px;font-weight:700;color:#fff;letter-spacing:0.03em}
+.kp-ph-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--indigo-500),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(99,102,241,0.55),inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:12px}
+.kp-ph-icon svg{width:24px;height:24px;fill:#fff;filter:drop-shadow(0 0 8px rgba(255,255,255,0.6))}
+.kp-ph-label{font-size:14px;font-weight:800;color:var(--text-primary)}
+.kp-ph-hint{font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;font-weight:600}
+.kp-name-card{padding:14px;margin-bottom:12px}
+.kp-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.kp-label{font-size:11px;font-weight:800;letter-spacing:0.06em;color:hsl(var(--hue1) 70% 75%);text-transform:uppercase}
+.kp-req{color:var(--danger);margin-left:4px}
+.kp-voice-mic{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;border:0;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.4);font-family:inherit}
+.kp-voice-mic[disabled]{opacity:0.35;cursor:not-allowed;box-shadow:none}
+.kp-voice-mic svg{width:14px;height:14px;fill:#fff}
+.kp-input{width:100%;padding:14px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:12px;color:var(--text-primary);font-size:14px;font-weight:700;outline:none;-webkit-appearance:none;appearance:none;transition:all 0.2s var(--ease);font-family:inherit}
+.kp-input::placeholder{color:#6b7280;font-weight:500}
+.kp-input:focus{border-color:hsl(var(--hue1) 75% 65%);box-shadow:0 0 0 1px hsl(var(--hue1) 80% 65% / 0.3),0 0 18px hsl(var(--hue1) 70% 55% / 0.35)}
+.kp-copied-card{padding:12px 14px;margin-bottom:12px}
+.kp-copied-head{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.kp-copied-ico{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,hsl(145 60% 28%),hsl(145 50% 20%));border:1px solid hsl(145 70% 50% / 0.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 0 12px hsl(145 70% 50% / 0.25)}
+.kp-copied-ico svg{width:13px;height:13px;stroke:#86efac;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px hsl(145 70% 60%))}
+.kp-copied-text{flex:1;min-width:0}
+.kp-copied-t1{font-size:12px;font-weight:800;color:var(--text-primary)}
+.kp-copied-t2{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;font-weight:600}
+.kp-chev{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;transition:transform 0.25s var(--ease);flex-shrink:0}
+.kp-copied-head.expanded .kp-chev{transform:rotate(180deg)}
+.kp-chev svg{width:11px;height:11px;stroke:rgba(255,255,255,0.6);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.kp-copied-fields{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)}
+.kp-copied-fields.expanded{display:block}
+.kp-cf-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.05)}
+.kp-cf-row:last-child{border-bottom:0}
+.kp-cf-label{font-size:11px;color:rgba(255,255,255,0.6);min-width:92px;font-weight:600}
+.kp-cf-value{flex:1;font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-cf-value.computed{color:var(--success)}
+.kp-cf-input{flex:1;padding:6px 8px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:700;outline:none;font-family:inherit;min-width:0}
+.kp-cf-auto{font-size:10px;color:#6b7280;font-weight:600}
+.kp-cf-edit{width:26px;height:26px;border-radius:7px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
+.kp-cf-edit svg{width:11px;height:11px;stroke:var(--indigo-300);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kp-section-head{display:flex;align-items:center;gap:10px;padding:0 4px;margin:18px 0 10px}
+.kp-section-ico{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--indigo-600),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.35);flex-shrink:0}
+.kp-section-ico svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.kp-section-text{flex:1;min-width:0}
+.kp-section-title{font-size:13px;font-weight:800;letter-spacing:0.02em;color:var(--text-primary)}
+.kp-section-sub{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;font-weight:600}
+.kp-section-pill{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:800;background:rgba(99,102,241,0.12);color:var(--indigo-300);border:0.5px solid rgba(99,102,241,0.28);flex-shrink:0;letter-spacing:0.05em}
+.kp-color-card{margin-bottom:12px;padding:0}
+.kp-cc-head{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.kp-swatch{width:30px;height:30px;border-radius:50%;border:1.5px solid hsl(220,30%,30%,0.4);flex-shrink:0;box-shadow:0 0 8px var(--swatch-glow,currentColor),inset 0 1px 0 rgba(255,255,255,0.18)}
+.kp-cc-name{flex:1;font-size:14px;font-weight:800;letter-spacing:-0.01em;color:var(--text-primary)}
+.kp-cc-total{padding:3px 8px;border-radius:100px;font-size:10px;font-weight:900;letter-spacing:0.04em;background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.28);color:var(--indigo-300);font-variant-numeric:tabular-nums}
+.kp-cc-remove{width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
+.kp-cc-remove svg{width:13px;height:13px;stroke:#fca5a5;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.kp-cc-body{padding:10px 14px}
+.kp-size-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.04)}
+.kp-size-row:last-of-type{border-bottom:0;padding-bottom:4px}
+.kp-sz-label{min-width:36px;padding:5px 10px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;font-weight:800;text-align:center;flex-shrink:0;color:var(--text-primary)}
+.kp-sz-stepper{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
+.kp-sz-btn{width:30px;height:30px;border-radius:8px;background:hsl(var(--hue1) 60% 35% / 0.25);border:1px solid hsl(var(--hue1) 60% 50% / 0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;color:hsl(var(--hue1) 85% 85%);font-weight:800;font-size:16px;user-select:none;transition:transform 0.15s var(--ease);font-family:inherit;padding:0}
+.kp-sz-btn:active{transform:scale(0.92)}
+.kp-sz-qty{min-width:44px;text-align:center;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.kp-add-color{margin:4px 0 14px;padding:14px;background:linear-gradient(135deg,hsl(280 60% 25% / 0.3),hsl(310 60% 25% / 0.2));border:1.5px dashed hsl(280 70% 55% / 0.5);border-radius:22px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s var(--ease)}
+.kp-ac-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(310 70% 50%));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.15);flex-shrink:0}
+.kp-ac-icon svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.kp-ac-text{flex:1}
+.kp-ac-text .kp-t1{font-size:13px;font-weight:800;color:var(--text-primary)}
+.kp-ac-text .kp-t2{font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;font-weight:600}
+.kp-copy-qty-row{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-top:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:12px;cursor:pointer;user-select:none}
+.kp-copy-qty-row input[type="checkbox"]{width:18px;height:18px;accent-color:hsl(255 70% 60%);cursor:pointer;flex-shrink:0}
+.kp-copy-qty-row .kp-cq-label{font-size:12px;font-weight:700;color:var(--text-primary);flex:1}
+.kp-copy-qty-row .kp-cq-hint{font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);font-variant-numeric:tabular-nums}
+.kp-bottom-bar{display:flex;gap:10px;margin-top:18px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:50;background:linear-gradient(180deg,rgba(8,9,13,0) 0%,rgba(8,9,13,0.95) 30%,rgba(8,9,13,1) 100%)}
+.kp-btn-print,.kp-btn-ai{flex:1;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:0.04em;cursor:pointer;padding:0 14px;font-family:inherit;transition:transform 0.15s var(--ease)}
+.kp-btn-print:active,.kp-btn-ai:active{transform:translateY(1px)}
+.kp-btn-print{background:linear-gradient(135deg,hsl(255,65%,38%),hsl(222,65%,32%));color:hsl(255,95%,96%);border:1.5px solid hsl(255,75%,60%,0.85);box-shadow:0 0 16px hsl(255,75%,55%,0.4),inset 0 1px 0 hsl(255,80%,70%,0.3);text-shadow:0 0 7px hsl(255,90%,70%,0.4)}
+.kp-btn-ai{background:linear-gradient(135deg,hsl(280,70%,42%),hsl(310,70%,36%));color:hsl(280,95%,96%);border:1.5px solid hsl(280,75%,62%,0.9);box-shadow:0 0 18px hsl(280,75%,55%,0.5),inset 0 1px 0 hsl(280,80%,70%,0.3);text-shadow:0 0 7px hsl(280,90%,72%,0.5)}
+.kp-btn-print svg,.kp-btn-ai svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kp-btn-ai svg.kp-ai-spark{fill:currentColor;stroke:none}
+@keyframes kpCardin{0%{opacity:0;transform:translateY(30px) scale(0.85)}70%{transform:translateY(-4px) scale(1.02)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.kp-cardin{animation:kpCardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both}
+.kp-cardin:nth-child(1){animation-delay:0s}
+.kp-cardin:nth-child(2){animation-delay:0.05s}
+.kp-cardin:nth-child(3){animation-delay:0.1s}
+.kp-cardin:nth-child(4){animation-delay:0.15s}
+.kp-cardin:nth-child(5){animation-delay:0.2s}
+.kp-cardin:nth-child(6){animation-delay:0.25s}
+.kp-swatch.c-black{background:linear-gradient(135deg,#2a2a2e,#0f0f12);--swatch-glow:hsl(220,50%,50%)}
+.kp-swatch.c-white{background:linear-gradient(135deg,#f8f8fb,#d8d8de);--swatch-glow:hsl(220,30%,80%)}
+.kp-swatch.c-blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8);--swatch-glow:hsl(220,90%,60%)}
+.kp-swatch.c-red{background:linear-gradient(135deg,#ef4444,#b91c1c);--swatch-glow:hsl(0,90%,55%)}
+.kp-swatch.c-beige{background:linear-gradient(135deg,#e8c39e,#c08e5d);--swatch-glow:hsl(35,70%,60%)}
+.kp-swatch.c-pink{background:linear-gradient(135deg,#ec4899,#be185d);--swatch-glow:hsl(335,85%,60%)}
+.kp-swatch.c-green{background:linear-gradient(135deg,#22c55e,#15803d);--swatch-glow:hsl(145,80%,50%)}
+.kp-swatch.c-yellow{background:linear-gradient(135deg,#fbbf24,#d97706);--swatch-glow:hsl(45,95%,55%)}
+.kp-swatch.c-violet{background:linear-gradient(135deg,#a855f7,#7c3aed);--swatch-glow:hsl(270,80%,60%)}
+.kp-swatch.c-gray{background:linear-gradient(135deg,#9ca3af,#4b5563);--swatch-glow:hsl(220,10%,60%)}
+.kp-swatch.c-brown{background:linear-gradient(135deg,#92400e,#451a03);--swatch-glow:hsl(25,70%,30%)}
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js"></script>
@@ -9874,68 +10022,557 @@ async function openLikePreviousWizardS88(){
         showToast('Няма предишен артикул за копиране','error');
         return;
     }
-    // Confirm with snippet of source so user sees what's being cloned
-    if (!confirm('Копирай "' + (d.name||'') + '" (#' + d.id + ')?\n\nКодът ще е "' + (d.next_code||'') + '", баркодът ще е празен, количеството = 0.')) return;
-
-    if (typeof openManualWizard === 'function') openManualWizard();
-    // Initialize wizData clone — schedule on next tick to run after openManualWizard renders.
-    setTimeout(function(){
-        S.wizEditId = null;
-        S.wizSavedId = null;
-        S.wizType = 'single';
-        S.wizStep = 3;
-        S.wizData = {
-            name: (d.name || '') + ' (копие)',
-            code: d.next_code || '',
-            barcode: '',
-            retail_price: parseFloat(d.retail_price) || 0,
-            wholesale_price: parseFloat(d.wholesale_price) || 0,
-            cost_price: parseFloat(d.cost_price) || 0,
-            supplier_id: d.supplier_id || null,
-            category_id: d.category_id || null,
-            unit: d.unit || 'бр',
-            min_quantity: parseInt(d.min_quantity) || 0,
-            description: d.description || '',
-            origin_country: d.origin_country || '',
-            composition: d.composition || '',
-            is_domestic: parseInt(d.is_domestic) || 0,
-            axes: [],
-            _photoDataUrl: null,
-            _likePrevSource: { id: d.id, sourceQty: parseInt(d.source_qty)||0, copyQty: false, imageUrl: d.image_url || '' }
-        };
-        if (typeof renderWizard === 'function') renderWizard();
-        showToast('📋 Като предния — провери преди save','success');
-        // After render, inject "Копирай количество" checkbox + image-from-source banner
-        setTimeout(injectLikePrevControlsS88, 50);
-    }, 80);
+    renderLikePrevPageS88(d);
 }
 
-function injectLikePrevControlsS88(){
-    var src = S.wizData && S.wizData._likePrevSource;
-    if (!src) return;
-    if (document.getElementById('s88LikePrevBox')) return;
-    var box = document.createElement('div');
-    box.id = 's88LikePrevBox';
-    box.style.cssText = 'margin:8px 12px;padding:10px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.35);font-size:11px;color:#c4b5fd';
-    var imgH = src.imageUrl ? '<img src="'+src.imageUrl+'" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-right:8px;vertical-align:middle">' : '';
-    box.innerHTML = imgH
-        + '<b style="color:#fff">📋 Като предния</b> (#' + src.id + ') — снимката е копирана.'
-        + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer">'
-        + '<input type="checkbox" id="s88CopyQty" '+(src.copyQty?'checked':'')+' onchange="S.wizData._likePrevSource.copyQty=this.checked;var q=document.getElementById(\'wSingleQty\');if(q)q.value=this.checked?'+(src.sourceQty||0)+':0">'
-        + '<span>Копирай количество (' + (src.sourceQty||0) + ' бр.)</span></label>';
-    var wizBody = document.querySelector('#wizModal .wiz-body, #wizModal');
-    if (wizBody) wizBody.insertBefore(box, wizBody.firstChild);
-    // If image was on source, load it into the wizard photo state so it gets uploaded after save.
-    if (src.imageUrl && !S.wizData._photoDataUrl){
-        // Use as URL — wizSave only uploads dataUrl. Workaround: fetch as data URL.
-        fetch(src.imageUrl).then(function(r){return r.blob()}).then(function(b){
-            var rd = new FileReader();
-            rd.onload = function(){ S.wizData._photoDataUrl = rd.result; };
-            rd.readAsDataURL(b);
-        }).catch(function(){});
+// Kept as no-op for backward compat — old banner/checkbox is now part of renderLikePrevPageS88.
+function injectLikePrevControlsS88(){}
+
+// ───────── S88.KP — "Като предния" full-page wizard (DESIGN_LAW §2,§7,§8,§10,§16) ─────────
+
+function kpClose(){
+    var m = document.getElementById('kpModal');
+    if (m) m.remove();
+    document.body.style.overflow = '';
+    window._kpState = null;
+}
+
+function kpFieldDef(idx){
+    var fields = [
+        { key:'retail',           label:'Цена дребно',  fmt:'price', editable:true },
+        { key:'cost',             label:'Доставна',     fmt:'price', editable:true },
+        { key:'_margin',          label:'Печалба',      fmt:'margin', computed:true },
+        { key:'supplier_name',    label:'Доставчик',    fmt:'text',  editable:true },
+        { key:'category_name',    label:'Категория',    fmt:'text',  editable:true },
+        { key:'subcategory_name', label:'Подкатегория', fmt:'text',  editable:true },
+        { key:'composition',      label:'Материя',      fmt:'text',  editable:true },
+        { key:'origin',           label:'Произход',     fmt:'text',  editable:true }
+    ];
+    return fields[idx];
+}
+
+function kpFieldHtml(f, idx, st){
+    var editIco = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+    if (f.computed && f.key === '_margin'){
+        var retail = parseFloat(st.retail)||0, cost = parseFloat(st.cost)||0;
+        var marginAbs = retail - cost;
+        var marginPct = retail > 0 ? Math.round((marginAbs/retail)*100) : 0;
+        return '<span class="kp-cf-label">'+f.label+'</span>'
+            + '<span class="kp-cf-value computed tabular-nums" id="kpMargin">'+marginPct+' % ('+marginAbs.toFixed(2)+' €)</span>'
+            + '<span class="kp-cf-auto">авто</span>';
+    }
+    var v = st[f.key];
+    var disp;
+    if (f.fmt === 'price') disp = (parseFloat(v)||0).toFixed(2) + ' €';
+    else disp = (v === null || v === undefined || v === '') ? '—' : String(v);
+    var num = (f.fmt === 'price') ? ' tabular-nums' : '';
+    var btn = f.editable
+        ? ('<button class="kp-cf-edit" type="button" onclick="kpEditField('+idx+',\''+f.key+'\',\''+f.fmt+'\')">'+editIco+'</button>')
+        : '';
+    return '<span class="kp-cf-label">'+f.label+'</span>'
+        + '<span class="kp-cf-value'+num+'" id="kpV'+idx+'">'+esc(disp)+'</span>'
+        + btn;
+}
+
+function kpEditField(idx, key, fmt){
+    var st = window._kpState; if (!st) return;
+    var row = document.getElementById('kpCf'+idx); if (!row) return;
+    var label = kpFieldDef(idx).label;
+    var cur = st[key];
+    if (fmt === 'price') cur = (parseFloat(cur)||0).toFixed(2);
+    if (cur === null || cur === undefined) cur = '';
+    var inputType = (fmt === 'price') ? 'number' : 'text';
+    var extra = (fmt === 'price') ? ' step="0.01" inputmode="decimal"' : '';
+    row.innerHTML = '<span class="kp-cf-label">'+label+'</span>'
+        + '<input class="kp-cf-input" id="kpEdit'+idx+'" type="'+inputType+'"'+extra+' value="'+esc(String(cur))+'" '
+        + 'onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\'){window._kpEditCancel='+idx+';this.blur()}" '
+        + 'onblur="kpEditCommit('+idx+',\''+key+'\',\''+fmt+'\')">'
+        + '<button class="kp-cf-edit" type="button" onmousedown="event.preventDefault();kpEditCommit('+idx+',\''+key+'\',\''+fmt+'\')">'
+        + '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>';
+    var el = document.getElementById('kpEdit'+idx);
+    if (el){ el.focus(); if (el.select) el.select(); }
+}
+
+function kpEditCommit(idx, key, fmt){
+    var st = window._kpState; if (!st) return;
+    var row = document.getElementById('kpCf'+idx); if (!row) return;
+    var el = document.getElementById('kpEdit'+idx);
+    if (window._kpEditCancel === idx){
+        window._kpEditCancel = null;
+    } else if (el){
+        var v = el.value;
+        if (fmt === 'price') v = parseFloat(v)||0;
+        st[key] = v;
+    }
+    row.innerHTML = kpFieldHtml(kpFieldDef(idx), idx, st);
+    if (key === 'retail' || key === 'cost'){
+        var mrow = document.getElementById('kpCf2');
+        if (mrow) mrow.innerHTML = kpFieldHtml(kpFieldDef(2), 2, st);
     }
 }
-// ───────── /S88.BUG#3 ─────────
+
+function kpToggleCopied(head){
+    head.classList.toggle('expanded');
+    var b = document.getElementById('kpCfBody');
+    if (b) b.classList.toggle('expanded');
+}
+
+function kpSwatchClass(name){
+    var n = (name||'').toLowerCase().trim();
+    var map = {
+        'черно':'c-black','черен':'c-black','black':'c-black',
+        'бяло':'c-white','бял':'c-white','white':'c-white',
+        'син':'c-blue','синьо':'c-blue','blue':'c-blue','navy':'c-blue',
+        'червен':'c-red','червено':'c-red','red':'c-red',
+        'бежов':'c-beige','беж':'c-beige','beige':'c-beige',
+        'розов':'c-pink','розово':'c-pink','pink':'c-pink',
+        'зелен':'c-green','зелено':'c-green','green':'c-green',
+        'жълт':'c-yellow','жълто':'c-yellow','yellow':'c-yellow',
+        'виолетов':'c-violet','лилав':'c-violet','violet':'c-violet','purple':'c-violet',
+        'сив':'c-gray','сиво':'c-gray','gray':'c-gray','grey':'c-gray',
+        'кафяв':'c-brown','кафяво':'c-brown','brown':'c-brown'
+    };
+    return map[n] || 'c-gray';
+}
+
+function kpVariantSectionHtml(st){
+    var totalArt = 0;
+    st.colors.forEach(function(c){ var sz = st.sizesByColor[c]||[]; totalArt += sz.length; });
+    var head = '<div class="kp-section-head">'
+        + '<div class="kp-section-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>'
+        + '<div class="kp-section-text">'
+            + '<div class="kp-section-title">Вариации</div>'
+            + '<div class="kp-section-sub">'+st.colors.length+' цвята · <span class="tabular-nums">'+totalArt+'</span> артикула</div>'
+        + '</div>'
+        + '<div class="kp-section-pill">'+st.colors.length+' ЦВЯТА</div>'
+        + '</div>';
+    var cards = st.colors.map(function(color, ci){
+        var sizes = (st.sizesByColor[color]||[]);
+        var rows = sizes.map(function(sz, si){
+            var cellId = 'mx_'+si+'_'+ci;
+            var qty = (st.matrix[cellId] && st.matrix[cellId].qty) || 0;
+            return '<div class="kp-size-row">'
+                + '<div class="kp-sz-label">'+esc(sz||'—')+'</div>'
+                + '<div class="kp-sz-stepper">'
+                    + '<button class="kp-sz-btn" type="button" onclick="kpAdj(\''+cellId+'\',-1)">−</button>'
+                    + '<span class="kp-sz-qty" id="kpQ_'+cellId+'">'+qty+'</span>'
+                    + '<button class="kp-sz-btn" type="button" onclick="kpAdj(\''+cellId+'\',1)">+</button>'
+                + '</div>'
+            + '</div>';
+        }).join('');
+        var cls = kpSwatchClass(color);
+        var totalForColor = sizes.reduce(function(s, sz, si){
+            var k='mx_'+si+'_'+ci; return s + ((st.matrix[k]&&st.matrix[k].qty)||0);
+        }, 0);
+        return '<div class="glass sm kp-color-card kp-cardin" id="kpColorCard_'+ci+'">'
+            + '<span class="shine"></span><span class="shine shine-bottom"></span>'
+            + '<span class="glow"></span><span class="glow glow-bottom"></span>'
+            + '<div class="kp-cc-head">'
+                + '<div class="kp-swatch '+cls+'"></div>'
+                + '<div class="kp-cc-name">'+esc(color||'—')+'</div>'
+                + '<div class="kp-cc-total tabular-nums" id="kpColorTotal_'+ci+'">'+totalForColor+' БР</div>'
+                + '<button class="kp-cc-remove" type="button" onclick="kpRemoveColor('+ci+')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+            + '</div>'
+            + '<div class="kp-cc-body">' + rows + '</div>'
+        + '</div>';
+    }).join('');
+    var addColor = '<div class="kp-add-color" onclick="kpAddColor()">'
+        + '<div class="kp-ac-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>'
+        + '<div class="kp-ac-text"><div class="kp-t1">Добави цвят</div><div class="kp-t2">Tap за нов цвят</div></div>'
+        + '</div>';
+    return '<div id="kpVariantSection">' + head + cards + addColor + '</div>';
+}
+
+function kpSingleSectionHtml(st){
+    var copyRow = (st.srcQty > 0) ? ('<label class="kp-copy-qty-row">'
+        + '<input type="checkbox" id="kpCopyQty" onchange="kpCopyQtyToggle(this.checked)">'
+        + '<span class="kp-cq-label">Копирай и количество</span>'
+        + '<span class="kp-cq-hint">('+st.srcQty+' бр.)</span>'
+    + '</label>') : '';
+    return '<div id="kpSingleSection">'
+        + '<div class="kp-section-head">'
+            + '<div class="kp-section-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/></svg></div>'
+            + '<div class="kp-section-text"><div class="kp-section-title">Бройка</div><div class="kp-section-sub">Колко имаш на склад</div></div>'
+            + '<div class="kp-section-pill">ЕДИНИЧЕН</div>'
+        + '</div>'
+        + '<div class="glass sm kp-color-card kp-cardin">'
+            + '<span class="shine"></span><span class="shine shine-bottom"></span>'
+            + '<span class="glow"></span><span class="glow glow-bottom"></span>'
+            + '<div class="kp-cc-body" style="padding:14px">'
+                + '<div class="kp-size-row" style="border-bottom:0;padding:6px 0 0">'
+                    + '<div class="kp-sz-label" style="min-width:80px">Брой</div>'
+                    + '<div class="kp-sz-stepper">'
+                        + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'qty\',-1)">−</button>'
+                        + '<span class="kp-sz-qty" id="kpSingleQtyView">0</span>'
+                        + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'qty\',1)">+</button>'
+                    + '</div>'
+                + '</div>'
+                + '<div class="kp-size-row" style="border-bottom:0;padding:10px 0 0">'
+                    + '<div class="kp-sz-label" style="min-width:80px">Минимум</div>'
+                    + '<div class="kp-sz-stepper">'
+                        + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'min\',-1)">−</button>'
+                        + '<span class="kp-sz-qty" id="kpSingleMinView">'+(parseInt(st.min_quantity)||0)+'</span>'
+                        + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'min\',1)">+</button>'
+                    + '</div>'
+                + '</div>'
+            + '</div>'
+        + '</div>'
+        + copyRow
+        + '</div>';
+}
+
+function kpSingleAdj(which, delta){
+    if (which === 'qty'){
+        var qInp = document.getElementById('wSingleQty'); if (!qInp) return;
+        var nv = Math.max(0, (parseInt(qInp.value)||0) + delta);
+        qInp.value = nv;
+        var v = document.getElementById('kpSingleQtyView'); if (v) v.textContent = nv;
+    } else if (which === 'min'){
+        var mInp = document.getElementById('wMinQty'); if (!mInp) return;
+        var nv = Math.max(0, (parseInt(mInp.value)||0) + delta);
+        mInp.value = nv;
+        var v = document.getElementById('kpSingleMinView'); if (v) v.textContent = nv;
+    }
+    if (navigator.vibrate) navigator.vibrate(5);
+}
+
+function kpCopyQtyToggle(checked){
+    var st = window._kpState; if (!st) return;
+    st.copyQty = checked;
+    var nv = checked ? (st.srcQty||0) : 0;
+    var qInp = document.getElementById('wSingleQty'); if (qInp) qInp.value = nv;
+    var v = document.getElementById('kpSingleQtyView'); if (v) v.textContent = nv;
+}
+
+function kpAdj(cellId, delta){
+    var st = window._kpState; if (!st) return;
+    if (!st.matrix[cellId]) st.matrix[cellId] = {qty:0};
+    st.matrix[cellId].qty = Math.max(0, (parseInt(st.matrix[cellId].qty)||0) + delta);
+    var span = document.getElementById('kpQ_'+cellId);
+    if (span) span.textContent = st.matrix[cellId].qty;
+    var parts = cellId.split('_');
+    var ci = parseInt(parts[2])||0;
+    var color = st.colors[ci];
+    var sizes = (st.sizesByColor[color]||[]);
+    var total = sizes.reduce(function(s, sz, si){
+        var k='mx_'+si+'_'+ci; return s + ((st.matrix[k]&&st.matrix[k].qty)||0);
+    }, 0);
+    var t = document.getElementById('kpColorTotal_'+ci);
+    if (t) t.textContent = total + ' БР';
+    if (navigator.vibrate) navigator.vibrate(4);
+}
+
+function kpRemoveColor(ci){
+    var st = window._kpState; if (!st) return;
+    if (!confirm('Премахни този цвят?')) return;
+    var color = st.colors[ci];
+    st.colors.splice(ci, 1);
+    if (color) delete st.sizesByColor[color];
+    // Re-key matrix to drop entries for removed color column
+    var newMx = {};
+    Object.keys(st.matrix).forEach(function(k){
+        var p = k.split('_'); var si = parseInt(p[1])||0, c = parseInt(p[2])||0;
+        if (c === ci) return;
+        var newCi = c > ci ? c - 1 : c;
+        newMx['mx_'+si+'_'+newCi] = st.matrix[k];
+    });
+    st.matrix = newMx;
+    var sec = document.getElementById('kpVariantSection');
+    if (sec){
+        var tmp = document.createElement('div');
+        tmp.innerHTML = kpVariantSectionHtml(st);
+        sec.replaceWith(tmp.firstChild);
+    }
+}
+
+function kpAddColor(){
+    var st = window._kpState; if (!st) return;
+    var name = (prompt('Цвят (напр. Черно):')||'').trim();
+    if (!name) return;
+    if (st.colors.indexOf(name) !== -1){ showToast('Този цвят вече съществува','error'); return; }
+    st.colors.push(name);
+    var anySizes = Object.values(st.sizesByColor)[0] || ['M'];
+    st.sizesByColor[name] = anySizes.slice();
+    var sec = document.getElementById('kpVariantSection');
+    if (sec){
+        var tmp = document.createElement('div');
+        tmp.innerHTML = kpVariantSectionHtml(st);
+        sec.replaceWith(tmp.firstChild);
+    }
+}
+
+function kpPhotoPick(){
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = function(e){
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function(){
+            window._kpState.photoDataUrl = rd.result;
+            var hero = document.getElementById('kpPhotoHero');
+            if (hero){
+                hero.classList.add('has-photo');
+                hero.innerHTML = '<img src="'+rd.result+'" alt=""><div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна на снимка</div></div>';
+            }
+        };
+        rd.readAsDataURL(f);
+    };
+    inp.click();
+}
+
+function kpVoiceName(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR){ showToast('Гласът не се поддържа в този браузър','error'); return; }
+    var rec = new SR();
+    rec.lang = 'bg-BG'; rec.interimResults = false; rec.maxAlternatives = 1;
+    var btn = document.querySelector('.kp-voice-mic');
+    if (btn) btn.style.transform = 'scale(1.1)';
+    rec.onresult = function(ev){
+        var t = (ev.results[0][0].transcript) || '';
+        var inp = document.getElementById('wName');
+        if (inp){ inp.value = t; inp.focus(); }
+    };
+    rec.onerror = function(){ showToast('Грешка при гласа','error'); };
+    rec.onend = function(){ if (btn) btn.style.transform = ''; };
+    try { rec.start(); } catch(_) {}
+}
+
+function kpCollectIntoWizData(){
+    var st = window._kpState; if (!st) return null;
+    if (!window.S) window.S = {};
+    if (!S.wizData) S.wizData = {};
+    S.wizEditId = null; S.wizSavedId = null;
+    S.wizType = st.type;
+    var nameEl = document.getElementById('wName');
+    S.wizData.name = nameEl ? (nameEl.value||'').trim() : '';
+    S.wizData.code = (document.getElementById('wCode')||{}).value || '';
+    S.wizData.barcode = ((document.getElementById('wBarcode')||{}).value || '').trim();
+    S.wizData.retail_price = parseFloat(st.retail)||0;
+    S.wizData.cost_price = parseFloat(st.cost)||0;
+    S.wizData.wholesale_price = parseFloat(st.wholesale)||0;
+    S.wizData.supplier_id = st.supplier_id || null;
+    S.wizData.category_id = st.category_id || null;
+    S.wizData.subcategory_id = st.subcategory_id || null;
+    S.wizData.unit = 'бр';
+    S.wizData.min_quantity = parseInt((document.getElementById('wMinQty')||{}).value)||0;
+    S.wizData.composition = st.composition || '';
+    S.wizData.origin_country = st.origin || '';
+    S.wizData.is_domestic = 0;
+    S.wizData.description = '';
+    S.wizData._photoDataUrl = st.photoDataUrl || null;
+    if (st.type === 'variant'){
+        var allSizes = [];
+        st.colors.forEach(function(c){
+            (st.sizesByColor[c]||[]).forEach(function(s){
+                if (s && allSizes.indexOf(s) === -1) allSizes.push(s);
+            });
+        });
+        S.wizData.axes = [
+            { name: 'Размер', values: allSizes },
+            { name: 'Цвят',   values: st.colors.slice() }
+        ];
+        S.wizData._matrix = {};
+        st.colors.forEach(function(c, ci){
+            var sizes = st.sizesByColor[c]||[];
+            sizes.forEach(function(sz, localSi){
+                var localKey = 'mx_'+localSi+'_'+ci;
+                var qty = (st.matrix[localKey] && st.matrix[localKey].qty) || 0;
+                if (qty > 0){
+                    var globalSi = allSizes.indexOf(sz);
+                    if (globalSi >= 0) S.wizData._matrix['mx_'+globalSi+'_'+ci] = { qty: qty };
+                }
+            });
+        });
+    } else {
+        S.wizData.axes = [];
+        S.wizData._matrix = {};
+        S.wizData.quantity = parseInt((document.getElementById('wSingleQty')||{}).value)||0;
+    }
+    S.wizData._likePrevSource = { id: st.srcId, sourceQty: st.srcQty, copyQty: !!st.copyQty, imageUrl: st.photoUrl||'' };
+    if (st.photoUrl && !st.photoDataUrl){
+        return fetch(st.photoUrl).then(function(r){return r.blob()}).then(function(b){
+            return new Promise(function(res){
+                var rd = new FileReader();
+                rd.onload = function(){ S.wizData._photoDataUrl = rd.result; res(); };
+                rd.readAsDataURL(b);
+            });
+        }).catch(function(){});
+    }
+    return null;
+}
+
+async function kpSave(){
+    var st = window._kpState; if (!st) return;
+    var nameEl = document.getElementById('wName');
+    if (!nameEl || !nameEl.value.trim()){ showToast('Въведи име','error'); if (nameEl) nameEl.focus(); return; }
+    var p = kpCollectIntoWizData();
+    if (p && p.then) await p;
+    if (typeof wizSave === 'function'){
+        await wizSave();
+        if (S.wizSavedId){
+            setTimeout(function(){ kpClose(); }, 250);
+        }
+    }
+}
+
+async function kpSaveThenAIStudio(){
+    await kpSave();
+    if (S.wizSavedId){
+        if (typeof openAIStudio === 'function') openAIStudio(S.wizSavedId);
+        else if (typeof openStudioModal === 'function') openStudioModal(S.wizSavedId);
+    }
+}
+
+async function kpPrintNow(){
+    var st = window._kpState; if (!st) return;
+    var nameEl = document.getElementById('wName');
+    if (!nameEl || !nameEl.value.trim()){ showToast('Въведи име първо','error'); if (nameEl) nameEl.focus(); return; }
+    if (!window.S) window.S = {}; if (!S.wizData) S.wizData = {};
+    var combos = [];
+    if (st.type === 'variant'){
+        st.colors.forEach(function(color, ci){
+            (st.sizesByColor[color]||[]).forEach(function(sz, si){
+                var k = 'mx_'+si+'_'+ci, q = (st.matrix[k]&&st.matrix[k].qty)||0;
+                if (q > 0) combos.push({size:sz, color:color, qty:q, printQty:q});
+            });
+        });
+    } else {
+        var q = parseInt((document.getElementById('wSingleQty')||{}).value)||1;
+        combos.push({size:null, color:null, qty:q, printQty:q});
+    }
+    if (!combos.length){ showToast('Няма бройки за печат','error'); return; }
+    S.wizData._printCombos = combos;
+    S.wizData.name = nameEl.value.trim();
+    S.wizData.code = (document.getElementById('wCode')||{}).value || '';
+    S.wizData.retail_price = parseFloat(st.retail)||0;
+    if (typeof wizPrintLabels === 'function') wizPrintLabels(-1);
+    else showToast('Печат не е наличен','error');
+}
+
+function renderLikePrevPageS88(d){
+    var prev = document.getElementById('kpModal');
+    if (prev) prev.remove();
+
+    var hasVariants = !!(d.has_variants && d.variant_axes && d.variant_axes.colors && d.variant_axes.colors.length);
+    var st = window._kpState = {
+        srcId: d.id,
+        type: hasVariants ? 'variant' : 'single',
+        photoUrl: d.image_url || '',
+        photoDataUrl: null,
+        srcQty: parseInt(d.source_qty)||0,
+        copyQty: false,
+        retail: parseFloat(d.retail_price)||0,
+        cost: parseFloat(d.cost_price)||0,
+        wholesale: parseFloat(d.wholesale_price)||0,
+        supplier_id: d.supplier_id || null,
+        supplier_name: d.supplier_name || '',
+        category_id: d.category_id || null,
+        category_name: d.category_name || '',
+        subcategory_id: d.subcategory_id || null,
+        subcategory_name: d.subcategory_name || '',
+        composition: d.composition || '',
+        origin: d.origin_country || '',
+        min_quantity: parseInt(d.min_quantity)||0,
+        colors: hasVariants ? (d.variant_axes.colors||[]).slice() : [],
+        sizesByColor: hasVariants ? Object.assign({}, d.variant_axes.by_color||{}) : {},
+        matrix: {}
+    };
+
+    var subParts = [];
+    if (d.name) subParts.push(d.name);
+    if (st.supplier_name) subParts.push(st.supplier_name);
+    var catLine = st.category_name || '';
+    if (catLine && st.subcategory_name) catLine += ' / ' + st.subcategory_name;
+    if (catLine) subParts.push(catLine);
+    var subTitle = subParts.join(' · ');
+
+    var photoHero = d.image_url
+        ? ('<div class="kp-photo-hero kp-cardin has-photo" id="kpPhotoHero" onclick="kpPhotoPick()">'
+            + '<img src="'+esc(d.image_url)+'" alt="">'
+            + '<div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна на снимка</div></div>'
+            + '</div>')
+        : ('<div class="kp-photo-hero kp-cardin" id="kpPhotoHero" onclick="kpPhotoPick()">'
+            + '<div class="kp-ph-icon"><svg viewBox="0 0 24 24"><path d="M9 3l-1.5 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9zm3 5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg></div>'
+            + '<div class="kp-ph-label">Tap за снимка</div>'
+            + '<div class="kp-ph-hint">камера · галерия · може да се пропусне</div>'
+            + '</div>');
+
+    var voiceSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    var voiceBtn = '<button class="kp-voice-mic" type="button" '+(voiceSupported?'onclick="kpVoiceName()"':'disabled')+' aria-label="voice">'
+        + '<svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>'
+        + '</button>';
+
+    var nameCard = '<div class="glass kp-name-card kp-cardin">'
+        + '<span class="shine"></span><span class="shine shine-bottom"></span>'
+        + '<span class="glow"></span><span class="glow glow-bottom"></span>'
+        + '<div class="kp-label-row">'
+            + '<div class="kp-label">Име на артикула <span class="kp-req">*</span></div>'
+            + voiceBtn
+        + '</div>'
+        + '<input type="text" class="kp-input" id="wName" placeholder="Напиши име или диктувай…" autocomplete="off" autofocus value="'+esc((d.name||'')+' (копие)')+'">'
+        + '<input type="hidden" id="wCode" value="'+esc(d.next_code||'')+'">'
+        + '<input type="hidden" id="wBarcode" value="">'
+        + '<input type="hidden" id="wSubcat" value="'+esc(st.subcategory_id||'')+'">'
+        + '<input type="hidden" id="wSingleQty" value="0">'
+        + '<input type="hidden" id="wMinQty" value="'+(parseInt(d.min_quantity)||0)+'">'
+        + '</div>';
+
+    var fields = [0,1,2,3,4,5,6,7].map(function(i){
+        return '<div class="kp-cf-row" id="kpCf'+i+'">' + kpFieldHtml(kpFieldDef(i), i, st) + '</div>';
+    }).join('');
+
+    var copiedCard = '<div class="glass q-gain sm kp-copied-card kp-cardin">'
+        + '<span class="shine"></span><span class="shine shine-bottom"></span>'
+        + '<span class="glow"></span><span class="glow glow-bottom"></span>'
+        + '<div class="kp-copied-head" onclick="kpToggleCopied(this)">'
+            + '<div class="kp-copied-ico"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>'
+            + '<div class="kp-copied-text">'
+                + '<div class="kp-copied-t1">Копирано от последния</div>'
+                + '<div class="kp-copied-t2">8 полета · tap за преглед / редакция</div>'
+            + '</div>'
+            + '<div class="kp-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>'
+        + '</div>'
+        + '<div class="kp-copied-fields" id="kpCfBody">' + fields + '</div>'
+        + '</div>';
+
+    var section = hasVariants ? kpVariantSectionHtml(st) : kpSingleSectionHtml(st);
+
+    var bottomBar = '<div class="kp-bottom-bar">'
+        + '<button type="button" class="kp-btn-print" onclick="kpPrintNow()">'
+            + '<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'
+            + 'ПЕЧАТ'
+        + '</button>'
+        + '<button type="button" class="kp-btn-ai" onclick="kpSaveThenAIStudio()">'
+            + '<svg class="kp-ai-spark" viewBox="0 0 24 24"><path d="M12 2l1.4 4.6L18 8l-4.6 1.4L12 14l-1.4-4.6L6 8l4.6-1.4L12 2zm6 12l.7 2.3L21 17l-2.3.7L18 20l-.7-2.3L15 17l2.3-.7L18 14zM5 13l.5 1.5L7 15l-1.5.5L5 17l-.5-1.5L3 15l1.5-.5L5 13z"/></svg>'
+            + 'AI STUDIO'
+        + '</button>'
+        + '</div>';
+
+    var ov = document.createElement('div');
+    ov.id = 'kpModal';
+    ov.innerHTML = '<div class="kp-app">'
+        + '<header class="kp-header">'
+            + '<button class="kp-back" type="button" aria-label="Назад" onclick="kpClose()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
+            + '<div class="kp-title-area">'
+                + '<div class="kp-title">Като предния</div>'
+                + '<div class="kp-subtitle">'+esc(subTitle)+'</div>'
+            + '</div>'
+            + '<button class="kp-save" type="button" onclick="kpSave()">'
+                + '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+                + 'ЗАПАЗИ'
+            + '</button>'
+        + '</header>'
+        + photoHero
+        + nameCard
+        + copiedCard
+        + section
+        + bottomBar
+        + '</div>';
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+    showToast('Като предния — провери преди save','success');
+}
+// ───────── /S88.BUG#3 + /S88.KP ─────────
 
 // ───────── S88.BUG#7: history timeline + per-change revert ─────────
 async function openProductHistoryS88(productId){
