@@ -354,7 +354,38 @@ body::after{
     background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
     border-color:hsl(var(--hue1) 60% 55%);color:white;
     box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / 0.45),inset 0 1px 0 rgba(255,255,255,0.25);
+    position:relative;
 }
+/* S87G.B6 — voice inline states */
+.search-btn#btnVoiceSearch.voice-recording{
+    background:linear-gradient(135deg,#ef4444,#dc2626);
+    border-color:#ef4444;color:#fff;
+    animation:s87g-voice-pulse 1.1s ease-in-out infinite;
+}
+.search-btn#btnVoiceSearch.voice-recording::after{
+    content:'';position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;
+    background:#fff;box-shadow:0 0 8px rgba(255,255,255,0.9);
+    animation:s87g-voice-dot 0.9s ease-in-out infinite;
+}
+.search-btn#btnVoiceSearch.voice-processing{
+    background:linear-gradient(135deg,hsl(var(--hue2) 50% 45%),hsl(var(--hue1) 55% 40%));
+    opacity:0.8;
+}
+.search-btn#btnVoiceSearch.voice-processing::after{
+    content:'';position:absolute;top:50%;left:50%;width:14px;height:14px;
+    margin:-7px 0 0 -7px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;
+    animation:s87g-voice-spin 0.7s linear infinite;
+}
+@keyframes s87g-voice-pulse{
+    0%,100%{box-shadow:0 0 12px rgba(239,68,68,0.5),inset 0 1px 0 rgba(255,255,255,0.25)}
+    50%{box-shadow:0 0 22px rgba(239,68,68,0.95),inset 0 1px 0 rgba(255,255,255,0.25)}
+}
+@keyframes s87g-voice-dot{
+    0%,100%{opacity:0.55;transform:scale(0.85)}
+    50%{opacity:1;transform:scale(1.15)}
+}
+@keyframes s87g-voice-spin{to{transform:rotate(360deg)}}
 .search-btn#btnKeyboard{font-size:11px;font-weight:800;letter-spacing:0.04em}
 
 /* S87E — real text input replaces search-display (inline search) */
@@ -1101,8 +1132,44 @@ body{padding-bottom:env(safe-area-inset-bottom);}
 :root[data-theme="light"] .set-qty-btn{background:rgba(15,23,42,0.06);border-color:rgba(15,23,42,0.12)}
 .set-qty-val{font-size:13px;font-weight:900;min-width:18px;text-align:center;font-variant-numeric:tabular-nums;color:var(--text-primary)}
 .set-total{font-size:12px;font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:60px;text-align:right}
-.set-row .ci-delete{position:absolute;right:0;top:0;bottom:0;width:80px;background:linear-gradient(90deg,transparent,#dc2626 30%);color:white;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;font-size:11px;font-weight:800;letter-spacing:0.04em;transform:translateX(100%);transition:transform 0.2s;border-radius:0 14px 14px 0}
-.set-row.swiped .ci-delete{transform:translateX(0)}
+/* S87G.B4 — swipe-to-delete: ci-delete sits behind row content; .set-row-fg slides left to reveal it */
+.set-row .ci-delete{position:absolute;right:0;top:0;bottom:0;width:90px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:800;letter-spacing:0.04em;border:none;cursor:pointer;font-family:inherit;border-radius:0 14px 14px 0;padding:0;box-shadow:inset 1px 0 0 rgba(255,255,255,0.12)}
+.set-row .ci-delete svg{display:block}
+.set-row .ci-delete:active{filter:brightness(0.92)}
+.set-row .set-row-fg{display:flex;align-items:center;gap:11px;width:100%;background:inherit;border-radius:inherit;transform:translateX(0);transition:transform 0.2s ease;will-change:transform;position:relative;z-index:1}
+.set-row.swiped .set-row-fg{transform:translateX(-90px)}
+/* B3 — qty value as tap zone with hover hint arrows */
+body.sale-page .set-qty-val{
+    position:relative;
+    min-width:54px;
+    padding:6px 18px;
+    text-align:center;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+}
+body.sale-page .set-qty-val::before,
+body.sale-page .set-qty-val::after{
+    content:'';position:absolute;top:50%;width:6px;height:6px;
+    border-style:solid;border-color:var(--text-muted);
+    opacity:0;transition:opacity 0.15s;pointer-events:none;
+}
+body.sale-page .set-qty-val::before{left:5px;border-width:2px 0 0 2px;transform:translateY(-50%) rotate(-45deg)}
+body.sale-page .set-qty-val::after{right:5px;border-width:2px 2px 0 0;transform:translateY(-50%) rotate(45deg)}
+body.sale-page .set-qty-val:hover::before,
+body.sale-page .set-qty-val:hover::after{opacity:0.55}
+/* S87G.B4 — swipe-to-delete hint (shown once) */
+.s87g-swipe-hint{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:6px 10px;margin:4px 6px 8px;
+    background:rgba(99,102,241,0.10);border:1px dashed rgba(99,102,241,0.35);
+    border-radius:10px;color:var(--text-muted);
+    font-size:11px;font-weight:700;letter-spacing:0.02em;
+    opacity:0;animation:s87g-hint-in 0.35s ease forwards;
+    transition:opacity 0.5s ease,transform 0.5s ease;
+}
+.s87g-swipe-hint.hide{opacity:0;transform:translateY(-4px)}
+@keyframes s87g-hint-in{from{opacity:0;transform:translateY(-4px)}to{opacity:0.95;transform:none}}
 
 /* STAT NUM — payment hero */
 .stat-num{font-size:34px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;font-variant-numeric:tabular-nums;display:inline-block}
@@ -1256,14 +1323,13 @@ body.sale-page .action-bar{
     left:auto;right:auto;max-width:none !important;
 }
 body.sale-page #cartZone{ padding-bottom:0 !important }
-/* set-qty-val: visible-as-tappable cue (FIX2 — free quantity entry) */
+/* S87G.B3 — set-qty-val cosmetics (split-tap zone defined earlier in stylesheet) */
 body.sale-page .set-qty-val{
-    cursor:pointer;padding:4px 6px;border-radius:8px;
-    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
-    min-width:30px;
+    cursor:pointer;border-radius:10px;font-size:14px;font-weight:900;
+    background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);
 }
-:root[data-theme="light"] body.sale-page .set-qty-val{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.08)}
-body.sale-page .set-qty-val:active{background:hsl(var(--hue1) 60% 50% / 0.2)}
+:root[data-theme="light"] body.sale-page .set-qty-val{background:rgba(99,102,241,0.10);border-color:rgba(99,102,241,0.30)}
+body.sale-page .set-qty-val:active{background:hsl(var(--hue1) 60% 50% / 0.22)}
 
 /* (S87E) search-display + btnKeyboard removed; see #searchInput rules above */
 
@@ -2009,6 +2075,24 @@ function showToast(msg, type = '', duration = 2500) {
     setTimeout(() => t.classList.remove('show'), duration);
 }
 
+// S87G.B4 — first-time swipe hint (shown once per device via localStorage)
+const S87G_SWIPE_HINT_KEY = 'rms_s87g_swipe_hint_shown';
+function s87gShowSwipeHintOnce() {
+    try {
+        if (localStorage.getItem(S87G_SWIPE_HINT_KEY) === '1') return;
+        const zone = document.getElementById('cartZone');
+        if (!zone) return;
+        if (zone.querySelector('.s87g-swipe-hint')) return;
+        const hint = document.createElement('div');
+        hint.className = 's87g-swipe-hint';
+        hint.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> плъзни наляво за изтриване';
+        zone.insertBefore(hint, zone.firstChild);
+        setTimeout(() => { if (hint.parentNode) hint.classList.add('hide'); }, 4500);
+        setTimeout(() => { if (hint.parentNode) hint.remove(); }, 5200);
+        localStorage.setItem(S87G_SWIPE_HINT_KEY, '1');
+    } catch (_) { /* private mode */ }
+}
+
 // ─── BEEP ───
 let audioCtx;
 function beep(freq = 1200, dur = 0.15) {
@@ -2126,80 +2210,150 @@ function render() {
     // Remove old items
     zone.querySelectorAll('.cart-item, .set-row').forEach(el => el.remove());
 
-    // Build cart items (V5 set-row pattern)
+    // Build cart items (V5 set-row pattern; S87G — split tap zones + swipe-to-delete)
     STATE.cart.forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = 'set-row' + (idx === STATE.selectedIndex ? ' selected' : '');
         const lineTotal = item.unit_price * item.quantity * (1 - (item.discount_pct || 0) / 100);
         const unitSub = fmtPrice(item.unit_price) + ' ' + STATE.currency + '/бр' + (item.code ? ' · ' + esc(item.code) : '');
         div.innerHTML = `
-            <div class="set-icon">📦</div>
-            <div class="set-text">
-                <div class="set-val">${esc(item.name)}</div>
-                <div class="set-val-sub">${unitSub}</div>
+            <button type="button" class="ci-delete" data-act="del" aria-label="Изтрий">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                <span>Изтрий</span>
+            </button>
+            <div class="set-row-fg">
+                <div class="set-icon">📦</div>
+                <div class="set-text">
+                    <div class="set-val">${esc(item.name)}</div>
+                    <div class="set-val-sub">${unitSub}</div>
+                </div>
+                <div class="set-qty">
+                    <span class="set-qty-val" data-qty-edit="${idx}" role="button" aria-label="Промени брой">${item.quantity}</span>
+                </div>
+                <div class="set-total">${fmtPrice(lineTotal)}</div>
             </div>
-            <div class="set-qty">
-                <button class="set-qty-btn" type="button" data-act="dec">−</button>
-                <span class="set-qty-val" data-qty-edit="${idx}" style="cursor:pointer;text-decoration:underline dotted">${item.quantity}</span>
-                <button class="set-qty-btn" type="button" data-act="inc">+</button>
-            </div>
-            <div class="set-total">${fmtPrice(lineTotal)}</div>
-            <div class="ci-delete">Изтрий</div>
         `;
-        // qty +/- handlers
-        const decBtn = div.querySelector('[data-act="dec"]');
-        const incBtn = div.querySelector('[data-act="inc"]');
+        const fg = div.querySelector('.set-row-fg');
         const qtyVal = div.querySelector('.set-qty-val');
-        if (decBtn) decBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (STATE.cart[idx].quantity > 1) {
-                STATE.cart[idx].quantity--;
-                render();
-            } else {
-                removeItem(idx);
-            }
-        });
-        if (incBtn) incBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            STATE.cart[idx].quantity++;
-            render();
-        });
-        // S87E.BUG#4 — tap on quantity value → prompt() editor (free numeric entry, e.g. 58 бр)
-        if (qtyVal) qtyVal.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openQtyEditor(idx);
-        });
+        const delBtn = div.querySelector('.ci-delete');
 
-        // Tap = select + qty mode
+        // S87G.B3 — split tap zone on qty value: left half = -1, right half = +1; long-press = numpad
+        let qtyLpTimer = null;
+        let qtyLpFired = false;
+        if (qtyVal) {
+            qtyVal.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (qtyLpFired) { qtyLpFired = false; return; }
+                const rect = qtyVal.getBoundingClientRect();
+                const x = (e.clientX !== undefined ? e.clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : rect.left + rect.width / 2));
+                if (x < rect.left + rect.width / 2) {
+                    if (STATE.cart[idx].quantity > 1) {
+                        STATE.cart[idx].quantity--;
+                        render();
+                    } else {
+                        removeItem(idx);
+                    }
+                } else {
+                    STATE.cart[idx].quantity++;
+                    render();
+                }
+            });
+            qtyVal.addEventListener('touchstart', () => {
+                qtyLpFired = false;
+                clearTimeout(qtyLpTimer);
+                qtyLpTimer = setTimeout(() => { qtyLpFired = true; openQtyEditor(idx); }, 500);
+            }, {passive: true});
+            qtyVal.addEventListener('touchend', () => clearTimeout(qtyLpTimer));
+            qtyVal.addEventListener('touchmove', () => clearTimeout(qtyLpTimer));
+            qtyVal.addEventListener('touchcancel', () => clearTimeout(qtyLpTimer));
+        }
+
+        // Tap row body (not qty, not delete) = select
         div.addEventListener('click', (e) => {
             if (e.target.closest('.ci-delete')) return;
+            if (e.target.closest('.set-qty-val')) return;
+            if (div.classList.contains('swiped')) {
+                // Tap outside delete while swiped → close swipe
+                div.classList.remove('swiped');
+                if (fg) fg.style.transform = '';
+                return;
+            }
             selectCartItem(idx);
         });
 
-        // Long press = popup numpad
-        let lpTimer;
-        div.addEventListener('touchstart', (e) => {
-            lpTimer = setTimeout(() => openLpPopup(idx), 500);
-        }, {passive: true});
-        div.addEventListener('touchend', () => clearTimeout(lpTimer));
-        div.addEventListener('touchmove', () => clearTimeout(lpTimer));
+        // S87G.B4 — swipe left to reveal delete
+        let sx = 0, sy = 0, sxStart = 0, dragging = false, locked = false;
+        const SWIPE_REVEAL = 90; // matches .ci-delete width
+        const SWIPE_THRESHOLD_PX = 60;
+        const SWIPE_THRESHOLD_PCT = 0.30;
 
-        // Swipe left to delete
-        let sx = 0;
-        div.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, {passive: true});
-        div.addEventListener('touchmove', (e) => {
-            const dx = e.touches[0].clientX - sx;
-            if (dx < -40) div.classList.add('swiped');
-            else div.classList.remove('swiped');
+        div.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.set-qty-val')) return; // qty has its own gestures
+            const t = e.touches[0];
+            const rect = div.getBoundingClientRect();
+            sxStart = t.clientX - rect.left; // x within row
+            // Spec: ignore swipe unless touchstart is in the rightmost 30px of the row
+            if (sxStart < rect.width - 30) { dragging = false; locked = false; sx = 0; return; }
+            sx = t.clientX;
+            sy = t.clientY;
+            dragging = true;
+            locked = false;
+            if (fg) fg.style.transition = 'none';
         }, {passive: true});
-        div.addEventListener('touchend', () => {
-            if (div.classList.contains('swiped')) {
-                div.querySelector('.ci-delete').addEventListener('click', () => removeItem(idx));
+
+        div.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            const t = e.touches[0];
+            const dx = t.clientX - sx;
+            const dy = t.clientY - sy;
+            if (!locked) {
+                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+                // Lock direction on first significant move
+                if (Math.abs(dy) > Math.abs(dx)) { dragging = false; if (fg) fg.style.transform = ''; return; }
+                locked = true;
             }
-        });
+            if (dx > 0) {
+                if (fg) fg.style.transform = '';
+                return;
+            }
+            const clamped = Math.max(dx, -SWIPE_REVEAL);
+            if (fg) fg.style.transform = 'translateX(' + clamped + 'px)';
+            div.classList.add('swiping');
+        }, {passive: true});
+
+        const endSwipe = (e) => {
+            if (!dragging) return;
+            const t = (e.changedTouches && e.changedTouches[0]) || null;
+            const dx = t ? (t.clientX - sx) : 0;
+            const rect = div.getBoundingClientRect();
+            dragging = false;
+            div.classList.remove('swiping');
+            if (fg) fg.style.transition = '';
+            const reveal = (dx <= -SWIPE_THRESHOLD_PX) || (Math.abs(dx) / Math.max(rect.width, 1) >= SWIPE_THRESHOLD_PCT);
+            if (reveal && locked) {
+                div.classList.add('swiped');
+                if (fg) fg.style.transform = '';
+            } else {
+                div.classList.remove('swiped');
+                if (fg) fg.style.transform = '';
+            }
+            locked = false;
+        };
+        div.addEventListener('touchend', endSwipe);
+        div.addEventListener('touchcancel', endSwipe);
+
+        if (delBtn) {
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeItem(idx);
+            });
+        }
 
         zone.appendChild(div);
     });
+
+    // S87G.B4 — first-time hint: "← плъзни наляво за изтриване"
+    if (STATE.cart.length > 0 && typeof s87gShowSwipeHintOnce === 'function') s87gShowSwipeHintOnce();
 
     // Summary
     const total = getTotal();
@@ -2227,7 +2381,8 @@ function esc(s) {
 }
 
 // ─── CART OPERATIONS ───
-function addToCart(product) {
+function addToCart(product, qtyOverride) {
+    const qty = (typeof qtyOverride === 'number' && qtyOverride > 0) ? qtyOverride : 1;
     const price = STATE.isWholesale
         ? (parseFloat(product.wholesale_price) || parseFloat(product.retail_price))
         : parseFloat(product.retail_price);
@@ -2235,7 +2390,7 @@ function addToCart(product) {
     // Check if already in cart
     const existing = STATE.cart.findIndex(it => it.product_id === product.id);
     if (existing >= 0) {
-        STATE.cart[existing].quantity++;
+        STATE.cart[existing].quantity += qty;
         beep(1400, 0.1);
         beep(1800, 0.1); // double beep
     } else {
@@ -2245,7 +2400,7 @@ function addToCart(product) {
             name: product.name || '',
             meta: '',
             unit_price: price,
-            quantity: 1,
+            quantity: qty,
             discount_pct: 0,
             image: product.image || '',
         });
@@ -2518,16 +2673,10 @@ function closeDiscount() {
     setNumpadCtx('code');
 }
 
-// S87E.BUG#5 — custom discount via native prompt (any % between 0–100)
+// S87G.B7 — custom discount via inline numpad modal (no native prompt)
 function customDiscount() {
     const cur = STATE.discountPct || 0;
-    const raw = window.prompt('Процент отстъпка (0–100)', cur ? String(cur) : '');
-    if (raw === null) return; // cancelled
-    const trimmed = String(raw).trim().replace(',', '.');
-    if (trimmed === '') return;
-    const n = parseFloat(trimmed);
-    if (isNaN(n) || n < 0 || n > 100) { alert('Невалиден процент (0–100)'); return; }
-    applyDiscount(n);
+    openDiscountModal(cur);
 }
 
 // ─── PAYMENT (S87D simplified, S87E.BUG#7 — empty input + smart placeholder) ───
@@ -2844,34 +2993,20 @@ function closeParked() {
     list.innerHTML = '';
 }
 
-// ─── S87E.BUG#4 — Manual qty editor via native prompt ───
-function openQtyEditor(idx) {
-    if (idx < 0 || idx >= STATE.cart.length) return;
-    const item = STATE.cart[idx];
-    const cur = item.quantity;
-    const raw = window.prompt('Брой за "' + item.name + '"', String(cur));
-    if (raw === null) return; // cancelled
-    const trimmed = String(raw).trim();
-    if (trimmed === '') { alert('Невалиден брой'); return; }
-    const q = parseInt(trimmed, 10);
-    if (isNaN(q) || q < 0) { alert('Невалиден брой'); return; }
-    if (q === 0) {
-        removeItem(idx);
-        return;
-    }
-    STATE.cart[idx].quantity = q;
-    render();
-}
-
-// ─── LONG PRESS POPUP ───
+// ─── S87G — Generic numpad modal (qty / discount / search-add) ───
+// Reuses #lpPopup HTML; modes: 'qty' (cart row qty edit), 'discount' (discount %), 'search' (add product with qty)
+let qmMode = 'qty';
+let qmTargetIdx = -1;       // for qty mode
+let qmTargetProduct = null; // for search mode
+let qmValue = '';
+// Legacy aliases (kept for any older callers)
 let lpTargetIdx = -1;
 let lpValue = '';
 
-function openLpPopup(idx) {
-    lpTargetIdx = idx;
-    lpValue = '';
-    document.getElementById('lpTitle').textContent = STATE.cart[idx].name;
-    document.getElementById('lpDisplay').textContent = STATE.cart[idx].quantity;
+function _qmShow(title, initial) {
+    qmValue = initial != null ? String(initial) : '';
+    document.getElementById('lpTitle').textContent = title || '';
+    document.getElementById('lpDisplay').textContent = qmValue || '0';
     const popup = document.getElementById('lpPopup');
     popup.style.left = '50%';
     popup.style.top = '50%';
@@ -2880,30 +3015,99 @@ function openLpPopup(idx) {
     if (navigator.vibrate) navigator.vibrate(30);
 }
 
+// S87G.B2 — Qty edit modal (replaces openQtyEditor / openLpPopup native prompt)
+function openQtyEditor(idx) {
+    if (idx < 0 || idx >= STATE.cart.length) return;
+    qmMode = 'qty';
+    qmTargetIdx = idx;
+    qmTargetProduct = null;
+    lpTargetIdx = idx;
+    _qmShow(STATE.cart[idx].name || 'Бройки', STATE.cart[idx].quantity);
+}
+function openQtyModal(idx) { return openQtyEditor(idx); }
+
+// S87G.B7 — Discount modal
+function openDiscountModal(initial) {
+    qmMode = 'discount';
+    qmTargetIdx = -1;
+    qmTargetProduct = null;
+    _qmShow('Отстъпка %', initial || '');
+}
+
+// S87G.B5 — Search-add modal: tap on result → numpad → addItem(product, qty)
+function openSearchAddModal(product) {
+    if (!product) return;
+    qmMode = 'search';
+    qmTargetIdx = -1;
+    qmTargetProduct = product;
+    _qmShow(product.name || 'Бройки', '1');
+}
+
 function closeLpPopup() {
     document.getElementById('lpPopup').classList.remove('show');
+    qmTargetIdx = -1;
+    qmTargetProduct = null;
+    qmValue = '';
     lpTargetIdx = -1;
+    lpValue = '';
 }
 
 function lpNum(key) {
-    if (key === 'C') { lpValue = ''; }
-    else if (key === '⌫') { lpValue = lpValue.slice(0, -1); }
-    else { lpValue += key; }
-    document.getElementById('lpDisplay').textContent = lpValue || '0';
+    if (key === 'C') { qmValue = ''; }
+    else if (key === '⌫') { qmValue = qmValue.slice(0, -1); }
+    else if (key === '.' || key === ',') {
+        // Allow decimal only in discount mode (e.g. 12.5%)
+        if (qmMode === 'discount' && !qmValue.includes('.')) {
+            qmValue += qmValue.length === 0 ? '0.' : '.';
+        }
+    }
+    else { qmValue += key; }
+    lpValue = qmValue; // legacy mirror
+    document.getElementById('lpDisplay').textContent = qmValue || '0';
 }
 
 function confirmLpPopup() {
-    if (lpTargetIdx >= 0 && lpValue.length > 0) {
-        const q = parseInt(lpValue) || 0;
-        if (q > 0) {
-            STATE.cart[lpTargetIdx].quantity = q;
-        } else {
-            removeItem(lpTargetIdx);
+    const trimmed = qmValue.trim();
+    if (qmMode === 'qty') {
+        if (qmTargetIdx < 0 || qmTargetIdx >= STATE.cart.length) { closeLpPopup(); return; }
+        const q = parseInt(trimmed, 10);
+        if (trimmed === '' || isNaN(q) || q < 0) { showToast('Невалиден брой'); return; }
+        const idx = qmTargetIdx;
+        if (q === 0) {
+            closeLpPopup();
+            removeItem(idx);
+            return;
         }
+        STATE.cart[idx].quantity = q;
+        closeLpPopup();
         render();
+        return;
+    }
+    if (qmMode === 'discount') {
+        const n = parseFloat(trimmed.replace(',', '.'));
+        if (trimmed === '' || isNaN(n) || n < 0 || n > 100) { showToast('Невалиден процент (0–100)'); return; }
+        closeLpPopup();
+        applyDiscount(n);
+        return;
+    }
+    if (qmMode === 'search') {
+        if (!qmTargetProduct) { closeLpPopup(); return; }
+        const q = parseInt(trimmed, 10);
+        if (trimmed === '' || isNaN(q) || q <= 0) { showToast('Невалиден брой'); return; }
+        const product = qmTargetProduct;
+        closeLpPopup();
+        addToCart(product, q);
+        const inp = document.getElementById('searchInput');
+        if (inp) inp.value = '';
+        STATE.searchText = '';
+        inlineSearchClose();
+        return;
     }
     closeLpPopup();
 }
+
+// Legacy alias retained (no longer triggered by long-press; some legacy modules may call it)
+function openLpPopup(idx) { return openQtyEditor(idx); }
 
 // ─── CAMERA & BARCODE ───
 let barcodeDetector;
@@ -3014,7 +3218,15 @@ function handleBarcode(code) {
 let recognition;
 let lastTranscript = '';
 
+// S87G.B6 — Voice inline (no overlay). Mic button stays in place; red pulse + interim transcript fills #searchInput.
+let s87gVoiceActive = false;
+
 function startVoice() {
+    if (s87gVoiceActive) {
+        // Tap again while recording → stop early
+        try { if (recognition) recognition.stop(); } catch(_) {}
+        return;
+    }
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         showToast('Гласовото разпознаване не се поддържа');
         return;
@@ -3024,97 +3236,82 @@ function startVoice() {
     recognition = new SpeechRecognition();
     recognition.lang = 'bg-BG';
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true; // S87G — real-time interim transcript in #searchInput
 
-    const ov = document.getElementById('recOv');
-    const dot = document.getElementById('recDot');
-    const label = document.getElementById('recLabel');
-    const transcript = document.getElementById('recTranscript');
-    const hint = document.getElementById('recHint');
-    const sendBtn = document.getElementById('recSend');
-
-    // Context-aware hints
-    switch (STATE.numpadCtx) {
-        case 'code':
-            hint.textContent = 'Напр. "Nike 42 черни" или "Продай 2 Adidas 38"';
-            break;
-        case 'qty':
-            hint.textContent = 'Кажете число, напр. "пет" или "три"';
-            break;
-        case 'received':
-            hint.textContent = 'Кажете сума, напр. "сто лева" или "петдесет"';
-            break;
-        default:
-            hint.textContent = 'Кажете артикул, количество или команда';
-    }
-
-    // Reset state — RECORDING
-    dot.className = 'rec-dot';
-    label.className = 'rec-label recording';
-    label.textContent = '● ЗАПИСВА';
-    transcript.textContent = 'Слушам...';
-    transcript.classList.add('empty');
-    sendBtn.disabled = true;
+    const btn = document.getElementById('btnVoiceSearch');
+    const inp = document.getElementById('searchInput');
+    if (btn) { btn.classList.remove('voice-processing'); btn.classList.add('voice-recording'); }
+    s87gVoiceActive = true;
     lastTranscript = '';
 
-    ov.classList.add('open');
-
     recognition.onresult = (e) => {
-        lastTranscript = e.results[0][0].transcript;
-        // Switch to READY state
-        dot.classList.add('ready');
-        label.className = 'rec-label ready';
-        label.textContent = '✓ ГОТОВО';
-        transcript.textContent = lastTranscript;
-        transcript.classList.remove('empty');
-        sendBtn.disabled = false;
-    };
-
-    recognition.onerror = (e) => {
-        dot.classList.add('ready');
-        label.className = 'rec-label';
-        label.textContent = 'ГРЕШКА';
-        label.style.color = 'var(--warning)';
-        transcript.textContent = 'Не разбрах, опитайте пак';
-        transcript.classList.add('empty');
-        setTimeout(() => {
-            label.style.color = '';
-            ov.classList.remove('open');
-        }, 1500);
-    };
-
-    recognition.onend = () => {
-        // If no result yet, show waiting state
-        if (!lastTranscript) {
-            dot.classList.add('ready');
-            label.className = 'rec-label';
-            label.textContent = 'ЧАКАМ';
-            label.style.color = 'var(--text-secondary)';
+        let finalText = '';
+        let interimText = '';
+        for (let i = 0; i < e.results.length; i++) {
+            const r = e.results[i];
+            if (r.isFinal) finalText += r[0].transcript;
+            else interimText += r[0].transcript;
+        }
+        const live = (finalText + ' ' + interimText).trim();
+        if (inp) inp.value = live;
+        STATE.searchText = live;
+        if (finalText) lastTranscript = finalText.trim();
+        if (live.length >= 2) {
+            clearTimeout(srchOvDebounce);
+            srchOvDebounce = setTimeout(() => doInlineSearch(live), 250);
         }
     };
 
-    recognition.start();
+    recognition.onerror = () => {
+        if (btn) btn.classList.remove('voice-recording');
+        s87gVoiceActive = false;
+        showToast('Не разбрах, опитайте пак');
+    };
+
+    recognition.onend = () => {
+        if (btn) {
+            btn.classList.remove('voice-recording');
+            if (lastTranscript) {
+                btn.classList.add('voice-processing');
+                setTimeout(() => btn.classList.remove('voice-processing'), 800);
+            }
+        }
+        s87gVoiceActive = false;
+        if (lastTranscript) {
+            handleVoiceResult(lastTranscript);
+        }
+    };
+
+    try { recognition.start(); }
+    catch (err) {
+        if (btn) btn.classList.remove('voice-recording');
+        s87gVoiceActive = false;
+        showToast('Грешка при стартиране на микрофона');
+    }
 }
 
-// Send button
-document.getElementById('recSend').addEventListener('click', () => {
-    document.getElementById('recOv').classList.remove('open');
-    if (lastTranscript) handleVoiceResult(lastTranscript);
-});
-
-// Cancel button
-document.getElementById('recCancel').addEventListener('click', () => {
-    if (recognition) recognition.abort();
-    document.getElementById('recOv').classList.remove('open');
-});
-
-// Tap on overlay backdrop = close
-document.getElementById('recOv').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        if (recognition) recognition.abort();
-        e.currentTarget.classList.remove('open');
-    }
-});
+// S87G — rec-ov handlers preserved as no-ops for legacy callers; rec-ov is no longer opened by sale-page voice button (kept in DOM for future modules).
+(function wireRecOvLegacy(){
+    const recSendEl = document.getElementById('recSend');
+    if (recSendEl) recSendEl.addEventListener('click', () => {
+        const ov = document.getElementById('recOv');
+        if (ov) ov.classList.remove('open');
+        if (lastTranscript) handleVoiceResult(lastTranscript);
+    });
+    const recCancelEl = document.getElementById('recCancel');
+    if (recCancelEl) recCancelEl.addEventListener('click', () => {
+        if (recognition) { try { recognition.abort(); } catch(_){} }
+        const ov = document.getElementById('recOv');
+        if (ov) ov.classList.remove('open');
+    });
+    const recOvEl = document.getElementById('recOv');
+    if (recOvEl) recOvEl.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            if (recognition) { try { recognition.abort(); } catch(_){} }
+            e.currentTarget.classList.remove('open');
+        }
+    });
+})();
 
 function handleVoiceResult(text) {
     // S87E — voice fills #searchInput inline; preserves AI parsing flow.
@@ -3494,10 +3691,13 @@ function srchOvColorToCss(name) {
     return 'rgba(255,255,255,0.12)';
 }
 
+// S87G.B5 — Search result tap → numpad modal for qty; OK adds with chosen qty.
 function srchOvAddProduct(product) {
-    if (typeof addToCart === 'function') {
-        addToCart(product);
+    if (typeof openSearchAddModal === 'function') {
+        openSearchAddModal(product);
+        return;
     }
+    if (typeof addToCart === 'function') addToCart(product);
     showSrchToast('✓ ' + (product.name || 'Артикул') + ' добавен');
 }
 
