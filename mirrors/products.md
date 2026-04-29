@@ -390,18 +390,22 @@ if ($ajax === 'sections') {
     // ─── S88.BUG#3 + S88.KP: last saved parent product (for "Като предния") ───
     if ($ajax === 'last_product') {
         // S88.KP: extended payload — names + variant axes for the new wizard UI
+        // S88B.HOTFIX: products has no subcategory_id column — subcategories live as
+        // categories.parent_id. Derive category_id/subcategory_id from the cat hierarchy.
         $row = DB::run(
-            "SELECT p.id, p.code, p.name, p.category_id, p.subcategory_id, p.supplier_id,
+            "SELECT p.id, p.code, p.name, p.supplier_id,
+                    CASE WHEN cat.parent_id IS NOT NULL THEN cat.parent_id ELSE p.category_id END AS category_id,
+                    CASE WHEN cat.parent_id IS NOT NULL THEN p.category_id ELSE NULL END AS subcategory_id,
                     p.unit, p.cost_price, p.retail_price, p.wholesale_price, p.vat_rate,
                     p.min_quantity, p.location, p.description, p.origin_country,
                     p.composition, p.is_domestic, p.image_url,
                     sup.name AS supplier_name,
-                    cat.name AS category_name,
-                    sub.name AS subcategory_name
+                    COALESCE(par.name, cat.name) AS category_name,
+                    CASE WHEN cat.parent_id IS NOT NULL THEN cat.name ELSE NULL END AS subcategory_name
              FROM products p
              LEFT JOIN suppliers  sup ON sup.id = p.supplier_id
              LEFT JOIN categories cat ON cat.id = p.category_id
-             LEFT JOIN categories sub ON sub.id = p.subcategory_id
+             LEFT JOIN categories par ON par.id = cat.parent_id
              WHERE p.tenant_id=? AND p.parent_id IS NULL AND p.is_active=1
              ORDER BY p.id DESC LIMIT 1",
             [$tenant_id]
