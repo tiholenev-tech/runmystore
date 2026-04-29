@@ -890,7 +890,17 @@ def _check_action_data_intent_match(conn, tenant_id: int):
     """
     За всяка row с action_type IN (4 new ENUM values), action_data.intent ==
     action_type stem (semantic identity). Mismatch = pump/upsert bug.
+
+    S88.AIBRAIN.ACTIONS whitelist: ENUM още няма 'promotion_draft'. За zombie/
+    promo сценария pf*() слага action_type='dismiss' + intent='promotion_draft'
+    (Option B: запазваме семантиката в action_data за S91/S92 consume,
+    промо модулът още не е имплементиран). Това е легитимен override —
+    не go считаме за mismatch.
     """
+    semantic_overrides = {
+        # action_type → set of allowed semantic intents
+        'dismiss': {'dismiss', 'promotion_draft'},
+    }
     cur = conn.cursor()
     placeholders = ','.join(['%s'] * len(_NEW_ENUM_VALUES))
     cur.execute(
@@ -903,7 +913,13 @@ def _check_action_data_intent_match(conn, tenant_id: int):
     rows = cur.fetchall() or []
     cur.close()
     total = len(rows)
-    mismatches = [r for r in rows if (r.get('intent') or '') != (r.get('action_type') or '')]
+    def _is_match(r):
+        atype = r.get('action_type') or ''
+        intent = r.get('intent') or ''
+        if intent == atype:
+            return True
+        return intent in semantic_overrides.get(atype, set())
+    mismatches = [r for r in rows if not _is_match(r)]
     if total == 0:
         return ('PASS', f'tenant={tenant_id}: no rows с new-ENUM action_type (vacuously matched)')
     if mismatches:
@@ -913,7 +929,7 @@ def _check_action_data_intent_match(conn, tenant_id: int):
             for r in sample
         )
         return ('FAIL', f'tenant={tenant_id}: {len(mismatches)}/{total} mismatches; sample: {sample_str}')
-    return ('PASS', f'tenant={tenant_id}: {total}/{total} rows intent==action_type')
+    return ('PASS', f'tenant={tenant_id}: {total}/{total} rows intent==action_type (incl. semantic overrides)')
 
 
 def _check_q1_q6_action_label_populated(conn, tenant_id: int):

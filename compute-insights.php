@@ -137,22 +137,22 @@ function pfRoleGateFor(string $fq, string $topic): string {
 }
 
 /**
- * S88: Default action mapping per fundamental_question — "умен служител" tone.
- * intent = семантичното действие (което UI може да рендерира директно).
- * type   = валидна стойност от ai_insights.action_type ENUM
- *          ('deeplink','order_draft','chat','none').
- * Когато pf*() не задава action_label/action_type, pfUpsert използва тези defaults.
+ * S88.AIBRAIN.ACTIONS: Per-FQ fallback ако pf*() не задава action_*.
+ * type = валидна стойност от ai_insights.action_type ENUM
+ *        ('deeplink','order_draft','chat','none','navigate_chart',
+ *         'navigate_product','transfer_draft','dismiss').
+ * pf*() функциите override-ват с конкретен label/type/data per topic.
  */
 function pfDefaultAction(string $fq): array {
     $map = [
-        'loss'       => ['label' => 'Поръчай 5 преди да свършат', 'intent' => 'order_draft',     'type' => 'order_draft'],
-        'loss_cause' => ['label' => 'Виж тренда',                  'intent' => 'navigate_chart',  'type' => 'deeplink'],
-        'gain'       => ['label' => 'Виж бестселър',               'intent' => 'navigate_product','type' => 'deeplink'],
-        'gain_cause' => ['label' => 'Дублирай в магазин 2',        'intent' => 'transfer_draft',  'type' => 'order_draft'],
-        'order'      => ['label' => 'Поръчай 10 от доставчика',    'intent' => 'order_draft',     'type' => 'order_draft'],
-        'anti_order' => ['label' => 'НЕ поръчвай — стои 6 мес',    'intent' => 'dismiss',         'type' => 'none'],
+        'loss'       => ['label' => 'Поръчай',          'type' => 'order_draft'],
+        'loss_cause' => ['label' => 'Виж продукта',     'type' => 'navigate_product'],
+        'gain'       => ['label' => 'Виж продукта',     'type' => 'navigate_product'],
+        'gain_cause' => ['label' => 'Виж тенденция',    'type' => 'navigate_chart'],
+        'order'      => ['label' => 'Поръчай',          'type' => 'order_draft'],
+        'anti_order' => ['label' => 'Не поръчвай',      'type' => 'dismiss'],
     ];
-    return $map[$fq] ?? ['label' => null, 'intent' => 'none', 'type' => 'none'];
+    return $map[$fq] ?? ['label' => null, 'type' => 'none'];
 }
 
 /**
@@ -194,25 +194,19 @@ function pfUpsert(int $tenant_id, array $i): array {
     $urgency     = in_array($urgency_in, $valid_urg, true) ? $urgency_in : 'info';
     if ($urgency_in === 'opportunity') $urgency = 'info';
     
-    // S88: Default action mapping per FQ ("умен служител" tone). pf*() може да override-ва.
+    // S88.AIBRAIN.ACTIONS: Default action per FQ ако pf*() не override-не.
     $defaults    = pfDefaultAction($fq);
 
-    // Map action_type: 'url' → 'deeplink'; non-enum semantic types (navigate_chart,
-    // navigate_product, transfer_draft, dismiss) се събират в action_data.intent
-    // и mapват към най-близкия валиден ENUM. Запазваме оригинала.
+    // ENUM: deeplink, order_draft, chat, none, navigate_chart,
+    //       navigate_product, transfer_draft, dismiss. 1:1 mapping.
     $atype_in    = $i['action_type'] ?? $defaults['type'];
-    $atype_map   = [
-        'url'              => 'deeplink',
-        'chat'             => 'chat',
-        'order_draft'      => 'order_draft',
-        'deeplink'         => 'deeplink',
-        'none'             => 'none',
-        'navigate_chart'   => 'deeplink',
-        'navigate_product' => 'deeplink',
-        'transfer_draft'   => 'order_draft',
-        'dismiss'          => 'none',
+    $valid_types = [
+        'deeplink','order_draft','chat','none',
+        'navigate_chart','navigate_product','transfer_draft','dismiss',
     ];
-    $action_typ  = $atype_map[$atype_in] ?? 'none';
+    // Backwards-compat: 'url' → 'deeplink'.
+    if ($atype_in === 'url') $atype_in = 'deeplink';
+    $action_typ  = in_array($atype_in, $valid_types, true) ? $atype_in : 'none';
 
     $title       = mb_substr($i['pill_text'] ?? $i['title'] ?? '', 0, 255);
     $value       = $i['value_numeric'] ?? null;
@@ -222,14 +216,16 @@ function pfUpsert(int $tenant_id, array $i): array {
     // S88: action_label fallback към FQ default — "умен служител" tone.
     $action_lbl  = $i['action_label'] ?? $defaults['label'];
     $action_url  = $i['action_url']   ?? null;
-    // S88: action_data винаги съдържа `intent` (raw user-intended action_type) и `fq`
-    // за да фронтендът може да рендерира семантичното действие, дори ако ENUM ограничи action_type.
+    // S88.AIBRAIN.ACTIONS: action_data съдържа per-pf payload + `fq` + `intent`.
+    // intent = семантичното действие (1:1 с ENUM action_type в общия случай).
+    // Override-а от pf*() се запазва — напр. zombie_45d носи intent='promotion_draft'
+    // (ENUM няма такава стойност, action_type=dismiss; intent носи семантиката).
     $action_data_arr = $i['action_data'] ?? [];
     if (!is_array($action_data_arr)) $action_data_arr = [];
-    if (!isset($action_data_arr['intent'])) {
-        $action_data_arr['intent'] = ($atype_in !== 'none' && $atype_in !== null) ? $atype_in : $defaults['intent'];
-    }
     if (!isset($action_data_arr['fq'])) $action_data_arr['fq'] = $fq;
+    if (!isset($action_data_arr['intent'])) {
+        $action_data_arr['intent'] = $action_typ;
+    }
     $action_dat  = json_encode($action_data_arr, JSON_UNESCAPED_UNICODE);
     $expires_at  = pfExpiresAt($fq);
     $role_gate   = pfRoleGateFor($fq, $topic_id);
@@ -322,6 +318,7 @@ function pfZeroStockWithSales(int $tenant_id): int {
             'sold_30d'   => (int)$r['sold_30d'],
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'zero_stock_with_sales',
         'fundamental_question' => 'loss',
@@ -329,8 +326,14 @@ function pfZeroStockWithSales(int $tenant_id): int {
         'pill_text'            => sprintf('%d бестселъра на нула — губиш ~%.2f EUR/ден', $count, $lost_per_day),
         'value_numeric'        => $lost_per_day,
         'product_count'        => $count,
-        'action_label'         => 'Поръчай всички',
+        'action_label'         => 'Поръчай',
         'action_type'          => 'order_draft',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => $count,
+            'supplier_id'   => null,
+        ],
         'detail'               => ['items' => $items, 'count' => $count, 'lost_per_day' => round($lost_per_day, 2)],
     ]);
     return 1;
@@ -366,6 +369,7 @@ function pfBelowMinUrgent(int $tenant_id): int {
             'min'        => (int)$r['min_quantity'],
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'below_min_urgent',
         'fundamental_question' => 'loss',
@@ -375,6 +379,12 @@ function pfBelowMinUrgent(int $tenant_id): int {
         'product_count'        => count($rows),
         'action_label'         => 'Поръчай',
         'action_type'          => 'order_draft',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'supplier_id'   => null,
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -417,6 +427,7 @@ function pfRunningOutToday(int $tenant_id): int {
             'avg_daily'  => round((float)$r['avg_daily'], 2),
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'running_out_today',
         'fundamental_question' => 'loss',
@@ -424,8 +435,15 @@ function pfRunningOutToday(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула свършват днес', count($rows)),
         'value_numeric'        => (float)count($rows),
         'product_count'        => count($rows),
-        'action_label'         => 'Поръчай',
+        'action_label'         => 'Поръчай спешно',
         'action_type'          => 'order_draft',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'supplier_id'   => null,
+            'urgency'       => 'today',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -463,6 +481,7 @@ function pfSellingAtLoss(int $tenant_id): int {
             'loss_per_unit' => round((float)$r['loss_per_unit'], 2),
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'selling_at_loss',
         'fundamental_question' => 'loss_cause',
@@ -470,9 +489,15 @@ function pfSellingAtLoss(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула се продават ПОД себестойност', count($rows)),
         'value_numeric'        => $total_loss,
         'product_count'        => count($rows),
-        'action_label'         => 'Промени цени',
-        'action_type'          => 'deeplink',
+        'action_label'         => 'Виж продукта',
+        'action_type'          => 'navigate_product',
         'action_url'           => 'products.php?filter=at_loss',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'filter'        => 'at_loss',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total_loss' => round($total_loss, 2)],
     ]);
     return 1;
@@ -510,6 +535,7 @@ function pfNoCostPrice(int $tenant_id): int {
             'sold_30d'   => (int)$r['sold_30d'],
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'no_cost_price',
         'fundamental_question' => 'loss_cause',
@@ -517,9 +543,15 @@ function pfNoCostPrice(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула без себестойност (%d с продажби)', count($rows), $with_sales),
         'value_numeric'        => (float)count($rows),
         'product_count'        => count($rows),
-        'action_label'         => 'Въведи себестойности',
-        'action_type'          => 'deeplink',
+        'action_label'         => 'Добави доставна',
+        'action_type'          => 'navigate_product',
         'action_url'           => 'products.php?filter=no_cost',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'filter'        => 'no_cost',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'with_sales' => $with_sales],
     ]);
     return 1;
@@ -550,6 +582,7 @@ function pfMarginBelow15(int $tenant_id): int {
             'margin_pct' => (float)$r['margin_pct'],
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'margin_below_15',
         'fundamental_question' => 'loss_cause',
@@ -557,9 +590,15 @@ function pfMarginBelow15(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула с марж под 15%%', count($rows)),
         'value_numeric'        => (float)count($rows),
         'product_count'        => count($rows),
-        'action_label'         => 'Прегледай цени',
-        'action_type'          => 'deeplink',
+        'action_label'         => 'Виж маржа',
+        'action_type'          => 'navigate_product',
         'action_url'           => 'products.php?filter=low_margin',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'filter'        => 'low_margin',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -601,14 +640,20 @@ function pfSellerDiscountKiller(int $tenant_id): int {
             'lost_money' => round((float)$r['lost_money'], 2),
         ];
     }
+    $user_ids = array_map(fn($it) => (int)$it['user_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'seller_discount_killer',
         'fundamental_question' => 'loss_cause',
         'urgency'              => 'warning',
         'pill_text'            => sprintf('%d продавачи с >20%% отстъпки — загубени ~%.2f EUR', count($rows), $total_lost),
         'value_numeric'        => $total_lost,
-        'action_label'         => 'Виж продавачи',
-        'action_type'          => 'chat',
+        'action_label'         => 'Виж тенденция',
+        'action_type'          => 'navigate_chart',
+        'action_data'          => [
+            'chart'      => 'seller_discount',
+            'user_ids'   => $user_ids,
+            'user_count' => count($rows),
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total_lost' => round($total_lost, 2)],
     ]);
     return 1;
@@ -655,9 +700,13 @@ function pfTopProfit30d(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('Топ печалба: %s — %.2f EUR за 30д', $top['name'], $top['profit']),
         'value_numeric'        => $total,
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'Виж всички',
-        'action_type'          => 'chat',
+        'action_label'         => 'Виж продукта',
+        'action_type'          => 'navigate_product',
+        'action_data'          => [
+            'product_id' => (int)$top['product_id'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total_profit' => round($total, 2)],
     ]);
     return 1;
@@ -706,9 +755,14 @@ function pfProfitGrowth(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('%d артикула с растяща печалба (топ: %s +%.0f%%)', count($rows), $top['name'], $top['growth_pct']),
         'value_numeric'        => (float)count($rows),
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'Зареди още',
-        'action_type'          => 'order_draft',
+        'action_label'         => 'Виж тенденция',
+        'action_type'          => 'navigate_chart',
+        'action_data'          => [
+            'chart'      => 'profit_trend',
+            'product_id' => (int)$top['product_id'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -759,9 +813,13 @@ function pfHighestMargin(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('Топ марж: %s — %.1f%%', $top['name'], $top['margin_pct']),
         'value_numeric'        => $top['margin_pct'],
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'Виж всички',
-        'action_type'          => 'chat',
+        'action_label'         => 'Виж продукта',
+        'action_type'          => 'navigate_product',
+        'action_data'          => [
+            'product_id' => (int)$top['product_id'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -805,9 +863,14 @@ function pfTrendingUp(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('%d артикула в ръст (топ: %s +%.0f%%)', count($rows), $top['name'], $top['growth_pct']),
         'value_numeric'        => (float)count($rows),
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'Зареди още',
-        'action_type'          => 'order_draft',
+        'action_label'         => 'Виж тенденция',
+        'action_type'          => 'navigate_chart',
+        'action_data'          => [
+            'chart'      => 'sales_trend',
+            'product_id' => (int)$top['product_id'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -842,6 +905,7 @@ function pfLoyalCustomers(int $tenant_id): int {
             'total'       => round((float)$r['total_money'], 2),
         ];
     }
+    $customer_ids = array_map(fn($it) => (int)$it['customer_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'loyal_customers',
         'fundamental_question' => 'gain_cause',
@@ -849,8 +913,13 @@ function pfLoyalCustomers(int $tenant_id): int {
         'pill_text'            => sprintf('%d лоялни клиенти за 60д — %.2f EUR общо', count($rows), $total),
         'value_numeric'        => $total,
         'action_label'         => 'Виж клиенти',
-        'action_type'          => 'deeplink',
+        'action_type'          => 'navigate_chart',
         'action_url'           => 'customers.php',
+        'action_data'          => [
+            'chart'        => 'customer_loyalty',
+            'customer_ids' => $customer_ids,
+            'product_id'   => null,
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total' => round($total, 2)],
     ]);
     return 1;
@@ -891,9 +960,14 @@ function pfBasketDriver(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('%d артикула теглят кошницата (топ: %s — %d пъти)', count($rows), $top['name'], $top['basket_count']),
         'value_numeric'        => (float)$top['basket_count'],
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'Сложи отпред',
-        'action_type'          => 'chat',
+        'action_label'         => 'Виж кошница',
+        'action_type'          => 'navigate_chart',
+        'action_data'          => [
+            'chart'      => 'basket',
+            'product_id' => (int)$top['product_id'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -943,9 +1017,15 @@ function pfSizeLeader(int $tenant_id): int {
         'urgency'              => 'info',
         'pill_text'            => sprintf('%d артикула с лидер-вариация (%s: „%s")', count($items), $top['parent_name'], $top['variation']),
         'value_numeric'        => (float)count($items),
+        'product_id'           => (int)$top['parent_id'],
         'product_count'        => count($items),
-        'action_label'         => 'Зареди лидерите',
-        'action_type'          => 'order_draft',
+        'action_label'         => 'Виж размери',
+        'action_type'          => 'navigate_product',
+        'action_data'          => [
+            'product_id' => (int)$top['parent_id'],
+            'child_id'   => (int)$top['child_id'],
+            'variation'  => $top['variation'],
+        ],
         'detail'               => ['items' => $items, 'count' => count($items)],
     ]);
     return 1;
@@ -986,6 +1066,7 @@ function pfBestsellerLowStock(int $tenant_id): int {
             'sold_30d'   => (int)$r['sold_30d'],
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'bestseller_low_stock',
         'fundamental_question' => 'order',
@@ -993,8 +1074,14 @@ function pfBestsellerLowStock(int $tenant_id): int {
         'pill_text'            => sprintf('%d бестселъра с ниска наличност', count($rows)),
         'value_numeric'        => (float)count($rows),
         'product_count'        => count($rows),
-        'action_label'         => 'Поръчай всички',
+        'action_label'         => 'Поръчай повече',
         'action_type'          => 'order_draft',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'supplier_id'   => null,
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -1031,6 +1118,10 @@ function pfLostDemandMatch(int $tenant_id): int {
             'times'      => (int)$r['times'],
         ];
     }
+    $product_ids = array_values(array_filter(array_map(
+        fn($it) => $it['product_id'] !== null ? (int)$it['product_id'] : null,
+        $items
+    )));
     pfUpsert($tenant_id, [
         'topic_id'             => 'lost_demand_match',
         'fundamental_question' => 'order',
@@ -1038,8 +1129,15 @@ function pfLostDemandMatch(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула питани %d пъти от клиенти', count($rows), $total_asks),
         'value_numeric'        => (float)$total_asks,
         'product_count'        => count($rows),
-        'action_label'         => 'Поръчай',
+        'action_label'         => 'Поръчай за чакащи',
         'action_type'          => 'order_draft',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($product_ids),
+            'supplier_id'   => null,
+            'source'        => 'lost_demand',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total_asks' => $total_asks],
     ]);
     return 1;
@@ -1086,6 +1184,7 @@ function pfZombie45d(int $tenant_id): int {
             'frozen_money' => round((float)$r['frozen_money'], 2),
         ];
     }
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'zombie_45d',
         'fundamental_question' => 'anti_order',
@@ -1093,8 +1192,17 @@ function pfZombie45d(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула стоят 45+ дни — %.2f EUR замразени', count($rows), $total_frozen),
         'value_numeric'        => $total_frozen,
         'product_count'        => count($rows),
-        'action_label'         => 'НЕ поръчвай — намали цена',
-        'action_type'          => 'chat',
+        'action_label'         => 'Промо -20%',
+        // ENUM няма promotion_draft — оставаме на 'dismiss' (anti_order default)
+        // и носим семантиката в action_data.intent='promotion_draft'.
+        'action_type'          => 'dismiss',
+        'action_data'          => [
+            'intent'        => 'promotion_draft',
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'discount_pct'  => 20,
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows), 'total_frozen' => round($total_frozen, 2)],
     ]);
     return 1;
@@ -1132,6 +1240,7 @@ function pfDecliningTrend(int $tenant_id): int {
         ];
     }
     $top = $items[0];
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'declining_trend',
         'fundamental_question' => 'anti_order',
@@ -1139,8 +1248,14 @@ function pfDecliningTrend(int $tenant_id): int {
         'pill_text'            => sprintf('%d артикула в спад (топ: %s -%.0f%%)', count($rows), $top['name'], $top['down_pct']),
         'value_numeric'        => (float)count($rows),
         'product_count'        => count($rows),
-        'action_label'         => 'Изчакай — не поръчвай',
-        'action_type'          => 'chat',
+        'action_label'         => 'Не поръчвай',
+        'action_type'          => 'dismiss',
+        'action_data'          => [
+            'scope'         => 'batch',
+            'product_ids'   => $product_ids,
+            'product_count' => count($rows),
+            'reason'        => 'declining_trend',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
@@ -1208,15 +1323,22 @@ function pfHighReturnRate(int $tenant_id): int {
         ];
     }
     $top = $items[0];
+    $product_ids = array_map(fn($it) => (int)$it['product_id'], $items);
     pfUpsert($tenant_id, [
         'topic_id'             => 'high_return_rate',
         'fundamental_question' => 'anti_order',
         'urgency'              => 'warning',
         'pill_text'            => sprintf('%d артикула с висок процент връщания (топ: %s — %.0f%%)', count($rows), $top['name'], $top['rate']),
         'value_numeric'        => (float)count($rows),
+        'product_id'           => (int)$top['product_id'],
         'product_count'        => count($rows),
-        'action_label'         => 'НЕ поръчвай повече',
-        'action_type'          => 'chat',
+        'action_label'         => 'Виж връщания',
+        'action_type'          => 'navigate_product',
+        'action_data'          => [
+            'product_id'  => (int)$top['product_id'],
+            'product_ids' => $product_ids,
+            'view'        => 'returns',
+        ],
         'detail'               => ['items' => $items, 'count' => count($rows)],
     ]);
     return 1;
