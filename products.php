@@ -437,34 +437,9 @@ if ($ajax === 'sections') {
             'by_color' => $colors_map,
         ];
 
-        // Suggest next code: increment trailing number, fallback append "-2".
-        $base = $row['code'] ?? '';
-        $next = '';
-        if ($base !== '' && preg_match('/^(.*?)(\d+)(\D*)$/', $base, $m)) {
-            $prefix = $m[1]; $num = $m[2]; $suffix = $m[3];
-            $width = strlen($num);
-            $cand = $num;
-            for ($try = 1; $try < 1000; $try++) {
-                $cand = str_pad((int)$num + $try, $width, '0', STR_PAD_LEFT);
-                $test = $prefix . $cand . $suffix;
-                $exists = DB::run(
-                    "SELECT 1 FROM products WHERE tenant_id=? AND code=? LIMIT 1",
-                    [$tenant_id, $test]
-                )->fetchColumn();
-                if (!$exists) { $next = $test; break; }
-            }
-        }
-        if ($next === '' && $base !== '') {
-            for ($try = 2; $try < 1000; $try++) {
-                $test = $base . '-' . $try;
-                $exists = DB::run(
-                    "SELECT 1 FROM products WHERE tenant_id=? AND code=? LIMIT 1",
-                    [$tenant_id, $test]
-                )->fetchColumn();
-                if (!$exists) { $next = $test; break; }
-            }
-        }
-        $row['next_code']    = $next ?: $base;
+        // S88B.KP: per BIBLE 7.2.8 v1.3 — code задължително празно
+        // (Митко scan-ва barcode който става code, или voice въвежда). No auto-increment.
+        $row['next_code']    = '';
         $row['source_qty']   = $sum_qty;
         echo json_encode($row, JSON_UNESCAPED_UNICODE);
         exit;
@@ -3947,8 +3922,9 @@ html{overflow-x:hidden;max-width:100vw}
 .kp-photo-hero{height:200px;margin-bottom:14px;border-radius:22px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));border:1.5px dashed rgba(99,102,241,0.32);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all 0.25s var(--ease)}
 .kp-photo-hero.has-photo{border-style:solid;padding:0;border-color:rgba(99,102,241,0.6)}
 .kp-photo-hero img{width:100%;height:100%;object-fit:cover}
-.kp-photo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.65) 100%);display:flex;align-items:flex-end;justify-content:center;padding:14px;pointer-events:none}
-.kp-photo-overlay-text{font-size:11px;font-weight:700;color:#fff;letter-spacing:0.03em}
+/* S88B.KP: BIBLE 7.2.8.5 v1.3 — overlay pill в долен ляв ъгъл */
+.kp-photo-overlay{position:absolute;left:0;bottom:0;padding:10px;pointer-events:none;display:flex}
+.kp-photo-overlay-text{font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;background:rgba(0,0,0,0.6);padding:6px 10px;border-radius:8px;opacity:0.7}
 .kp-ph-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--indigo-500),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(99,102,241,0.55),inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:12px}
 .kp-ph-icon svg{width:24px;height:24px;fill:#fff;filter:drop-shadow(0 0 8px rgba(255,255,255,0.6))}
 .kp-ph-label{font-size:14px;font-weight:800;color:var(--text-primary)}
@@ -10038,6 +10014,7 @@ function kpClose(){
 }
 
 function kpFieldDef(idx){
+    // S88B.KP: BIBLE 7.2.8 v1.3 — 10 копирани полета (9-10 read-only display)
     var fields = [
         { key:'retail',           label:'Цена дребно',  fmt:'price', editable:true },
         { key:'cost',             label:'Доставна',     fmt:'price', editable:true },
@@ -10046,7 +10023,9 @@ function kpFieldDef(idx){
         { key:'category_name',    label:'Категория',    fmt:'text',  editable:true },
         { key:'subcategory_name', label:'Подкатегория', fmt:'text',  editable:true },
         { key:'composition',      label:'Материя',      fmt:'text',  editable:true },
-        { key:'origin',           label:'Произход',     fmt:'text',  editable:true }
+        { key:'origin',           label:'Произход',     fmt:'text',  editable:true },
+        { key:'wholesale',        label:'Цена едро',    fmt:'price', editable:true },
+        { key:'_variation',       label:'Тип артикул',  fmt:'variation', computed:true }
     ];
     return fields[idx];
 }
@@ -10061,9 +10040,30 @@ function kpFieldHtml(f, idx, st){
             + '<span class="kp-cf-value computed tabular-nums" id="kpMargin">'+marginPct+' % ('+marginAbs.toFixed(2)+' €)</span>'
             + '<span class="kp-cf-auto">авто</span>';
     }
+    // S88B.KP: 10-то поле — Тип артикул (read-only display, source-derived)
+    if (f.computed && f.key === '_variation'){
+        var disp;
+        if (st.type === 'variant'){
+            var nColors = (st.colors||[]).length;
+            var maxSizes = 0;
+            (st.colors||[]).forEach(function(c){
+                var sz = (st.sizesByColor||{})[c] || [];
+                if (sz.length > maxSizes) maxSizes = sz.length;
+            });
+            disp = 'Вариационен (' + nColors + ' цвята × ' + maxSizes + ' размера)';
+        } else {
+            disp = 'Единичен';
+        }
+        return '<span class="kp-cf-label">'+f.label+'</span>'
+            + '<span class="kp-cf-value computed" id="kpV'+idx+'">'+esc(disp)+'</span>'
+            + '<span class="kp-cf-auto">авто</span>';
+    }
     var v = st[f.key];
     var disp;
-    if (f.fmt === 'price') disp = (parseFloat(v)||0).toFixed(2) + ' €';
+    if (f.fmt === 'price'){
+        var p = parseFloat(v)||0;
+        disp = (p > 0) ? (p.toFixed(2) + ' €') : '—';
+    }
     else disp = (v === null || v === undefined || v === '') ? '—' : String(v);
     var num = (f.fmt === 'price') ? ' tabular-nums' : '';
     var btn = f.editable
@@ -10184,11 +10184,7 @@ function kpVariantSectionHtml(st){
 }
 
 function kpSingleSectionHtml(st){
-    var copyRow = (st.srcQty > 0) ? ('<label class="kp-copy-qty-row">'
-        + '<input type="checkbox" id="kpCopyQty" onchange="kpCopyQtyToggle(this.checked)">'
-        + '<span class="kp-cq-label">Копирай и количество</span>'
-        + '<span class="kp-cq-hint">('+st.srcQty+' бр.)</span>'
-    + '</label>') : '';
+    // S88B.KP: BIBLE 7.2.8 v1.3 — бройките винаги 0 (нов продукт = 0 до доставка). No copy-qty checkbox.
     return '<div id="kpSingleSection">'
         + '<div class="kp-section-head">'
             + '<div class="kp-section-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/></svg></div>'
@@ -10211,13 +10207,12 @@ function kpSingleSectionHtml(st){
                     + '<div class="kp-sz-label" style="min-width:80px">Минимум</div>'
                     + '<div class="kp-sz-stepper">'
                         + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'min\',-1)">−</button>'
-                        + '<span class="kp-sz-qty" id="kpSingleMinView">'+(parseInt(st.min_quantity)||0)+'</span>'
+                        + '<span class="kp-sz-qty" id="kpSingleMinView">0</span>'
                         + '<button class="kp-sz-btn" type="button" onclick="kpSingleAdj(\'min\',1)">+</button>'
                     + '</div>'
                 + '</div>'
             + '</div>'
         + '</div>'
-        + copyRow
         + '</div>';
 }
 
@@ -10312,7 +10307,7 @@ function kpPhotoPick(){
             var hero = document.getElementById('kpPhotoHero');
             if (hero){
                 hero.classList.add('has-photo');
-                hero.innerHTML = '<img src="'+rd.result+'" alt=""><div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна на снимка</div></div>';
+                hero.innerHTML = '<img src="'+rd.result+'" alt=""><div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна</div></div>';
             }
         };
         rd.readAsDataURL(f);
@@ -10334,6 +10329,23 @@ function kpVoiceName(){
     };
     rec.onerror = function(){ showToast('Грешка при гласа','error'); };
     rec.onend = function(){ if (btn) btn.style.transform = ''; };
+    try { rec.start(); } catch(_) {}
+}
+
+// S88B.KP: voice-fill за артикулен номер (BIBLE 7.2.8 v1.3 — voice fallback за code)
+function kpVoiceCode(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR){ showToast('Гласът не се поддържа в този браузър','error'); return; }
+    var rec = new SR();
+    rec.lang = 'bg-BG'; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onresult = function(ev){
+        var t = (ev.results[0][0].transcript) || '';
+        // Strip non-alphanumeric (artikulen kod = digits/letters); keep dash
+        var clean = t.replace(/[^A-Za-z0-9\-]/g, '').trim();
+        var inp = document.getElementById('wCode');
+        if (inp){ inp.value = clean || t; inp.focus(); }
+    };
+    rec.onerror = function(){ showToast('Грешка при гласа','error'); };
     try { rec.start(); } catch(_) {}
 }
 
@@ -10486,10 +10498,12 @@ function renderLikePrevPageS88(d){
     if (catLine) subParts.push(catLine);
     var subTitle = subParts.join(' · ');
 
+    // S88B.KP: BIBLE 7.2.8.5 v1.3 — снимка copy by default; tap за смяна (no opt-in checkbox).
+    // На save: kpCollectIntoWizData fetch-ва source image_url ако user не е tap-нал смяна.
     var photoHero = d.image_url
         ? ('<div class="kp-photo-hero kp-cardin has-photo" id="kpPhotoHero" onclick="kpPhotoPick()">'
             + '<img src="'+esc(d.image_url)+'" alt="">'
-            + '<div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна на снимка</div></div>'
+            + '<div class="kp-photo-overlay"><div class="kp-photo-overlay-text">Tap за смяна</div></div>'
             + '</div>')
         : ('<div class="kp-photo-hero kp-cardin" id="kpPhotoHero" onclick="kpPhotoPick()">'
             + '<div class="kp-ph-icon"><svg viewBox="0 0 24 24"><path d="M9 3l-1.5 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9zm3 5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg></div>'
@@ -10502,6 +10516,10 @@ function renderLikePrevPageS88(d){
         + '<svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>'
         + '</button>';
 
+    // S88B.KP: per BIBLE 7.2.8 v1.3 — code input стартира ПРАЗЕН; visible с placeholder + voice fallback
+    var voiceCodeBtn = '<button class="kp-voice-mic" type="button" '+(voiceSupported?'onclick="kpVoiceCode()"':'disabled')+' aria-label="voice code">'
+        + '<svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>'
+        + '</button>';
     var nameCard = '<div class="glass kp-name-card kp-cardin">'
         + '<span class="shine"></span><span class="shine shine-bottom"></span>'
         + '<span class="glow"></span><span class="glow glow-bottom"></span>'
@@ -10510,14 +10528,19 @@ function renderLikePrevPageS88(d){
             + voiceBtn
         + '</div>'
         + '<input type="text" class="kp-input" id="wName" placeholder="Напиши име или диктувай…" autocomplete="off" autofocus value="'+esc((d.name||'')+' (копие)')+'">'
-        + '<input type="hidden" id="wCode" value="'+esc(d.next_code||'')+'">'
+        + '<div class="kp-label-row" style="margin-top:14px">'
+            + '<div class="kp-label">Артикулен номер</div>'
+            + voiceCodeBtn
+        + '</div>'
+        + '<input type="text" class="kp-input" id="wCode" placeholder="Скенирай barcode или въведи" autocomplete="off" inputmode="text" value="">'
         + '<input type="hidden" id="wBarcode" value="">'
         + '<input type="hidden" id="wSubcat" value="'+esc(st.subcategory_id||'')+'">'
         + '<input type="hidden" id="wSingleQty" value="0">'
-        + '<input type="hidden" id="wMinQty" value="'+(parseInt(d.min_quantity)||0)+'">'
+        + '<input type="hidden" id="wMinQty" value="0">'
         + '</div>';
 
-    var fields = [0,1,2,3,4,5,6,7].map(function(i){
+    // S88B.KP: BIBLE 7.2.8 v1.3 — 10 копирани полета (8 editable + 2 computed read-only)
+    var fields = [0,1,2,3,4,5,6,7,8,9].map(function(i){
         return '<div class="kp-cf-row" id="kpCf'+i+'">' + kpFieldHtml(kpFieldDef(i), i, st) + '</div>';
     }).join('');
 
@@ -10528,7 +10551,7 @@ function renderLikePrevPageS88(d){
             + '<div class="kp-copied-ico"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>'
             + '<div class="kp-copied-text">'
                 + '<div class="kp-copied-t1">Копирано от последния</div>'
-                + '<div class="kp-copied-t2">8 полета · tap за преглед / редакция</div>'
+                + '<div class="kp-copied-t2">10 полета · tap за преглед / редакция</div>'
             + '</div>'
             + '<div class="kp-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>'
         + '</div>'
