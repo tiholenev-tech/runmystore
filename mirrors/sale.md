@@ -746,18 +746,44 @@ body::after{
 :root[data-theme="light"] .ws-retail{color:hsl(0 60% 45%)}
 .ws-retail:active{background:rgba(239,68,68,0.20)}
 
-/* ═══ PARKED SALES OVERLAY ═══ */
-.parked-overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;
-    opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);
+/* ═══ S87E.BUG#6 — PARKED INLINE ACCORDION (no overlay) ═══ */
+.parked-list-inline{
+    flex-shrink:0;margin:0 8px 8px;padding:8px;
+    background:var(--bg-card-strong);backdrop-filter:blur(12px);
+    border:1px solid var(--border-subtle);border-radius:14px;
+    max-height:40vh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    animation:srchOvIn 0.18s ease-out;
 }
-.parked-overlay.open{opacity:1;pointer-events:all}
-.parked-container{
-    position:fixed;top:60px;left:12px;right:12px;bottom:80px;z-index:201;
-    display:flex;flex-direction:column;gap:12px;overflow-y:auto;
-    opacity:0;transform:scale(0.95);transition:all 0.3s;
+:root[data-theme="light"] .parked-list-inline{background:rgba(255,255,255,0.92)}
+.parked-row-inline{
+    display:flex;align-items:center;gap:10px;padding:10px;
+    margin:4px 0;border-radius:12px;
+    background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.parked-overlay.open .parked-container{opacity:1;transform:scale(1)}
+:root[data-theme="light"] .parked-row-inline{background:rgba(255,255,255,0.65);border-color:rgba(15,23,42,0.06)}
+.pr-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pr-name{font-size:12px;font-weight:800;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-meta{font-size:10px;color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+.pr-load{
+    padding:8px 14px;border-radius:100px;cursor:pointer;flex-shrink:0;
+    background:linear-gradient(135deg,hsl(145 65% 42%),hsl(160 65% 36%));
+    border:1px solid hsl(145 60% 50%);color:#fff;
+    font-size:11px;font-weight:900;letter-spacing:0.04em;
+    box-shadow:0 0 10px hsl(145 65% 45% / 0.4);font-family:inherit;
+}
+.pr-load:active{transform:scale(0.95)}
+.pr-del{
+    width:32px;height:32px;border-radius:50%;flex-shrink:0;cursor:pointer;
+    background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.40);
+    color:#fca5a5;
+    display:flex;align-items:center;justify-content:center;
+    font-family:inherit;font-size:14px;font-weight:900;line-height:1;
+}
+:root[data-theme="light"] .pr-del{color:hsl(0 60% 45%)}
+.pr-del:active{transform:scale(0.92)}
+
 /* V5 — pkg-card style: glass with side accent bar */
 .parked-card{
     position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.025),rgba(0,0,0,0.15));
@@ -1566,6 +1592,9 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
         </div>
     </button>
 
+    <!-- S87E.BUG#6 — Parked inline accordion (toggled by openParked/closeParked) -->
+    <div id="parkedListInline" class="parked-list-inline" style="display:none"></div>
+
     <div class="search-bar">
         <input type="text" id="searchInput" class="search-input" inputmode="search" placeholder="Код, име или баркод" autocomplete="off" autocapitalize="off">
         <button class="search-btn" id="btnVoiceSearch" onclick="startVoice()" aria-label="Гласово търсене"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
@@ -1580,6 +1609,7 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
         <button class="dc-chip" onclick="applyDiscount(10)">10%</button>
         <button class="dc-chip" onclick="applyDiscount(15)">15%</button>
         <button class="dc-chip" onclick="applyDiscount(20)">20%</button>
+        <button class="dc-chip" onclick="customDiscount()">Друго…</button>
         <span class="dc-close" onclick="closeDiscount()">✕</span>
     </div>
 
@@ -1817,11 +1847,7 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
     </div>
 </div>
 
-<div class="parked-overlay" id="parkedOverlay" onclick="closeParked()">
-    <div class="parked-container" id="parkedContainer" onclick="event.stopPropagation()">
-        <div class="parked-title">Паркирани продажби</div>
-    </div>
-</div>
+<!-- S87E — parked overlay removed; rendered inline as accordion under bulk-banner -->
 
 <?php /* sale.php — chat input intentionally OMITTED (POS scanner — no AI distraction during checkout) */ ?>
 <?php include __DIR__ . '/partials/bottom-nav.php'; ?>
@@ -2114,7 +2140,7 @@ function render() {
             </div>
             <div class="set-qty">
                 <button class="set-qty-btn" type="button" data-act="dec">−</button>
-                <span class="set-qty-val">${item.quantity}</span>
+                <span class="set-qty-val" data-qty-edit="${idx}" style="cursor:pointer;text-decoration:underline dotted">${item.quantity}</span>
                 <button class="set-qty-btn" type="button" data-act="inc">+</button>
             </div>
             <div class="set-total">${fmtPrice(lineTotal)}</div>
@@ -2138,10 +2164,10 @@ function render() {
             STATE.cart[idx].quantity++;
             render();
         });
-        // FIX2: tap on quantity value → opens lp-popup (free numeric entry, e.g. 58 бр)
+        // S87E.BUG#4 — tap on quantity value → prompt() editor (free numeric entry, e.g. 58 бр)
         if (qtyVal) qtyVal.addEventListener('click', (e) => {
             e.stopPropagation();
-            openLpPopup(idx);
+            openQtyEditor(idx);
         });
 
         // Tap = select + qty mode
@@ -2232,6 +2258,7 @@ function addToCart(product) {
     // Reset context to code
     setNumpadCtx('code');
     STATE.numpadInput = '';
+    STATE.searchText = '';
     updateSearchDisplay();
     closeSearchResults();
     render();
@@ -2392,18 +2419,17 @@ function numOk() {
 }
 
 // ─── SEARCH ───
+// S87E — search input is the source of truth; updateSearchDisplay syncs into #searchInput
 function updateSearchDisplay() {
-    const display = document.getElementById('searchDisplay');
-    if (STATE.searchText.length > 0) {
-        display.innerHTML = '<span style="color:var(--indigo-400);margin-right:4px">🔍</span>' + esc(STATE.searchText) + '<span style="animation:blink 1s infinite">_</span>';
-    } else {
-        display.innerHTML = '<span class="placeholder">🔍 Код, име или баркод</span>';
+    const input = document.getElementById('searchInput');
+    if (input && input.value !== (STATE.searchText || '')) {
+        input.value = STATE.searchText || '';
     }
 }
 
 function triggerSearch() {
     clearTimeout(STATE.searchTimeout);
-    if (STATE.searchText.length < 1) {
+    if (!STATE.searchText || STATE.searchText.length < 1) {
         closeSearchResults();
         return;
     }
@@ -2422,48 +2448,18 @@ function showNoResult() {
     }, 1500);
 }
 
+// S87E — legacy doSearch alias: route through inline search (master/variant rendering)
 function doSearch(q) {
-    debugLog('doSearch("' + q + '")');
-    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
-        .then(r => {
-            debugLog('search HTTP ' + r.status);
-            return r.json();
-        })
-        .then(results => {
-            debugLog('search results: ' + (Array.isArray(results) ? results.length : '!array') + ' items');
-            const container = document.getElementById('searchResults');
-            container.innerHTML = '';
-            if (results.length === 0) {
-                container.classList.remove('open');
-                showNoResult();
-                return;
-            }
-            results.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'sr-item';
-                const price = STATE.isWholesale
-                    ? (parseFloat(p.wholesale_price) || parseFloat(p.retail_price))
-                    : parseFloat(p.retail_price);
-                const stockCls = parseInt(p.stock) === 0 ? 'sr-stock zero' : 'sr-stock';
-                div.innerHTML = `
-                    <span class="sr-code">${esc(p.code || '')}</span>
-                    <span class="sr-name">${esc(p.name)}</span>
-                    <span class="sr-price">${fmtPrice(price)}</span>
-                    <span class="${stockCls}">(${p.stock})</span>
-                `;
-                div.addEventListener('click', () => addToCart(p));
-                container.appendChild(div);
-            });
-            container.classList.add('open');
-        })
-        .catch(err => {
-            console.error('Search error:', err);
-            debugLog('❌ search error: ' + (err && err.message ? err.message : String(err)).slice(0, 100));
-        });
+    debugLog('doSearch("' + q + '") → doInlineSearch');
+    if (typeof doInlineSearch === 'function') {
+        doInlineSearch(q);
+    }
 }
 
 function closeSearchResults() {
-    document.getElementById('searchResults').classList.remove('open');
+    if (typeof inlineSearchClose === 'function') inlineSearchClose();
+    const oldEl = document.getElementById('searchResults');
+    if (oldEl) oldEl.classList.remove('open');
 }
 
 // ─── KEYBOARD ───
@@ -2522,12 +2518,24 @@ function closeDiscount() {
     setNumpadCtx('code');
 }
 
-// ─── PAYMENT (S87D simplified — full-screen, 3 methods, editable input) ───
+// S87E.BUG#5 — custom discount via native prompt (any % between 0–100)
+function customDiscount() {
+    const cur = STATE.discountPct || 0;
+    const raw = window.prompt('Процент отстъпка (0–100)', cur ? String(cur) : '');
+    if (raw === null) return; // cancelled
+    const trimmed = String(raw).trim().replace(',', '.');
+    if (trimmed === '') return;
+    const n = parseFloat(trimmed);
+    if (isNaN(n) || n < 0 || n > 100) { alert('Невалиден процент (0–100)'); return; }
+    applyDiscount(n);
+}
+
+// ─── PAYMENT (S87D simplified, S87E.BUG#7 — empty input + smart placeholder) ───
 function openPayment() {
     if (STATE.cart.length === 0) return;
     const total = getTotal();
     STATE.payMethod = 'cash';
-    STATE.receivedAmount = total; // default: exact amount
+    STATE.receivedAmount = 0; // S87E — input starts empty; cashier types/taps banknote
 
     // Hero
     document.getElementById('payDueAmount').textContent = fmtPrice(total).replace(/\s.*$/, '');
@@ -2536,8 +2544,11 @@ function openPayment() {
     // Methods → reset to cash active
     setPayMethod('cash', /*skipShow*/true);
 
-    // Editable input pre-filled with total
-    document.getElementById('payRecvAmount').value = total.toFixed(2).replace('.', ',');
+    // S87E.BUG#7 — empty input; placeholder is suggested round amount (≥ 20)
+    const recv = document.getElementById('payRecvAmount');
+    const sugg = Math.max(20, Math.ceil((total + 20) / 10) * 10);
+    recv.value = '';
+    recv.placeholder = 'напр. ' + sugg.toFixed(2).replace('.', ',');
 
     // Confirm label
     document.getElementById('payConfirmAmount').textContent = fmtPrice(total) + ' ' + STATE.currency;
@@ -2751,55 +2762,105 @@ function saveParked() {
     localStorage.setItem('rms_parked_' + STATE.storeId, JSON.stringify(STATE.parked));
 }
 
+// S87E.BUG#6 — Parked inline accordion (toggle, not overlay)
 function openParked() {
-    if (STATE.parked.length === 0) return;
-    const container = document.getElementById('parkedContainer');
-    container.innerHTML = '<div class="parked-title">Паркирани продажби</div>';
+    const list = document.getElementById('parkedListInline');
+    if (!list) return;
+    if (STATE.parked.length === 0) {
+        list.style.display = 'none';
+        return;
+    }
+    // Toggle: tapping bulk-banner with already-open list closes it
+    if (list.style.display !== 'none' && list.innerHTML !== '') {
+        closeParked();
+        return;
+    }
+    renderParkedInline();
+    list.style.display = '';
+}
 
+function renderParkedInline() {
+    const list = document.getElementById('parkedListInline');
+    if (!list) return;
+    list.innerHTML = '';
     STATE.parked.forEach((p, idx) => {
-        const card = document.createElement('div');
-        card.className = 'parked-card';
-        card.style.animationDelay = (idx * 0.05) + 's';
+        const row = document.createElement('div');
+        row.className = 'parked-row-inline';
         const count = p.cart.reduce((s, it) => s + it.quantity, 0);
-        card.innerHTML = `
-            <div class="pc-header">
-                <span class="pc-client">${esc(p.customer || 'Дребно')}</span>
-                <span class="pc-time">${p.time}</span>
-            </div>
-            <div class="pc-info">${count} артикула</div>
-            <div class="pc-total">${fmtPrice(p.total)} ${STATE.currency}</div>
-            <span class="pc-delete" data-idx="${idx}">✕ Изтрий</span>
-        `;
-        card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('pc-delete')) {
-                STATE.parked.splice(idx, 1);
-                saveParked();
-                closeParked();
-                render();
-                return;
-            }
-            // Restore
-            if (STATE.cart.length > 0) {
-                parkSale(); // auto-park current
-            }
-            STATE.cart = p.cart;
-            STATE.customerId = p.customerId;
-            STATE.customerName = p.customer;
-            STATE.isWholesale = p.isWholesale;
-            STATE.discountPct = p.discountPct || 0;
-            STATE.parked.splice(idx, 1);
-            saveParked();
-            closeParked();
-            render();
+        row.innerHTML =
+            '<div class="pr-info">' +
+                '<div class="pr-name">' + esc(p.customer || 'Дребно') + ' · ' + p.time + '</div>' +
+                '<div class="pr-meta">' + count + ' арт. · ' + fmtPrice(p.total) + ' ' + STATE.currency + '</div>' +
+            '</div>' +
+            '<button type="button" class="pr-load" data-idx="' + idx + '">Зареди</button>' +
+            '<button type="button" class="pr-del" data-idx="' + idx + '" aria-label="Изтрий">✕</button>';
+        row.querySelector('.pr-load').addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadParked(idx);
         });
-        container.appendChild(card);
+        row.querySelector('.pr-del').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteParked(idx);
+        });
+        list.appendChild(row);
     });
+}
 
-    document.getElementById('parkedOverlay').classList.add('open');
+function loadParked(idx) {
+    const p = STATE.parked[idx];
+    if (!p) return;
+    if (STATE.cart.length > 0) {
+        parkSale(); // auto-park current
+        // After parkSale, STATE.parked grew by 1 — recompute idx
+        idx = STATE.parked.findIndex(x => x === p);
+        if (idx < 0) return;
+    }
+    STATE.cart = p.cart;
+    STATE.customerId = p.customerId;
+    STATE.customerName = p.customer;
+    STATE.isWholesale = p.isWholesale;
+    STATE.discountPct = p.discountPct || 0;
+    STATE.parked.splice(idx, 1);
+    saveParked();
+    closeParked();
+    render();
+}
+
+function deleteParked(idx) {
+    STATE.parked.splice(idx, 1);
+    saveParked();
+    if (STATE.parked.length === 0) {
+        closeParked();
+    } else {
+        renderParkedInline();
+    }
+    render();
 }
 
 function closeParked() {
-    document.getElementById('parkedOverlay').classList.remove('open');
+    const list = document.getElementById('parkedListInline');
+    if (!list) return;
+    list.style.display = 'none';
+    list.innerHTML = '';
+}
+
+// ─── S87E.BUG#4 — Manual qty editor via native prompt ───
+function openQtyEditor(idx) {
+    if (idx < 0 || idx >= STATE.cart.length) return;
+    const item = STATE.cart[idx];
+    const cur = item.quantity;
+    const raw = window.prompt('Брой за "' + item.name + '"', String(cur));
+    if (raw === null) return; // cancelled
+    const trimmed = String(raw).trim();
+    if (trimmed === '') { alert('Невалиден брой'); return; }
+    const q = parseInt(trimmed, 10);
+    if (isNaN(q) || q < 0) { alert('Невалиден брой'); return; }
+    if (q === 0) {
+        removeItem(idx);
+        return;
+    }
+    STATE.cart[idx].quantity = q;
+    render();
 }
 
 // ─── LONG PRESS POPUP ───
@@ -3056,7 +3117,17 @@ document.getElementById('recOv').addEventListener('click', (e) => {
 });
 
 function handleVoiceResult(text) {
-    // Send to AI for parsing
+    // S87E — voice fills #searchInput inline; preserves AI parsing flow.
+    function fillAndSearch(q) {
+        STATE.searchText = q || '';
+        STATE.numpadInput = STATE.searchText;
+        const inp = document.getElementById('searchInput');
+        if (inp) inp.value = STATE.searchText;
+        updateSearchDisplay();
+        if (STATE.searchText.length >= 1 && typeof doInlineSearch === 'function') {
+            doInlineSearch(STATE.searchText);
+        }
+    }
     fetch('sale-voice.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -3070,10 +3141,7 @@ function handleVoiceResult(text) {
     .then(r => r.json())
     .then(res => {
         if (res.action === 'search') {
-            STATE.searchText = res.query || text;
-            STATE.numpadInput = STATE.searchText;
-            updateSearchDisplay();
-            doSearch(STATE.searchText);
+            fillAndSearch(res.query || text);
         } else if (res.action === 'set_qty' && STATE.selectedIndex >= 0) {
             STATE.cart[STATE.selectedIndex].quantity = parseInt(res.value) || 1;
             render();
@@ -3086,18 +3154,11 @@ function handleVoiceResult(text) {
             });
         } else {
             // Fallback: treat as search
-            STATE.searchText = text;
-            STATE.numpadInput = text;
-            updateSearchDisplay();
-            doSearch(text);
+            fillAndSearch(text);
         }
     })
     .catch(() => {
-        // Fallback to search
-        STATE.searchText = text;
-        STATE.numpadInput = text;
-        updateSearchDisplay();
-        doSearch(text);
+        fillAndSearch(text);
     });
 }
 
@@ -3109,7 +3170,7 @@ const swipePages = ['chat.php', 'warehouse.php', 'stats.php', 'sale.php'];
 const currentPageIdx = 3;
 
 document.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.cart-zone, .pay-sheet, .ws-sheet, .parked-container, .numpad-grid, .keyboard-zone')) return;
+    if (e.target.closest('.cart-zone, .pay-sheet, .ws-sheet, .parked-list-inline, .s-results-inline, .numpad-grid, .keyboard-zone')) return;
     touchStartX = e.touches[0].clientX;
 }, {passive: true});
 
@@ -3128,23 +3189,7 @@ document.addEventListener('touchend', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     render();
     startCamera(); // always-on camera scanner
-
-    // S87D — search-display tap → open Search Overlay (native keyboard)
-    const sd = document.getElementById('searchDisplay');
-    if (sd) {
-        sd.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (typeof openSearchOverlay === 'function') openSearchOverlay();
-        });
-    }
-    // S87D — АБВ → also opens overlay (custom keyboard removed on sale.php)
-    const btnKb = document.getElementById('btnKeyboard');
-    if (btnKb) {
-        btnKb.onclick = (e) => {
-            e.stopPropagation();
-            if (typeof openSearchOverlay === 'function') openSearchOverlay();
-        };
-    }
+    // S87E — search is now inline (#searchInput); no overlay-open wiring needed
 });
 
 // CSS blink animation for cursor
@@ -3234,19 +3279,7 @@ function s87dDisarmHistoryGuard() {
 }
 
 window.addEventListener('popstate', (e) => {
-    // 1) overlays handle first
-    const sov = document.getElementById('searchOverlay');
-    if (sov && sov.style.display === 'flex') {
-        const stateB = document.getElementById('srchStateB');
-        if (stateB && stateB.style.display === 'flex') {
-            srchOvBackToMaster();
-            s87dArmHistoryGuard('search');
-        } else {
-            closeSearchOverlay();
-            s87dDisarmHistoryGuard();
-        }
-        return;
-    }
+    // 1) overlays handle first (S87E — search is inline; only payment is overlay)
     const pov = document.getElementById('payOverlay');
     if (pov && pov.style.display === 'flex') {
         closePayment();
@@ -3265,16 +3298,9 @@ window.addEventListener('popstate', (e) => {
     }
 });
 
-// Wrap openers to push history state — so back button maps to overlay close.
-// Deferred until DOMContentLoaded so the wrapped functions are already declared.
+// Wrap openPayment to push history state for back-button overlay close.
+// (S87E — search is inline; only payment retains its overlay/history guard.)
 document.addEventListener('DOMContentLoaded', () => {
-    const _oOpenSearch = window.openSearchOverlay;
-    if (typeof _oOpenSearch === 'function') {
-        window.openSearchOverlay = function() {
-            _oOpenSearch.apply(this, arguments);
-            s87dArmHistoryGuard('search');
-        };
-    }
     const _oOpenPay = window.openPayment;
     if (typeof _oOpenPay === 'function') {
         window.openPayment = function() {
@@ -3288,57 +3314,57 @@ document.addEventListener('DOMContentLoaded', () => {
 // — already covered: after confirmPayment STATE.cart=[] → render() → s87dDraftSave removes key.
 
 /* ═══════════════════════════════════════════════════════════
-   S87D Phase 2 — SEARCH OVERLAY (full-screen, native keyboard,
-   master/variant grouping by parent_id with name fallback)
+   S87E — INLINE SEARCH (master/variant grouping, debounce + AbortController)
    ═══════════════════════════════════════════════════════════ */
 let srchOvCurrentMaster = null;
 let srchOvDebounce = null;
+let srchOvAbortCtl = null;
 
-function openSearchOverlay() {
-    const ov = document.getElementById('searchOverlay');
-    if (!ov) return;
-    ov.style.display = 'flex';
-    document.getElementById('srchStateA').style.display = 'flex';
-    document.getElementById('srchStateB').style.display = 'none';
-    document.body.classList.add('overlay-open');
-    const input = document.getElementById('srchOvInput');
-    input.value = '';
-    document.getElementById('srchOvResults').innerHTML = '';
-    document.getElementById('srchOvMeta').textContent = 'Започни писане за резултати';
-    setTimeout(() => input.focus(), 100); // triggers native keyboard
-}
-
-function closeSearchOverlay() {
-    const ov = document.getElementById('searchOverlay');
-    if (!ov) return;
-    ov.style.display = 'none';
-    document.body.classList.remove('overlay-open');
+function inlineSearchClose() {
+    const c = document.getElementById('searchResultsInline');
+    if (!c) return;
+    c.style.display = 'none';
+    c.innerHTML = '';
     srchOvCurrentMaster = null;
 }
 
-function srchOvBackToMaster() {
-    document.getElementById('srchStateA').style.display = 'flex';
-    document.getElementById('srchStateB').style.display = 'none';
+function inlineSearchBackToMaster() {
+    // Re-run the search to repopulate masters
+    const input = document.getElementById('searchInput');
+    const q = input ? input.value.trim() : '';
     srchOvCurrentMaster = null;
-    setTimeout(() => document.getElementById('srchOvInput').focus(), 100);
+    if (q.length >= 1) {
+        doInlineSearch(q);
+    } else {
+        inlineSearchClose();
+    }
 }
 
-function srchOvSearch(q) {
-    document.getElementById('srchOvMeta').textContent = 'Търся...';
-    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q))
+function doInlineSearch(q) {
+    const c = document.getElementById('searchResultsInline');
+    if (!c) return;
+    c.style.display = '';
+    c.innerHTML = '<div class="s-results-inline-meta">Търся...</div>';
+
+    // Abort prior request to avoid stale-results race
+    if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
+    srchOvAbortCtl = new AbortController();
+
+    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q), { signal: srchOvAbortCtl.signal })
         .then(r => r.json())
         .then(results => {
             const masters = srchOvGroupByMaster(results || []);
             srchOvRenderMasters(masters);
             const total = (results || []).length;
             const mCount = masters.length;
-            document.getElementById('srchOvMeta').textContent =
-                'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') +
-                ' · ' + total + (total === 1 ? ' вариант' : ' варианта');
+            const metaEl = c.querySelector('.s-results-inline-meta');
+            if (metaEl) metaEl.textContent = 'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') + ' · ' + total + (total === 1 ? ' вариант' : ' варианта');
         })
         .catch(err => {
-            document.getElementById('srchOvMeta').textContent = 'Грешка при търсене';
-            console.error('srchOvSearch error', err);
+            if (err && err.name === 'AbortError') return;
+            const meta = c.querySelector('.s-results-inline-meta');
+            if (meta) meta.textContent = 'Грешка при търсене';
+            console.error('doInlineSearch error', err);
         });
 }
 
@@ -3367,10 +3393,13 @@ function srchOvGroupByMaster(results) {
 }
 
 function srchOvRenderMasters(masters) {
-    const c = document.getElementById('srchOvResults');
-    c.innerHTML = '';
+    const c = document.getElementById('searchResultsInline');
+    if (!c) return;
+    // Preserve meta text from caller
+    const metaTxt = (c.querySelector('.s-results-inline-meta') || {}).textContent || '';
+    c.innerHTML = '<div class="s-results-inline-meta">' + esc(metaTxt) + '</div>';
     if (masters.length === 0) {
-        c.innerHTML = '<div class="srch-empty">Няма намерени артикули</div>';
+        c.innerHTML += '<div class="srch-empty">Няма намерени артикули</div>';
         return;
     }
     masters.forEach((m, idx) => {
@@ -3405,12 +3434,16 @@ function srchOvRenderMasters(masters) {
 
 function srchOvOpenVariants(master) {
     srchOvCurrentMaster = master;
-    document.getElementById('srchStateA').style.display = 'none';
-    document.getElementById('srchStateB').style.display = 'flex';
-    document.getElementById('srchOvVariantsTitle').textContent = master.name;
-
-    const c = document.getElementById('srchOvVariants');
+    const c = document.getElementById('searchResultsInline');
+    if (!c) return;
+    c.style.display = '';
     c.innerHTML = '';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 's-results-inline-back';
+    back.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Назад · ' + esc(master.name);
+    back.addEventListener('click', inlineSearchBackToMaster);
+    c.appendChild(back);
     master.variants.forEach(v => {
         const div = document.createElement('div');
         div.className = 'srch-variant';
@@ -3485,19 +3518,20 @@ function srchOvVoice() {
     }
 }
 
-// Wire input live-search + Enter
+// Wire #searchInput live-search + Enter (inline, debounced 250ms, AbortController)
 document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('srchOvInput');
+    const input = document.getElementById('searchInput');
     if (!input) return;
     input.addEventListener('input', (e) => {
         const q = e.target.value.trim();
+        STATE.searchText = q;
         clearTimeout(srchOvDebounce);
+        if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
         if (q.length < 1) {
-            document.getElementById('srchOvResults').innerHTML = '';
-            document.getElementById('srchOvMeta').textContent = 'Започни писане за резултати';
+            inlineSearchClose();
             return;
         }
-        srchOvDebounce = setTimeout(() => srchOvSearch(q), 250);
+        srchOvDebounce = setTimeout(() => doInlineSearch(q), 250);
     });
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -3505,23 +3539,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = e.target.value.trim();
             if (q.length >= 1) {
                 clearTimeout(srchOvDebounce);
-                srchOvSearch(q);
+                doInlineSearch(q);
             }
         }
     });
 });
 
-// Hardware back (Capacitor) → State B → State A → close
+// Hardware back (Capacitor): inline-variants → masters; otherwise close inline
 document.addEventListener('backbutton', (e) => {
-    const ov = document.getElementById('searchOverlay');
-    if (ov && ov.style.display === 'flex') {
+    if (srchOvCurrentMaster) {
         e.preventDefault();
-        const stateB = document.getElementById('srchStateB');
-        if (stateB && stateB.style.display === 'flex') {
-            srchOvBackToMaster();
-        } else {
-            closeSearchOverlay();
-        }
+        inlineSearchBackToMaster();
+        return;
+    }
+    const c = document.getElementById('searchResultsInline');
+    if (c && c.style.display !== 'none' && c.innerHTML.length > 0) {
+        e.preventDefault();
+        const input = document.getElementById('searchInput');
+        if (input) input.value = '';
+        inlineSearchClose();
     }
 });
 
