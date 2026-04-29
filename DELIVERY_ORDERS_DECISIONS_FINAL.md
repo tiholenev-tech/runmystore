@@ -517,7 +517,47 @@
 **ФИНАЛНИ РЕШЕНИЯ: 124 + 30 = 154**
 
 (110 от ПАС 1 + 14 от ПАС 2 + 30 от ПАС 3 шеф-чат append)
+## X. BACKUP РЕЖИМ — БЕЗ ИНТЕРНЕТ (ЗАДЪЛЖИТЕЛЕН)
 
+**X1.** Backup режим е **задължителен за 3-те модула** — доставка, поръчка, продажба. Никой модул не оставя Пешо в "счупено" състояние при offline.
+
+**X2.** Закон №1 (Пешо не пише) се **suspend-ва САМО в offline mode** с explicit indicator на върха („НЯМА ИНТЕРНЕТ — РЪЧЕН РЕЖИМ"). Пешо разбира защо. Няма мълчалив fallback.
+
+**X3.** При detect на offline в delivery/orders entry screen → AI alternatives недостъпни, показват се 2 опции:
+- **„Добави артикул"** — primary action
+- **„Запази снимка за после"** — IndexedDB queue, при reconnect AI обработва автоматично с notification „Доставката от Marina готова за преглед."
+
+**X4.** „Добави артикул" е **shortcut към products.php?action=add** wizard. Никаква нова offline форма. Reuse на existing wizard + helper функции (price predictor, last-cost autofill, supplier autofill, barcode scan offline).
+
+**X5.** Wizard приема `return_to` параметър: `products.php?action=add&return_to=delivery&delivery_session=xyz`. След save → автоматичен redirect към `delivery.php?session=xyz` с preserved state.
+
+**X6.** Loop pattern: delivery → wizard → save → return към delivery с растяща количка → „Има ли още артикул?" [Добави още] [Готова съм]. Цикъл докато Пешо приключи.
+
+**X7.** State preservation на доставката offline:
+- localStorage (TTL 30 минути за бърз recovery при крах)
+- DB draft (deliveries.status='draft') ако има auth + connection преди offline
+- IndexedDB pending queue ако напълно offline
+
+**X8.** Същият loop pattern за orders.php — voice cart → fallback → product picker → return към cart с running total.
+
+**X9.** Sync при reconnect:
+- Bottom toast: „3 действия от offline режима — синхронизирам..."
+- Photo queue → AI обработва във фон → notification per готова доставка
+- Pending operations → server sync с conflict resolution (last-write-wins за simple data)
+
+**X10.** Pending sync таблица в IndexedDB: action_type, payload, created_at, retry_count, status. Visible в Detailed Mode за Митко (Митко вижда какво чака sync).
+
+**X11.** **Никога silent failures** — всеки offline action показва status visually:
+- Save → toast „Записан offline · ще се синхронизира"
+- При reconnect → toast „Синхронизация готова"
+- При sync конфликт → ai_insight към Митко
+
+---
+
+## БРОЙ (ОБНОВЕН)
+**ФИНАЛНИ РЕШЕНИЯ: 154 + 11 (backup) = 165**
+
+(110 ПАС 1 + 14 ПАС 2 + 30 шеф-чат append S/T/U/V/W + 11 BACKUP X)
 ## БРОЙ
 **ФИНАЛНИ РЕШЕНИЯ: 124** (110 от ПАС 1 + 14 нови от ПАС 2 + 9 корекции inline)
 
