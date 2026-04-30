@@ -1,0 +1,228 @@
+/* ════════════════════════════════════════════════════════════
+ * RunMyStore — DESIGN KIT · tokens.css
+ * SOURCE OF TRUTH. Never override. Never duplicate.
+ * Не пиши `:root { --hue1: ... }` в твоя модул. Чети тук.
+ * ════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   RunMyStore.AI — Unified Design Tokens
+   S82.UI — dark default + light via [data-theme="light"]
+   Values aligned with chat.php existing :root so loading
+   theme.css does NOT override per-page themes that already
+   define the shared vars.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── DARK MODE (default) ─── */
+:root,
+:root[data-theme="dark"]{
+    /* Brand hues (kept identical to chat.php) */
+    --hue1:255;
+    --hue2:222;
+
+    /* Surface */
+    --bg-main:#08090d;
+    --bg-card:rgba(15,15,40,.75);
+    --bg-card-hover:rgba(23,28,58,.90);
+    --bg-elevated:rgba(30,35,50,.90);
+
+    /* Borders / glows */
+    --border-color:hsl(var(--hue2),12%,20%);
+    --border-subtle:rgba(99,102,241,.15);
+    --border-glow:rgba(99,102,241,.40);
+
+    /* Indigo brand */
+    --indigo-600:#4f46e5;
+    --indigo-500:#6366f1;
+    --indigo-400:#818cf8;
+    --indigo-300:#a5b4fc;
+
+    /* Text */
+    --text-primary:#f1f5f9;
+    --text-secondary:rgba(255,255,255,.6);
+    --text-muted:rgba(255,255,255,.4);
+
+    /* Semantic */
+    --danger:#ef4444;
+    --warning:#f59e0b;
+    --success:#22c55e;
+    --purple:#8b5cf6;
+    --teal:#14b8a6;
+
+    /* Effects */
+    --shadow-card:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
+                  hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    --glass-bg:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),
+               linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),
+               linear-gradient(hsl(220 25% 4.8% / .78));
+
+    /* Easing (used by transitions across modules) */
+    --ease:cubic-bezier(.25,.8,.25,1);
+
+    color-scheme:dark;
+}
+
+/* ─── LIGHT MODE (manual via [data-theme="light"]) ─── */
+:root[data-theme="light"]{
+    /* Surface */
+    --bg-main:#f4f6fb;
+    --bg-card:rgba(255,255,255,.95);
+    --bg-card-hover:rgba(248,250,252,.98);
+    --bg-elevated:rgba(241,245,249,.95);
+
+    /* Borders */
+    --border-color:hsl(var(--hue2),22%,82%);
+    --border-subtle:rgba(99,102,241,.18);
+    --border-glow:rgba(99,102,241,.45);
+
+    /* Indigo (slightly darker for AA contrast on white) */
+    --indigo-600:#4338ca;
+    --indigo-500:#4f46e5;
+    --indigo-400:#6366f1;
+    --indigo-300:#4f46e5;
+
+    /* Text */
+    --text-primary:#0f172a;
+    --text-secondary:rgba(15,23,42,.70);
+    --text-muted:rgba(15,23,42,.50);
+
+    /* Effects */
+    --shadow-card:rgba(99,102,241,.08) 0 10px 16px -8px,
+                  rgba(99,102,241,.05) 0 20px 36px -14px;
+    --glass-bg:linear-gradient(235deg,hsl(var(--hue1) 50% 95% / .6),hsl(var(--hue1) 50% 95% / 0) 33%),
+               linear-gradient(45deg,hsl(var(--hue2) 50% 95% / .5),hsl(var(--hue2) 50% 95% / 0) 33%),
+               linear-gradient(hsl(220 25% 98% / .85));
+
+    color-scheme:light;
+}
+
+/* ─── AUTO from system pref (only when user hasn't picked) ─── */
+@media (prefers-color-scheme: light){
+    :root:not([data-theme]){
+        --bg-main:#f4f6fb;
+        --bg-card:rgba(255,255,255,.95);
+        --bg-card-hover:rgba(248,250,252,.98);
+        --bg-elevated:rgba(241,245,249,.95);
+        --border-color:hsl(var(--hue2),22%,82%);
+        --border-subtle:rgba(99,102,241,.18);
+        --border-glow:rgba(99,102,241,.45);
+        --indigo-600:#4338ca;
+        --indigo-500:#4f46e5;
+        --indigo-400:#6366f1;
+        --indigo-300:#4f46e5;
+        --text-primary:#0f172a;
+        --text-secondary:rgba(15,23,42,.70);
+        --text-muted:rgba(15,23,42,.50);
+        --shadow-card:rgba(99,102,241,.08) 0 10px 16px -8px,
+                      rgba(99,102,241,.05) 0 20px 36px -14px;
+        color-scheme:light;
+    }
+}
+
+/* ─── Smooth theme switch ─── */
+html{
+    transition:background-color .25s ease, color .2s ease;
+}
+body, .glass, .card, .pill, .header, .modal-hdr,
+.bottom-nav, .input-bar, .chat-input, .chat-input-inner{
+    transition:background-color .25s ease, border-color .25s ease, color .2s ease, box-shadow .25s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Shared header-icon button (used by theme toggle in modules
+   that don't already define it). chat.php defines its own
+   .header-icon-btn — these styles are scoped to header bars
+   that don't already have one (defensive defaults).
+   ═══════════════════════════════════════════════════════════ */
+.s82-icon-btn{
+    width:34px;height:34px;border-radius:10px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border-subtle);
+    color:var(--text-secondary);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    transition:all .2s var(--ease,ease);
+    font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+}
+.s82-icon-btn:hover{color:var(--indigo-300);border-color:var(--border-glow)}
+.s82-icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ═══════════════════════════════════════════════════════════
+   Print status button — products.php header
+   Status pulled from existing Bluetooth logic via .paired/.error
+   class toggling. No-op when no logic present (stays grey).
+   ═══════════════════════════════════════════════════════════ */
+.print-status-btn{
+    width:34px;height:34px;border-radius:10px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border-subtle);
+    color:var(--text-secondary);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+    transition:all .2s var(--ease,ease);
+    font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+}
+.print-status-btn::after{
+    content:'';position:absolute;top:4px;right:4px;
+    width:7px;height:7px;border-radius:50%;
+    background:rgba(148,163,184,.7);
+    border:1.5px solid var(--bg-main);
+}
+.print-status-btn.paired{
+    color:#86efac;
+    border-color:rgba(34,197,94,.35);
+    background:rgba(34,197,94,.08);
+}
+.print-status-btn.paired::after{background:var(--success);box-shadow:0 0 6px var(--success)}
+.print-status-btn.error{color:#fca5a5;border-color:rgba(239,68,68,.40)}
+.print-status-btn.error::after{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.print-status-btn:hover{color:var(--indigo-300);border-color:var(--border-glow)}
+.print-status-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ═══════════════════════════════════════════════════════════
+   Safe-area helper class — apply to any header/topbar element
+   ═══════════════════════════════════════════════════════════ */
+.s82-safe-top{
+    padding-top:max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Forward-looking design tokens (mockup parity) — CSS only.
+   HTML using these classes will be added by Tihol in S82
+   feature commits; here we just register the styles.
+   ═══════════════════════════════════════════════════════════ */
+.ai-processing{
+    position:relative;display:inline-flex;align-items:center;gap:6px;
+    padding:4px 10px;border-radius:999px;
+    background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.15));
+    border:1px solid var(--border-subtle);
+    color:var(--indigo-300);font-size:11px;font-weight:600;
+}
+.ai-processing::before{
+    content:'';width:6px;height:6px;border-radius:50%;
+    background:var(--indigo-400);
+    animation:s82-pulse 1.4s ease-in-out infinite;
+}
+@keyframes s82-pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+
+.upsell-hint{
+    padding:8px 12px;border-radius:10px;
+    background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.04));
+    border:1px solid rgba(245,158,11,.25);
+    color:var(--warning);font-size:12px;line-height:1.4;
+}
+
+.plan-banner{
+    padding:10px 14px;border-radius:12px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border-subtle);
+    color:var(--text-primary);font-size:12px;
+    display:flex;align-items:center;gap:10px;
+}
+.plan-banner.free{border-color:rgba(148,163,184,.30);color:var(--text-secondary)}
+.plan-banner.start{border-color:rgba(99,102,241,.35);color:var(--indigo-300)}
+.plan-banner.pro{
+    border-color:rgba(139,92,246,.40);
+    background:linear-gradient(135deg,rgba(139,92,246,.10),rgba(99,102,241,.06));
+    color:var(--purple);
+}

@@ -1,0 +1,549 @@
+/* ════════════════════════════════════════════════════════════
+ * RunMyStore — DESIGN KIT · light-theme.css
+ * Iridescent (oklch-based) override за [data-theme="light"].
+ * Активира се със <html data-theme="light">.
+ * Цялата палитра реагира на --hue1 / --hue2 (не са hardcoded).
+ * ════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   RunMyStore — IRIDESCENT LIGHT THEME (override блок)
+   База: oklch palette от референцията (iridescent button by Simey)
+   Запазени: shine + glow борди от neon glass (адаптирани по-меко)
+   Активира се с :root[data-theme="light"]
+   Зануляване на стандартния theme.css light override.
+   ═══════════════════════════════════════════════════════════ */
+
+:root[data-theme="light"] {
+    /* Brand hues — запазени */
+    --hue1: 255;
+    --hue2: 222;
+
+    /* Iridescent palette */
+    --iri-bg-1:    #f7f8fa;
+    --iri-bg-2:    #ebf2fa;
+    --iri-fg-1:    #1a3360;
+    --iri-fg-2:    #2f5380;
+    --iri-fg-3:    #5a7aa3;
+    --iri-fg-4:    #8aa0bf;
+    --iri-shine:   oklch(0.99 0.01 257);
+    --iri-pearl:   oklch(0.95 0.01 257);
+    --iri-shadow:  oklch(0.35 0.1 257);
+
+    /* Override на theme.css light tokens */
+    --bg-main:        var(--iri-bg-1);
+    --bg-card:        oklch(0.99 0.01 257 / 0.85);
+    --bg-card-hover:  oklch(1 0.005 257);
+    --bg-elevated:    oklch(0.97 0.01 257 / 0.95);
+    --border-color:   oklch(0.88 0.02 257);
+    --border-subtle:  oklch(0.85 0.04 var(--hue1) / 0.4);
+    --border-glow:    oklch(0.7 0.18 var(--hue1) / 0.45);
+    --indigo-600:     oklch(0.45 0.2 var(--hue1));
+    --indigo-500:     oklch(0.55 0.22 var(--hue1));
+    --indigo-400:     oklch(0.65 0.18 var(--hue1));
+    --indigo-300:     oklch(0.55 0.2 var(--hue1));
+    --text-primary:   var(--iri-fg-1);
+    --text-secondary: var(--iri-fg-2);
+    --text-muted:     var(--iri-fg-3);
+    --shadow-card:
+        oklch(0.35 0.1 257 / 0.10) 0 10px 24px -8px,
+        oklch(0.35 0.1 257 / 0.08) 0 4px 10px -4px;
+    --glass-bg:
+        linear-gradient(to bottom,
+            oklch(0.97 0.01 257),
+            oklch(0.93 0.018 257 / 0.75) 33%,
+            oklch(0.99 0.01 257 / 0.85));
+
+    color-scheme: light;
+}
+
+/* ─── BODY background — iridescent radial + linear ─── */
+:root[data-theme="light"] body {
+    background:
+        radial-gradient(oklch(0.5 0.1 257 / 0.18) 1px, transparent 0),
+        linear-gradient(160deg, var(--iri-bg-1), var(--iri-bg-2)) !important;
+    background-repeat: repeat, no-repeat !important;
+    background-size: 30px 30px, cover !important;
+    color: var(--iri-fg-2);
+}
+
+/* ─── Спира фоновия noise/blob от тъмния (които идват от chat.php's main bg) ─── */
+:root[data-theme="light"] body::before,
+:root[data-theme="light"] body::after,
+:root[data-theme="light"] #app::before,
+:root[data-theme="light"] #app::after {
+    display: none !important;
+}
+
+/* ─── GLASS surface — iridescent palette ─── */
+:root[data-theme="light"] .glass {
+    border: 0 !important;
+    background:
+        linear-gradient(to bottom,
+            oklch(0.97 0.01 257),
+            oklch(0.93 0.018 257 / 0.78) 33%,
+            oklch(0.99 0.01 257 / 0.85)) padding-box,
+        linear-gradient(165deg,
+            oklch(0.94 0.025 257 / 0.85) 25%,
+            oklch(0.99 0.01 257 / 0.8)) border-box !important;
+    border: 1px solid transparent !important;
+    backdrop-filter: blur(10px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(1.2) !important;
+    box-shadow:
+        oklch(0.35 0.1 257 / 0.10) 0 10px 24px -8px,
+        oklch(0.35 0.1 257 / 0.08) 0 4px 10px -4px,
+        inset 0 1px 0 oklch(1 0 0 / 0.7) !important;
+}
+
+/* ─── SHINE — borders from neon, по-меки за светъл ─── */
+:root[data-theme="light"] .shine,
+:root[data-theme="light"] .shine::before,
+:root[data-theme="light"] .shine::after {
+    --sat: 60%;
+    --lit: 75%;
+    opacity: 0.7;
+    mix-blend-mode: multiply;
+}
+:root[data-theme="light"] .shine::after {
+    --sat: 70%;
+    --lit: 65%;
+}
+
+/* ─── GLOW — по-меко sat/blur за светъл фон ─── */
+:root[data-theme="light"] .glow {
+    --sat: 75%;
+    --lit: 65%;
+    filter: blur(14px) saturate(0.85) brightness(0.95) !important;
+    opacity: 0.5 !important;
+    mix-blend-mode: multiply !important;
+}
+:root[data-theme="light"] .glow::after {
+    --sat: 90%;
+    --lit: 60%;
+    opacity: 0.6;
+}
+:root[data-theme="light"] .glow-bright {
+    filter: blur(2px) brightness(1.05) saturate(1.3) !important;
+    opacity: 0.85 !important;
+    mix-blend-mode: normal !important;
+}
+
+/* ═══ HEADER ═══ */
+:root[data-theme="light"] .rms-header {
+    background: oklch(0.99 0.005 257 / 0.85) !important;
+    backdrop-filter: blur(16px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+    border-bottom-color: oklch(0.88 0.02 257) !important;
+}
+:root[data-theme="light"] .rms-brand {
+    color: oklch(0.5 0.2 var(--hue1)) !important;
+    text-shadow: 0 0 8px oklch(0.7 0.2 var(--hue1) / 0.25) !important;
+}
+:root[data-theme="light"] .rms-icon-btn {
+    background:
+        linear-gradient(to bottom, oklch(0.98 0.005 257), oklch(0.94 0.015 257 / 0.85) 33%, oklch(0.99 0.005 257)) padding-box,
+        linear-gradient(165deg, oklch(0.92 0.025 257 / 0.7) 25%, oklch(0.97 0.01 257 / 0.8)) border-box !important;
+    border: 1px solid transparent !important;
+    color: var(--iri-fg-3) !important;
+    box-shadow:
+        inset 0 1px 0 oklch(1 0 0 / 0.7),
+        oklch(0.35 0.1 257 / 0.08) 0 2px 6px 0 !important;
+}
+:root[data-theme="light"] .rms-icon-btn:hover {
+    color: oklch(0.45 0.2 var(--hue1)) !important;
+    border-color: oklch(0.7 0.18 var(--hue1) / 0.4) !important;
+}
+
+/* ═══ PLAN BADGES — perlescent (iridescent style) ═══ */
+:root[data-theme="light"] .rms-plan-badge.pro {
+    background: linear-gradient(135deg, oklch(0.65 0.22 var(--hue2)), oklch(0.6 0.25 320)) !important;
+    box-shadow:
+        0 0 14px oklch(0.65 0.22 var(--hue2) / 0.4),
+        inset 0 1px 0 oklch(1 0 0 / 0.4) !important;
+}
+:root[data-theme="light"] .rms-plan-badge.start {
+    background: linear-gradient(135deg, oklch(0.6 0.18 240), oklch(0.55 0.2 260)) !important;
+    box-shadow:
+        0 0 14px oklch(0.6 0.18 240 / 0.4),
+        inset 0 1px 0 oklch(1 0 0 / 0.4) !important;
+}
+
+/* ═══ S82-DASH (Hero revenue card) ═══ */
+:root[data-theme="light"] .s82-dash-period-label {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .s82-dash-store {
+    color: oklch(0.5 0.2 var(--hue1)) !important;
+}
+:root[data-theme="light"] .s82-dash-num {
+    background: linear-gradient(135deg,
+        oklch(0.25 0.15 var(--hue1)) 0%,
+        oklch(0.5 0.22 var(--hue1)) 50%,
+        oklch(0.55 0.18 var(--hue2)) 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+}
+:root[data-theme="light"] .s82-dash-cur {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .s82-dash-pct.up,
+:root[data-theme="light"] .s82-dash-pct[class*="up"] {
+    background: linear-gradient(135deg, oklch(0.92 0.12 145), oklch(0.85 0.15 145)) !important;
+    color: oklch(0.35 0.18 145) !important;
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5) !important;
+}
+:root[data-theme="light"] .s82-dash-pct.down,
+:root[data-theme="light"] .s82-dash-pct[class*="down"] {
+    background: linear-gradient(135deg, oklch(0.92 0.12 25), oklch(0.85 0.15 25)) !important;
+    color: oklch(0.4 0.2 25) !important;
+}
+:root[data-theme="light"] .s82-dash-meta {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .s82-dash-divider {
+    background: oklch(0.85 0.02 257) !important;
+}
+
+/* ═══ S82-DASH-PILL (period switch — IRIDESCENT) ═══ */
+:root[data-theme="light"] .s82-dash-pill,
+:root[data-theme="light"] .top-pill,
+:root[data-theme="light"] .rev-pill {
+    background:
+        linear-gradient(to bottom, oklch(0.97 0.01 257), oklch(0.93 0.018 257 / 0.85) 33%, oklch(0.99 0.01 257 / 0.85)) padding-box,
+        linear-gradient(165deg, oklch(0.92 0.025 257 / 0.7) 25%, oklch(0.97 0.01 257 / 0.8)) border-box !important;
+    border: 1px solid transparent !important;
+    color: var(--iri-fg-3) !important;
+    box-shadow:
+        inset -0.25em -0.25em 0.18em -0.18em oklch(0.99 0.01 257),
+        oklch(0.35 0.1 257 / 0.08) 0 2px 6px 0 !important;
+    text-shadow: none !important;
+}
+:root[data-theme="light"] .s82-dash-pill.active,
+:root[data-theme="light"] .top-pill.active,
+:root[data-theme="light"] .rev-pill.active,
+:root[data-theme="light"] .s82-dash-pill.sel,
+:root[data-theme="light"] .pill.sel,
+:root[data-theme="light"] .cb-mode-toggle.active,
+:root[data-theme="light"] .cb-mode-toggle {
+    background:
+        linear-gradient(to bottom,
+            oklch(0.97 0.025 var(--hue1)) 0%,
+            oklch(0.93 0.045 var(--hue1) / 0.85) 33%,
+            oklch(0.99 0.015 var(--hue2) / 0.9) 100%) padding-box,
+        linear-gradient(165deg,
+            oklch(0.82 0.08 var(--hue1) / 0.55) 25%,
+            oklch(0.94 0.03 var(--hue2) / 0.6)) border-box !important;
+    border: 1.5px solid transparent !important;
+    color: oklch(0.5 0.15 var(--hue1)) !important;
+    text-shadow: none !important;
+    box-shadow:
+        inset -0.25em -0.25em 0.18em -0.18em oklch(0.99 0.01 var(--hue2)),
+        inset 0 1px 0 oklch(1 0 0 / 0.7),
+        0 2px 10px oklch(0.65 0.12 var(--hue1) / 0.18) !important;
+}
+
+/* ═══ HEALTH BAR ═══ */
+:root[data-theme="light"] .health {
+    background:
+        linear-gradient(to bottom, oklch(0.98 0.005 257), oklch(0.95 0.012 257 / 0.85) 33%, oklch(0.99 0.005 257 / 0.85)) padding-box,
+        linear-gradient(165deg, oklch(0.92 0.025 257 / 0.7) 25%, oklch(0.97 0.01 257 / 0.8)) border-box !important;
+}
+:root[data-theme="light"] .health-track {
+    background: oklch(0.88 0.02 257) !important;
+}
+:root[data-theme="light"] .health-lbl {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .health-pct {
+    color: oklch(0.4 0.18 145) !important;
+    text-shadow: 0 1px 2px oklch(0.85 0.05 145 / 0.5) !important;
+}
+
+/* ═══ S82-WEATHER ═══ */
+:root[data-theme="light"] .s82-weather-temp {
+    color: var(--iri-fg-1) !important;
+    text-shadow: 0 1px 2px oklch(1 0 0 / 0.5) !important;
+}
+:root[data-theme="light"] .s82-weather-cond,
+:root[data-theme="light"] .s82-weather-meta,
+:root[data-theme="light"] .s82-weather-sug {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .s82-weather-icon {
+    color: oklch(0.65 0.18 60) !important;
+    filter: drop-shadow(0 2px 4px oklch(0.65 0.18 60 / 0.3));
+}
+:root[data-theme="light"] .s82-weather-day-name,
+:root[data-theme="light"] .s82-weather-day-temp {
+    color: var(--iri-fg-2) !important;
+}
+:root[data-theme="light"] .s82-weather-day-rain {
+    color: oklch(0.55 0.15 240) !important;
+}
+
+/* ═══ AI-STUDIO entry row ═══ */
+:root[data-theme="light"] .ai-studio-row {
+    background:
+        linear-gradient(135deg, oklch(0.94 0.08 var(--hue2)), oklch(0.96 0.05 257)) padding-box,
+        linear-gradient(165deg, oklch(0.7 0.18 var(--hue2) / 0.5) 25%, oklch(0.85 0.05 257 / 0.6)) border-box !important;
+    border: 1px solid transparent !important;
+    box-shadow:
+        oklch(0.5 0.2 var(--hue2) / 0.15) 0 8px 24px -6px,
+        inset 0 1px 0 oklch(1 0 0 / 0.6) !important;
+}
+:root[data-theme="light"] .as-icon {
+    background: linear-gradient(135deg, oklch(0.7 0.22 var(--hue2)), oklch(0.6 0.25 var(--hue1))) !important;
+    box-shadow:
+        0 4px 14px oklch(0.6 0.22 var(--hue2) / 0.4),
+        inset 0 1px 0 oklch(1 0 0 / 0.4) !important;
+}
+:root[data-theme="light"] .as-label {
+    color: oklch(0.35 0.2 var(--hue2)) !important;
+}
+:root[data-theme="light"] .as-sub {
+    color: oklch(0.45 0.15 var(--hue2)) !important;
+}
+:root[data-theme="light"] .ai-studio-badge {
+    background: linear-gradient(135deg, oklch(0.65 0.22 var(--hue2)), oklch(0.55 0.25 var(--hue1))) !important;
+    color: white !important;
+    box-shadow: 0 0 12px oklch(0.6 0.22 var(--hue2) / 0.5) !important;
+}
+
+/* ═══ LB-CARD (Life Board cards с q-color hue) ═══ */
+:root[data-theme="light"] .lb-card,
+:root[data-theme="light"] .lb-silent {
+    background:
+        linear-gradient(to bottom, oklch(0.98 0.005 257), oklch(0.95 0.015 257 / 0.85) 33%, oklch(0.99 0.005 257 / 0.85)) padding-box,
+        linear-gradient(165deg, oklch(0.92 0.04 var(--lb-hue, var(--hue1)) / 0.7) 25%, oklch(0.97 0.015 257 / 0.8)) border-box !important;
+    border: 1px solid transparent !important;
+    box-shadow:
+        oklch(0.5 0.18 var(--lb-hue, var(--hue1)) / 0.15) 0 8px 24px -6px,
+        inset 0 1px 0 oklch(1 0 0 / 0.6) !important;
+}
+:root[data-theme="light"] .lb-card.q1, :root[data-theme="light"] .lb-silent.q1 { --lb-hue: 0; }
+:root[data-theme="light"] .lb-card.q2, :root[data-theme="light"] .lb-silent.q2 { --lb-hue: 280; }
+:root[data-theme="light"] .lb-card.q3, :root[data-theme="light"] .lb-silent.q3 { --lb-hue: 145; }
+:root[data-theme="light"] .lb-card.q4, :root[data-theme="light"] .lb-silent.q4 { --lb-hue: 38; }
+:root[data-theme="light"] .lb-card.q5, :root[data-theme="light"] .lb-silent.q5 { --lb-hue: 200; }
+:root[data-theme="light"] .lb-card.q6, :root[data-theme="light"] .lb-silent.q6 { --lb-hue: 280; }
+
+:root[data-theme="light"] .lb-card-title,
+:root[data-theme="light"] .lb-title-text,
+:root[data-theme="light"] .lb-silent-text {
+    color: oklch(0.3 0.15 var(--lb-hue, var(--hue1))) !important;
+}
+:root[data-theme="light"] .lb-body {
+    color: oklch(0.45 0.1 var(--lb-hue, var(--hue1))) !important;
+}
+:root[data-theme="light"] .lb-fq-tag {
+    background: oklch(0.85 0.1 var(--lb-hue, var(--hue1))) !important;
+    color: oklch(0.3 0.18 var(--lb-hue, var(--hue1))) !important;
+}
+:root[data-theme="light"] .lb-count {
+    background: oklch(0.95 0.02 257) !important;
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .lb-silent-icon {
+    color: oklch(0.6 0.15 var(--lb-hue, var(--hue1))) !important;
+    background: oklch(0.92 0.06 var(--lb-hue, var(--hue1))) !important;
+}
+:root[data-theme="light"] .lb-silent-sub {
+    color: oklch(0.5 0.1 var(--lb-hue, var(--hue1))) !important;
+}
+
+/* ═══ LB-ACTION buttons — IRIDESCENT primary ═══ */
+:root[data-theme="light"] .lb-action,
+:root[data-theme="light"] .briefing-btn-primary,
+:root[data-theme="light"] .action-button.primary {
+    background:
+        linear-gradient(to bottom, oklch(0.95 0.01 257), oklch(0.92 0.0175 257 / 0.85) 33%, oklch(0.99 0.01 257 / 0.85)) padding-box,
+        linear-gradient(165deg, oklch(0.94 0.025 257 / 0.85) 25%, oklch(0.99 0.01 257 / 0.85)) border-box !important;
+    border: 2px solid transparent !important;
+    color: oklch(0.45 0.18 var(--hue1)) !important;
+    text-shadow: none !important;
+    box-shadow:
+        inset -0.3em -0.3em 0.2em -0.2em oklch(0.99 0.02 257),
+        inset -0.28em -0.85em 0.6em -0.6em oklch(0.99 0.01 257),
+        oklch(0.35 0.1 257 / 0.12) 0 0.3em 0.3em 0,
+        oklch(0.35 0.1 257 / 0.12) 0 0.18em 0.18em 0 !important;
+    border-radius: 100px !important;
+    font-weight: 700 !important;
+    transition: all 0.3s cubic-bezier(0.33, 1, 0.68, 1) !important;
+    position: relative !important;
+}
+:root[data-theme="light"] .lb-action:hover,
+:root[data-theme="light"] .briefing-btn-primary:hover {
+    color: oklch(0.35 0.2 var(--hue1)) !important;
+}
+
+/* refraction pseudo на iridescent btn */
+:root[data-theme="light"] .lb-action::before,
+:root[data-theme="light"] .briefing-btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.32, 0, 0.67, 0);
+    background: linear-gradient(98deg in oklab,
+        oklch(0.8 0.1348 355.91) -5%,
+        oklch(0.8 0.2 var(--hue1)),
+        oklch(0.98 0.22 200) 160%);
+    mask: linear-gradient(166deg, transparent 60%, black);
+    -webkit-mask: linear-gradient(166deg, transparent 60%, black);
+    filter: blur(5px) brightness(1) contrast(1.3);
+    z-index: -1;
+}
+:root[data-theme="light"] .lb-action:hover::before,
+:root[data-theme="light"] .briefing-btn-primary:hover::before {
+    opacity: 0.6;
+    transition-duration: 0.3s;
+    transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* ═══ Secondary / dismiss buttons ═══ */
+:root[data-theme="light"] .lb-dismiss,
+:root[data-theme="light"] .briefing-btn-secondary {
+    background: transparent !important;
+    border: 1px solid oklch(0.85 0.02 257) !important;
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .lb-fb-btn {
+    background: oklch(0.95 0.02 257) !important;
+    border: 1px solid oklch(0.88 0.02 257) !important;
+    color: var(--iri-fg-3) !important;
+}
+
+/* ═══ BRIEFING SECTION ═══ */
+:root[data-theme="light"] .briefing-section {
+    background:
+        linear-gradient(to bottom, oklch(0.98 0.005 257), oklch(0.95 0.012 257 / 0.85) 33%, oklch(0.99 0.005 257 / 0.85)) padding-box,
+        linear-gradient(165deg, oklch(0.92 0.025 257 / 0.7) 25%, oklch(0.97 0.01 257 / 0.8)) border-box !important;
+    border: 1px solid transparent !important;
+}
+:root[data-theme="light"] .briefing-title,
+:root[data-theme="light"] .briefing-name {
+    color: var(--iri-fg-1) !important;
+}
+:root[data-theme="light"] .briefing-detail,
+:root[data-theme="light"] .bi-qty {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .briefing-emoji,
+:root[data-theme="light"] .lb-fq-emoji {
+    filter: saturate(1.1);
+}
+
+/* ═══ CB-MODE-TOGGLE (Лесен/Подробен) ═══ */
+:root[data-theme="light"] .cb-mode-row {
+    background: oklch(0.97 0.01 257 / 0.6) !important;
+}
+:root[data-theme="light"] .cb-mode-toggle {
+    color: oklch(0.5 0.2 var(--hue1)) !important;
+    background: oklch(0.92 0.06 var(--hue1) / 0.5) !important;
+    border: 1px solid oklch(0.78 0.12 var(--hue1) / 0.4) !important;
+}
+
+/* ═══ CHAT INPUT BAR (sticky bottom) ═══ */
+:root[data-theme="light"] .rms-input-bar {
+    background: linear-gradient(to top,
+        var(--iri-bg-1) 70%,
+        oklch(0.97 0.01 257 / 0.5)) !important;
+}
+:root[data-theme="light"] .rms-input-inner {
+    background:
+        linear-gradient(to bottom, oklch(0.99 0.005 257), oklch(0.95 0.015 257 / 0.85) 33%, oklch(1 0 0 / 0.95)) padding-box,
+        linear-gradient(165deg, oklch(0.85 0.05 var(--hue1) / 0.5) 25%, oklch(0.95 0.02 257 / 0.8)) border-box !important;
+    border: 1.5px solid transparent !important;
+    box-shadow:
+        inset 0 1px 0 oklch(1 0 0 / 0.7),
+        oklch(0.35 0.1 257 / 0.10) 0 4px 12px 0 !important;
+}
+:root[data-theme="light"] .rms-input-placeholder {
+    color: var(--iri-fg-3) !important;
+}
+:root[data-theme="light"] .rms-input-mic,
+:root[data-theme="light"] .rms-input-send {
+    background: linear-gradient(135deg, oklch(0.65 0.22 var(--hue1)), oklch(0.55 0.25 var(--hue2))) !important;
+    color: white !important;
+    box-shadow:
+        0 4px 14px oklch(0.6 0.22 var(--hue1) / 0.4),
+        inset 0 1px 0 oklch(1 0 0 / 0.4) !important;
+}
+:root[data-theme="light"] .rms-input-wave-bar,
+:root[data-theme="light"] .rms-input-wave {
+    background: linear-gradient(to top, oklch(0.65 0.22 var(--hue1)), oklch(0.55 0.25 var(--hue2))) !important;
+}
+
+/* ═══ BOTTOM NAV ═══ */
+:root[data-theme="light"] .rms-bottom-nav {
+    background: oklch(0.99 0.005 257 / 0.92) !important;
+    backdrop-filter: blur(16px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+    border-top: 1px solid oklch(0.88 0.02 257) !important;
+    box-shadow: 0 -5px 25px oklch(0.5 0.15 var(--hue1) / 0.08) !important;
+}
+:root[data-theme="light"] .rms-nav-tab {
+    color: oklch(0.6 0.1 var(--hue1) / 0.55) !important;
+}
+:root[data-theme="light"] .rms-nav-tab.active {
+    color: oklch(0.5 0.22 var(--hue1)) !important;
+    text-shadow: 0 0 8px oklch(0.7 0.2 var(--hue1) / 0.35) !important;
+}
+:root[data-theme="light"] .rms-nav-tab svg {
+    filter: drop-shadow(0 0 4px oklch(0.5 0.2 var(--hue1) / 0.2)) !important;
+}
+:root[data-theme="light"] .rms-nav-tab.active svg {
+    filter: drop-shadow(0 0 10px oklch(0.6 0.22 var(--hue1) / 0.45)) !important;
+}
+
+/* ═══ APP background pattern (chat.php noise overlay neutralization) ═══ */
+:root[data-theme="light"] .app::before,
+:root[data-theme="light"] .app::after {
+    display: none !important;
+}
+
+/* ═══ Conf-warn / alerts ═══ */
+:root[data-theme="light"] .conf-warn {
+    background: linear-gradient(135deg, oklch(0.94 0.08 60), oklch(0.96 0.04 50)) !important;
+    border: 1px solid oklch(0.78 0.15 60) !important;
+    color: oklch(0.4 0.2 50) !important;
+}
+
+/* ═══ Action buttons (generic) ═══ */
+:root[data-theme="light"] .action-button {
+    background: oklch(0.95 0.02 257) !important;
+    border: 1px solid oklch(0.85 0.04 var(--hue1) / 0.4) !important;
+    color: oklch(0.45 0.18 var(--hue1)) !important;
+}
+
+/* ═══ Chat overlay (ако има) ═══ */
+:root[data-theme="light"] .chat,
+:root[data-theme="light"] .chat-messages {
+    background: var(--iri-bg-1) !important;
+    color: var(--iri-fg-1) !important;
+}
+:root[data-theme="light"] .ai-bubble {
+    background:
+        linear-gradient(135deg, oklch(0.94 0.07 var(--hue2)), oklch(0.96 0.04 257)) padding-box,
+        linear-gradient(165deg, oklch(0.78 0.15 var(--hue2) / 0.4), oklch(0.9 0.05 257 / 0.6)) border-box !important;
+    border: 1px solid transparent !important;
+    color: oklch(0.35 0.18 var(--hue1)) !important;
+}
+
+/* ═══ Smooth theme switch ═══ */
+:root[data-theme="light"] .glass,
+:root[data-theme="light"] .lb-card,
+:root[data-theme="light"] .lb-silent,
+:root[data-theme="light"] .briefing-section,
+:root[data-theme="light"] .ai-studio-row,
+:root[data-theme="light"] .rms-icon-btn,
+:root[data-theme="light"] .s82-dash-pill,
+:root[data-theme="light"] .lb-action,
+:root[data-theme="light"] .briefing-btn-primary {
+    transition:
+        background 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+        border 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+        color 0.3s ease,
+        box-shadow 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}

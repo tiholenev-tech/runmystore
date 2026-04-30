@@ -1,0 +1,312 @@
+/* ════════════════════════════════════════════════════════════
+ * RunMyStore — DESIGN KIT · components-base.css
+ * Базови shell стилове: .rms-header, .rms-bottom-nav, .rms-input-bar, .rms-fab
+ * ════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   RunMyStore.AI — Shared Shell Styles (S82.SHELL)
+   Header / Bottom-nav / Input-bar — copied 1:1 from chat.php
+   so every module looks identical.
+   Loaded after theme.css.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── HEADER ─── */
+.rms-header{
+    display:flex;align-items:center;gap:8px;
+    padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 8px 12px;
+    position:relative;z-index:60;
+}
+.rms-brand{
+    font-size:11px;font-weight:900;
+    letter-spacing:.12em;
+    color:hsl(var(--hue1) 50% 70%);
+    text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3);
+    text-decoration:none;
+    cursor:pointer;
+}
+.rms-plan-badge{
+    padding:3px 8px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(280 70% 55%),hsl(300 70% 50%));
+    color:white;font-size:9px;font-weight:900;letter-spacing:.08em;
+    box-shadow:0 0 10px hsl(280 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.rms-plan-badge.free{background:linear-gradient(135deg,#6b7280,#4b5563);box-shadow:0 0 8px rgba(107,114,128,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+.rms-plan-badge.start{background:linear-gradient(135deg,hsl(220 70% 55%),hsl(240 70% 50%));box-shadow:0 0 10px hsl(220 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2)}
+.rms-header-spacer{flex:1}
+.rms-icon-btn{
+    width:28px;height:28px;border-radius:50%;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.05);
+    color:var(--text-secondary);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    position:relative;text-decoration:none;flex-shrink:0;
+    transition:color .2s,border-color .2s,background .2s;
+}
+.rms-icon-btn:hover{color:var(--indigo-300,#a5b4fc);border-color:var(--border-glow,rgba(99,102,241,.4))}
+.rms-icon-btn svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* Print status icon — paired/error variants */
+.rms-icon-btn.rms-print::after{
+    content:'';position:absolute;top:1px;right:1px;
+    width:6px;height:6px;border-radius:50%;
+    background:rgba(148,163,184,.7);
+    border:1.5px solid var(--bg-main,#08090d);
+}
+.rms-icon-btn.rms-print.paired{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+.rms-icon-btn.rms-print.paired::after{background:#22c55e;box-shadow:0 0 6px #22c55e}
+.rms-icon-btn.rms-print.error{color:#fca5a5;border-color:rgba(239,68,68,.4)}
+.rms-icon-btn.rms-print.error::after{background:#ef4444;box-shadow:0 0 6px #ef4444}
+
+/* Logout dropdown */
+.rms-logout-dd{
+    position:absolute;top:34px;right:0;
+    background:#0f0f2a;
+    border:1px solid rgba(239,68,68,.3);
+    border-radius:10px;padding:8px 14px;white-space:nowrap;
+    z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5);
+    font-size:13px;color:#fca5a5;font-weight:700;
+    cursor:pointer;display:none;text-decoration:none;
+}
+.rms-logout-dd.show{display:block}
+
+/* Light theme overrides */
+:root[data-theme="light"] .rms-icon-btn{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:var(--text-secondary);
+}
+:root[data-theme="light"] .rms-icon-btn:hover{background:rgba(15,23,42,.08)}
+:root[data-theme="light"] .rms-logout-dd{background:#fff;border-color:rgba(239,68,68,.4);color:#dc2626}
+:root[data-theme="light"] .rms-brand{color:hsl(var(--hue1) 55% 48%);text-shadow:0 0 10px hsl(var(--hue1) 60% 60% / .20)}
+
+/* ─── BOTTOM NAV ─── */
+.rms-bottom-nav{
+    position:fixed;bottom:0;left:0;right:0;
+    max-width:480px;margin:0 auto;display:flex;
+    padding:8px 8px calc(14px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,hsl(220 25% 6% / .85),hsl(220 25% 4% / .95));
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-top:1px solid hsl(var(--hue2) 20% 15% / .5);
+    z-index:40;
+    transition:opacity .3s;
+}
+body.overlay-open .rms-bottom-nav{opacity:0;pointer-events:none}
+.rms-nav-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:7px 4px 4px;border-radius:12px;
+    background:transparent;border:none;
+    color:var(--text-muted);cursor:pointer;
+    font-family:inherit;text-decoration:none;
+}
+.rms-nav-tab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rms-nav-tab-label{font-size:9px;font-weight:700;letter-spacing:.02em}
+.rms-nav-tab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
+.rms-nav-tab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
+
+:root[data-theme="light"] .rms-bottom-nav{
+    background:linear-gradient(180deg,hsl(215deg 40% 99% / .75),hsl(215deg 40% 97% / .95));
+    border-top-color:hsl(var(--hue2),25%,80%);
+}
+:root[data-theme="light"] .rms-nav-tab{color:var(--text-secondary)}
+:root[data-theme="light"] .rms-nav-tab.active{color:hsl(var(--hue1) 65% 50%)}
+
+/* ─── INPUT BAR (sticky entry point to AI chat) ─── */
+.rms-input-bar{
+    position:fixed;left:0;right:0;
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    max-width:480px;margin:0 auto;padding:8px 12px;
+    z-index:35;cursor:pointer;
+    transition:opacity .3s,transform .3s;
+}
+body.overlay-open .rms-input-bar{opacity:0;pointer-events:none;transform:translateY(20px)}
+.rms-input-inner{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 35% 15% / .85),hsl(var(--hue2) 35% 12% / .7));
+    border:1px solid hsl(var(--hue1) 30% 25% / .6);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 16px hsl(var(--hue1) 60% 45% / .2);
+}
+.rms-input-waves{display:flex;gap:2px;align-items:flex-end;height:14px;flex-shrink:0}
+.rms-input-wave{width:3px;border-radius:100px;animation:rmsWave 1.2s ease-in-out infinite}
+.rms-input-wave:nth-child(1){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:0s}
+.rms-input-wave:nth-child(2){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.15s}
+.rms-input-wave:nth-child(3){height:14px;background:hsl(var(--hue1) 70% 60%);animation-delay:.3s}
+.rms-input-wave:nth-child(4){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.45s}
+.rms-input-wave:nth-child(5){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:.6s}
+@keyframes rmsWave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+.rms-input-placeholder{flex:1;font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:.02em}
+.rms-input-mic{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:0 0 12px hsl(var(--hue1) 60% 45% / .4),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.rms-input-mic svg{width:14px;height:14px;stroke:white;stroke-width:2;fill:none;stroke-linecap:round}
+.rms-input-send{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.rms-input-send svg{width:13px;height:13px;fill:var(--text-muted)}
+
+:root[data-theme="light"] .rms-input-bar .rms-input-inner{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 95% / .95),hsl(var(--hue2) 60% 95% / .90));
+    border-color:hsl(var(--hue1) 40% 75%);
+    box-shadow:0 4px 16px hsl(var(--hue2) 30% 60% / .18),0 0 12px hsl(var(--hue1) 60% 70% / .15);
+}
+:root[data-theme="light"] .rms-input-placeholder{color:var(--text-muted)}
+
+/* Page padding so content can scroll past the sticky chat-input + bottom-nav.
+   No !important, no wrapper overrides — those broke scroll on flex-height wrappers. */
+body.has-rms-shell{
+    padding-bottom:calc(140px + env(safe-area-inset-bottom,0px));
+}
+
+/* ─── RESPONSIVE: smaller icons + tighter brand on narrow screens ─── */
+@media (max-width: 380px){
+    .rms-header{gap:6px;padding-left:6px;padding-right:6px}
+    .rms-brand{font-size:10px;letter-spacing:.10em}
+    .rms-plan-badge{padding:2px 6px;font-size:8px}
+    .rms-icon-btn{width:26px;height:26px}
+    .rms-icon-btn svg{width:11px;height:11px}
+}
+@media (max-width: 340px){
+    .rms-brand{font-size:9px;letter-spacing:.08em}
+    .rms-icon-btn{width:24px;height:24px;border-radius:8px}
+    .rms-header{gap:4px}
+}
+
+/* ─── LIGHT THEME — overrides for module-local hardcoded dark patterns ─── */
+:root[data-theme="light"] body{
+    background:linear-gradient(180deg,#f8faff 0%,#e7ebf5 100%) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] .glass,
+:root[data-theme="light"] .add-card,
+:root[data-theme="light"] .health-sec,
+:root[data-theme="light"] .wiz-page,
+:root[data-theme="light"] .v4-glass-pro,
+:root[data-theme="light"] .modal-box,
+:root[data-theme="light"] .pay-sheet,
+:root[data-theme="light"] .ws-sheet{
+    background:linear-gradient(235deg,hsl(255 70% 92% / .85),hsl(255 70% 95% / 0) 33%),
+               linear-gradient(45deg,hsl(222 70% 92% / .85),hsl(222 70% 95% / 0) 33%),
+               linear-gradient(hsl(215deg 40% 99% / .92)) !important;
+    border-color:hsl(222,25%,80%) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] .header,
+:root[data-theme="light"] .page-header,
+:root[data-theme="light"] .modal-hdr,
+:root[data-theme="light"] .inv-header,
+:root[data-theme="light"] .top-bar{
+    background:rgba(244,246,251,.92) !important;
+    border-bottom-color:rgba(99,102,241,.18) !important;
+}
+:root[data-theme="light"] .h-icon,
+:root[data-theme="light"] .h-menu,
+:root[data-theme="light"] .back-btn,
+:root[data-theme="light"] .info-btn,
+:root[data-theme="light"] .store-switch,
+:root[data-theme="light"] .plan-tag,
+:root[data-theme="light"] .ph-theme-toggle,
+:root[data-theme="light"] .cam-btn{
+    background:rgba(15,23,42,.04) !important;
+    border-color:rgba(15,23,42,.10) !important;
+    color:#475569 !important;
+}
+:root[data-theme="light"] .title-main,
+:root[data-theme="light"] .page-title,
+:root[data-theme="light"] h1,
+:root[data-theme="light"] h2,
+:root[data-theme="light"] .brand{
+    background:linear-gradient(110deg,#1e1b4b 0%,#4338ca 35%,#1e1b4b 70%) !important;
+    -webkit-background-clip:text !important;background-clip:text !important;
+    -webkit-text-fill-color:transparent !important;color:transparent !important;
+}
+:root[data-theme="light"] .title-sub,
+:root[data-theme="light"] .add-hint,
+:root[data-theme="light"] .health-meta,
+:root[data-theme="light"] .stat-lbl{color:#475569 !important}
+:root[data-theme="light"] .add-title,
+:root[data-theme="light"] .health-title,
+:root[data-theme="light"] .stat-val,
+:root[data-theme="light"] .q-nm,
+:root[data-theme="light"] .field-label{color:#0f172a !important}
+:root[data-theme="light"] .fc,
+:root[data-theme="light"] input[type="text"],
+:root[data-theme="light"] input[type="number"],
+:root[data-theme="light"] input[type="email"],
+:root[data-theme="local"] input[type="password"],
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] select{
+    background:rgba(255,255,255,.85) !important;
+    border-color:rgba(15,23,42,.15) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder{color:rgba(15,23,42,.45) !important}
+
+/* light theme — bottom nav + chat input bar already handled above; ensure nav active glow stays visible */
+:root[data-theme="light"] .bnav-tab.active,
+:root[data-theme="light"] .bottom-nav-tab.active{color:#4338ca !important}
+
+/* ─── LIGHT THEME — broad text darkening for wizard / cards / modals ─── */
+/* Strategy: target whole wrappers, not inline color attribute matches.
+   This way all child text inherits dark colour by default, but a child
+   element with a coloured GRADIENT background keeps its white text
+   (because we exempt gradient backgrounds below). */
+:root[data-theme="light"] .wiz-page,
+:root[data-theme="light"] .wiz-page *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .glass:not(.rev-card),
+:root[data-theme="light"] .glass:not(.rev-card) *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v4-glass-pro,
+:root[data-theme="light"] .v4-glass-pro *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .modal-box,
+:root[data-theme="light"] .modal-box *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .add-card,
+:root[data-theme="light"] .add-card *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .health-sec,
+:root[data-theme="light"] .health-sec *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .stat-card *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v4-pz,
+:root[data-theme="light"] .v4-pz *:not(svg):not(svg *):not([style*="linear-gradient"]),
+:root[data-theme="light"] .v-picker-body,
+:root[data-theme="light"] .v-picker-body *:not(svg):not(svg *):not([style*="linear-gradient"]){
+    color:#0f172a !important;
+}
+/* Gradient-text titles get a dark indigo gradient instead of bright */
+:root[data-theme="light"] .wiz-page [style*="-webkit-text-fill-color:transparent"],
+:root[data-theme="light"] .glass [style*="-webkit-text-fill-color:transparent"],
+:root[data-theme="light"] .title-main,
+:root[data-theme="light"] .page-title{
+    background:linear-gradient(135deg,#1e1b4b,#4338ca) !important;
+    -webkit-background-clip:text !important;
+    background-clip:text !important;
+    -webkit-text-fill-color:transparent !important;
+    color:transparent !important;
+}
+/* settings.php specific — placeholder svg + row text */
+:root[data-theme="light"] .placeholder,
+:root[data-theme="light"] .placeholder svg,
+:root[data-theme="light"] .row-sub,
+:root[data-theme="light"] .row-val{color:#475569 !important}
+:root[data-theme="light"] .row-label{color:#0f172a !important}
+:root[data-theme="light"] .card{
+    background:rgba(255,255,255,.95) !important;
+    border-color:rgba(99,102,241,.18) !important;
+    box-shadow:rgba(99,102,241,.08) 0 10px 16px -8px,rgba(99,102,241,.05) 0 20px 36px -14px !important;
+}
+:root[data-theme="light"] .section-title{color:#475569 !important}
+:root[data-theme="light"] .btn{
+    background:rgba(15,23,42,.04) !important;
+    border-color:rgba(15,23,42,.10) !important;
+    color:#0f172a !important;
+}
+:root[data-theme="light"] .btn:hover{color:#4338ca !important;border-color:rgba(99,102,241,.4) !important}
+:root[data-theme="light"] .btn.danger{background:rgba(239,68,68,.08) !important;color:#dc2626 !important;border-color:rgba(239,68,68,.30) !important}
+
+/* Smooth theme switch on body */
+html{transition:background-color .2s ease}
