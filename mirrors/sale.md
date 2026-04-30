@@ -1396,6 +1396,27 @@ body.sale-page .cam-top{ gap:8px }
 }
 .srch-variant-add:active{transform:scale(0.92)}
 .srch-variant-add:disabled{opacity:0.35;cursor:not-allowed}
+/* S87G.HOTFIX_B5 — single-variant master "+" button (mirrors variant add) */
+.srch-master-add{
+    width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    font-family:inherit;font-size:18px;font-weight:900;line-height:1;padding:0;
+    box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.4);
+}
+.srch-master-add:active{transform:scale(0.92)}
+/* S87G.HOTFIX_B5 — selection state for tapped result rows */
+.srch-master.selected, .srch-variant.selected{
+    background:linear-gradient(135deg,hsl(var(--hue1) 35% 22% / 0.7),hsl(var(--hue2) 40% 18% / 0.6)) !important;
+    border-color:hsl(var(--hue1) 60% 55%) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 16px hsl(var(--hue1) 60% 45% / 0.3) !important;
+}
+:root[data-theme="light"] .srch-master.selected,
+:root[data-theme="light"] .srch-variant.selected{
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 90%),hsl(var(--hue2) 60% 92%)) !important;
+    border-color:hsl(var(--hue1) 50% 65%) !important;
+}
 /* Toast */
 .srch-toast{
     position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
@@ -3523,6 +3544,7 @@ function inlineSearchClose() {
     c.style.display = 'none';
     c.innerHTML = '';
     srchOvCurrentMaster = null;
+    srchSelectedKey = null;
 }
 
 function inlineSearchBackToMaster() {
@@ -3589,6 +3611,22 @@ function srchOvGroupByMaster(results) {
     return Object.values(masters);
 }
 
+// S87G.HOTFIX_B5 — selection key for currently-tapped result row (master or variant).
+// Row body tap = select (visual state); explicit "+" / "→" button = open numpad.
+let srchSelectedKey = null;
+
+function srchClearSelectedUI() {
+    const c = document.getElementById('searchResultsInline');
+    if (!c) return;
+    c.querySelectorAll('.srch-master.selected, .srch-variant.selected').forEach(el => el.classList.remove('selected'));
+}
+
+function srchSelectRow(rowEl, key) {
+    srchClearSelectedUI();
+    if (rowEl) rowEl.classList.add('selected');
+    srchSelectedKey = key;
+}
+
 function srchOvRenderMasters(masters) {
     const c = document.getElementById('searchResultsInline');
     if (!c) return;
@@ -3599,10 +3637,10 @@ function srchOvRenderMasters(masters) {
         c.innerHTML += '<div class="srch-empty">Няма намерени артикули</div>';
         return;
     }
-    masters.forEach((m, idx) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'srch-master s87v3-tap';
+    masters.forEach((m) => {
+        const row = document.createElement('div');
+        row.className = 'srch-master s87v3-tap';
+        row.setAttribute('role', 'button');
         const variantText = m.variants.length === 1 ? '1 вариант' : (m.variants.length + ' варианта');
         const priceText = (m.minPrice === m.maxPrice)
             ? fmtPrice(m.minPrice)
@@ -3610,22 +3648,38 @@ function srchOvRenderMasters(masters) {
         const ico = m.image
             ? '<img src="' + esc(m.image) + '" alt="" loading="lazy">'
             : '📦';
-        btn.innerHTML =
+        const single = m.variants.length === 1;
+        const masterKey = single ? ('p:' + m.variants[0].id) : ('m:' + m.key);
+        if (srchSelectedKey === masterKey) row.classList.add('selected');
+        const trailingHtml = single
+            ? '<button type="button" class="srch-master-add" aria-label="Добави">+</button>'
+            : '<span class="srch-master-arrow" aria-hidden="true">›</span>';
+        row.innerHTML =
             '<div class="srch-master-ico">' + ico + '</div>' +
             '<div class="srch-master-info">' +
                 '<div class="srch-master-name">' + esc(m.name) + '</div>' +
                 '<div class="srch-master-meta">' + variantText + ' · ' + priceText + '</div>' +
             '</div>' +
-            '<span class="srch-master-arrow">›</span>';
-        btn.addEventListener('click', () => {
-            // Single-variant fast path: skip State B, addToCart directly
-            if (m.variants.length === 1) {
+            trailingHtml;
+        if (single) {
+            // Single-variant master: row body tap = select; explicit "+" tap = open numpad.
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.srch-master-add')) return; // add button handler below
+                srchSelectRow(row, masterKey);
+            });
+            const addBtn = row.querySelector('.srch-master-add');
+            if (addBtn) addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                srchSelectRow(row, masterKey);
                 srchOvAddProduct(m.variants[0]);
-            } else {
+            });
+        } else {
+            // Multi-variant master: row tap = drill-down to variants (no selection persists).
+            row.addEventListener('click', () => {
                 srchOvOpenVariants(m);
-            }
-        });
-        c.appendChild(btn);
+            });
+        }
+        c.appendChild(row);
     });
 }
 
@@ -3643,7 +3697,10 @@ function srchOvOpenVariants(master) {
     c.appendChild(back);
     master.variants.forEach(v => {
         const div = document.createElement('div');
-        div.className = 'srch-variant';
+        div.className = 'srch-variant s87v3-tap';
+        div.setAttribute('role', 'button');
+        const variantKey = 'p:' + v.id;
+        if (srchSelectedKey === variantKey) div.classList.add('selected');
         const stock = parseInt(v.stock || 0);
         const stockCls = stock === 0 ? 'srch-variant-stock zero' : 'srch-variant-stock';
         const colorBg = srchOvColorToCss(v.color);
@@ -3656,9 +3713,15 @@ function srchOvOpenVariants(master) {
             '</div>' +
             '<span class="srch-variant-price">' + fmtPrice(parseFloat(v.retail_price) || 0) + '</span>' +
             '<button type="button" class="srch-variant-add" aria-label="Добави">+</button>';
+        // Row body tap = select (visual state); does NOT open numpad.
+        div.addEventListener('click', (e) => {
+            if (e.target.closest('.srch-variant-add')) return; // add button handler below
+            srchSelectRow(div, variantKey);
+        });
         const addBtn = div.querySelector('.srch-variant-add');
-        addBtn.addEventListener('click', (e) => {
+        if (addBtn) addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            srchSelectRow(div, variantKey);
             srchOvAddProduct(v);
         });
         c.appendChild(div);
