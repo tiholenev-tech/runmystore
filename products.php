@@ -496,7 +496,23 @@ if ($ajax === 'sections') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
         if ($sup) {
-            $categories = DB::run("SELECT c.id, c.name, c.parent_id FROM categories c JOIN supplier_categories sc ON sc.category_id=c.id AND sc.supplier_id=? AND sc.tenant_id=? WHERE c.tenant_id=? ORDER BY c.name", [$sup, $tenant_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+            // S90.PRODUCTS.SPRINT_B D3: за wizard-а Pesho трябва да види категориите
+            // на ИЗБРАНИЯ доставчик. UNION на:
+            //   (a) ръчно мапнати категории в supplier_categories
+            //   (b) категории с поне 1 активен продукт от този доставчик (auto-discover)
+            $categories = DB::run(
+                "SELECT DISTINCT c.id, c.name, c.parent_id
+                 FROM categories c
+                 WHERE c.tenant_id = ?
+                   AND (
+                        EXISTS (SELECT 1 FROM supplier_categories sc
+                                WHERE sc.category_id=c.id AND sc.supplier_id=? AND sc.tenant_id=?)
+                     OR EXISTS (SELECT 1 FROM products p
+                                WHERE p.category_id=c.id AND p.supplier_id=? AND p.tenant_id=? AND p.is_active=1)
+                   )
+                 ORDER BY c.name",
+                [$tenant_id, $sup, $tenant_id, $sup, $tenant_id]
+            )->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $categories = DB::run("SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count, COUNT(DISTINCT p.supplier_id) AS supplier_count, COALESCE(SUM(i.quantity),0) AS total_stock FROM categories c JOIN products p ON p.category_id=c.id AND p.tenant_id=? AND p.is_active=1 LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE c.tenant_id=? GROUP BY c.id ORDER BY c.name", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -522,6 +538,40 @@ if ($ajax === 'sections') {
         DB::run("DELETE FROM supplier_categories WHERE tenant_id=? AND supplier_id=?", [$tenant_id, $sup_id]);
         foreach ($cat_ids as $cid) { $cid=(int)$cid; if($cid>0) DB::run("INSERT IGNORE INTO supplier_categories (tenant_id,supplier_id,category_id) VALUES (?,?,?)", [$tenant_id,$sup_id,$cid]); }
         echo json_encode(['ok'=>true,'count'=>count($cat_ids)]); exit;
+    }
+
+    // ─── S90.PRODUCTS.SPRINT_B D5: live duplicate-name check докато Pesho пише ───
+    // Връща top 5 близки имена с similarity ≥ 0.65; UI показва banner само за ≥ 0.85.
+    if ($ajax === 'name_dupe_check') {
+        $q = trim($_GET['q'] ?? '');
+        if (mb_strlen($q) < 3) { echo json_encode([]); exit; }
+        $editId = (int)($_GET['exclude_id'] ?? 0);
+        $like = '%' . $q . '%';
+        $params = [$tenant_id, $like];
+        $sql = "SELECT id, name, retail_price FROM products
+                WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
+                  AND name LIKE ?";
+        if ($editId > 0) { $sql .= " AND id <> ?"; $params[] = $editId; }
+        $sql .= " ORDER BY CHAR_LENGTH(name) ASC LIMIT 40";
+        $rows = DB::run($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+        // PHP-side similarity: similar_text() връща percent (0..100).
+        $qLower = mb_strtolower($q);
+        $matches = [];
+        foreach ($rows as $r) {
+            $nameLower = mb_strtolower($r['name']);
+            similar_text($qLower, $nameLower, $pct);
+            $sim = round($pct / 100.0, 3);
+            if ($sim >= 0.65) {
+                $matches[] = [
+                    'id'    => (int)$r['id'],
+                    'name'  => $r['name'],
+                    'price' => (float)$r['retail_price'],
+                    'score' => $sim,
+                ];
+            }
+        }
+        usort($matches, fn($a, $b) => $b['score'] <=> $a['score']);
+        echo json_encode(array_slice($matches, 0, 5)); exit;
     }
 
     // ─── CATEGORY GROUPS (from JSON) ───
@@ -1645,6 +1695,9 @@ body::before{
 .wiz-page{display:none;padding:16px 16px max(120px,calc(16px + env(safe-area-inset-bottom)))}
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint — Pesho вижда какво е AI vs какво е писал. */
+.wiz-ai-hint{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;font-size:10px;font-weight:600;color:#a5b4fc;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(139,92,246,0.06));border:1px solid rgba(139,92,246,0.28);border-radius:8px;line-height:1.3;letter-spacing:0.01em}
+.wiz-ai-hint svg{stroke:#a5b4fc;stroke-width:2.2;fill:none;flex-shrink:0;width:11px;height:11px}
 
 /* === S82.COLOR.4 — Photo mode toggle + multi-photo + camera loop === */
 .photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
@@ -4502,9 +4555,11 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- ═══ MANUAL WIZARD MODAL ═══ -->
 <div class="modal-ov" id="wizModal">
     <div class="modal-hdr">
-        <button onclick="closeWizard()" style="background:transparent;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer">✕</button>
+        <button id="wizBackBtn" onclick="wizPrev()" aria-label="Назад" title="Назад" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;padding:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
         <h2 id="wizTitle">Нов артикул</h2>
-        <div style="width:28px"></div>
+        <button onclick="closeWizard()" aria-label="Затвори" title="Затвори" style="background:transparent;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div class="wiz-steps" id="wizSteps"></div>
     <div class="wiz-label" id="wizLabel"></div>
@@ -5537,8 +5592,11 @@ function closeVoice(){
 // Tap backdrop = close
 document.getElementById('recOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeVoice()});
 
-// ─── SWIPE NAVIGATION — DISABLED ───
-// Removed: swipe between pages was accidentally triggering on normal scroll
+// ─── SWIPE NAVIGATION — DISABLED (S90.PRODUCTS.SPRINT_B G1) ───
+// Removed: swipe between pages was accidentally triggering on normal scroll.
+// Tihol confirmed: do NOT add page-level swipe-nav back to products.php.
+// `.swipe-row` / `.h-scroll` CSS остава — те са horizontal-scroll карусели за
+// content вътре в карта (доставчици, категории), не page navigation.
 
 
 
@@ -5684,6 +5742,74 @@ function fieldLabel(text,key,extra){
     return '<label class="fl">'+html+' '+extra+'</label>';
 }
 
+// S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint helpers.
+// wizAIHint('name') → returns badge HTML if S.wizData._aiFilled.name === true.
+// wizMarkAIFilled('name') → mark a field as AI-filled (call where AI sets the value).
+// wizClearAIMark('name') → mark cleared (called from oninput when user edits).
+function wizAIHint(key){
+    if(!S.wizData||!S.wizData._aiFilled||!S.wizData._aiFilled[key])return '';
+    return '<div class="wiz-ai-hint" data-aikey="'+key+'"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>AI попълни — натисни за промяна</div>';
+}
+function wizMarkAIFilled(){
+    if(!S.wizData)return;
+    if(!S.wizData._aiFilled)S.wizData._aiFilled={};
+    for(var i=0;i<arguments.length;i++)S.wizData._aiFilled[arguments[i]]=true;
+}
+function wizClearAIMark(key){
+    if(!S.wizData||!S.wizData._aiFilled||!S.wizData._aiFilled[key])return;
+    delete S.wizData._aiFilled[key];
+    var el=document.querySelector('.wiz-ai-hint[data-aikey="'+key+'"]');
+    if(el)el.style.display='none';
+}
+
+// S90.PRODUCTS.SPRINT_B D5: live duplicate detection докато Pesho пише името.
+// Debounced 350ms. След 3+ символа AJAX → ако match score ≥ 0.85 → жълт banner с CTA.
+var _wizDupeTimer=null;
+function wizDupeCheckName(name){
+    name=(name||'').trim();
+    var banner=document.getElementById('wDupeBanner');
+    if(!banner)return;
+    if(_wizDupeTimer){clearTimeout(_wizDupeTimer);_wizDupeTimer=null;}
+    if(name.length<3){banner.style.display='none';banner.innerHTML='';return;}
+    // Не показваме banner ако вече сме потвърдили "не, продължи" за това име.
+    if(S._wizDupeDismissed&&S._wizDupeDismissed===name.toLowerCase()){banner.style.display='none';return;}
+    _wizDupeTimer=setTimeout(function(){
+        var url='products.php?ajax=name_dupe_check&q='+encodeURIComponent(name);
+        if(S.wizEditId)url+='&exclude_id='+S.wizEditId;
+        api(url).then(function(matches){
+            if(!Array.isArray(matches)||!matches.length){banner.style.display='none';banner.innerHTML='';return;}
+            var top=matches[0];
+            if(!top||top.score<0.85){banner.style.display='none';banner.innerHTML='';return;}
+            // Все още се пише — текущото име може да е променено след заявката.
+            var cur=(document.getElementById('wName')||{}).value||'';
+            if(cur.trim().toLowerCase()!==name.toLowerCase())return;
+            var priceTxt=(top.price>0)?(' ('+top.price.toFixed(2)+' '+CFG.currency+')'):'';
+            var pct=Math.round(top.score*100);
+            banner.style.display='block';
+            banner.innerHTML='<div class="wiz-dupe-banner" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.42);color:#fcd34d">'
+                +'<div style="display:flex;align-items:flex-start;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'
+                +'<div style="flex:1;min-width:0;font-size:11.5px;line-height:1.45">Близко до съществуващ артикул: <b style="color:#fff">'+_escDupe(top.name)+'</b>'+priceTxt+' · <span style="color:#fde68a">'+pct+'% близко</span>. Същото ли е?</div></div>'
+                +'<div style="display:flex;gap:6px;margin-top:8px"><button type="button" onclick="wizDupeOpenExisting('+top.id+')" style="flex:1;padding:8px;border-radius:8px;background:rgba(99,102,241,0.18);border:1px solid rgba(139,92,246,0.45);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Да, отвори същото</button>'
+                +'<button type="button" onclick="wizDupeDismiss()" style="flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Не, продължи</button></div>'
+                +'</div>';
+        }).catch(function(){});
+    },350);
+}
+function _escDupe(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});}
+function wizDupeDismiss(){
+    var nm=(document.getElementById('wName')||{}).value||'';
+    S._wizDupeDismissed=nm.trim().toLowerCase();
+    var banner=document.getElementById('wDupeBanner');
+    if(banner){banner.style.display='none';banner.innerHTML='';}
+}
+function wizDupeOpenExisting(id){
+    if(!id)return;
+    closeWizard();
+    if(typeof openProductDetail==='function'){openProductDetail(id);return;}
+    if(typeof goScreenWithHistory==='function'){goScreenWithHistory('products',{id:id});return;}
+    location.hash='#product='+id;
+}
+
 // ═══ S82.STUDIO.10: wizDraft cache — auto-saves the wizard state to
 // localStorage so accidental refresh / browser close / phone lock doesn't
 // lose the user's work. Up to ~5 MB per origin (enough for 30 photos
@@ -5763,6 +5889,7 @@ function openManualWizard(){
     } else {
         S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
     }
+    S._wizHistory=[];
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
@@ -5788,6 +5915,7 @@ function openVoiceWizard(){
     } else {
         S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
     }
+    S._wizHistory=[];
     S.wizVoiceMode=true;
     document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
     renderWizard();
@@ -5853,30 +5981,49 @@ function handleVoiceStep(step,text){
 
 function parseVoiceToFields(text){
     const priceMatch=text.match(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/i);
-    if(priceMatch)S.wizData.retail_price=parseFloat(priceMatch[1].replace(',','.'));
+    if(priceMatch){S.wizData.retail_price=parseFloat(priceMatch[1].replace(',','.'));wizMarkAIFilled('retail_price');}
     const tl=text.toLowerCase();
     for(const s of CFG.suppliers){if(tl.includes(s.name.toLowerCase())){S.wizData.supplier_id=s.id;break}}
-    for(const c of CFG.categories){if(tl.includes(c.name.toLowerCase())){S.wizData.category_id=c.id;break}}
+    for(const c of CFG.categories){if(tl.includes(c.name.toLowerCase())){S.wizData.category_id=c.id;wizMarkAIFilled('category');break}}
     if(!S.wizData.name){
         let name=text.replace(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/gi,'').trim();
         for(const s of CFG.suppliers)name=name.replace(new RegExp(s.name,'gi'),'');
         for(const c of CFG.categories)name=name.replace(new RegExp(c.name,'gi'),'');
         name=name.replace(/\s+/g,' ').trim();
-        if(name.length>2)S.wizData.name=name;
+        if(name.length>2){S.wizData.name=name;wizMarkAIFilled('name');}
     }
 }
 
 function closeWizard(){
     document.getElementById('wizModal').classList.remove('open');
     document.body.style.overflow='';
+    S._wizHistory=[];
 }
 
-function wizGo(step){
+function wizGo(step,_skipHistory){
     wizCollectData();
     if(step===2&&!S.wizData._hasPhoto){step=3;}
+    if(!_skipHistory && S.wizStep!==step){
+        if(!Array.isArray(S._wizHistory))S._wizHistory=[];
+        S._wizHistory.push(S.wizStep);
+        if(S._wizHistory.length>32)S._wizHistory.shift();
+    }
     S.wizStep=step;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
+}
+// S90.PRODUCTS.SPRINT_B C5: back arrow in wizard header — пазим стъпки в history.
+function wizPrev(){
+    if(Array.isArray(S._wizHistory)&&S._wizHistory.length){
+        var prev=S._wizHistory.pop();
+        wizGo(prev,true);
+        return;
+    }
+    if(S.wizStep>0){
+        wizGo(Math.max(0,S.wizStep-1),true);
+        return;
+    }
+    closeWizard();
 }
 
 
@@ -6022,6 +6169,11 @@ async function renderWizard(){
             await wizLoadSubcats(S.wizData.category_id);
         }
         if(typeof wizUpdateMarkup==='function')wizUpdateMarkup();
+        // S90.PRODUCTS.SPRINT_B D3: prefetch на supplier-филтрираните категории
+        // веднага след render — иначе първото отваряне на dropdown показва пълния списък.
+        if(S.wizData.supplier_id&&typeof wizPrefetchSupplierCats==='function'){
+            wizPrefetchSupplierCats(S.wizData.supplier_id);
+        }
     }
     // Legacy supplier→category cascade (kept defensively for the old #wSup/#wCat selects if any code path still renders them).
     if(false&&S.wizStep===3){
@@ -6222,15 +6374,15 @@ function renderWizPage(step){
               '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
               // S88B-1: photoBlock moved to Step 2. Step 3 = data fields per audit §10.3 layout.
               // Име
-              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div></div>'+
+              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value)" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div>'+wizAIHint('name')+'<div id="wDupeBanner" style="display:none"></div></div>'+
               // Retail + Wholesale row
               '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div></div>'+
-                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
+                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
               '</div>'+
               // Cost + Markup% row (Markup informative only — computed, NOT saved per Q1)
               '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div>'+wizAIHint('cost_price')+'</div>'+
                 '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Надценка %','markup_pct','<span class="hint">(не се записва)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup()" '+(parseFloat(S.wizData.cost_price)>0?'':'disabled')+' placeholder="'+(parseFloat(S.wizData.cost_price)>0?'auto':'(въведи доставна)')+'" style="flex:1;min-width:0">'+cpy('markup_pct')+'</div></div>'+
               '</div>'+
               // Брой + Мин количество (single only)
@@ -6249,19 +6401,20 @@ function renderWizPage(step){
                 '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
                 '<div id="inlSup" class="inline-add"><input type="text" id="inlSupName" placeholder="Нов доставчик"><button type="button" onclick="wizAddInline(\'supplier\')">+ Добави</button></div>'+
               '</div>'+
-              // Категория dropdown
-              '<div class="fg" style="position:relative">'+fieldLabel('Категория','category')+
+              // Категория dropdown — S90.PRODUCTS.SPRINT_B D3: filter-ва се по избран доставчик
+              '<div class="fg" style="position:relative">'+fieldLabel('Категория','category',(S.wizData.supplier_id?'<span class="hint">(само от избрания доставчик)</span>':''))+
                 '<div style="display:flex;gap:6px;align-items:center">'+
                   '<input type="text" class="fc" id="wCatDD" autocomplete="off" value="'+esc((function(){if(!S.wizData.category_id)return"";var c=(CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id});return c?c.name:""})())+'" placeholder="търси или избери..." style="flex:1" '+
-                    'onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',(CFG.categories||[]).filter(function(c){return !c.parent_id}))" '+
+                    'onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" '+
                     'onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\'},180)" '+
-                    'oninput="wizSearchDropdown(\'wCatDD\',\'wCatDDList\',(CFG.categories||[]).filter(function(c){return !c.parent_id}))">'+
+                    'oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
                   mic('category')+
                   '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
                   cpy('category_id')+
                 '</div>'+
                 '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
                 '<div id="inlCat" class="inline-add"><input type="text" id="inlCatName" placeholder="Нова категория"><button type="button" onclick="wizAddInline(\'category\')">+ Добави</button></div>'+
+                wizAIHint('category')+
               '</div>'+
               // Подкатегория (select; disabled until category selected)
               '<div class="fg">'+fieldLabel('Подкатегория','subcategory')+
@@ -6276,7 +6429,7 @@ function renderWizPage(step){
               // Цвят + Размер (single only — text fields, products.color/size schema columns)
               (isSingle ?
                 '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                  '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цвят','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wColor" value="'+esc(S.wizData.color||'')+'" placeholder="напр. Черен" oninput="S.wizData.color=this.value" style="flex:1;min-width:0">'+cpy('color')+'</div></div>'+
+                  '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цвят','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wColor" value="'+esc(S.wizData.color||'')+'" placeholder="напр. Черен" oninput="S.wizData.color=this.value;wizClearAIMark(\'color\')" style="flex:1;min-width:0">'+cpy('color')+'</div>'+wizAIHint('color')+'</div>'+
                   '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Размер','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wSize" value="'+esc(S.wizData.size||'')+'" placeholder="напр. M" oninput="S.wizData.size=this.value" style="flex:1;min-width:0">'+cpy('size')+'</div></div>'+
                 '</div>'
                 : '')+
@@ -6286,11 +6439,14 @@ function renderWizPage(step){
               '<div class="fg">'+fieldLabel('Произход','name','<span class="hint">(държава)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wOrigin" value="'+esc(S.wizData.origin_country||'')+'" placeholder="напр. България, Турция, Италия" oninput="S.wizData.origin_country=this.value" style="flex:1">'+mic('origin')+cpy('origin_country')+'</div></div>'+
               // Мерна единица
               '<div class="fg">'+fieldLabel('Мерна единица','unit')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
-              // Collapsible: Баркод + Артикулен номер (advanced)
-              '<details class="wiz-advanced" style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:rgba(255,255,255,0.55);padding:8px 0;list-style:none">▸ Баркод и артикулен номер</summary>'+
-                '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
-                '<div class="fg">'+fieldLabel('Артикулен номер','code','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+mic('code')+'</div></div>'+
-              '</details>'+
+              // S90.PRODUCTS.SPRINT_B C3: Артикулен номер и Баркод — всеки в собствен qcard.glass.
+              // S90.PRODUCTS.SPRINT_B C2: scanner икона на двете полета.
+              '<div class="wiz-id-card glass sm" style="padding:12px 14px;margin-top:10px;border-radius:14px">'+
+                '<div class="fg" style="margin:0">'+fieldLabel('Артикулен номер','code','<span class="hint">(вътрешен код · авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+mic('code')+'<button type="button" class="abtn" onclick="wizScanBarcode(\'wCode\',\'Сканирай артикулен номер\')" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.4)" title="Сканирай артикулен номер" aria-label="Сканирай артикулен номер"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+              '</div>'+
+              '<div class="wiz-id-card glass sm" style="padding:12px 14px;margin-top:10px;border-radius:14px">'+
+                '<div class="fg" style="margin:0">'+fieldLabel('Баркод','barcode','<span class="hint">(EAN/UPC · авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode(\'wBarcode\',\'Сканирай баркод\')" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай баркод" aria-label="Сканирай баркод"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+              '</div>'+
             '</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
               '<button type="button" onclick="closeWizard()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
@@ -6407,6 +6563,19 @@ function renderWizPagePart2(step){
             selH+='<div class="v-sel-empty">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
         selH+='</div>';
+        // S90.PRODUCTS.SPRINT_B C1: бутон "+ Добави на ръка" под списъка с избрани стойности.
+        // Pesho не пише по принцип, но за rare custom размери (ENI 38W, EU44.5) е нужно ръчно.
+        var _addLbl=isSize?'размер':(isColor?'цвят':(ax.name||'стойност'));
+        var _addPh=isSize?'напр. 38W, EU44.5, M-tall':(isColor?'напр. шампанско':'напр. '+(_addLbl));
+        selH+='<div class="v-add-manual" style="display:flex;gap:6px;padding:8px 14px 0">'+
+              '<input type="text" id="axVal'+ai+'" class="v-custom-input" placeholder="'+_addPh+'" '+
+              'onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+ai+')}" '+
+              'style="flex:1;padding:10px 14px;font-size:13px">'+
+              '<button class="v-custom-btn" onclick="wizAddAxisValue('+ai+')" title="Добави на ръка">'+
+              '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+              'Добави '+esc(_addLbl)+
+              '</button>'+
+              '</div>';
 
         // Picker body
         var pickH='<div class="v-picker-body">';
@@ -7909,11 +8078,16 @@ async function doStudioObjects(){
 
 // ─── HELPERS ───
 
-function wizScanBarcode(){
+// S90.PRODUCTS.SPRINT_B C2: scanner-ът работи и за артикулен номер.
+// targetField: 'wBarcode' (default) или 'wCode'. title: header текст.
+function wizScanBarcode(targetField,title){
+    targetField = targetField || 'wBarcode';
+    title = title || 'Сканирай баркод';
     const ov=document.createElement('div');ov.className='preset-ov';ov.id='barcodeScanOv';
+    ov._scanTarget = targetField;
     ov.innerHTML='<style>#wizBcVid::-webkit-media-controls,#wizBcVid::-webkit-media-controls-panel,#wizBcVid::-webkit-media-controls-overlay-play-button,#wizBcVid::-webkit-media-controls-play-button,#wizBcVid::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}</style>'+
     '<div class="preset-box" style="text-align:center;padding:16px">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">Сканирай баркод</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">'+title+'</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
     '<div id="wizBcWrap" style="position:relative;width:100%;aspect-ratio:16/10;max-height:250px;border-radius:12px;background:#000;overflow:hidden">'+
       '<video id="wizBcVid" autoplay playsinline muted disablepictureinpicture style="width:100%;height:100%;object-fit:cover;visibility:hidden"></video>'+
       '<div id="wizBcLoad" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>Стартиране на камерата…</div>'+
@@ -7934,8 +8108,11 @@ function wizScanBarcode(){
             vid._bcInterval=setInterval(async()=>{
                 try{const codes=await det.detect(vid);
                 if(codes.length){clearInterval(vid._bcInterval);const val=codes[0].rawValue;
-                const el=document.getElementById('wBarcode');if(el)el.value=val;
-                S.wizData.barcode=val;showToast('Баркод: '+val,'success');closeBarcodeScan();}
+                const target=ov._scanTarget||'wBarcode';
+                const el=document.getElementById(target);if(el)el.value=val;
+                if(target==='wCode'){S.wizData.code=val;showToast('Артикулен номер: '+val,'success');}
+                else{S.wizData.barcode=val;showToast('Баркод: '+val,'success');}
+                closeBarcodeScan();}
                 }catch(e){}
             },300);
         }else{showToast('Браузърът не поддържа сканиране','error')}
@@ -9268,7 +9445,49 @@ function wizPickDD(inputId,listId,id,name){
     if(inp){inp.value=name;inp._selectedId=id}
     if(list)list.style.display='none';
     if(inputId==='wCatDD'){S.wizData.category_id=id;wizLoadSubcats(id)}
-    if(inputId==='wSupDD'){S.wizData.supplier_id=id}
+    if(inputId==='wSupDD'){
+        var prevSup=S.wizData.supplier_id;
+        S.wizData.supplier_id=id;
+        // S90.PRODUCTS.SPRINT_B D3: смяна на доставчик → пре-зареждаме списъка с категории
+        // и (ако избраната категория не е в новия supplier scope) я нулираме мълчаливо.
+        if(prevSup!==id){
+            wizPrefetchSupplierCats(id).then(function(cats){
+                if(S.wizData.category_id){
+                    var stillValid=cats.some(function(c){return c.id==S.wizData.category_id});
+                    if(!stillValid){
+                        S.wizData.category_id=null;S.wizData.subcategory_id=null;
+                        var ci=document.getElementById('wCatDD');if(ci){ci.value='';ci._selectedId=null}
+                        var su=document.getElementById('wSubcat');if(su)su.innerHTML='<option value="">— Избери първо категория —</option>';
+                    }
+                }
+                renderWizard();
+            });
+        }
+    }
+}
+
+// S90.PRODUCTS.SPRINT_B D3: списък с категории, филтриран по текущ доставчик.
+// Връща синхронно от cache (или CFG.categories ако supplier-ът няма cache yet).
+function wizCatsForSupplier(){
+    var sup=S.wizData&&S.wizData.supplier_id;
+    if(!sup){
+        return (CFG.categories||[]).filter(function(c){return !c.parent_id});
+    }
+    if(S._wizSupCatCache&&S._wizSupCatCache.sup==sup){
+        return S._wizSupCatCache.cats||[];
+    }
+    // Cache miss → fire-and-forget prefetch + return full list този път.
+    wizPrefetchSupplierCats(sup);
+    return (CFG.categories||[]).filter(function(c){return !c.parent_id});
+}
+
+async function wizPrefetchSupplierCats(sup){
+    if(!sup){S._wizSupCatCache=null;return [];}
+    if(S._wizSupCatCache&&S._wizSupCatCache.sup==sup)return S._wizSupCatCache.cats;
+    var d=await api('products.php?ajax=categories&store_id='+CFG.storeId+'&sup='+sup);
+    var filtered=(d||[]).filter(function(c){return !c.parent_id});
+    S._wizSupCatCache={sup:sup,cats:filtered};
+    return filtered;
 }
 async function wizLoadSubcats(catId){
     const sel=document.getElementById('wSubcat');if(!sel)return;
