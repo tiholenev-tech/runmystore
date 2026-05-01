@@ -898,3 +898,195 @@ Use this knowledge naturally in your answers. Never say 'you told me' — just u
 
     return $prompt;
 }
+
+/**
+ * buildSupplierContext — context за supplier-specific chat queries.
+ *
+ * Spec: DELIVERY_ORDERS_DECISIONS_FINAL §O1 (O1-O4)
+ * Закон №2: PHP смята, AI получава готов JSON. AI не търси сам в DB.
+ *
+ * Връща:
+ *   - unresolved_mismatches  — ai_insights с reconciliation_*
+ *   - pending_defectives     — supplier_defectives.status='pending', grouped per product
+ *   - excess_unresolved      — deliveries с has_unfactured_excess=1 без resolved event
+ *   - last_3_deliveries      — последни 3 committed доставки със total/items
+ *   - cost_history_per_product — последни 5 cost-а per product (от delivery_items)
+ *
+ * @param int $tenant_id
+ * @param int $supplier_id
+ * @return array готов за вкарване в Gemini system prompt
+ */
+function buildSupplierContext(int $tenant_id, int $supplier_id): array {
+    if ($tenant_id <= 0 || $supplier_id <= 0) {
+        return [
+            'unresolved_mismatches'    => [],
+            'pending_defectives'       => [],
+            'excess_unresolved'        => [],
+            'last_3_deliveries'        => [],
+            'cost_history_per_product' => [],
+            'supplier'                 => null,
+        ];
+    }
+
+    $supplier = null;
+    try {
+        $stmt = DB::run("
+            SELECT id, name, email, phone, payment_terms_days, reliability_score, balance
+            FROM suppliers
+            WHERE id = ? AND tenant_id = ?
+        ", [$supplier_id, $tenant_id]);
+        $supplier = $stmt->fetch();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext supplier: ' . $e->getMessage());
+    }
+
+    $unresolved_mismatches = [];
+    try {
+        $unresolved_mismatches = DB::run("
+            SELECT id, urgency, title, detail_text, value_numeric, created_at
+            FROM ai_insights
+            WHERE tenant_id = ? AND supplier_id = ?
+              AND category LIKE 'reconciliation_%'
+              AND (expires_at IS NULL OR expires_at > NOW())
+            ORDER BY FIELD(urgency,'critical','warning','info','passive'), created_at DESC
+            LIMIT 5
+        ", [$tenant_id, $supplier_id])->fetchAll();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext mismatches: ' . $e->getMessage());
+    }
+
+    $pending_defectives = [];
+    try {
+        $pending_defectives = DB::run("
+            SELECT sd.product_id, p.name AS product_name,
+                   SUM(sd.quantity) AS qty, SUM(sd.total_cost) AS value, MAX(sd.created_at) AS last_at
+            FROM supplier_defectives sd
+            LEFT JOIN products p ON p.id = sd.product_id
+            WHERE sd.tenant_id = ? AND sd.supplier_id = ? AND sd.status = 'pending'
+            GROUP BY sd.product_id, p.name
+            ORDER BY value DESC
+            LIMIT 10
+        ", [$tenant_id, $supplier_id])->fetchAll();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext defectives: ' . $e->getMessage());
+    }
+
+    $excess_unresolved = [];
+    try {
+        $excess_unresolved = DB::run("
+            SELECT d.id, d.invoice_number, d.created_at, d.total
+            FROM deliveries d
+            WHERE d.tenant_id = ? AND d.supplier_id = ?
+              AND d.has_unfactured_excess = 1 AND d.status = 'committed'
+              AND NOT EXISTS (
+                SELECT 1 FROM delivery_events de
+                WHERE de.delivery_id = d.id AND de.event_type = 'excess_resolved'
+              )
+            ORDER BY d.created_at DESC LIMIT 5
+        ", [$tenant_id, $supplier_id])->fetchAll();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext excess: ' . $e->getMessage());
+    }
+
+    $last_3_deliveries = [];
+    try {
+        $last_3_deliveries = DB::run("
+            SELECT d.id, d.invoice_number, d.total, d.currency_code, d.payment_status, d.payment_due_date,
+                   d.created_at, d.has_mismatch,
+                   (SELECT COUNT(*) FROM delivery_items di WHERE di.delivery_id = d.id) AS item_count
+            FROM deliveries d
+            WHERE d.tenant_id = ? AND d.supplier_id = ? AND d.status = 'committed'
+            ORDER BY d.created_at DESC LIMIT 3
+        ", [$tenant_id, $supplier_id])->fetchAll();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext deliveries: ' . $e->getMessage());
+    }
+
+    // Cost history — last 5 distinct unit costs per product (limit total rows to 30)
+    $cost_history_per_product = [];
+    try {
+        $cost_history_per_product = DB::run("
+            SELECT di.product_id, p.name AS product_name,
+                   di.cost_price, di.created_at
+            FROM delivery_items di
+            JOIN deliveries d ON d.id = di.delivery_id
+            LEFT JOIN products p ON p.id = di.product_id
+            WHERE d.tenant_id = ? AND d.supplier_id = ? AND d.status = 'committed'
+              AND di.cost_price > 0
+            ORDER BY di.product_id, di.created_at DESC
+            LIMIT 30
+        ", [$tenant_id, $supplier_id])->fetchAll();
+    } catch (Throwable $e) {
+        error_log('buildSupplierContext cost history: ' . $e->getMessage());
+    }
+
+    return [
+        'supplier'                 => $supplier,
+        'unresolved_mismatches'    => $unresolved_mismatches,
+        'pending_defectives'       => $pending_defectives,
+        'excess_unresolved'        => $excess_unresolved,
+        'last_3_deliveries'        => $last_3_deliveries,
+        'cost_history_per_product' => $cost_history_per_product,
+    ];
+}
+
+/**
+ * formatSupplierContextBlock — превръща buildSupplierContext в текст за prompt.
+ * AI получава GOTOV TEXT, не JSON dict (по-добра parsing performance в Gemini).
+ */
+function formatSupplierContextBlock(array $ctx): string {
+    if (empty($ctx['supplier'])) return '';
+    $s = $ctx['supplier'];
+    $out = "\n\nДОСТАВЧИК В ФОКУС: " . ($s['name'] ?? '?') . "\n";
+    $out .= "ВАЖНО: Това са РЕАЛНИ числа от PHP. НЕ преизчислявай. Използвай САМО тези стойности.\n\n";
+
+    if (!empty($s['payment_terms_days'])) {
+        $out .= "Условия на плащане: " . (int)$s['payment_terms_days'] . " дни кредит.\n";
+    } else {
+        $out .= "Условия на плащане: при доставка (cash).\n";
+    }
+    if ($s['reliability_score'] !== null) {
+        $out .= "Надеждност: " . (int)$s['reliability_score'] . "/100.\n";
+    }
+
+    if (!empty($ctx['pending_defectives'])) {
+        $total_qty = array_sum(array_map(fn($r) => (float)$r['qty'], $ctx['pending_defectives']));
+        $total_val = array_sum(array_map(fn($r) => (float)$r['value'], $ctx['pending_defectives']));
+        $out .= "\nДефектни за връщане: " . rtrim(rtrim(number_format($total_qty, 2, '.', ''), '0'), '.')
+              . " бр (" . number_format($total_val, 2, '.', '') . " €)\n";
+        foreach (array_slice($ctx['pending_defectives'], 0, 5) as $d) {
+            $out .= "  - " . ($d['product_name'] ?? '?') . " · "
+                  . rtrim(rtrim(number_format((float)$d['qty'], 2, '.', ''), '0'), '.') . " бр\n";
+        }
+    }
+
+    if (!empty($ctx['unresolved_mismatches'])) {
+        $out .= "\nНерезолвирани разлики при предишни доставки:\n";
+        foreach (array_slice($ctx['unresolved_mismatches'], 0, 3) as $m) {
+            $out .= "  - " . ($m['title'] ?? '?');
+            if (!empty($m['detail_text'])) $out .= " — " . $m['detail_text'];
+            $out .= "\n";
+        }
+    }
+
+    if (!empty($ctx['excess_unresolved'])) {
+        $out .= "\nИзлишни (фактура < преброено) — нерезолвирани:\n";
+        foreach ($ctx['excess_unresolved'] as $e) {
+            $out .= "  - доставка #" . (int)$e['id'] . " от " . substr((string)$e['created_at'], 0, 10) . "\n";
+        }
+    }
+
+    if (!empty($ctx['last_3_deliveries'])) {
+        $out .= "\nПоследни 3 доставки от " . ($s['name'] ?? '?') . ":\n";
+        foreach ($ctx['last_3_deliveries'] as $d) {
+            $out .= "  - " . substr((string)$d['created_at'], 0, 10)
+                  . " · " . number_format((float)$d['total'], 2, '.', '') . ' ' . ($d['currency_code'] ?? '€')
+                  . " · " . (int)$d['item_count'] . " арт"
+                  . " · " . ($d['payment_status'] ?? '?')
+                  . (!empty($d['has_mismatch']) ? ' · С РАЗЛИКА' : '')
+                  . "\n";
+        }
+    }
+
+    return $out;
+}

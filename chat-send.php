@@ -125,6 +125,29 @@ try {
     $system_prompt = "You are a helpful AI assistant for a retail store. Respond in Bulgarian. Be concise.";
 }
 
+// O1: supplier-focused context при supplier_focus param или име в съобщението
+$supplier_focus_id = isset($_POST['supplier_focus']) ? (int)$_POST['supplier_focus'] : 0;
+if (!$supplier_focus_id && !empty($_POST['message'])) {
+    try {
+        $msg_lc = mb_strtolower((string)$_POST['message'], 'UTF-8');
+        $sup_rows = DB::run("SELECT id, name FROM suppliers WHERE tenant_id = ? AND is_active = 1", [$tenant_id])->fetchAll();
+        foreach ($sup_rows as $sr) {
+            if ($sr['name'] && mb_strpos($msg_lc, mb_strtolower($sr['name'], 'UTF-8')) !== false) {
+                $supplier_focus_id = (int)$sr['id'];
+                break;
+            }
+        }
+    } catch (Throwable $e) { /* best-effort */ }
+}
+if ($supplier_focus_id > 0) {
+    try {
+        $supctx = buildSupplierContext($tenant_id, $supplier_focus_id);
+        $system_prompt .= formatSupplierContextBlock($supctx);
+    } catch (Throwable $e) {
+        error_log('supplier_focus context: ' . $e->getMessage());
+    }
+}
+
 // ── SAFETY СЛОЙ 1: PRE-VALIDATION ─────────────────────────────
 $safety = preValidate($tenant_id, $store_id, $role);
 $system_prompt .= $safety['constraints'];

@@ -231,8 +231,10 @@ function pfUpsert(int $tenant_id, array $i): array {
     $role_gate   = pfRoleGateFor($fq, $topic_id);
     $plan_gate   = pfPlanGateFor($fq);
 
-    // module enum е ('home','products','warehouse','stats','sale') — слагаме 'products'
-    $module = 'products';
+    // module enum е ('home','products','warehouse','stats','sale') — default 'products', override чрез $i['module']
+    $valid_modules = ['home','products','warehouse','stats','sale'];
+    $module = $i['module'] ?? 'products';
+    if (!in_array($module, $valid_modules, true)) $module = 'products';
 
     // Check existing (idempotent) — match ТОЧНО UNIQUE ключа: (tenant_id, store_id, topic_id)
     $sql_chk = "SELECT id FROM ai_insights 
@@ -1348,6 +1350,295 @@ function pfHighReturnRate(int $tenant_id): int {
 // SECTION 8 — WRAPPER
 // =============================================================
 
+// =============================================================
+// SECTION 8B — DELIVERY / ORDERS INSIGHTS (M1-M2)
+// Spec: DELIVERY_ORDERS_DECISIONS_FINAL §M
+// =============================================================
+
+/**
+ * pfDeliveryAnomalyPattern — 3+ поредни mismatches от същия supplier.
+ * FQ: loss_cause | severity: warning
+ */
+function pfDeliveryAnomalyPattern(int $tenant_id): int {
+    $sql = "
+        SELECT d.supplier_id, s.name AS supplier_name,
+               COUNT(*) AS mismatch_count
+        FROM deliveries d
+        JOIN suppliers s ON s.id = d.supplier_id
+        WHERE d.tenant_id = ?
+          AND d.status = 'committed'
+          AND d.has_mismatch = 1
+          AND d.created_at >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        GROUP BY d.supplier_id, s.name
+        HAVING mismatch_count >= 3
+        ORDER BY mismatch_count DESC
+        LIMIT 10
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $count = 0;
+    foreach ($rows as $r) {
+        pfUpsert($tenant_id, [
+            'topic_id'             => 'delivery_anomaly_' . (int)$r['supplier_id'],
+            'module'               => 'home',
+            'fundamental_question' => 'loss_cause',
+            'urgency'              => 'warning',
+            'category'             => 'delivery_anomaly_pattern',
+            'pill_text'            => sprintf('%s системно недодава (%d пъти)',
+                                              $r['supplier_name'], (int)$r['mismatch_count']),
+            'product_count'        => (int)$r['mismatch_count'],
+            'supplier_id'          => (int)$r['supplier_id'],
+            'action_label'         => 'Виж pattern-а',
+            'action_type'          => 'chat',
+            'action_url'           => '/chat.php?q=' . urlencode('pattern ' . $r['supplier_name']),
+        ]);
+        $count++;
+    }
+    return $count;
+}
+
+/**
+ * pfPaymentDueReminder — близки/просрочени плащания.
+ * FQ: loss | severity: warning или critical (просрочено)
+ * Cron daily 08:00. Filter: payment_status IN (unpaid,partially_paid) AND due <= +3д.
+ */
+function pfPaymentDueReminder(int $tenant_id): int {
+    $sql = "
+        SELECT d.id, d.supplier_id, s.name AS supplier_name, d.total, d.currency_code,
+               d.payment_due_date, d.payment_status,
+               DATEDIFF(d.payment_due_date, CURDATE()) AS days_left
+        FROM deliveries d
+        JOIN suppliers s ON s.id = d.supplier_id
+        WHERE d.tenant_id = ?
+          AND d.status = 'committed'
+          AND d.payment_status IN ('unpaid','partially_paid')
+          AND d.payment_due_date IS NOT NULL
+          AND d.payment_due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+        ORDER BY d.payment_due_date ASC
+        LIMIT 20
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $count = 0;
+    foreach ($rows as $r) {
+        $days = (int)$r['days_left'];
+        $is_overdue = $days < 0;
+        $msg = $is_overdue
+            ? sprintf('Просрочено към %s — %d дни', $r['supplier_name'], abs($days))
+            : ($days === 0
+                ? sprintf('Днес плащане към %s', $r['supplier_name'])
+                : sprintf('Плащане към %s след %d дни', $r['supplier_name'], $days));
+        pfUpsert($tenant_id, [
+            'topic_id'             => 'payment_due_' . (int)$r['id'],
+            'module'               => 'home',
+            'fundamental_question' => 'loss',
+            'urgency'              => $is_overdue ? 'critical' : 'warning',
+            'category'             => 'payment_due_reminder',
+            'pill_text'            => $msg,
+            'value_numeric'        => (float)$r['total'],
+            'supplier_id'          => (int)$r['supplier_id'],
+            'action_label'         => 'Плати',
+            'action_type'          => 'deeplink',
+            'action_url'           => '/delivery.php?id=' . (int)$r['id'],
+        ]);
+        $count++;
+    }
+    return $count;
+}
+
+/**
+ * pfNewSupplierFirstDelivery — onboarding low-priority insight.
+ * FQ: gain_cause | severity: passive
+ */
+function pfNewSupplierFirstDelivery(int $tenant_id): int {
+    $sql = "
+        SELECT s.id AS supplier_id, s.name AS supplier_name,
+               MIN(d.created_at) AS first_at,
+               COUNT(d.id) AS delivery_count
+        FROM suppliers s
+        JOIN deliveries d ON d.supplier_id = s.id AND d.tenant_id = s.tenant_id AND d.status = 'committed'
+        WHERE s.tenant_id = ? AND s.is_active = 1
+        GROUP BY s.id, s.name
+        HAVING delivery_count = 1 AND first_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+        ORDER BY first_at DESC
+        LIMIT 5
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $count = 0;
+    foreach ($rows as $r) {
+        pfUpsert($tenant_id, [
+            'topic_id'             => 'new_supplier_first_' . (int)$r['supplier_id'],
+            'module'               => 'home',
+            'fundamental_question' => 'gain_cause',
+            'urgency'              => 'passive',
+            'category'             => 'new_supplier_first_delivery',
+            'pill_text'            => sprintf('Първа доставка от %s', $r['supplier_name']),
+            'supplier_id'          => (int)$r['supplier_id'],
+            'action_label'         => 'Виж',
+            'action_type'          => 'chat',
+        ]);
+        $count++;
+    }
+    return $count;
+}
+
+/**
+ * pfVolumeDiscountDetected — Marina ти даде по-добра цена.
+ * FQ: gain | severity: info
+ * Detect: latest cost < исторически avg -5% per product+supplier.
+ */
+function pfVolumeDiscountDetected(int $tenant_id): int {
+    $sql = "
+        SELECT di.product_id, di.supplier_id, s.name AS supplier_name, p.name AS product_name,
+               di.cost_price AS latest_cost,
+               AVG(prev.cost_price) AS avg_cost
+        FROM delivery_items di
+        JOIN deliveries d ON d.id = di.delivery_id AND d.tenant_id = di.tenant_id AND d.status='committed'
+        JOIN products p ON p.id = di.product_id
+        JOIN suppliers s ON s.id = di.supplier_id
+        JOIN delivery_items prev ON prev.product_id = di.product_id
+                                 AND prev.supplier_id = di.supplier_id
+                                 AND prev.id <> di.id
+        JOIN deliveries dprev ON dprev.id = prev.delivery_id AND dprev.status='committed'
+                              AND dprev.created_at < d.created_at
+                              AND dprev.created_at >= DATE_SUB(d.created_at, INTERVAL 90 DAY)
+        WHERE di.tenant_id = ?
+          AND d.created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+          AND di.cost_price > 0
+        GROUP BY di.product_id, di.supplier_id, s.name, p.name, di.cost_price
+        HAVING avg_cost > 0 AND di.cost_price < avg_cost * 0.95
+        ORDER BY (avg_cost - latest_cost) / avg_cost DESC
+        LIMIT 10
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $count = 0;
+    foreach ($rows as $r) {
+        $pct = round(((float)$r['avg_cost'] - (float)$r['latest_cost']) / (float)$r['avg_cost'] * 100, 1);
+        pfUpsert($tenant_id, [
+            'topic_id'             => 'volume_discount_' . (int)$r['supplier_id'] . '_' . (int)$r['product_id'],
+            'module'               => 'home',
+            'fundamental_question' => 'gain',
+            'urgency'              => 'info',
+            'category'             => 'volume_discount_detected',
+            'pill_text'            => sprintf('%s ти даде -%s%% на %s', $r['supplier_name'], $pct, $r['product_name']),
+            'value_numeric'        => $pct,
+            'supplier_id'          => (int)$r['supplier_id'],
+            'product_id'           => (int)$r['product_id'],
+            'action_label'         => 'Виж детайли',
+            'action_type'          => 'chat',
+        ]);
+        $count++;
+    }
+    return $count;
+}
+
+/**
+ * pfStockoutRiskReduction — bestseller която не беше 0 сега → in stock (positive insight).
+ * FQ: gain | severity: passive
+ */
+function pfStockoutRiskReduction(int $tenant_id): int {
+    $sql = "
+        SELECT p.id AS product_id, p.name, i.quantity,
+               COALESCE(s30.qty_sold, 0) AS sold_30d
+        FROM products p
+        JOIN inventory i ON i.product_id = p.id AND i.tenant_id = p.tenant_id
+        LEFT JOIN (
+            SELECT si.product_id, SUM(si.quantity) AS qty_sold
+            FROM sale_items si
+            JOIN sales s ON s.id = si.sale_id AND s.tenant_id = ?
+            WHERE s.status = 'completed' AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY si.product_id
+        ) s30 ON s30.product_id = p.id
+        JOIN delivery_items di ON di.product_id = p.id
+        JOIN deliveries d ON d.id = di.delivery_id AND d.status='committed'
+                          AND d.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        WHERE p.tenant_id = ? AND p.is_active = 1
+          AND s30.qty_sold >= 5
+          AND i.quantity > 0
+        GROUP BY p.id, p.name, i.quantity, s30.qty_sold
+        ORDER BY s30.qty_sold DESC
+        LIMIT 5
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id, $tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    if (empty($rows)) return 0;
+
+    $items = array_map(fn($r) => [
+        'product_id' => (int)$r['product_id'],
+        'name'       => $r['name'],
+        'in_stock'   => (float)$r['quantity'],
+        'sold_30d'   => (int)$r['sold_30d'],
+    ], $rows);
+    pfUpsert($tenant_id, [
+        'topic_id'             => 'stockout_risk_reduced',
+        'module'               => 'home',
+        'fundamental_question' => 'gain',
+        'urgency'              => 'passive',
+        'category'             => 'stockout_risk_reduction',
+        'pill_text'            => sprintf('%d бестселъра отново в наличност', count($items)),
+        'product_count'        => count($items),
+        'action_label'         => 'Виж кои',
+        'action_type'          => 'chat',
+        'detail'               => ['items' => $items],
+    ]);
+    return 1;
+}
+
+/**
+ * pfOrderStaleNoDelivery — поръчки със status=sent но без доставка > 14 дни.
+ * FQ: order | severity: warning
+ * Note: cron-ът автоматично сменя status='stale' (виж U2). Insight-ът чете
+ * вече stale-натите ИЛИ sent ones over 14 days.
+ */
+function pfOrderStaleNoDelivery(int $tenant_id): int {
+    $sql = "
+        SELECT po.id, po.supplier_id, s.name AS supplier_name, po.created_at,
+               DATEDIFF(CURDATE(), po.created_at) AS days_old
+        FROM purchase_orders po
+        JOIN suppliers s ON s.id = po.supplier_id
+        WHERE po.tenant_id = ?
+          AND (po.status = 'stale'
+               OR (po.status = 'sent' AND po.created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)))
+          AND NOT EXISTS (
+              SELECT 1 FROM delivery_items di
+              JOIN deliveries d ON d.id = di.delivery_id AND d.status='committed'
+              WHERE di.purchase_order_item_id IN (
+                  SELECT id FROM purchase_order_items WHERE purchase_order_id = po.id
+              )
+          )
+        ORDER BY po.created_at ASC
+        LIMIT 10
+    ";
+    $st = pfDB()->prepare($sql);
+    $st->execute([$tenant_id]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $count = 0;
+    foreach ($rows as $r) {
+        pfUpsert($tenant_id, [
+            'topic_id'             => 'order_stale_' . (int)$r['id'],
+            'module'               => 'home',
+            'fundamental_question' => 'order',
+            'urgency'              => 'warning',
+            'category'             => 'order_stale_no_delivery',
+            'pill_text'            => sprintf('Поръчка към %s — %d дни без доставка',
+                                              $r['supplier_name'], (int)$r['days_old']),
+            'supplier_id'          => (int)$r['supplier_id'],
+            'action_label'         => 'Обади се',
+            'action_type'          => 'deeplink',
+            'action_url'           => '/order.php?id=' . (int)$r['id'],
+        ]);
+        $count++;
+    }
+    return $count;
+}
+
 function computeProductInsights(int $tenant_id): array {
     $results = [];
     $functions = [
@@ -1376,6 +1667,13 @@ function computeProductInsights(int $tenant_id): array {
         'zombie_45d'             => 'pfZombie45d',
         'declining_trend'        => 'pfDecliningTrend',
         'high_return_rate'       => 'pfHighReturnRate',
+        // S89 — DELIVERY/ORDERS (M1-M2)
+        'delivery_anomaly'       => 'pfDeliveryAnomalyPattern',
+        'payment_due_reminder'   => 'pfPaymentDueReminder',
+        'new_supplier_first'     => 'pfNewSupplierFirstDelivery',
+        'volume_discount'        => 'pfVolumeDiscountDetected',
+        'stockout_risk_reduced'  => 'pfStockoutRiskReduction',
+        'order_stale'            => 'pfOrderStaleNoDelivery',
     ];
     foreach ($functions as $key => $fn) {
         $t0 = microtime(true);
