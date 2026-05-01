@@ -151,11 +151,6 @@ $reliability = $pdo->prepare("
 $reliability->execute([$tenant_id]);
 $reliability = $reliability->fetchAll(PDO::FETCH_ASSOC);
 
-function fmtMoney(float $v, string $currency = 'EUR'): string {
-    $sym = $currency === 'EUR' ? '€' : ($currency === 'BGN' ? 'лв' : $currency);
-    return number_format($v, 2, '.', ' ') . ' ' . $sym;
-}
-
 function payState(array $d): string {
     if ($d['payment_status'] === 'paid' || empty($d['payment_due_date'])) return 'paid';
     if (strtotime((string)$d['payment_due_date']) < time()) return 'over';

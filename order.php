@@ -237,11 +237,6 @@ function api_mark_received(int $tenant_id, int $user_id): array {
     return ['ok' => true];
 }
 
-function fmtMoney(float $v, string $currency = 'EUR'): string {
-    $sym = $currency === 'EUR' ? '€' : ($currency === 'BGN' ? 'лв' : $currency);
-    return number_format($v, 2, '.', ' ') . ' ' . $sym;
-}
-
 $total = 0;
 foreach ($items as $it) $total += (float)$it['qty_ordered'] * (float)$it['cost_price'];
 $is_editable = $order && $order['status'] === 'draft';

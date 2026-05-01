@@ -77,10 +77,6 @@ $low_stock_by_supplier = $pdo->prepare("
 $low_stock_by_supplier->execute([$tenant_id]);
 $low_stock_by_supplier = $low_stock_by_supplier->fetchAll(PDO::FETCH_ASSOC);
 
-function fmtMoney(float $v, string $currency = 'EUR'): string {
-    $sym = $currency === 'EUR' ? '€' : ($currency === 'BGN' ? 'лв' : $currency);
-    return number_format($v, 2, '.', ' ') . ' ' . $sym;
-}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($lang) ?>" data-theme="dark">

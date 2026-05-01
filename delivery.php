@@ -495,10 +495,6 @@ function api_manual_create(int $tenant_id, int $store_id, int $user_id): array {
 }
 
 // Helpers за view
-function fmtMoney(float $v, string $currency = 'EUR'): string {
-    $sym = $currency === 'EUR' ? '€' : ($currency === 'BGN' ? 'лв' : $currency);
-    return number_format($v, 2, '.', ' ') . ' ' . $sym;
-}
 
 function dispView(string $view): bool {
     return true;

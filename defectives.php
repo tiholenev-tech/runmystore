@@ -181,10 +181,6 @@ function api_apply_credit(int $tenant_id, int $user_id): array {
     return ['ok' => false, 'error' => 'apply_credit requires payments module (not yet implemented)'];
 }
 
-function fmtMoney(float $v, string $currency = 'EUR'): string {
-    $sym = $currency === 'EUR' ? '€' : ($currency === 'BGN' ? 'лв' : $currency);
-    return number_format($v, 2, '.', ' ') . ' ' . $sym;
-}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($lang) ?>" data-theme="dark">
