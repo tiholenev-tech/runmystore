@@ -496,7 +496,23 @@ if ($ajax === 'sections') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $sup = isset($_GET['sup']) ? (int)$_GET['sup'] : null;
         if ($sup) {
-            $categories = DB::run("SELECT c.id, c.name, c.parent_id FROM categories c JOIN supplier_categories sc ON sc.category_id=c.id AND sc.supplier_id=? AND sc.tenant_id=? WHERE c.tenant_id=? ORDER BY c.name", [$sup, $tenant_id, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+            // S90.PRODUCTS.SPRINT_B D3: за wizard-а Pesho трябва да види категориите
+            // на ИЗБРАНИЯ доставчик. UNION на:
+            //   (a) ръчно мапнати категории в supplier_categories
+            //   (b) категории с поне 1 активен продукт от този доставчик (auto-discover)
+            $categories = DB::run(
+                "SELECT DISTINCT c.id, c.name, c.parent_id
+                 FROM categories c
+                 WHERE c.tenant_id = ?
+                   AND (
+                        EXISTS (SELECT 1 FROM supplier_categories sc
+                                WHERE sc.category_id=c.id AND sc.supplier_id=? AND sc.tenant_id=?)
+                     OR EXISTS (SELECT 1 FROM products p
+                                WHERE p.category_id=c.id AND p.supplier_id=? AND p.tenant_id=? AND p.is_active=1)
+                   )
+                 ORDER BY c.name",
+                [$tenant_id, $sup, $tenant_id, $sup, $tenant_id]
+            )->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $categories = DB::run("SELECT c.id, c.name, c.parent_id, COUNT(DISTINCT p.id) AS product_count, COUNT(DISTINCT p.supplier_id) AS supplier_count, COALESCE(SUM(i.quantity),0) AS total_stock FROM categories c JOIN products p ON p.category_id=c.id AND p.tenant_id=? AND p.is_active=1 LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE c.tenant_id=? GROUP BY c.id ORDER BY c.name", [$tenant_id, $sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -1645,6 +1661,9 @@ body::before{
 .wiz-page{display:none;padding:16px 16px max(120px,calc(16px + env(safe-area-inset-bottom)))}
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint — Pesho вижда какво е AI vs какво е писал. */
+.wiz-ai-hint{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;font-size:10px;font-weight:600;color:#a5b4fc;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(139,92,246,0.06));border:1px solid rgba(139,92,246,0.28);border-radius:8px;line-height:1.3;letter-spacing:0.01em}
+.wiz-ai-hint svg{stroke:#a5b4fc;stroke-width:2.2;fill:none;flex-shrink:0;width:11px;height:11px}
 
 /* === S82.COLOR.4 — Photo mode toggle + multi-photo + camera loop === */
 .photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
@@ -5686,6 +5705,26 @@ function fieldLabel(text,key,extra){
     return '<label class="fl">'+html+' '+extra+'</label>';
 }
 
+// S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint helpers.
+// wizAIHint('name') → returns badge HTML if S.wizData._aiFilled.name === true.
+// wizMarkAIFilled('name') → mark a field as AI-filled (call where AI sets the value).
+// wizClearAIMark('name') → mark cleared (called from oninput when user edits).
+function wizAIHint(key){
+    if(!S.wizData||!S.wizData._aiFilled||!S.wizData._aiFilled[key])return '';
+    return '<div class="wiz-ai-hint" data-aikey="'+key+'"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>AI попълни — натисни за промяна</div>';
+}
+function wizMarkAIFilled(){
+    if(!S.wizData)return;
+    if(!S.wizData._aiFilled)S.wizData._aiFilled={};
+    for(var i=0;i<arguments.length;i++)S.wizData._aiFilled[arguments[i]]=true;
+}
+function wizClearAIMark(key){
+    if(!S.wizData||!S.wizData._aiFilled||!S.wizData._aiFilled[key])return;
+    delete S.wizData._aiFilled[key];
+    var el=document.querySelector('.wiz-ai-hint[data-aikey="'+key+'"]');
+    if(el)el.style.display='none';
+}
+
 // ═══ S82.STUDIO.10: wizDraft cache — auto-saves the wizard state to
 // localStorage so accidental refresh / browser close / phone lock doesn't
 // lose the user's work. Up to ~5 MB per origin (enough for 30 photos
@@ -5857,16 +5896,16 @@ function handleVoiceStep(step,text){
 
 function parseVoiceToFields(text){
     const priceMatch=text.match(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/i);
-    if(priceMatch)S.wizData.retail_price=parseFloat(priceMatch[1].replace(',','.'));
+    if(priceMatch){S.wizData.retail_price=parseFloat(priceMatch[1].replace(',','.'));wizMarkAIFilled('retail_price');}
     const tl=text.toLowerCase();
     for(const s of CFG.suppliers){if(tl.includes(s.name.toLowerCase())){S.wizData.supplier_id=s.id;break}}
-    for(const c of CFG.categories){if(tl.includes(c.name.toLowerCase())){S.wizData.category_id=c.id;break}}
+    for(const c of CFG.categories){if(tl.includes(c.name.toLowerCase())){S.wizData.category_id=c.id;wizMarkAIFilled('category');break}}
     if(!S.wizData.name){
         let name=text.replace(/(\d+[.,]?\d*)\s*(лева|лв|евро|€|eur)?/gi,'').trim();
         for(const s of CFG.suppliers)name=name.replace(new RegExp(s.name,'gi'),'');
         for(const c of CFG.categories)name=name.replace(new RegExp(c.name,'gi'),'');
         name=name.replace(/\s+/g,' ').trim();
-        if(name.length>2)S.wizData.name=name;
+        if(name.length>2){S.wizData.name=name;wizMarkAIFilled('name');}
     }
 }
 
@@ -6245,15 +6284,15 @@ function renderWizPage(step){
               '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
               // S88B-1: photoBlock moved to Step 2. Step 3 = data fields per audit §10.3 layout.
               // Име
-              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim()" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div></div>'+
+              '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value)" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div>'+wizAIHint('name')+'<div id="wDupeBanner" style="display:none"></div></div>'+
               // Retail + Wholesale row
               '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div></div>'+
-                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
+                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
               '</div>'+
               // Cost + Markup% row (Markup informative only — computed, NOT saved per Q1)
               '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div>'+wizAIHint('cost_price')+'</div>'+
                 '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Надценка %','markup_pct','<span class="hint">(не се записва)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup()" '+(parseFloat(S.wizData.cost_price)>0?'':'disabled')+' placeholder="'+(parseFloat(S.wizData.cost_price)>0?'auto':'(въведи доставна)')+'" style="flex:1;min-width:0">'+cpy('markup_pct')+'</div></div>'+
               '</div>'+
               // Брой + Мин количество (single only)
@@ -6272,19 +6311,20 @@ function renderWizPage(step){
                 '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
                 '<div id="inlSup" class="inline-add"><input type="text" id="inlSupName" placeholder="Нов доставчик"><button type="button" onclick="wizAddInline(\'supplier\')">+ Добави</button></div>'+
               '</div>'+
-              // Категория dropdown
-              '<div class="fg" style="position:relative">'+fieldLabel('Категория','category')+
+              // Категория dropdown — S90.PRODUCTS.SPRINT_B D3: filter-ва се по избран доставчик
+              '<div class="fg" style="position:relative">'+fieldLabel('Категория','category',(S.wizData.supplier_id?'<span class="hint">(само от избрания доставчик)</span>':''))+
                 '<div style="display:flex;gap:6px;align-items:center">'+
                   '<input type="text" class="fc" id="wCatDD" autocomplete="off" value="'+esc((function(){if(!S.wizData.category_id)return"";var c=(CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id});return c?c.name:""})())+'" placeholder="търси или избери..." style="flex:1" '+
-                    'onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',(CFG.categories||[]).filter(function(c){return !c.parent_id}))" '+
+                    'onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" '+
                     'onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\'},180)" '+
-                    'oninput="wizSearchDropdown(\'wCatDD\',\'wCatDDList\',(CFG.categories||[]).filter(function(c){return !c.parent_id}))">'+
+                    'oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
                   mic('category')+
                   '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
                   cpy('category_id')+
                 '</div>'+
                 '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
                 '<div id="inlCat" class="inline-add"><input type="text" id="inlCatName" placeholder="Нова категория"><button type="button" onclick="wizAddInline(\'category\')">+ Добави</button></div>'+
+                wizAIHint('category')+
               '</div>'+
               // Подкатегория (select; disabled until category selected)
               '<div class="fg">'+fieldLabel('Подкатегория','subcategory')+
@@ -6299,7 +6339,7 @@ function renderWizPage(step){
               // Цвят + Размер (single only — text fields, products.color/size schema columns)
               (isSingle ?
                 '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                  '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цвят','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wColor" value="'+esc(S.wizData.color||'')+'" placeholder="напр. Черен" oninput="S.wizData.color=this.value" style="flex:1;min-width:0">'+cpy('color')+'</div></div>'+
+                  '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цвят','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wColor" value="'+esc(S.wizData.color||'')+'" placeholder="напр. Черен" oninput="S.wizData.color=this.value;wizClearAIMark(\'color\')" style="flex:1;min-width:0">'+cpy('color')+'</div>'+wizAIHint('color')+'</div>'+
                   '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Размер','name')+'<div style="display:flex;gap:4px;align-items:center"><input type="text" class="fc" id="wSize" value="'+esc(S.wizData.size||'')+'" placeholder="напр. M" oninput="S.wizData.size=this.value" style="flex:1;min-width:0">'+cpy('size')+'</div></div>'+
                 '</div>'
                 : '')+
@@ -6433,6 +6473,19 @@ function renderWizPagePart2(step){
             selH+='<div class="v-sel-empty">Избери от групите, търси, въведи ръчно или с глас</div>';
         }
         selH+='</div>';
+        // S90.PRODUCTS.SPRINT_B C1: бутон "+ Добави на ръка" под списъка с избрани стойности.
+        // Pesho не пише по принцип, но за rare custom размери (ENI 38W, EU44.5) е нужно ръчно.
+        var _addLbl=isSize?'размер':(isColor?'цвят':(ax.name||'стойност'));
+        var _addPh=isSize?'напр. 38W, EU44.5, M-tall':(isColor?'напр. шампанско':'напр. '+(_addLbl));
+        selH+='<div class="v-add-manual" style="display:flex;gap:6px;padding:8px 14px 0">'+
+              '<input type="text" id="axVal'+ai+'" class="v-custom-input" placeholder="'+_addPh+'" '+
+              'onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+ai+')}" '+
+              'style="flex:1;padding:10px 14px;font-size:13px">'+
+              '<button class="v-custom-btn" onclick="wizAddAxisValue('+ai+')" title="Добави на ръка">'+
+              '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+              'Добави '+esc(_addLbl)+
+              '</button>'+
+              '</div>';
 
         // Picker body
         var pickH='<div class="v-picker-body">';
@@ -9302,7 +9355,49 @@ function wizPickDD(inputId,listId,id,name){
     if(inp){inp.value=name;inp._selectedId=id}
     if(list)list.style.display='none';
     if(inputId==='wCatDD'){S.wizData.category_id=id;wizLoadSubcats(id)}
-    if(inputId==='wSupDD'){S.wizData.supplier_id=id}
+    if(inputId==='wSupDD'){
+        var prevSup=S.wizData.supplier_id;
+        S.wizData.supplier_id=id;
+        // S90.PRODUCTS.SPRINT_B D3: смяна на доставчик → пре-зареждаме списъка с категории
+        // и (ако избраната категория не е в новия supplier scope) я нулираме мълчаливо.
+        if(prevSup!==id){
+            wizPrefetchSupplierCats(id).then(function(cats){
+                if(S.wizData.category_id){
+                    var stillValid=cats.some(function(c){return c.id==S.wizData.category_id});
+                    if(!stillValid){
+                        S.wizData.category_id=null;S.wizData.subcategory_id=null;
+                        var ci=document.getElementById('wCatDD');if(ci){ci.value='';ci._selectedId=null}
+                        var su=document.getElementById('wSubcat');if(su)su.innerHTML='<option value="">— Избери първо категория —</option>';
+                    }
+                }
+                renderWizard();
+            });
+        }
+    }
+}
+
+// S90.PRODUCTS.SPRINT_B D3: списък с категории, филтриран по текущ доставчик.
+// Връща синхронно от cache (или CFG.categories ако supplier-ът няма cache yet).
+function wizCatsForSupplier(){
+    var sup=S.wizData&&S.wizData.supplier_id;
+    if(!sup){
+        return (CFG.categories||[]).filter(function(c){return !c.parent_id});
+    }
+    if(S._wizSupCatCache&&S._wizSupCatCache.sup==sup){
+        return S._wizSupCatCache.cats||[];
+    }
+    // Cache miss → fire-and-forget prefetch + return full list този път.
+    wizPrefetchSupplierCats(sup);
+    return (CFG.categories||[]).filter(function(c){return !c.parent_id});
+}
+
+async function wizPrefetchSupplierCats(sup){
+    if(!sup){S._wizSupCatCache=null;return [];}
+    if(S._wizSupCatCache&&S._wizSupCatCache.sup==sup)return S._wizSupCatCache.cats;
+    var d=await api('products.php?ajax=categories&store_id='+CFG.storeId+'&sup='+sup);
+    var filtered=(d||[]).filter(function(c){return !c.parent_id});
+    S._wizSupCatCache={sup:sup,cats:filtered};
+    return filtered;
 }
 async function wizLoadSubcats(catId){
     const sel=document.getElementById('wSubcat');if(!sel)return;
