@@ -1082,151 +1082,31 @@ foreach ($_custom_colors as $cc) {
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="business-type" content="<?= htmlspecialchars($business_type) ?>">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
-<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
+<meta name="theme-color" content="#08090d">
+
+<!-- Theme bootstrap — ПЪРВОТО нещо в head, преди CSS -->
 <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- DESIGN KIT v1.1 — точно в този ред -->
+<link rel="stylesheet" href="/design-kit/tokens.css?v=<?= @filemtime(__DIR__.'/design-kit/tokens.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/components-base.css?v=<?= @filemtime(__DIR__.'/design-kit/components-base.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/components.css?v=<?= @filemtime(__DIR__.'/design-kit/components.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PRODUCTS MODULE — Sale.php/Warehouse.php Design System
+   PRODUCTS MODULE — module-specific helpers only.
+   Tokens, .glass / .shine / .glow / .rms-* / .pill — design-kit/.
    ═══════════════════════════════════════════════════════════ */
-:root {
-    --bg-main: #030712;
-    --bg-card: rgba(15, 15, 40, 0.75);
-    --bg-card-hover: rgba(23, 28, 58, 0.9);
-    --border-subtle: rgba(99, 102, 241, 0.15);
-    --border-glow: rgba(99, 102, 241, 0.4);
-    --indigo-600: #4f46e5;
-    --indigo-500: #6366f1;
-    --indigo-400: #818cf8;
-    --indigo-300: #a5b4fc;
-    --text-primary: #f1f5f9;
-    --text-secondary: #6b7280;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --success: #22c55e;
-    --purple: #8b5cf6;
-    --teal: #14b8a6;
-    --hue1: 255;
-    --hue2: 222;
-    --border: 1px;
-    --border-color: hsl(var(--hue2), 12%, 20%);
-    --radius: 22px;
-    --radius-sm: 14px;
-    --radius-lg: 28px;
-    --ease: cubic-bezier(0.5, 1, 0.89, 1);
-}
 
-/* ═══ NEON GLASS (S73.B.5 — 1:1 from add-product.html) ═══ */
-.glass {
-    position: relative;
-    border-radius: var(--radius);
-    border: var(--border) solid var(--border-color);
-    background:
-        linear-gradient(235deg, hsl(var(--hue1) 50% 10% / 0.8), hsl(var(--hue1) 50% 10% / 0) 33%),
-        linear-gradient(45deg, hsl(var(--hue2) 50% 10% / 0.8), hsl(var(--hue2) 50% 10% / 0) 33%),
-        linear-gradient(hsl(220deg 25% 4.8% / 0.78));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow:
-        hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
-        hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
-    isolation: isolate;
-}
-.glass .shine,
-.glass .glow { --hue: var(--hue1); }
-.glass .shine-bottom,
-.glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
-.glass .shine,
-.glass .shine::before,
-.glass .shine::after {
-    pointer-events: none;
-    border-radius: 0;
-    border-top-right-radius: inherit;
-    border-bottom-left-radius: inherit;
-    border: 1px solid transparent;
-    width: 75%;
-    aspect-ratio: 1;
-    display: block;
-    position: absolute;
-    right: calc(var(--border) * -1);
-    top: calc(var(--border) * -1);
-    left: auto;
-    z-index: 1;
-    --start: 12%;
-    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 80%), var(--lit, 60%)), transparent var(--end, 50%)) border-box;
-    mask: linear-gradient(transparent), linear-gradient(black);
-    mask-repeat: no-repeat;
-    mask-clip: padding-box, border-box;
-    mask-composite: subtract;
-}
-.glass .shine::before,
-.glass .shine::after { content: ""; width: auto; inset: -2px; mask: none; }
-.glass .shine::after {
-    z-index: 2;
-    --start: 17%; --end: 33%;
-    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 80%), var(--lit, 85%)), transparent var(--end, 50%));
-}
-.glass .shine-bottom {
-    top: auto;
-    bottom: calc(var(--border) * -1);
-    left: calc(var(--border) * -1);
-    right: auto;
-}
-.glass .glow {
-    pointer-events: none;
-    border-top-right-radius: calc(var(--radius) * 2.5);
-    border-bottom-left-radius: calc(var(--radius) * 2.5);
-    border: calc(var(--radius) * 1.25) solid transparent;
-    inset: calc(var(--radius) * -2);
-    width: 75%;
-    aspect-ratio: 1;
-    display: block;
-    position: absolute;
-    left: auto;
-    bottom: auto;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    mask-mode: luminance;
-    mask-size: 29%;
-    opacity: 1;
-    filter: blur(12px) saturate(1.25) brightness(0.5);
-    mix-blend-mode: plus-lighter;
-    z-index: 3;
-}
-.glass .glow.glow-bottom { inset: calc(var(--radius) * -2); top: auto; right: auto; }
-.glass .glow::before,
-.glass .glow::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border: inherit;
-    border-radius: inherit;
-    background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent var(--start, 0%), hsl(var(--hue), var(--sat, 95%), var(--lit, 60%)), transparent var(--end, 50%)) border-box;
-    mask: linear-gradient(transparent), linear-gradient(black);
-    mask-repeat: no-repeat;
-    mask-clip: padding-box, border-box;
-    mask-composite: subtract;
-    filter: saturate(2) brightness(1);
-}
-.glass .glow::after {
-    --lit: 70%; --sat: 100%; --start: 15%; --end: 35%;
-    border-width: calc(var(--radius) * 1.75);
-    border-radius: calc(var(--radius) * 2.75);
-    inset: calc(var(--radius) * -0.25);
-    z-index: 4;
-    opacity: 0.75;
-}
-.glass .glow-bright {
-    --lit: 80%; --sat: 100%; --start: 13%; --end: 37%;
-    border-width: 5px;
-    border-radius: calc(var(--radius) + 2px);
-    inset: -7px;
-    left: auto;
-    filter: blur(2px) brightness(0.66);
-}
-.glass .glow-bright::after { content: none; }
-.glass .glow-bright.glow-bottom { inset: -7px; right: auto; top: auto; }
-.glass.sm { --radius: var(--radius-sm); }
+/* mod-prod-* — извадени inline style="--hue1..." на CSS класове, за да минат compliance check */
+.mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
+.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
+.mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
 .v-var-card{padding:0;margin-bottom:12px;overflow:hidden}
@@ -3496,14 +3376,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* S76.4 end */
 
 /* ═══ S79A1 NEON SECTIONS CSS START ═══ */
-
-/* ── 6 Fundamental Questions — glass hue variants ── */
-.glass.q1 { --hue1: 0;   --hue2: 340; --border-color: hsl(0, 25%, 22%); }
-.glass.q2 { --hue1: 280; --hue2: 260; --border-color: hsl(280, 20%, 22%); }
-.glass.q3 { --hue1: 145; --hue2: 165; --border-color: hsl(145, 20%, 22%); }
-.glass.q4 { --hue1: 175; --hue2: 195; --border-color: hsl(175, 20%, 22%); }
-.glass.q5 { --hue1: 38;  --hue2: 28;  --border-color: hsl(38, 22%, 22%); }
-.glass.q6 { --hue1: 220; --hue2: 230; --border-color: hsl(220, 10%, 18%); }
+/* .glass.q1–.q6 — design-kit/components.css */
 
 /* ── Q-head (section header) ── */
 .q-head { display: flex; align-items: center; gap: 10px; padding: 16px 4px 10px; }
@@ -3697,37 +3570,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 
 
-/* ═══ S79 A1.7 — SCRHOME NEON GLASS CSS ═══ */
-
-:root{--hue1:255;--hue2:222;--border:1px;--border-color:hsl(var(--hue2),12%,20%);--radius:22px;--radius-sm:14px;--bg-main:#08090d;--text-primary:#f1f5f9;--text-secondary:rgba(255,255,255,.6);--text-muted:rgba(255,255,255,.4)}
+/* ═══ S79 A1.7 — SCRHOME (tokens / .glass / hue variants → design-kit) ═══ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg-main);color:var(--text-primary);font-family:'Montserrat',Inter,system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-user-select:none;user-select:none}
-input,button{font-family:'Montserrat',Inter,system-ui,sans-serif}
+html,body{min-height:100vh;overflow-x:hidden;-webkit-user-select:none;user-select:none}
+input,button{font-family:inherit}
 input{-webkit-user-select:text;user-select:text}
-body{background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);background-attachment:fixed;padding-bottom:130px;position:relative}
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:1;mix-blend-mode:overlay}
+body{padding-bottom:130px;position:relative}
 .app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px}
-
-.glass{position:relative;border-radius:var(--radius);border:var(--border) solid var(--border-color);background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220deg 25% 4.8% / .78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;isolation:isolate}
-.glass .shine,.glass .glow{--hue:var(--hue1)}
-.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
-.glass .shine,.glass .shine::before,.glass .shine::after{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:calc(var(--border) * -1);top:calc(var(--border) * -1);left:auto;z-index:1;--start:12%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract}
-.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none}
-.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
-.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
-.glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mask-mode:luminance;mask-size:29%;opacity:1;filter:blur(12px) saturate(1.25) brightness(0.5);mix-blend-mode:plus-lighter;z-index:3}
-.glass .glow.glow-bottom{inset:calc(var(--radius) * -2);top:auto;right:auto}
-.glass .glow::before,.glass .glow::after{content:"";position:absolute;inset:0;border:inherit;border-radius:inherit;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract;filter:saturate(2) brightness(1)}
-.glass .glow::after{--lit:70%;--sat:100%;--start:15%;--end:35%;border-width:calc(var(--radius) * 1.75);border-radius:calc(var(--radius) * 2.75);inset:calc(var(--radius) * -.25);z-index:4;opacity:.75}
-.glass.sm{--radius:var(--radius-sm)}
-
-/* 6 QUESTION HUES */
-.glass.q1{--hue1:0;--hue2:340;--border-color:hsl(0,25%,22%)}      /* КАКВО ГУБЯ - red */
-.glass.q2{--hue1:280;--hue2:260;--border-color:hsl(280,20%,22%)}  /* ОТ КАКВО ГУБЯ - violet */
-.glass.q3{--hue1:145;--hue2:165;--border-color:hsl(145,20%,22%)}  /* КАКВО ПЕЧЕЛЯ - green */
-.glass.q4{--hue1:175;--hue2:195;--border-color:hsl(175,20%,22%)}  /* ОТ КАКВО ПЕЧЕЛЯ - teal/mint */
-.glass.q5{--hue1:38;--hue2:28;--border-color:hsl(38,22%,22%)}     /* ПОРЪЧАЙ - amber */
-.glass.q6{--hue1:220;--hue2:230;--border-color:hsl(220,10%,18%)}  /* НЕ ПОРЪЧВАЙ - dim */
 
 .header{display:flex;align-items:center;gap:6px;padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 2px 10px;min-height:36px}
 .h-menu,.h-icon{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -3889,7 +3738,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .health-sec{margin:14px 12px 0;padding:14px 14px 12px;border:1px solid rgba(20,184,166,0.25);background:linear-gradient(135deg,rgba(20,184,166,0.08),rgba(6,182,212,0.05));border-radius:18px;cursor:pointer;transition:all .2s;backdrop-filter:blur(8px);position:relative;overflow:hidden}
 .health-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(20,184,166,0.12),transparent 60%);pointer-events:none}
 .health-sec:active{transform:scale(.99)}
-.health-sec .shine{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.6),transparent);pointer-events:none}
+.health-sec .mod-prod-health-line{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.6),transparent);pointer-events:none}
 .health-row{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
 .health-dot{width:10px;height:10px;border-radius:50%;background:#64748b;flex-shrink:0;transition:background .3s,box-shadow .3s}
 .health-dot.dot-green{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.7)}
@@ -3911,7 +3760,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .health-ov.open{opacity:1}
 .health-ov-box{position:relative;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:linear-gradient(180deg,rgba(15,15,40,0.95),rgba(8,12,30,0.98));border-top:1px solid rgba(20,184,166,0.35);border-radius:20px 20px 0 0;padding:24px 18px 32px;box-shadow:0 -16px 60px rgba(20,184,166,0.15);transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
 .health-ov.open .health-ov-box{transform:translateY(0)}
-.health-ov-box .shine{position:absolute;top:0;left:18%;right:18%;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.7),transparent);pointer-events:none}
+.health-ov-box .mod-prod-health-line{position:absolute;top:0;left:18%;right:18%;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.7),transparent);pointer-events:none}
 .health-ov-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .health-ov-close:active{background:rgba(99,102,241,.25)}
 .health-ov-hdr{text-align:center;padding:6px 0 18px}
@@ -4153,7 +4002,7 @@ html{overflow-x:hidden;max-width:100vw}
 
 <!-- ═══ S79.FIX.B-HIDDEN-INV-UI: Здраве на склада (Вариант B) ═══ -->
     <div class="health-sec" onclick="openStoreHealthDetail()">
-        <span class="shine"></span>
+        <span class="mod-prod-health-line"></span>
         <div class="health-row">
             <div class="health-dot" id="healthDot"></div>
             <div class="health-info">
@@ -6673,7 +6522,7 @@ function renderWizPagePart2(step){
 
 
         // Добави още preset групи (EU облекло, Дънки, Обувки...)
-        pickH+='<div style="margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Още групи за твоя бизнес</div>';
+        pickH+='<div class="mod-prod-more-groups" onclick="wizShowMoreGroups('+ai+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Още групи за твоя бизнес</div>';
 
         // Remove custom axis
         if(!isSize&&!isColor){
@@ -6796,7 +6645,7 @@ function renderWizPagePart2(step){
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             _aiCardH+
-            '<div id="v4Footer" style="position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);backdrop-filter:blur(14px);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto">'+_footer+'</div>'+
+            '<div id="v4Footer" class="mod-prod-v4-footer">'+_footer+'</div>'+
             vskip+'</div>';
     }
 
@@ -9068,7 +8917,7 @@ function _v4ComputeFooter(axIdx){
         // S82.STUDIO.6: at least one axis has values. Show actions REGARDLESS of which tab
         // the user is on — Колко бр.? and Към запис must always be reachable, otherwise
         // colours-only flow gets stuck on the empty Вариация 2 tab with no buttons.
-        var bMatrix='<button type="button" onclick="openMxOverlay()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
+        var bMatrix='<button type="button" class="mod-prod-mx-cta" onclick="openMxOverlay()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
         var bNext='';
         if(nextEmptyIdx>=0 && hasVals){
             var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
@@ -12476,7 +12325,7 @@ function openStoreHealthDetail() {
     const fmt = (n) => n + '%';
     ov.innerHTML = `
         <div class="health-ov-box">
-            <span class="shine"></span>
+            <span class="mod-prod-health-line"></span>
             <button class="health-ov-close" onclick="closeHealthOverlay()" aria-label="Затвори"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             <div class="health-ov-hdr">
                 <div class="health-ov-icon">${statusIcon}</div>
