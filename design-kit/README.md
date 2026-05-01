@@ -1,7 +1,12 @@
 # 🔒 DESIGN KIT — ЕДИНСТВЕНИЯТ ИЗТОЧНИК НА ИСТИНАТА
 
-**Версия:** 1.0 · 29.04.2026
+**Версия:** 1.1 · 01.05.2026
 **Статус:** LOCKED. Не се преписва. Не се интерпретира. Не се "адаптира".
+
+**v1.1 changelog (01.05.2026 — S89 GAP fix):**
+- ➕ `theme-toggle.js` (нов задължителен файл). v1.0 имаше мъртъв theme бутон.
+- ➕ Изрично правило: `<html lang="bg">` БЕЗ `data-theme="dark"` атрибут.
+- ➕ check-compliance.sh: 8 → 10 проверки (theme-toggle присъства, html без data-theme).
 
 ---
 
@@ -22,6 +27,7 @@
 | `components.css` | реализирани компоненти (.glass / .qcard / .pill / .lb-card / .s82-dash / health / weather / chat...) | **ЗАДЪЛЖИТЕЛНО** |
 | `light-theme.css` | iridescent override за `[data-theme="light"]` | **ЗАДЪЛЖИТЕЛНО** |
 | `header-palette.css` | 2-row header + неон лого + 2 hue пъзгача | **ЗАДЪЛЖИТЕЛНО** |
+| `theme-toggle.js` | **v1.1** — theme switch + localStorage + sun/moon icon swap | **ЗАДЪЛЖИТЕЛНО** |
 | `palette.js` | живо превключване на --hue1/--hue2 | **ЗАДЪЛЖИТЕЛНО** |
 | `partial-header.html` | готов HTML за header (4 икони + лого + пъзгачи) | copy 1:1 |
 | `partial-bottom-nav.html` | 4 заключени таба (AI/Склад/Справки/Продажба) | copy 1:1 |
@@ -68,6 +74,17 @@
 
 ### 8. **НИКОГА не сменяш Montserrat шрифта.**
 
+### 9. **НИКОГА не пиши `<html lang="bg" data-theme="dark">`.** *(v1.1)*
+   Hardcoded `data-theme="dark"` override-ва bootstrap script-а и **чупи toggle бутона** —
+   localStorage `rms_theme=light` няма да се приложи на reload.
+
+   ✔ Правилно: `<html lang="bg">` (БЕЗ атрибут)
+   ✔ Bootstrap script в `<head>` сам set-ва `data-theme="light"` при нужда.
+
+### 10. **НИКОГА не пропускаш `theme-toggle.js`.** *(v1.1)*
+    Без него `onclick="rmsToggleTheme()"` в header-а е мъртъв бутон.
+    Включваш го **ПРЕДИ** `palette.js`.
+
 ---
 
 ## ✅ ЗАДЪЛЖИТЕЛНО — НА ВСЕКИ НОВ МОДУЛ
@@ -76,12 +93,16 @@
 
 ```html
 <!DOCTYPE html>
-<html lang="bg" data-theme="dark">
+<html lang="bg">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#08090d">
 <title>[Заглавие] — RunMyStore.ai</title>
+
+<!-- Theme bootstrap — ПЪРВОТО нещо в head, преди CSS -->
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -92,16 +113,14 @@
 <link rel="stylesheet" href="/design-kit/components.css?v=<?= @filemtime(__DIR__.'/design-kit/components.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
-
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+</head>
 ```
 
-### Стъпка 2: BODY включва задължителните partials:
+### Стъпка 2: BODY включва задължителните partials + JS:
 
 ```html
 <body class="has-rms-shell">
 
-<!-- Copy 1:1 от /design-kit/partial-header.html -->
 <?php include __DIR__ . '/design-kit/partial-header.html'; ?>
 
 <main class="content">
@@ -109,10 +128,12 @@
     <!-- Ползваш .glass, .qcard, .pill — НЕ ги пишеш отново -->
 </main>
 
-<!-- Copy 1:1 от /design-kit/partial-bottom-nav.html -->
 <?php include __DIR__ . '/design-kit/partial-bottom-nav.html'; ?>
 
-<script src="/design-kit/palette.js"></script>
+<!-- v1.1: задължителен ред — theme-toggle ПРЕДИ palette -->
+<script src="/design-kit/theme-toggle.js?v=<?= @filemtime(__DIR__.'/design-kit/theme-toggle.js') ?: 1 ?>"></script>
+<script src="/design-kit/palette.js?v=<?= @filemtime(__DIR__.'/design-kit/palette.js') ?: 1 ?>"></script>
+
 </body>
 </html>
 ```
@@ -141,6 +162,8 @@ bash /design-kit/check-compliance.sh path/to/your-module.php
 - `backdrop-filter` извън design-kit
 - emoji в UI
 - липсващ design-kit import
+- липсващ theme-toggle.js *(v1.1)*
+- hardcoded `<html data-theme="dark">` *(v1.1)*
 
 ---
 
