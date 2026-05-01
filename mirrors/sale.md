@@ -129,8 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
             DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?)",
                 [$sale_id, $pid, $qty, $price, $idp, $ist]);
-            DB::run("UPDATE inventory SET quantity = GREATEST(quantity - ?, 0) WHERE product_id = ? AND store_id = ?",
-                [$qty, $pid, $store_id]);
+            $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
+                [$qty, $pid, $store_id, $qty]);
+            if ($upd->rowCount() === 0) {
+                throw new Exception("Артикулът свърши преди да го продадеш. Презареди и опитай отново.");
+            }
             DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, quantity, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, 'out', 'sale', ?, NOW())",
                 [$tenant_id, $pid, $store_id, $qty, $sale_id]);
         }

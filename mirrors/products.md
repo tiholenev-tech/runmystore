@@ -540,6 +540,40 @@ if ($ajax === 'sections') {
         echo json_encode(['ok'=>true,'count'=>count($cat_ids)]); exit;
     }
 
+    // ─── S90.PRODUCTS.SPRINT_B D5: live duplicate-name check докато Pesho пише ───
+    // Връща top 5 близки имена с similarity ≥ 0.65; UI показва banner само за ≥ 0.85.
+    if ($ajax === 'name_dupe_check') {
+        $q = trim($_GET['q'] ?? '');
+        if (mb_strlen($q) < 3) { echo json_encode([]); exit; }
+        $editId = (int)($_GET['exclude_id'] ?? 0);
+        $like = '%' . $q . '%';
+        $params = [$tenant_id, $like];
+        $sql = "SELECT id, name, retail_price FROM products
+                WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
+                  AND name LIKE ?";
+        if ($editId > 0) { $sql .= " AND id <> ?"; $params[] = $editId; }
+        $sql .= " ORDER BY CHAR_LENGTH(name) ASC LIMIT 40";
+        $rows = DB::run($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+        // PHP-side similarity: similar_text() връща percent (0..100).
+        $qLower = mb_strtolower($q);
+        $matches = [];
+        foreach ($rows as $r) {
+            $nameLower = mb_strtolower($r['name']);
+            similar_text($qLower, $nameLower, $pct);
+            $sim = round($pct / 100.0, 3);
+            if ($sim >= 0.65) {
+                $matches[] = [
+                    'id'    => (int)$r['id'],
+                    'name'  => $r['name'],
+                    'price' => (float)$r['retail_price'],
+                    'score' => $sim,
+                ];
+            }
+        }
+        usort($matches, fn($a, $b) => $b['score'] <=> $a['score']);
+        echo json_encode(array_slice($matches, 0, 5)); exit;
+    }
+
     // ─── CATEGORY GROUPS (from JSON) ───
     if ($ajax === 'category_groups') {
         $jsonFile = __DIR__ . '/category-groups.json';
@@ -5558,8 +5592,11 @@ function closeVoice(){
 // Tap backdrop = close
 document.getElementById('recOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeVoice()});
 
-// ─── SWIPE NAVIGATION — DISABLED ───
-// Removed: swipe between pages was accidentally triggering on normal scroll
+// ─── SWIPE NAVIGATION — DISABLED (S90.PRODUCTS.SPRINT_B G1) ───
+// Removed: swipe between pages was accidentally triggering on normal scroll.
+// Tihol confirmed: do NOT add page-level swipe-nav back to products.php.
+// `.swipe-row` / `.h-scroll` CSS остава — те са horizontal-scroll карусели за
+// content вътре в карта (доставчици, категории), не page navigation.
 
 
 
@@ -5723,6 +5760,54 @@ function wizClearAIMark(key){
     delete S.wizData._aiFilled[key];
     var el=document.querySelector('.wiz-ai-hint[data-aikey="'+key+'"]');
     if(el)el.style.display='none';
+}
+
+// S90.PRODUCTS.SPRINT_B D5: live duplicate detection докато Pesho пише името.
+// Debounced 350ms. След 3+ символа AJAX → ако match score ≥ 0.85 → жълт banner с CTA.
+var _wizDupeTimer=null;
+function wizDupeCheckName(name){
+    name=(name||'').trim();
+    var banner=document.getElementById('wDupeBanner');
+    if(!banner)return;
+    if(_wizDupeTimer){clearTimeout(_wizDupeTimer);_wizDupeTimer=null;}
+    if(name.length<3){banner.style.display='none';banner.innerHTML='';return;}
+    // Не показваме banner ако вече сме потвърдили "не, продължи" за това име.
+    if(S._wizDupeDismissed&&S._wizDupeDismissed===name.toLowerCase()){banner.style.display='none';return;}
+    _wizDupeTimer=setTimeout(function(){
+        var url='products.php?ajax=name_dupe_check&q='+encodeURIComponent(name);
+        if(S.wizEditId)url+='&exclude_id='+S.wizEditId;
+        api(url).then(function(matches){
+            if(!Array.isArray(matches)||!matches.length){banner.style.display='none';banner.innerHTML='';return;}
+            var top=matches[0];
+            if(!top||top.score<0.85){banner.style.display='none';banner.innerHTML='';return;}
+            // Все още се пише — текущото име може да е променено след заявката.
+            var cur=(document.getElementById('wName')||{}).value||'';
+            if(cur.trim().toLowerCase()!==name.toLowerCase())return;
+            var priceTxt=(top.price>0)?(' ('+top.price.toFixed(2)+' '+CFG.currency+')'):'';
+            var pct=Math.round(top.score*100);
+            banner.style.display='block';
+            banner.innerHTML='<div class="wiz-dupe-banner" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.42);color:#fcd34d">'
+                +'<div style="display:flex;align-items:flex-start;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'
+                +'<div style="flex:1;min-width:0;font-size:11.5px;line-height:1.45">Близко до съществуващ артикул: <b style="color:#fff">'+_escDupe(top.name)+'</b>'+priceTxt+' · <span style="color:#fde68a">'+pct+'% близко</span>. Същото ли е?</div></div>'
+                +'<div style="display:flex;gap:6px;margin-top:8px"><button type="button" onclick="wizDupeOpenExisting('+top.id+')" style="flex:1;padding:8px;border-radius:8px;background:rgba(99,102,241,0.18);border:1px solid rgba(139,92,246,0.45);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Да, отвори същото</button>'
+                +'<button type="button" onclick="wizDupeDismiss()" style="flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Не, продължи</button></div>'
+                +'</div>';
+        }).catch(function(){});
+    },350);
+}
+function _escDupe(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});}
+function wizDupeDismiss(){
+    var nm=(document.getElementById('wName')||{}).value||'';
+    S._wizDupeDismissed=nm.trim().toLowerCase();
+    var banner=document.getElementById('wDupeBanner');
+    if(banner){banner.style.display='none';banner.innerHTML='';}
+}
+function wizDupeOpenExisting(id){
+    if(!id)return;
+    closeWizard();
+    if(typeof openProductDetail==='function'){openProductDetail(id);return;}
+    if(typeof goScreenWithHistory==='function'){goScreenWithHistory('products',{id:id});return;}
+    location.hash='#product='+id;
 }
 
 // ═══ S82.STUDIO.10: wizDraft cache — auto-saves the wizard state to
@@ -6084,6 +6169,11 @@ async function renderWizard(){
             await wizLoadSubcats(S.wizData.category_id);
         }
         if(typeof wizUpdateMarkup==='function')wizUpdateMarkup();
+        // S90.PRODUCTS.SPRINT_B D3: prefetch на supplier-филтрираните категории
+        // веднага след render — иначе първото отваряне на dropdown показва пълния списък.
+        if(S.wizData.supplier_id&&typeof wizPrefetchSupplierCats==='function'){
+            wizPrefetchSupplierCats(S.wizData.supplier_id);
+        }
     }
     // Legacy supplier→category cascade (kept defensively for the old #wSup/#wCat selects if any code path still renders them).
     if(false&&S.wizStep===3){
