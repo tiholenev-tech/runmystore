@@ -501,7 +501,7 @@ function dispView(string $view): bool {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?= htmlspecialchars($lang) ?>" data-theme="dark">
+<html lang="<?= htmlspecialchars($lang) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -915,6 +915,7 @@ function dispView(string $view): bool {
 
 <?php include __DIR__ . '/design-kit/partial-bottom-nav.html'; ?>
 
+<script src="/design-kit/theme-toggle.js?v=<?= @filemtime(__DIR__.'/design-kit/theme-toggle.js') ?: 1 ?>"></script>
 <script src="/design-kit/palette.js?v=<?= @filemtime(__DIR__.'/design-kit/palette.js') ?: 1 ?>"></script>
 <script>
 (function () {
