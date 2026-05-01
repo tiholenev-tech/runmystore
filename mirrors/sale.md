@@ -32,6 +32,9 @@ $wholesale_clients = DB::run("SELECT id, name, phone FROM customers WHERE tenant
 // Page title
 $page_title = $supato_mode ? 'Изходящо движение' : 'Продажба';
 
+// S91.MIGRATE — body shell mode (sale.php is single-mode POS; placeholder for future dual-mode UX)
+$mode = 'simple';
+
 // ─── AJAX: Quick Search ───
 if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     header('Content-Type: application/json; charset=utf-8');
@@ -146,65 +149,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     exit;
 }
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="<?= $lang ?>">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#08090d">
 <title><?= $page_title ?> — RunMyStore.ai</title>
-<link href="./css/vendors/aos.css" rel="stylesheet"/>
-<link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>"/>
-<link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>"/>
+
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+
+<link rel="stylesheet" href="/design-kit/tokens.css?v=<?= @filemtime(__DIR__.'/design-kit/tokens.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/components-base.css?v=<?= @filemtime(__DIR__.'/design-kit/components-base.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/components.css?v=<?= @filemtime(__DIR__.'/design-kit/components.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
+<link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 <style>
 /* ═══════════════════════════════════════════════════════════
    SALE MODULE — Unified Design System 2026
    Reference: warehouse.php
    ═══════════════════════════════════════════════════════════ */
-/* S87/S88 SALE — V5 Neon Glass Design System (indigo 255/222) */
-:root,:root[data-theme="dark"] {
-    --hue1: 255; --hue2: 222;
-    --bg-main: #08090d;
-    --bg-card: rgba(255,255,255,0.025);
-    --bg-card-strong: rgba(15,15,40,0.85);
-    --bg-card-hover: rgba(23,28,58,0.9);
-    --border-subtle: rgba(255,255,255,0.06);
-    --border-glow: hsl(var(--hue1) 60% 55% / 0.45);
-    --indigo-600: hsl(var(--hue1) 65% 50%);
-    --indigo-500: hsl(var(--hue1) 65% 55%);
-    --indigo-400: hsl(var(--hue1) 65% 65%);
-    --indigo-300: hsl(var(--hue1) 60% 75%);
-    --indigo-200: hsl(var(--hue1) 60% 85%);
-    --text-primary: #f1f5f9;
-    --text-secondary: rgba(255,255,255,0.6);
-    --text-muted: rgba(255,255,255,0.4);
-    --danger: hsl(0 70% 60%);
-    --warning: hsl(38 90% 55%);
-    --success: hsl(145 70% 50%);
-    --bottom-nav-h: 64px;
-    --ease: cubic-bezier(0.5,1,0.89,1);
-    color-scheme: dark;
+/* S91.MIGRATE — design-kit tokens.css owns hue/theme tokens.
+   Only sale-specific tokens kept here (not present in design-kit). */
+:root{
+    --bg-card-strong:rgba(15,15,40,0.85);
+    --indigo-200:hsl(var(--hue1) 60% 85%);
+    --bottom-nav-h:64px;
 }
-:root[data-theme="light"] {
-    --bg-main: #f4f6fb;
-    --bg-card: rgba(15,23,42,0.04);
-    --bg-card-strong: rgba(255,255,255,0.95);
-    --bg-card-hover: rgba(241,245,249,0.95);
-    --border-subtle: rgba(15,23,42,0.10);
-    --border-glow: hsl(var(--hue1) 60% 55% / 0.35);
-    --indigo-600: hsl(var(--hue1) 65% 45%);
-    --indigo-500: hsl(var(--hue1) 65% 50%);
-    --indigo-400: hsl(var(--hue1) 65% 55%);
-    --indigo-300: hsl(var(--hue1) 60% 45%);
-    --indigo-200: hsl(var(--hue1) 60% 35%);
-    --text-primary: #0f172a;
-    --text-secondary: rgba(15,23,42,0.70);
-    --text-muted: rgba(15,23,42,0.50);
-    color-scheme: light;
+:root[data-theme="light"]{
+    --bg-card-strong:rgba(255,255,255,0.95);
+    --indigo-200:hsl(var(--hue1) 60% 35%);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{
