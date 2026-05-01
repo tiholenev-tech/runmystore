@@ -4502,9 +4502,11 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- ═══ MANUAL WIZARD MODAL ═══ -->
 <div class="modal-ov" id="wizModal">
     <div class="modal-hdr">
-        <button onclick="closeWizard()" style="background:transparent;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer">✕</button>
+        <button id="wizBackBtn" onclick="wizPrev()" aria-label="Назад" title="Назад" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;padding:0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
         <h2 id="wizTitle">Нов артикул</h2>
-        <div style="width:28px"></div>
+        <button onclick="closeWizard()" aria-label="Затвори" title="Затвори" style="background:transparent;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div class="wiz-steps" id="wizSteps"></div>
     <div class="wiz-label" id="wizLabel"></div>
@@ -5763,6 +5765,7 @@ function openManualWizard(){
     } else {
         S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
     }
+    S._wizHistory=[];
     S.wizVoiceMode=false;
     document.getElementById('wizTitle').textContent='Нов артикул';
     renderWizard();
@@ -5788,6 +5791,7 @@ function openVoiceWizard(){
     } else {
         S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
     }
+    S._wizHistory=[];
     S.wizVoiceMode=true;
     document.getElementById('wizTitle').textContent='Нов артикул (с глас)';
     renderWizard();
@@ -5869,14 +5873,33 @@ function parseVoiceToFields(text){
 function closeWizard(){
     document.getElementById('wizModal').classList.remove('open');
     document.body.style.overflow='';
+    S._wizHistory=[];
 }
 
-function wizGo(step){
+function wizGo(step,_skipHistory){
     wizCollectData();
     if(step===2&&!S.wizData._hasPhoto){step=3;}
+    if(!_skipHistory && S.wizStep!==step){
+        if(!Array.isArray(S._wizHistory))S._wizHistory=[];
+        S._wizHistory.push(S.wizStep);
+        if(S._wizHistory.length>32)S._wizHistory.shift();
+    }
     S.wizStep=step;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
+}
+// S90.PRODUCTS.SPRINT_B C5: back arrow in wizard header — пазим стъпки в history.
+function wizPrev(){
+    if(Array.isArray(S._wizHistory)&&S._wizHistory.length){
+        var prev=S._wizHistory.pop();
+        wizGo(prev,true);
+        return;
+    }
+    if(S.wizStep>0){
+        wizGo(Math.max(0,S.wizStep-1),true);
+        return;
+    }
+    closeWizard();
 }
 
 
@@ -6286,11 +6309,14 @@ function renderWizPage(step){
               '<div class="fg">'+fieldLabel('Произход','name','<span class="hint">(държава)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wOrigin" value="'+esc(S.wizData.origin_country||'')+'" placeholder="напр. България, Турция, Италия" oninput="S.wizData.origin_country=this.value" style="flex:1">'+mic('origin')+cpy('origin_country')+'</div></div>'+
               // Мерна единица
               '<div class="fg">'+fieldLabel('Мерна единица','unit')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>'+
-              // Collapsible: Баркод + Артикулен номер (advanced)
-              '<details class="wiz-advanced" style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:rgba(255,255,255,0.55);padding:8px 0;list-style:none">▸ Баркод и артикулен номер</summary>'+
-                '<div class="fg">'+fieldLabel('Баркод','barcode','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode()" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
-                '<div class="fg">'+fieldLabel('Артикулен номер','code','<span class="hint">(авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+mic('code')+'</div></div>'+
-              '</details>'+
+              // S90.PRODUCTS.SPRINT_B C3: Артикулен номер и Баркод — всеки в собствен qcard.glass.
+              // S90.PRODUCTS.SPRINT_B C2: scanner икона на двете полета.
+              '<div class="wiz-id-card glass sm" style="padding:12px 14px;margin-top:10px;border-radius:14px">'+
+                '<div class="fg" style="margin:0">'+fieldLabel('Артикулен номер','code','<span class="hint">(вътрешен код · авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+mic('code')+'<button type="button" class="abtn" onclick="wizScanBarcode(\'wCode\',\'Сканирай артикулен номер\')" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.4)" title="Сканирай артикулен номер" aria-label="Сканирай артикулен номер"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+              '</div>'+
+              '<div class="wiz-id-card glass sm" style="padding:12px 14px;margin-top:10px;border-radius:14px">'+
+                '<div class="fg" style="margin:0">'+fieldLabel('Баркод','barcode','<span class="hint">(EAN/UPC · авто ако празно)</span>')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wBarcode" oninput="S.wizData.barcode=this.value.trim()" value="'+esc(bc)+'" placeholder="сканирай или въведи" style="flex:1">'+mic('barcode')+'<button type="button" class="abtn" onclick="wizScanBarcode(\'wBarcode\',\'Сканирай баркод\')" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай баркод" aria-label="Сканирай баркод"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
+              '</div>'+
             '</div>'+
             '<div style="display:flex;gap:8px;margin-top:14px">'+
               '<button type="button" onclick="closeWizard()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
@@ -7909,11 +7935,16 @@ async function doStudioObjects(){
 
 // ─── HELPERS ───
 
-function wizScanBarcode(){
+// S90.PRODUCTS.SPRINT_B C2: scanner-ът работи и за артикулен номер.
+// targetField: 'wBarcode' (default) или 'wCode'. title: header текст.
+function wizScanBarcode(targetField,title){
+    targetField = targetField || 'wBarcode';
+    title = title || 'Сканирай баркод';
     const ov=document.createElement('div');ov.className='preset-ov';ov.id='barcodeScanOv';
+    ov._scanTarget = targetField;
     ov.innerHTML='<style>#wizBcVid::-webkit-media-controls,#wizBcVid::-webkit-media-controls-panel,#wizBcVid::-webkit-media-controls-overlay-play-button,#wizBcVid::-webkit-media-controls-play-button,#wizBcVid::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}</style>'+
     '<div class="preset-box" style="text-align:center;padding:16px">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">Сканирай баркод</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">'+title+'</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
     '<div id="wizBcWrap" style="position:relative;width:100%;aspect-ratio:16/10;max-height:250px;border-radius:12px;background:#000;overflow:hidden">'+
       '<video id="wizBcVid" autoplay playsinline muted disablepictureinpicture style="width:100%;height:100%;object-fit:cover;visibility:hidden"></video>'+
       '<div id="wizBcLoad" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>Стартиране на камерата…</div>'+
@@ -7934,8 +7965,11 @@ function wizScanBarcode(){
             vid._bcInterval=setInterval(async()=>{
                 try{const codes=await det.detect(vid);
                 if(codes.length){clearInterval(vid._bcInterval);const val=codes[0].rawValue;
-                const el=document.getElementById('wBarcode');if(el)el.value=val;
-                S.wizData.barcode=val;showToast('Баркод: '+val,'success');closeBarcodeScan();}
+                const target=ov._scanTarget||'wBarcode';
+                const el=document.getElementById(target);if(el)el.value=val;
+                if(target==='wCode'){S.wizData.code=val;showToast('Артикулен номер: '+val,'success');}
+                else{S.wizData.barcode=val;showToast('Баркод: '+val,'success');}
+                closeBarcodeScan();}
                 }catch(e){}
             },300);
         }else{showToast('Браузърът не поддържа сканиране','error')}
