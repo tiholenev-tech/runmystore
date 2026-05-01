@@ -231,10 +231,10 @@ function pfUpsert(int $tenant_id, array $i): array {
     $role_gate   = pfRoleGateFor($fq, $topic_id);
     $plan_gate   = pfPlanGateFor($fq);
 
-    // module enum е ('home','products','warehouse','stats','sale') — default 'products', override чрез $i['module']
+    // module enum е ('home','products','warehouse','stats','sale') — default 'home' (S91 fix), override чрез $i['module']
     $valid_modules = ['home','products','warehouse','stats','sale'];
-    $module = $i['module'] ?? 'products';
-    if (!in_array($module, $valid_modules, true)) $module = 'products';
+    $module = $i['module'] ?? 'home';
+    if (!in_array($module, $valid_modules, true)) $module = 'home';
 
     // Check existing (idempotent) — match ТОЧНО UNIQUE ключа: (tenant_id, store_id, topic_id)
     $sql_chk = "SELECT id FROM ai_insights 
