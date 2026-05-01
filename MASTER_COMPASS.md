@@ -941,6 +941,152 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 29.04.2026 — S88 SHEF DAY 2 — 11 commits, schema foundation + design-kit + sale.php sprint
+
+### 11 commits в реда на push:
+
+1. `f5826e8` SIMPLE_MODE_BIBLE v1.3 — 5 add-ons (mode lock, AI Brain queue arch, state preservation, snimka copy by default, voice protocol). +419 реда.
+2. `91ccd65` S88.DIAG.VERIFY_TENANT7 — production diagnostic, 100% action_type coverage за 41 ai_insights tenant=7
+3. `a2d9679` S88B.PRODUCTS.KAKTO_PREDNIA_FIX — BIBLE 7.2.8 alignment (code празен, snimka copy + tap, qty=0, 10 полета в copied-card). +68/-45.
+4. `d707370` S88C.DIAG.SCENARIO_FIX — 6 fails не са 6 bugs а 1 framework bug (sale_items missing UNIQUE → cleanup unconditional only под --pristine). 1694 duplicates изтрити, 57/57 PASS на 3 idempotent runs.
+5. `919b80a` DELIVERY_ORDERS_DECISIONS_FINAL — архитектурен документ (Opus chat), 560 реда, 165 решения, секции A до X (включително S Payment lifecycle, T Pack_size, U Order stale, V Bonus, W Supplier_product_code, X Backup mode offline)
+6. `30b6518` S88D.DELIVERY.SCHEMA — 5 нови tables (delivery_events, supplier_defectives, price_change_log, pricing_patterns, voice_synonyms) + 39 нови колони + 9 indexes + 3 FK + purchase_orders.status += 'stale'. Backup `/var/backups/runmystore_pre_s88d_20260429_1006.sql` (2.27 MB).
+7. `f1139f4` S88B.HOTFIX — schema drift `subcategory_id` (Като предния "Мрежова грешка"). Live wins: `categories.parent_id` chain.
+8. `3150cda` S87G.SALE.UX_BATCH — 7 P0/P1 bugs (B1 live search, B2 custom numpad qty, B3 tap zones split, B4 swipe-to-delete, B5 single tap → numpad, B6 voice inline, B7 custom numpad discount). +416/-209. 0 native prompt() в sale.php.
+9. `ed8834d` DESIGN-KIT v1.0 — 16 файла locked source of truth (tokens.css, components-base.css, components.css 1713 реда, light-theme.css, header-palette.css, palette.js, partial-header.html, partial-bottom-nav.html, README.md, PROMPT.md, check-compliance.sh + 5 reference)
+10. `abda4a8` S87G.HOTFIX_B5 — search result tap regression (numpad opened on any tap → explicit selection state + per-row add button)
+11. `f94208b` DOCUMENT_PROTOCOL.md — железен закон за писане на документи (3 четения)
+
+### Постижения:
+
+✅ **Schema foundation за DELIVERY + ORDERS production-ready** — 5 нови таблици на live DB
+✅ **DESIGN-KIT v1.0 LOCKED** — 16 файла, 8/8 compliance check, единен дизайн за всички бъдещи модули. Решава cross-module visual inconsistency проблема.
+✅ **AUTO_PRICING концепция оформена** — 568 реда design doc, революционна функция, ще е PRO differentiator. Phase 1 = delivery, Phase 2 = wizard.
+✅ **sale.php production-ready** — 8 P0 bugs от S87E + 7 нови от S87G + 1 hotfix B5 = чисто
+✅ **products.php "Като предния" работи** — BIBLE compliant, schema drift fix
+✅ **Diagnostic framework стабилизиран** — idempotent runs, 57/57 PASS
+✅ **DOCUMENT_PROTOCOL** — формализиран процес за документация (3 четения)
+
+### Schema drift findings (live wins per BIBLE §14.9):
+- `payment_status='partially_paid'` (не 'partial')
+- `payment_due_date` (не 'due_date')
+- `purchase_orders.status='partial'` (не 'partially_received')
+- `ai_insights` няма `type` колона → `topic_id` VARCHAR(80)
+- `subcategory_id` не съществува в products → `categories.parent_id` chain (S88B.HOTFIX)
+
+### Deferred to S91+:
+- ai_brain_queue, accounts_payable, supplier_orders DROP, payments per-delivery partial
+- IndexedDB (X10) frontend scope — извън MySQL
+- WooCommerce sync project (Phase 2 = май-юни post-beta) — reservation pattern + sync queue + webhook ~33ч работа
+
+### Документация:
+- `SIMPLE_MODE_BIBLE.md` v1.3 (1750 реда)
+- `DELIVERY_ORDERS_DECISIONS_FINAL.md` (560 реда, 165 решения)
+- `AUTO_PRICING_DESIGN_LOGIC.md` v1.0 (568 реда — pending push в outputs)
+- `DOCUMENT_PROTOCOL.md` (81 реда)
+
+## 29.04.2026 — BUG TRACKER (post-mobile-test, Sprint B-D pending)
+
+### Sale.php — Sprint A done, Sprint H pending
+
+✅ **DONE Sprint A (commit 3150cda + abda4a8 hotfix):**
+- B1 live search debounced 250ms
+- B2 custom numpad qty edit
+- B3 tap zones ляво/дясно на цифрата
+- B4 swipe-to-delete cart row
+- B5 single tap → numpad (hotfix след regression)
+- B6 voice inline (no overlay)
+- B7 custom numpad discount %
+
+🟡 **DEFERRED Sprint H:**
+- Multi-select при search (long-press)
+- B6 continuous=true ако bg-BG quality OK
+- B7 numpad с decimal point (засега integer-only)
+
+### Products.php — Sprint B-C pending (~23 bugs)
+
+🔴 **5 P0 от "Като предния" mobile test (29.04):**
+- C1 Липсва "+ Добави размер" бутон под размерите
+- C2 Артикулен номер няма scanner икона до полето
+- C3 Артикулен номер + Баркод да са разделни контейнери (не в едно)
+- C4 Hint текст: "Ако не се попълнят — попълват се автоматично"
+- C5 Back navigation (стрелка ←) във wizard header
+
+🟡 **8 P0 + 14 UX от обикновен wizard (28.04 evening, не пипани):**
+- D1 Copy-from-last (...) → "Като предния" без feedback popup + auto-skip type стъпка
+- D2 Dropdown-и без tap-out close
+- D3 🔴 КРИТИЧЕН — Категории не filter-ват по supplier (двойна логика global vs per-supplier конфликт)
+- D4 Материи + произход без autocomplete от history
+- D5 🔴 КРИТИЧЕН — Duplicate detection late at save (трябва LIVE при писане на име)
+- D6 След grid save scroll до AI Studio decision
+- D7 Принтер DTM-5811 connect bug (→ S82 Capacitor сесия)
+- D8 Verify "Бикини плитки/дълбоки" в DB
+- D9 Молив + три точки на всеки артикул (твърде много действия)
+- D10 Pause/resume чрез confidence_score
+- D11 Equal input boxes
+- D12 Markup → "ПЕЧАЛБА %" terminology + (retail-cost)/retail*100
+- D13 Markup live calc
+- D14 ↻ inside input
+- D15 300 country list (произход = пълен ISO)
+- D16 Главна снимка горе (фото първо, не след полета)
+- D17 Full-screen "Като предния" instant edit
+- D18 Variation labeling 1/2/3 + (Цвят) скоби
+- D19 X clear animation
+- D20 Neon trim (CSS дизайн полиране)
+- D21 Печат always active
+- D22 Single mode без ✏️/три точки
+- D23 Variant photo persistence verify
+
+### Global — премахваме G1
+- G1 Inter-page swipe навигация → ПРЕМАХНАТО глобално (само стрелки за back). Cart swipe-delete остава като component жест.
+
+### Sprint планове:
+- **Sprint B (утре):** C1-C5 + D3 + D5 + G1 (9 bugs, ~3-4ч)
+- **Sprint C (вдругиден):** D1, D2, D4, D6, D9, D11, D12, D13, D16, D17, D18, D19, D21, D22 (14 bugs)
+- **Sprint D (полиране):** D8, D10, D14, D15, D20, D23 (6 bugs)
+- **D7 принтер** → отделна Capacitor сесия (S82-X)
+
+## 29.04.2026 — AUTO_PRICING концепция (Phase 1 = delivery, Phase 2 = wizard)
+
+- **Концепция:** Пешо никога не въвежда продажна цена. AI предлага по неговия стил per-category, той само одобрява. Цел: 95% acceptance rate.
+- **Phase plan:** Phase 1 (S91+) delivery review screen → Phase 2 (S92+) products "Като предния" wizard → Phase 3 (S100+) sales velocity cron → Phase 4 (BIZ) bulk repricing.
+- **Schema готова в S88D commit 30b6518:** `pricing_patterns` + `price_change_log` ВЕЧЕ create-нати.
+- **3 learning sources:** Onboarding (cold start) + Manual corrections + Sales velocity feedback.
+- **Per-category patterns:** Бельо ×2.5/.99, Чорапи ×1.8/.50, Тениски ×2.5/.90, Бижута евтини ×3/exact.
+- **Confidence routing (LAW №8):** > 0.85 auto-apply / 0.5-0.85 confirm / < 0.5 manual.
+- **Bestseller protection:** > 5 продажби/седмица × 4 седмици → ВИНАГИ confirm dialog.
+- **5 risk-а митигирани:** cold start under-data N=20, velocity bias на запас, бижута variance per cost-bracket, .99 vs .90 култура решава се в onboarding, tenant data isolation enforced.
+- **PRO differentiator:** единствената причина клиент да upgrade-не от START €19 на PRO €49.
+- **Marketing positioning:** „Не въвеждаш цени. Те ги намират."
+- **Estimate:** 16-19 часа имплементация. Спецификация в `AUTO_PRICING_DESIGN_LOGIC.md` (568 реда — pending push в outputs).
+
+## 29.04.2026 — Currently RUNNING (паралелна сесия, не пипана от шеф-чат)
+
+**Code Code rmscode сесия** работи по DELIVERY + ORDERS handoff documenta (15 секции, 14 стъпки, ~18-26ч estimate). Backend services + frontend UI imp на:
+- services/voice-tier2.php (Whisper Groq)
+- services/ocr-router.php (Gemini Vision pipeline)
+- services/pricing-engine.php (auto-pricing)
+- services/duplicate-check.php
+- delivery.php Simple + Detailed Mode
+- orders.php + order.php
+- defectives.php
+- chat.php buildSupplierContext helper
+- compute-insights.php нови insight типове
+- life-board.php секции
+
+⚠ **Шеф-чат НЕ пипа тези файлове paralel-но.** Когато Code Code приключи → verify + integration testing.
+
+## 29.04.2026 — INFRASTRUCTURE PLAN (за след beta)
+
+**Sub-second WooCommerce sync — възможно с DigitalOcean (без миграция):**
+- Phase 1 (юни 2026 след beta): reservation pattern + sync_queue таблица + background workers (~33ч)
+- Phase 2 (юни-септември 2026): scaling до 200 клиенти ($90/mес инфра)
+- Phase 3 (Q1 2027): 200-500 клиенти ($200/mес — read replicas + CDN)
+- Phase 4 (Q2 2027): 500-1000 клиенти ($400-600/mес — multi-droplet)
+- Phase 5 (Q3+ 2027): 1000+ → AWS/GCP/Azure managed ($1000+/mес)
+
+Multi-tenant native architecture от ден 1 = готов за scale. Не потребен rewrite.
+
 ## 28.04.2026 — S88.DIAG.EXTEND — Cat E (Migration & ENUM regression) активирана
 
 - **Промяна:** Diagnostic Framework вече има 5-та категория — **Cat E (Migration & ENUM regression)**.
