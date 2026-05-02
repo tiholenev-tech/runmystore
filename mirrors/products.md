@@ -6406,10 +6406,9 @@ function renderWizPagePart2(step){
         selH+='<div class="v-add-manual" style="display:flex;gap:6px;padding:8px 14px 0">'+
               '<input type="text" id="axVal'+ai+'" class="v-custom-input" placeholder="'+_addPh+'" '+
               'onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizAddAxisValue('+ai+')}" '+
-              'style="flex:1;padding:10px 14px;font-size:13px">'+
-              '<button class="v-custom-btn" onclick="wizAddAxisValue('+ai+')" title="Добави на ръка">'+
+              'style="flex:1;padding:10px 14px;font-size:14px">'+
+              '<button class="v-custom-btn" onclick="wizAddAxisValue('+ai+')" title="Добави '+esc(_addLbl)+'" style="padding:10px;flex-shrink:0;width:42px;height:42px">'+
               '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
-              'Добави '+esc(_addLbl)+
               '</button>'+
               '</div>';
 
