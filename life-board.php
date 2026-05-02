@@ -586,6 +586,7 @@ body::before{
           <div class="op-label">Поръчка</div>
         </a>
       </div>
+      <?php include __DIR__ . '/partials/ai-brain-pill.php'; ?>
       <div class="studio-row-bottom">
         <a href="/ai-studio.php" class="glass sm studio-btn s87v3-tap" aria-label="AI Studio">
           <span class="shine"></span><span class="shine shine-bottom"></span>
