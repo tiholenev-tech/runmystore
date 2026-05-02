@@ -3981,9 +3981,8 @@ html{overflow-x:hidden;max-width:100vw}
             <div class="add-txt"><div class="add-title">Добави артикул</div><div class="add-hint">Избери начин →</div></div>
         </div>
         <div class="add-modes">
-            <button class="add-mode voice" onclick="event.stopPropagation();openVoiceWizard()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
-            <button class="add-mode" onclick="event.stopPropagation();openManualWizard()"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-            <button class="add-mode" onclick="event.stopPropagation();openMoreAddOptionsS88(this)"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg></button>
+            <!-- S92.PRODUCTS.D9_CLEANUP: махнат микрофон (безсмислен) + молив (дублира главния "Добави артикул") бутони. ⋯ → явен "Като предния" бутон с директен handler. -->
+            <button class="add-mode-kp" onclick="event.stopPropagation();openLikePreviousWizardS88()" style="height:36px;padding:0 14px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.45);color:#e2e8f0;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.02em;white-space:nowrap;font-family:inherit">📋 Като предния</button>
         </div>
     </div>
 
