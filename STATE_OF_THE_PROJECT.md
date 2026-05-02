@@ -23,6 +23,7 @@
 - ✅ `printer-setup.php` — Bluetooth pair UI + diagnostic log
 - ✅ `sale.php` — 3 broken DB columns fixed (S87.SALE.DBFIX): `total_amount`→`total`, `subtotal`→`total` (sale_items), `payment_method='transfer'`→`'bank_transfer'`. End-to-end INSERT verified срещу live schema на tenant=99.
 - ✅ `partials/header.php`, `partials/bottom-nav.php`, `partials/chat-input-bar.php` — production rms-shell
+- ✅ `partials/voice-overlay.php` + `partials/ai-brain-pill.php` + `ai-brain-record.php` — S92.AIBRAIN.PHASE1 (Reactive only): pill под 4-те ops бутона в life-board → backdrop-blur voice overlay → loopback POST към chat-send.php. Phase 2 (proactive queue + escalation) и Phase 3 (mini-FAB в Simple Mode модули) отложени. ⚠ ai_brain_queue table CREATED локално в migrations/s92_aibrain_up.sql, **още не е applied на live DB** (tihol user няма достъп до db.env — manual apply needed).
 - ✅ `admin/beta-readiness.php` — live dashboard (7 sections incl. Testing Loop Health, auto-refresh 60s, owner+tenant=7 gated, mobile-friendly) — S86 + S87
 - ✅ `tools/testing_loop/` — continuous AI insights validation (daily_runner.py + snapshot_diff.py + ANOMALY_LOG.md, tenant=99 isolated lab) — S87
 - ✅ `tools/seed/sales_populate.py` — realistic sales seeder (tenant=99): peak hours, weekend boost, basket/return/discount distributions; `--count` + `--backfill-days` + `--dry-run`; tenant guard {7,99}; docs in `tools/seed/SALES_SEEDER.md` — S87
