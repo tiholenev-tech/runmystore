@@ -5701,6 +5701,7 @@ function _wizSaveDraft(){
         var draft = {
             t: Date.now(),
             wizStep: S.wizStep,
+            wizSubStep: S.wizSubStep || 0,
             wizType: S.wizType,
             wizData: S.wizData,
             wizEditId: S.wizEditId || null
@@ -5752,6 +5753,7 @@ function openManualWizard(){
         var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
         if (confirm(msg)) {
             S.wizStep = draft.wizStep || 0;
+            S.wizSubStep = draft.wizSubStep || 0;
             S.wizType = draft.wizType || null;
             S.wizData = draft.wizData || {};
             S.wizEditId = draft.wizEditId || null;
@@ -5778,6 +5780,7 @@ function openVoiceWizard(){
         var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
         if (confirm(msg)) {
             S.wizStep = draft.wizStep || 0;
+            S.wizSubStep = draft.wizSubStep || 0;
             S.wizType = draft.wizType || null;
             S.wizData = draft.wizData || {};
             S.wizEditId = draft.wizEditId || null;
