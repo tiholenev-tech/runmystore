@@ -236,45 +236,59 @@ function pfUpsert(int $tenant_id, array $i): array {
     $module = $i['module'] ?? 'home';
     if (!in_array($module, $valid_modules, true)) $module = 'home';
 
-    // Check existing (idempotent) — match ТОЧНО UNIQUE ключа: (tenant_id, store_id, topic_id)
-    $sql_chk = "SELECT id FROM ai_insights 
-                WHERE tenant_id=? AND store_id=? AND topic_id=? 
-                LIMIT 1";
-    $st = pfDB()->prepare($sql_chk);
-    $st->execute([$tenant_id, $store_id, $topic_id]);
-    $existing = $st->fetchColumn();
-
-    if ($existing) {
-        $up = pfDB()->prepare("UPDATE ai_insights SET 
-            category=?, module=?, urgency=?, fundamental_question=?, plan_gate=?, role_gate=?,
-            title=?, data_json=?, value_numeric=?, product_id=?, product_count=?, supplier_id=?, 
-            action_label=?, action_type=?, action_url=?, action_data=?, 
-            expires_at=? 
-            WHERE id=?");
-        $up->execute([
-            $category, $module, $urgency, $fq, $plan_gate, $role_gate,
-            $title, $data_json, $value, $product_id, ($i['product_count'] ?? null), $supplier_id,
-            $action_lbl, $action_typ, $action_url, $action_dat,
-            $expires_at, (int)$existing
-        ]);
-        return ['updated' => (int)$existing];
-    }
-
-    $ins = pfDB()->prepare("INSERT INTO ai_insights 
-        (tenant_id, store_id, topic_id, category, grp, module, urgency, 
+    // S92.INSIGHTS.WRITE: единичен INSERT ... ON DUPLICATE KEY UPDATE.
+    //
+    // Преди: SELECT-then-UPDATE-or-INSERT — две туристически query-та + race window
+    // между check и write, плюс UPDATE branch-ът не пипаше `created_at`. Резултат:
+    // повторно стартиране на cron за вече регистриран topic_id си стоеше със стария
+    // `created_at` → admin/insights-health.php (last 7 days window) не виждаше нищо
+    // от активния cron след първите 7 дни от instal-а.
+    //
+    // Сега: единично statement, idempotent чрез UNIQUE (tenant_id, store_id, topic_id).
+    // На UPDATE вкарваме `created_at=NOW()` за да отразим "last cron touch" — това
+    // прави "last 7 days" дашборд филтъра смислен. Безопасно: всички read paths
+    // (chat.php, xchat.php, products.php, deliveries.php, build-prompt.php,
+    // selection-engine.php) gate-ват на `expires_at`, не на `created_at`.
+    $sql = "INSERT INTO ai_insights
+        (tenant_id, store_id, topic_id, category, grp, module, urgency,
          fundamental_question, plan_gate, role_gate,
-         title, data_json, value_numeric, product_id, product_count, supplier_id, 
-         action_label, action_type, action_url, action_data, 
-         expires_at) 
-        VALUES (?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-    $ins->execute([
+         title, data_json, value_numeric, product_id, product_count, supplier_id,
+         action_label, action_type, action_url, action_data,
+         expires_at, created_at)
+        VALUES (?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())
+        ON DUPLICATE KEY UPDATE
+          category=VALUES(category),
+          module=VALUES(module),
+          urgency=VALUES(urgency),
+          fundamental_question=VALUES(fundamental_question),
+          plan_gate=VALUES(plan_gate),
+          role_gate=VALUES(role_gate),
+          title=VALUES(title),
+          data_json=VALUES(data_json),
+          value_numeric=VALUES(value_numeric),
+          product_id=VALUES(product_id),
+          product_count=VALUES(product_count),
+          supplier_id=VALUES(supplier_id),
+          action_label=VALUES(action_label),
+          action_type=VALUES(action_type),
+          action_url=VALUES(action_url),
+          action_data=VALUES(action_data),
+          expires_at=VALUES(expires_at),
+          created_at=NOW()";
+    $st = pfDB()->prepare($sql);
+    $st->execute([
         $tenant_id, $store_id, $topic_id, $category, $module, $urgency,
         $fq, $plan_gate, $role_gate,
         $title, $data_json, $value, $product_id, ($i['product_count'] ?? null), $supplier_id,
         $action_lbl, $action_typ, $action_url, $action_dat,
         $expires_at
     ]);
-    return ['inserted' => (int)pfDB()->lastInsertId()];
+    // PDO::rowCount() за INSERT ... ON DUPLICATE KEY UPDATE: 1 = inserted, 2 = updated, 0 = no-op (същите данни).
+    $rc = $st->rowCount();
+    $lid = (int)pfDB()->lastInsertId();
+    if ($rc === 1) return ['inserted' => $lid];
+    if ($rc === 2) return ['updated'  => $lid ?: null];
+    return ['unchanged' => $lid ?: null];
 }
 
 // =============================================================
