@@ -43,7 +43,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     n = args.count if args.count is not None else random.randint(MIN_SALES, MAX_SALES)
-    inner = ['--tenant', str(TENANT_ID), '--count', str(n), '--confirm']
+    inner = ['--tenant', str(TENANT_ID), '--count', str(n), '--backfill-days', '1', '--confirm']
     if args.dry_run:
         inner.append('--dry-run')
     return populate_main(inner)
