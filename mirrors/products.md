@@ -9283,8 +9283,9 @@ function wizPickDD(inputId,listId,id,name){
     if(inputId==='wSupDD'){
         var prevSup=S.wizData.supplier_id;
         S.wizData.supplier_id=id;
-        // S90.PRODUCTS.SPRINT_B D3: смяна на доставчик → пре-зареждаме списъка с категории
-        // и (ако избраната категория не е в новия supplier scope) я нулираме мълчаливо.
+        // S92.PRODUCTS.D3_FLICKER: смяна на доставчик → targeted DOM update вместо renderWizard()
+        // (full re-render причиняваше видим flash). Pre-fetch + clear invalid category + refresh
+        // hint label-а + (ако е отворен) категория dropdown list-а.
         if(prevSup!==id){
             wizPrefetchSupplierCats(id).then(function(cats){
                 if(S.wizData.category_id){
@@ -9295,9 +9296,32 @@ function wizPickDD(inputId,listId,id,name){
                         var su=document.getElementById('wSubcat');if(su)su.innerHTML='<option value="">— Избери първо категория —</option>';
                     }
                 }
-                renderWizard();
+                wizSyncSupplierHint();
+                var catList=document.getElementById('wCatDDList');
+                if(catList&&catList.style.display==='block'){
+                    wizSearchDropdown('wCatDD','wCatDDList',wizCatsForSupplier());
+                }
             });
         }
+    }
+}
+// S92.PRODUCTS.D3_FLICKER: добавя/премахва "(само от избрания доставчик)" hint-а
+// до label-а на Категория, без да пипа останалата стъпка.
+function wizSyncSupplierHint(){
+    var ci=document.getElementById('wCatDD');if(!ci)return;
+    var fg=ci.closest('.fg');if(!fg)return;
+    var label=fg.querySelector('label.fl');if(!label)return;
+    var hint=label.querySelector('.hint');
+    if(S.wizData&&S.wizData.supplier_id){
+        if(!hint){
+            var span=document.createElement('span');
+            span.className='hint';
+            span.textContent='(само от избрания доставчик)';
+            label.appendChild(document.createTextNode(' '));
+            label.appendChild(span);
+        }
+    } else if(hint){
+        hint.remove();
     }
 }
 
