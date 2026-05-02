@@ -32,7 +32,7 @@ sys.path.insert(0, '/var/www/runmystore')
 from tools.diagnostic.core.db_helpers import get_conn
 
 TENANT = 99
-STORE = 1
+STORE = 48
 
 
 def attempt_decrement(pid, store, return_dict, key):
