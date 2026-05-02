@@ -28,3 +28,24 @@ G. Investigation първо (НУЛЕВ — ПРЕПОРЪЧИТЕЛЕН)
 1. Diag 1+2 на droplet
 2. Прилагай Опция A (90% вероятност)
 3. НЕ прилагай B, D, F без одобрение
+
+---
+
+## S92.STRESS.DEPLOY verify (02.05.2026)
+
+Re-checked sale.php inventory atomicity at lines 135-139:
+
+```php
+$upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
+    [$qty, $pid, $store_id, $qty]);
+if ($upd->rowCount() === 0) {
+    throw new Exception("Артикулът свърши преди да го продадеш. Презареди и опитай отново.");
+}
+```
+
+S90.RACE fix (commit 34041ca) is intact — `WHERE quantity >= ?` guard + `rowCount()===0` exception. No regression. STRESS_BOARD ГРАФА 3 P0 #1 references "ред 132" but actual fix is at 135-139 (line drift after S91 visual migration commits).
+
+Concurrency test harness added: `tools/diagnostic/tests/race_test_sale.py`. Run as www-data to assert:
+  - Two parallel UPDATEs against the same row with quantity=1 → exactly 1 succeeds
+  - Final inventory.quantity == 0 (drained, not negative)
+  - Original quantity restored after run
