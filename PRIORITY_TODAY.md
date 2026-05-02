@@ -1,240 +1,240 @@
-# 🔴 ПРИОРИТЕТИ — 28.04.2026 (СЕСИЯ 1 BUILD)
+# 🎯 PRIORITY — 02.05.2026 (СЕСИЯ 1)
 
-**Дата:** 27.04.2026 края на ден
-**Чете се при boot на нов шеф-чат сутринта на 28.04**
-**Произход:** Lessons learned от 27.04.2026
-
----
-
-## 🎯 ПРИОРИТЕТ #1 — products.php БЕЗ БЪГОВЕ
-
-**Това е #1 над всичко друго.** Тихол изрично подчерта: "Утре найстина приоритет ни е да подкараме продуктс без бъгове."
-
-### Контекст
-
-На 27.04 Тихол работи цял ден с Opus 4.7 за бъгове в products.php. **Резултат: само 1 commit (#5 цвят chips). Останалите 6 бъга — само описани в SESSION_88_HANDOFF.md, не имплементирани.**
-
-Денят беше загубен на:
-- Дискусии вместо implementation
-- Handoff документи без код
-- Шеф-чат маркираше ✅ без verify
-
-С v2.3 protocol това утре няма да се повтори.
+**Дата create:** 01.05.2026 края на ден  
+**Beta deadline:** 14.05.2026 = **13 дни остават**  
+**Документ написан след DOCUMENT_PROTOCOL** — три прочитания на разговора, всички решения извадени, противоречия отбелязани.
 
 ---
 
-### 7-те бъга (ground truth статус след 27.04)
-
-| # | Бъг | Файлове | Статус |
-|---|-----|---------|--------|
-| **#1** | Снимки на вариации не се запазват в detail view | products.php, product-save.php, product_variations | 🟡 **DONE in tree, NOT COMMITTED** — quick win |
-| **#2** | Сигнали празни (q1-q6) — demo placeholder cards вместо реални insights | products.php loadSections() + ai_insights | ❌ NOT STARTED — нужен on-screen debug |
-| **#3** | "..." бутон → "📋 Като предния" (auto-increment code, празен barcode, qty=0 default + checkbox copy quantity, copy snimka) | products.php wizard | ❌ NOT STARTED |
-| **#4** | Universal fuzzy match 80% Levenshtein на всички "Добави" бутони (цвят, размер, категория, подкатегория, доставчик, материя) | products.php + ALTER TABLE products ADD COLUMN material VARCHAR(50) | ❌ NOT STARTED — ИЗИСКВА migration |
-| **#5** | Цвят prediction chips се отрязват | CSS .photo-color-input | ✅ **DONE (commit 5802655)** |
-| **#6** | Дубликати по име/код/баркод при save → modal с 3 опции (Запази въпреки това / Отвори съществуващия / Откас) | products.php + product-save.php | ❌ NOT STARTED |
-| **#7** | "Върни и презапиши" history с timeline + per-change revert (използва audit_log) | products.php product detail + ajax revert_change | ❌ NOT STARTED |
-
----
-
-## 📋 ПЛАН ЗА СЕСИЯ 1 BUILD (08:00-12:00, 4 часа)
-
-### Стъпка 1 — Reconnaissance (15 min)
-
-Шеф-чат първо проверява:
-
-```sql
-SELECT name, COUNT(*) FROM products 
-WHERE tenant_id=7 
-GROUP BY LOWER(TRIM(name)) 
-HAVING COUNT(*)>1;
-```
-
-**Защо:** Тихол е въвеждал артикули БЕЗ duplicate protection вчера → може вече да има дубликати в DB. Cleanup trябва да предхожда implementation на бъг #6.
-
-**Output:** документирай findings в commit message.
-
----
-
-### Стъпка 2 — Free Win: Commit Bug #1 (5 min)
-
-Bug #1 е готов в дървото, само не е commit-нат.
+## 🚪 СТАРТОВ ПРОТОКОЛ — ВИНАГИ ПРЕДИ TMUX/CLAUDE
 
 ```bash
+# 1. Switch към tihol (Claude Code 2.1.126+ забранява root)
+su - tihol
+
+# 2. Влез в проекта
 cd /var/www/runmystore
-git status
-# Identify changes от вчера (snimki на вариации)
-git add [конкретни файлове]
-git commit -m "S88.PRODUCTS.BUG#1: variant photos persist в detail view"
-git push origin main
+
+# 3. Стартирай tmux с описателно име
+tmux new -s [име]
+
+# 4. Стартирай Claude Code
+claude
+
+# 5. Trust folder = 1, после Shift+Tab за auto-accept
 ```
 
-**1 от 7 бъга закрит за 5 минути. Easy win.**
+**Tmux команди:**
+- Detach: `Ctrl+B`, после `D`
+- Attach: `tmux attach -t [име]`
+- Списък: `tmux ls`
+- Убий конкретна: `tmux kill-session -t [име]`
+- Убий всички: `tmux kill-server`
+
+**Ако Claude Code откаже:** провери prompt-а. `tihol@...$` = OK. `root@...#` = `exit` → `su - tihol` → нов tmux.
 
 ---
 
-### Стъпка 3 — Failure Thresholds (Rule #10) — 5 min
+## 🌅 ПЪРВО НЕЩО УТРЕ — BROWSER TEST
 
-Шеф-чат preset-ва прагове ПРЕДИ да пуска Code Code:
+**Само Тихол. ~30-45 мин. Не пускай Code Code преди да приключиш това.**
 
-```
-ПРАГ ЗА ДНЕС:
-- Завършени 6/6 bugs до 17:00 → продължаваме с S84 AI Studio утре
-- Завършени 4-5/6 bugs → утре сутрин довършваме, S84 push 1 ден
-- Завършени <4/6 bugs → re-evaluate scope, бъгове #4 и #7 отлагаме
-- 5+ NEW bugs открити в SESSION 2 TEST → нови features pause до Friday
-```
+### А) Test chat.php (visual migration)
+- Отвори `runmystore.ai/chat.php` мобилен/десктоп
+- Header нормален? Bottom nav нормален?
+- Theme toggle (sun/moon top right) → tap → сменя ли тема?
+- Hue sliders под лого → mvат hue?
+- Изпрати тест съобщение на AI — отговаря ли?
+- Виждаш ли insights cards в home? **Колко?**
+  - 0-3: routing fix не работи → rollback нужен
+  - 4-15: правилно (приключихме)
+  - 30+: spam → rollback
 
-Праг се удари → **изпълняваш предварително решение, не re-debate**.
+### Б) Test sale.php
+- Отвори продажба, добави 1 артикул, плати в кеш
+- Custom numpad работи?
+- Camera-header работи (ако сканираш)?
+- Voice бутон [🎤] работи?
+- Race condition test (по желание): 2 tab-а паралелно, продай същия артикул с 1 наличност → 1 успех / 1 грешка
 
----
+### В) Test products.php (Sprint B verify — КРИТИЧНО)
+**Code Code откри че Sprint B claim 8/8 done не е верен.** Verify ръчно:
+- Отвори "Нов артикул" wizard
+- **C1:** В стъпка размери — има ли бутон "+ Добави размер" долу? *(suspect MISSING)*
+- **C2:** Поле "Артикулен номер" — има ли scanner икона до него? Поле "Баркод" — също?
+- **C3:** Артикулен номер и Баркод — в **отделни** qcard.glass containers ли са? *(или stack-нати?)*
+- **C4:** Когато AI auto-fill-ва нещо — виждаш ли hint текст под полето "AI попълни — натисни за промяна"?
+- **C5:** Има ли стрелка ← в горния ляв ъгъл за връщане стъпка назад? *(suspect: има, но без правилен class)*
+- **D3:** Избери supplier "Дафи" → списъкът категории показва ли само неговите?
+- **D5:** Започни да пишеш име което вече съществува → след 3+ символа viждаш ли жълт banner "Близко: ..."?
+- **G1:** Swipe ляво/дясно по табове в products — вече **не реагира** ли?
 
-### Стъпка 4 — Implementation (3-4 часа, 2 паралелни Code Code)
+**Документирай:** какво работи, какво не. Това става S92 backlog.
 
-**Code Code #1 — Backend bugs (#2 + #6 + #4 migration):**
-- Файлове: products.php (loadSections logic), product-save.php (duplicate check), DB migration ALTER products
-- Order: #4 migration first (с Rule #9 8-step protocol) → #6 duplicate check → #2 sigali debug
-- Numerical DOD: 3 bugs closed, 0 regressions
+### Г) Test S89 модули (delivery + orders + defectives)
+- runmystore.ai/delivery.php?action=new
+- runmystore.ai/orders.php
+- runmystore.ai/order.php
+- runmystore.ai/defectives.php (Detailed Mode only — Simple redirect)
+- runmystore.ai/deliveries.php
 
-**Code Code #2 — UI bugs (#3 + #7):**
-- Файлове: products.php (wizard "Като предния" + product detail history)
-- Disjoint от Code #1 (различни секции на products.php)
-- Numerical DOD: 2 bugs closed, mobile-tested на 375px
+### Д) Test admin/insights-health.php
+- runmystore.ai/admin/insights-health.php (само owner role)
+- Виждаш ли разпределението module + count?
+- Hidden % е 0% (ако fix работи) или още висок?
+- Ако > 30% hidden → S92 routing fix needed
 
-**Disjoint paths verified:** двата Code Code пипат различни секции на products.php. Възможен conflict само при git merge → Rule #1 verify хваща.
-
-**Code Code #3 — STANDBY** за emergency.
-
----
-
-### Стъпка 5 — Verify Each Handoff (Rule #1)
-
-При всеки handoff от Code Code, **шеф-чат прави:**
-
-```bash
-git log -3 --oneline
-git diff HEAD~1 --stat -- products.php product-save.php
-# Match с handoff claim?
-```
-
-**Несъответствие → STOP + ask Тихол. Не маркирай ✅.**
-
----
-
-## 🟡 ПРИОРИТЕТ #2 — S84 AI Studio Implementation
-
-**Стартира САМО след products.php е безбъгов** (вечерта на 28.04 или сутринта на 29.04).
-
-### Контекст
-
-S83 на 27.04 финализира пълната архитектура (SESSION_83_HANDOFF.md, 1289 реда). Mockup ai_studio_FINAL_v5.html. **Production code: 0%.** Wizard в момента показва старата S82 версия.
-
-### План (3 дни)
-
-**Phase 1 (Ден 1):** DB + Backend
-- 8 DB migrations (с **Rule #9 8-step protocol**)
-- ⚠️ Phantom names alert: spec казва tenant_ai_credits, реално в LIVE е ai_credits_balance. Reconcile преди migration.
-- Create 4 нови файла: ai-studio-vision.php, ai-studio-buy-credits.php, ai-studio-stripe-webhook.php, csv-export.php
-
-**Phase 2 (Ден 2):** UI rewrite
-- products.php: махане renderStudioStep, WIZ_LABELS 5→4, CTA card success екран
-- ai-studio.php: пълен rewrite (3 режима: Лесен / Разширен / Купи)
-
-**Phase 3 (Ден 3):** Stripe + Pricing
-- Stripe Checkout integration
-- Webhook handler
-- 5 пакета × 3 типа кредити
-
-**Phase 4:** Testing на tenant=7 + edge cases
-
-### Deadline
-
-ENI launch 14 май = 16 дни от 28.04. Buffer = 13 дни след AI Studio готов = достатъчно.
+### Е) Mobile responsive check
+- Отваряй всички modules на телефон Z Flip6
+- Header/footer не се чупят ли?
+- Skroll работи ли?
 
 ---
 
-## 🟢 ПРИОРИТЕТ #3 — Animation v3 Rollout (когато products.php е чист)
+## 📋 ЗАДАЧИ ЗА УТРЕ — ПО ПРИОРИТЕТ
 
-5 модула вече с v3 (chat, life-board, stats, warehouse, sale). Останалите:
-- products.php → след bugs fix-нати, ~30 min apply
-- ai-studio.php → автоматично с S84 implementation
+### P0 — БЛОКЕРИ ЗА BETA
 
----
+**1. Browser test (горе) — ПРИКЛЮЧИ ПРЕДИ ВСИЧКО ДРУГО**
 
-## 🔴 OPEN P0 BLOCKERS ЗА BETA (от 27.04 findings)
+**2. Inventory модул — ПОЧВАМЕ (паралел с останалите)**
+- Тихол има допълнение към спецификацията — обсъдете преди Code Code
+- Reference: `/mnt/project/INVENTORY_v4.md` + `/mnt/project/INVENTORY_HIDDEN_v3.md` в repo
+- Файл: inventory.php (~80% built per memory) — verify реален статус
+- Цел: end-to-end inventarizatsiya flow в Simple + Detailed modes
+- Разделение: Simple (Пешо: voice пре-броене карта по карта) / Detailed (Митко: PDF export, history, edits)
 
-Тези трябва решени преди ENI launch 14 май:
+**3. Sprint B follow-up на products.php (S92.PRODUCTS.B_FIX)**
+След browser test:
+- Добави "+ Добави размер" бутон ако липсва (C1)
+- Поправи ChevronLeft да има CSS class (C5 compliance)
+- Попълни всеки друг missing fix
 
-1. **sale-save.php phantom columns** (REWORK #48, #49):
-   - L29 INSERT-ва sales.payment_status — НЕ съществува
-   - L52 INSERT-ва sale_items.tenant_id — НЕ съществува
-   - Не блокира production защото никой не извиква sale-save.php
-   - Timebomb — delete файла или integrate в S87 sale rewrite
+**4. Решение за insights routing rollback ако наводни**
+- Ако browser test показва > 30 сигнала на life-board → rollback default 'home' fix
+- Опция: explicit module='home' само за 6-те S89 функции (Path B от INVESTIGATION_REPORT)
 
-2. **sale.php + sale-save.php divergent stock_movements field order** (REWORK #50):
-   - Един от двата има грешен ред на полета
-   - Verify в S87 sale rewrite
+### P1 — ВАЖНИ
 
-3. **Diagnostic Cat A/D 100%/100%** — fixed днес, но трябва remain healthy
-   - TESTING_LOOP cron трябва да продължи да работи
+**5. Mirror cron auto-sync fix (7 incidents днес — pattern)**
+- /etc/cron.d/ или crontab на www-data — къде е?
+- Trigger при `git status` modified files? Или периодично?
+- Решение: добави `--only=mirrors/` flag или skip-вай `*.php`/`*.md` ако не е в `mirrors/` папка
+- Нов commit message override
 
----
+**6. Update STATE_OF_THE_PROJECT.md (5 дни outdated)**
+- Включи S89 + S90 + S91 завършвания
+- Phase A2 progress
+- DESIGN-KIT v1.1 status
+- Beta countdown 13 дни
 
-## 📊 EOD METRICS (попълват се вечерта на 28.04)
+**7. REWORK QUEUE entries за post-beta**
+- C1 + C5 на products.php (open от Sprint B)
+- Mirror cron pattern (post-beta priority)
+- Insights routing follow-up (ако rollback нужен)
+- 46 backdrop-filter blur effects изгубени в migration (visual polish)
+- 'Добави размер' и подобни visual claim-ове от handoff не верифицирани browser-wise
 
-```
-PLANNED FOR 28.04:
-- products.php: 6 bugs → 0 bugs (Bug #5 already done, Bug #1 quick commit)
-- S84 AI Studio: започват ли днес?
+### P2 — POST-BETA
 
-ACTUAL (verified чрез git log):
-- products.php bugs closed: ___ / 6
-- New issues discovered: ___
-- Code Code sessions used: ___
-- Time spent: ___ hours
-- Commits pushed: ___
+**8. Migration на още стари модули към design-kit**
+- life-board.php
+- warehouse.php (още е скелет)
+- ai-studio.php
+- stats.php
+- printer-setup.php
+- onboarding.php
 
-DELTA:
-- Не направено: ___
-- Направено непланирано: ___
-- Total delta: ~___%
+**9. Auto-draft поръчки (compute-orders.php нов файл)**
+- Тихол идея запазена — proactive insights в life-board
+- Премахнат silent mode — винаги има сигнали
+- Spec в ORDERS_DESIGN_LOGIC.md секция 13
 
-ROOT CAUSES (ако delta >30%):
-- ___
-
-LESSONS:
-- ___
-
-TOMORROW (29.04) PRIORITY:
-- ___
-```
-
----
-
-## ⚙️ ДОКУМЕНТАЦИЯ КОЯТО ШЕФ-ЧАТ ТРЯБВА ДА ПОМНИ
-
-### Code Code сесия време-бюджет
-
-- 1 Code Code сесия = max 6 часа (Rule #6)
-- 1 час работа = 1+ commits + 50-200 lines code минимум
-- Подозрителни сигнали: 0 commits след 1+ час, документ вместо код
-
-### Parallelism
-
-- Max 2 Code Code + 1 Opus 4.7 + Тихол = 4 общо (Rule #7)
-- Disjoint paths задължително преди паралел
-- Код #3 STANDBY за emergency
-
-### Verify pattern
-
-- Преди всеки ✅: `git log -3 --oneline` + `git diff HEAD~1 --stat -- [файлове]`
-- Match handoff claims с git реалност
-- Несъответствие → STOP + ask
+**10. STRESS Етап 2 (admin/stress-board.php)**
+- Преди Етап 1 (свят) — quick wins без създаване на нов tenant 99 свят
 
 ---
 
-**Край на PRIORITY_28_04_2026.md**
+## 🚨 ОТКРИТИ FLAGS / ВЪПРОСИ
 
-*Записан: 27.04.2026 края на ден.*
-*Чете се при boot на нов шеф-чат сутринта на 28.04.*
-*Място в repo: /var/www/runmystore/PRIORITY_TODAY.md (replace)*
+### От Code Code observations:
+1. **'Добави размер' бутон не съществува** в products.php (Sprint B optimistic) — verify утре
+2. **ChevronLeft inline без CSS class** — compliance gap S92
+3. **46 backdrop-filter blur effects изгубени** — приема ли се визуално? (S91.MIGRATE.SALE + S91.MIGRATE.PRODUCTS)
+4. **design-kit/partial-header.html hardcoded "PRO" plan badge** — bug в partial, post-beta fix
+5. **design-kit/partial-bottom-nav.html маркира всички 4 таба active** — bug в partial, post-beta fix
+
+### Архитектурни (чакат твое решение):
+1. **Дефектни модул място:** A) 6-та card warehouse.php hub, B) бутон в Доставки, C) supplier detail
+2. **Insights default routing:** Ако browser test показва spam → rollback или explicit module='home' към 6-те S89?
+3. **STRESS бъг #6 path:** STRESS_BOARD казва `tools/diagnostic/cron/sales_pulse.py`, memory казва `tools/seed/sales_populate.py` — verify
+
+### Технически:
+1. **GROQ_API_KEY** — pending. Voice flow работи без него (правилен error). Ако имаш ключа: `echo 'GROQ_API_KEY="gsk_..."' | sudo tee -a /etc/runmystore/api.env`
+2. **www-data crontab** — за mirror cron diagnose
+3. **STRESS Етап 1+2 cron часове** — не са инсталирани още (документирани, не deployed)
+
+---
+
+## 📊 СТАТУС НА ПРОЕКТА (01.05.2026 края на ден)
+
+### Завършено днес:
+| Commit | Какво | Резултат |
+|---|---|---|
+| 25741fb | STRESS docs (4 файла) | ✅ |
+| 9862b04 | S89 DELIVERY+ORDERS (13 файла, +4931 реда) | ✅ |
+| e6daca2 | S89.HOTFIX fmtMoney duplicates | ✅ |
+| e1d7316 + 5fd81d3 | DESIGN-KIT v1.1 theme-toggle + 5 modules | ✅ |
+| ee20fc3 | STRESS DECISIONS (8 решения) | ✅ |
+| 34041ca | S90.RACE sale.php atomicity | ✅ |
+| c0146c6 | S90.PRODUCTS.SPRINT_B (claim 8/8, реално 6/8) | ⚠️ |
+| a90bb82 | INVESTIGATION_REPORT.md | ✅ |
+| 1c69012 | S91.MIGRATE.CHAT (-51% size) | ✅ |
+| 04fa915 | S91.MIGRATE.SALE | ✅ |
+| c5e969e | S91.MIGRATE.PRODUCTS | ✅ |
+| c9009d2 | S91.INSIGHTS_HEALTH (routing + monitor) | ✅ |
+
+**+ 7 mirror auto-sync hijack commits**
+
+### Live в production (всички runmystore.ai):
+- chat.php, sale.php, products.php — мигрирани към design-kit v1.1
+- delivery.php, deliveries.php, orders.php, order.php, defectives.php — design-kit native
+- admin/insights-health.php — диагностика monitor
+- INVESTIGATION_REPORT.md, SESSION_S91_*_HANDOFF.md документи
+
+### Phase progress:
+- Phase A1 ~75% (продъжаваме products bugs + inventory)
+- DESIGN-KIT v1.1 — stable, използва се
+- STRESS система — документирана, не deployed cron-и
+
+---
+
+## ⚠️ ПОУКИ ОТ ДНЕС (за избягване утре)
+
+1. **Не доверявай се на handoff claim-ове без browser test.** Sprint B каза 8/8 done — реално 6/8.
+2. **Mobile chat parser слепя bash команди** (bashcat, bashcd). Винаги нови redove между команди.
+3. **Heredoc + Python в bash се чупи.** Записвай Python в отделен файл, изпълни отделно.
+4. **DigitalOcean web console paste limitations.** Nano с paste от browser не работи стабилно. Python script е по-надежден.
+5. **Mirror cron auto-sync — 7 incidents днес.** Не игнорирай pattern; добави в post-beta priority.
+6. **Verify chronologically.** "Дни до beta" — днес 01.05, beta 14.05 → 13 дни (не 12).
+
+---
+
+## 🔁 СЕСИЯ COORDINATION ЗА УТРЕ
+
+При множество паралелни Code Code сесии:
+- Disjoint files (verify преди започване)
+- Selective `git add <files>` (никога `-A`)
+- Коректни commit messages с S92.[MODULE].[TASK] формат
+- Push веднага след commit (не чакай auto-sync да hijack-не)
+
+Препоръчителен ред (sequential):
+1. Browser test (Тихол)
+2. Решения от browser test (architecture decisions)
+3. Inventory module Code Code (1 сесия)
+4. S92.PRODUCTS.B_FIX Code Code (паралелно ако disjoint)
+5. Util tasks (STATE update, REWORK QUEUE entries) — sequential
+
+---
+
+ПРОТОКОЛ ИЗПЪЛНЕН: Минах разговора три пъти. Списъкът е покрит изцяло.
