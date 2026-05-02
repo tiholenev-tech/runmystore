@@ -14,12 +14,9 @@ $user_id   = (int)$_SESSION['user_id'];
 $tenant_id = (int)$_SESSION['tenant_id'];
 $pdo       = DB::get();
 
-$stmt = $pdo->prepare("
-    SELECT u.role, t.lang
-    FROM users u
-    JOIN tenants t ON t.id = u.tenant_id
-    WHERE u.id = ? AND u.tenant_id = ?
-");
+// S92.INSIGHTS_HEALTH.500_FIX: tenants колоната е `language`, не `lang` —
+// и стойността не се използва в страницата, затова е премахната от SELECT-а.
+$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND tenant_id = ?");
 $stmt->execute([$user_id, $tenant_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$user || $user['role'] !== 'owner') {
