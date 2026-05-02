@@ -5545,8 +5545,32 @@ function openAIChatOverlay() {
 // WIZARD REWRITE — 8 стъпки, info бутони, voice-compatible
 // ═══════════════════════════════════════════════════════════
 
-const WIZ_LABELS=['Вид','Основни','Варианти','Бизнес','AI Studio'];
-const WIZ_UI_INDEX=[null, null, 3, 0, 1, 2, 4]; // S81.1: step 6 → uiIdx 4 (AI Studio активна в stepper)
+// S92.WIZARD_REWRITE: 6 видими стъпки (Снимка → Цени → Класификация → Детайли → Вариации → Запис).
+// Стъпка 3 е логически разделена на 4 sub-pages чрез S.wizSubStep (0..3). Type picker (step 0) остава скрит от индикатора.
+const WIZ_LABELS=['Снимка','Цени','Класификация','Детайли','Вариации','Запис'];
+// Кратки имена за header label (по-стегнати от WIZ_LABELS които се ползват за иконки).
+const WIZ_LABELS_LONG=['Снимка / Име','Цени','Доставчик / Категория','Детайли','Размери / Цветове','Запис'];
+// S92.WIZARD_REWRITE: getWizUiIndex(step, subStep) → индекс в WIZ_LABELS, или null ако stepper трябва да е скрит.
+function getWizUiIndex(step, subStep){
+    if(step===null||step===undefined)return null;
+    subStep=subStep||0;
+    // step 0 = type picker (Вид), без stepper.
+    if(step===0)return null;
+    // step 1 = legacy redirect, без stepper.
+    if(step===1)return null;
+    if(step===2)return 0; // Снимка / Име
+    if(step===3){
+        // sub 0 = Цени, sub 1 = Класификация, sub 2 = Детайли, sub 3 = Запис
+        if(subStep<=0)return 1;
+        if(subStep===1)return 2;
+        if(subStep===2)return 3;
+        return 5;
+    }
+    if(step===4)return 4; // Вариации
+    if(step===5)return 5; // Preview/AI studio = последна стъпка ("Запис")
+    if(step===6)return 5; // Print labels = последна стъпка
+    return null;
+}
 
 const WIZ_INFO={
     type_single:'Единичен артикул без варианти — например една чанта, едно бижу, или артикул който се продава само в един вид.',
@@ -5733,10 +5757,10 @@ function openManualWizard(){
             S.wizEditId = draft.wizEditId || null;
         } else {
             _wizClearDraft();
-            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
         }
     } else {
-        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
     }
     S._wizHistory=[];
     S.wizVoiceMode=false;
@@ -5759,10 +5783,10 @@ function openVoiceWizard(){
             S.wizEditId = draft.wizEditId || null;
         } else {
             _wizClearDraft();
-            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
         }
     } else {
-        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;
+        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
     }
     S._wizHistory=[];
     S.wizVoiceMode=true;
@@ -5849,23 +5873,36 @@ function closeWizard(){
     S._wizHistory=[];
 }
 
-function wizGo(step,_skipHistory){
+function wizGo(step,_skipHistory,subStep){
     wizCollectData();
     if(step===2&&!S.wizData._hasPhoto){step=3;}
-    if(!_skipHistory && S.wizStep!==step){
+    // S92.WIZARD_REWRITE: track current (step,subStep) tuple in history; default subStep=0 unless explicitly set.
+    var prevTuple={step:S.wizStep, sub:S.wizSubStep||0};
+    var nextSub=(typeof subStep==='number')?subStep:(step===3?(S.wizSubStep||0):0);
+    if(!_skipHistory && (S.wizStep!==step || (step===3 && (S.wizSubStep||0)!==nextSub))){
         if(!Array.isArray(S._wizHistory))S._wizHistory=[];
-        S._wizHistory.push(S.wizStep);
+        S._wizHistory.push(prevTuple);
         if(S._wizHistory.length>32)S._wizHistory.shift();
     }
     S.wizStep=step;
+    S.wizSubStep=nextSub;
     renderWizard();
     if(S.wizVoiceMode)setTimeout(()=>voiceForStep(step),400);
 }
+// S92.WIZARD_REWRITE: navigate within step 3 sub-pages (0=Цени, 1=Класификация, 2=Детайли, 3=Запис).
+function wizSubGo(sub){
+    wizGo(3, false, Math.max(0, Math.min(3, sub|0)));
+}
 // S90.PRODUCTS.SPRINT_B C5: back arrow in wizard header — пазим стъпки в history.
+// S92.WIZARD_REWRITE: history items могат да са number (legacy) или {step,sub} (нов формат).
 function wizPrev(){
     if(Array.isArray(S._wizHistory)&&S._wizHistory.length){
         var prev=S._wizHistory.pop();
-        wizGo(prev,true);
+        if(prev && typeof prev==='object'){
+            wizGo(prev.step|0, true, prev.sub|0);
+        }else{
+            wizGo(prev|0, true);
+        }
         return;
     }
     if(S.wizStep>0){
@@ -5975,13 +6012,14 @@ async function renderWizard(){
     // S82.STUDIO.10: persist draft on every render (covers axes/matrix/photo/form changes).
     if (typeof _wizSaveDraft === 'function') _wizSaveDraft();
     let sb='';
-    const uiIdx=WIZ_UI_INDEX[S.wizStep];
-    for(let i=0;i<5;i++){
+    // S92.WIZARD_REWRITE: 6-step indicator + sub-step aware uiIdx.
+    const uiIdx=getWizUiIndex(S.wizStep, S.wizSubStep);
+    for(let i=0;i<6;i++){
         let cls=uiIdx!==null&&i<uiIdx?'done':(i===uiIdx?'active':'');
         sb+='<div class="wiz-step '+cls+'"></div>';
     }
     document.getElementById('wizSteps').innerHTML=sb;
-    const _lbl=uiIdx!==null?WIZ_LABELS[uiIdx]:'';
+    const _lbl=uiIdx!==null?(WIZ_LABELS_LONG[uiIdx]||WIZ_LABELS[uiIdx]):'';
     const _num=uiIdx!==null?(uiIdx+1)+' · ':'';
     document.getElementById('wizLabel').innerHTML=_num+'<b>'+_lbl+'</b>';
     document.getElementById('wizBody').innerHTML=renderWizPage(S.wizStep);
@@ -6116,8 +6154,12 @@ function renderWizPage(step){
         return renderWizPhotoStep();
     }
 
-    // ═══ STEP 3: ОСНОВНИ (S73.B.2 — rewrite per add-product.html) ═══
+    // ═══ STEP 3: split на 4 sub-pages (S92.WIZARD_REWRITE) ═══
+    // sub 0 = Цени, sub 1 = Класификация, sub 2 = Детайли, sub 3 = Идентификация / Запис.
+    // Всяко sub-page render-ва само своята част, всички DOM IDs (wName, wPrice, wSupDD, wCatDD, wCode, wBarcode, ...)
+    // се запазват за wizCollectData/wizSave compatibility. Назад/Напред между sub-pages чрез wizSubGo().
     if(step===3){
+        const sub=S.wizSubStep||0;
         const nm=S.wizData.name||'';
         const pr=S.wizData.retail_price||'';
         const bc=S.wizData.barcode||'';
@@ -9877,16 +9919,32 @@ function renderWizPhotoStep(){
         var _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span></div>';
         photoBlock='<div class="v4-pz">'+_photoModeToggle+_photoContent+_photoBtns+_photoTips+'</div>';
     }
-    var skipNote='<div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08)">💡 Може да пропуснеш — снимката е по желание</div>';
+    var skipNote='<div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08)">💡 Снимката е по желание — името е задължително</div>';
     var hasAny = _hasPhoto || (_photoMode==='multi' && Array.isArray(S.wizData._photos) && S.wizData._photos.length);
-    var nextLabel = hasAny ? 'Напред' : 'Може да пропуснеш';
+    var hasName = !!(S.wizData.name && S.wizData.name.trim());
+    var nextLabel = hasName ? 'Напред' : 'Въведи име първо';
+    var nextDis = hasName ? '' : 'opacity:0.5;pointer-events:none;';
     var footer='<div style="display:flex;gap:8px;margin-top:16px">'+
         '<button type="button" onclick="wizGo(0)" style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
-        '<button type="button" onclick="wizGo(3)" style="flex:1.4;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;box-shadow:0 4px 14px rgba(99,102,241,0.4)">'+nextLabel+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+        '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи име\',\'error\');document.getElementById(\'wName\').focus();return}wizGo(3,false,0)" style="flex:1.4;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;box-shadow:0 4px 14px rgba(99,102,241,0.4);'+nextDis+'">'+nextLabel+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
     '</div>';
+    // S92.WIZARD_REWRITE: Name + mic on this step (Step 1 in brief = Идентификация: снимка + име).
+    var nameBlock=
+        '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+            '<div class="fg" style="margin:0">'+
+                '<label class="fl">Име&nbsp;<span style="color:#ef4444">*</span></label>'+
+                '<div style="display:flex;gap:6px;align-items:center">'+
+                    '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
+                    '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+                '</div>'+
+                '<div id="wDupeBanner" style="display:none"></div>'+
+            '</div>'+
+        '</div>';
     return '<div class="wiz-page active" style="padding:18px 14px">'+
-        '<div style="text-align:center;font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Снимка на артикула</div>'+
-        '<div style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:14px">'+(S.wizType==='variant'?'Можеш да добавиш снимки за всеки цвят':'AI анализира снимката за цвят и описание')+'</div>'+
+        '<div style="text-align:center;font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Идентификация на артикула</div>'+
+        '<div style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:14px">Снимка + име — после AI помага с останалото</div>'+
+        nameBlock+
         '<div class="glass v4-glass-pro" style="padding:18px 14px;margin-bottom:8px">'+
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
@@ -9895,6 +9953,23 @@ function renderWizPhotoStep(){
         skipNote+
         footer+
     '</div>';
+}
+// S92.WIZARD_REWRITE: voice/manual auto-advance hook for the Photo+Name step.
+// Triggers only ако името е попълнено и Тихол вече е спрял да пише за >900мс.
+var _wizAdvPhotoTimer=null;
+function wizMaybeAdvancePhotoStep(){
+    if(S.wizStep!==2)return;
+    if(_wizAdvPhotoTimer){clearTimeout(_wizAdvPhotoTimer);_wizAdvPhotoTimer=null}
+    var nm=(document.getElementById('wName')||{}).value||'';
+    if(nm.trim().length<3)return;
+    if(!S.wizVoiceMode)return; // manual режим — не auto-advance, остави Тихол да реши
+    _wizAdvPhotoTimer=setTimeout(function(){
+        if(S.wizStep!==2)return;
+        var n=(document.getElementById('wName')||{}).value||'';
+        if(n.trim().length<3)return;
+        S.wizData.name=n.trim();
+        wizGo(3,false,0);
+    },1100);
 }
 function wizSelectUnit(btn,unit){
     S.wizData.unit=unit;
