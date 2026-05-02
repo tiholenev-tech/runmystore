@@ -14,5 +14,67 @@
   "wizard.no_previous": "Няма предишен артикул",
   "wizard.copied_from_last": "Попълнено от последния",
   "wizard.field_empty_in_last": "Това поле е празно в последния",
-  "wizard.photo_main_set": "Главна снимка избрана"
+  "wizard.photo_main_set": "Главна снимка избрана",
+
+  "wizard.step1.title": "Нов артикул",
+  "wizard.step1.indicator": "Стъпка 1 от 3",
+  "wizard.step1.photo_hint": "Без снимка? AI ще познае вариациите от категорията.",
+  "wizard.step1.photo_placeholder": "Добави снимка",
+  "wizard.step1.name_label": "Име",
+  "wizard.step1.name_placeholder": "Кажи името на артикула",
+  "wizard.step1.price_label": "Цена на дребно",
+  "wizard.step1.price_placeholder": "Кажи цената",
+  "wizard.step1.supplier_label": "Доставчик",
+  "wizard.step1.category_label": "Категория",
+  "wizard.step1.subcategory_label": "Подкатегория",
+  "wizard.step1.barcode_label": "Баркод",
+  "wizard.step1.barcode_hint": "Празно → ще се генерира при Запазване",
+  "wizard.step1.code_label": "Артикулен номер",
+  "wizard.step1.code_hint": "Празно → ENI-2026-NNNN при Запазване",
+
+  "wizard.btn.save": "ЗАПАЗИ",
+  "wizard.btn.print": "🖨 ПЕЧАТАЙ",
+  "wizard.btn.next": "Напред →",
+  "wizard.btn.back": "← Назад",
+  "wizard.btn.close": "✕",
+  "wizard.btn.copy_previous": "📋 Като предния",
+  "wizard.btn.search_template": "🔍 Търси",
+  "wizard.btn.recent_dropdown": "⌄",
+
+  "wizard.search.title": "🔍 Намери template",
+  "wizard.search.placeholder": "Търсене (име, баркод, доставчик)",
+  "wizard.search.no_results": "Няма резултати",
+  "wizard.search.last_edited": "Последно редактиран",
+
+  "wizard.recent.title": "Последно добавени",
+  "wizard.recent.empty": "Още няма артикули",
+
+  "wizard.voice.listening": "● ЗАПИСВА",
+  "wizard.voice.confirming": "✓ ГОТОВО",
+  "wizard.voice.low_confidence": "Не разбрах — опитай пак",
+  "wizard.voice.continuous_on": "Voice continuous включен",
+  "wizard.voice.continuous_off": "Voice continuous изключен",
+  "wizard.voice.prompt_name": "Име?",
+  "wizard.voice.prompt_price": "Цена?",
+  "wizard.voice.prompt_supplier": "Доставчик?",
+  "wizard.voice.prompt_category": "Категория?",
+  "wizard.voice.summary_ready": "Готово?",
+
+  "wizard.magic.skipped": "Пропуснато",
+  "wizard.magic.saved": "Запазено",
+  "wizard.magic.cancelled": "Отказано",
+  "wizard.magic.search_open": "Отваря се търсене",
+  "wizard.magic.copy_triggered": "Копира се от предния",
+
+  "wizard.save.success": "Запазено · confidence {pct}%",
+  "wizard.save.error": "Грешка при запис",
+  "wizard.save.name_required": "Поне име трябва да въведеш",
+
+  "wizard.autogen.barcode": "Баркод генериран",
+  "wizard.autogen.sku": "Артикулен номер генериран",
+
+  "wizard.print.success": "Етикет отпечатан",
+  "wizard.print.printer_offline": "Свържи принтера",
+  "wizard.print.failed": "Опитай отново",
+  "wizard.print.name_required": "Поне име трябва преди печат"
 }
