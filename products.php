@@ -1567,7 +1567,10 @@ body::before{
 .wiz-step.done{background:var(--indigo-500)}
 .wiz-label{font-size:12px;color:var(--text-secondary);padding:0 16px 6px}
 .wiz-label b{color:var(--indigo-300)}
-.wiz-page{display:none;padding:16px 16px max(120px,calc(16px + env(safe-area-inset-bottom)))}
+/* S92.PRODUCTS.PRICE_LAYOUT: padding sides 16px → 8px. На малки cover display-и
+ * (Samsung Z Flip6 ~373px wide) 16px от двете страни ядеше ~33px от ширината,
+ * което караше 3-те input-а в price-row да се crop-ват. */
+.wiz-page{display:none;padding:14px 8px max(120px,calc(16px + env(safe-area-inset-bottom)))}
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 /* S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint — Pesho вижда какво е AI vs какво е писал. */
@@ -6221,16 +6224,18 @@ function renderWizPage(step){
               // S88B-1: photoBlock moved to Step 2. Step 3 = data fields per audit §10.3 layout.
               // Име
               '<div class="fg">'+fieldLabel('Име *','name')+'<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value)" value="'+esc(nm)+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+mic('name')+'</div>'+wizAIHint('name')+'<div id="wDupeBanner" style="display:none"></div></div>'+
-              // Retail + Wholesale row
-              '<div style="display:flex;gap:8px;align-items:flex-end">'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
-                '<div class="fg" style="flex:1;min-width:0;'+(CFG.skipWholesale?'display:none':'')+'">'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
-              '</div>'+
-              // Cost + Markup% row (Markup informative only — computed, NOT saved per Q1)
+              // S92.PRODUCTS.PRICE_LAYOUT: 3 цени pa отделни редове (Z Flip6 ~373px не побираше).
+              // Row 1: Цена дребно (full). Row 2: Доставна + ПЕЧАЛБА (50/50, mathematically свързани).
+              // Row 3: Цена едро (full). Тихол: "цена на дребно цена на едро да не са едно до друго".
+              // Цена дребно — full row
+              '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
+              // Доставна + ПЕЧАЛБА % row (margin = (retail-cost)/retail*100, информативно — не се записва)
               '<div style="display:flex;gap:8px;align-items:flex-end">'+
                 '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div>'+wizAIHint('cost_price')+'</div>'+
-                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Надценка %','markup_pct','<span class="hint">(не се записва)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup()" '+(parseFloat(S.wizData.cost_price)>0?'':'disabled')+' placeholder="'+(parseFloat(S.wizData.cost_price)>0?'auto':'(въведи доставна)')+'" style="flex:1;min-width:0">'+cpy('markup_pct')+'</div></div>'+
+                '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('ПЕЧАЛБА %','markup_pct','<span class="hint">(не се записва)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup()" '+(parseFloat(S.wizData.cost_price)>0?'':'disabled')+' placeholder="'+(parseFloat(S.wizData.cost_price)>0?'auto':'(въведи доставна)')+'" style="flex:1;min-width:0">'+cpy('markup_pct')+'</div></div>'+
               '</div>'+
+              // Цена едро — full row (скрит при skipWholesale)
+              '<div class="fg"'+(CFG.skipWholesale?' style="display:none"':'')+'>'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
               // Брой + Мин количество (single only)
               qtyBlock+
               // Доставчик dropdown (with fuzzy search + inline add)
@@ -9575,7 +9580,9 @@ async function wizSave(){
                 var snap={
                     retail_price: S.wizData.retail_price||null,
                     cost_price: S.wizData.cost_price||null,
-                    markup_pct: (parseFloat(S.wizData.cost_price)>0&&parseFloat(S.wizData.retail_price)>0) ? Math.round(((S.wizData.retail_price-S.wizData.cost_price)/S.wizData.cost_price)*100) : null,
+                    // S92.PRODUCTS.PRICE_LAYOUT: snapshot стойност = MARGIN (печалба върху retail),
+                    // консистентна с UI label-а ПЕЧАЛБА %. Field key остава markup_pct legacy.
+                    markup_pct: (parseFloat(S.wizData.cost_price)>0&&parseFloat(S.wizData.retail_price)>0) ? Math.round(((S.wizData.retail_price-S.wizData.cost_price)/S.wizData.retail_price)*100) : null,
                     min_quantity: S.wizData.min_quantity||null,
                     supplier_id: S.wizData.supplier_id||null,
                     supplier_name: supName,
@@ -9719,7 +9726,10 @@ function wizPickType(t){
     renderWizard();
     if(navigator.vibrate)navigator.vibrate(8);
 }
-// S88B-1 / Q1: Markup % is COMPUTED ONLY (not persisted). Reads cost+retail and shows.
+// S92.PRODUCTS.PRICE_LAYOUT: ПЕЧАЛБА % = MARGIN формула (retail-cost)/retail*100,
+// не markup (retail-cost)/cost. UI label-а е "ПЕЧАЛБА %" — печалба върху продажната цена.
+// Стойността е COMPUTED ONLY, не се персистира в DB. Field id-то остана wMarkupPct
+// за обратна съвместимост с copy-from-prev / AI fill референсите.
 function wizUpdateMarkup(){
     var costEl=document.getElementById('wCostPrice');
     var retailEl=document.getElementById('wPrice');
@@ -9730,7 +9740,7 @@ function wizUpdateMarkup(){
     if(cost>0){
         mEl.disabled=false;
         if(retail>0){
-            mEl.value=Math.round(((retail-cost)/cost)*100);
+            mEl.value=Math.round(((retail-cost)/retail)*100);
             mEl.placeholder='auto';
         }else{
             mEl.value='';
@@ -9742,7 +9752,9 @@ function wizUpdateMarkup(){
         mEl.placeholder='(въведи доставна)';
     }
 }
-// S88B-1: Markup typing recomputes retail = cost × (1 + m/100). NOT persisted to DB.
+// S92.PRODUCTS.PRICE_LAYOUT: typing margin m → retail = cost / (1 - m/100). Inverse на margin
+// формулата. m≥100 е невалидно (печалба не може да е 100%+ върху продажната — при m=100
+// cost=0). При невалидни стойности оставяме retail непроменен.
 function wizApplyMarkup(){
     var costEl=document.getElementById('wCostPrice');
     var mEl=document.getElementById('wMarkupPct');
@@ -9750,8 +9762,8 @@ function wizApplyMarkup(){
     if(!costEl||!mEl||!retailEl)return;
     var cost=parseFloat(costEl.value)||0;
     var m=parseFloat(mEl.value);
-    if(cost>0&&!isNaN(m)){
-        var retail=Math.round(cost*(1+m/100)*100)/100;
+    if(cost>0&&!isNaN(m)&&m<100){
+        var retail=Math.round(cost/(1-m/100)*100)/100;
         retailEl.value=retail;
         S.wizData.retail_price=retail;
     }
