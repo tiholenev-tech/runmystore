@@ -1953,6 +1953,17 @@ body::before{
 }
 .fc:focus{border-color:var(--border-glow);box-shadow:0 0 12px rgba(99,102,241,0.1)}
 .fc::placeholder{color:var(--text-secondary)}
+/* S92.PRODUCTS.D11_REGRESSION_FIX: equal input boxes across wizard steps.
+ * C1 (e8df5f9) направи .v-custom-input + axis-button 42×42, но останалите .fc inputs
+ * в wizard стъпките останаха със стария padding 9px 12px / border-radius 10px → ~40px height.
+ * Унифицираме .fg inputs/selects до 42px height + padding 10px 14px + border-radius 12px,
+ * за да изглеждат всички wizard input полета еднакви на око при минаване през стъпките.
+ * Textarea-та са изключени (rows=N контролира височина); матрицата (extends) и label-print
+ * inputs не са в .fg, така че не се засягат. */
+.fg input.fc,.fg select.fc{
+    min-height:42px;padding:10px 14px;border-radius:12px;font-size:14px;box-sizing:border-box;
+}
+.v-custom-input,.v-custom-btn{min-height:42px;box-sizing:border-box}
 select.fc{
     appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23818cf8'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
