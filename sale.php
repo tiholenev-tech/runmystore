@@ -106,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $discount_pct = floatval($data['discount_pct'] ?? 0);
     $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
     $received = floatval($data['received'] ?? 0);
+    // S96.HARDEN.F1 — persist wholesale flag → sales.type column.
+    $sale_type = !empty($data['is_wholesale']) ? 'wholesale' : 'retail';
 
     if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
 
@@ -118,9 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $discount_amount = round($subtotal * ($discount_pct / 100), 2);
         $total = round($subtotal - $discount_amount, 2);
 
-        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, total, discount_amount, discount_pct, payment_method, status, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
-            [$tenant_id, $store_id, $user_id, $customer_id, $total, $discount_amount, $discount_pct, $payment_method]);
+        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, type, total, discount_amount, discount_pct, payment_method, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
+            [$tenant_id, $store_id, $user_id, $customer_id, $sale_type, $total, $discount_amount, $discount_pct, $payment_method]);
         $sale_id = $pdo->lastInsertId();
 
         foreach ($items as $it) {
