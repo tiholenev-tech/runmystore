@@ -5835,6 +5835,7 @@ function openVoiceWizard(){
     history.pushState({modal:'wizard'},'','#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
+    _wizTrigStart();
     // Auto voice for step 0
     setTimeout(()=>voiceForStep(0),500);
 }
@@ -5924,6 +5925,7 @@ function closeWizard(){
     document.getElementById('wizModal').classList.remove('open');
     document.body.style.overflow='';
     S._wizHistory=[];
+    _wizTrigStop();
 }
 
 function wizGo(step,_skipHistory,subStep){
@@ -11925,17 +11927,25 @@ function wizReturnToInventory(){
     location.href='inventory.php#resume&product_id='+pid+'&zone_id='+_invZoneId+'&session_id='+_invSessionId;
 }
 var _wizMicRec=null;
+// S95.WIZARD.VOICE_MIN: числовите полета минават през Whisper Tier 2 (по-точно за цифри/EAN). Закон №1.
+var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
+var _wizTrigRec=null;
 function wizMic(field){
+    if(WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        _wizMicWhisper(field);
+        return;
+    }
+    _wizMicWebSpeech(field);
+}
+function _wizMicWebSpeech(field){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
     if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
-    // Clear all highlights, set active on current field
     _wizClearHighlights();
-    var fieldMap={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat'};
+    var fieldMap={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat',quantity:'wSingleQty',min_quantity:'wMinQty'};
     var targetEl=document.getElementById(fieldMap[field]);
     var targetFg=targetEl?targetEl.closest('.fg'):null;
     if(targetFg)targetFg.classList.add('wiz-active');
-    // Find and mark the mic button as recording
     var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
     if(micBtn)micBtn.classList.add('recording');
     _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
@@ -11948,6 +11958,60 @@ function wizMic(field){
     _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
     _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
     _wizMicRec.start();
+}
+function _wizMicWhisper(field){
+    _wizClearHighlights();
+    var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
+    var targetEl=document.getElementById(fieldMap[field]);
+    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    if(targetFg)targetFg.classList.add('wiz-active');
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    if(micBtn)micBtn.classList.add('recording');
+    var clearUI=function(){if(micBtn)micBtn.classList.remove('recording')};
+    var fallback=function(){clearUI();_wizMicWebSpeech(field)};
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+        var rec;
+        try{rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus'})}
+        catch(e){stream.getTracks().forEach(function(t){t.stop()});fallback();return}
+        var chunks=[];
+        rec.ondataavailable=function(ev){if(ev.data&&ev.data.size>0)chunks.push(ev.data)};
+        rec.onstop=function(){
+            stream.getTracks().forEach(function(t){t.stop()});
+            if(!chunks.length){fallback();return}
+            var blob=new Blob(chunks,{type:'audio/webm'});
+            var fd=new FormData();fd.append('audio',blob,'rec.webm');fd.append('lang','bg');
+            fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
+                .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
+                .then(function(j){
+                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
+                    fallback();
+                })
+                .catch(function(){fallback()});
+        };
+        rec.start();
+        setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
+    }).catch(function(){fallback()});
+}
+function _wizTrigStart(){
+    if(_wizTrigRec)return;
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    try{
+        var r=new SR();r.lang='bg-BG';r.continuous=true;r.interimResults=true;
+        r.onresult=function(e){
+            for(var i=e.resultIndex;i<e.results.length;i++){
+                if(e.results[i][0].transcript.toLowerCase().indexOf('следващ')>=0){if(typeof wizHighlightNext==='function')wizHighlightNext();return}
+            }
+        };
+        r.onerror=function(){};
+        r.onend=function(){if(_wizTrigRec===r){try{r.start()}catch(e){_wizTrigRec=null}}};
+        _wizTrigRec=r;r.start();
+    }catch(e){_wizTrigRec=null}
+}
+function _wizTrigStop(){
+    var r=_wizTrigRec;_wizTrigRec=null;
+    if(!r)return;
+    try{r.onend=null;r.onerror=null;r.onresult=null;r.stop()}catch(e){}
 }
 function _wizMicInterim(field,text){
     var map={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',origin:'wOrigin',composition:'wComposition'};
@@ -11966,6 +12030,8 @@ function _wizMicApply(field,text){
     else if(field==='subcategory'){var sel=document.getElementById('wSubcat');if(!sel)return;var tl=text.toLowerCase();var found=false;for(var i=0;i<sel.options.length;i++){if(sel.options[i].text.toLowerCase().includes(tl)||tl.includes(sel.options[i].text.toLowerCase())){sel.value=sel.options[i].value;S.wizData.subcategory_id=sel.options[i].value;showToast('Подкатегория: '+sel.options[i].text,'success');wizMarkDone('subcategory');wizHighlightNext();found=true;break}}if(!found&&text.length>1){if(confirm('Няма подкатегория "'+text+'". Да я добавя?')){document.getElementById('inlSubcatName').value=text;wizAddSubcat()}}}
     else if(field==='origin'){var el=document.getElementById('wOrigin');el.value=text;el.style.color='';S.wizData.origin_country=text;showToast('Записано ✓','success')}
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
+    else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
+    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
 }
 function _bgNum(t){return _bgPrice(t)}
 function _bgPrice(t,forcePrice){
