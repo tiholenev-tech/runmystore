@@ -2677,6 +2677,23 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.55);}
 .v4-pz-tip svg{width:10px;height:10px;color:#86efac;flex-shrink:0}
 
+/* ═══ S95.PART1_1 — Mandatory type toggle (Single / С Вариации) ═══ */
+.s95-type-btn{flex:1;min-height:64px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(99,102,241,0.22);color:rgba(255,255,255,0.62);
+  transition:transform .12s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
+.s95-type-btn svg{opacity:0.75}
+.s95-type-btn:active{transform:scale(.97)}
+.s95-type-btn.active{background:linear-gradient(180deg,rgba(59,130,246,0.20),rgba(37,99,235,0.08));
+  border-color:rgba(59,130,246,0.65);color:#dbeafe;
+  box-shadow:0 0 18px rgba(59,130,246,0.32),inset 0 1px 0 rgba(255,255,255,0.06)}
+.s95-type-btn.active svg{opacity:1;color:#bfdbfe}
+.s95-type-btn.variant.active{background:linear-gradient(180deg,rgba(217,70,239,0.18),rgba(168,85,247,0.07));
+  border-color:rgba(217,70,239,0.6);color:#fbcfe8;
+  box-shadow:0 0 18px rgba(217,70,239,0.32),inset 0 1px 0 rgba(255,255,255,0.06)}
+.s95-type-btn.variant.active svg{opacity:1;color:#f0abfc}
+.s95-type-btn-lbl{font-size:12px;font-weight:700;letter-spacing:0.02em}
+
 /* ═══ S95.WIZARD.RESTRUCTURE — Mini print overlay (post-Single-save) ═══ */
 .s95-mini-ov{position:fixed;inset:0;background:rgba(8,11,24,0.86);
   display:flex;align-items:flex-end;justify-content:center;z-index:10001;animation:s95MiniFade .18s ease-out}
@@ -9932,14 +9949,31 @@ function wizCopyFieldFromPrev(field){
 // Single → flag _fromStep1 + run wizSave. wizSave success path detects flag and
 // surfaces mini print overlay instead of full step 6 success screen.
 // Variant → toast "Първо завърши вариациите" and stay (variations + matrix needed first).
+// S95.PART1_1: + quantity validation (Bug A — save was failing "няма бройки").
 function wizStep1Save(){
     wizCollectData();
-    if(!S.wizType){showToast('Избери първо: Единичен или С варианти','error');return;}
+    if(!S.wizType){showToast('Избери първо: Единичен или С Вариации','error');return;}
     if(!S.wizData.name){showToast('Въведи име','error');var n=document.getElementById('wName');if(n)n.focus();return;}
     if(!S.wizData.retail_price){showToast('Въведи цена','error');var p=document.getElementById('wPrice');if(p)p.focus();return;}
     if(S.wizType==='variant'){showToast('Първо завърши вариациите','info');return;}
+    var qInp=document.getElementById('wSingleQty');
+    var q=qInp?parseInt(qInp.value)||0:0;
+    if(q<=0){showToast('Въведи брой (поне 1)','error');if(qInp)qInp.focus();return;}
+    S.wizData.quantity=q;
     S.wizData._fromStep1=true;
     wizSave();
+}
+// S95.PART1_1 FIX 5: auto-fill Min Quantity from Quantity. round(q/2.5) min 1.
+// Only writes if user hasn't manually edited (dataset.userEdited tracks).
+function s95AutoMinQty(){
+    var q=parseInt(document.getElementById('wSingleQty')?.value)||0;
+    var mInp=document.getElementById('wMinQty');
+    if(!mInp)return;
+    if(mInp.dataset.userEdited==='true')return;
+    if(q<=0){mInp.value='';S.wizData.min_quantity=0;return;}
+    var m=Math.max(1,Math.round(q/2.5));
+    mInp.value=m;
+    S.wizData.min_quantity=m;
 }
 // S95.WIZARD.RESTRUCTURE: Напред бутон на step 1 — само за variant (single няма Напред).
 function wizStep1Next(){
@@ -9992,11 +10026,12 @@ function wizStep1MiniPrintAndClose(){
 }
 // S95.WIZARD.RESTRUCTURE: consolidated step 1 renderer (rewritten from S88B-1 photo-only step).
 // Single render produces: header (type toggle + Като предния), photo block, name+price card,
-// supplier+category+subcategory card, code+barcode card, footer (ЗАПИШИ + Печатай + Напред).
-// All DOM IDs preserved (wName, wPrice, wSupDD, wCatDD, wSubcat, wCode, wBarcode) so
-// wizCollectData/wizSave continue to work unchanged.
+// supplier+category+subcategory card, code+barcode card, qty+min card (single only),
+// footer (ЗАПИШИ + Печатай + Напред). DOM IDs preserved (wName, wPrice, wSupDD, wCatDD,
+// wSubcat, wCode, wBarcode, wSingleQty, wMinQty).
+// S95.PART1_1: mandatory type toggle (no default), inline-d3 dropdowns (focus flag restored).
 function renderWizPhotoStep(){
-    if(!S.wizType){S.wizType='single';} // default — header toggle changes it.
+    // S95.PART1_1 FIX 1: type toggle MANDATORY — no default. Fields disabled until tap.
     var _photoMode=S.wizData._photoMode;
     if(!_photoMode){try{_photoMode=localStorage.getItem('_rms_photoMode')||'single'}catch(e){_photoMode='single'}S.wizData._photoMode=_photoMode}
     if(S.wizType!=='variant')_photoMode='single';
@@ -10062,15 +10097,35 @@ function renderWizPhotoStep(){
         var _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span></div>';
         photoBlock='<div class="v4-pz">'+_photoModeToggle+_photoContent+_photoBtns+_photoTips+'</div>';
     }
-    // S95.WIZARD.RESTRUCTURE: consolidated step 1 body. Header type-toggle + Като предния,
-    // photo block (above), name+price card, supplier+category+subcategory card, code+barcode
-    // card, 3-button footer (ЗАПИШИ / Печатай / Напред).
+    // S95.WIZARD.RESTRUCTURE: consolidated step 1 body. Header type-toggle (mandatory PART1_1
+    // FIX 1) + Като предния, photo block, name+price, supplier+category+subcategory,
+    // code+barcode, qty+min (PART1_1 FIX 5/ADDITION). Fields disabled if type not chosen yet.
     var hasLast=false;try{hasLast=!!localStorage.getItem('_rms_lastWizProductFields')}catch(e){}
     var copyPrevBtn = hasLast
         ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:38px;padding:0 14px;border-radius:11px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05)">📋 Като предния</button>'
         : '';
-    var typeToggleH='<div class="v4-type-toggle" style="flex:1"><button type="button" class="v4-tt-opt'+(S.wizType==='single'?' active':'')+'" onclick="wizSwitchType(\'single\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg><span>Единичен</span></button><button type="button" class="v4-tt-opt'+(S.wizType==='variant'?' active':'')+'" onclick="wizSwitchType(\'variant\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg><span>С варианти</span></button></div>';
-    var headerH='<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeToggleH+copyPrevBtn+'</div>';
+    // S95.PART1_1 FIX 1: mandatory type buttons. Hint above. Active button glows.
+    var typeChosen=(S.wizType==='single'||S.wizType==='variant');
+    var sActive=(S.wizType==='single');
+    var vActive=(S.wizType==='variant');
+    var typeBtnSingle='<button type="button" onclick="wizSwitchType(\'single\')" class="s95-type-btn'+(sActive?' active':'')+'">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
+        '<span class="s95-type-btn-lbl">📦 Единичен</span>'+
+    '</button>';
+    var typeBtnVariant='<button type="button" onclick="wizSwitchType(\'variant\')" class="s95-type-btn variant'+(vActive?' active':'')+'">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg>'+
+        '<span class="s95-type-btn-lbl">📊 С Вариации</span>'+
+    '</button>';
+    var typeHint=typeChosen
+        ? ''
+        : '<div style="text-align:center;font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">▼ Избери тип артикул</div>';
+    var headerH=typeHint+
+        '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">'+
+            typeBtnSingle+typeBtnVariant+
+        '</div>'+
+        (copyPrevBtn?'<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'+copyPrevBtn+'</div>':'<div style="margin-bottom:6px"></div>');
+    // S95.PART1_1 FIX 1: lock everything below header until type is chosen.
+    var lockStyle=typeChosen?'':'opacity:0.42;pointer-events:none;filter:saturate(0.4)';
     var nameH=
         '<div class="fg" style="margin:0 0 10px">'+
             '<label class="fl">Име&nbsp;<span style="color:#ef4444">*</span></label>'+
@@ -10090,11 +10145,13 @@ function renderWizPhotoStep(){
         '</div>';
     var supSelName=(function(){if(!S.wizData.supplier_id)return''; var s=(CFG.suppliers||[]).find(function(x){return x.id==S.wizData.supplier_id}); return s?s.name:''})();
     var catSelName=(function(){if(!S.wizData.category_id)return''; var c=(CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id}); return c?c.name:''})();
+    // S95.PART1_1 FIX 2/3: restore _focused=true on focus (PART1 dropped this — wizSearchDropdown
+    // hides list when !q && !_focused). onclick re-runs dropdown (belt-and-suspenders for taps).
     var supplierH=
         '<div class="fg" style="position:relative;margin:0 0 10px">'+
             '<label class="fl">Доставчик</label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
-                '<input type="text" class="fc" id="wSupDD" autocomplete="off" value="'+esc(supSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])" onblur="setTimeout(function(){var l=document.getElementById(\'wSupDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])">'+
+                '<input type="text" class="fc" id="wSupDD" autocomplete="off" value="'+esc(supSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])" onclick="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])" onblur="setTimeout(function(){var l=document.getElementById(\'wSupDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])">'+
                 '<button type="button" class="wiz-mic" onclick="wizMic(\'supplier\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
                 '<button type="button" onclick="toggleInl(\'inlSup\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нов доставчик">+</button>'+
             '</div>'+
@@ -10105,18 +10162,26 @@ function renderWizPhotoStep(){
         '<div class="fg" style="position:relative;margin:0 0 10px">'+
             '<label class="fl">Категория</label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
-                '<input type="text" class="fc" id="wCatDD" autocomplete="off" value="'+esc(catSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
+                '<input type="text" class="fc" id="wCatDD" autocomplete="off" value="'+esc(catSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" onclick="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
                 '<button type="button" class="wiz-mic" onclick="wizMic(\'category\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
                 '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
             '</div>'+
             '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
             '<div id="inlCat" class="inline-add"><input type="text" id="inlCatName" placeholder="Нова категория"><button type="button" onclick="wizAddInline(\'category\')">+ Добави</button></div>'+
         '</div>';
+    // S95.PART1_1 FIX 4: subcategory keeps native <select> (compat with wizLoadSubcats/wizCollectData/wizAddSubcat)
+    // but wraps в position:relative + visible chevron arrow so users see it's a dropdown. Disabled
+    // attribute kept ONLY when no category — visual feedback на hint text.
+    var subcatDisabledAttr=S.wizData.category_id?'':'disabled';
+    var subcatPlaceholder=S.wizData.category_id?'— Няма —':'— Избери първо категория —';
     var subcatH=
         '<div class="fg" style="margin:0">'+
             '<label class="fl">Подкатегория</label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
-                '<select class="fc" id="wSubcat" '+(S.wizData.category_id?'':'disabled')+' onchange="S.wizData.subcategory_id=this.value||null" style="flex:1;appearance:none;-webkit-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit"><option value="">'+(S.wizData.category_id?'— Няма —':'— Избери първо категория —')+'</option></select>'+
+                '<div style="flex:1;position:relative">'+
+                    '<select class="fc" id="wSubcat" '+subcatDisabledAttr+' onchange="S.wizData.subcategory_id=this.value||null" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:34px;cursor:pointer;font-family:inherit"><option value="">'+subcatPlaceholder+'</option></select>'+
+                    '<svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:'+(S.wizData.category_id?'#a5b4fc':'rgba(165,180,252,0.4)')+'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'+
+                '</div>'+
                 '<button type="button" onclick="if(S.wizData.category_id)toggleInl(\'inlSubcat\');else showToast(\'Избери първо категория\',\'error\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова подкатегория">+</button>'+
             '</div>'+
             '<div id="inlSubcat" class="inline-add"><input type="text" id="inlSubcatName" placeholder="Нова подкатегория"><button type="button" onclick="wizAddSubcat()">+ Добави</button></div>'+
@@ -10139,39 +10204,71 @@ function renderWizPhotoStep(){
                 '<button type="button" class="abtn" onclick="wizScanBarcode(\'wBarcode\',\'Сканирай баркод\')" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай баркод"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'+
             '</div>'+
         '</div>';
+    // S95.PART1_1 FIX 5/ADDITION: Брой + Min Quantity card. Single only — variant uses matrix.
+    // wSingleQty (existing wizSave/wizCollectData ID preserved). wMinQty (existing).
+    // Auto-formula round(qty/2.5) min 1 — applied on input via inline JS, only if user
+    // hasn't manually edited Min Qty (dataset.userEdited tracks this).
+    var qtyH='';
+    if(S.wizType==='single'){
+        var _qVal=(S.wizData.quantity===undefined?'':S.wizData.quantity);
+        var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity===''?'':S.wizData.min_quantity);
+        qtyH=
+            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<div class="fg" style="margin:0 0 10px">'+
+                    '<label class="fl">📦 Брой&nbsp;<span style="color:#ef4444">*</span></label>'+
+                    '<div style="display:flex;gap:6px;align-items:center">'+
+                        '<input type="number" inputmode="numeric" min="0" class="fc" id="wSingleQty" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()" style="flex:1">'+
+                        '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+                    '</div>'+
+                '</div>'+
+                '<div class="fg" style="margin:0">'+
+                    '<label class="fl">📦 Минимално кол. <span class="hint" style="font-weight:400;color:#64748b">(авто от брой)</span></label>'+
+                    '<div style="display:flex;gap:6px;align-items:center">'+
+                        '<input type="number" inputmode="numeric" min="0" class="fc" id="wMinQty" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'" style="flex:1">'+
+                        '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+                    '</div>'+
+                '</div>'+
+            '</div>';
+    }
+    // S95.PART1_1: footer ЗАПИШИ disabled if no type chosen.
+    var saveDisabled=typeChosen?'':'opacity:0.45;pointer-events:none;cursor:not-allowed;';
     var nextBtn=(S.wizType==='variant')
         ? '<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
         : '';
     var footer=
         '<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+
-            '<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
+            '<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
             '<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
             nextBtn+
         '</div>';
     return '<div class="wiz-page active" style="padding:18px 14px">'+
         headerH+
-        '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
-            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
-            '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
-            photoBlock+
+        '<div style="'+lockStyle+'">'+
+            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
+                photoBlock+
+            '</div>'+
+            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                nameH+
+                priceH+
+            '</div>'+
+            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                supplierH+
+                categoryH+
+                subcatH+
+            '</div>'+
+            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                codeH+
+                barcodeH+
+            '</div>'+
+            qtyH+
+            footer+
         '</div>'+
-        '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
-            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
-            nameH+
-            priceH+
-        '</div>'+
-        '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
-            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
-            supplierH+
-            categoryH+
-            subcatH+
-        '</div>'+
-        '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
-            '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
-            codeH+
-            barcodeH+
-        '</div>'+
-        footer+
     '</div>';
 }
 // S92.WIZARD_REWRITE: voice/manual auto-advance hook for the Photo+Name step.
