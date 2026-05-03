@@ -11931,10 +11931,9 @@ var _wizMicRec=null;
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
 var _wizTrigRec=null;
 function wizMic(field){
-    if(WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
-        _wizMicWhisper(field);
-        return;
-    }
+    // S95.WIZARD.VOICE: Web Speech bg-BG за всички полета (auto-stop на silence, по-бърз).
+    // Numeric парсинг ("4 лева 55 ст" → 4.55) се прави в _wizMicApply през _wizPriceParse.
+    // Whisper Tier 2 е disabled (cloud roundtrip + 5s timeout = бавно и неточно за магазин).
     _wizMicWebSpeech(field);
 }
 function _wizMicWebSpeech(field){
