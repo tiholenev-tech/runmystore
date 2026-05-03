@@ -147,6 +147,12 @@ $has_variants    = !empty($data['has_variants']) && $data['has_variants'] === '1
 $variants_json   = json_decode($data['variants_batch'] ?? '[]', true) ?: [];
 $variants_raw    = trim($data['variants_raw'] ?? '');
 
+// S94.WIZARD.RESTRUCTURE: track дали user-а е предоставил code/barcode за да решим
+// дали да auto-gen-ваме deterministic кодове post-INSERT (само за SINGLE products).
+// Variant flows запазват legacy логиката (name-derived parent code, random child barcode).
+$_user_provided_code    = ($code !== null);
+$_user_provided_barcode = ($barcode !== null);
+
 if ($name === '') {
     echo json_encode(['error' => 'Въведи наименование']); exit;
 }
@@ -311,6 +317,26 @@ try {
             $code, $name, $barcode, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description,
             $size_single, $color_single, $origin_country, $composition, $is_domestic);
+
+        // S94.WIZARD.RESTRUCTURE: post-INSERT auto-gen за SINGLE products.
+        // Презаписва legacy name-derived code + random barcode с deterministic
+        // версии когато user-а не е предоставил (поддържа traceability product_id ↔ barcode).
+        $_store_id_for_codes = (int)($_SESSION['store_id'] ?? 0);
+        $_codeUpdates = [];
+        if (!$_user_provided_barcode) {
+            $_codeUpdates['barcode'] = generateEAN13($tenant_id, $pid, $_store_id_for_codes);
+            $barcode = $_codeUpdates['barcode'];
+        }
+        if (!$_user_provided_code) {
+            $_codeUpdates['code'] = generateSKU($tenant_id, $pid);
+            $code = $_codeUpdates['code'];
+        }
+        if (!empty($_codeUpdates)) {
+            $_sets = []; $_vals = [];
+            foreach ($_codeUpdates as $_col => $_val) { $_sets[] = "`$_col`=?"; $_vals[] = $_val; }
+            $_vals[] = $pid;
+            DB::run("UPDATE products SET " . implode(',', $_sets) . " WHERE id=?", $_vals);
+        }
 
         // Initial inventory for each store
         foreach ($all_stores as $st) {
@@ -494,15 +520,63 @@ function insertProduct(
     return (int)DB::get()->lastInsertId();
 }
 
-function generateEAN13(int $tenant_id): string {
-    $base = str_pad($tenant_id, 3, '0', STR_PAD_LEFT) .
-            str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT);
+/**
+ * S94.WIZARD.RESTRUCTURE: extended за deterministic generation per SPEC §6.
+ * TT (2) + PPPPPPP (7) + CC (2) + D (1 checksum) = 13 digits когато $product_id > 0.
+ * Backward compat: $product_id=0 → fallback random формула (за legacy callers).
+ */
+function generateEAN13(int $tenant_id, int $product_id = 0, int $store_id = 0): string {
+    if ($product_id === 0) {
+        // Legacy fallback (random middle digits — за variant child barcode flows).
+        $base = str_pad((string)$tenant_id, 3, '0', STR_PAD_LEFT) .
+                str_pad((string)mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT);
+    } else {
+        $tt = str_pad((string)$tenant_id, 2, '0', STR_PAD_LEFT);
+        if (strlen($tt) > 2) $tt = substr($tt, -2);
+        $pp = str_pad((string)$product_id, 7, '0', STR_PAD_LEFT);
+        if (strlen($pp) > 7) $pp = substr($pp, -7);
+        $cc = str_pad((string)$store_id, 2, '0', STR_PAD_LEFT);
+        if (strlen($cc) > 2) $cc = substr($cc, -2);
+        $base = $tt . $pp . $cc;
+    }
     $sum = 0;
     for ($i = 0; $i < 12; $i++) {
         $sum += (int)$base[$i] * ($i % 2 === 0 ? 1 : 3);
     }
     $check = (10 - ($sum % 10)) % 10;
     return $base . $check;
+}
+
+/**
+ * S94.WIZARD.RESTRUCTURE: tenant-prefixed SKU per SPEC §6.
+ * Format: {SHORT}-{YYYY}-{NNNN}, where SHORT = tenants.short_code (UPPER),
+ * fallback първи 3 chars от tenant.name. Probe-and-bump срещу collisions.
+ */
+function generateSKU(int $tenant_id, int $product_id): string {
+    $row = DB::run("SELECT short_code, name FROM tenants WHERE id=?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+    $short = '';
+    if ($row) {
+        $short = trim((string)($row['short_code'] ?? ''));
+        if ($short === '') {
+            $short = mb_strtoupper(mb_substr((string)($row['name'] ?? 'X'), 0, 3));
+        }
+    }
+    if ($short === '') $short = 'X';
+    $short = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $short) ?: 'X');
+    $year = date('Y');
+
+    $n = (int)DB::run(
+        "SELECT COUNT(*) FROM products WHERE tenant_id=? AND YEAR(created_at)=?",
+        [$tenant_id, $year]
+    )->fetchColumn();
+
+    for ($attempt = 0; $attempt < 20; $attempt++) {
+        $candidate = $short . '-' . $year . '-' . str_pad((string)($n + $attempt), 4, '0', STR_PAD_LEFT);
+        $exists = DB::run("SELECT id FROM products WHERE tenant_id=? AND code=?", [$tenant_id, $candidate])->fetchColumn();
+        if (!$exists) return $candidate;
+    }
+    // Fallback за абсолютна уникалност.
+    return $short . '-' . $year . '-' . str_pad((string)$product_id, 4, '0', STR_PAD_LEFT);
 }
 
 function parseVariantsRaw(string $raw): array {
