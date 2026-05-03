@@ -9956,6 +9956,7 @@ function wizCopyFieldFromPrev(field){
 // Variant → toast "Първо завърши вариациите" and stay (variations + matrix needed first).
 // S95.PART1_1: + quantity validation (Bug A — save was failing "няма бройки").
 function wizStep1Save(){
+    alert('[BUG1_TRACE] wizStep1Save called!\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
     wizCollectData();
     if(!S.wizType){showToast('Избери първо: Единичен или С Вариации','error');return;}
     if(!S.wizData.name){showToast('Въведи име','error');var n=document.getElementById('wName');if(n)n.focus();return;}
