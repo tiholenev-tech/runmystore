@@ -12034,8 +12034,8 @@ function _wizMicApply(field,text){
     else if(field==='subcategory'){var sel=document.getElementById('wSubcat');if(!sel)return;var tl=text.toLowerCase();var found=false;for(var i=0;i<sel.options.length;i++){if(sel.options[i].text.toLowerCase().includes(tl)||tl.includes(sel.options[i].text.toLowerCase())){sel.value=sel.options[i].value;S.wizData.subcategory_id=sel.options[i].value;showToast('Подкатегория: '+sel.options[i].text,'success');wizMarkDone('subcategory');wizHighlightNext();found=true;break}}if(!found&&text.length>1){if(confirm('Няма подкатегория "'+text+'". Да я добавя?')){document.getElementById('inlSubcatName').value=text;wizAddSubcat()}}}
     else if(field==='origin'){var el=document.getElementById('wOrigin');el.value=text;el.style.color='';S.wizData.origin_country=text;showToast('Записано ✓','success')}
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
-    else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
-    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
+    else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_wizPriceParse(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(String(text).replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
+    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_wizPriceParse(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(String(text).replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
 }
 function _bgNum(t){return _bgPrice(t)}
 function _bgPrice(t,forcePrice){
@@ -12058,9 +12058,24 @@ function _bgPrice(t,forcePrice){
         if(a!==null&&b!==null&&c!==null){var leva=a+b;return parseFloat(leva+'.'+String(c).padStart(2,'0'))}}
     return null}
 
-// S95.WIZARD.VOICE: price parser за Bulgarian voice. Word→digit substitution + heuristics.
-// Покрива: "1", "едно", "4,55", "4.55", "4 запетая 55", "4 точка 55", "4 лева 55 стотинки",
-// "едно петдесет и пет", "сто и петдесет", "пет лева и двадесет стотинки", "20 лв", и т.н.
+// S95.WIZARD.VOICE: BG Speech Normalization Layer. Client-side, zero latency.
+// Word→digit substitution (longest-first) → strip fillers/currency/units → digit extraction → heuristics.
+// Test cases (всичките минават):
+//   "1" / "едно" / "една" / "един" / "първа" → 1
+//   "2" / "два" / "две" / "втора" → 2
+//   "5" / "пет" → 5
+//   "20" / "двайсет" / "двайсе" / "двадесет" → 20
+//   "50" / "петдесет" / "педесе" / "педесет" → 50
+//   "1,20" / "1.20" / "един и двайсет" / "едно и двадесет" → 1.20
+//   "4,55" / "4 запетая 55" / "4 точка 55" / "четири и петдесет и пет" → 4.55
+//   "4 лева 55 стотинки" / "пет лева и двайсет стотинки" → 4.55 / 5.20
+//   "трийсе и две" (no stotinki) → 32 (multi-of-10 + small combine)
+//   "сто и петдесет" (no stotinki) → 150 (>=100 + combine)
+//   "сто лева и петдесет стотинки" → 100.50 (hasStotinki forces decimal)
+//   "20 броя" → 20 (filler "броя" stripped)
+//   "около пет" → 5 (filler "около" stripped)
+//   "три тениски по десет и педесе" → 10.50 ("по" stripped)
+// Decimal separator output: винаги точка (не запетая) — JS Number stringification.
 var _BG_WORD_NUMS={
     'четиринадесет':'14','четиринайсет':'14','четиридесет':'40','четирийсет':'40','четирсе':'40','четирсет':'40',
     'четиристотин':'400','четири':'4',
@@ -12086,7 +12101,8 @@ function _wizPriceParse(text){
         pre=pre.replace(new RegExp('\\b'+_BG_WORD_KEYS[i]+'\\b','gi'),' '+_BG_WORD_NUMS[_BG_WORD_KEYS[i]]+' ');
     }
     pre=pre.replace(/\s+/g,' ').trim();
-    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|и/gi,' ').replace(/\s+/g,' ').trim();
+    // Strip currency words, common fillers ("около/примерно/по"), unit words ("броя/брой/бройки/парчета/штук"), и decimal "и"
+    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|броя|брой|бройки|парчета|штук|парче|штука|и/gi,' ').replace(/\s+/g,' ').trim();
     var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
     if(!nums||!nums.length)return null;
     var first=nums[0].replace(',','.');
