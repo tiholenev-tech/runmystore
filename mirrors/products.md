@@ -4416,6 +4416,95 @@ html{overflow-x:hidden;max-width:100vw}
 <div class="drawer-ov" id="csvOv" onclick="closeDrawer('csv')"></div>
 <div class="drawer" id="csvDr"><div class="drawer-handle"></div><div class="drawer-hdr"><h3>📄 Импорт от файл</h3><button class="drawer-close" onclick="closeDrawer('csv')">✕</button></div><div id="csvBody"></div></div>
 
+<!-- ═══ S93.WIZARD.V4.SESSION_2: V4 wizard styles (active when CFG.wizardVersion='v4') ═══ -->
+<style>
+/* V4 step indicator — ●━━━━○━━━━○ Стъпка X от 3 */
+.v4-step-indicator { display:flex; align-items:center; gap:8px; padding:14px 12px 10px; }
+.v4-step-dot { width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); cursor:pointer; transition:all 220ms var(--ease, ease); flex-shrink:0; }
+.v4-step-dot.v4-step-active { background:linear-gradient(135deg, hsl(280, 70%, 55%), hsl(310, 70%, 55%)); border-color:hsl(280, 80%, 70%); box-shadow:0 0 12px hsl(280, 80%, 60%, 0.6); width:14px; height:14px; }
+.v4-step-dot.v4-step-done { background:hsl(255, 60%, 50%); border-color:hsl(255, 70%, 65%); }
+.v4-step-dot.v4-step-todo { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.1); }
+.v4-step-bar { flex:1; height:1px; background:rgba(255,255,255,0.1); }
+.v4-step-label { margin-left:8px; font-size:11px; font-weight:700; color:rgba(255,255,255,0.55); letter-spacing:0.04em; text-transform:uppercase; }
+
+/* V4 header buttons (Search / Copy from last) */
+.v4-hdr-actions { display:flex; gap:6px; justify-content:flex-end; padding:0 12px 8px; }
+.v4-hdr-btn { width:36px; height:36px; border-radius:11px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); color:#c4b5fd; font-size:16px; cursor:pointer; font-family:inherit; transition:transform 180ms var(--ease, ease); }
+.v4-hdr-btn:hover { transform:scale(1.05); }
+
+/* V4 wizard page container */
+.v4-wiz-page { padding:0 12px 80px; }
+
+/* V4 glass card variants per step */
+.v4-card { padding:16px 14px 14px; border-radius:18px; margin-bottom:14px; }
+.v4-card.q-default { --hue1:255; --hue2:222; }
+.v4-card.q-jewelry { --hue1:200; --hue2:180; }
+.v4-card.q-amber   { --hue1:38;  --hue2:24;  }
+.v4-card > *:not(.shine):not(.glow) { position:relative; z-index:5; }
+
+/* V4 step title (steps 2/3) */
+.v4-step-title { text-align:center; font-size:14px; font-weight:700; color:#fff; margin-bottom:4px; }
+.v4-step-sub { text-align:center; font-size:11px; color:rgba(255,255,255,0.55); margin-bottom:14px; }
+
+/* V4 photo block */
+.v4-photo-hero { width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; margin-bottom:14px; cursor:pointer; }
+.v4-photo-hero img { width:100%; height:100%; object-fit:cover; display:block; }
+.v4-photo-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:32px 20px; border-radius:14px; background:rgba(255,255,255,0.03); border:2px dashed rgba(255,255,255,0.12); cursor:pointer; margin-bottom:14px; color:rgba(255,255,255,0.55); transition:border-color 220ms var(--ease, ease); }
+.v4-photo-empty:hover { border-color:rgba(99,102,241,0.4); }
+.v4-photo-empty-title { font-size:14px; font-weight:700; color:#fff; }
+.v4-photo-empty-hint { font-size:11px; color:rgba(255,255,255,0.5); text-align:center; line-height:1.4; padding:0 12px; }
+
+/* V4 form group + label + input */
+.v4-fg { margin-bottom:12px; }
+.v4-fg:last-child { margin-bottom:0; }
+.v4-fl { display:block; font-size:11px; font-weight:700; color:rgba(255,255,255,0.7); margin-bottom:4px; letter-spacing:0.02em; }
+.v4-req { color:#ef4444; }
+.v4-hint { font-size:10px; font-weight:500; color:rgba(255,255,255,0.4); margin-left:4px; }
+.v4-input-row { display:flex; align-items:center; gap:6px; }
+.v4-fc { flex:1; min-width:0; height:42px; padding:0 12px; border-radius:11px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); color:#fff; font-size:14px; font-family:inherit; outline:none; transition:border-color 180ms var(--ease, ease); }
+.v4-fc:focus { border-color:hsl(var(--hue1, 255), 60%, 55%); }
+.v4-fc:disabled { opacity:0.45; cursor:not-allowed; }
+.v4-ccy-sfx { font-size:11px; color:rgba(255,255,255,0.55); padding:0 4px; flex-shrink:0; font-weight:600; letter-spacing:0.02em; }
+.v4-field-mic { width:38px; height:38px; border-radius:11px; background:linear-gradient(135deg, hsl(280, 70%, 30%), hsl(310, 70%, 25%)); border:1px solid hsl(280, 60%, 50%, 0.5); color:#f0abfc; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px hsl(280, 70%, 50%, 0.25); }
+.v4-field-mic:hover { background:linear-gradient(135deg, hsl(280, 75%, 35%), hsl(310, 75%, 30%)); }
+
+/* V4 dropdown list */
+.v4-dd-list { background:#0f1224; border:1px solid rgba(99,102,241,0.4); border-radius:10px; max-height:200px; overflow-y:auto; font-size:13px; margin-top:4px; }
+
+/* V4 toggle row (variations on/off) */
+.v4-toggle-row { display:flex; gap:6px; padding:4px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); margin-bottom:12px; }
+.v4-toggle-opt { flex:1; padding:10px; border-radius:9px; background:transparent; border:1px solid transparent; color:rgba(255,255,255,0.55); font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
+.v4-toggle-opt.active { background:linear-gradient(180deg, rgba(99,102,241,0.18), rgba(67,56,202,0.08)); border-color:rgba(139,92,246,0.5); color:#c4b5fd; }
+
+/* V4 chips (variations) */
+.v4-chips-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; min-height:8px; }
+.v4-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border-radius:999px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.35); color:#c4b5fd; font-size:11px; font-weight:600; cursor:pointer; }
+.v4-chip:hover { background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4); color:#fca5a5; }
+.v4-add-btn { padding:0 14px; height:42px; border-radius:11px; background:linear-gradient(180deg, rgba(99,102,241,0.18), rgba(67,56,202,0.08)); border:1px solid rgba(139,92,246,0.5); color:#c4b5fd; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; }
+
+.v4-matrix-hint { margin-top:8px; padding:8px 10px; border-radius:10px; background:rgba(99,102,241,0.06); border:1px dashed rgba(99,102,241,0.25); font-size:10.5px; color:#a5b4fc; text-align:center; }
+.v4-matrix-hint.v4-matrix-hint-warn { background:rgba(245,158,11,0.06); border-color:rgba(245,158,11,0.25); color:#fbbf24; }
+
+/* V4 margin display */
+.v4-margin-row { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-radius:11px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); }
+.v4-margin-row .v4-fl { margin-bottom:0; }
+.v4-margin-display { font-weight:700; }
+.v4-margin-pill { display:inline-block; padding:4px 10px; border-radius:8px; font-size:13px; font-weight:800; }
+.v4-margin-pill.v4-margin-good { background:rgba(34,197,94,0.18); border:1px solid rgba(34,197,94,0.45); color:#86efac; }
+.v4-margin-pill.v4-margin-mid { background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.45); color:#fbbf24; }
+.v4-margin-pill.v4-margin-low { background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.45); color:#fca5a5; }
+.v4-margin-pill.v4-margin-na  { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.4); }
+
+/* V4 footer (Save / Print / Next / Back) */
+.v4-footer { display:flex; gap:8px; padding:14px 12px; margin-top:14px; background:rgba(10,11,20,0.92); border-top:1px solid rgba(99,102,241,0.15); position:sticky; bottom:0; }
+.v4-btn { height:46px; border-radius:13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; border:1px solid; letter-spacing:0.02em; padding:0 14px; }
+.v4-btn-back { flex:0 0 auto; min-width:44px; background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.1); color:#cbd5e1; }
+.v4-btn-save { flex:1.4; background:linear-gradient(135deg, #16a34a, #15803d); border-color:#16a34a; color:#fff; box-shadow:0 4px 14px rgba(22,163,74,0.4); text-transform:uppercase; }
+.v4-btn-save.v4-btn-final { background:linear-gradient(135deg, #dc2626, #b91c1c); border-color:#dc2626; box-shadow:0 4px 14px rgba(220,38,38,0.4); }
+.v4-btn-print { flex:0 0 48px; background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.1); color:#cbd5e1; }
+.v4-btn-next { flex:1; background:linear-gradient(135deg, #6366f1, #4338ca); border-color:#6366f1; color:#fff; box-shadow:0 4px 14px rgba(99,102,241,0.4); }
+</style>
+
 <!-- ═══ MANUAL WIZARD MODAL ═══ -->
 <div class="modal-ov" id="wizModal">
     <div class="modal-hdr">
@@ -5772,21 +5861,23 @@ function _wizDescribeDraft(d){
 
 // ─── MANUAL WIZARD ───
 function openManualWizard(){
+    // S93.WIZARD.V4.SESSION_2: V4 starts at step=1 (no separate type picker).
+    var initStep = (typeof CFG !== 'undefined' && CFG.wizardVersion === 'v4') ? 1 : 0;
     var draft = _wizGetDraft();
     if (draft) {
         var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
         if (confirm(msg)) {
-            S.wizStep = draft.wizStep || 0;
+            S.wizStep = draft.wizStep || initStep;
             S.wizSubStep = draft.wizSubStep || 0;
             S.wizType = draft.wizType || null;
             S.wizData = draft.wizData || {};
             S.wizEditId = draft.wizEditId || null;
         } else {
             _wizClearDraft();
-            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
+            S.wizStep=initStep;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
         }
     } else {
-        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
+        S.wizStep=initStep;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
     }
     S._wizHistory=[];
     S.wizVoiceMode=false;
@@ -5799,21 +5890,22 @@ function openManualWizard(){
 
 // ─── VOICE WIZARD — same steps, with skip buttons ───
 function openVoiceWizard(){
+    var initStep = (typeof CFG !== 'undefined' && CFG.wizardVersion === 'v4') ? 1 : 0;
     var draft = _wizGetDraft();
     if (draft) {
         var msg = 'Намерих незавършен артикул ' + _wizDescribeDraft(draft) + '.\n\nДа продължа от където беше? (Откажи = започни наново)';
         if (confirm(msg)) {
-            S.wizStep = draft.wizStep || 0;
+            S.wizStep = draft.wizStep || initStep;
             S.wizSubStep = draft.wizSubStep || 0;
             S.wizType = draft.wizType || null;
             S.wizData = draft.wizData || {};
             S.wizEditId = draft.wizEditId || null;
         } else {
             _wizClearDraft();
-            S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
+            S.wizStep=initStep;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
         }
     } else {
-        S.wizStep=0;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
+        S.wizStep=initStep;S.wizData={};S.wizType=null;S.wizEditId=null;S.wizSubStep=0;
     }
     S._wizHistory=[];
     S.wizVoiceMode=true;
@@ -5822,8 +5914,8 @@ function openVoiceWizard(){
     history.pushState({modal:'wizard'},'','#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
-    // Auto voice for step 0
-    setTimeout(()=>voiceForStep(0),500);
+    // Auto voice for step 0 — само за legacy. V4 ползва per-field mic buttons.
+    if (initStep === 0) setTimeout(()=>voiceForStep(0),500);
 }
 
 function voiceForStep(step){
@@ -6451,6 +6543,221 @@ function _v4VariationsBlock(){
         (colors.length && sizes.length
             ? '<div class="v4-matrix-hint">📊 Матрицата с бройки ще се отвори при ЗАПАЗИ на стъпка 2.</div>'
             : '<div class="v4-matrix-hint v4-matrix-hint-warn">Добави и цвят, и размер за матрица.</div>');
+}
+
+// ── V4 helper functions ─────────────────────────────────────────────────────
+
+function wizV4CollectData(){
+    // Sync DOM → S.wizData (V4 uses different IDs from legacy).
+    var el = function(id){return document.getElementById(id)};
+    if (el('wV4Name'))    S.wizData.name = el('wV4Name').value.trim();
+    if (el('wV4Price'))   S.wizData.retail_price = parseFloat(el('wV4Price').value)||0;
+    if (el('wV4Cost'))    S.wizData.cost_price = parseFloat(el('wV4Cost').value)||0;
+    if (el('wV4Wh'))      S.wizData.wholesale_price = parseFloat(el('wV4Wh').value)||0;
+    if (el('wV4Barcode')) S.wizData.barcode = el('wV4Barcode').value.trim();
+    if (el('wV4Code'))    S.wizData.code = el('wV4Code').value.trim();
+    if (el('wV4SingleQty')) S.wizData.quantity = parseInt(el('wV4SingleQty').value)||0;
+    if (el('wV4Zone'))    S.wizData.location = el('wV4Zone').value.trim();
+    if (el('wV4Mat'))     S.wizData.composition = el('wV4Mat').value.trim();
+    if (el('wV4Orig'))    S.wizData.origin_country = el('wV4Orig').value.trim();
+    // supplier_id and category_id are set by wizSearchDropdown selection callback already.
+}
+
+function wizV4Goto(step){
+    if (step < 1 || step > 3) return;
+    wizV4CollectData();
+    S.wizStep = step;
+    if (!Array.isArray(S._wizHistory)) S._wizHistory = [];
+    renderWizard();
+}
+
+function wizV4Next(targetStep){
+    wizV4CollectData();
+    // Step 1 → 2: validate name + price.
+    if (S.wizStep === 1) {
+        if (!S.wizData.name) { showToast('Въведи име', 'error'); var n=document.getElementById('wV4Name'); if(n)n.focus(); return; }
+        if (!S.wizData.retail_price || S.wizData.retail_price <= 0) { showToast('Въведи цена на дребно', 'error'); var p=document.getElementById('wV4Price'); if(p)p.focus(); return; }
+    }
+    wizV4Goto(targetStep);
+}
+
+function wizV4SetVariations(hasVar){
+    S.wizData.has_variations = !!hasVar;
+    if (hasVar && !S.wizData.variations) S.wizData.variations = { colors: [], sizes: [] };
+    renderWizard();
+}
+
+function wizV4AddVar(kind, value){
+    value = (value||'').trim();
+    if (!value) return;
+    if (!S.wizData.variations) S.wizData.variations = { colors: [], sizes: [] };
+    if (!Array.isArray(S.wizData.variations[kind])) S.wizData.variations[kind] = [];
+    // Split by comma/space → multiple add at once ("S M L XL")
+    var parts = value.split(/[,\s]+/).map(function(p){return p.trim()}).filter(Boolean);
+    parts.forEach(function(p){
+        if (S.wizData.variations[kind].indexOf(p) < 0) S.wizData.variations[kind].push(p);
+    });
+    renderWizard();
+}
+
+function wizV4RemoveVar(kind, index){
+    if (!S.wizData.variations || !Array.isArray(S.wizData.variations[kind])) return;
+    S.wizData.variations[kind].splice(index, 1);
+    renderWizard();
+}
+
+function wizV4UpdateMargin(){
+    // Live margin recalc (read-only display).
+    var disp = document.getElementById('wV4MarginDisplay');
+    if (!disp) return;
+    var rp = parseFloat(S.wizData.retail_price)||0;
+    var cp = parseFloat(S.wizData.cost_price)||0;
+    if (rp > 0 && cp > 0 && rp >= cp) {
+        var m = Math.round(((rp-cp)/rp)*100);
+        var cls = m >= 30 ? 'v4-margin-good' : (m >= 15 ? 'v4-margin-mid' : 'v4-margin-low');
+        disp.innerHTML = '<span class="v4-margin-pill '+cls+'">'+m+' %</span>';
+    } else {
+        disp.innerHTML = '<span class="v4-margin-pill v4-margin-na">—</span>';
+    }
+}
+
+function wizV4VoiceField(fieldKey, prompt){
+    if (typeof wizVoiceOpen !== 'function') {
+        showToast('Voice overlay не е зареден', 'error');
+        return;
+    }
+    wizVoiceOpen(
+        fieldKey, fieldKey, prompt,
+        function onConfirm(transcript /*, meta */) {
+            // Map fieldKey → V4 input id, populate, sync state.
+            var map = {
+                name:'wV4Name', retail_price:'wV4Price', cost_price:'wV4Cost', wholesale_price:'wV4Wh',
+                supplier:'wV4Sup', category:'wV4Cat', subcategory:'wV4Subcat',
+                barcode:'wV4Barcode', code:'wV4Code', quantity:'wV4SingleQty',
+                zone:'wV4Zone', material:'wV4Mat', origin:'wV4Orig'
+            };
+            var inputId = map[fieldKey];
+            if (inputId) {
+                var inp = document.getElementById(inputId);
+                if (inp) {
+                    inp.value = transcript;
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        },
+        function onMagic(action) {
+            // Magic word actions per SPEC §3.
+            if (action === 'next')   { var nxt = (S.wizStep||1)+1; if (nxt<=3) wizV4Next(nxt); }
+            else if (action === 'back') { var prv = (S.wizStep||1)-1; if (prv>=1) wizV4Goto(prv); }
+            else if (action === 'save') { wizV4Save(S.wizStep===3?95:(S.wizStep===2?70:40)); }
+            else if (action === 'print'){ wizV4Print(S.wizStep===3?95:(S.wizStep===2?70:40)); }
+            else if (action === 'cancel'){ closeWizard(); }
+            else if (action === 'copy') { wizV4CopyFromLast(); }
+            else if (action === 'search'){ wizV4OpenSearch(); }
+            else if (action === 'stop') { S.wizVoiceMode = false; showToast('Voice continuous изключен', 'info'); }
+        },
+        null
+    );
+}
+
+function wizV4OpenSearch(){
+    // S3 deferred: full search overlay. За S2 — toast placeholder.
+    showToast('Търси template — coming в S3', 'info');
+}
+
+function wizV4CopyFromLast(){
+    // Last из локалната storage (legacy data) ИЛИ най-нов artikel чрез
+    // services/copy-product-template.php (recentProductsForTemplate). За S2
+    // използваме localStorage flow ако налично, иначе server fallback.
+    var localPrev = null;
+    try { localPrev = JSON.parse(localStorage.getItem('_rms_lastWizProductFields') || 'null'); } catch(_e){}
+    if (localPrev && typeof localPrev === 'object') {
+        var skip = ['name','barcode','code','_photoDataUrl','_photos'];
+        Object.keys(localPrev).forEach(function(k){
+            if (skip.indexOf(k) >= 0) return;
+            S.wizData[k] = localPrev[k];
+        });
+        S.wizData.source_template_id = null; // localStorage няма ID
+        showToast('Попълнено от последния', 'success');
+        renderWizard();
+        return;
+    }
+    showToast('Няма предишен артикул', 'info');
+}
+
+async function wizV4Save(confidenceScore){
+    wizV4CollectData();
+    if (!S.wizData.name) { showToast('Въведи име', 'error'); var n=document.getElementById('wV4Name'); if(n)n.focus(); wizV4Goto(1); return; }
+    if (!S.wizData.retail_price || S.wizData.retail_price <= 0) { showToast('Въведи цена на дребно', 'error'); var p=document.getElementById('wV4Price'); if(p)p.focus(); wizV4Goto(1); return; }
+
+    var hasVar = !!(S.wizData.has_variations);
+    var payload = {
+        action: 'create',
+        name: S.wizData.name,
+        retail_price: S.wizData.retail_price,
+        cost_price: S.wizData.cost_price || 0,
+        wholesale_price: S.wizData.wholesale_price || 0,
+        barcode: S.wizData.barcode || null,
+        code: S.wizData.code || null,
+        category_id: S.wizData.category_id || null,
+        subcategory_id: S.wizData.subcategory_id || null,
+        supplier_id: S.wizData.supplier_id || null,
+        composition: S.wizData.composition || null,
+        origin_country: S.wizData.origin_country || null,
+        location: S.wizData.location || null,
+        unit: S.wizData.unit || 'бр',
+        product_type: hasVar ? 'variant' : 'simple',
+        sizes: (hasVar && S.wizData.variations) ? (S.wizData.variations.sizes || []) : [],
+        colors: (hasVar && S.wizData.variations) ? (S.wizData.variations.colors || []) : [],
+        initial_qty: S.wizData.quantity || 0,
+        confidence_score: confidenceScore,
+        source_template_id: S.wizData.source_template_id || null,
+        created_via: 'wizard_v4'
+    };
+
+    try {
+        var resp = await fetch('product-save.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'same-origin'
+        });
+        var data = await resp.json();
+        if (data && data.duplicate) {
+            // Дupликат — за simplicity, за S2 показваме toast + продължаваме (пълен duplicate UI се отлага).
+            if (!confirm('Намерен дубликат. Продължи въпреки това?')) return;
+            payload.confirm_duplicate = true;
+            resp = await fetch('product-save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            });
+            data = await resp.json();
+        }
+        if (data && data.success) {
+            // Save snapshot за следващ "Като предния".
+            try { localStorage.setItem('_rms_lastWizProductFields', JSON.stringify(S.wizData)); } catch(_e){}
+            if (typeof _wizClearDraft === 'function') _wizClearDraft();
+            var pct = data.confidence_score || confidenceScore;
+            showToast('Запазено · confidence ' + pct + '%', 'success');
+            closeWizard();
+            if (typeof loadScreen === 'function') loadScreen();
+        } else {
+            showToast((data && data.error) || 'Грешка при запис', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    }
+}
+
+async function wizV4Print(confidenceScore){
+    // Auto-save THEN trigger printer per SPEC §9.
+    await wizV4Save(confidenceScore);
+    // Printer trigger е extension point. За S2: toast notification (full TSPL printer
+    // wiring е out of S2 scope — съществуваща printer-setup.php инфраструктура може
+    // да се hook-не в S3).
+    showToast('Етикетът ще бъде отпечатан (S3)', 'info');
 }
 
 function renderWizPage(step){
