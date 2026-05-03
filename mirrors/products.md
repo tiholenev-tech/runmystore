@@ -12080,6 +12080,8 @@ function _wizPriceParse(text){
     if(text===undefined||text===null)return null;
     var raw=String(text).toLowerCase().trim();
     if(!raw)return null;
+    // Quick fix: Web Speech често реже водеща "едно/една". Ако transcript започва с "и " → префиксирай "1 "
+    if (/^и\s/i.test(raw)) raw = "1 " + raw.substring(2);
     var hasStotinki=/(стотинки?|стот\.|цент[аи]?|cents?|копейк|пени)/i.test(raw);
     var pre=raw.replace(/\bзапетая\b/gi,',').replace(/\bточка\b/gi,'.');
     for(var i=0;i<_BG_WORD_KEYS.length;i++){
