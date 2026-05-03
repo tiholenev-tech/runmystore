@@ -5547,28 +5547,27 @@ function openAIChatOverlay() {
 
 // S92.WIZARD_REWRITE: 6 видими стъпки (Снимка → Цени → Класификация → Детайли → Вариации → Запис).
 // Стъпка 3 е логически разделена на 4 sub-pages чрез S.wizSubStep (0..3). Type picker (step 0) остава скрит от индикатора.
-const WIZ_LABELS=['Снимка','Цени','Класификация','Детайли','Вариации','Запис'];
-// Кратки имена за header label (по-стегнати от WIZ_LABELS които се ползват за иконки).
-const WIZ_LABELS_LONG=['Снимка / Име','Цени','Доставчик / Категория','Детайли','Размери / Цветове','Запис'];
-// S92.WIZARD_REWRITE: getWizUiIndex(step, subStep) → индекс в WIZ_LABELS, или null ако stepper трябва да е скрит.
+// S94.WIZARD.RESTRUCTURE: 4-step visible indicator (вместо 6). Internal step
+// state machine остава 0-6 за backward compat — само visual mapping се променя.
+// Mapping per S94 prompt: (0+2)→1, (3 sub 0/1/2/3)→2, (4+5)→3, (6)→4.
+const WIZ_LABELS=['Тип + Снимка','Идентификация','Вариации','Цени и детайли'];
+const WIZ_LABELS_LONG=['Тип на артикула + Снимка','Име, цена, доставчик, кодове','Размери / Цветове / Бройки','Цени допълн. + Метаданни'];
+// S92.WIZARD_REWRITE → S94.WIZARD.RESTRUCTURE: getWizUiIndex(step, subStep) → индекс в 4-stop WIZ_LABELS.
 function getWizUiIndex(step, subStep){
     if(step===null||step===undefined)return null;
     subStep=subStep||0;
-    // step 0 = type picker (Вид), без stepper.
-    if(step===0)return null;
-    // step 1 = legacy redirect, без stepper.
-    if(step===1)return null;
-    if(step===2)return 0; // Снимка / Име
+    // step 0 = type picker (Вид) → dot 1 (Тип + Снимка).
+    if(step===0)return 0;
+    // step 1 = legacy redirect → dot 1.
+    if(step===1)return 0;
+    if(step===2)return 0; // Снимка / Име → dot 1
     if(step===3){
-        // sub 0 = Цени, sub 1 = Класификация, sub 2 = Детайли, sub 3 = Запис
-        if(subStep<=0)return 1;
-        if(subStep===1)return 2;
-        if(subStep===2)return 3;
-        return 5;
+        // Всички sub-pages на step 3 (Цени/Класификация/Детайли/Идентификация) → dot 2.
+        return 1;
     }
-    if(step===4)return 4; // Вариации
-    if(step===5)return 5; // Preview/AI studio = последна стъпка ("Запис")
-    if(step===6)return 5; // Print labels = последна стъпка
+    if(step===4)return 2; // Вариации chips → dot 3
+    if(step===5)return 2; // Matrix → dot 3
+    if(step===6)return 3; // Print labels / Запис overlay → dot 4
     return null;
 }
 
@@ -6015,9 +6014,10 @@ async function renderWizard(){
     // S82.STUDIO.10: persist draft on every render (covers axes/matrix/photo/form changes).
     if (typeof _wizSaveDraft === 'function') _wizSaveDraft();
     let sb='';
-    // S92.WIZARD_REWRITE: 6-step indicator + sub-step aware uiIdx.
+    // S94.WIZARD.RESTRUCTURE: 4-step indicator (consolidated from 6-step). uiIdx
+    // mapping вижда се в getWizUiIndex.
     const uiIdx=getWizUiIndex(S.wizStep, S.wizSubStep);
-    for(let i=0;i<6;i++){
+    for(let i=0;i<4;i++){
         let cls=uiIdx!==null&&i<uiIdx?'done':(i===uiIdx?'active':'');
         sb+='<div class="wiz-step '+cls+'"></div>';
     }
@@ -6325,9 +6325,11 @@ function renderWizPage(step){
             '<div class="fg">'+fieldLabel('Мерна единица','unit')+'<div style="display:flex;gap:5px;flex-wrap:wrap">'+unitChips+'</div></div>';
 
         // Sub 3: Идентификация — code (collapsed), barcode (collapsed), big red Запиши
-        // Collapsed by default — Тихол: "артикулен номер рядко се пипа · баркод scan-ва се ако има"
-        const codeOpen=!!(S.wizData.code||'').trim();
-        const barOpen=!!(S.wizData.barcode||'').trim();
+        // S94.WIZARD.RESTRUCTURE: barcode + код винаги VISIBLE (нЕ collapsed). Auto-gen
+        // при ЗАПИШИ ако празни → user не trябва да ги "разкрива" expli. Toggle handler
+        // запазен (потребителят може да колапсира ръчно).
+        const codeOpen=true;
+        const barOpen=true;
         const idBody=
             '<div style="text-align:center;font-size:13px;color:rgba(255,255,255,0.85);margin:0 0 6px;font-weight:600">Готов ли е артикулът?</div>'+
             '<div style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:14px">Артикулен номер и баркод са по желание (AI/auto)</div>'+
