@@ -5835,7 +5835,8 @@ function openVoiceWizard(){
     history.pushState({modal:'wizard'},'','#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
-    _wizTrigStart();
+    // BUG1_DIAG: trigger listener temporarily disabled for auto-save isolation test
+    // _wizTrigStart();
     // Auto voice for step 0
     setTimeout(()=>voiceForStep(0),500);
 }
@@ -9573,6 +9574,8 @@ async function wizGenDescription(){
 }
 
 async function wizSave(){
+    // BUG1_DIAG step 4: capture caller stack — auto-save MUST come from somewhere
+    alert('[BUG1_TRACE] wizSave called! _fromStep1='+(!!S.wizData._fromStep1)+'\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
     // S75.2: wizType first check
     if(!S.wizType){showToast('Избери първо: Единичен или С варианти','error');var tg=document.querySelector('.v4-type-toggle');if(tg){tg.classList.add('pulsing-strong');setTimeout(function(){tg.classList.remove('pulsing-strong')},1600);}if(navigator.vibrate)navigator.vibrate([50,30,50]);return;}
     wizCollectData();
@@ -9953,6 +9956,7 @@ function wizCopyFieldFromPrev(field){
 // Variant → toast "Първо завърши вариациите" and stay (variations + matrix needed first).
 // S95.PART1_1: + quantity validation (Bug A — save was failing "няма бройки").
 function wizStep1Save(){
+    alert('[BUG1_TRACE] wizStep1Save called!\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
     wizCollectData();
     if(!S.wizType){showToast('Избери първо: Единичен или С Вариации','error');return;}
     if(!S.wizData.name){showToast('Въведи име','error');var n=document.getElementById('wName');if(n)n.focus();return;}
@@ -11960,6 +11964,7 @@ function _wizMicWebSpeech(field){
     _wizMicRec.start();
 }
 function _wizMicWhisper(field){
+    return; // BUG1_DIAG step 3: ENTIRE _wizMicWhisper body disabled
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
@@ -11983,10 +11988,11 @@ function _wizMicWhisper(field){
             fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
                 .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
                 .then(function(j){
-                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
-                    fallback();
+                    // BUG1_DIAG step 2: response chain DEAD-ENDED — _wizMicApply suppressed
+                    clearUI();
+                    console.log('[BUG1_DIAG] Whisper response suppressed', j);
                 })
-                .catch(function(){fallback()});
+                .catch(function(e){ clearUI(); console.log('[BUG1_DIAG] Whisper fetch error', e); });
         };
         rec.start();
         setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
