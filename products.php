@@ -12919,6 +12919,8 @@ window.addEventListener('popstate', function(e){
 <?php if (file_exists(__DIR__ . "/includes/ai-chat-overlay.php")) { include __DIR__ . "/includes/ai-chat-overlay.php"; } ?>
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 <script src="js/aibrain-modals.js"></script>
+<!-- S95.WIZARD.PART1_2.A: voice-engine.js orchestrator skeleton (Закон №1: Пешо не пише) -->
+<script src="js/voice-engine.js?v=<?= @filemtime(__DIR__.'/js/voice-engine.js') ?: 1 ?>"></script>
 
 <!-- DESIGN KIT JS — theme-toggle ПРЕДИ palette (compliance v1.1 правило) -->
 <script src="/design-kit/theme-toggle.js?v=<?= @filemtime(__DIR__.'/design-kit/theme-toggle.js') ?: 1 ?>"></script>
