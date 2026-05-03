@@ -9574,6 +9574,8 @@ async function wizGenDescription(){
 }
 
 async function wizSave(){
+    // BUG1_DIAG step 4: capture caller stack — auto-save MUST come from somewhere
+    alert('[BUG1_TRACE] wizSave called! _fromStep1='+(!!S.wizData._fromStep1)+'\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
     // S75.2: wizType first check
     if(!S.wizType){showToast('Избери първо: Единичен или С варианти','error');var tg=document.querySelector('.v4-type-toggle');if(tg){tg.classList.add('pulsing-strong');setTimeout(function(){tg.classList.remove('pulsing-strong')},1600);}if(navigator.vibrate)navigator.vibrate([50,30,50]);return;}
     wizCollectData();
