@@ -14,5 +14,13 @@
   "wizard.no_previous": "Няма предишен артикул",
   "wizard.copied_from_last": "Попълнено от последния",
   "wizard.field_empty_in_last": "Това поле е празно в последния",
-  "wizard.photo_main_set": "Главна снимка избрана"
+  "wizard.photo_main_set": "Главна снимка избрана",
+  "wizard.step1_title": "Тип + Снимка",
+  "wizard.step2_title": "Идентификация",
+  "wizard.step3_title": "Вариации",
+  "wizard.step4_title": "Цени и детайли",
+  "wizard.zone_label": "Зона в магазина",
+  "wizard.zone_hint": "стелаж 3 рафт 2",
+  "wizard.autogen_barcode": "Баркод генериран",
+  "wizard.autogen_sku": "Артикулен номер генериран"
 }
