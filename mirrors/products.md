@@ -5547,27 +5547,22 @@ function openAIChatOverlay() {
 
 // S92.WIZARD_REWRITE: 6 видими стъпки (Снимка → Цени → Класификация → Детайли → Вариации → Запис).
 // Стъпка 3 е логически разделена на 4 sub-pages чрез S.wizSubStep (0..3). Type picker (step 0) остава скрит от индикатора.
-// S94.WIZARD.RESTRUCTURE: 4-step visible indicator (вместо 6). Internal step
-// state machine остава 0-6 за backward compat — само visual mapping се променя.
-// Mapping per S94 prompt: (0+2)→1, (3 sub 0/1/2/3)→2, (4+5)→3, (6)→4.
-const WIZ_LABELS=['Тип + Снимка','Идентификация','Вариации','Цени и детайли'];
-const WIZ_LABELS_LONG=['Тип на артикула + Снимка','Име, цена, доставчик, кодове','Размери / Цветове / Бройки','Цени допълн. + Метаданни'];
-// S92.WIZARD_REWRITE → S94.WIZARD.RESTRUCTURE: getWizUiIndex(step, subStep) → индекс в 4-stop WIZ_LABELS.
+// S95.WIZARD.RESTRUCTURE: consolidated step 1 = identification (photo+name+price+
+// supplier+category+subcategory+code+barcode + type toggle in header). Internal
+// step machine 0-6 stays — step 0/1 redirect to step 2 (consolidated render).
+// Single product flow: 1(consol) → wizSave → mini print overlay → close.
+// Variant flow:        1(consol) → 4(matrix) → 5(combos+zone+desc) → 6(success).
+const WIZ_LABELS=['Идентификация','Вариации','Матрица','Запис'];
+const WIZ_LABELS_LONG=['Снимка + име + цена + доставчик + кодове','Размери / Цветове','Бройки + Зона','Запис на артикула'];
+// S95.WIZARD.RESTRUCTURE: dot mapping. Step 0/1/2/3 → dot 0 (consolidated identification +
+// legacy step 3 sub-pages fallback). Step 4 → dot 1. Step 5 → dot 2. Step 6 → dot 3.
 function getWizUiIndex(step, subStep){
     if(step===null||step===undefined)return null;
     subStep=subStep||0;
-    // step 0 = type picker (Вид) → dot 1 (Тип + Снимка).
-    if(step===0)return 0;
-    // step 1 = legacy redirect → dot 1.
-    if(step===1)return 0;
-    if(step===2)return 0; // Снимка / Име → dot 1
-    if(step===3){
-        // Всички sub-pages на step 3 (Цени/Класификация/Детайли/Идентификация) → dot 2.
-        return 1;
-    }
-    if(step===4)return 2; // Вариации chips → dot 3
-    if(step===5)return 2; // Matrix → dot 3
-    if(step===6)return 3; // Print labels / Запис overlay → dot 4
+    if(step===0||step===1||step===2||step===3)return 0; // consolidated identification scope
+    if(step===4)return 1; // Вариации chips
+    if(step===5)return 2; // Matrix + Зона + AI desc
+    if(step===6)return 3; // Запис / Print labels
     return null;
 }
 
@@ -5877,7 +5872,11 @@ function closeWizard(){
 
 function wizGo(step,_skipHistory,subStep){
     wizCollectData();
-    if(step===2&&!S.wizData._hasPhoto){step=3;}
+    // S95.WIZARD.RESTRUCTURE: R3 — removed legacy `step===2 && !_hasPhoto → step=3` bypass.
+    // Pre-S92 step 2 was photo-only, so skipping made sense if user had no photo. Now step 2
+    // (consolidated step 1) hosts ALL identification fields incl. required name+price; auto-skipping
+    // breaks the consolidated flow.
+    if(step===0||step===1)step=2; // step 0 (type cards) and step 1 (legacy redirect) → consolidated step 1.
     // S92.WIZARD_REWRITE: track current (step,subStep) tuple in history; default subStep=0 unless explicitly set.
     var prevTuple={step:S.wizStep, sub:S.wizSubStep||0};
     var nextSub=(typeof subStep==='number')?subStep:(step===3?(S.wizSubStep||0):0);
@@ -6111,45 +6110,12 @@ async function renderWizard(){
 function renderWizPage(step){
     const vskip=S.wizVoiceMode?'<button class="abtn" onclick="wizGo('+(step+1)+')" style="margin-top:6px;border-color:rgba(245,158,11,0.2);color:#fbbf24">⏭ Пропусни</button>':'';
 
-    // ═══ STEP 0: ВИД (S88B-1) — реален UI с 2 cards + Копирай от последния ═══
-    if(step===0){
-        var hasLast=false;try{hasLast=!!localStorage.getItem('_rms_lastWizProductFields');}catch(e){}
-        var copyBtn = hasLast
-            ? '<button type="button" onclick="wizCopyPrevProductFull()" style="width:100%;padding:13px;border-radius:14px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 0 14px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);margin-top:14px">📋 Копирай от последния</button>'
-            : '<div style="margin-top:14px;padding:10px;text-align:center;font-size:10px;color:#64748b;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06)">📋 Копирай от последния — налично след първия запис</div>';
-        return '<div class="wiz-page active" style="padding:18px 14px">'+
-            '<div style="text-align:center;font-size:15px;font-weight:600;color:#fff;margin-bottom:18px;letter-spacing:0.01em">Какво искаш да добавиш?</div>'+
-            '<button type="button" onclick="wizPickType(\'single\')" style="width:100%;padding:20px 16px;margin-bottom:12px;border-radius:18px;background:linear-gradient(180deg,rgba(59,130,246,0.16),rgba(37,99,235,0.06));border:1px solid rgba(59,130,246,0.5);color:#fff;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;box-shadow:0 0 18px rgba(59,130,246,0.22),inset 0 1px 0 rgba(255,255,255,0.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">'+
-                '<div style="width:48px;height:48px;border-radius:14px;background:rgba(59,130,246,0.18);border:1px solid rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+
-                    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
-                '</div>'+
-                '<div style="flex:1;min-width:0">'+
-                    '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">Единичен</div>'+
-                    '<div style="font-size:11px;color:#bfdbfe;line-height:1.4">Един артикул без размер/цвят</div>'+
-                '</div>'+
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'+
-            '</button>'+
-            '<button type="button" onclick="wizPickType(\'variant\')" style="width:100%;padding:20px 16px;border-radius:18px;background:linear-gradient(180deg,rgba(217,70,239,0.14),rgba(168,85,247,0.06));border:1px solid rgba(217,70,239,0.5);color:#fff;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;box-shadow:0 0 18px rgba(217,70,239,0.22),inset 0 1px 0 rgba(255,255,255,0.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">'+
-                '<div style="width:48px;height:48px;border-radius:14px;background:rgba(217,70,239,0.18);border:1px solid rgba(217,70,239,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+
-                    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg>'+
-                '</div>'+
-                '<div style="flex:1;min-width:0">'+
-                    '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">С вариации</div>'+
-                    '<div style="font-size:11px;color:#fbcfe8;line-height:1.4">Размер и/или цвят (повече варианти)</div>'+
-                '</div>'+
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'+
-            '</button>'+
-            copyBtn+
-            '<div style="display:flex;gap:8px;margin-top:18px">'+
-                '<button type="button" onclick="closeWizard()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Отказ</button>'+
-            '</div>'+
-        '</div>';
-    }
-
-    // ═══ STEP 1: defensive redirect to STEP 0 (legacy paths) ═══
-    if(step===1){
-        setTimeout(function(){wizGo(0)},0);
-        return '<div class="wiz-page active"><div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:12px">Зареждане...</div></div>';
+    // ═══ STEP 0/1: ELIMINATED in S95.WIZARD.RESTRUCTURE — type cards moved to header
+    // toggle on consolidated step 1. wizGo() routes 0/1 → 2 directly; if a stale code path
+    // still calls renderWizPage(0|1) we render the consolidated body too. ═══
+    if(step===0||step===1){
+        setTimeout(function(){wizGo(2)},0);
+        return renderWizPhotoStep();
     }
 
     // ═══ STEP 2: СНИМКА (S88B-1) — conditional render single/variant-B1/variant-B2 ═══
