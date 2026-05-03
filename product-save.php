@@ -142,6 +142,19 @@ $sizes           = $data['sizes'] ?? [];
 $colors          = $data['colors'] ?? [];
 $variants        = $data['variants'] ?? [];
 
+// S93.WIZARD.V4.SESSION_2: confidence_score + source_template_id + created_via.
+// confidence_score: 40 = step1 save, 70 = step2, 95 = step3 (full data).
+// Default 95 за backward compat (legacy 8-step wizard винаги пълна форма).
+// Range: clamp [0..100].
+$confidence_score    = max(0, min(100, (int)($data['confidence_score'] ?? 95)));
+$source_template_id  = ((int)($data['source_template_id'] ?? 0)) ?: null;
+$created_via         = (string)($data['created_via'] ?? 'wizard_legacy');
+$_allowed_via        = ['wizard_v4','wizard_legacy','quick_add','import','api'];
+if (!in_array($created_via, $_allowed_via, true)) { $created_via = 'wizard_legacy'; }
+// Track дали code/barcode са user-provided (за да знаем дали да auto-gen post-INSERT).
+$_user_provided_code    = ($code !== null);
+$_user_provided_barcode = ($barcode !== null);
+
 // Legacy form format
 $has_variants    = !empty($data['has_variants']) && $data['has_variants'] === '1';
 $variants_json   = json_decode($data['variants_batch'] ?? '[]', true) ?: [];
@@ -222,8 +235,9 @@ $vat = DB::run(
 )->fetchColumn();
 $vat_rate = $vat ?: 20.00;
 
-// Auto-generate code
-if (!$code) {
+// Auto-generate code (legacy fallback). Wizard_v4 пропуска това и ползва
+// post-INSERT generateSKU за deterministic ENI-2026-NNNN format.
+if (!$code && $created_via !== 'wizard_v4') {
     $words = preg_split('/\s+/', $name);
     $code = '';
     foreach ($words as $w) { $code .= mb_strtoupper(mb_substr($w, 0, 2)); }
@@ -232,9 +246,11 @@ if (!$code) {
     if ($exists) $code .= rand(1,9);
 }
 
-// Auto-generate barcode for single product
+// Auto-generate barcode for single product (legacy fallback). Wizard_v4 защо
+// използва deterministic generateEAN13($tenant, $pid, $store) post-INSERT —
+// тук просто оставяме barcode=null до подходящия момент.
 $needBarcode = (!$barcode && $product_type === 'simple' && empty($sizes) && empty($colors) && !$has_variants && empty($variants_json) && empty($variants_raw));
-if ($needBarcode) {
+if ($needBarcode && $created_via !== 'wizard_v4') {
     $barcode = generateEAN13($tenant_id);
 }
 
@@ -312,6 +328,17 @@ try {
             $wholesale_price, $vat_rate, $min_quantity, $location, $description,
             $size_single, $color_single, $origin_country, $composition, $is_domestic);
 
+        // S93.WIZARD.V4.SESSION_2: post-INSERT update — confidence_score, created_via,
+        // source_template_id, и (за wizard_v4) auto-gen barcode/SKU използвайки
+        // deterministic formula с реален product_id.
+        $store_id_for_codes = (int)($_SESSION['store_id'] ?? 0);
+        $autogen = postInsertProductCodes(
+            $pid, $tenant_id, $store_id_for_codes,
+            $_user_provided_barcode ? $barcode : null,
+            $_user_provided_code ? $code : null,
+            $confidence_score, $created_via, $source_template_id
+        );
+
         // Initial inventory for each store
         foreach ($all_stores as $st) {
             DB::run("INSERT IGNORE INTO inventory (tenant_id, store_id, product_id, quantity) VALUES (?,?,?,0)",
@@ -329,7 +356,12 @@ try {
             [$tenant_id, $user_id, 'products', $pid, 'create', json_encode(['name'=>$name])]);
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'id' => $pid]);
+        echo json_encode([
+            'success' => true,
+            'id' => $pid,
+            'confidence_score' => $confidence_score,
+            'autogen' => array_intersect_key($autogen, array_flip(['barcode','code'])),
+        ]);
         exit;
     }
 
@@ -339,6 +371,19 @@ try {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
+
+        // S93.WIZARD.V4.SESSION_2: post-INSERT update parent — confidence_score,
+        // created_via, source_template_id, и (за wizard_v4) auto-gen SKU за parent.
+        // Parent няма барcode (NULL), деца ще получат deterministic — see foreach по-долу.
+        $store_id_for_codes = (int)($_SESSION['store_id'] ?? 0);
+        $parent_autogen = postInsertProductCodes(
+            $pid, $tenant_id, $store_id_for_codes,
+            null, // parent НЕ носи barcode (NULL винаги)
+            $_user_provided_code ? $code : null,
+            $confidence_score, $created_via, $source_template_id
+        );
+        // Ако wizard_v4 е генерирал нов SKU за parent → използваме него за деца.
+        if (!empty($parent_autogen['code'])) { $code = $parent_autogen['code']; }
 
         DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,new_values) VALUES (?,?,?,?,?,?)",
             [$tenant_id, $user_id, 'products', $pid, 'create', json_encode(['name'=>$name,'type'=>'variant'])]);
@@ -365,15 +410,27 @@ try {
             $v_size  = trim($v['size'] ?? '') ?: null;
             $v_color = trim($v['color'] ?? '') ?: null;
             $v_qty   = (int)($v['qty'] ?? 0);
-            $v_barcode = generateEAN13($tenant_id);
 
             $parts = array_filter([$v_size, $v_color]);
             $v_name = $name . (count($parts) ? ' / ' . implode(' / ', $parts) : '');
             $v_code = $code . '-' . strtoupper(substr(md5(($v_size??'') . ($v_color??'')), 0, 4));
 
+            // S93.WIZARD.V4.SESSION_2: insert with NULL barcode → post-INSERT generate
+            // deterministic EAN-13 използвайки real $cid. Wizard_v4 only — legacy
+            // получава random barcode pre-INSERT (старо поведение).
+            $v_barcode = ($created_via === 'wizard_v4') ? null : generateEAN13($tenant_id);
+
             $cid = insertProduct($tenant_id, $pid, $category_id, $supplier_id,
                 $v_code, $v_name, $v_barcode, $unit, $cost_price, $retail_price,
                 $wholesale_price, $vat_rate, $min_quantity, $location, null, $v_size, $v_color, $origin_country, $composition, $is_domestic);
+
+            // Post-INSERT: deterministic barcode + confidence_score за деца.
+            postInsertProductCodes(
+                $cid, $tenant_id, $store_id_for_codes,
+                $v_barcode, // ако beше pre-genned, ще го запази; ако null → ще генерира
+                $v_code,    // child code вече е derived; не auto-gen-ваме SKU
+                $confidence_score, $created_via, $source_template_id
+            );
 
             if ($v_color) {
                 $key = mb_strtolower($v_color);
@@ -399,6 +456,11 @@ try {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
+
+        // S93.WIZARD.V4.SESSION_2: legacy flow също пише confidence + created_via,
+        // за да не bevme схема default 'wizard_v4' върху не-wizard_v4 products.
+        $store_id_for_codes = (int)($_SESSION['store_id'] ?? 0);
+        postInsertProductCodes($pid, $tenant_id, $store_id_for_codes, null, $code, $confidence_score, $created_via, $source_template_id);
 
         $variant_ids_by_color = [];
         foreach ($variants_json as $v) {
@@ -437,6 +499,10 @@ try {
         $pid = insertProduct($tenant_id, null, $category_id, $supplier_id,
             $code, $name, null, $unit, $cost_price, $retail_price,
             $wholesale_price, $vat_rate, $min_quantity, $location, $description, null, null, $origin_country, $composition, $is_domestic);
+
+        // S93.WIZARD.V4.SESSION_2: legacy flow също пише confidence + created_via.
+        $store_id_for_codes = (int)($_SESSION['store_id'] ?? 0);
+        postInsertProductCodes($pid, $tenant_id, $store_id_for_codes, null, $code, $confidence_score, $created_via, $source_template_id);
 
         $parsed = parseVariantsRaw($variants_raw);
         foreach ($parsed as $v) {
@@ -494,15 +560,127 @@ function insertProduct(
     return (int)DB::get()->lastInsertId();
 }
 
-function generateEAN13(int $tenant_id): string {
-    $base = str_pad($tenant_id, 3, '0', STR_PAD_LEFT) .
-            str_pad(mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT);
+/**
+ * Generate EAN-13 barcode.
+ *
+ * S93.WIZARD.V4.SESSION_2: extended signature for deterministic generation per
+ * SPEC §6: TT (2) + PPPPPPP (7) + CC (2) + D (1 checksum) = 13 digits.
+ * - TT: tenant_id LPAD 2 (truncated last 2 if >2 digits)
+ * - PPPPPPP: product_id LPAD 7 (truncated last 7 if >7 digits)
+ * - CC: store_id LPAD 2 (default 00)
+ * - D: EAN-13 checksum digit
+ *
+ * Backward compat: ако product_id=0 (legacy callers без id) — fallback към
+ * старата формула (3-digit tenant + 9 random + checksum). Никога не
+ * презаписваме existing barcodes — ensureProductCodes () проверява empty().
+ */
+function generateEAN13(int $tenant_id, int $product_id = 0, int $store_id = 0): string {
+    if ($product_id === 0) {
+        // Legacy fallback (random middle digits — non-traceable но deduplicates).
+        $base = str_pad((string)$tenant_id, 3, '0', STR_PAD_LEFT) .
+                str_pad((string)mt_rand(0, 999999999), 9, '0', STR_PAD_LEFT);
+    } else {
+        $tt = str_pad((string)$tenant_id, 2, '0', STR_PAD_LEFT);
+        if (strlen($tt) > 2) $tt = substr($tt, -2);
+        $pp = str_pad((string)$product_id, 7, '0', STR_PAD_LEFT);
+        if (strlen($pp) > 7) $pp = substr($pp, -7);
+        $cc = str_pad((string)$store_id, 2, '0', STR_PAD_LEFT);
+        if (strlen($cc) > 2) $cc = substr($cc, -2);
+        $base = $tt . $pp . $cc;
+    }
     $sum = 0;
     for ($i = 0; $i < 12; $i++) {
         $sum += (int)$base[$i] * ($i % 2 === 0 ? 1 : 3);
     }
     $check = (10 - ($sum % 10)) % 10;
     return $base . $check;
+}
+
+/**
+ * Generate tenant-specific SKU per SPEC §6.
+ *
+ * Format: {SHORT}-{YYYY}-{NNNN}
+ * - SHORT: tenants.short_code (UPPER, fallback първи 3 chars от name).
+ * - YYYY: година на създаване (current year).
+ * - NNNN: tenant-specific брой products this year + 1, zero-padded 4 digits.
+ *
+ * Race condition: 2 паралелни save-а в същата секунда могат да получат същ NNNN.
+ * Mitigation: проверяваме за collision и инкрементираме до уникален. Това е малка
+ * window (~ms) — full sequence таблица е out of scope за S2.
+ */
+function generateSKU(int $tenant_id, int $product_id): string {
+    $row = DB::run("SELECT short_code, name FROM tenants WHERE id=?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+    $short = '';
+    if ($row) {
+        $short = trim((string)($row['short_code'] ?? ''));
+        if ($short === '') {
+            $short = mb_strtoupper(mb_substr((string)($row['name'] ?? 'X'), 0, 3));
+        }
+    }
+    if ($short === '') $short = 'X';
+    $short = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $short) ?: 'X');
+    $year = date('Y');
+
+    $n = (int)DB::run(
+        "SELECT COUNT(*) FROM products WHERE tenant_id=? AND YEAR(created_at)=?",
+        [$tenant_id, $year]
+    )->fetchColumn();
+
+    // Probe-and-bump на минимална race window. Max 20 опита.
+    for ($attempt = 0; $attempt < 20; $attempt++) {
+        $candidate = $short . '-' . $year . '-' . str_pad((string)($n + $attempt), 4, '0', STR_PAD_LEFT);
+        $exists = DB::run("SELECT id FROM products WHERE tenant_id=? AND code=?", [$tenant_id, $candidate])->fetchColumn();
+        if (!$exists) return $candidate;
+    }
+    // Fallback: append product_id за абсолютна уникалност.
+    return $short . '-' . $year . '-' . str_pad((string)$product_id, 4, '0', STR_PAD_LEFT);
+}
+
+/**
+ * Post-INSERT update: confidence_score, created_via, source_template_id,
+ * + auto-gen barcode/SKU за wizard_v4 ако user не е предоставил.
+ *
+ * Никога не презаписва existing barcode/code на user-provided values.
+ *
+ * @return array Keys updated (за response payload).
+ */
+function postInsertProductCodes(
+    int $product_id,
+    int $tenant_id,
+    int $store_id,
+    ?string $current_barcode,
+    ?string $current_code,
+    int $confidence_score,
+    string $created_via,
+    ?int $source_template_id
+): array {
+    $updates = [
+        'confidence_score' => $confidence_score,
+        'created_via'      => $created_via,
+    ];
+    if ($source_template_id) {
+        $updates['source_template_id'] = $source_template_id;
+    }
+    if ($created_via === 'wizard_v4') {
+        if (empty($current_barcode)) {
+            $updates['barcode'] = generateEAN13($tenant_id, $product_id, $store_id);
+        }
+        if (empty($current_code)) {
+            $updates['code'] = generateSKU($tenant_id, $product_id);
+        }
+    }
+    if ($updates) {
+        $sets = [];
+        $vals = [];
+        foreach ($updates as $col => $val) {
+            $sets[] = "`$col`=?";
+            $vals[] = $val;
+        }
+        $vals[] = $product_id;
+        $vals[] = $tenant_id;
+        DB::run("UPDATE products SET " . implode(',', $sets) . " WHERE id=? AND tenant_id=?", $vals);
+    }
+    return $updates;
 }
 
 function parseVariantsRaw(string $raw): array {
