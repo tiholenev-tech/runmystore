@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>AI Studio — категории · RunMyStore.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+    --hue1:210; --hue2:235;
+    --border:1px; --border-color:hsl(var(--hue2),12%,20%);
+    --radius:22px; --radius-sm:14px;
+    --ease:cubic-bezier(0.5,1,0.89,1);
+    --bg-main:#08090d;
+    --text-primary:#f1f5f9;
+    --text-secondary:rgba(255,255,255,.6);
+    --text-muted:rgba(255,255,255,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg-main);color:var(--text-primary);font-family:'Montserrat',Inter,system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+body{padding-bottom:80px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:1;mix-blend-mode:overlay}
+
+/* GLASS — production warehouse.html */
+.glass{position:relative;border-radius:var(--radius);border:var(--border) solid var(--border-color);
+    background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220deg 25% 4.8% / .78));
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    isolation:isolate}
+.glass.sm{--radius:var(--radius-sm)}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+.glass .shine,.glass .shine::before,.glass .shine::after{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:calc(var(--border) * -1);top:calc(var(--border) * -1);left:auto;z-index:1;--start:12%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract}
+.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none}
+.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
+.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
+.glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mask-mode:luminance;mask-size:29%;opacity:1;filter:blur(12px) saturate(1.25) brightness(0.5);mix-blend-mode:plus-lighter;z-index:3}
+.glass .glow.glow-bottom{inset:calc(var(--radius) * -2);top:auto;right:auto}
+.glass .glow::before,.glass .glow::after{content:"";position:absolute;inset:0;border:inherit;border-radius:inherit;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract;filter:saturate(2) brightness(1)}
+.glass .glow::after{--lit:70%;--sat:100%;--start:15%;--end:35%;border-width:calc(var(--radius) * 1.75);border-radius:calc(var(--radius) * 2.75);inset:calc(var(--radius) * -.25);z-index:4;opacity:.75}
+
+/* HUE VARIANTS */
+.q-clothes{--hue1:220;--hue2:240}
+.q-lingerie{--hue1:340;--hue2:320}
+.q-jewelry{--hue1:38;--hue2:28}
+.q-acc{--hue1:175;--hue2:195}
+.q-bg{--hue1:200;--hue2:220}
+.q-desc{--hue1:140;--hue2:160}
+.q-magic{--hue1:280;--hue2:310}
+.q-default{--hue1:255;--hue2:222}
+
+/* APP */
+.app{max-width:480px;margin:0 auto;width:100%;position:relative;z-index:2}
+.scroll{padding:8px 12px 0}
+
+/* HEADER */
+.rms-header{display:flex;align-items:center;gap:6px;padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 8px 10px;position:sticky;top:0;z-index:60;background:linear-gradient(180deg,hsl(220 25% 6% / .92),hsl(220 25% 4% / .55));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.rms-brand{font-size:11px;font-weight:900;letter-spacing:.12em;color:hsl(var(--hue1) 50% 70%);text-shadow:0 0 12px hsl(var(--hue1) 70% 60% / .25);text-decoration:none}
+.rms-plan-badge{padding:3px 8px;border-radius:100px;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(300 70% 50%));color:white;font-size:9px;font-weight:900;letter-spacing:.08em;box-shadow:0 0 12px hsl(280 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2)}
+.rms-header-spacer{flex:1}
+.rms-icon-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;font-family:inherit}
+.rms-icon-btn svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* PRODUCT preview pill */
+.product-pill{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:12px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
+.product-pill-thumb{width:38px;height:38px;border-radius:9px;background:linear-gradient(170deg,hsl(340 50% 30%) 0%,hsl(340 50% 15%) 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.product-pill-info{flex:1;min-width:0}
+.product-pill-name{font-size:12px;font-weight:800;color:var(--text-primary);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-pill-meta{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:1px}
+
+/* PREVIEW area */
+.preview-card{padding:14px;margin-bottom:12px}
+.preview-card > *{position:relative;z-index:5}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preview-cell{aspect-ratio:1;border-radius:11px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.08);background:linear-gradient(170deg,hsl(220 30% 25%) 0%,hsl(220 30% 12%) 100%);display:flex;align-items:center;justify-content:center}
+.preview-cell.after{background:linear-gradient(170deg,#fafafa 0%,#e5e5e5 100%)}
+.preview-cell.empty{background:linear-gradient(170deg,hsl(220 25% 18%) 0%,hsl(220 25% 10%) 100%);border:1px dashed rgba(255,255,255,.1)}
+.preview-cell-pill{position:absolute;top:7px;left:7px;padding:3px 8px;border-radius:100px;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(8px);z-index:5}
+.preview-cell-pill.before{background:rgba(15,23,42,.7);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.1)}
+.preview-cell-pill.after{background:rgba(255,255,255,.95);color:hsl(280 60% 35%);border:1px solid hsl(280 60% 60% / .4)}
+.preview-cell svg{width:50%;height:50%;color:rgba(255,255,255,.5)}
+.preview-cell.empty .empty-text{font-size:9px;color:var(--text-muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-align:center}
+
+/* SECTION HEADER */
+.sec-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;padding:0 4px}
+.sec-head-ico{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,hsl(var(--hue1) 70% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px hsl(var(--hue1) 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2)}
+.sec-head-ico svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sec-head-text{flex:1;min-width:0}
+.sec-head-title{font-size:13px;font-weight:800;color:var(--text-primary);line-height:1.15}
+.sec-head-sub{font-size:9.5px;color:var(--text-muted);font-weight:600;margin-top:1px}
+.sec-head-price{padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);font-size:10px;font-weight:800;color:#86efac}
+
+/* QUICK ACTION BAR — Бял фон + AI описание (deterministic, no config) */
+.quick-card{padding:12px;margin-bottom:14px}
+.quick-card > *{position:relative;z-index:5}
+.quick-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick-btn{padding:11px 12px;border-radius:11px;border:1px solid hsl(var(--hue1) 50% 35% / .55);background:hsl(var(--hue1) 45% 14% / .8);cursor:pointer;font-family:inherit;text-align:left;transition:all .15s var(--ease);position:relative;overflow:hidden}
+.quick-btn:hover{background:hsl(var(--hue1) 55% 20% / .9);border-color:hsl(var(--hue1) 65% 50% / .75);transform:translateY(-1px)}
+.quick-btn-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.quick-btn-ico{width:24px;height:24px;border-radius:7px;background:hsl(var(--hue1) 60% 35% / .5);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 hsl(var(--hue1) 70% 60% / .25)}
+.quick-btn-ico svg{width:13px;height:13px;stroke:hsl(var(--hue1) 80% 80%);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px hsl(var(--hue1) 80% 60% / .5))}
+.quick-btn-title{font-size:11px;font-weight:800;color:hsl(var(--hue1) 90% 88%);line-height:1.15;text-shadow:0 0 6px hsl(var(--hue1) 80% 55% / .25)}
+.quick-btn-meta{font-size:9px;color:var(--text-muted);font-weight:600}
+.quick-btn-price{font-size:9px;font-weight:800;color:hsl(var(--hue1) 70% 75%);margin-top:1px}
+
+/* ═══ AI MAGIC card (try-on / studio) ═══ */
+.magic-card{padding:14px;margin-bottom:14px}
+.magic-card > *{position:relative;z-index:5}
+
+/* MODE TOGGLE — Стандартно vs Настрой */
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:11px;margin-bottom:14px}
+.mode-btn{padding:9px 8px;border-radius:8px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:10.5px;font-weight:800;text-align:center;transition:all .15s var(--ease);display:flex;align-items:center;justify-content:center;gap:5px}
+.mode-btn.active{background:linear-gradient(135deg,hsl(var(--hue1) 65% 30%),hsl(var(--hue2) 65% 25%));color:hsl(var(--hue1) 95% 95%);box-shadow:0 0 10px hsl(var(--hue1) 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.15);text-shadow:0 0 6px hsl(var(--hue1) 80% 60% / .4)}
+.mode-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── DEFAULT MODE (Стандартно) ── */
+.default-mode{padding:14px;border-radius:12px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.3);text-align:center;margin-bottom:12px}
+.default-mode-ico{font-size:24px;margin-bottom:6px;line-height:1;filter:drop-shadow(0 0 8px hsl(var(--hue1) 70% 55% / .5))}
+.default-mode-title{font-size:12px;font-weight:800;color:hsl(var(--hue1) 80% 85%);margin-bottom:4px;text-shadow:0 0 6px hsl(var(--hue1) 70% 55% / .35)}
+.default-mode-sub{font-size:10px;color:var(--text-secondary);font-weight:500;line-height:1.45;margin-bottom:0}
+
+/* ── CONFIG MODE (Настрой) ── */
+.config-section{display:none}
+.config-section.active{display:block}
+
+/* DROPDOWN GROUP */
+.dd-group{margin-bottom:11px}
+.dd-label{font-size:9.5px;color:var(--text-muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding-left:2px}
+.dd-label b{color:hsl(var(--hue1) 70% 75%)}
+.dd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.dd-grid.three{grid-template-columns:repeat(3,1fr)}
+.dd-grid.four{grid-template-columns:repeat(4,1fr)}
+.dd-chip{padding:9px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);cursor:pointer;font-family:inherit;text-align:center;transition:all .15s var(--ease);display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.dd-chip:hover{background:rgba(255,255,255,.05);border-color:rgba(99,102,241,.3)}
+.dd-chip.sel{background:linear-gradient(135deg,hsl(var(--hue1) 60% 25% / .6),hsl(var(--hue1) 60% 18% / .6));border-color:hsl(var(--hue1) 70% 55% / .65);box-shadow:0 0 10px hsl(var(--hue1) 70% 50% / .35),inset 0 1px 0 hsl(var(--hue1) 70% 60% / .2)}
+.dd-chip-emoji{font-size:18px;line-height:1}
+.dd-chip-label{font-size:9.5px;font-weight:800;color:var(--text-secondary);line-height:1.2;letter-spacing:.1px}
+.dd-chip.sel .dd-chip-label{color:hsl(var(--hue1) 90% 88%);text-shadow:0 0 5px hsl(var(--hue1) 80% 55% / .35)}
+.dd-chip-ico{width:18px;height:18px}
+.dd-chip-ico svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dd-chip{color:var(--text-secondary)}
+.dd-chip.sel{color:hsl(var(--hue1) 80% 80%)}
+
+/* SUB-CATEGORY (sliding panel after main category) */
+.subcat-panel{display:none;animation:slideDown .25s ease both}
+.subcat-panel.active{display:block}
+@keyframes slideDown{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+
+/* OPTIONAL VOICE */
+.voice-row{display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);margin-bottom:11px}
+.voice-row .vr-text{flex:1;font-size:10px;color:var(--text-muted);font-weight:600;line-height:1.35}
+.voice-btn{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / .35)}
+.voice-btn svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+
+/* GENERATE BUTTON */
+.generate-btn{width:100%;padding:13px;border-radius:13px;border:1.5px solid hsl(var(--hue1) 75% 60% / .85);background:linear-gradient(135deg,hsl(var(--hue1) 70% 38%),hsl(var(--hue2) 70% 32%));color:hsl(var(--hue1) 95% 96%);font-family:inherit;font-size:13px;font-weight:900;letter-spacing:.2px;cursor:pointer;text-shadow:0 0 7px hsl(var(--hue1) 90% 70% / .5);box-shadow:0 0 16px hsl(var(--hue1) 75% 55% / .45),inset 0 1px 0 hsl(var(--hue1) 80% 70% / .3);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s var(--ease)}
+.generate-btn:hover{transform:translateY(-1px);box-shadow:0 0 22px hsl(var(--hue1) 85% 60% / .6),inset 0 1px 0 hsl(var(--hue1) 85% 75% / .35)}
+.generate-btn svg{width:15px;height:15px;fill:hsl(var(--hue1) 95% 80%);stroke:hsl(var(--hue1) 95% 85%);stroke-width:1;filter:drop-shadow(0 0 4px hsl(var(--hue1) 90% 65% / .8))}
+
+/* DESCRIPTION row */
+.desc-row{padding:10px 12px;border-radius:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:14px;font-family:inherit;width:100%;text-align:left}
+.desc-row:hover{background:rgba(34,197,94,.09);border-color:rgba(34,197,94,.3)}
+.desc-row-ico{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,hsl(140 70% 45%),hsl(160 70% 40%));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px hsl(140 70% 50% / .3),inset 0 1px 0 rgba(255,255,255,.2)}
+.desc-row-ico svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+.desc-row-text{flex:1;min-width:0}
+.desc-row-title{font-size:11px;font-weight:800;color:hsl(140 70% 85%);line-height:1.15;text-shadow:0 0 5px hsl(140 70% 50% / .25)}
+.desc-row-sub{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:1px}
+.desc-row-price{font-size:9.5px;font-weight:800;color:#86efac;flex-shrink:0}
+
+/* SAVE actions */
+.save-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.save-btn{padding:11px;border-radius:11px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--text-secondary);cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px}
+.save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.save-btn.primary{background:linear-gradient(135deg,hsl(140 70% 35%),hsl(150 70% 28%));border-color:hsl(140 70% 50% / .65);color:hsl(140 95% 95%);box-shadow:0 0 10px hsl(140 70% 45% / .35);text-shadow:0 0 5px hsl(140 80% 60% / .35)}
+</style>
+</head>
+<body>
+
+<header class="rms-header">
+    <a href="#" class="rms-brand">RUNMYSTORE.AI</a>
+    <span class="rms-plan-badge">PRO</span>
+    <div class="rms-header-spacer"></div>
+    <button class="rms-icon-btn rms-print" title="Принтер"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+    <button class="rms-icon-btn" title="Затвори">✕</button>
+</header>
+
+<div class="app">
+  <div class="scroll">
+
+    <!-- Page label -->
+    <div style="padding:6px 4px 12px">
+      <h1 style="font-size:17px;font-weight:800;letter-spacing:-.01em;background:linear-gradient(135deg,#f1f5f9 30%,hsl(280 70% 75%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">AI Image Studio</h1>
+      <small style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:2px;display:block">Стъпка 5 от 5 · преди запазване</small>
+    </div>
+
+    <!-- Product pill -->
+    <div class="product-pill">
+      <div class="product-pill-thumb">👙</div>
+      <div class="product-pill-info">
+        <div class="product-pill-name">Дамски бански бикини Passionata</div>
+        <div class="product-pill-meta">PSN-2024 · €34.90 · 12 размера</div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="glass sm preview-card q-default">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="preview-grid">
+        <div class="preview-cell">
+          <span class="preview-cell-pill before">Оригинал</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="preview-cell empty">
+          <div class="empty-text">След<br>генериране</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ QUICK: Бял фон + AI описание (deterministic, без избор) ═══ -->
+    <div class="glass sm quick-card q-default">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="sec-head">
+        <div class="sec-head-ico" style="background:linear-gradient(135deg,hsl(200 70% 45%),hsl(220 70% 40%))"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></div>
+        <div class="sec-head-text">
+          <div class="sec-head-title">Бързи действия</div>
+          <div class="sec-head-sub">Без настройка · автоматично</div>
+        </div>
+      </div>
+      <div class="quick-row">
+        <button class="quick-btn q-bg">
+          <div class="quick-btn-top">
+            <span class="quick-btn-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+            <span class="quick-btn-title">Махни фон</span>
+          </div>
+          <div class="quick-btn-meta">23 продукта чакат</div>
+          <div class="quick-btn-price">€0.05 · birefnet</div>
+        </button>
+        <button class="quick-btn q-desc">
+          <div class="quick-btn-top">
+            <span class="quick-btn-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+            <span class="quick-btn-title">AI описание</span>
+          </div>
+          <div class="quick-btn-meta">SEO · BG/EN/RO</div>
+          <div class="quick-btn-price">€0.02 · Gemini</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ AI MAGIC: Try-on / Студийна снимка ═══ -->
+    <div class="glass sm magic-card q-magic">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+
+      <div class="sec-head">
+        <div class="sec-head-ico"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="sec-head-text">
+          <div class="sec-head-title">AI магия — облечи на модел</div>
+          <div class="sec-head-sub">Дрехите остават БЕЗ деформация</div>
+        </div>
+        <div class="sec-head-price">€0.30</div>
+      </div>
+
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeDefault" onclick="switchMode('default')">
+          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Стандартно
+        </button>
+        <button class="mode-btn" id="modeConfig" onclick="switchMode('config')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Настрой
+        </button>
+      </div>
+
+      <!-- ── DEFAULT MODE (Стандартно — без избор) ── -->
+      <div class="default-section" id="defaultSection">
+        <div class="default-mode">
+          <div class="default-mode-ico">✨</div>
+          <div class="default-mode-title">AI решава всичко за теб</div>
+          <div class="default-mode-sub">
+            Системата автоматично разпознава типа на продукта и избира<br>
+            най-добрия prompt с PROPORTION LOCK защита.
+          </div>
+        </div>
+        <button class="generate-btn">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Генерирай — €0.30
+        </button>
+      </div>
+
+      <!-- ── CONFIG MODE (Настрой) ── -->
+      <div class="config-section" id="configSection">
+
+        <!-- 1. КАТЕГОРИЯ -->
+        <div class="dd-group">
+          <div class="dd-label">1 · <b>Категория</b> на продукта</div>
+          <div class="dd-grid" style="grid-template-columns:repeat(5,1fr)">
+            <button class="dd-chip" onclick="selectCat(this,'clothes')">
+              <span class="dd-chip-emoji">👕</span>
+              <span class="dd-chip-label">Дрехи</span>
+            </button>
+            <button class="dd-chip sel" onclick="selectCat(this,'lingerie')">
+              <span class="dd-chip-emoji">👙</span>
+              <span class="dd-chip-label">Бельо</span>
+            </button>
+            <button class="dd-chip" onclick="selectCat(this,'jewelry')">
+              <span class="dd-chip-emoji">💎</span>
+              <span class="dd-chip-label">Бижута</span>
+            </button>
+            <button class="dd-chip" onclick="selectCat(this,'acc')">
+              <span class="dd-chip-emoji">👜</span>
+              <span class="dd-chip-label">Аксес.</span>
+            </button>
+            <button class="dd-chip" onclick="selectCat(this,'other')">
+              <span class="dd-chip-emoji">📦</span>
+              <span class="dd-chip-label">Друго</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. ПОДТИП — Бельо (default selected) -->
+        <div class="subcat-panel active" id="sub-lingerie">
+          <div class="dd-group">
+            <div class="dd-label">2 · <b>Тип</b> бельо/бански</div>
+            <div class="dd-grid three">
+              <button class="dd-chip sel"><span class="dd-chip-emoji">👙</span><span class="dd-chip-label">Бикини</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🩱</span><span class="dd-chip-label">Цял бански</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👚</span><span class="dd-chip-label">Сутиен</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🩲</span><span class="dd-chip-label">Прашка</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🎀</span><span class="dd-chip-label">Корсет</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🎽</span><span class="dd-chip-label">Боди</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПОДТИП — Дрехи (hidden initially) -->
+        <div class="subcat-panel" id="sub-clothes">
+          <div class="dd-group">
+            <div class="dd-label">2 · <b>Тип</b> дреха</div>
+            <div class="dd-grid three">
+              <button class="dd-chip"><span class="dd-chip-emoji">👕</span><span class="dd-chip-label">Тениска</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👗</span><span class="dd-chip-label">Рокля</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👖</span><span class="dd-chip-label">Дънки</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🧥</span><span class="dd-chip-label">Сако</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👔</span><span class="dd-chip-label">Риза</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🧶</span><span class="dd-chip-label">Пуловер</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🩳</span><span class="dd-chip-label">Шорти</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🧦</span><span class="dd-chip-label">Чорапи</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👘</span><span class="dd-chip-label">Друго</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПОДТИП — Бижута -->
+        <div class="subcat-panel" id="sub-jewelry">
+          <div class="dd-group">
+            <div class="dd-label">2 · <b>Тип</b> бижу</div>
+            <div class="dd-grid three">
+              <button class="dd-chip"><span class="dd-chip-emoji">💍</span><span class="dd-chip-label">Пръстен</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">📿</span><span class="dd-chip-label">Гердан</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👂</span><span class="dd-chip-label">Обеци</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">⌚</span><span class="dd-chip-label">Часовник</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">💎</span><span class="dd-chip-label">Гривна</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🪶</span><span class="dd-chip-label">Брошка</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПОДТИП — Аксесоари -->
+        <div class="subcat-panel" id="sub-acc">
+          <div class="dd-group">
+            <div class="dd-label">2 · <b>Тип</b> аксесоар</div>
+            <div class="dd-grid three">
+              <button class="dd-chip"><span class="dd-chip-emoji">👟</span><span class="dd-chip-label">Обувки</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">👜</span><span class="dd-chip-label">Чанта</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🧢</span><span class="dd-chip-label">Шапка</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🕶</span><span class="dd-chip-label">Очила</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">⌚</span><span class="dd-chip-label">Колан</span></button>
+              <button class="dd-chip"><span class="dd-chip-emoji">🧣</span><span class="dd-chip-label">Шалче</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ПОДТИП — Друго/Предмет (free description) -->
+        <div class="subcat-panel" id="sub-other">
+          <div class="dd-group">
+            <div class="dd-label">2 · <b>Опиши</b> продукта и снимката която искаш</div>
+            <div style="padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);margin-bottom:8px">
+              <div style="display:flex;align-items:flex-start;gap:8px">
+                <button class="voice-btn" style="margin-top:2px"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+                <div style="flex:1;font-size:11px;color:var(--text-secondary);line-height:1.5;font-weight:500;padding:6px 0">
+                  <span style="opacity:.5">Например:</span><br>
+                  „Бутилка вино върху бяла мраморна повърхност, естествена светлина"<br>
+                  „Кутия шоколадови бонбони отворена, с разпръснати бонбони наоколо"<br>
+                  „Играчка плюшено мече седнало на дървена пейка"
+                </div>
+              </div>
+            </div>
+            <div style="font-size:9.5px;color:var(--text-muted);font-weight:600;line-height:1.4;padding:0 4px">
+              💡 Колкото по-конкретен опис, толкова по-добра снимка. AI запазва оригиналния продукт без деформация.
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. КАК ИСКАМ СНИМКАТА — за бельо (sample) -->
+        <div class="dd-group">
+          <div class="dd-label">3 · <b>Поза</b> на модела</div>
+          <div class="dd-grid">
+            <button class="dd-chip sel"><span class="dd-chip-emoji">🔄</span><span class="dd-chip-label">Корпус 3/4 надясно</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">↩</span><span class="dd-chip-label">Корпус 3/4 наляво</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">⬆</span><span class="dd-chip-label">Лице напред</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">↪</span><span class="dd-chip-label">Гръб</span></button>
+          </div>
+        </div>
+
+        <div class="dd-group">
+          <div class="dd-label">4 · <b>Кадрировка</b></div>
+          <div class="dd-grid">
+            <button class="dd-chip sel"><span class="dd-chip-emoji">👤</span><span class="dd-chip-label">Само торс</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">📐</span><span class="dd-chip-label">Половин ръст</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">📏</span><span class="dd-chip-label">Цял ръст</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">🔍</span><span class="dd-chip-label">Близък детайл</span></button>
+          </div>
+        </div>
+
+        <div class="dd-group">
+          <div class="dd-label">5 · <b>Фон</b></div>
+          <div class="dd-grid">
+            <button class="dd-chip sel"><span class="dd-chip-emoji">⬜</span><span class="dd-chip-label">Бял студиен</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">🌫</span><span class="dd-chip-label">Неутрален сив</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">🏖</span><span class="dd-chip-label">Плажен (бански)</span></button>
+            <button class="dd-chip"><span class="dd-chip-emoji">🛏</span><span class="dd-chip-label">Lifestyle</span></button>
+          </div>
+        </div>
+
+        <!-- VOICE добавка -->
+        <div class="voice-row">
+          <div class="vr-text">Кажи нещо специално (не задължително)<br><span style="opacity:.6;font-size:9px">"мек дневен светлик", "профил отстрани"...</span></div>
+          <button class="voice-btn"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+
+        <button class="generate-btn">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Генерирай по моите настройки — €0.30
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Описание quick row -->
+    <button class="desc-row">
+      <div class="desc-row-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="desc-row-text">
+        <div class="desc-row-title">AI описание за SEO</div>
+        <div class="desc-row-sub">300 думи · BG/EN/RO · WooCommerce ready</div>
+      </div>
+      <span class="desc-row-price">€0.02</span>
+    </button>
+
+    <!-- SAVE actions -->
+    <div class="save-row">
+      <button class="save-btn primary">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Запази артикула
+      </button>
+      <button class="save-btn">
+        <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        Без AI · запази
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function switchMode(mode){
+    document.getElementById('modeDefault').classList.toggle('active',mode==='default');
+    document.getElementById('modeConfig').classList.toggle('active',mode==='config');
+    document.getElementById('defaultSection').style.display=mode==='default'?'block':'none';
+    document.getElementById('configSection').classList.toggle('active',mode==='config');
+    if(navigator.vibrate)navigator.vibrate(8);
+}
+function selectCat(btn,cat){
+    btn.parentElement.querySelectorAll('.dd-chip').forEach(b=>b.classList.remove('sel'));
+    btn.classList.add('sel');
+    document.querySelectorAll('.subcat-panel').forEach(p=>p.classList.remove('active'));
+    var panel=document.getElementById('sub-'+cat);
+    if(panel)panel.classList.add('active');
+    if(navigator.vibrate)navigator.vibrate(8);
+}
+document.querySelectorAll('.dd-chip').forEach(chip=>{
+    chip.addEventListener('click',function(e){
+        if(this.parentElement.parentElement.parentElement.id&&this.parentElement.parentElement.parentElement.id.startsWith('sub-'))return;
+        if(this.onclick)return;
+        this.parentElement.querySelectorAll('.dd-chip').forEach(b=>b.classList.remove('sel'));
+        this.classList.add('sel');
+        if(navigator.vibrate)navigator.vibrate(6);
+    });
+});
+document.querySelectorAll('button,a').forEach(el=>{
+    el.addEventListener('click',()=>{if(navigator.vibrate)navigator.vibrate(8)});
+});
+</script>
+</body>
+</html>

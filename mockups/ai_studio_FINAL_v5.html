@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>AI Studio V5 — ФИНАЛНИ ВИЗИИ (8 екрана)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{-webkit-user-select:none;user-select:none}
+:root{
+  --hue1:255;--hue2:222;--border:1px;
+  --border-color:hsl(var(--hue2),12%,20%);
+  --radius:22px;--radius-sm:14px;
+  --ease:cubic-bezier(0.5,1,0.89,1);
+  --bg-main:#08090d;
+  --text-primary:#f1f5f9;
+  --text-secondary:rgba(255,255,255,.6);
+  --text-muted:rgba(255,255,255,.4)
+}
+body{background:#08090d;font-family:'Montserrat',Inter,system-ui,sans-serif;color:var(--text-primary);min-height:100vh;padding:32px 12px 80px}
+.page{position:relative;z-index:1;max-width:1700px;margin:0 auto}
+.page-title{font-size:26px;font-weight:900;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:6px;letter-spacing:-.03em;text-shadow:0 0 20px hsl(var(--hue1) 70% 50% / .3)}
+.page-sub{font-size:11px;font-weight:600;color:var(--text-muted);text-align:center;margin-bottom:32px;letter-spacing:.02em;text-transform:uppercase}
+.mockup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:32px;justify-items:center}
+.mockup-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:440px}
+.mockup-label{font-size:10px;font-weight:900;color:hsl(var(--hue1) 50% 70%);letter-spacing:.12em;text-transform:uppercase;text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3)}
+.mockup-desc{font-size:10px;color:var(--text-muted);text-align:center;line-height:1.5;max-width:380px;font-weight:500}
+
+/* PHONE FRAME */
+.phone{position:relative;width:420px;border-radius:38px;padding:0;overflow:hidden;box-shadow:0 0 0 8px #1a1a2e,0 0 0 9px rgba(99,102,241,.15),0 30px 80px rgba(0,0,0,.6),0 0 60px hsl(var(--hue1) 60% 40% / .2);min-height:840px;background:radial-gradient(ellipse 600px 400px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),radial-gradient(ellipse 500px 400px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);background-attachment:local;font-family:'Montserrat',Inter,system-ui,sans-serif;color:var(--text-primary)}
+.phone::before{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:1;mix-blend-mode:overlay}
+.scr{position:relative;z-index:2;padding:14px 12px 80px}
+
+/* HEADER */
+.header{display:flex;align-items:center;gap:8px;padding:4px 2px 12px}
+.brand{font-size:11px;font-weight:900;letter-spacing:.12em;color:hsl(var(--hue1) 50% 70%);text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3)}
+.brand-flex{flex:1}
+.header-icon-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.header-icon-btn svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.plan-badge{padding:3px 10px;border-radius:100px;color:white;font-size:9px;font-weight:900;letter-spacing:.08em;box-shadow:0 0 10px hsl(280 70% 50% / .4),inset 0 1px 0 rgba(255,255,255,.2);background:linear-gradient(135deg,hsl(280 70% 55%),hsl(300 70% 50%))}
+.simple-toggle{padding:5px 12px;border-radius:100px;font-size:9px;font-weight:800;letter-spacing:.04em;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-secondary);backdrop-filter:blur(6px);cursor:pointer;font-family:inherit}
+
+.page-row{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 10px}
+.page-h{font-size:14px;font-weight:800;color:var(--text-primary);letter-spacing:-.01em}
+.page-h-sub{font-size:9px;color:var(--text-muted);font-weight:600}
+
+/* STAT NUMBERS */
+.stat-num{font-size:34px;font-weight:900;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;font-variant-numeric:tabular-nums}
+.stat-num.green{background:linear-gradient(135deg,#fff 0%,hsl(145 70% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num.violet{background:linear-gradient(135deg,#fff 0%,hsl(280 70% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num.red{background:linear-gradient(135deg,#fff 0%,hsl(0 85% 75%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num.amber{background:linear-gradient(135deg,#fff 0%,hsl(38 90% 75%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num.sm{font-size:24px}
+.stat-num.lg{font-size:54px}
+.stat-cur{font-size:14px;color:var(--text-muted);font-weight:700}
+.stat-label{font-size:9px;font-weight:900;letter-spacing:.1em;color:hsl(var(--hue1) 50% 70%);text-transform:uppercase;text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .3)}
+
+/* TABS */
+.tabs-pill{display:flex;gap:3px;padding:3px;background:rgba(0,0,0,.3);border-radius:100px;border:1px solid rgba(255,255,255,.05);margin:0 0 14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03),inset 0 0 12px rgba(0,0,0,.4)}
+.tab{flex:1;padding:10px 12px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:.04em;cursor:pointer;font-family:inherit;border:none;background:transparent;color:rgba(255,255,255,.5);transition:all .2s var(--ease);display:flex;align-items:center;justify-content:center;gap:5px}
+.tab.active{color:white;background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 65% 40%));box-shadow:0 2px 8px hsl(var(--hue1) 60% 45% / .4),inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 12px hsl(var(--hue1) 70% 60% / .15);text-shadow:0 0 8px hsl(var(--hue1) 80% 70% / .5)}
+.tab svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* BRIEFING SECTION */
+.briefing-section{position:relative;z-index:5;margin:8px 0;padding:14px 14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(0,0,0,.15)),linear-gradient(hsl(220 25% 6% / .6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 12px rgba(0,0,0,.2);overflow:hidden}
+.briefing-section::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:linear-gradient(180deg,var(--qcol,transparent) 0%,transparent 100%);box-shadow:0 0 20px 1px var(--qcol,transparent);opacity:.9}
+.briefing-section::after{content:'';position:absolute;top:-1px;right:-1px;width:80px;height:80px;background:radial-gradient(circle at top right,var(--qcol,transparent) 0%,transparent 60%);opacity:.12;pointer-events:none}
+.briefing-section.q1{--qcol:hsl(0,85%,55%)}
+.briefing-section.q3{--qcol:hsl(145,70%,50%)}
+.briefing-section.q4{--qcol:hsl(175,70%,50%)}
+.briefing-section.q5{--qcol:hsl(38,90%,55%)}
+.briefing-section.q6{--qcol:hsl(220,10%,60%)}
+.briefing-section.q-violet{--qcol:hsl(280,70%,62%)}
+.briefing-section.q-amber{--qcol:hsl(38,90%,55%)}
+.briefing-section.q-blue{--qcol:hsl(220,80%,60%)}
+.briefing-section.q-fire{--qcol:hsl(15,95%,58%)}
+.briefing-head{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.briefing-emoji{font-size:14px;filter:drop-shadow(0 0 6px var(--qcol,transparent))}
+.briefing-name{font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--qcol);text-shadow:0 0 10px var(--qcol)}
+.briefing-title{font-size:14px;font-weight:800;color:#f1f5f9;line-height:1.4;margin-bottom:6px;letter-spacing:-.01em}
+.briefing-detail{font-size:12px;font-weight:500;color:rgba(255,255,255,.7);line-height:1.55;margin-bottom:10px}
+.briefing-actions{display:flex;gap:6px;margin-top:8px}
+.briefing-btn-primary{flex:1;padding:10px 12px;border-radius:100px;font-size:11px;font-weight:800;text-align:center;cursor:pointer;border:1px solid;font-family:inherit;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;letter-spacing:.02em;transition:transform .15s,box-shadow .15s;background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 35%,hsl(220 30% 10%)) 0%,color-mix(in oklch,var(--qcol) 20%,hsl(220 30% 8%)) 100%);border-color:color-mix(in oklch,var(--qcol) 50%,transparent);color:white;box-shadow:0 4px 14px color-mix(in oklch,var(--qcol) 35%,transparent),inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 20px color-mix(in oklch,var(--qcol) 10%,transparent)}
+.briefing-btn-secondary{padding:10px 16px;border-radius:100px;font-size:11px;font-weight:700;text-align:center;cursor:pointer;font-family:inherit;letter-spacing:.02em;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);backdrop-filter:blur(4px);transition:transform .15s,background .15s,color .15s}
+
+.btn-glass{width:100%;padding:11px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.02em;text-align:center;cursor:pointer;font-family:inherit;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.75);backdrop-filter:blur(4px)}
+
+/* PREVIEW PILL */
+.prv{display:flex;align-items:center;gap:9px;margin:10px 0;padding:8px 12px;border-radius:100px;background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(0,0,0,.2));border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.prv-thumb{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,hsl(var(--hue1) 50% 28%),hsl(var(--hue2) 55% 22%));display:flex;align-items:center;justify-content:center;border:1px solid hsl(var(--hue1) 40% 35% / .5);box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / .3)}
+.prv-thumb svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2}
+.prv-info{flex:1;min-width:0}
+.prv-name{font-size:11px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.prv-meta{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:1px}
+
+/* IMAGE COMPARE */
+.img-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.img-box{aspect-ratio:1;border-radius:14px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.06);box-shadow:0 4px 12px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.03)}
+.img-box.before{background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.05),transparent 50%),linear-gradient(135deg,#3b2a1f,#1a1410)}
+.img-box.after{background:linear-gradient(135deg,#f1f5f9,#cbd5e1);border-color:hsl(145 70% 50% / .6);box-shadow:0 4px 16px hsl(145 70% 50% / .25),0 0 0 2px hsl(145 70% 50% / .15),inset 0 1px 0 rgba(255,255,255,.4)}
+.img-shape{width:55%;height:65%;background:rgba(80,90,120,.6);border-radius:8px}
+.img-box.after .img-shape{background:#1e293b}
+.img-tag{position:absolute;top:8px;left:8px;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:100px;background:rgba(0,0,0,.65);color:rgba(255,255,255,.8);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1)}
+.img-box.after .img-tag{background:linear-gradient(135deg,hsl(145 70% 50%),hsl(160 70% 45%));color:#022c22;box-shadow:0 0 10px hsl(145 70% 50% / .5)}
+.img-check-dot{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(160 70% 45%));display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px hsl(145 70% 50% / .6),inset 0 1px 0 rgba(255,255,255,.3)}
+
+/* MSG AI */
+.msg-ai{max-width:90%;padding:10px 13px;font-size:13px;line-height:1.5;background:linear-gradient(135deg,hsl(var(--hue1) 30% 15% / .85),hsl(var(--hue1) 30% 10% / .7));border:1px solid hsl(var(--hue1) 35% 25% / .4);color:#e2e8f0;border-radius:4px 16px 16px 16px;box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 16px hsl(var(--hue1) 60% 40% / .08),inset 0 1px 0 hsl(var(--hue1) 60% 50% / .15);margin:6px 0}
+.msg-ai b{color:hsl(var(--hue1) 60% 80%);font-weight:700;text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .3)}
+
+.ai-meta{display:flex;align-items:center;gap:5px;margin:8px 0 4px;padding:0 4px}
+.ai-meta svg{width:13px;height:13px;fill:none;stroke:hsl(var(--hue1) 60% 70%);stroke-width:1.5;filter:drop-shadow(0 0 4px hsl(var(--hue1) 70% 50% / .4))}
+.ai-meta-label{font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:hsl(var(--hue1) 60% 75%)}
+
+.fq-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:9px;font-weight:800;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);letter-spacing:.03em}
+.fq-badge.q-violet{color:#c4b5fd;border-color:hsl(280,70%,60%,.35);background:rgba(168,85,247,.08)}
+.fq-badge.q-success{color:#86efac;border-color:hsl(145,70%,50%,.35);background:rgba(34,197,94,.08)}
+.fq-badge.q-amber{color:#fcd34d;border-color:hsl(38,90%,55%,.35);background:rgba(251,191,36,.08)}
+
+/* CATEGORY CARDS */
+.cat-row{display:flex;align-items:center;gap:10px}
+.cat-icon-box{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 14px var(--qcol)}
+.cat-icon-box svg{width:18px;height:18px;fill:none;stroke:var(--qcol);stroke-width:2;filter:drop-shadow(0 0 4px var(--qcol))}
+.cat-info{flex:1;min-width:0}
+.cat-name{font-size:13px;font-weight:800;color:#f1f5f9;letter-spacing:-.01em}
+.cat-desc{font-size:10px;color:var(--text-muted);font-weight:500}
+.cat-arrow{color:rgba(255,255,255,.2);font-size:14px;flex-shrink:0;font-weight:600}
+
+/* SET ROW */
+.set-row{display:flex;align-items:center;gap:11px;margin:6px 0;padding:11px 13px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.set-icon{width:32px;height:32px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,hsl(var(--hue1) 30% 25% / .6),hsl(var(--hue2) 35% 20% / .5));border:1px solid hsl(var(--hue1) 30% 30% / .4);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 8px hsl(var(--hue1) 60% 40% / .2)}
+.set-icon svg{width:14px;height:14px;stroke:hsl(var(--hue1) 60% 75%);fill:none;stroke-width:2}
+.set-text{flex:1}
+.set-label{font-size:8px;font-weight:900;letter-spacing:.08em;color:hsl(var(--hue1) 50% 65%);text-transform:uppercase}
+.set-val{font-size:12px;font-weight:700;color:#f1f5f9;margin-top:2px;letter-spacing:-.01em}
+.set-arrow{color:rgba(255,255,255,.2);font-size:14px}
+
+.section{display:flex;align-items:center;gap:8px;margin:18px 0 8px}
+.section-label{font-size:9px;font-weight:900;letter-spacing:.1em;color:hsl(var(--hue1) 50% 70%);text-transform:uppercase;text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .25)}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,hsl(var(--hue1) 60% 50% / .3),transparent)}
+
+.success-hero{text-align:center;padding:14px 0 16px}
+.success-circle{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(160 70% 40%));display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 0 30px hsl(145 70% 50% / .5),0 0 0 4px hsl(145 70% 50% / .15),inset 0 1px 0 rgba(255,255,255,.3)}
+.success-circle svg{width:30px;height:30px;stroke:white;fill:none;stroke-width:3;filter:drop-shadow(0 0 4px rgba(255,255,255,.5))}
+.success-title{font-size:18px;font-weight:900;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 0%,hsl(145 70% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px hsl(145 70% 50% / .3)}
+.success-meta{font-size:11px;color:var(--text-muted);font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* ACTION BLOCKS */
+.act-block{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:18px;cursor:pointer;text-align:left;font-family:inherit;width:100%;border:none;margin:6px 0;transition:transform .15s var(--ease)}
+.act-block.green{background:linear-gradient(135deg,color-mix(in oklch,hsl(145 70% 50%) 35%,hsl(220 30% 10%)) 0%,color-mix(in oklch,hsl(145 70% 50%) 20%,hsl(220 30% 8%)) 100%);border:1px solid hsl(145 70% 50% / .5);box-shadow:0 4px 14px hsl(145 70% 50% / .35),inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 20px hsl(145 70% 50% / .1)}
+.act-block.violet{background:linear-gradient(135deg,color-mix(in oklch,hsl(280 70% 62%) 30%,hsl(220 30% 10%)) 0%,color-mix(in oklch,hsl(280 70% 62%) 15%,hsl(220 30% 8%)) 100%);border:1px solid hsl(280 70% 62% / .45);box-shadow:0 4px 14px hsl(280 70% 62% / .3),inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 20px hsl(280 70% 62% / .08)}
+.act-block-icon{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 10px rgba(255,255,255,.1)}
+.act-block-icon svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;filter:drop-shadow(0 0 4px rgba(255,255,255,.5))}
+.act-block-text{flex:1;min-width:0}
+.act-block-title{font-size:13px;font-weight:800;color:white;letter-spacing:-.01em;text-shadow:0 0 8px rgba(0,0,0,.3)}
+.act-block-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,.75);margin-top:2px}
+.act-block-price{font-size:10px;font-weight:900;letter-spacing:.04em;padding:5px 10px;border-radius:100px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+.ghost-link{width:100%;padding:11px;background:transparent;border:none;color:var(--text-muted);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.15);letter-spacing:.02em}
+
+/* DETECT */
+.detect{position:relative;margin:10px 0;padding:11px 13px 11px 16px;border-radius:14px;border:1px solid hsl(280 70% 60% / .25);background:linear-gradient(135deg,hsl(280 50% 15% / .35),rgba(0,0,0,.15)),linear-gradient(hsl(220 25% 6% / .6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 12px rgba(0,0,0,.2);overflow:hidden}
+.detect::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:hsl(280 70% 62%);box-shadow:0 0 20px 1px hsl(280 70% 62%);opacity:.9}
+.detect-row{display:flex;align-items:center;gap:10px}
+.detect-icon{width:32px;height:32px;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 12px hsl(280 70% 62% / .3)}
+.detect-icon svg{width:15px;height:15px;fill:none;stroke:hsl(280 70% 75%);stroke-width:2;filter:drop-shadow(0 0 4px hsl(280 70% 62%))}
+.detect-text{flex:1}
+.detect-label{font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:hsl(280 70% 75%);text-shadow:0 0 8px hsl(280 70% 62% / .3)}
+.detect-val{font-size:13px;font-weight:800;color:#f1f5f9;margin-top:2px;letter-spacing:-.01em}
+.detect-link{font-size:10px;color:var(--text-muted);margin-top:4px;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.2);font-weight:500}
+
+/* AI SEO DESCRIPTION CARD (нова за V5) */
+.seo-card{position:relative;margin:10px 0;padding:12px 14px;border-radius:14px;border:1px solid hsl(280 70% 60% / .3);background:linear-gradient(135deg,hsl(280 50% 12% / .5),rgba(0,0,0,.2)),linear-gradient(hsl(220 25% 6% / .7));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 12px rgba(0,0,0,.2),0 0 18px hsl(280 70% 50% / .1);overflow:hidden}
+.seo-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:hsl(280 70% 62%);box-shadow:0 0 20px 1px hsl(280 70% 62%);opacity:.9}
+.seo-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.seo-icon-sm{width:24px;height:24px;border-radius:8px;background:rgba(168,85,247,.15);border:1px solid hsl(280 70% 50% / .3);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px hsl(280 70% 50% / .25)}
+.seo-icon-sm svg{width:12px;height:12px;stroke:hsl(280 70% 80%);fill:none;stroke-width:2}
+.seo-title{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:hsl(280 70% 80%);flex:1}
+.seo-badge{font-size:8px;font-weight:900;padding:3px 8px;border-radius:100px;background:linear-gradient(135deg,hsl(145 70% 45%),hsl(160 70% 40%));color:white;letter-spacing:.04em;box-shadow:0 0 8px hsl(145 70% 50% / .4)}
+.seo-text{font-size:11px;color:rgba(255,255,255,.78);line-height:1.55;margin-bottom:8px;font-weight:500;font-style:italic}
+.seo-text::before{content:'\201C';color:hsl(280 70% 70%);font-size:14px;font-weight:900;margin-right:2px}
+.seo-text::after{content:'\201D';color:hsl(280 70% 70%);font-size:14px;font-weight:900;margin-left:2px}
+.seo-actions{display:flex;gap:6px}
+.seo-btn-link{flex:1;padding:7px 10px;border-radius:100px;font-size:9px;font-weight:800;background:rgba(168,85,247,.12);border:1px solid hsl(280 70% 50% / .25);color:hsl(280 70% 80%);cursor:pointer;font-family:inherit;letter-spacing:.04em;text-align:center}
+
+/* WIZARD BULK CARD (нова за V5 - bulk при варианти) */
+.wbulk-card{position:relative;margin:10px 0;padding:14px;border-radius:18px;border:1px solid hsl(38 90% 55% / .4);background:linear-gradient(135deg,hsl(38 70% 12% / .6),rgba(0,0,0,.25)),linear-gradient(hsl(220 25% 6% / .8));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 20px rgba(0,0,0,.3),0 0 24px hsl(38 90% 55% / .15);overflow:hidden}
+.wbulk-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:18px 0 0 18px;background:hsl(38 90% 55%);box-shadow:0 0 20px 1px hsl(38 90% 55%);opacity:.9}
+.wbulk-card::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,hsl(38 90% 55% / .4) 0%,transparent 60%);opacity:.18;pointer-events:none}
+.wbulk-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.wbulk-emoji{font-size:18px;filter:drop-shadow(0 0 8px hsl(38 90% 55%))}
+.wbulk-tag{font-size:9px;font-weight:900;letter-spacing:.1em;color:hsl(38 90% 75%);text-transform:uppercase;flex:1;text-shadow:0 0 8px hsl(38 90% 55% / .4)}
+.wbulk-count{display:flex;align-items:baseline;gap:4px;margin:6px 0 4px}
+.wbulk-num{font-size:32px;font-weight:900;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 0%,hsl(38 90% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 20px hsl(38 90% 55% / .3)}
+.wbulk-num-label{font-size:11px;color:var(--text-secondary);font-weight:700}
+.wbulk-detail{font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;margin-bottom:10px;font-weight:500}
+.wbulk-options{display:flex;flex-direction:column;gap:6px}
+.wbulk-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);cursor:pointer}
+.wbulk-opt.primary{background:linear-gradient(135deg,color-mix(in oklch,hsl(38 90% 55%) 30%,hsl(220 30% 10%)),color-mix(in oklch,hsl(38 90% 55%) 18%,hsl(220 30% 8%)));border:1px solid hsl(38 90% 55% / .5);box-shadow:0 4px 14px hsl(38 90% 55% / .25),inset 0 1px 0 rgba(255,255,255,.1)}
+.wbulk-opt-icon{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.wbulk-opt.primary .wbulk-opt-icon{background:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 8px rgba(255,255,255,.1)}
+.wbulk-opt-icon svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2.5}
+.wbulk-opt-text{flex:1;min-width:0}
+.wbulk-opt-title{font-size:12px;font-weight:800;color:#f1f5f9;letter-spacing:-.01em}
+.wbulk-opt.primary .wbulk-opt-title{color:white;text-shadow:0 0 8px rgba(0,0,0,.3)}
+.wbulk-opt-sub{font-size:9px;color:var(--text-muted);font-weight:600;margin-top:2px}
+.wbulk-opt.primary .wbulk-opt-sub{color:rgba(255,255,255,.75)}
+.wbulk-opt-price{font-size:10px;font-weight:900;letter-spacing:.04em;padding:4px 9px;border-radius:100px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums;flex-shrink:0}
+.wbulk-opt.primary .wbulk-opt-price{background:rgba(255,255,255,.18);color:white;border-color:rgba(255,255,255,.25)}
+.wbulk-saving{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:800;color:hsl(145 70% 75%);text-shadow:0 0 6px hsl(145 70% 50% / .4);font-variant-numeric:tabular-nums;margin-left:4px}
+
+/* STANDALONE BULK BANNERS (нова за V5) */
+.bulk-banner{position:relative;margin:8px 0;padding:14px;border-radius:18px;border:1px solid;cursor:pointer;backdrop-filter:blur(8px);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 20px rgba(0,0,0,.3)}
+.bulk-banner.urgent{border-color:hsl(0 85% 55% / .45);background:linear-gradient(135deg,hsl(0 70% 12% / .6),rgba(0,0,0,.25)),linear-gradient(hsl(220 25% 6% / .8));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 20px hsl(0 85% 55% / .15),0 0 30px hsl(0 85% 55% / .12)}
+.bulk-banner.urgent::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:18px 0 0 18px;background:hsl(0 85% 55%);box-shadow:0 0 20px 1px hsl(0 85% 55%);opacity:.9}
+.bulk-banner.urgent::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,hsl(0 85% 55% / .4) 0%,transparent 60%);opacity:.2;pointer-events:none}
+.bulk-banner.violet{border-color:hsl(280 70% 62% / .4);background:linear-gradient(135deg,hsl(280 50% 12% / .5),rgba(0,0,0,.2)),linear-gradient(hsl(220 25% 6% / .8));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 20px hsl(280 70% 50% / .15),0 0 30px hsl(280 70% 50% / .1)}
+.bulk-banner.violet::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:18px 0 0 18px;background:hsl(280 70% 62%);box-shadow:0 0 20px 1px hsl(280 70% 62%);opacity:.9}
+.bulk-banner.violet::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,hsl(280 70% 62% / .35) 0%,transparent 60%);opacity:.2;pointer-events:none}
+.bulk-row{display:flex;align-items:center;gap:12px;position:relative;z-index:5}
+.bulk-icon{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.bulk-banner.urgent .bulk-icon{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 18px hsl(0 85% 55% / .35)}
+.bulk-banner.violet .bulk-icon{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 18px hsl(280 70% 50% / .3)}
+.bulk-icon svg{width:22px;height:22px;fill:none;stroke-width:2}
+.bulk-banner.urgent .bulk-icon svg{stroke:hsl(0 85% 75%);filter:drop-shadow(0 0 6px hsl(0 85% 55%))}
+.bulk-banner.violet .bulk-icon svg{stroke:hsl(280 70% 80%);filter:drop-shadow(0 0 6px hsl(280 70% 62%))}
+.bulk-info{flex:1;min-width:0}
+.bulk-num-row{display:flex;align-items:baseline;gap:5px;margin-bottom:1px}
+.bulk-num{font-size:24px;font-weight:900;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,#fff,#f1f5f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.bulk-banner.urgent .bulk-num{background:linear-gradient(135deg,#fff 0%,hsl(0 85% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 16px hsl(0 85% 55% / .3)}
+.bulk-banner.violet .bulk-num{background:linear-gradient(135deg,#fff 0%,hsl(280 70% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 16px hsl(280 70% 50% / .3)}
+.bulk-num-suffix{font-size:11px;color:var(--text-muted);font-weight:700}
+.bulk-title{font-size:11px;font-weight:700;color:#e2e8f0;line-height:1.3;letter-spacing:-.01em}
+.bulk-action{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:10px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;padding:7px 12px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.9);width:fit-content;font-variant-numeric:tabular-nums}
+.bulk-banner.urgent .bulk-action{background:linear-gradient(135deg,color-mix(in oklch,hsl(0 85% 55%) 35%,hsl(220 30% 10%)),color-mix(in oklch,hsl(0 85% 55%) 22%,hsl(220 30% 8%)));border-color:hsl(0 85% 55% / .5);box-shadow:0 0 10px hsl(0 85% 55% / .35),inset 0 1px 0 rgba(255,255,255,.12);color:white;text-shadow:0 0 6px hsl(0 85% 55% / .5)}
+.bulk-banner.violet .bulk-action{background:linear-gradient(135deg,color-mix(in oklch,hsl(280 70% 62%) 35%,hsl(220 30% 10%)),color-mix(in oklch,hsl(280 70% 62%) 22%,hsl(220 30% 8%)));border-color:hsl(280 70% 62% / .5);box-shadow:0 0 10px hsl(280 70% 62% / .35),inset 0 1px 0 rgba(255,255,255,.12);color:white;text-shadow:0 0 6px hsl(280 70% 62% / .5)}
+.bulk-arrow{color:rgba(255,255,255,.3);font-size:18px;flex-shrink:0;align-self:center;font-weight:600}
+.bulk-saving{font-size:9px;font-weight:800;color:hsl(145 70% 75%);text-shadow:0 0 6px hsl(145 70% 50% / .4);font-variant-numeric:tabular-nums;margin-left:6px}
+
+/* PACKAGE CARDS (Екран 4) */
+.pkg-card{position:relative;cursor:pointer;margin:8px 0;padding:14px 14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(0,0,0,.15)),linear-gradient(hsl(220 25% 6% / .6));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 12px rgba(0,0,0,.2);overflow:hidden;transition:transform .15s var(--ease)}
+.pkg-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:14px 0 0 14px;background:linear-gradient(180deg,var(--qcol,transparent) 0%,transparent 100%);box-shadow:0 0 20px 1px var(--qcol,transparent);opacity:.9}
+.pkg-card::after{content:'';position:absolute;top:-1px;right:-1px;width:80px;height:80px;background:radial-gradient(circle at top right,var(--qcol,transparent) 0%,transparent 60%);opacity:.15;pointer-events:none}
+.pkg-card.q-blue{--qcol:hsl(220,80%,60%)}
+.pkg-card.q-violet{--qcol:hsl(280,70%,62%)}
+.pkg-card.q-amber{--qcol:hsl(38,90%,55%)}
+.pkg-card.q3{--qcol:hsl(145,70%,50%)}
+.pkg-card.q-fire{--qcol:hsl(15,95%,58%)}
+.pkg-card.featured{border-color:color-mix(in oklch,var(--qcol) 40%,rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 4px 14px color-mix(in oklch,var(--qcol) 25%,transparent),0 0 30px color-mix(in oklch,var(--qcol) 10%,transparent)}
+.pkg-card.mega{border:1px solid color-mix(in oklch,var(--qcol) 50%,rgba(255,255,255,.06));background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 8%,rgba(255,255,255,.025)),rgba(0,0,0,.2)),linear-gradient(hsl(220 25% 6% / .8));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 6px 20px color-mix(in oklch,var(--qcol) 35%,transparent),0 0 40px color-mix(in oklch,var(--qcol) 18%,transparent)}
+.pkg-card.mega::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,var(--qcol,transparent) 0%,transparent 50%);opacity:.18;pointer-events:none}
+.pkg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pkg-emoji{font-size:18px;filter:drop-shadow(0 0 8px var(--qcol,transparent))}
+.pkg-name{font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--qcol);text-shadow:0 0 10px var(--qcol);flex:1}
+.discount-badge{font-size:9px;font-weight:900;letter-spacing:.06em;padding:4px 9px;border-radius:100px;background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 55%,hsl(220 30% 10%)),color-mix(in oklch,var(--qcol) 35%,hsl(220 30% 8%)));color:white;border:1px solid color-mix(in oklch,var(--qcol) 60%,transparent);box-shadow:0 0 12px color-mix(in oklch,var(--qcol) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.18);text-shadow:0 0 6px color-mix(in oklch,var(--qcol) 80%,white)}
+.featured-star{position:absolute;top:10px;right:14px;font-size:13px;filter:drop-shadow(0 0 8px var(--qcol))}
+.pkg-body{display:flex;align-items:flex-end;gap:14px;margin:8px 0 6px}
+.pkg-price{font-size:32px;font-weight:900;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 0%,color-mix(in oklch,var(--qcol) 55%,white) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;font-variant-numeric:tabular-nums}
+.pkg-card.mega .pkg-price{font-size:38px}
+.pkg-old{font-size:11px;color:var(--text-muted);font-weight:600;text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3);font-variant-numeric:tabular-nums;align-self:flex-end;margin-bottom:5px}
+.pkg-info{flex:1;text-align:right;font-size:9px;color:var(--text-muted);font-weight:600;align-self:flex-end;margin-bottom:5px;letter-spacing:.02em;line-height:1.3}
+.per-unit{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:9px;font-weight:800;letter-spacing:.02em;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+.per-unit b{color:color-mix(in oklch,var(--qcol) 70%,white);font-weight:900;text-shadow:0 0 6px var(--qcol)}
+.pkg-meta{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.pkg-saving{font-size:9px;font-weight:800;letter-spacing:.02em;color:hsl(145 70% 75%);text-shadow:0 0 6px hsl(145 70% 50% / .4);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:3px}
+.pkg-buy{width:100%;margin-top:10px;padding:11px 14px;border-radius:100px;font-size:11px;font-weight:800;text-align:center;cursor:pointer;border:1px solid;font-family:inherit;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:.04em;transition:transform .15s,box-shadow .15s;background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 35%,hsl(220 30% 10%)) 0%,color-mix(in oklch,var(--qcol) 20%,hsl(220 30% 8%)) 100%);border-color:color-mix(in oklch,var(--qcol) 50%,transparent);color:white;box-shadow:0 4px 14px color-mix(in oklch,var(--qcol) 35%,transparent),inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 20px color-mix(in oklch,var(--qcol) 10%,transparent)}
+.pkg-buy.mega{padding:13px 14px;font-size:12px;font-weight:900;letter-spacing:.06em;background:linear-gradient(135deg,color-mix(in oklch,var(--qcol) 60%,hsl(220 30% 10%)) 0%,color-mix(in oklch,var(--qcol) 40%,hsl(220 30% 8%)) 100%);box-shadow:0 6px 20px color-mix(in oklch,var(--qcol) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 24px color-mix(in oklch,var(--qcol) 18%,transparent)}
+
+/* EMPTY HERO */
+.empty-hero{position:relative;text-align:center;padding:18px 14px 16px;margin:6px 0 16px;border-radius:18px;border:1px solid hsl(0 70% 50% / .3);background:linear-gradient(135deg,hsl(0 50% 15% / .35),rgba(0,0,0,.2)),linear-gradient(hsl(220 25% 6% / .7));backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 4px 14px rgba(0,0,0,.3),0 0 30px hsl(0 70% 50% / .15);overflow:hidden}
+.empty-hero::after{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,hsl(0 80% 55% / .5) 0%,transparent 60%);opacity:.4;pointer-events:none}
+.empty-num{font-size:54px;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#fff 0%,hsl(0 85% 75%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;text-shadow:0 0 30px hsl(0 80% 50% / .3);font-variant-numeric:tabular-nums}
+.empty-label{font-size:10px;font-weight:900;letter-spacing:.1em;color:hsl(0 70% 75%);text-transform:uppercase;margin-top:6px;text-shadow:0 0 8px hsl(0 70% 50% / .3)}
+.empty-detail{font-size:11px;color:rgba(255,255,255,.7);font-weight:500;margin-top:8px;line-height:1.5}
+
+/* HISTORY */
+.hist-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.hist-thumb{aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,hsl(var(--hue1) 30% 25% / .5),hsl(var(--hue2) 30% 20% / .3));border:1px solid hsl(var(--hue1) 30% 30% / .25);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.hist-thumb.tone-violet{background:linear-gradient(135deg,hsl(280 50% 30% / .5),hsl(280 40% 20% / .3));border-color:hsl(280 50% 35% / .3)}
+.hist-thumb.tone-amber{background:linear-gradient(135deg,hsl(38 60% 30% / .5),hsl(38 50% 20% / .3));border-color:hsl(38 60% 35% / .3)}
+.hist-thumb.tone-green{background:linear-gradient(135deg,hsl(145 50% 30% / .5),hsl(145 40% 20% / .3));border-color:hsl(145 50% 35% / .3)}
+
+.fab{position:absolute;bottom:74px;right:14px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px hsl(var(--hue1) 60% 45% / .5),0 0 30px hsl(var(--hue1) 70% 60% / .35),inset 0 1px 0 rgba(255,255,255,.2);z-index:30}
+.fab svg{width:20px;height:20px;stroke:white;fill:none;stroke-width:2.5;filter:drop-shadow(0 0 4px rgba(255,255,255,.4))}
+
+.bn{position:absolute;bottom:0;left:0;right:0;display:flex;padding:8px 8px 14px;background:linear-gradient(180deg,hsl(220 25% 6% / .85),hsl(220 25% 4% / .95));backdrop-filter:blur(20px);border-top:1px solid hsl(var(--hue2) 20% 15% / .5);z-index:40}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px 4px;border-radius:12px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;text-decoration:none}
+.nav-tab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nav-tab-label{font-size:9px;font-weight:700;letter-spacing:.02em}
+.nav-tab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
+.nav-tab.active svg{filter:drop-shadow(0 0 6px hsl(var(--hue1) 70% 50% / .6))}
+
+/* GLASS */
+.glass{position:relative;border-radius:var(--radius-sm);border:var(--border) solid var(--border-color);background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220deg 25% 4.8% / .78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;isolation:isolate}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+.glass .shine,.glass .shine::before,.glass .shine::after{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:calc(var(--border) * -1);top:calc(var(--border) * -1);left:auto;z-index:1;--start:12%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;-webkit-mask:linear-gradient(transparent),linear-gradient(black);mask:linear-gradient(transparent),linear-gradient(black);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-clip:padding-box,border-box;mask-clip:padding-box,border-box;-webkit-mask-composite:source-out;mask-composite:subtract}
+.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none;-webkit-mask:none}
+.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
+.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
+.glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius-sm) * 2.5);border-bottom-left-radius:calc(var(--radius-sm) * 2.5);border:calc(var(--radius-sm) * 1.25) solid transparent;inset:calc(var(--radius-sm) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");-webkit-mask-mode:luminance;mask-mode:luminance;-webkit-mask-size:29%;mask-size:29%;opacity:1;filter:blur(12px) saturate(1.25) brightness(0.5);mix-blend-mode:plus-lighter;z-index:3}
+.glass .glow.glow-bottom{inset:calc(var(--radius-sm) * -2);top:auto;right:auto}
+.glass .glow::before,.glass .glow::after{content:"";position:absolute;inset:0;border:inherit;border-radius:inherit;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;-webkit-mask:linear-gradient(transparent),linear-gradient(black);mask:linear-gradient(transparent),linear-gradient(black);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-clip:padding-box,border-box;mask-clip:padding-box,border-box;-webkit-mask-composite:source-out;mask-composite:subtract;filter:saturate(2) brightness(1)}
+.glass .glow::after{--lit:70%;--sat:100%;--start:15%;--end:35%;border-width:calc(var(--radius-sm) * 1.75);border-radius:calc(var(--radius-sm) * 2.75);inset:calc(var(--radius-sm) * -.25);z-index:4;opacity:.75}
+
+@media(max-width:920px){.mockup-grid{grid-template-columns:1fr}.phone{width:100%;max-width:420px}}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1 class="page-title">AI Studio · V5 ФИНАЛНИ ВИЗИИ</h1>
+  <p class="page-sub">8 екрана · Neon Glass v2.0 · Готови за production</p>
+
+  <div class="mockup-grid">
+
+    <!-- ═══ ① CTA в wizard success ═══ -->
+    <div class="mockup-wrap">
+      <div class="mockup-label">① CTA в Wizard Success</div>
+      <div class="mockup-desc">След „Запази" → въпрос за AI снимка. Tap "Да" → standalone (Лесен).</div>
+      <div class="phone"><div class="scr">
+        <div class="header">
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="brand brand-flex">RUNMYSTORE.AI</div>
+          <span class="plan-badge">PRO</span>
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82"/></svg></div>
+        </div>
+        <div class="success-hero">
+          <div class="success-circle"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="success-title">Артикулът е готов!</div>
+          <div class="success-meta">Дънки Mustang син деним · 35.00 €</div>
+        </div>
+        <div class="briefing-section q-amber">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+            <div class="cat-info">
+              <div class="cat-name">Печат на етикети</div>
+              <div class="cat-desc">12 етикета · Bluetooth DTM-5811</div>
+            </div>
+            <span class="cat-arrow">›</span>
+          </div>
+        </div>
+        <div class="ai-meta"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="ai-meta-label">AI магия</span></div>
+        <div class="msg-ai">Искаш ли да направя <b>професионална снимка</b> на този артикул? За онлайн магазин или Facebook + AI описание за каталог.</div>
+        <div class="briefing-section q-violet" style="margin-top:14px">
+          <div class="briefing-actions" style="flex-direction:column;gap:8px">
+            <button class="briefing-btn-primary" style="--qcol:hsl(280,70%,62%);width:100%">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg>
+              Да, направи професионална
+            </button>
+            <button class="briefing-btn-secondary" style="width:100%">Не, готово е така</button>
+          </div>
+        </div>
+        <!-- CSV двойка — само ако има снимка + описание + цена -->
+        <div style="display:flex;gap:6px;margin-top:14px">
+          <button class="btn-glass" style="flex:1;font-size:10px">↓ CSV Woo</button>
+          <button class="btn-glass" style="flex:1;font-size:10px">↓ CSV Shopify</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-glass" style="flex:1">+ Нов артикул</button>
+          <button class="ghost-link" style="flex:1;text-decoration:none;width:auto;padding:11px 14px">Затвори</button>
+        </div>
+      </div>
+      <div class="bn"><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="nav-tab-label">AI</span></div><div class="nav-tab active"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="nav-tab-label">Склад</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-tab-label">Справки</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-tab-label">Продажба</span></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ② Лесен режим в standalone (с AI SEO описание) ═══ -->
+    <div class="mockup-wrap">
+      <div class="mockup-label">② Лесен Режим — Standalone</div>
+      <div class="mockup-desc">След "Да направи" → готова snimka, AI описание готово, 1 решение.</div>
+      <div class="phone"><div class="scr">
+        <div class="header">
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="brand brand-flex">AI STUDIO · ЛЕСЕН</div>
+          <button class="simple-toggle">⚙ РАЗШИРЕН →</button>
+        </div>
+        <div class="page-row"><div class="page-h">Готова е снимката</div><div class="page-h-sub">от wizard</div></div>
+        <div class="prv">
+          <div class="prv-thumb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+          <div class="prv-info"><div class="prv-name">Дънки Mustang син деним</div><div class="prv-meta">12 варианта · 35.00 €</div></div>
+        </div>
+        <div class="img-compare">
+          <div class="img-box before"><span class="img-tag">Преди</span><div class="img-shape"></div></div>
+          <div class="img-box after"><span class="img-tag">След AI</span><div class="img-check-dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#022c22" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></div><div class="img-shape"></div></div>
+        </div>
+        <div class="detect">
+          <div class="detect-row">
+            <div class="detect-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg></div>
+            <div class="detect-text"><div class="detect-label">⚡ AI РАЗПОЗНА</div><div class="detect-val">Дамски дънки</div><div class="detect-link">AI сгреши? Промени категория →</div></div>
+          </div>
+        </div>
+
+        <!-- AI SEO ОПИСАНИЕ (нова за V5) -->
+        <div class="seo-card">
+          <div class="seo-head">
+            <div class="seo-icon-sm"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+            <span class="seo-title">AI SEO описание</span>
+            <span class="seo-badge">✓ ГОТОВО</span>
+          </div>
+          <div class="seo-text">Класически син деним за модерна жена. Висока талия, slim fit от меко еластично платно. Перфектни за всекидневен стил, лесни за комбиниране с топ или риза.</div>
+          <div class="seo-actions">
+            <button class="seo-btn-link">Виж пълното →</button>
+            <button class="seo-btn-link">↻ Регенерирай</button>
+          </div>
+        </div>
+
+        <button class="act-block green">
+          <div class="act-block-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="act-block-text"><div class="act-block-title">Запази с бял фон</div><div class="act-block-sub">Готова за магазина</div></div>
+          <span class="act-block-price">€0.05</span>
+        </button>
+        <button class="act-block violet">
+          <div class="act-block-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>
+          <div class="act-block-text"><div class="act-block-title">Облечи на жена-модел</div><div class="act-block-sub">За онлайн магазин и Facebook</div></div>
+          <span class="act-block-price">€0.50</span>
+        </button>
+        <button class="ghost-link">Остави оригинала</button>
+
+        <!-- CSV секция (нова — за Лесен mode СЛЕД AI обработка) -->
+        <div class="section" style="margin-top:14px"><span class="section-label">Готов за онлайн магазин</span><span class="section-line"></span></div>
+        <div style="display:flex;gap:6px;margin:0 0 8px">
+          <button class="btn-glass" style="flex:1;font-size:10px">↓ CSV WooCommerce</button>
+          <button class="btn-glass" style="flex:1;font-size:10px">↓ CSV Shopify</button>
+        </div>
+        <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:4px;font-weight:500">С AI снимка + AI описание + варианти + цена</div>
+      </div>
+      <div class="bn"><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="nav-tab-label">AI</span></div><div class="nav-tab active"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="nav-tab-label">Склад</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-tab-label">Справки</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-tab-label">Продажба</span></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ③ Разширен режим (с bulk банери) ═══ -->
+    <div class="mockup-wrap">
+      <div class="mockup-label">③ Разширен Режим — С BULK банери</div>
+      <div class="mockup-desc">Owner от chat.php → горе bulk recovery, после категории + настройки.</div>
+      <div class="phone"><div class="scr">
+        <div class="header">
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="brand brand-flex">AI STUDIO · РАЗШИРЕН</div>
+          <button class="simple-toggle">⚡ ЛЕСЕН ←</button>
+        </div>
+        <div class="page-row"><div class="page-h">AI магия</div><div class="page-h-sub">5 категории</div></div>
+
+        <div class="glass sm" style="padding:13px 14px;margin:10px 0">
+          <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+          <div style="position:relative;z-index:5">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span class="stat-label">КРЕДИТИ</span>
+              <button class="simple-toggle" style="border-color:hsl(145 70% 50% / .35);color:hsl(145 70% 75%);background:hsl(145 50% 20% / .3)">+ Купи пакет</button>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <div style="display:flex;align-items:baseline;gap:4px"><span class="stat-num green sm">287</span><span class="stat-cur" style="font-size:9px">фон</span></div>
+              <div style="width:1px;height:18px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1),transparent)"></div>
+              <div style="display:flex;align-items:baseline;gap:4px"><span class="stat-num violet sm">28</span><span class="stat-cur" style="font-size:9px">магия</span></div>
+              <div style="width:1px;height:18px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1),transparent)"></div>
+              <div style="display:flex;align-items:baseline;gap:4px"><span class="stat-num sm">156</span><span class="stat-cur" style="font-size:9px">опис.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BULK BANNERS (нова за V5) -->
+        <div class="section"><span class="section-label">⚡ Готови за обработка</span><span class="section-line"></span></div>
+
+        <div class="bulk-banner urgent">
+          <div class="bulk-row">
+            <div class="bulk-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="bulk-info">
+              <div class="bulk-num-row"><span class="bulk-num">53</span><span class="bulk-num-suffix">артикула</span></div>
+              <div class="bulk-title">без бял фон<br><span style="font-size:10px;color:rgba(255,255,255,.5)">с всичките им варианти = 287 снимки</span></div>
+              <div style="display:flex;align-items:center;margin-top:8px">
+                <span class="bulk-action">Обработи всички €11.48</span>
+                <span class="bulk-saving">↓ -20% €2.87</span>
+              </div>
+            </div>
+            <span class="bulk-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="bulk-banner violet">
+          <div class="bulk-row">
+            <div class="bulk-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+            <div class="bulk-info">
+              <div class="bulk-num-row"><span class="bulk-num">47</span><span class="bulk-num-suffix">артикула</span></div>
+              <div class="bulk-title">без AI описание<br><span style="font-size:10px;color:rgba(255,255,255,.5)">за онлайн магазин</span></div>
+              <div style="display:flex;align-items:center;margin-top:8px">
+                <span class="bulk-action">Генерирай €0.85</span>
+                <span class="bulk-saving">↓ -10%</span>
+              </div>
+            </div>
+            <span class="bulk-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="section"><span class="section-label">AI магия по категории</span><span class="section-line"></span></div>
+
+        <div class="briefing-section q-violet">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><path d="M3 6l3-4h12l3 4-3 16H6L3 6z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+            <div class="cat-info"><div class="cat-name">Дрехи</div><div class="cat-desc">Облечи на модел или студийна</div></div>
+            <span class="fq-badge q-violet">МАГИЯ</span><span class="cat-arrow">›</span>
+          </div>
+        </div>
+        <div class="briefing-section" style="--qcol:hsl(330 70% 60%)">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><path d="M6 2L4 8h16l-2-6H6z"/><path d="M4 8c0 4 4 6 8 6s8-2 8-6"/></svg></div>
+            <div class="cat-info"><div class="cat-name">Бельо и бански</div><div class="cat-desc">Облечи на модел · студийна</div></div>
+            <span class="cat-arrow">›</span>
+          </div>
+        </div>
+        <div class="briefing-section q-amber">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><polygon points="6 3 18 3 22 9 12 22 2 9"/></svg></div>
+            <div class="cat-info"><div class="cat-name">Бижута</div><div class="cat-desc">Студийна снимка близък план</div></div>
+            <span class="fq-badge q-amber">⭐</span><span class="cat-arrow">›</span>
+          </div>
+        </div>
+        <div class="briefing-section q4">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 0 1 2 2v8a8 8 0 0 1-8 8 8 8 0 0 1-8-8V4a2 2 0 0 1 2-2z"/></svg></div>
+            <div class="cat-info"><div class="cat-name">Аксесоари</div><div class="cat-desc">Студийна с настройка</div></div>
+            <span class="cat-arrow">›</span>
+          </div>
+        </div>
+        <div class="briefing-section q6">
+          <div class="cat-row">
+            <div class="cat-icon-box"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg></div>
+            <div class="cat-info"><div class="cat-name">Друго / Предмет</div><div class="cat-desc">Свободно описание</div></div>
+            <span class="cat-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="section"><span class="section-label">Стандартни настройки</span><span class="section-line"></span></div>
+        <div class="set-row">
+          <div class="set-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>
+          <div class="set-text"><div class="set-label">МОДЕЛ</div><div class="set-val">Жена · 25-30 г · европейка</div></div>
+          <span class="set-arrow">›</span>
+        </div>
+        <div class="set-row">
+          <div class="set-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div>
+          <div class="set-text"><div class="set-label">ФОН</div><div class="set-val">Бял студиен</div></div>
+          <span class="set-arrow">›</span>
+        </div>
+
+        <div class="briefing-section q3" style="margin-top:8px">
+          <div class="briefing-head"><span class="briefing-emoji">🛡</span><span class="briefing-name">Quality Guarantee</span></div>
+          <div class="briefing-detail">2 безплатни retry-a · refund при block. AI ти гарантира качеството.</div>
+        </div>
+
+        <div class="section"><span class="section-label">Последно генерирано · 8</span><span class="section-line"></span></div>
+        <div class="hist-grid">
+          <div class="hist-thumb tone-violet"></div><div class="hist-thumb"></div><div class="hist-thumb tone-green"></div><div class="hist-thumb tone-amber"></div>
+          <div class="hist-thumb"></div><div class="hist-thumb tone-violet"></div><div class="hist-thumb tone-green"></div><div class="hist-thumb"></div>
+        </div>
+
+        <!-- CSV bulk export — за разширения режим (всички готови артикули наведнъж) -->
+        <div class="section"><span class="section-label">↓ Експорт за онлайн магазин</span><span class="section-line"></span></div>
+        <div class="briefing-section q3">
+          <div class="briefing-head">
+            <span class="briefing-emoji">📦</span>
+            <span class="briefing-name">156 артикула готови за експорт</span>
+          </div>
+          <div class="briefing-detail">С AI снимка + AI описание + варианти + цени. Готови за директен импорт.</div>
+          <div class="briefing-actions" style="flex-direction:column;gap:6px">
+            <button class="briefing-btn-primary" style="--qcol:hsl(145,70%,50%);width:100%">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Свали всички за WooCommerce
+            </button>
+            <button class="briefing-btn-secondary" style="width:100%">
+              ↓ Свали всички за Shopify
+            </button>
+          </div>
+          <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:8px;font-weight:500">Или избери конкретни артикули → tap на категория</div>
+        </div>
+
+        <div style="height:90px"></div>
+      </div>
+      <div class="fab"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      <div class="bn"><div class="nav-tab active"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="nav-tab-label">AI</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="nav-tab-label">Склад</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-tab-label">Справки</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-tab-label">Продажба</span></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ④ Купи кредити - 3 tabs ═══ -->
+    <div class="mockup-wrap">
+      <div class="mockup-label">④ Купи Кредити (3 таба)</div>
+      <div class="mockup-desc">Empty state + 3 таба (Бял фон / Магия / Описание) × 5 пакета (Стартов → МЕГА -50%).</div>
+      <div class="phone"><div class="scr">
+        <div class="header">
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="brand brand-flex">КУПИ КРЕДИТИ</div>
+          <span class="plan-badge">PRO</span>
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+        </div>
+        <div class="empty-hero">
+          <div class="empty-num">0</div>
+          <div class="empty-label">Кредити свършиха</div>
+          <div class="empty-detail">Купи пакет за да продължиш<br>да обработваш снимки</div>
+        </div>
+        <div class="tabs-pill">
+          <button class="tab active"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Бял фон</button>
+          <button class="tab"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg>Магия</button>
+          <button class="tab"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Описание</button>
+        </div>
+
+        <div class="pkg-card q-blue">
+          <div class="pkg-head"><span class="pkg-emoji">🟦</span><span class="pkg-name">Стартов</span></div>
+          <div class="pkg-body"><span class="pkg-price">€0.75</span><div class="pkg-info">15 снимки<br>~ 3 артикула</div></div>
+          <div class="pkg-meta"><span class="per-unit">1 снимка = <b>€0.05</b></span></div>
+          <button class="pkg-buy">Купи стартов →</button>
+        </div>
+        <div class="pkg-card q-violet">
+          <div class="pkg-head"><span class="pkg-emoji">🟪</span><span class="pkg-name">Среден</span><span class="discount-badge">-10%</span></div>
+          <div class="pkg-body"><span class="pkg-price">€4.50</span><span class="pkg-old">€5.00</span><div class="pkg-info">100 снимки<br>~ 20 артикула</div></div>
+          <div class="pkg-meta"><span class="per-unit">1 снимка = <b>€0.045</b></span><span class="pkg-saving">↓ Спестяваш €0.50</span></div>
+          <button class="pkg-buy">Купи среден →</button>
+        </div>
+        <div class="pkg-card q-amber featured">
+          <span class="featured-star">⭐</span>
+          <div class="pkg-head"><span class="pkg-emoji">🟧</span><span class="pkg-name">Голям</span><span class="discount-badge">-20%</span></div>
+          <div class="pkg-body"><span class="pkg-price">€8.00</span><span class="pkg-old">€10.00</span><div class="pkg-info">200 снимки<br>~ 40 артикула</div></div>
+          <div class="pkg-meta"><span class="per-unit">1 снимка = <b>€0.04</b></span><span class="pkg-saving">↓ Спестяваш €2.00</span></div>
+          <button class="pkg-buy">Купи голям ⭐ →</button>
+        </div>
+        <div class="pkg-card q3">
+          <div class="pkg-head"><span class="pkg-emoji">🟢</span><span class="pkg-name">Макси</span><span class="discount-badge">-30%</span></div>
+          <div class="pkg-body"><span class="pkg-price">€10.50</span><span class="pkg-old">€15.00</span><div class="pkg-info">300 снимки<br>~ 60 артикула</div></div>
+          <div class="pkg-meta"><span class="per-unit">1 снимка = <b>€0.035</b></span><span class="pkg-saving">↓ Спестяваш €4.50</span></div>
+          <button class="pkg-buy">Купи макси →</button>
+        </div>
+        <div class="pkg-card q-fire mega">
+          <div class="pkg-head"><span class="pkg-emoji">🔥</span><span class="pkg-name">Мега</span><span class="discount-badge">-50%</span></div>
+          <div class="pkg-body"><span class="pkg-price">€20.00</span><span class="pkg-old">€40.00</span><div class="pkg-info">800 снимки<br>~ 160 артикула</div></div>
+          <div class="pkg-meta"><span class="per-unit">1 снимка = <b>€0.025</b></span><span class="pkg-saving">↓ Спестяваш €20.00</span></div>
+          <button class="pkg-buy mega">🔥 КУПИ МЕГА →</button>
+        </div>
+        <div style="height:90px"></div>
+      </div>
+      <div class="bn"><div class="nav-tab active"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="nav-tab-label">AI</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="nav-tab-label">Склад</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-tab-label">Справки</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-tab-label">Продажба</span></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ⑤ WIZARD BULK — варианти на ТОЗИ артикул ═══ -->
+    <div class="mockup-wrap">
+      <div class="mockup-label">⑤ Wizard Bulk (вариации)</div>
+      <div class="mockup-desc">Артикул с N варианти → bulk предложение в Лесен режим (НЕ магия — само бял фон).</div>
+      <div class="phone"><div class="scr">
+        <div class="header">
+          <div class="header-icon-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="brand brand-flex">AI STUDIO · ЛЕСЕН</div>
+          <button class="simple-toggle">⚙ РАЗШИРЕН →</button>
+        </div>
+        <div class="page-row"><div class="page-h">Артикул с варианти</div><div class="page-h-sub">от wizard</div></div>
+        <div class="prv">
+          <div class="prv-thumb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+          <div class="prv-info"><div class="prv-name">Дънки Mustang син деним</div><div class="prv-meta">5 цвята × 4 размера = 20 варианта</div></div>
+        </div>
+
+        <!-- WIZARD BULK card (нова за V5) -->
+        <div class="wbulk-card">
+          <div class="wbulk-head">
+            <span class="wbulk-emoji">📸</span>
+            <span class="wbulk-tag">Този артикул има</span>
+          </div>
+          <div class="wbulk-count">
+            <span class="wbulk-num">20</span>
+            <span class="wbulk-num-label">снимки на варианти</span>
+          </div>
+          <div class="wbulk-detail">AI може да направи бял фон на всичките наведнъж — спестяваш време и пари.</div>
+
+          <div class="wbulk-options">
+            <div class="wbulk-opt primary">
+              <div class="wbulk-opt-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="wbulk-opt-text">
+                <div class="wbulk-opt-title">Обработи всичките 20</div>
+                <div class="wbulk-opt-sub">бял фон + AI разпознаване на цветове <span class="wbulk-saving">↓ -20%</span></div>
+              </div>
+              <span class="wbulk-opt-price">€0.80</span>
+            </div>
+
+            <div class="wbulk-opt">
+              <div class="wbulk-opt-icon" style="background:rgba(99,102,241,.18)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg></div>
+              <div class="wbulk-opt-text">
+                <div class="wbulk-opt-title">Само главната</div>
+                <div class="wbulk-opt-sub">+ AI магия (модел)</div>
+              </div>
+              <span class="wbulk-opt-price">€0.55</span>
+            </div>
+
+            <div class="wbulk-opt">
+              <div class="wbulk-opt-icon" style="background:rgba(255,255,255,.06)"><svg viewBox="0 0 24 24" stroke="rgba(255,255,255,.5)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+              <div class="wbulk-opt-text">
+                <div class="wbulk-opt-title" style="color:rgba(255,255,255,.6)">Пропусни сега</div>
+                <div class="wbulk-opt-sub">Можеш по-късно от AI Studio</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-meta" style="margin-top:14px"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="ai-meta-label">Магията е поединично</span></div>
+        <div class="msg-ai" style="font-size:11px">AI магия (облечи на модел) се прави <b>само на главната снимка</b> — изисква специфични настройки. Можеш да я добавиш отделно.</div>
+
+      </div>
+      <div class="bn"><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 9"/></svg><span class="nav-tab-label">AI</span></div><div class="nav-tab active"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="nav-tab-label">Склад</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-tab-label">Справки</span></div><div class="nav-tab"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-tab-label">Продажба</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
