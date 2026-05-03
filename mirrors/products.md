@@ -10101,9 +10101,11 @@ function renderWizPhotoStep(){
     // FIX 1) + Като предния, photo block, name+price, supplier+category+subcategory,
     // code+barcode, qty+min (PART1_1 FIX 5/ADDITION). Fields disabled if type not chosen yet.
     var hasLast=false;try{hasLast=!!localStorage.getItem('_rms_lastWizProductFields')}catch(e){}
+    // S95.PART1_1_A FIX 3: винаги render-вай "Като предния" — disabled placeholder ако няма
+    // предишен артикул (преди button-а изобщо не се показваше при празен localStorage).
     var copyPrevBtn = hasLast
-        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:38px;padding:0 14px;border-radius:11px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05)">📋 Като предния</button>'
-        : '';
+        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:42px;padding:0 18px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);width:100%">📋 Като предния</button>'
+        : '<button type="button" onclick="showToast(\'📋 Налично след първия записан артикул\',\'info\')" style="height:42px;padding:0 18px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);color:rgba(255,255,255,0.42);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;width:100%">📋 Като предния <span style="font-size:10px;color:rgba(255,255,255,0.32)">(след първия запис)</span></button>';
     // S95.PART1_1 FIX 1: mandatory type buttons. Hint above. Active button glows.
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
@@ -10119,11 +10121,13 @@ function renderWizPhotoStep(){
     var typeHint=typeChosen
         ? ''
         : '<div style="text-align:center;font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">▼ Избери тип артикул</div>';
-    var headerH=typeHint+
-        '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">'+
+    // S95.PART1_1_A FIX 3: "Като предния" ABOVE toggle (per spec ASCII art).
+    var headerH=
+        '<div style="margin-bottom:10px">'+copyPrevBtn+'</div>'+
+        typeHint+
+        '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+
             typeBtnSingle+typeBtnVariant+
-        '</div>'+
-        (copyPrevBtn?'<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'+copyPrevBtn+'</div>':'<div style="margin-bottom:6px"></div>');
+        '</div>';
     // S95.PART1_1 FIX 1: lock everything below header until type is chosen.
     var lockStyle=typeChosen?'':'opacity:0.42;pointer-events:none;filter:saturate(0.4)';
     var nameH=
