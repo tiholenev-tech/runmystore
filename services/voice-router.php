@@ -11,6 +11,58 @@
 
 require_once __DIR__ . '/voice-tier2.php';
 
+// S93.WIZARD.V4.SESSION_2: HTTP request handler — фасада за wizard voice overlay.
+// Активен само когато voice-router.php е директно scripted (НЕ при require_once
+// от друг файл). Връща unified envelope от routeVoice() като JSON.
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(401);
+        echo json_encode(['ok' => false, 'error' => 'not_logged_in']);
+        exit;
+    }
+    $field_type   = (string)($_POST['field_type'] ?? '');
+    $audio_b64    = (string)($_POST['audio_b64'] ?? '');
+    $lang         = (string)($_POST['lang'] ?? 'bg');
+    $ws_text      = (string)($_POST['web_speech_transcript'] ?? '');
+    $ws_conf      = (float)($_POST['web_speech_confidence'] ?? 0);
+    $ws_dur       = (int)($_POST['web_speech_duration_ms'] ?? 0);
+    $web_speech   = $ws_text !== '' ? [
+        'transcript'  => $ws_text,
+        'confidence'  => $ws_conf,
+        'duration_ms' => $ws_dur,
+    ] : [];
+    $result = routeVoice($field_type, $audio_b64 !== '' ? $audio_b64 : null, $web_speech, $lang);
+
+    // Best-effort log to voice_command_log (S93 schema). Не fail-ваме при грешка.
+    try {
+        $tenant_id = (int)($_SESSION['tenant_id'] ?? 0);
+        $user_id   = (int)($_SESSION['user_id'] ?? 0);
+        if ($tenant_id && $user_id) {
+            require_once __DIR__ . '/../config/database.php';
+            DB::run(
+                "INSERT INTO voice_command_log
+                 (tenant_id, user_id, field_type, engine, transcript, confidence, duration_ms, audio_size_bytes, cost_usd)
+                 VALUES (?,?,?,?,?,?,?,?,?)",
+                [
+                    $tenant_id, $user_id, $field_type,
+                    (string)$result['engine'],
+                    (string)$result['transcript'],
+                    (float)$result['confidence'],
+                    (int)$result['duration_ms'],
+                    $audio_b64 !== '' ? (int)(strlen($audio_b64) * 3 / 4) : 0,
+                    0.0,
+                ]
+            );
+        }
+    } catch (Throwable $_e) { /* non-fatal */ }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 const VOICE_NUMERIC_FIELDS = [
     'price_retail',
     'price_wholesale',
