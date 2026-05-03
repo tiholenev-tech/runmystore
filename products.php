@@ -32,6 +32,11 @@ $can_see_margin = $is_owner;
 $tenant = DB::run("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
 $business_type = $tenant['business_type'] ?? '';
 $currency = htmlspecialchars($tenant['currency'] ?? 'лв');
+// S93.WIZARD.V4.SESSION_2.WHOLESALE_CURRENCY: tenant-aware suffix label.
+// BG → "лв" (primary, secondary "€" via fmtPrice for double notation per BG law);
+// other countries → ISO currency code (EUR, RON, etc.).
+$_tenant_country = $tenant['country'] ?? 'BG';
+$currency_label = ($_tenant_country === 'BG') ? 'лв' : ($tenant['currency'] ?? 'EUR');
 $lang = $tenant['lang'] ?? 'bg';
 $skip_wholesale = (int)($tenant['skip_wholesale_price'] ?? 0);
 $ai_bg = (int)($tenant['ai_credits_bg'] ?? 0);
@@ -4504,6 +4509,7 @@ const CFG = {
     aiBg: <?= $ai_bg ?>,
     aiTryon: <?= $ai_tryon ?>,
     currency: '<?= $currency ?>',
+    currencyLabel: <?= json_encode($currency_label, JSON_UNESCAPED_UNICODE) ?>,
     lang: '<?= $lang ?>',
     businessType: '<?= htmlspecialchars($business_type) ?>',
     suppliers: <?= json_encode($all_suppliers, JSON_UNESCAPED_UNICODE) ?>,
@@ -6167,6 +6173,11 @@ function renderWizPage(step){
         const pr=S.wizData.retail_price||'';
         const bc=S.wizData.barcode||'';
         const cm=S.wizData.composition||'';
+        // S93.WIZARD.V4.SESSION_2.WHOLESALE_CURRENCY: tenant-aware currency suffix
+        // span за всички 3 ценови полета (retail, cost, wholesale). Реше bug-а
+        // че "цена на едро" нямаше €/лв suffix — добавено и на retail/cost за
+        // консистентност (и трите бяха suffix-less в S92).
+        const ccySfx='<span class="wiz-ccy-sfx" style="font-size:11px;color:rgba(255,255,255,0.55);padding:0 2px 0 4px;flex-shrink:0;font-weight:600;letter-spacing:0.02em">'+(CFG.currencyLabel||'лв')+'</span>';
         const qt=(S.wizData.quantity===undefined?1:S.wizData.quantity);
         const un=S.wizData.unit||'бр';
         const isSingle=(S.wizType==='single');
@@ -6265,12 +6276,12 @@ function renderWizPage(step){
 
         // Sub 0: Цени — retail (required) + cost + markup + wholesale + (single only) qty/min_qty
         const pricesBody=
-            '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" onblur="wizMaybeAdvanceSub(0)" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
+            '<div class="fg">'+fieldLabel('Цена дребно *','price')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" onblur="wizMaybeAdvanceSub(0)" value="'+pr+'" placeholder="0.00" style="flex:1;min-width:0">'+ccySfx+mic('retail_price')+cpy('retail_price')+'</div>'+wizAIHint('retail_price')+'</div>'+
             '<div style="display:flex;gap:8px;align-items:flex-end">'+
-              '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('cost_price')+cpy('cost_price')+'</div>'+wizAIHint('cost_price')+'</div>'+
+              '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('Доставна цена','cost_price','<span class="hint">(на доставчик)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+ccySfx+mic('cost_price')+cpy('cost_price')+'</div>'+wizAIHint('cost_price')+'</div>'+
               '<div class="fg" style="flex:1;min-width:0">'+fieldLabel('ПЕЧАЛБА %','markup_pct','<span class="hint">(не се записва)</span>')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="1" inputmode="numeric" class="fc" id="wMarkupPct" oninput="wizApplyMarkup()" '+(parseFloat(S.wizData.cost_price)>0?'':'disabled')+' placeholder="'+(parseFloat(S.wizData.cost_price)>0?'auto':'(въведи доставна)')+'" style="flex:1;min-width:0">'+cpy('markup_pct')+'</div></div>'+
             '</div>'+
-            '<div class="fg"'+(CFG.skipWholesale?' style="display:none"':'')+'>'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
+            '<div class="fg"'+(CFG.skipWholesale?' style="display:none"':'')+'>'+fieldLabel('Цена едро','wholesale')+'<div style="display:flex;gap:4px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;wizClearAIMark(\'wholesale_price\')" value="'+(S.wizData.wholesale_price||'')+'" placeholder="0.00" style="flex:1;min-width:0">'+ccySfx+mic('wholesale_price')+'</div>'+wizAIHint('wholesale_price')+'</div>'+
             qtyBlock;
 
         // Sub 1: Класификация — supplier + category + subcategory
