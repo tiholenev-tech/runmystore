@@ -2678,7 +2678,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-pz-tip svg{width:10px;height:10px;color:#86efac;flex-shrink:0}
 
 /* ═══ S95.WIZARD.RESTRUCTURE — Mini print overlay (post-Single-save) ═══ */
-.s95-mini-ov{position:fixed;inset:0;background:rgba(8,11,24,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+.s95-mini-ov{position:fixed;inset:0;background:rgba(8,11,24,0.86);
   display:flex;align-items:flex-end;justify-content:center;z-index:10001;animation:s95MiniFade .18s ease-out}
 .s95-mini-box{width:100%;max-width:440px;margin:0 12px 18px;padding:22px 18px 18px;border-radius:20px;
   background:linear-gradient(180deg,rgba(17,24,44,0.95),rgba(8,11,24,0.92));border:1px solid rgba(99,102,241,0.32);
