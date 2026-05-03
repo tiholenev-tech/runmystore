@@ -51,11 +51,14 @@ function copyProductTemplate(int $source_product_id, int $tenant_id): array {
     }
 
     try {
+        // S93.WIZARD.V4.SESSION_2: products column is `image_url`, не `photo_url`.
+        // Bridge alias запазва semantic name `photo_url` в response payload (за
+        // wizard frontend) докато DB column остава canonical `image_url`.
         $row = DB::run(
             "SELECT id, tenant_id, supplier_id, category_id,
                     composition, origin_country,
                     cost_price, retail_price, wholesale_price,
-                    photo_url, parent_id
+                    image_url AS photo_url, parent_id
              FROM products
              WHERE id = ? AND tenant_id = ? AND is_active = 1
              LIMIT 1",
@@ -137,8 +140,9 @@ function _ctEmpty(int $sid, string $err): array {
 function recentProductsForTemplate(int $tenant_id, int $limit = 10): array {
     if ($tenant_id <= 0) return [];
     try {
+        // S93.WIZARD.V4.SESSION_2: image_url AS photo_url alias (виж copyProductTemplate).
         $rows = DB::run(
-            "SELECT p.id, p.name, p.retail_price, p.photo_url,
+            "SELECT p.id, p.name, p.retail_price, p.image_url AS photo_url,
                     s.name AS supplier_name, c.name AS category_name,
                     p.updated_at
              FROM products p
