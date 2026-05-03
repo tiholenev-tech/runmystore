@@ -11927,18 +11927,13 @@ function wizReturnToInventory(){
     location.href='inventory.php#resume&product_id='+pid+'&zone_id='+_invZoneId+'&session_id='+_invSessionId;
 }
 var _wizMicRec=null;
-// S95.WIZARD.VOICE_MIN: числовите полета минават през Whisper Tier 2 (по-точно за цифри/EAN). Закон №1.
+// S95.WIZARD.VOICE.WHISPER_HINTS: ВСИЧКИ numeric → Whisper Tier 2 със BG prompt context (hints).
+// Web Speech остава за text fields (име/доставчик/категория/...). Закон №1: Pesho говори, парсва.
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
 var _wizTrigRec=null;
-// S95.WIZARD.VOICE.RETRY: tap counter per field. Втори tap = Pesho не харесва първия резултат → AI directly.
-var _wizMicAttempts={};
 function wizMic(field){
-    _wizMicAttempts[field]=(_wizMicAttempts[field]||0)+1;
-    if(_wizMicAttempts[field]>=2 && WIZ_NUMERIC_FIELDS.indexOf(field)>=0){
-        showToast('🧠 AI режим — кажи с валута: "пет лева и 50 стотинки"','info');
-    }
     var lang=(window.CFG&&CFG.lang)||'bg';
-    if(lang!=='bg' && WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
         return;
     }
@@ -11967,38 +11962,60 @@ function _wizMicWebSpeech(field,lang){
     _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
     _wizMicRec.start();
 }
-function _wizMicWhisper(field,lang){
+async function _wizMicWhisper(field,lang){
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
-    var targetFg=targetEl?targetEl.closest('.fg'):null;
-    if(targetFg)targetFg.classList.add('wiz-active');
-    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    if(!targetEl)return;
+    var fg=targetEl.closest('.fg');
+    if(fg)fg.classList.add('wiz-active','recording');
+    var micBtn=fg?fg.querySelector('.wiz-mic'):null;
     if(micBtn)micBtn.classList.add('recording');
-    var clearUI=function(){if(micBtn)micBtn.classList.remove('recording')};
-    var fallback=function(){clearUI();_wizMicWebSpeech(field)};
-    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-        var rec;
-        try{rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus'})}
-        catch(e){stream.getTracks().forEach(function(t){t.stop()});fallback();return}
-        var chunks=[];
-        rec.ondataavailable=function(ev){if(ev.data&&ev.data.size>0)chunks.push(ev.data)};
-        rec.onstop=function(){
+    if(navigator.vibrate)navigator.vibrate(30);
+    var stream=null,rec=null,chunks=[];
+    var clearUI=function(){if(fg)fg.classList.remove('wiz-active','recording');if(micBtn)micBtn.classList.remove('recording')};
+    try{
+        stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,sampleRate:16000,echoCancellation:true,noiseSuppression:true}});
+        try{rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:16000})}
+        catch(e){stream.getTracks().forEach(function(t){t.stop()});clearUI();_wizMicWebSpeech(field,lang);return}
+        rec.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data)};
+        rec.onstop=async function(){
+            if(fg)fg.classList.remove('recording');
+            if(micBtn)micBtn.classList.remove('recording');
             stream.getTracks().forEach(function(t){t.stop()});
-            if(!chunks.length){fallback();return}
+            if(chunks.length===0){clearUI();showToast('Не разпознах','warn');return}
             var blob=new Blob(chunks,{type:'audio/webm'});
-            var fd=new FormData();fd.append('audio',blob,'rec.webm');fd.append('lang',lang||'bg');
-            fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
-                .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
-                .then(function(j){
-                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
-                    fallback();
-                })
-                .catch(function(){fallback()});
+            var fd=new FormData();
+            fd.append('audio',blob,'voice.webm');
+            fd.append('lang',lang||'bg');
+            // КРИТИЧНО: per-field BG hints — Whisper context за по-точно разпознаване на цифри
+            var hintsByField={
+                retail_price:'Цена в лева. Числа на български. Например: двадесет лева, четиресе и пет, сто и двайсе.',
+                cost_price:'Доставна цена в лева. Числа на български.',
+                wholesale_price:'Цена на едро в лева.',
+                quantity:'Количество. Цяло число от 1 до 999. Например: пет, петнайсе, сто.',
+                min_quantity:'Минимално количество. Цяло число.',
+                barcode:'Баркод. 8 или 13 цифри. Само числа.',
+                code:'Артикулен номер. Числа.'
+            };
+            fd.append('hints',JSON.stringify([hintsByField[field]||'Числа на български']));
+            try{
+                var resp=await fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'});
+                var json=await resp.json();
+                clearUI();
+                if(!json.ok||!json.data){showToast('AI не разпозна ('+(json.error||'грешка')+')','error');return}
+                var raw=json.data.transcript_normalized||json.data.transcript||'';
+                console.log('[Whisper]',field,'raw='+raw,'conf='+json.data.confidence);
+                _wizMicApply(field,raw);
+            }catch(err){clearUI();console.error('[Whisper] fetch error:',err);showToast('Мрежова грешка','error')}
         };
         rec.start();
-        setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
-    }).catch(function(){fallback()});
+        // Auto-stop след 5 сек ИЛИ при tap пак на input/mic за ранно stop
+        setTimeout(function(){if(rec&&rec.state==='recording')rec.stop()},5000);
+        var tapStop=function(){if(rec&&rec.state==='recording')rec.stop()};
+        targetEl.addEventListener('click',tapStop,{once:true});
+        if(micBtn)micBtn.addEventListener('click',tapStop,{once:true});
+    }catch(err){clearUI();console.error('[Whisper] mic error:',err);showToast('Микрофонът не е достъпен','error')}
 }
 function _wizTrigStart(){
     if(_wizTrigRec)return;
@@ -12029,9 +12046,9 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=(_wizMicAttempts.retail_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.retail_price=0;el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=(_wizMicAttempts.wholesale_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.wholesale_price=0;el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
-    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=(_wizMicAttempts.cost_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.cost_price=0;el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
@@ -12145,7 +12162,6 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
         .then(function(j){
             if(j&&j.ok&&j.data&&j.data.price!==null&&!isNaN(j.data.price)){
                 var conf=(typeof j.data.confidence==='number')?j.data.confidence:1.0;
-                _wizMicAttempts[field]=0;
                 el.value=j.data.price;
                 S.wizData[dataKey]=j.data.price;
                 el.style.color='';
