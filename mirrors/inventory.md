@@ -453,7 +453,7 @@ function renderCoDError(wrap){const cats=(typeof ZCFG!=='undefined'&&ZCFG.catego
 function codStartCounting(categoryId){window.__codCategoryId=categoryId|0;if(typeof goCountingScreen==='function')goCountingScreen()}
 // Apply pre-selected category filter when zone-count screen activates (showScreen pushes #screen-zone-count to history).
 window.addEventListener('hashchange',()=>{if(window.__codCategoryId&&location.hash==='#screen-zone-count'&&typeof zcSetFilter==='function'){const cid=window.__codCategoryId;window.__codCategoryId=null;setTimeout(()=>{try{zcSetFilter('category',cid)}catch(e){}},80)}});
-document.addEventListener('DOMContentLoaded',()=>{if(window.PHP&&PHP.zonesCount>0)loadCoDCard()});
+document.addEventListener('DOMContentLoaded',()=>{if(typeof PHP!=='undefined'&&PHP.zonesCount>0)loadCoDCard()});
 </script>
 <?php include __DIR__ . '/partials/shell-scripts.php'; ?>
 </body></html>

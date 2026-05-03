@@ -11984,10 +11984,11 @@ function _wizMicWhisper(field){
             fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
                 .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
                 .then(function(j){
-                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
-                    fallback();
+                    // BUG1_DIAG step 2: response chain DEAD-ENDED — _wizMicApply suppressed
+                    clearUI();
+                    console.log('[BUG1_DIAG] Whisper response suppressed', j);
                 })
-                .catch(function(){fallback()});
+                .catch(function(e){ clearUI(); console.log('[BUG1_DIAG] Whisper fetch error', e); });
         };
         rec.start();
         setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
