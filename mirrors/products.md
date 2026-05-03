@@ -5835,7 +5835,8 @@ function openVoiceWizard(){
     history.pushState({modal:'wizard'},'','#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
-    _wizTrigStart();
+    // BUG1_DIAG: trigger listener temporarily disabled for auto-save isolation test
+    // _wizTrigStart();
     // Auto voice for step 0
     setTimeout(()=>voiceForStep(0),500);
 }
