@@ -12025,9 +12025,9 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
-    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
@@ -12111,7 +12111,7 @@ function _wizPriceParse(text){
 }
 
 // S95.WIZARD.VOICE.AI: Tier 2 fallback при ambiguous voice transcript. ~5% от cases.
-// Cost: ~$0.0001/call (Gemini 2.5 Flash). Latency: ~600-1100ms. Безопасен fallback.
+// Cost: ~$0.0001/call (Gemini 2.5 Flash, temperature=0, JSON Mode). Latency: ~600-1100ms.
 function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
     var el=document.getElementById(inputId);
     if(!el)return;
@@ -12122,18 +12122,41 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
         .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
         .then(function(j){
             if(j&&j.ok&&j.data&&j.data.price!==null&&!isNaN(j.data.price)){
+                var conf=j.data.confidence||0.5;
                 el.value=j.data.price;
                 S.wizData[dataKey]=j.data.price;
                 el.style.color='';
-                showToast(label+' (AI): '+el.value,'success');
+                showToast(label+' (AI): '+el.value+(conf<0.7?' ?':''),conf<0.7?'info':'success');
+                _wizBigDisplay(el.value,label,conf<0.7);
                 if(typeof wizMarkDone==='function')wizMarkDone(field);
                 if(typeof wizHighlightNext==='function')wizHighlightNext();
             }else{
                 el.value='';el.style.color='';
+                _wizBigDisplay('?',label+' — повтори',true);
                 showToast('Не разбрах "'+text+'" — кажи отново','error');
             }
         })
         .catch(function(){el.value='';el.style.color='';showToast('AI грешка — кажи "'+text+'" отново','error')});
+}
+
+// S95.WIZARD.VOICE.UI: Big Indigo Display — fullscreen overlay 3s показва парсираната цена.
+// 96px glow font, виждаемо от разстояние без Pesho да пипа телефона. Warn (жълто) при low confidence.
+function _wizBigDisplay(value,label,warn){
+    if(!document.getElementById('wbdStyles')){
+        var s=document.createElement('style');s.id='wbdStyles';
+        s.textContent='.wiz-big-display{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(15,18,36,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(99,102,241,0.6);border-radius:20px;padding:28px 40px;z-index:99999;box-shadow:0 0 60px rgba(99,102,241,0.5),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;pointer-events:none;animation:wbd-in 0.35s cubic-bezier(0.34,1.56,0.64,1);transition:opacity 0.5s ease}.wiz-big-display.warn{border-color:#f59e0b;box-shadow:0 0 60px rgba(245,158,11,0.55),inset 0 1px 0 rgba(255,255,255,0.06)}.wiz-big-display.wbd-fade{opacity:0}.wbd-label{font-size:14px;color:#a5b4fc;font-weight:700;margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase}.wiz-big-display.warn .wbd-label{color:#fbbf24}.wbd-value{font-size:84px;color:#fff;font-weight:900;text-shadow:0 0 30px rgba(99,102,241,0.85);line-height:1;letter-spacing:-0.02em}.wiz-big-display.warn .wbd-value{text-shadow:0 0 30px rgba(245,158,11,0.85)}@keyframes wbd-in{0%{transform:translate(-50%,-50%) scale(0.82);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
+        document.head.appendChild(s);
+    }
+    var existing=document.getElementById('wizBigDisplay');
+    if(existing)existing.remove();
+    var ov=document.createElement('div');
+    ov.id='wizBigDisplay';
+    ov.className='wiz-big-display'+(warn?' warn':'');
+    ov.innerHTML='<div class="wbd-label">'+label+'</div><div class="wbd-value">'+value+'</div>';
+    document.body.appendChild(ov);
+    if(navigator.vibrate)navigator.vibrate(warn?[40,80,40]:15);
+    setTimeout(function(){ov.classList.add('wbd-fade')},2500);
+    setTimeout(function(){if(ov.parentNode)ov.parentNode.removeChild(ov)},3050);
 }
 
 // S68 fix: voice for variation values + new axis name
