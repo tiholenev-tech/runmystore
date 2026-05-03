@@ -4603,6 +4603,10 @@ function showToast(msg, type=''){
 }
 
 async function api(url, opts={}){
+    // BUG1_DIAG step 7: catch every product-save.php call regardless of caller
+    if(typeof url==='string' && url.indexOf('product-save')>=0){
+        alert('[BUG1_TRACE] api(product-save) FIRED!\nURL: '+url+'\nMethod: '+((opts&&opts.method)||'GET')+'\n\nStack:\n'+(new Error().stack||'').slice(0,900));
+    }
     try{const r=await fetch(url, opts);return await r.json()}
     catch(e){console.error(e);showToast('Мрежова грешка','error');return null}
 }
