@@ -9979,13 +9979,16 @@ function renderWizPhotoStep(){
         photoBlock='<div class="v4-pz">'+_photoModeToggle+_photoContent+_photoBtns+_photoTips+'</div>';
     }
     var skipNote='<div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08)">💡 Снимката е по желание — името е задължително</div>';
-    var hasAny = _hasPhoto || (_photoMode==='multi' && Array.isArray(S.wizData._photos) && S.wizData._photos.length);
-    var hasName = !!(S.wizData.name && S.wizData.name.trim());
-    var nextLabel = hasName ? 'Напред' : 'Въведи име първо';
-    var nextDis = hasName ? '' : 'opacity:0.5;pointer-events:none;';
+    // S93.WIZARD.V4.SESSION_2.NAME_INPUT_DEAD: button винаги enabled — onclick валидира.
+    // Преди: opacity:0.5 + pointer-events:none ако name е празен → но style е baked in
+    // при render → user типва име → S.wizData.name update-ва се но бутонът остава
+    // disabled до следващ render (триггерван от photo upload или ръчно). Това създаваше
+    // илюзия "бутонът се активира едва след снимка". Фикс: премахваме disabled state,
+    // оставяме onclick да покаже toast при празно име (Закон #SPEC §1: name+price са
+    // single source of truth, photo independent).
     var footer='<div style="display:flex;gap:8px;margin-top:16px">'+
         '<button type="button" onclick="wizGo(0)" style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+
-        '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи име\',\'error\');document.getElementById(\'wName\').focus();return}wizGo(3,false,0)" style="flex:1.4;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;box-shadow:0 4px 14px rgba(99,102,241,0.4);'+nextDis+'">'+nextLabel+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+        '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи име\',\'error\');document.getElementById(\'wName\').focus();return}wizGo(3,false,0)" style="flex:1.4;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;box-shadow:0 4px 14px rgba(99,102,241,0.4)">Напред<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
     '</div>';
     // S92.WIZARD_REWRITE: Name + mic on this step (Step 1 in brief = Идентификация: снимка + име).
     var nameBlock=
