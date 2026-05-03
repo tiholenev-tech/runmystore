@@ -12025,9 +12025,9 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');console.log('[VOICE] retail_price raw:',text);var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n}else{el.value=String(text).replace(/[^\d.,]/g,'').replace(',','.');S.wizData.retail_price=parseFloat(el.value)||0}el.style.color='';showToast('Чух: "'+text+'" → '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');console.log('[VOICE] wholesale_price raw:',text);var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n}else{el.value=String(text).replace(/[^\d.,]/g,'').replace(',','.');S.wizData.wholesale_price=parseFloat(el.value)||0}el.style.color='';showToast('Чух: "'+text+'" → '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}
-    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');console.log('[VOICE] cost_price raw:',text);var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n}else{el.value=String(text).replace(/[^\d.,]/g,'').replace(',','.');S.wizData.cost_price=parseFloat(el.value)||0}el.style.color='';showToast('Чух: "'+text+'" → '+el.value,'success');wizMarkDone('cost_price');wizHighlightNext()}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
@@ -12108,6 +12108,32 @@ function _wizPriceParse(text){
     // Default 2-token: leva.stotinki
     if(n1<100)return parseFloat(n0+'.'+String(n1).padStart(2,'0'));
     return n0+n1/Math.pow(10,String(n1).length);
+}
+
+// S95.WIZARD.VOICE.AI: Tier 2 fallback при ambiguous voice transcript. ~5% от cases.
+// Cost: ~$0.0001/call (Gemini 2.5 Flash). Latency: ~600-1100ms. Безопасен fallback.
+function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
+    var el=document.getElementById(inputId);
+    if(!el)return;
+    el.value='…';el.style.color='#94a3b8';
+    showToast('🧠 AI парсва "'+text+'"…','info');
+    var lang=(window.CFG&&CFG.lang)||'bg';
+    fetch('/services/price-ai.php',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({text:text,lang:lang})})
+        .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
+        .then(function(j){
+            if(j&&j.ok&&j.data&&j.data.price!==null&&!isNaN(j.data.price)){
+                el.value=j.data.price;
+                S.wizData[dataKey]=j.data.price;
+                el.style.color='';
+                showToast(label+' (AI): '+el.value,'success');
+                if(typeof wizMarkDone==='function')wizMarkDone(field);
+                if(typeof wizHighlightNext==='function')wizHighlightNext();
+            }else{
+                el.value='';el.style.color='';
+                showToast('Не разбрах "'+text+'" — кажи отново','error');
+            }
+        })
+        .catch(function(){el.value='';el.style.color='';showToast('AI грешка — кажи "'+text+'" отново','error')});
 }
 
 // S68 fix: voice for variation values + new axis name
