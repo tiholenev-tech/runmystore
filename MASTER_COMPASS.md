@@ -941,6 +941,51 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 04.05.2026 — S96 SALE.HARDEN + S97 INVENTORY.CoD + S98 DELIVERIES.AUDIT (понеделник)
+
+**Beta countdown:** 10 дни до 14-15.05  
+**Сесии:** 1 шеф-чат + 2 паралелни Code Code  
+**Total commits на main:** 9 (без mirrors)
+
+### Решения / промени
+
+- **F1 wholesale flag (33982bc):** is_wholesale POST → sales.type column persisted. Преди всички продажби бяха retail. Marketing AI Profit Maximizer unblocked.
+- **F2 audit_log (e94baf1):** auditLog() helper извикан след commit на sale.create. RWQ-64 partial closed. Marketing AI Activation Gate (Rule #26) unblocked за sales detection.
+- **GROUP_A schema correctness (fddf931):** sales.subtotal / paid_amount / due_date populated. AR aging unblocked. F3 от audit fixed.
+- **EOD drafts applied (23acdaa):** 5 drafts merged в реалните documents — COMPASS LOGIC LOG (Marketing AI v1.0 + ROADMAP REVISION 2 preserve original) + STATE refresh + PRIORITY 04.05 + STRESS ГРАФА 1 + BOOT_TEST v3. RWQ-47/24a closed. Standing Rules #26-28 added.
+- **AI Studio mockups + LOGIC.md (1354803):** 3 mockups (v2 + categories + FINAL_v5) + AI_STUDIO_LOGIC.md (886 lines) imported. Канонично за post-beta пълна имплементация.
+- **Sale audit doc (826ef87):** docs/SALE_S87E_AUDIT.md 347 lines, 11 sections, 7 категории. Top 3 P0: F1 wholesale (fixed), F2 audit (fixed), F3 schema (fixed GROUP_A).
+- **Inventory CoD endpoint (4e0ca43):** services/ai-brain-cod.php 132 LOC. Pure SQL Category of the Day (без external AI за beta). Returns category + count + estimated minutes + priority + reason.
+- **Inventory CoD UI (008cd7d):** inventory.php top card "🎯 ДНЕС ЗА БРОЕНЕ" + auto-trigger zcFiltCat filter on CTA. **Browser tested ✅** ("Тениски · 19 артикула · 5 мин · Никога не е броена").
+- **Deliveries audit (374b18c):** docs/DELIVERIES_BETA_READINESS.md 323 lines. Identified 3 P0 + 5 P1 + 7 P2 gaps. 5 open questions за Тихол.
+
+### REWORK QUEUE updates
+
+- ✅ **RWQ #36 closed** — inventory CoD live (S97)
+- ✅ **RWQ #48 closed** — sale-save.php payment_status timebomb (orphan, recommend DELETE in S96 Group E)
+- ✅ **RWQ #49 closed** — sale-save.php sale_items.tenant_id timebomb (orphan)
+- 🟡 **RWQ #64 partial closed** — sale.create audit covered, но void/refund handler missing (post-beta)
+- 🆕 **RWQ #80 added** — wizard voice bugs 1/2/3 (auto-save illusion + "следващ" trigger + цифри се режат). P0 за beta.
+- 🆕 **RWQ #81 added** — deliveries P0: voice fallback dead-end + raw OCR errors leak + defective proactive prompt missing. P0 за beta.
+- 🆕 **RWQ #82 added** — deliveries P1: auto-pricing C8 wire-up + has_mismatch compute + fuzzy product matching.
+
+### Lessons learned (за SHEF v2.7)
+
+1. **Reproduce verbatim** — описах bug 1 grешно ("tap Цена → say 20" вместо реалния "tap ИМЕ → tap ЦЕНА без говорене"). Часове загубени на грешен search path.
+2. **Brownfield audit преди prompt** — пуснах greenfield spec за deliveries (1073 LOC working модул). Code Code хвана.
+3. **/tmp/ vs production** — Code Code работи в /tmp/runmystore (sandbox). Push "Everything up-to-date" защото commits бяха в /tmp/.
+4. **Не реши сам destructive ops** — шеф-чат сам revert-на voice work без да попита Тихол.
+5. **Voice quality fallback** — Web Speech bg-BG е лош без Whisper. Beta strategy: ако voice не работи до 12.05 → fallback Web Speech only + ръчен tap. Voice не е MVP блокер.
+
+### Otvoreno за utre
+
+1. Verify bug 1 (реален save или UI illusion)
+2. Wizard cleanup S95-PART2/3/4
+3. AI Studio inline entry (RWQ-73)
+4. Read deliveries audit + answer 5 open questions
+5. TRACK 2 P0 specs (NAME_INPUT_DEAD, D12_REGRESSION, WHOLESALE_NO_CURRENCY)
+
+
 ## 03.05.2026 — MARKETING AI v1.0 INTEGRATION + ROADMAP REVISION 2
 
 **Triggered by:** Marketing Bible v1.0 (706 + 1733 = 2,439 реда, push commit 54c4e79).
