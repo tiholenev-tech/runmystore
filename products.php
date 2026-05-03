@@ -12058,26 +12058,32 @@ function _bgPrice(t,forcePrice){
         if(a!==null&&b!==null&&c!==null){var leva=a+b;return parseFloat(leva+'.'+String(c).padStart(2,'0'))}}
     return null}
 
-// S95.WIZARD.VOICE: aggressive Whisper-friendly price parser. Bg говор: "4 лева 55 стотинки",
-// "4 и 55", "4.55", "4,55", "20 лв" → коректно число. Fallback към _bgPrice за word-only форми.
+// S95.WIZARD.VOICE: price parser за Bulgarian voice. Покрива: "4,55", "4.55", "4 запетая 55",
+// "4 точка 55", "4 лева 55 стотинки", "4 и 55", "20 лв", "5". Fallback към _bgPrice за чисто-словни.
 function _wizPriceParse(text){
     if(text===undefined||text===null)return null;
     var raw=String(text).toLowerCase().trim();
     if(!raw)return null;
+    // Speech artifacts: думата "запетая"/"точка" → символ
+    var pre=raw.replace(/\bзапетая\b/gi,',').replace(/\bточка\b/gi,'.').replace(/\s+/g,' ').trim();
+    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|и/gi,' ').replace(/\s+/g,' ').trim();
+    var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
+    if(nums&&nums.length){
+        var first=nums[0].replace(',','.');
+        if(first.indexOf('.')>=0){var f=parseFloat(first);if(!isNaN(f))return f}
+        if(nums.length>=2){
+            var leva=parseInt(first,10);var st=parseInt(nums[1],10);
+            if(!isNaN(leva)&&!isNaN(st)){
+                if(st<100)return parseFloat(leva+'.'+String(st).padStart(2,'0'));
+                return leva+st/Math.pow(10,String(st).length);
+            }
+        }
+        var p=parseInt(first,10);if(!isNaN(p))return p;
+    }
+    // Fallback: чисто-словни форми ("четири петдесет и пет")
     var w=_bgPrice(raw,true);
     if(w!==null&&!isNaN(w))return w;
-    var cleaned=raw.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|и/gi,' ').replace(/\s+/g,' ').trim();
-    var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
-    if(!nums||!nums.length)return null;
-    var first=nums[0].replace(',','.');
-    if(first.indexOf('.')>=0){var f=parseFloat(first);return isNaN(f)?null:f}
-    if(nums.length>=2){
-        var leva=parseInt(first,10);var st=parseInt(nums[1],10);
-        if(isNaN(leva)||isNaN(st))return null;
-        if(st<100)return parseFloat(leva+'.'+String(st).padStart(2,'0'));
-        return leva+st/Math.pow(10,String(st).length);
-    }
-    var p=parseInt(first,10);return isNaN(p)?null:p;
+    return null;
 }
 
 // S68 fix: voice for variation values + new axis name
