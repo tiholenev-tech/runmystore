@@ -9975,6 +9975,27 @@ function s95AutoMinQty(){
     mInp.value=m;
     S.wizData.min_quantity=m;
 }
+// S95.PART1_1_A FIX 1: numpad steppers за Брой / Min Qty.
+// Qty min=1 (per spec — артикул трябва поне 1 бройка).
+// Min Qty min=0. След qty промяна → trigger oninput → s95AutoMinQty.
+function s95QtyAdjust(inputId,delta){
+    var inp=document.getElementById(inputId);
+    if(!inp)return;
+    var cur=parseInt(inp.value)||0;
+    var next=Math.max(1,cur+delta);
+    inp.value=next;
+    S.wizData.quantity=next;
+    s95AutoMinQty();
+}
+function s95MinAdjust(delta){
+    var inp=document.getElementById('wMinQty');
+    if(!inp)return;
+    var cur=parseInt(inp.value)||0;
+    var next=Math.max(0,cur+delta);
+    inp.value=next;
+    inp.dataset.userEdited='true';
+    S.wizData.min_quantity=next;
+}
 // S95.WIZARD.RESTRUCTURE: Напред бутон на step 1 — само за variant (single няма Напред).
 function wizStep1Next(){
     wizCollectData();
@@ -10101,9 +10122,11 @@ function renderWizPhotoStep(){
     // FIX 1) + Като предния, photo block, name+price, supplier+category+subcategory,
     // code+barcode, qty+min (PART1_1 FIX 5/ADDITION). Fields disabled if type not chosen yet.
     var hasLast=false;try{hasLast=!!localStorage.getItem('_rms_lastWizProductFields')}catch(e){}
+    // S95.PART1_1_A FIX 3: винаги render-вай "Като предния" — disabled placeholder ако няма
+    // предишен артикул (преди button-а изобщо не се показваше при празен localStorage).
     var copyPrevBtn = hasLast
-        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:38px;padding:0 14px;border-radius:11px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05)">📋 Като предния</button>'
-        : '';
+        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:42px;padding:0 18px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);width:100%">📋 Като предния</button>'
+        : '<button type="button" onclick="showToast(\'📋 Налично след първия записан артикул\',\'info\')" style="height:42px;padding:0 18px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);color:rgba(255,255,255,0.42);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;width:100%">📋 Като предния <span style="font-size:10px;color:rgba(255,255,255,0.32)">(след първия запис)</span></button>';
     // S95.PART1_1 FIX 1: mandatory type buttons. Hint above. Active button glows.
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
@@ -10119,11 +10142,13 @@ function renderWizPhotoStep(){
     var typeHint=typeChosen
         ? ''
         : '<div style="text-align:center;font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">▼ Избери тип артикул</div>';
-    var headerH=typeHint+
-        '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">'+
+    // S95.PART1_1_A FIX 3: "Като предния" ABOVE toggle (per spec ASCII art).
+    var headerH=
+        '<div style="margin-bottom:10px">'+copyPrevBtn+'</div>'+
+        typeHint+
+        '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+
             typeBtnSingle+typeBtnVariant+
-        '</div>'+
-        (copyPrevBtn?'<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'+copyPrevBtn+'</div>':'<div style="margin-bottom:6px"></div>');
+        '</div>';
     // S95.PART1_1 FIX 1: lock everything below header until type is chosen.
     var lockStyle=typeChosen?'':'opacity:0.42;pointer-events:none;filter:saturate(0.4)';
     var nameH=
@@ -10204,10 +10229,11 @@ function renderWizPhotoStep(){
                 '<button type="button" class="abtn" onclick="wizScanBarcode(\'wBarcode\',\'Сканирай баркод\')" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай баркод"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'+
             '</div>'+
         '</div>';
-    // S95.PART1_1 FIX 5/ADDITION: Брой + Min Quantity card. Single only — variant uses matrix.
-    // wSingleQty (existing wizSave/wizCollectData ID preserved). wMinQty (existing).
-    // Auto-formula round(qty/2.5) min 1 — applied on input via inline JS, only if user
-    // hasn't manually edited Min Qty (dataset.userEdited tracks this).
+    // S95.PART1_1 FIX 5 / PART1_1_A FIX 1: Брой + Min Quantity card with [-]/[+] numpad
+    // steppers (per Тихол UX feedback: plain input was less convenient than +1/-1 taps).
+    // Pattern matches old step 3 sub 0 single qtyBlock (line ~6279). DOM IDs preserved
+    // (wSingleQty for wizSave compat, wMinQty for wizCollectData compat).
+    // Auto-formula s95AutoMinQty triggered on qty stepper buttons too via dispatchEvent.
     var qtyH='';
     if(S.wizType==='single'){
         var _qVal=(S.wizData.quantity===undefined?'':S.wizData.quantity);
@@ -10218,14 +10244,22 @@ function renderWizPhotoStep(){
                 '<div class="fg" style="margin:0 0 10px">'+
                     '<label class="fl">📦 Брой&nbsp;<span style="color:#ef4444">*</span></label>'+
                     '<div style="display:flex;gap:6px;align-items:center">'+
-                        '<input type="number" inputmode="numeric" min="0" class="fc" id="wSingleQty" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()" style="flex:1">'+
+                        '<div style="display:flex;border:1px solid rgba(99,102,241,0.25);border-radius:12px;overflow:hidden;height:42px;flex:1">'+
+                            '<button type="button" onclick="s95QtyAdjust(\'wSingleQty\',-1)" style="width:46px;background:rgba(99,102,241,0.10);border:none;border-right:1px solid rgba(99,102,241,0.18);color:#a5b4fc;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">−</button>'+
+                            '<input type="number" inputmode="numeric" min="0" id="wSingleQty" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit">'+
+                            '<button type="button" onclick="s95QtyAdjust(\'wSingleQty\',1)" style="width:46px;background:rgba(99,102,241,0.10);border:none;border-left:1px solid rgba(99,102,241,0.18);color:#a5b4fc;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">+</button>'+
+                        '</div>'+
                         '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
                     '</div>'+
                 '</div>'+
                 '<div class="fg" style="margin:0">'+
                     '<label class="fl">📦 Минимално кол. <span class="hint" style="font-weight:400;color:#64748b">(авто от брой)</span></label>'+
                     '<div style="display:flex;gap:6px;align-items:center">'+
-                        '<input type="number" inputmode="numeric" min="0" class="fc" id="wMinQty" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'" style="flex:1">'+
+                        '<div style="display:flex;border:1px solid rgba(245,158,11,0.20);border-radius:12px;overflow:hidden;height:42px;flex:1;background:rgba(245,158,11,0.03)">'+
+                            '<button type="button" onclick="s95MinAdjust(-1)" style="width:46px;background:rgba(245,158,11,0.10);border:none;border-right:1px solid rgba(245,158,11,0.18);color:#fbbf24;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">−</button>'+
+                            '<input type="number" inputmode="numeric" min="0" id="wMinQty" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit">'+
+                            '<button type="button" onclick="s95MinAdjust(1)" style="width:46px;background:rgba(245,158,11,0.10);border:none;border-left:1px solid rgba(245,158,11,0.18);color:#fbbf24;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">+</button>'+
+                        '</div>'+
                         '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
                     '</div>'+
                 '</div>'+
@@ -11563,14 +11597,19 @@ function wizPrintLabels(comboIdx){
     if(composition)originLine+=composition;
     if(origin&&!isDomestic)originLine+=(originLine?' · ':'')+origin;
 
+    // S95.PART1_1_A FIX 2: lblQty<i> DOM elements съществуват само на step 6 success screen.
+    // От mini print overlay (Single fast-path) тези inputs ги няма → fallback към c.printQty,
+    // който е set по време на _printCombos build в wizSave (single → printQty=wSingleQty value).
     var items=[];
     if(comboIdx===-1){
         combos.forEach(function(c,i){
-            var qty=parseInt(document.getElementById('lblQty'+i)?.value)||0;
+            var domQty=document.getElementById('lblQty'+i);
+            var qty=domQty?(parseInt(domQty.value)||0):(parseInt(c.printQty)||0);
             if(qty>0)items.push({combo:c,qty:qty});
         });
     }else{
-        var qty=parseInt(document.getElementById('lblQty'+comboIdx)?.value)||1;
+        var domQty=document.getElementById('lblQty'+comboIdx);
+        var qty=domQty?(parseInt(domQty.value)||1):(parseInt(combos[comboIdx]?.printQty)||1);
         items.push({combo:combos[comboIdx],qty:qty});
     }
     if(!items.length){showToast('Няма етикети за печат','error');return;}
