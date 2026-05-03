@@ -17,6 +17,10 @@ require_once 'compute-insights.php';
 $pdo = DB::get();
 // S73.B.37: ensure colors_config column exists
 try { DB::run("ALTER TABLE tenants ADD COLUMN colors_config TEXT NULL"); } catch(Exception $e) {}
+// S93.WIZARD.V4.SESSION_2: feature flag за нов 3-step wizard. DEFAULT 'legacy'
+// за безопасен rollout — Тихол flip-ва ENI tenant=7 към 'v4' след browser test.
+// Idempotent ALTER (try/catch) — повтаряне не вреди.
+try { DB::run("ALTER TABLE users ADD COLUMN wizard_version ENUM('legacy','v4') NOT NULL DEFAULT 'legacy'"); } catch(Exception $e) {}
 $user_id    = $_SESSION['user_id'];
 $tenant_id  = $_SESSION['tenant_id'];
 $store_id   = $_SESSION['store_id'] ?? null;
@@ -43,6 +47,12 @@ $ai_bg = (int)($tenant['ai_credits_bg'] ?? 0);
 $ai_tryon = (int)($tenant['ai_credits_tryon'] ?? 0);
 
 $user = DB::run("SELECT * FROM users WHERE id = ?", [$user_id])->fetch(PDO::FETCH_ASSOC);
+// S93.WIZARD.V4.SESSION_2: detect wizard version. Граchful fallback ако
+// колоната не съществува — default 'legacy' = старо поведение.
+$wizard_version = 'legacy';
+if (is_array($user) && isset($user['wizard_version']) && in_array($user['wizard_version'], ['legacy','v4'], true)) {
+    $wizard_version = $user['wizard_version'];
+}
 $stores = DB::run("SELECT s.id, s.name FROM stores s WHERE s.company_id = (SELECT company_id FROM stores WHERE id = ?) ORDER BY s.name", [$store_id])->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================================
@@ -4449,6 +4459,13 @@ html{overflow-x:hidden;max-width:100vw}
 <input type="file" id="filePickerInput" accept="image/*,*/*">
 <!-- S43: removed dup filePickerInput -->
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
+<?php
+// S93.WIZARD.V4.SESSION_2: include wizard voice overlay само при v4 (feature flag).
+// Hidden by default — не влияе на DOM/визия за legacy users.
+if ($wizard_version === 'v4') {
+    include __DIR__ . '/partials/wizard-voice-overlay.php';
+}
+?>
 
 <script>
 <?php
@@ -4510,6 +4527,7 @@ const CFG = {
     aiTryon: <?= $ai_tryon ?>,
     currency: '<?= $currency ?>',
     currencyLabel: <?= json_encode($currency_label, JSON_UNESCAPED_UNICODE) ?>,
+    wizardVersion: '<?= $wizard_version ?>',
     lang: '<?= $lang ?>',
     businessType: '<?= htmlspecialchars($business_type) ?>',
     suppliers: <?= json_encode($all_suppliers, JSON_UNESCAPED_UNICODE) ?>,
@@ -6017,6 +6035,18 @@ function mxUpdateStats(){var f=0,t=0,ms=0;var m=S.wizData._matrix||{};Object.key
 function mxDone(){S._mxSnapshot=undefined;closeMxOverlay();renderWizard();if(navigator.vibrate)navigator.vibrate([5,30,10])}
 
 async function renderWizard(){
+    // S93.WIZARD.V4.SESSION_2: V4 short-circuit — отделен step indicator + body
+    // render. Legacy 6-step UI се прескача напълно. Persistence на draft работи и тук.
+    if (typeof CFG !== 'undefined' && CFG.wizardVersion === 'v4') {
+        if (typeof _wizSaveDraft === 'function') _wizSaveDraft();
+        var stepsEl = document.getElementById('wizSteps');
+        if (stepsEl) stepsEl.innerHTML = ''; // own indicator inside renderWizPageV4
+        var labelEl = document.getElementById('wizLabel');
+        if (labelEl) labelEl.innerHTML = '';
+        document.getElementById('wizBody').innerHTML = renderWizPageV4(S.wizStep || 1);
+        if (S._lastWizStep !== S.wizStep) { document.getElementById('wizBody').scrollTop = 0; S._lastWizStep = S.wizStep; }
+        return;
+    }
     if(S.wizStep===6)wizCollectData();
     // S82.STUDIO.10: persist draft on every render (covers axes/matrix/photo/form changes).
     if (typeof _wizSaveDraft === 'function') _wizSaveDraft();
@@ -6114,7 +6144,321 @@ async function renderWizard(){
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// S93.WIZARD.V4.SESSION_2 — 3-STEP WIZARD (feature flag: CFG.wizardVersion='v4')
+// ═══════════════════════════════════════════════════════════════════════════
+// Per PRODUCTS_WIZARD_v4_SPEC.md §1: 3 стъпки вместо 8.
+//   Step 1: Идентификация — photo + name* + price* + supplier + cat + sub + barcode + code
+//   Step 2: Вариации — chips + matrix + zone (или single qty)
+//   Step 3: Цени + Метаданни — cost + wholesale + ПЕЧАЛБА% + material + origin
+// confidence_score: 40 (step1 save) → 70 (step2) → 95 (step3).
+// Step indicator + voice overlay + auto-gen barcode/SKU + Като предния + Търси.
+// ───────────────────────────────────────────────────────────────────────────
+
+function _v4StepIndicator(currentStep){
+    var dots=['','',''];
+    for(var i=1;i<=3;i++){
+        var st=(i<currentStep)?'done':(i===currentStep?'active':'todo');
+        dots[i-1]='<span class="v4-step-dot v4-step-'+st+'" data-step="'+i+'" onclick="wizV4Goto('+i+')"></span>';
+    }
+    return '<div class="v4-step-indicator">'+
+        dots.join('<span class="v4-step-bar"></span>')+
+        '<span class="v4-step-label">Стъпка '+currentStep+' от 3</span>'+
+    '</div>';
+}
+
+function _v4Header(){
+    var hasLast=false; try{ hasLast=!!localStorage.getItem('_rms_lastWizProductFields'); }catch(_e){}
+    var copyBtn = hasLast
+        ? '<button type="button" class="v4-hdr-btn v4-hdr-copy" onclick="wizV4CopyFromLast()" title="Като предния">📋</button>'
+        : '';
+    return '<div class="v4-hdr-actions">'+
+        '<button type="button" class="v4-hdr-btn v4-hdr-search" onclick="wizV4OpenSearch()" title="Търси">🔍</button>'+
+        copyBtn+
+    '</div>';
+}
+
+function _v4FieldVoice(fieldKey, prompt){
+    // Voice button за поле — отваря wizard-voice-overlay.php-controlled overlay.
+    return '<button type="button" class="v4-field-mic" onclick="wizV4VoiceField(\''+fieldKey+'\','+JSON.stringify(prompt)+')" aria-label="Глас"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
+}
+
+function _v4Esc(s){ s=String(s||''); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _v4FooterStep1(){
+    // ЗАПАЗИ (confidence=40) + ПЕЧАТАЙ + Напред →. Бутоните ВИНАГИ enabled —
+    // onclick валидира. NAME_INPUT_DEAD prevention.
+    return '<div class="v4-footer">'+
+        '<button type="button" class="v4-btn v4-btn-save" onclick="wizV4Save(40)">ЗАПАЗИ</button>'+
+        '<button type="button" class="v4-btn v4-btn-print" onclick="wizV4Print(40)" aria-label="Печат">🖨</button>'+
+        '<button type="button" class="v4-btn v4-btn-next" onclick="wizV4Next(2)">Напред →</button>'+
+    '</div>';
+}
+function _v4FooterStep2(){
+    return '<div class="v4-footer">'+
+        '<button type="button" class="v4-btn v4-btn-back" onclick="wizV4Goto(1)">← Назад</button>'+
+        '<button type="button" class="v4-btn v4-btn-save" onclick="wizV4Save(70)">ЗАПАЗИ</button>'+
+        '<button type="button" class="v4-btn v4-btn-print" onclick="wizV4Print(70)" aria-label="Печат">🖨</button>'+
+        '<button type="button" class="v4-btn v4-btn-next" onclick="wizV4Next(3)">Напред →</button>'+
+    '</div>';
+}
+function _v4FooterStep3(){
+    return '<div class="v4-footer">'+
+        '<button type="button" class="v4-btn v4-btn-back" onclick="wizV4Goto(2)">← Назад</button>'+
+        '<button type="button" class="v4-btn v4-btn-save v4-btn-final" onclick="wizV4Save(95)">ЗАПАЗИ финал</button>'+
+        '<button type="button" class="v4-btn v4-btn-print" onclick="wizV4Print(95)" aria-label="Печат">🖨</button>'+
+    '</div>';
+}
+
+function renderWizPageV4(step){
+    // Normalize step to 1-3 range. Legacy може да повика wizGo(0) → forced към 1.
+    if (!step || step < 1 || step > 3) step = 1;
+    S.wizStep = step;
+    if (!S.wizData) S.wizData = {};
+    if (S.wizData.origin_country === undefined) S.wizData.origin_country = 'България';
+
+    var ccyLabel = (CFG && CFG.currencyLabel) || 'лв';
+    var ccySfx = '<span class="v4-ccy-sfx">'+_v4Esc(ccyLabel)+'</span>';
+
+    var html = ''+
+        '<div class="v4-wiz-page" data-step="'+step+'">'+
+            _v4StepIndicator(step)+
+            _v4Header();
+
+    if (step === 1) {
+        // ── Step 1: Идентификация (8 полета) ──
+        var photo = S.wizData._photoDataUrl || '';
+        var photoBlock = photo
+            ? '<div class="v4-photo-hero" onclick="document.getElementById(\'filePickerInput\').click()"><img src="'+_v4Esc(photo)+'" alt=""></div>'
+            : '<div class="v4-photo-empty" onclick="document.getElementById(\'filePickerInput\').click()">'+
+                  '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'+
+                  '<div class="v4-photo-empty-title">Добави снимка</div>'+
+                  '<div class="v4-photo-empty-hint">Без снимка? AI ще познае вариациите от категорията.</div>'+
+              '</div>';
+
+        var supName = '';
+        if (S.wizData.supplier_id) {
+            var s = (CFG.suppliers||[]).find(function(x){return x.id==S.wizData.supplier_id});
+            supName = s ? s.name : '';
+        }
+        var catName = '';
+        if (S.wizData.category_id) {
+            var c = (CFG.categories||[]).find(function(x){return x.id==S.wizData.category_id});
+            catName = c ? c.name : '';
+        }
+
+        html +=
+            '<div class="v4-card glass q-default">'+
+                '<span class="shine"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow"></span><span class="glow glow-bottom"></span>'+
+                photoBlock+
+                // Name (required)
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Име <span class="v4-req">*</span></label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Name" oninput="S.wizData.name=this.value.trim()" value="'+_v4Esc(S.wizData.name||'')+'" placeholder="Кажи или въведи името">'+
+                        _v4FieldVoice('name', 'Име?')+
+                    '</div>'+
+                '</div>'+
+                // Price retail (required)
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Цена на дребно <span class="v4-req">*</span></label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="number" step="0.01" inputmode="decimal" class="v4-fc" id="wV4Price" oninput="S.wizData.retail_price=parseFloat(this.value)||0" value="'+(S.wizData.retail_price||'')+'" placeholder="0.00">'+
+                        ccySfx+
+                        _v4FieldVoice('retail_price', 'Цена?')+
+                    '</div>'+
+                '</div>'+
+                // Supplier
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Доставчик</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Sup" autocomplete="off" value="'+_v4Esc(supName)+'" placeholder="Marina, Кроссим..." '+
+                            'onfocus="wizSearchDropdown(\'wV4Sup\',\'wV4SupList\',CFG.suppliers||[])" '+
+                            'oninput="wizSearchDropdown(\'wV4Sup\',\'wV4SupList\',CFG.suppliers||[])" '+
+                            'onblur="setTimeout(function(){var l=document.getElementById(\'wV4SupList\');if(l)l.style.display=\'none\'},220)">'+
+                        _v4FieldVoice('supplier', 'Доставчик?')+
+                    '</div>'+
+                    '<div id="wV4SupList" class="v4-dd-list" style="display:none"></div>'+
+                '</div>'+
+                // Category
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Категория</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Cat" autocomplete="off" value="'+_v4Esc(catName)+'" placeholder="Дрехи, бельо..." '+
+                            'onfocus="wizSearchDropdown(\'wV4Cat\',\'wV4CatList\',CFG.categories||[])" '+
+                            'oninput="wizSearchDropdown(\'wV4Cat\',\'wV4CatList\',CFG.categories||[])" '+
+                            'onblur="setTimeout(function(){var l=document.getElementById(\'wV4CatList\');if(l)l.style.display=\'none\'},220)">'+
+                        _v4FieldVoice('category', 'Категория?')+
+                    '</div>'+
+                    '<div id="wV4CatList" class="v4-dd-list" style="display:none"></div>'+
+                '</div>'+
+                // Subcategory
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Подкатегория</label>'+
+                    '<div class="v4-input-row">'+
+                        '<select class="v4-fc" id="wV4Subcat" '+(S.wizData.category_id?'':'disabled')+' onchange="S.wizData.subcategory_id=this.value||null">'+
+                            '<option value="">'+(S.wizData.category_id?'— Няма —':'— Избери първо категория —')+'</option>'+
+                        '</select>'+
+                        _v4FieldVoice('subcategory', 'Подкатегория?')+
+                    '</div>'+
+                '</div>'+
+                // Barcode
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Баркод <span class="v4-hint">(auto при празно)</span></label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Barcode" oninput="S.wizData.barcode=this.value.trim()" value="'+_v4Esc(S.wizData.barcode||'')+'" placeholder="сканирай или празно за auto">'+
+                        _v4FieldVoice('barcode', 'Баркод?')+
+                    '</div>'+
+                '</div>'+
+                // Code (SKU)
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Артикулен номер <span class="v4-hint">(auto: ENI-2026-NNNN)</span></label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Code" oninput="S.wizData.code=this.value.trim()" value="'+_v4Esc(S.wizData.code||'')+'" placeholder="празно за auto">'+
+                        _v4FieldVoice('code', 'Код?')+
+                    '</div>'+
+                '</div>'+
+            '</div>'+
+            _v4FooterStep1();
+
+    } else if (step === 2) {
+        // ── Step 2: Вариации (placeholder simple form в Phase C) ──
+        var hasVar = !!(S.wizData.has_variations);
+        html +=
+            '<div class="v4-card glass q-jewelry">'+
+                '<span class="shine"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow"></span><span class="glow glow-bottom"></span>'+
+                '<div class="v4-step-title">Вариации + бройки</div>'+
+                '<div class="v4-step-sub">Артикулът с цвят/размер? Иначе само бройка.</div>'+
+                '<div class="v4-toggle-row">'+
+                    '<button type="button" class="v4-toggle-opt'+(hasVar?'':' active')+'" onclick="wizV4SetVariations(false)">Без вариации</button>'+
+                    '<button type="button" class="v4-toggle-opt'+(hasVar?' active':'')+'" onclick="wizV4SetVariations(true)">С цветове / размери</button>'+
+                '</div>'+
+                (hasVar
+                    ? _v4VariationsBlock()
+                    : '<div class="v4-fg">'+
+                        '<label class="v4-fl">Бройка</label>'+
+                        '<div class="v4-input-row">'+
+                            '<input type="number" inputmode="numeric" class="v4-fc" id="wV4SingleQty" oninput="S.wizData.quantity=parseInt(this.value)||0" value="'+(S.wizData.quantity===undefined?1:S.wizData.quantity)+'" placeholder="0">'+
+                            _v4FieldVoice('quantity', 'Бройка?')+
+                        '</div>'+
+                      '</div>')+
+                // Zone (always)
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Зона в магазина <span class="v4-hint">(стелаж 3 рафт 2)</span></label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Zone" oninput="S.wizData.location=this.value" value="'+_v4Esc(S.wizData.location||'')+'" placeholder="напр. стелаж 3 рафт 2">'+
+                        _v4FieldVoice('zone', 'Зона?')+
+                    '</div>'+
+                '</div>'+
+            '</div>'+
+            _v4FooterStep2();
+
+    } else {
+        // ── Step 3: Цени + Метаданни ──
+        var costV  = S.wizData.cost_price || '';
+        var whV    = S.wizData.wholesale_price || '';
+        var matV   = S.wizData.composition || '';
+        var origV  = S.wizData.origin_country || 'България';
+        // Live margin calc (read-only display).
+        var marginH = '<span class="v4-margin-pill v4-margin-na">—</span>';
+        var rp = parseFloat(S.wizData.retail_price)||0;
+        var cp = parseFloat(S.wizData.cost_price)||0;
+        if (rp > 0 && cp > 0 && rp >= cp) {
+            var m = Math.round(((rp-cp)/rp)*100);
+            var cls = m >= 30 ? 'v4-margin-good' : (m >= 15 ? 'v4-margin-mid' : 'v4-margin-low');
+            marginH = '<span class="v4-margin-pill '+cls+'">'+m+' %</span>';
+        }
+        html +=
+            '<div class="v4-card glass q-amber">'+
+                '<span class="shine"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow"></span><span class="glow glow-bottom"></span>'+
+                '<div class="v4-step-title">Цени + Метаданни</div>'+
+                '<div class="v4-step-sub">Допълнителни данни за пълна картина (AI insights, reports).</div>'+
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Доставна цена</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="number" step="0.01" inputmode="decimal" class="v4-fc" id="wV4Cost" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizV4UpdateMargin()" value="'+costV+'" placeholder="0.00">'+
+                        ccySfx+
+                        _v4FieldVoice('cost_price', 'Доставна цена?')+
+                    '</div>'+
+                '</div>'+
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Цена на едро</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="number" step="0.01" inputmode="decimal" class="v4-fc" id="wV4Wh" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0" value="'+whV+'" placeholder="0.00">'+
+                        ccySfx+
+                        _v4FieldVoice('wholesale_price', 'Цена на едро?')+
+                    '</div>'+
+                '</div>'+
+                '<div class="v4-fg v4-margin-row">'+
+                    '<label class="v4-fl">ПЕЧАЛБА %</label>'+
+                    '<div class="v4-margin-display" id="wV4MarginDisplay">'+marginH+'</div>'+
+                '</div>'+
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Материя</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Mat" oninput="S.wizData.composition=this.value" value="'+_v4Esc(matV)+'" placeholder="98% памук, 2% еластан">'+
+                        _v4FieldVoice('material', 'Материя?')+
+                    '</div>'+
+                '</div>'+
+                '<div class="v4-fg">'+
+                    '<label class="v4-fl">Произход</label>'+
+                    '<div class="v4-input-row">'+
+                        '<input type="text" class="v4-fc" id="wV4Orig" oninput="S.wizData.origin_country=this.value" value="'+_v4Esc(origV)+'" placeholder="България, Турция">'+
+                        _v4FieldVoice('origin', 'Произход?')+
+                    '</div>'+
+                '</div>'+
+            '</div>'+
+            _v4FooterStep3();
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function _v4VariationsBlock(){
+    // Simple variation entry — chips за цветове + размери. Matrix integration се
+    // отлага за S3 (full matrix component използва съществуващия mxOverlay).
+    var colors = (S.wizData.variations && Array.isArray(S.wizData.variations.colors)) ? S.wizData.variations.colors : [];
+    var sizes  = (S.wizData.variations && Array.isArray(S.wizData.variations.sizes))  ? S.wizData.variations.sizes  : [];
+    var colChips = colors.map(function(c,i){
+        return '<span class="v4-chip" onclick="wizV4RemoveVar(\'colors\','+i+')">'+_v4Esc(c)+' ✕</span>';
+    }).join('');
+    var sizChips = sizes.map(function(s,i){
+        return '<span class="v4-chip" onclick="wizV4RemoveVar(\'sizes\','+i+')">'+_v4Esc(s)+' ✕</span>';
+    }).join('');
+    return ''+
+        '<div class="v4-fg">'+
+            '<label class="v4-fl">Цветове</label>'+
+            '<div class="v4-chips-row" id="wV4Colors">'+colChips+'</div>'+
+            '<div class="v4-input-row">'+
+                '<input type="text" class="v4-fc" id="wV4ColorIn" placeholder="напр. черно, бяло, синьо" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizV4AddVar(\'colors\',this.value);this.value=\'\'}">'+
+                '<button type="button" class="v4-add-btn" onclick="var i=document.getElementById(\'wV4ColorIn\');wizV4AddVar(\'colors\',i.value);i.value=\'\'">+ Добави</button>'+
+                _v4FieldVoice('color', 'Цветове?')+
+            '</div>'+
+        '</div>'+
+        '<div class="v4-fg">'+
+            '<label class="v4-fl">Размери</label>'+
+            '<div class="v4-chips-row" id="wV4Sizes">'+sizChips+'</div>'+
+            '<div class="v4-input-row">'+
+                '<input type="text" class="v4-fc" id="wV4SizeIn" placeholder="напр. S, M, L, XL" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizV4AddVar(\'sizes\',this.value);this.value=\'\'}">'+
+                '<button type="button" class="v4-add-btn" onclick="var i=document.getElementById(\'wV4SizeIn\');wizV4AddVar(\'sizes\',i.value);i.value=\'\'">+ Добави</button>'+
+                _v4FieldVoice('size', 'Размери?')+
+            '</div>'+
+        '</div>'+
+        (colors.length && sizes.length
+            ? '<div class="v4-matrix-hint">📊 Матрицата с бройки ще се отвори при ЗАПАЗИ на стъпка 2.</div>'
+            : '<div class="v4-matrix-hint v4-matrix-hint-warn">Добави и цвят, и размер за матрица.</div>');
+}
+
 function renderWizPage(step){
+    // S93.WIZARD.V4.SESSION_2: feature flag — delegirame на v4 dispatcher ако
+    // user.wizard_version='v4'. Legacy code пропуска без промяна.
+    if (typeof CFG !== 'undefined' && CFG.wizardVersion === 'v4' && typeof renderWizPageV4 === 'function') {
+        return renderWizPageV4(step);
+    }
     const vskip=S.wizVoiceMode?'<button class="abtn" onclick="wizGo('+(step+1)+')" style="margin-top:6px;border-color:rgba(245,158,11,0.2);color:#fbbf24">⏭ Пропусни</button>':'';
 
     // ═══ STEP 0: ВИД (S88B-1) — реален UI с 2 cards + Копирай от последния ═══
