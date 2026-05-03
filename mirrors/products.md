@@ -6867,6 +6867,12 @@ function renderWizPagePart2(step){
         var minQtyH='<div class="fg" style="margin-bottom:8px">'+fieldLabel('Минимално количество (глобално)','min_qty')+
         '<input type="number" class="fc" id="wMinQty" value="'+(S.wizData.min_quantity||0)+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" placeholder="0" style="font-size:12px"></div>';
 
+        // S94.WIZARD.RESTRUCTURE: Зона в магазина — нов field в Step 5 (matrix area).
+        // Помага при ревизии (zone walk). Voice mic за hands-free input. DOM ID
+        // wZoneInput — wizCollectData syncs към S.wizData.location.
+        var zoneH='<div class="fg" style="margin-bottom:8px">'+fieldLabel('Зона в магазина','zone','<span class="hint">(стелаж 3 рафт 2)</span>')+
+        '<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wZoneInput" value="'+esc(S.wizData.location||'')+'" oninput="S.wizData.location=this.value" placeholder="напр. стелаж 3 рафт 2" style="flex:1;font-size:12px">'+mic('zone')+'</div></div>';
+
         // AI description
         var descH='<div class="fg" style="margin-top:8px">'+fieldLabel('AI SEO описание','description')+
         '<textarea class="fc" id="wDesc" rows="4" placeholder="Натисни бутона за AI описание..." style="font-size:12px" '+(S.wizData.description?'':'readonly')+'>'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
@@ -6898,7 +6904,7 @@ function renderWizPagePart2(step){
 
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">Бройки и запис</div>'+
-        sumLine+unitH+matrixH+minQtyH+descH+
+        sumLine+unitH+matrixH+minQtyH+zoneH+descH+
         finalPromptH+
         '<button class="abtn" onclick="wizGo(4)" style="margin-top:10px">\u2190 Назад към вариации</button>'+
         vskip+'</div>';
