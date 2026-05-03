@@ -11931,13 +11931,16 @@ var _wizMicRec=null;
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
 var _wizTrigRec=null;
 function wizMic(field){
-    if(WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
-        _wizMicWhisper(field);
+    // S95.WIZARD.VOICE: per-locale routing. bg → Web Speech (Chrome е силен + auto-stop).
+    // Други езици → Whisper Tier 2 за numeric (Chrome е слаб за ro/el/sr/hr; Groq е по-добър).
+    var lang=(window.CFG&&CFG.lang)||'bg';
+    if(lang!=='bg' && WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        _wizMicWhisper(field,lang);
         return;
     }
-    _wizMicWebSpeech(field);
+    _wizMicWebSpeech(field,lang);
 }
-function _wizMicWebSpeech(field){
+function _wizMicWebSpeech(field,lang){
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){showToast('Гласът не се поддържа','error');return}
     if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
@@ -11948,7 +11951,8 @@ function _wizMicWebSpeech(field){
     if(targetFg)targetFg.classList.add('wiz-active');
     var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
     if(micBtn)micBtn.classList.add('recording');
-    _wizMicRec=new SR();_wizMicRec.lang='bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
+    var srLangMap={bg:'bg-BG',ro:'ro-RO',el:'el-GR',sr:'sr-RS',hr:'hr-HR',en:'en-US',mk:'mk-MK',sq:'sq-AL',tr:'tr-TR',sl:'sl-SI',de:'de-DE'};
+    _wizMicRec=new SR();_wizMicRec.lang=srLangMap[lang||'bg']||'bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
     _wizMicRec.onresult=function(e){
         var final='',interim='';
         for(var i=0;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}
@@ -11959,7 +11963,7 @@ function _wizMicWebSpeech(field){
     _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
     _wizMicRec.start();
 }
-function _wizMicWhisper(field){
+function _wizMicWhisper(field,lang){
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
@@ -11979,7 +11983,7 @@ function _wizMicWhisper(field){
             stream.getTracks().forEach(function(t){t.stop()});
             if(!chunks.length){fallback();return}
             var blob=new Blob(chunks,{type:'audio/webm'});
-            var fd=new FormData();fd.append('audio',blob,'rec.webm');fd.append('lang','bg');
+            var fd=new FormData();fd.append('audio',blob,'rec.webm');fd.append('lang',lang||'bg');
             fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
                 .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
                 .then(function(j){
