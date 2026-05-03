@@ -12086,7 +12086,8 @@ function _wizPriceParse(text){
         pre=pre.replace(new RegExp('\\b'+_BG_WORD_KEYS[i]+'\\b','gi'),' '+_BG_WORD_NUMS[_BG_WORD_KEYS[i]]+' ');
     }
     pre=pre.replace(/\s+/g,' ').trim();
-    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|и/gi,' ').replace(/\s+/g,' ').trim();
+    // Strip currency words, common fillers ("около/примерно/по"), unit words ("броя/брой/бройки/парчета/штук"), и decimal "и"
+    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|броя|брой|бройки|парчета|штук|парче|штука|и/gi,' ').replace(/\s+/g,' ').trim();
     var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
     if(!nums||!nums.length)return null;
     var first=nums[0].replace(',','.');
