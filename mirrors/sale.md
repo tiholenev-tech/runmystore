@@ -3,6 +3,7 @@ session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
+require_once 'config/helpers.php'; // S96.HARDEN.F2 — auditLog() helper
 
 $pdo = DB::get();
 $tenant_id = $_SESSION['tenant_id'];
@@ -143,6 +144,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 [$tenant_id, $pid, $store_id, $qty, $sale_id]);
         }
         $pdo->commit();
+
+        // S96.HARDEN.F2 — audit trail (RWQ-64). Outside transaction; helper is no-throw.
+        auditLog(
+            ['tenant_id' => $tenant_id, 'id' => $user_id, 'store_id' => $store_id],
+            'create',
+            'sales',
+            (int) $sale_id,
+            null,
+            [
+                'total' => $total,
+                'type' => $sale_type,
+                'payment_method' => $payment_method,
+                'discount_pct' => $discount_pct,
+                'discount_amount' => $discount_amount,
+                'customer_id' => $customer_id,
+                'items_count' => count($items),
+            ],
+            'ui',
+            'sale.php?action=save_sale'
+        );
+
         echo json_encode(['success' => true, 'sale_id' => $sale_id, 'total' => $total]);
     } catch (Exception $e) {
         $pdo->rollBack();
