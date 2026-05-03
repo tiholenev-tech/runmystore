@@ -1,7 +1,7 @@
-# 🧪 BOOT_TEST_FOR_SHEF v2 — Шеф-чат IQ test
+# 🧪 BOOT_TEST_FOR_SHEF v3 — Шеф-чат IQ test
 
-**Версия:** 2 (02.05.2026)
-**Replaces:** v1 (project-knowledge only, never in repo)
+**Версия:** 3 (04.05.2026)
+**Replaces:** v2 (02.05.2026); v1 (project-knowledge only, never in repo)
 **Цел:** Тихол да открие "тъп шеф-чат" в първите 3 минути, не след 30 минути работа.
 
 **Употреба:** Когато отвориш нов шеф-чат, ПОСЛЕ като прочете задължителните файлове, paste-ваш този тест. Ако шеф-чат отговори ≥9/11 правилно на Tier 1 + 5/5 на Tier 2 + **1/1 на Tier 3 INVENTORY (задължителен!)** → продължаваш. Иначе RESTART.
@@ -57,10 +57,10 @@ Tier 3 (В11) = точен брой + полен списък.
 | 1 | Bluetooth APK печата? | **ДА** (DTM-5811, TSPL, 50×30mm, BG cyrillic) | Тъп чат ще каже "блокер" заради outdated COMPASS history |
 | 2 | life-board.php live? | **ДА** (S82.VISUAL Phase 2, 580 реда per STATE) | Тъп чат ще каже "не съществува" заради userMemories |
 | 3 | AI Studio DB applied? | **ДА** (S82.STUDIO.APPLY 27.04, 3 таблици + 10 колони) | Тъп чат ще каже "pending review" |
-| 4 | Diagnostic 100%? | **ДА от 27.04** (S85.DIAG.FIX 51/51 PASS; S88C 57/57 PASS) | Тъп чат ще цитира outdated 47/21% |
+| 4 | Diagnostic 100%? | **ДА от 27.04** (S85.DIAG.FIX 51/51 PASS; S88C 57/57 PASS). RWQ-47 ✅ closed 03.05.2026 EOD per Rule #3 (STATE wins). | Тъп чат ще цитира outdated 47/21% или ще каже "RWQ-47 still pending" — той е closed. |
 | 5 | Wizard step 5 нов modal? | **ЧАСТИЧНО** (mockup approval, code merge UNVERIFIED) | Реалността е verify pending |
 | 6 | Real entry tenant=7 done? | **НЕ** (S83 беше планиран 27.04; статус днес не explicit "done" в STATE) | Без verify не приемаме |
-| 7 | ENI launch дата? | **14-15 май 2026 (FIXED)** | Тъп чат ще каже септември (объркване с public launch) |
+| 7 | ENI launch дата? | **14-15 май 2026 (FIXED)** — countdown от 04.05 = **10 дни**. Винаги пресмятай дни-до-14.05 от today. | Тъп чат ще каже септември (объркване с public launch) или ще даде stale countdown. |
 | 8 | sale.php rewrite? | **ДА** (S87G.SALE.UX_BATCH 7 bugs done 29.04 + S91.MIGRATE.SALE 01.05) | userMemories казва outdated "TBD S87 май" |
 | 9 | Колко паралелни Code optimal? | **2 Code Code (max 4 общо: 2 Code + 1 Opus + Тихол)** per Rule #7 | Не "колкото искаш" |
 | 10 | Кой update-ва COMPASS? | **САМО шеф-чат** (Rule #22) | Code пишат `[COMPASS UPDATE NEEDED]` в handoff |

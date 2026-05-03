@@ -941,6 +941,176 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 03.05.2026 — MARKETING AI v1.0 INTEGRATION + ROADMAP REVISION 2
+
+**Triggered by:** Marketing Bible v1.0 (706 + 1733 = 2,439 реда, push commit 54c4e79).
+**Decision-maker:** Тихол.
+**Source:** docs/marketing/MARKETING_BIBLE_LOGIC_v1.md + MARKETING_BIBLE_TECHNICAL_v1.md.
+**Supersedes:** ROADMAP REVISION 1 (25.04.2026) — original entry preserved below as audit trail.
+
+### The Discovery
+Май 2026 — Meta Marketing API MCP, TikTok Symphony API, Google PMax MCP станали публични в production (не beta). Това отключва **directly machine-callable** ad campaign creation/optimization without humans-in-the-loop.
+
+- **Преди (планирано):** Marketing AI = Phase 6/7 = 2028 release
+- **Сега:** Marketing AI = Phase 1-5 = Q4 2026 — Q2 2027
+
+### Финално позициониране
+**RunMyStore = "Inventory-aware revenue engine"**
+Не е CRM. Не е E-commerce. Не е Marketing tool. Е **all three unified чрез inventory truth** — единствено Marketing AI което знае real-time stock + prevents over-promise + auto-routes orders към store с capacity.
+
+### Service-as-a-Software философия
+Не "AI помага на маркетолог". Е "AI **Е** маркетологът, Пешо просто approve-ва бюджет и стратегия."
+
+### Двата нови модула (interdependent)
+1. **Marketing AI** — 6 prompt-маркетолога (от 15 → 6 след 5-AI consensus)
+2. **Online Store** — Ecwid by Lightspeed integration
+
+**Защо interdependent:** Online Store е **захранващ канал** за Marketing AI (където кампаниите landing-ват). Marketing AI без Online Store = реклама в празно. Online Store без Marketing AI = сам shop без traffic.
+
+### 6-те Промпт-Маркетолога
+1. **Stock Hero** — кампании на high-stock items
+2. **Profit Maximizer** — cross-sell/upsell на high-margin items
+3. **Reactivator** — winback кампании за churned customers
+4. **Trend Hunter** — seasonal/trending product promotion
+5. **Local Whisperer** — geo-targeted кампании per store
+6. **Vault Guard** — anti-cannibalization (защита на профитни SKU-та)
+
+(От 15 первоначално — 9 dropped per 5-AI consensus като low-ROI или duplicate.)
+
+### Партньори ✅ Locked
+- **Ecwid by Lightspeed** — Online Store engine (REPLACES WooCommerce + Shopify)
+- **Stripe Primary** — payments + Stripe Connect for tenant routing
+- **Meta Marketing API** — campaign creation + optimization
+- **TikTok Symphony API** — creative auto-generation
+- **Google PMax MCP** — Performance Max campaigns
+- **Speedy + Econt** — CoD (cash-on-delivery) shipping
+
+### Партньори ❌ REJECTED
+- **WooCommerce** — heavy maintenance overhead, plugin hell
+- **Shopify** — closed ecosystem, expensive transaction fees
+- **Duda / Wix / Webflow / WordPress-based** — limited API surface, не подходят за inventory-driven Marketing AI
+
+### 8-слойна Architecture
+1. Inventory Truth Layer (existing — sale.php + warehouse.php + deliveries.php)
+2. Customer Intent Layer (existing — sales history + customer segments)
+3. Routing Layer (NEW — multi-store base warehouse + 30-min lock)
+4. Marketing AI Engine (NEW — 6 prompt-маркетолога)
+5. Channel Adapters (NEW — Meta/TikTok/Google MCP wrappers)
+6. Online Store (NEW — Ecwid integration)
+7. Payment Layer (NEW — Stripe Connect)
+8. Cost Control Layer (NEW — hard spend caps + tenant budgets)
+
+### Schema Migration Plan
+- **25 нови таблици:** mkt_* (Marketing AI: campaigns, audiences, attributions, costs) + online_* (Ecwid: orders, products_sync, webhooks)
+- **9 ALTER:** tenants, customers, sales, products, users, inventory, stores, promotions, loyalty_points_log
+- **Migration window:** Тихол confirm 03.05 — **POST-BETA**, не pre-beta. Schema layout е готов, но няма пускане докато ENI launch не приключи.
+- **REWORK QUEUE #61** added (P2 priority, post-15.05).
+
+### Cost Model
+- AI cost target: **€0.24 / tenant / месец** (gross)
+- Pricing: Lite €99-149, Standard €149-249, Pro €249-399, Enterprise €499-799
+- Online Store add-on: €19-119/месец
+- **Gross margin target:** 96-99%
+- ARPU expected: 2.4-4× current (~€39 → €99-159)
+- Year 5 target: €10M ARR / €14-17M revenue
+
+### Multi-store Routing Algorithm
+```
+1. Order arrives (online or POS)
+2. Lookup base warehouse за tenant (configured store_id)
+3. Check stock в base warehouse first
+4. If stock = 0 → check store with most quantity
+5. Lock product+qty for 30 минути (prevents double-sell)
+6. If lock expires unfulfilled → release + retry routing
+```
+
+### 10 Risks + Mitigations (документирани в Marketing Bible §10)
+1. **Pesho-in-the-Middle** — POS user accidentally creates inventory drift → MITIGATION: sale.php hardening (RWQ-64) + audit trail
+2. **Inventory accuracy below 95%** — Marketing AI лъже клиенти → MITIGATION: passive scoring (RWQ-63) + activation gate (Standing Rule #26)
+3. **Spend caps breach** — campaign overspend → MITIGATION: hard caps non-negotiable (Standing Rule #27)
+4. **Channel API outage** — campaigns down → MITIGATION: multi-channel fallback
+5. **Attribution fraud** — fake conversions → MITIGATION: server-side validation
+6. **Inventory race conditions** — multi-store double-sell → MITIGATION: 30-min locks + atomicity
+7. **EU AI Act compliance Q3 2026** → MITIGATION: prep plan (RWQ-70)
+8. **Tenant churn from cost** → MITIGATION: 30-day Marketing trial period
+9. **Gemini API rate limits** → MITIGATION: 2-key rotation (existing)
+10. **Cost overruns AI ops** → MITIGATION: confidence routing layer (Standing Rule #28)
+
+### Beta Plan
+- **Phase 0 (май-юли 2026):** ENI launch + observe — schema migration после ENI stable
+- **Phase 1 Shadow (юли-септ):** Marketing AI runs read-only, no campaigns activated
+- **Phase 2 Live Тихол (окт-дек):** Marketing AI runs за самия Тихол (донела.bg), production validation
+- **Phase 3 Closed Beta (Q1 2027):** 5-10 selected tenants
+- **Phase 4 Public (Q2 2027):** general availability
+
+### Year 5 Vision
+- 5,000+ Marketing AI active клиенти
+- €10M ARR
+- 6 markets (BG → RO → GR → EU)
+- Mature 8-layer architecture
+- EU AI Act compliant
+
+### ROADMAP REVISION 2 (replaces REVISION 1, audit trail preserved below)
+
+**Старата структура (REVISION 1, 25.04.2026):**
+Phase A1 Foundation → A2 Operations Core → A3 Loyalty/Promotions → B Polish → C Scale → D Marketing (2028) → E Online Store (2028).
+
+**Новата структура (REVISION 2, 03.05.2026):**
+Phase A1 Foundation (current) → A2 ENI Critical 4 → BETA → A3 Promotions/Финанси → A4 Loyalty → B Marketing AI Phase 1-5 → C Online Store Phase 1-5.
+
+**Reorder rationale (Тихол explicit override 03.05.2026):**
+- Pre-beta priority: products → sale → склад → доставки → поръчки → трансфери
+- Post-beta priority: промоции → финанси → loyalty → Marketing AI → Online Store
+
+**S78-S110 ROADMAP TABLE Revised:**
+
+| Sprint | Module | Date | Status |
+|---|---|---|---|
+| S78-S88 | Foundation (chat, life-board, AI Studio backend, sale.php S87, products.php Sprint B/C) | mid-04 | DONE |
+| S92 | STRESS deploy + AIBRAIN Phase 1 + INSIGHTS WRITE FIX | 02.05 | DONE |
+| S94 | Wizard restructure indicator + autogen + zone | 02.05 | DONE |
+| S95 | Wizard restructure HTML re-order + voice-first + AI Studio | 03.05-04.05 | IN PROGRESS (3 commits done, 4-5 remaining) |
+| S96 | Sale.php S87E (8 bugs) + Pesho-in-the-Middle hardening | 04-05.05 | PENDING |
+| S97 | warehouse.php finalize | 05.05 | PENDING |
+| S98 | deliveries.php (ENI critical) | 06-08.05 | PENDING |
+| S99 | orders.php (ENI critical) | 08-09.05 | PENDING |
+| S100 | transfers.php (ENI critical) | 09-10.05 | PENDING |
+| S101 | inventory accuracy passive scoring | 10-11.05 | PENDING |
+| S102 | Beta launch prep (smoke tests + tenant ENI setup) | 11-13.05 | PENDING |
+| S103 | **ENI BETA LAUNCH** | 14-15.05 | LOCKED |
+| S104 | promotions.php (post-beta) | 16-22.05 | PENDING |
+| S105 | финанси модул (post-beta) | 23-30.05 | PENDING |
+| S106 | loyalty migration от donela.bg | юни | PENDING |
+| S107-S110 | Marketing AI Phase 0 prep (schema migration empty tables) | юни-юли | PENDING |
+| S111+ | Marketing AI Phase 1 Shadow → Phase 4 Public | юли 2026 — Q2 2027 | LOCKED roadmap |
+
+**What pulled up (по-рано от REVISION 1):**
+- ENI critical 4 модула (deliveries, orders, transfers, inventory) от A2 → pre-beta
+- Inventory accuracy gate (S101) от A3 → pre-beta
+
+**What pushed down (по-късно от REVISION 1):**
+- WooCommerce/Shopify integration → REJECTED (заменено с Ecwid post-beta)
+- Custom marketing creative engine → REJECTED (заменено с TikTok Symphony API)
+- 15 промпт-маркетолога → REDUCED to 6
+- Loyalty модул → след промоции/финанси (Тихол confirm)
+- Marketing schema migration → post-beta (Тихол confirm)
+
+### Засегнати модули
+- DB schema (25 нови mkt_* + 9 ALTER) — POST-BETA migration window
+- sale.php (Pesho-in-the-Middle hardening preparation, RWQ #64)
+- inventory.php (passive scoring service preparation, RWQ #63)
+- promotions.php (build за Marketing activation gate, RWQ #68)
+- ai-studio.php (rewire с нов design, RWQ #71)
+- 25-те mkt_* таблици — RWQ #61
+- 9 ALTER на existing tables — RWQ #61
+
+### Rework
+- 19 нови REWORK QUEUE entries добавени: #61-#79 (виж REWORK QUEUE секция)
+- 3 нови Standing Rules добавени: #26 Marketing AI Activation Gate, #27 Hard Spend Caps, #28 Confidence Routing extended
+- ROADMAP REVISION 1 от 25.04.2026 → запазена като audit trail (виж entry по-долу), superseded не deleted
+- RWQ #24 → ✅ DONE (FAL_API_KEY configured); split на #79 (RWQ-24b — production end-to-end wire pending)
+- RWQ #47 → ✅ closed per Rule #3 (STATE wins — Diagnostic 100% verified)
+
 ## 29.04.2026 — S88 SHEF DAY 2 — 11 commits, schema foundation + design-kit + sale.php sprint
 
 ### 11 commits в реда на push:
@@ -1657,7 +1827,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 11 | products.php Q-секции (q1-q6 home) | 22.04.2026 (Тихол: "трябва AI да предлага действие иначе безсмислено") | Всеки артикул в Q-секция трябва да има AI-генериран action button: 'Поръчай 5 при Иванов' / 'Промо -20%' / 'Прехвърли в магазин 2' и т.н. Source: ai_insights.action_label + action_type + action_data вече съществуват в DB. Compute-insights.php трябва да попълва тези колони. UI render да чете и показва бутон под всеки item. Tap на бутона → execute action (без чат). | S81 (AI features) | ⏳ pending
 | 12 | products.php drawer detail screen | 22.04.2026 (свързано с #11) | Detail drawer също да показва AI primary action отгоре ("Препоръчвам: Поръчай 5 от Иванов — 320 лв profit/седм") + secondary actions. Бил е plain product card. | S81 | ⏳ pending
 | 23 | S80→S81 verify adaptation | 25.04.2026 | 4 bugs: category_for_topic typo (5min), tenant filter в fetch_active_scenarios (5min), multi-statement в seed_scenario (15min), reverse-engineer ai_insights data_json schema + 8 verify handlers (~90min). Baseline run tenant=99 → Cat A=100%/D=100%. Tag v0.6.0-s80-diagnostic. | **S81** | ⏳ pending P0 |
-| 24 | FAL_API_KEY add | 25.04.2026 (S82 AI Studio) | Тихол ръчно добавя FAL_API_KEY в /etc/runmystore/api.env. Без това bg removal endpoint връща 503. | Тихол | ⏳ pending P0 |
+| 24 | FAL_API_KEY add | 25.04.2026 (S82 AI Studio) | Тихол ръчно добавя FAL_API_KEY в /etc/runmystore/api.env. Без това bg removal endpoint връща 503. | Тихол | ✅ DONE 03.05.2026 (FAL_API_KEY configured). Production end-to-end wire NOT done → split като RWQ #79 (RWQ-24b). |
 | 25 | On-device test S82 matrix qty save | 25.04.2026 (S82 CRITICAL bug fix verify) | Samsung Z Flip6 — verify че matrix qty save bug fix работи коректно (parseInt {qty,min} → NaN → 0 беше data loss). | Тихол | ⏳ pending P0 |
 | 26 | S82 wizard hooks решение | 25.04.2026 | Тихол кажи: integrate в новия AI Studio модул или delete (wizAIProcessPhoto, AI Studio CTA в step 3, auto-populate в step 4). | Тихол → Chat 1 | ⏳ pending P1 |
 | 27 | S82 AI Studio location | 25.04.2026 | Тихол кажи: root /ai-studio.php (отделен модул accessible от bottom nav) или embedded overlay в products.php (от wizard step 3). | Тихол → Chat 1 | ⏳ pending P1 |
@@ -1680,7 +1850,7 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 44 | 4 placeholder AI prompt templates approve | 27.04.2026 (S82.STUDIO.APPLY) | Тихол одобрява per template wording: clothes / jewelry / acc / other. Засега is_active=0. Lingerie готов. | Тихол spokojno | ⏳ pending P1 |
 | 45 | tenants.plan ENUM — добави 'biz' | 27.04.2026 (S82.STUDIO.APPLY finding) | Code #2 не extend-на ENUM защото нямаше 'biz' в production. Когато се отвори BIZ tier → ALTER TABLE + seed update. | Когато BIZ tier launch | ⏳ pending P2 |
 | 46 | DROP legacy tenants.ai_credits_* колони (30 дни grace) | 27.04.2026 (S82.STUDIO.APPLY backward-compat) | След 30-дневен grace period (drop date ~2026-05-27), нова migration премахва legacy `ai_credits_bg/tryon/total` колони. Преди drop verify че frontend rewire (RQ #42) е приключил. | ~2026-05-27 (S95+) | ⏳ pending P2 |
-| 47 | S82.DIAG.FIX (Cat A=100%/D=100%) — beta blocker | 27.04.2026 (S82.STUDIO.APPLY findings) | A=47.83% / D=21.43% pre-existing от S80/S81. Не regression от schema, но Rule #21 нарушен (apply без 100%). Преди ENI launch (14-15.05) → DOD met. Bugs: lost_demand_pos schema, basket_pair_b_pos missing total, negative scenarios overlap (10+ Cat A FAIL), positive items=0 (5+ FAIL). | **S85 (преди ENI)** | ⏳ pending P0 |
+| 47 | S82.DIAG.FIX (Cat A=100%/D=100%) — beta blocker | 27.04.2026 (S82.STUDIO.APPLY findings) | A=47.83% / D=21.43% pre-existing от S80/S81. Не regression от schema, но Rule #21 нарушен (apply без 100%). Преди ENI launch (14-15.05) → DOD met. Bugs: lost_demand_pos schema, basket_pair_b_pos missing total, negative scenarios overlap (10+ Cat A FAIL), positive items=0 (5+ FAIL). | **S85 (преди ENI)** | ✅ closed 03.05.2026 EOD per Rule #3 (STATE wins — Diagnostic 100% verified в S85.DIAG.FIX 51/51 PASS + S88C 57/57 PASS) |
 | 6 | products.variations photo persistence — wizard UI ✅, DB save ❌. Блокира AI Studio Wizard Bulk (Mockup ⑤ от SESSION_83_HANDOFF.md). | products.php, product-save.php, product_variations | 2026-04-27 (S83 architecture) | 🟡 audited, awaiting fix S84 |
 | 7 | fal.ai + Stripe + Gemini API keys в config/config.php pending. FAL_AI_API_KEY (bg + nano-banana-2 try-on), STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, GEMINI_API_KEY (Vision + SEO). | config/config.php, /etc/runmystore/db.env | 2026-04-27 (S83 architecture) | 🟡 pending S84 |
 | 8 | AI Studio S84 implementation — beta-critical (CSV = value prop за Пешо). 8 DB migrations + 9 endpoints + UI rewrite (ai-studio.php Лесен+Разширен+Wizard Bulk+Standalone Bulk Recovery) + Stripe Checkout + 4 нови файла (ai-studio-buy-credits.php, ai-studio-bulk.php, ai-studio-vision.php, ai-studio-stripe-webhook.php, csv-export.php). | ai-studio.php, products.php, ai-studio-action.php | 2026-04-27 (S83 architecture) | 🔴 P0 BETA SCOPE DECISION |
@@ -1690,6 +1860,25 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 50 | sale.php + sale-save.php имат **divergent field order** в `INSERT INTO stock_movements (...)` — позиционните INSERT-и са крехки, грешен column → грешен value. Нужен единен truth + named-column rewrite. Reference: BIBLE §14.1 stock_movements (sync 27.04.2026). | sale.php, sale-save.php | 2026-04-27 (S87.BIBLE.SYNC) | 🟡 P1 verify в S87 sale rewrite |
 | 51 | sale-save.php е **orphan** — `grep -rn 'sale-save.php' /var/www/runmystore` връща нула references от PHP/JS/HTML/htaccess/JSON. Production save минава през `sale.php?action=save_sale` (in-page handler). Reшение: или DELETE файла, или integrate в S87 sale rewrite (Phase 2 plan вече предлага единен save-handler). | sale-save.php | 2026-04-27 (Code #2 grep audit) | 🟡 P1 cleanup в S87 |
 | 52 | BIBLE §14 partial-sync (5 таблици): `products`, `inventory`, `tenants`, `stores`, `users` имат повече колони в LIVE отколкото в BIBLE. Не блокират production (existing code знае реалните имена), но трябва да се актуализират преди beta launch (14-15.05). Виж BIBLE §14.9 LIVE SCHEMA AUTHORITY → "Partial-sync TODO". | docs/BIBLE_v3_0_TECH.md | 2026-04-27 (S87.BIBLE.SYNC partial verify) | 🟢 P2 преди beta |
+| 61 | Marketing schema migration (25 mkt_* + 9 ALTER) — POST-BETA empty tables window. Source: COMPASS LOGIC LOG 03.05 (Marketing AI v1.0 INTEGRATION). | DB schema | 03.05.2026 | ⏳ pending P2, target S107 |
+| 62 | WooCommerce/Shopify integration code archive (rejected). Заменено с Ecwid integration. | repo cleanup | 03.05.2026 | ⏳ pending P2, post-beta cleanup |
+| 63 | Inventory accuracy passive scoring (gate за Marketing AI activation per Rule #26). | inventory.php + scoring service | 03.05.2026 | ⏳ pending P0, target S101 |
+| 64 | Sale.php hardening (Pesho-in-the-Middle, audit trail). 8 bugs Sprint E + atomicity protection. | sale.php | 03.05.2026 | ⏳ pending P0, target S96 |
+| 65 | Ecwid partner contract signing. | admin/legal | 03.05.2026 | ⏳ pending P1, post-beta admin |
+| 66 | Stripe Connect setup multi-tenant. | payments admin | 03.05.2026 | ⏳ pending P1, post-beta admin |
+| 67 | Loyalty модул migration от donela.bg. | loyalty.php (нов) | 03.05.2026 | ⏳ pending P0, target S106 |
+| 68 | Promotions модул build (за Пешо отстъпки + attribution). Required преди Marketing AI activation. | promotions.php | 03.05.2026 | ⏳ pending P0, target S104 |
+| 69 | ROADMAP_v2.md documentation push (formal export на ROADMAP REVISION 2). | docs/ROADMAP_v2.md | 03.05.2026 | ⏳ pending P1, tonight overnight |
+| 70 | EU AI Act compliance prep (Q3 2026). | docs/compliance | 03.05.2026 | ⏳ pending P2, Q3 2026 |
+| 71 | AI Studio rewire с нов дизайн (post-beta). Mockups вече upload-нати (commit 1354803). | ai-studio.php | 03.05.2026 | ⏳ pending P1, target S107+ |
+| 72 | Voice-First Wizard Navigation (Whisper + trigger words "следващ"/"назад"/"запиши"/"печатай"/"пропусни"/"стоп"). Web Speech API Tier 1 + Whisper Groq Tier 2. | products.php + js/voice-engine.js + services/whisper-transcribe.php | 03.05.2026 | ⏳ pending P0, target S95 ЧАСТ 1.2 (04.05) |
+| 73 | AI Studio entry inline (e1 design, conditional на снимка). 3 reda visible само ако product има photoUrl. | products.php wizard | 03.05.2026 | ⏳ pending P0, target S95 ЧАСТ 1.3 (04.05) |
+| 74 | Multi-printer support (D520BT) — currently breaks DTM stability. | js/capacitor-printer.js | 03.05.2026 | ⏳ pending P1, post-beta |
+| 75 | Printer reliability — diagnose intermittent BLE connection. | printer infra | 03.05.2026 | ⏳ pending P1, post-beta |
+| 76 | Printer health indicator UI (🟢/🟡/🔴 в header). | UI header / nav | 03.05.2026 | ⏳ pending P1, post-beta |
+| 77 | AI Studio mockups upload + commit (Тихол manual). | mockups/ | 03.05.2026 | ✅ DONE 03.05.2026 (commit 1354803 — 3 mockups + LOGIC spec imported) |
+| 78 | AI Studio production wire (try-on €0.30 + SEO €0.02 endpoints). End-to-end fal.ai. | services/ai-studio-* | 03.05.2026 | ⏳ pending P1, post-beta (S107+) |
+| 79 | RWQ-24b — fal.ai integration end-to-end не production-wired (split от RWQ #24 след FAL_API_KEY done). | services/ai-image-processor.php | 03.05.2026 | ⏳ pending P1, post-beta |
 
 ---
 
@@ -1698,6 +1887,9 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 19 | PARALLEL COMMIT CHECK | 24.04.2026 | Pri paralelni chat-ove VINAGI 'git status' + 'git log -5' predi patch. Inache drug chat moje da include-ne tvoite promeni v svoya commit (viz S79.SELECTION_ENGINE + IRON PROTOCOL sluchay). | ALL | standing |
 | 20 | HEREDOC MARKDOWN BAN | 24.04.2026 | STANDING: heredoc bez emoji/bold/tables/headers/backticks/BG kavichki. 2-stupkov workflow: ASCII heredoc + Python s \u escapes. | ALL | standing |
 | 21 | DIAGNOSTIC PROTOCOL AI | 24.04.2026 | STANDING: vsyaka promyana na AI logika (pf funktsii, build-prompt, selection-engine, nov AI modul, ai_insights schema) PREDI commit minava prez DIAGNOSTIC_PROTOCOL.md. TDD workflow: Tihol opisva -> scenarii -> kategorizatsia A/B/C/D -> fixtures -> impl -> diagnostic -> A+D 100% PASS ili rollback. | ALL AI modules | standing |
+| 26 | MARKETING AI ACTIVATION GATE | 03.05.2026 (Marketing Bible v1.0) | STANDING: Marketing AI се активира за tenant ONLY когато (1) Inventory accuracy ≥95% за 30 последователни дни (passive scoring RWQ #63); (2) Sale.php hardened (Pesho-in-the-Middle protected, RWQ #64); (3) Promotions модул работещ (RWQ #68 done); (4) Tenant explicitly opts-in в Settings → Marketing AI; (5) Hard spend cap configured (€). | Marketing AI | standing |
+| 27 | HARD SPEND CAPS NON-NEGOTIABLE | 03.05.2026 (Marketing Bible v1.0) | STANDING: Marketing AI campaigns има per-tenant monthly hard cap (€). При reach на cap → ALL active campaigns auto-pause. Tenant получава notification 80% / 95% / 100% reach. Re-activation only manual от tenant (не auto). Audit log на всеки spend > €1. | Marketing AI / channel adapters | standing |
+| 28 | CONFIDENCE ROUTING extended (за Marketing) | 03.05.2026 (Marketing Bible v1.0) | STANDING: Marketing AI decisions с confidence > 0.85 → auto-execute. Confidence 0.5-0.85 → tenant confirmation required (24h max wait, after fall back to safe default). Confidence < 0.5 → blocked, escalate to human Тихол review. Extends Закон #5 за Marketing context. | Marketing AI engine | standing |
 
 # ❓ PENDING DECISIONS — ЧАКАТ ТИХОЛ
 

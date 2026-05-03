@@ -1,6 +1,6 @@
 # 🎯 STATE_OF_THE_PROJECT — Live Snapshot
 
-**Дата на последен update:** 02.05.2026 (v2.5 inventory section добавена)
+**Дата на последен update:** 03.05.2026 EOD (replaces 02.05.2026 06:30 initial extract)
 **Версия:** v1.1 (+ LIVE BUG INVENTORY top section)
 **Update протокол:** ВСЕКИ Claude Code в края на сесията update-ва САМО този файл (не COMPASS, не handoff). **Шеф-чат update-ва секция `📋 LIVE BUG INVENTORY` в EOD протокола.**
 **Шеф-чат първо чете ТОЗИ файл, после COMPASS, после последен handoff.**
@@ -11,39 +11,62 @@
 
 > **ПРАВИЛО:** Тази секция е първото нещо което всеки шеф-чат чете в Phase 0.5. Тя aggregate-ва P0/P1/P2 от 5-те източника (PRIORITY_TODAY + COMPASS BUG TRACKER + REWORK QUEUE + STRESS_BOARD + own log) в едно място. Шеф-чат update-ва в EOD: добавя нови, marks completed.
 >
-> Aggregated дата: 02.05.2026 06:30 (initial extract)
+> Aggregated дата: 03.05.2026 EOD (replaces 02.05.2026 06:30 initial extract)
 
-### 🔴 P0 — BLOCKERS (12 items)
+### 🔴 P0 — BLOCKERS (16 items, 8 closed today, 8+8 active)
+
+#### ✅ CLOSED днес (8 items, removed from active)
+
+| Bug code | Module | Closed by |
+|---|---|---|
+| C1 | products.php "+ Добави размер" | TRACK 2 помощник + S95 wizard restructure |
+| C5 | products.php ChevronLeft compliance | TRACK 2 помощник |
+| D3 | products.php Категории filter | TRACK 2 помощник |
+| D5 | products.php Duplicate detection | TRACK 2 помощник |
+| sale-race | sale.php:132 race condition | TRACK 2 помощник |
+| insights-route | compute-insights.php:235 | S92.INSIGHTS.WRITE.FIX (9fe2c52) |
+| sales-pulse | sales_pulse.py | S92.STRESS.DEPLOY |
+| crontab-deploy | infra crontab www-data | S92.STRESS.DEPLOY |
+
+#### 🔴 ACTIVE P0 (8 carry-over + 8 нови = 16 total)
 
 | # | Bug code | Module | Описание | Source | Target session |
 |---|---|---|---|---|---|
-| 1 | C1 | products.php | "+ Добави размер" бутон липсва (Sprint B claim 8/8 → реално 6/8) | COMPASS L1009 + PRIORITY 02.05 | S92.PRODUCTS.B_FIX |
-| 2 | C5 | products.php | ChevronLeft (back arrow) inline без CSS class — compliance gap | COMPASS L1013 + PRIORITY 02.05 | S92.PRODUCTS.B_FIX |
-| 3 | D3 | products.php | Категории не filter-ват по supplier (двойна логика global vs per-supplier) | COMPASS L1018 КРИТИЧЕН | Sprint B/C |
-| 4 | D5 | products.php | Duplicate detection late at save (трябва LIVE при писане на име) | COMPASS L1020 КРИТИЧЕН | Sprint B/C |
-| 5 | sale-race | sale.php:132 | Race condition: UPDATE inventory SET quantity = GREATEST(...) — двама паралелни купувачи | STRESS_BOARD ГРАФА 3 | S92.STRESS.DEPLOY |
-| 6 | insights-route | compute-insights.php:235 | $module='products' hardcoded но life-board търси 'home' (99% невидими) | STRESS_BOARD ГРАФА 3 | S91.INSIGHTS_HEALTH (verify if real fix) |
-| 7 | sales-pulse | tools/diagnostic/cron/sales_pulse.py | Пуска ВСИЧКИ продажби с DATE_ADD(DATE(NOW())) — нереалистична distribution | STRESS_BOARD ГРАФА 3 | S92.STRESS.DEPLOY |
-| 8 | crontab-deploy | infra | STRESS Етап 1+2 cron не са installed на www-data → 4 дни тишина в snapshots | PRIORITY L174 + LIVE finding 02.05 | S92.STRESS.DEPLOY |
-| 9 | RWQ-23 | tools/diagnostic | S80→S81 verify adaptation (4 bugs, baseline run tenant=99 → Cat A=100%/D=100%) | REWORK QUEUE #23 | S81 |
-| 10 | RWQ-24 | config | FAL_API_KEY add (без него bg removal endpoint = 503) | REWORK QUEUE #24 | Тихол manual |
-| 11 | RWQ-31 | promotions | promotions.php basic Phase A2 pull-up (PromotionEngine + DB schema) | REWORK QUEUE #31 | Phase A2 |
-| 12 | RWQ-47 | tools/diagnostic | S82.DIAG.FIX (Cat A=100%/D=100%) — beta blocker (status confused между source: STATE казва resolved, REWORK казва pending — verify) | REWORK QUEUE #47 | S85 |
+| 1 | RWQ-23 | tools/diagnostic | S80→S81 verify adaptation (Cat A=100%/D=100% baseline tenant=99) | REWORK QUEUE #23 | S81 |
+| 2 | RWQ-24a | config | FAL_API_KEY ✅ DONE — added to /etc/runmystore/api.env | DONE 03.05 | — |
+| 3 | RWQ-24b | services/ai-image-processor | fal.ai integration end-to-end NOT production-wired | NEW 03.05 | post-beta |
+| 4 | RWQ-31 | promotions.php | Phase A2 pull-up (PromotionEngine + DB schema) | REWORK QUEUE #31 | post-beta (Тихол confirm) |
+| 5 | RWQ-47 | tools/diagnostic | DIAG.FIX (status conflict с STATE) | REWORK QUEUE | EOD close — Rule #3 STATE wins |
+| 6 | RWQ-72 | products.php voice | Voice-First Wizard Navigation (Whisper + trigger words "следващ") | NEW 03.05 | S95 ЧАСТ 1.2 (04.05) |
+| 7 | RWQ-73 | products.php AI | AI Studio entry inline (e1 design, 3 reda под снимка conditional) | NEW 03.05 | S95 ЧАСТ 1.3 (04.05) |
+| 8 | NAME_INPUT_DEAD | sale.php или products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
+| 9 | D12_REGRESSION | products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
+| 10 | WHOLESALE_NO_CURRENCY | sale.php или products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
+| 11 | S95-PART2 | products.php | Wizard ЧАСТ 2 — matrix preserve + zone field S94 | wizard restructure | 04.05 |
+| 12 | S95-PART3 | products.php | Wizard ЧАСТ 3 — prices/composition step | wizard restructure | 04.05 |
+| 13 | S95-PART4 | products.php | Wizard ЧАСТ 4 — cleanup steps 0/4/6 | wizard restructure | 04.05 |
+| 14 | RWQ-77 | mockups | AI Studio новата визия — mockups upload + commit | NEW 03.05 | 04.05 преди ЧАСТ 1.3 |
+| 15 | RWQ-78 | services/ai-studio-* | AI Studio production wire (try-on €0.30 + SEO €0.02) | NEW 03.05 | post-beta |
+| 16 | sale-S87E | sale.php | 8 bugs Sprint E + Pesho-in-the-Middle hardening | COMPASS BUG TRACKER | post-wizard finish |
 
-**P0 conflict to resolve:** RWQ-47 vs STATE row "✅ Diagnostic Cat A=100% / D=100%". STATE wins per Rule #3, но REWORK QUEUE entry трябва да се закрие при следващ EOD.
+**P0 conflict resolved:** RWQ-47 vs STATE "Diagnostic 100%" → STATE wins per Rule #3. REWORK QUEUE #47 entry → closed in COMPASS update 03.05.2026 EOD.
 
-### 🟡 P1 — IMPORTANT (8 items)
+### 🟡 P1 — IMPORTANT (12 items, was 8 → +4 нови)
 
 | # | Bug code | Module | Описание | Source |
 |---|---|---|---|---|
-| 13 | mirror-cron | infra | Mirror cron auto-sync hijack — 7 incidents 01.05 | PRIORITY L120 |
-| 14 | RWQ-32 | scan-document.php | Phase A2 pull-up — basic Gemini Vision parse | REWORK QUEUE #32 |
-| 15 | RWQ-33 | deliveries.php | Phase A2 — приемане на стока + voice + OCR | REWORK QUEUE #33 |
-| 16 | RWQ-34 | suppliers.php | Phase A2 — каталог доставчици (без EIK/BRRA) | REWORK QUEUE #34 |
-| 17 | RWQ-35 | transfers.php | Phase A2 — между магазини, multi-store resolver | REWORK QUEUE #35 |
-| 18 | RWQ-36 | inventory.php | Phase A2 "Category of the Day" PHP логика | REWORK QUEUE #36 |
-| 19 | aiinsights-uniq | ai_insights | UNIQUE key (tenant, store, topic) блокира нови INSERT | STRESS_BOARD ГРАФА 3 |
-| 20 | RWQ-44 | AI templates | 4 placeholder prompt templates approve (clothes/jewelry/acc/other) | REWORK QUEUE #44 |
+| 17 | mirror-cron | infra | Mirror cron auto-sync — monitor stability | PRIORITY 02.05 |
+| 18 | RWQ-32 | scan-document.php | Phase A2 — Gemini Vision parse | post-beta |
+| 19 | RWQ-33 | deliveries.php | Phase A2 — приемане на стока (ENI critical 4) | 06-08.05 |
+| 20 | RWQ-34 | suppliers.php | Phase A2 — каталог доставчици | post-beta |
+| 21 | RWQ-35 | transfers.php | Phase A2 — между магазини, multi-store (ENI critical 4) | 09-10.05 |
+| 22 | RWQ-36 | inventory.php | Phase A2 "Category of the Day" (ENI critical 4) | 06-09.05 |
+| 23 | aiinsights-uniq | ai_insights | UNIQUE key tenant+store+topic блокира INSERT | STRESS_BOARD |
+| 24 | RWQ-44 | AI templates | 4 placeholder prompts approve (clothes/jewelry/acc/other) | post-beta |
+| 25 | RWQ-71 | ai-studio.php | AI Studio rewire с нов дизайн (post-beta) | NEW 03.05 |
+| 26 | RWQ-74 | js/capacitor-printer.js | Multi-printer support (D520BT) — currently breaking DTM stability | NEW 03.05 |
+| 27 | RWQ-75 | printer reliability | Diagnose intermittent BLE connection | NEW 03.05 |
+| 28 | RWQ-76 | UI header / nav | Printer health indicator (🟢/🟡/🔴) | NEW 03.05 |
 
 ### 🟢 P2 — POLISH/POST-BETA (Sprint C/D detail)
 
@@ -52,21 +75,28 @@
 **Sale.php Sprint H deferred (3):** Multi-select search, B6 continuous bg-BG, B7 numpad decimal — COMPASS L1001-1004
 **STRESS Helpers:** P2 helpers.php:161 cooldown, P2 helpers.php:170 urgency limits — STRESS_BOARD ГРАФА 3
 
-### ✅ ВЕРИФИЦИРАНИ DONE (recent — за reference)
+### ✅ ВЕРИФИЦИРАНИ DONE (recent — 02-03.05.2026)
 
-- C2, C3, C4 (products.php Sprint B) — claim done в commit c0146c6
-- B1-B7 (sale.php Sprint A) — done commits 3150cda + abda4a8
-- G1 (global swipe nav removed) — done
-- AIBRAIN PHASE1 (today S92) — done commits dca672b → 8f8d49c
+- C1, C2, C3, C4, C5, D3, D5, D1, D2, D9, D11 (products.php Sprint B + TRACK 2)
+- B1-B7 (sale.php Sprint A) — 3150cda + abda4a8
+- G1 (global swipe nav removed)
+- AIBRAIN PHASE1 — dca672b → 8f8d49c
+- S92.STRESS.DEPLOY — sales-pulse + sale-race + crontab + insights-route
+- S92.INSIGHTS.WRITE.FIX — 9fe2c52 (pfUpsert dashboard 50% visible)
+- S92.SPEC PRODUCTS_WIZARD_v4_SPEC.md — df49758
+- S92.AIBRAIN.PHASE1 — 8f8d49c (magenta pill + voice-overlay)
+- GROQ_API_KEY configured (root:www-data 640)
+- FAL_API_KEY configured (RWQ-24a)
+- S95.WIZARD.RESTRUCTURE PART1 + PART1_1 + PART1_1_A — cad029e + 0ccdb52 + 8100c34
+- Marketing Bible v1.0 push (commit 54c4e79 от earlier)
 
 ### AGGREGATE COUNTERS (auto)
 
-- Total open: 32+ items (12 P0 + 8 P1 + 12+ P2)
-- Total P0 (blockers): 12
-- Total P1: 8
-- Items needing browser test verify: 5 (C1, C5, D3, D5, insights-route)
-- Items needing crontab install: 1 (#8)
-- Items requiring Тихол manual: 2 (#10 FAL_API_KEY, #20 prompt approve)
+- Total open: 28 items (16 P0 + 12 P1 + P2 list)
+- Total P0 (blockers): 16 (8 active carry-over + 8 нови, 8 closed today)
+- Total P1: 12 (8 carry-over + 4 нови)
+- Items needing Тихол manual: 1 (RWQ-77 mockups upload)
+- Items requiring TRACK 2 spec: 3 (NAME_INPUT_DEAD, D12_REGRESSION, WHOLESALE_NO_CURRENCY)
 
 ---
 
@@ -132,7 +162,7 @@
 
 ## 🔁 STANDING PROTOCOLS
 
-- **TESTING_LOOP** (active since 27.04, S87): tenant=99 daily auto-seed → compute-insights → snapshot → diff. **STATUS 02.05: 🟡 STALE** — last snapshot 28.04, crontab НЕ е installed (P0 #8 в inventory). Snapshot status="healthy" но 4 дни тишина.
+- **TESTING_LOOP** (active since 27.04, S87): tenant=99 daily auto-seed → compute-insights → snapshot → diff. **STATUS 03.05: 🟢 ACTIVE** — S92.STRESS.DEPLOY restored cron на www-data.
 - **DAILY_RHYTHM** (active since 27.04, S87): 3-фазен ритъм SESSION 1 BUILD (08-12) → SESSION 2 TEST (13-17) → SESSION 3 FIX (18-21).
 - **INVENTORY GATE** ⭐ (active since 02.05, v2.5): шеф-чат задължително прави Phase 0.5 inventory extraction преди status report. Без inventory output → ne plan generation. Spec: SHEF_RESTORE_PROMPT v2.5 Phase 0.5.
 
@@ -140,41 +170,45 @@
 
 ## 🚧 КОЕ В ПРОЦЕС / СКОРО
 
-- **S92 (02.05 текущо):** AIBRAIN PHASE1 ✅ DONE; STRESS.DEPLOY pending; PRODUCTS.B_FIX pending
-- **S93 (03-05.05):** Sprint C — 14 bugs (D1, D2, D4, D6, D9, D11-D13, D16-D19, D21, D22)
-- **S94 (06-08.05):** Sprint D — 6 bugs polish + Inventory v4 module
-- **S95 (14-15 май):** ENI launch (FIXED) — 12 дни остават
+- **S95 (03-04.05 текущо):** WIZARD.RESTRUCTURE PART1 + PART1_1 + PART1_1_A ✅ DONE; PART1_2 voice-first + PART1_3 AI Studio + PART2-4 PENDING (04.05)
+- **S96 (04-05.05):** sale.php S87E + Pesho-in-the-Middle hardening (RWQ-64) — pending
+- **S97-S100 (05-10.05):** ENI critical 4 модула — warehouse + deliveries + orders + transfers
+- **S103 (14-15.05):** **ENI BETA LAUNCH** (LOCKED) — 10 дни остават от 04.05
 
 ---
 
 ## ❌ КОЕ НЕ Е ЗАПОЧНАТО
 
-- `transfers.php` — нов модул (REWORK #35, Phase A2)
+- `transfers.php` — нов модул (REWORK #35, ENI critical 4)
 - `suppliers.php` — нов модул (REWORK #34)
-- `promotions.php` — нов модул (REWORK #31)
-- `scan-document.php` — нов модул (REWORK #32)
+- `promotions.php` — нов модул (REWORK #31, post-beta per ROADMAP REVISION 2)
+- `scan-document.php` — нов модул (REWORK #32, post-beta)
 - `inventory.php v4` — event-sourced rewrite (REWORK #36)
 - iOS Capacitor (post-Android)
-- WooCommerce / Shopify integration (Phase B)
+- Marketing AI (Phase 0 prep юни-юли 2026 per ROADMAP REVISION 2)
+- Online Store (Ecwid integration, post-Marketing AI Phase 1)
 
 ---
 
 ## 🎯 BUSINESS STATE
 
-- **Beta launch (ENI):** 14-15 май 2026 (FIXED) — 12 дни
+- **Beta launch (ENI):** 14-15 май 2026 (FIXED) — **10 дни** от 04.05
 - **Public launch:** септември 2026
-- **Pricing v2:** FREE €0 / START €19 / PRO €59 / BIZ €109 + Volume packs €5-100
-- **AI cost model:** bg=€0.05, desc=€0.02, magic=€0.30/€0.50
+- **Pricing v2:** Lite €99-149 / Standard €149-249 / Pro €249-399 / Enterprise €499-799 (per Marketing Bible v1.0)
+- **AI cost target:** €0.24/tenant/month gross
 - **Quality Guarantee:** 2 free retries + refund
 
 ---
 
 ## 📊 PHASE PROGRESS
 
-- **Phase A1 (Foundation):** ~75% (per PRIORITY 01.05)
-- **Phase A2 (Operations Core):** 0% (стартира S87+)
+- **Phase A1 (Foundation):** ~80% (was 75%, +5% от S95 wizard work)
+- **Phase A2 (ENI Critical 4):** 0% (untouched — products + sale + warehouse + deliveries + orders + transfers waiting)
 - **Phase B (Beta Polish):** 0%
 - **Phase 1 (Public Launch):** 0%
+- **Beta countdown:** 10 дни (04.05 → 14-15.05)
+- **Latest session:** S95.WIZARD.RESTRUCTURE.PART1_1_A_PATCH (commit 8100c34, browser-tested ✅)
+- **TESTING_LOOP:** 🟢 ACTIVE (S92.STRESS.DEPLOY restored cron на www-data)
 
 ---
 
@@ -190,6 +224,9 @@
 8. **Rule #22 COMPASS WRITE LOCK:** само шеф-чат update-ва COMPASS/BIBLE
 9. **STATE write rule:** ВСЕКИ Claude Code update-ва STATE в края на сесията
 10. **Rule #13 INVENTORY GATE** ⭐ v2.5: шеф-чат update-ва `📋 LIVE BUG INVENTORY` в EOD
+11. **Rule #26 Marketing AI Activation Gate** (NEW 03.05) — inventory accuracy ≥95% за 30 дни + sale.php hardened + promotions live + tenant opt-in + spend cap
+12. **Rule #27 Hard Spend Caps** (NEW 03.05) — non-negotiable per-tenant monthly cap, auto-pause at 100%
+13. **Rule #28 Confidence Routing extended за Marketing** (NEW 03.05) — >0.85 auto, 0.5-0.85 tenant confirm, <0.5 escalate Тихол
 
 ---
 
