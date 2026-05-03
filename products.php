@@ -11927,13 +11927,14 @@ function wizReturnToInventory(){
     location.href='inventory.php#resume&product_id='+pid+'&zone_id='+_invZoneId+'&session_id='+_invSessionId;
 }
 var _wizMicRec=null;
-// S95.WIZARD.VOICE.WHISPER_HINTS: ВСИЧКИ numeric → Whisper Tier 2 със BG prompt context (hints).
-// Web Speech остава за text fields (име/доставчик/категория/...). Закон №1: Pesho говори, парсва.
+// S95.WIZARD.VOICE_MIN: числовите полета минават през Whisper Tier 2 (по-точно за цифри/EAN). Закон №1.
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
 var _wizTrigRec=null;
 function wizMic(field){
+    // S95.WIZARD.VOICE: per-locale routing. bg → Web Speech (Chrome е силен + auto-stop).
+    // Други езици → Whisper Tier 2 за numeric (Chrome е слаб за ro/el/sr/hr; Groq е по-добър).
     var lang=(window.CFG&&CFG.lang)||'bg';
-    if(WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(lang!=='bg' && WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
         return;
     }
@@ -11962,60 +11963,38 @@ function _wizMicWebSpeech(field,lang){
     _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
     _wizMicRec.start();
 }
-async function _wizMicWhisper(field,lang){
+function _wizMicWhisper(field,lang){
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
-    if(!targetEl)return;
-    var fg=targetEl.closest('.fg');
-    if(fg)fg.classList.add('wiz-active','recording');
-    var micBtn=fg?fg.querySelector('.wiz-mic'):null;
+    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    if(targetFg)targetFg.classList.add('wiz-active');
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
     if(micBtn)micBtn.classList.add('recording');
-    if(navigator.vibrate)navigator.vibrate(30);
-    var stream=null,rec=null,chunks=[];
-    var clearUI=function(){if(fg)fg.classList.remove('wiz-active','recording');if(micBtn)micBtn.classList.remove('recording')};
-    try{
-        stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,sampleRate:16000,echoCancellation:true,noiseSuppression:true}});
-        try{rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:16000})}
-        catch(e){stream.getTracks().forEach(function(t){t.stop()});clearUI();_wizMicWebSpeech(field,lang);return}
-        rec.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data)};
-        rec.onstop=async function(){
-            if(fg)fg.classList.remove('recording');
-            if(micBtn)micBtn.classList.remove('recording');
+    var clearUI=function(){if(micBtn)micBtn.classList.remove('recording')};
+    var fallback=function(){clearUI();_wizMicWebSpeech(field)};
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+        var rec;
+        try{rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus'})}
+        catch(e){stream.getTracks().forEach(function(t){t.stop()});fallback();return}
+        var chunks=[];
+        rec.ondataavailable=function(ev){if(ev.data&&ev.data.size>0)chunks.push(ev.data)};
+        rec.onstop=function(){
             stream.getTracks().forEach(function(t){t.stop()});
-            if(chunks.length===0){clearUI();showToast('Не разпознах','warn');return}
+            if(!chunks.length){fallback();return}
             var blob=new Blob(chunks,{type:'audio/webm'});
-            var fd=new FormData();
-            fd.append('audio',blob,'voice.webm');
-            fd.append('lang',lang||'bg');
-            // КРИТИЧНО: per-field BG hints — Whisper context за по-точно разпознаване на цифри
-            var hintsByField={
-                retail_price:'Цена в лева. Числа на български. Например: двадесет лева, четиресе и пет, сто и двайсе.',
-                cost_price:'Доставна цена в лева. Числа на български.',
-                wholesale_price:'Цена на едро в лева.',
-                quantity:'Количество. Цяло число от 1 до 999. Например: пет, петнайсе, сто.',
-                min_quantity:'Минимално количество. Цяло число.',
-                barcode:'Баркод. 8 или 13 цифри. Само числа.',
-                code:'Артикулен номер. Числа.'
-            };
-            fd.append('hints',JSON.stringify([hintsByField[field]||'Числа на български']));
-            try{
-                var resp=await fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'});
-                var json=await resp.json();
-                clearUI();
-                if(!json.ok||!json.data){showToast('AI не разпозна ('+(json.error||'грешка')+')','error');return}
-                var raw=json.data.transcript_normalized||json.data.transcript||'';
-                console.log('[Whisper]',field,'raw='+raw,'conf='+json.data.confidence);
-                _wizMicApply(field,raw);
-            }catch(err){clearUI();console.error('[Whisper] fetch error:',err);showToast('Мрежова грешка','error')}
+            var fd=new FormData();fd.append('audio',blob,'rec.webm');fd.append('lang',lang||'bg');
+            fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
+                .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
+                .then(function(j){
+                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
+                    fallback();
+                })
+                .catch(function(){fallback()});
         };
         rec.start();
-        // Auto-stop след 5 сек ИЛИ при tap пак на input/mic за ранно stop
-        setTimeout(function(){if(rec&&rec.state==='recording')rec.stop()},5000);
-        var tapStop=function(){if(rec&&rec.state==='recording')rec.stop()};
-        targetEl.addEventListener('click',tapStop,{once:true});
-        if(micBtn)micBtn.addEventListener('click',tapStop,{once:true});
-    }catch(err){clearUI();console.error('[Whisper] mic error:',err);showToast('Микрофонът не е достъпен','error')}
+        setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
+    }).catch(function(){fallback()});
 }
 function _wizTrigStart(){
     if(_wizTrigRec)return;
@@ -12055,8 +12034,8 @@ function _wizMicApply(field,text){
     else if(field==='subcategory'){var sel=document.getElementById('wSubcat');if(!sel)return;var tl=text.toLowerCase();var found=false;for(var i=0;i<sel.options.length;i++){if(sel.options[i].text.toLowerCase().includes(tl)||tl.includes(sel.options[i].text.toLowerCase())){sel.value=sel.options[i].value;S.wizData.subcategory_id=sel.options[i].value;showToast('Подкатегория: '+sel.options[i].text,'success');wizMarkDone('subcategory');wizHighlightNext();found=true;break}}if(!found&&text.length>1){if(confirm('Няма подкатегория "'+text+'". Да я добавя?')){document.getElementById('inlSubcatName').value=text;wizAddSubcat()}}}
     else if(field==='origin'){var el=document.getElementById('wOrigin');el.value=text;el.style.color='';S.wizData.origin_country=text;showToast('Записано ✓','success')}
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
-    else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_wizPriceParse(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(String(text).replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
-    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_wizPriceParse(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(String(text).replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
+    else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
+    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
 }
 function _bgNum(t){return _bgPrice(t)}
 function _bgPrice(t,forcePrice){
@@ -12079,24 +12058,9 @@ function _bgPrice(t,forcePrice){
         if(a!==null&&b!==null&&c!==null){var leva=a+b;return parseFloat(leva+'.'+String(c).padStart(2,'0'))}}
     return null}
 
-// S95.WIZARD.VOICE: BG Speech Normalization Layer. Client-side, zero latency.
-// Word→digit substitution (longest-first) → strip fillers/currency/units → digit extraction → heuristics.
-// Test cases (всичките минават):
-//   "1" / "едно" / "една" / "един" / "първа" → 1
-//   "2" / "два" / "две" / "втора" → 2
-//   "5" / "пет" → 5
-//   "20" / "двайсет" / "двайсе" / "двадесет" → 20
-//   "50" / "петдесет" / "педесе" / "педесет" → 50
-//   "1,20" / "1.20" / "един и двайсет" / "едно и двадесет" → 1.20
-//   "4,55" / "4 запетая 55" / "4 точка 55" / "четири и петдесет и пет" → 4.55
-//   "4 лева 55 стотинки" / "пет лева и двайсет стотинки" → 4.55 / 5.20
-//   "трийсе и две" (no stotinki) → 32 (multi-of-10 + small combine)
-//   "сто и петдесет" (no stotinki) → 150 (>=100 + combine)
-//   "сто лева и петдесет стотинки" → 100.50 (hasStotinki forces decimal)
-//   "20 броя" → 20 (filler "броя" stripped)
-//   "около пет" → 5 (filler "около" stripped)
-//   "три тениски по десет и педесе" → 10.50 ("по" stripped)
-// Decimal separator output: винаги точка (не запетая) — JS Number stringification.
+// S95.WIZARD.VOICE: price parser за Bulgarian voice. Word→digit substitution + heuristics.
+// Покрива: "1", "едно", "4,55", "4.55", "4 запетая 55", "4 точка 55", "4 лева 55 стотинки",
+// "едно петдесет и пет", "сто и петдесет", "пет лева и двадесет стотинки", "20 лв", и т.н.
 var _BG_WORD_NUMS={
     'четиринадесет':'14','четиринайсет':'14','четиридесет':'40','четирийсет':'40','четирсе':'40','четирсет':'40',
     'четиристотин':'400','четири':'4',
@@ -12122,8 +12086,7 @@ function _wizPriceParse(text){
         pre=pre.replace(new RegExp('\\b'+_BG_WORD_KEYS[i]+'\\b','gi'),' '+_BG_WORD_NUMS[_BG_WORD_KEYS[i]]+' ');
     }
     pre=pre.replace(/\s+/g,' ').trim();
-    // Strip currency stems with phonetic tolerance (евр/еур/ефр variants, цент/стот/санти suffix flex), fillers, units, decimal "и"
-    var cleaned=pre.replace(/лев[аоу]?|лв\.?|евр[оауеи]*|еур[оауеи]*|ефр[оауеи]*|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинк[аиеоу]*|стот\.?|цент[аиоуеи]*|cents?|пен[ии]|пенс|санти[мн][аиеоу]*|копейк[аиеоу]*|около|примерно|горе|долу|май|по|броя|брой|бройки|парчета|штук|парче|штука|и/gi,' ').replace(/\s+/g,' ').trim();
+    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|и/gi,' ').replace(/\s+/g,' ').trim();
     var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
     if(!nums||!nums.length)return null;
     var first=nums[0].replace(',','.');
@@ -12171,7 +12134,7 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
                 if(typeof wizHighlightNext==='function')wizHighlightNext();
             }else{
                 el.value='';el.style.color='';
-                showToast('Не разбрах "'+text+'" — кажи с валута, напр. "5 лева и 50"','error');
+                showToast('Не разбрах "'+text+'" — кажи отново','error');
             }
         })
         .catch(function(){el.value='';el.style.color='';showToast('AI грешка — кажи "'+text+'" отново','error')});
