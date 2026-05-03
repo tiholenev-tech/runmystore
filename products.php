@@ -11930,9 +11930,13 @@ var _wizMicRec=null;
 // S95.WIZARD.VOICE_MIN: числовите полета минават през Whisper Tier 2 (по-точно за цифри/EAN). Закон №1.
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
 var _wizTrigRec=null;
+// S95.WIZARD.VOICE.RETRY: tap counter per field. Втори tap = Pesho не харесва първия резултат → AI directly.
+var _wizMicAttempts={};
 function wizMic(field){
-    // S95.WIZARD.VOICE: per-locale routing. bg → Web Speech (Chrome е силен + auto-stop).
-    // Други езици → Whisper Tier 2 за numeric (Chrome е слаб за ro/el/sr/hr; Groq е по-добър).
+    _wizMicAttempts[field]=(_wizMicAttempts[field]||0)+1;
+    if(_wizMicAttempts[field]>=2 && WIZ_NUMERIC_FIELDS.indexOf(field)>=0){
+        showToast('🧠 AI режим — кажи с валута: "пет лева и 50 стотинки"','info');
+    }
     var lang=(window.CFG&&CFG.lang)||'bg';
     if(lang!=='bg' && WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
@@ -12025,9 +12029,9 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
-    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=(_wizMicAttempts.retail_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.retail_price=0;el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=(_wizMicAttempts.wholesale_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.wholesale_price=0;el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=(_wizMicAttempts.cost_price>=2)?null:_wizPriceParse(text);if(n!==null){_wizMicAttempts.cost_price=0;el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
@@ -12141,6 +12145,7 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
         .then(function(j){
             if(j&&j.ok&&j.data&&j.data.price!==null&&!isNaN(j.data.price)){
                 var conf=(typeof j.data.confidence==='number')?j.data.confidence:1.0;
+                _wizMicAttempts[field]=0;
                 el.value=j.data.price;
                 S.wizData[dataKey]=j.data.price;
                 el.style.color='';
@@ -12150,7 +12155,7 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
                 if(typeof wizHighlightNext==='function')wizHighlightNext();
             }else{
                 el.value='';el.style.color='';
-                showToast('Не разбрах "'+text+'" — кажи отново','error');
+                showToast('Не разбрах "'+text+'" — кажи с валута, напр. "5 лева и 50"','error');
             }
         })
         .catch(function(){el.value='';el.style.color='';showToast('AI грешка — кажи "'+text+'" отново','error')});
