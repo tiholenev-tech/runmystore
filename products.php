@@ -11961,6 +11961,7 @@ function _wizMicWebSpeech(field){
     _wizMicRec.start();
 }
 function _wizMicWhisper(field){
+    return; // BUG1_DIAG step 3: ENTIRE _wizMicWhisper body disabled
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
