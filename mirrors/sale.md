@@ -121,9 +121,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $discount_amount = round($subtotal * ($discount_pct / 100), 2);
         $total = round($subtotal - $discount_amount, 2);
 
-        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, type, total, discount_amount, discount_pct, payment_method, status, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
-            [$tenant_id, $store_id, $user_id, $customer_id, $sale_type, $total, $discount_amount, $discount_pct, $payment_method]);
+        // S96.HARDEN.F3 — populate sales.paid_amount + due_date по payment_method.
+        // cash/card → платено в пълния размер; bank_transfer/deferred → paid_amount=0.
+        // due_date се попълва само за 'deferred' (default +30 дни).
+        $paid_amount = in_array($payment_method, ['cash', 'card'], true) ? $total : 0;
+        $due_date = $payment_method === 'deferred' ? date('Y-m-d', strtotime('+30 days')) : null;
+
+        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, type, subtotal, total, discount_amount, discount_pct, paid_amount, due_date, payment_method, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
+            [$tenant_id, $store_id, $user_id, $customer_id, $sale_type, $subtotal, $total, $discount_amount, $discount_pct, $paid_amount, $due_date, $payment_method]);
         $sale_id = $pdo->lastInsertId();
 
         foreach ($items as $it) {
