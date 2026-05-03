@@ -4603,10 +4603,6 @@ function showToast(msg, type=''){
 }
 
 async function api(url, opts={}){
-    // BUG1_DIAG step 7: catch every product-save.php call regardless of caller
-    if(typeof url==='string' && url.indexOf('product-save')>=0){
-        alert('[BUG1_TRACE] api(product-save) FIRED!\nURL: '+url+'\nMethod: '+((opts&&opts.method)||'GET')+'\n\nStack:\n'+(new Error().stack||'').slice(0,900));
-    }
     try{const r=await fetch(url, opts);return await r.json()}
     catch(e){console.error(e);showToast('Мрежова грешка','error');return null}
 }
@@ -5839,8 +5835,7 @@ function openVoiceWizard(){
     history.pushState({modal:'wizard'},'','#wizard');
     document.getElementById('wizModal').classList.add('open');
     document.body.style.overflow='hidden';
-    // BUG1_DIAG: trigger listener temporarily disabled for auto-save isolation test
-    // _wizTrigStart();
+    _wizTrigStart();
     // Auto voice for step 0
     setTimeout(()=>voiceForStep(0),500);
 }
@@ -9578,9 +9573,6 @@ async function wizGenDescription(){
 }
 
 async function wizSave(){
-    // BUG1_DIAG step 4: capture caller stack — auto-save MUST come from somewhere
-    alert('[BUG1_TRACE] wizSave called! _fromStep1='+(!!S.wizData._fromStep1)+'\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
-    return; // BUG1_DIAG step 6: wizSave body fully disabled — if pop-up still appears, source is NOT wizSave
     // S75.2: wizType first check
     if(!S.wizType){showToast('Избери първо: Единичен или С варианти','error');var tg=document.querySelector('.v4-type-toggle');if(tg){tg.classList.add('pulsing-strong');setTimeout(function(){tg.classList.remove('pulsing-strong')},1600);}if(navigator.vibrate)navigator.vibrate([50,30,50]);return;}
     wizCollectData();
@@ -9961,7 +9953,6 @@ function wizCopyFieldFromPrev(field){
 // Variant → toast "Първо завърши вариациите" and stay (variations + matrix needed first).
 // S95.PART1_1: + quantity validation (Bug A — save was failing "няма бройки").
 function wizStep1Save(){
-    alert('[BUG1_TRACE] wizStep1Save called!\n\nStack:\n'+(new Error().stack||'(no stack)').slice(0,800));
     wizCollectData();
     if(!S.wizType){showToast('Избери първо: Единичен или С Вариации','error');return;}
     if(!S.wizData.name){showToast('Въведи име','error');var n=document.getElementById('wName');if(n)n.focus();return;}
@@ -11969,7 +11960,6 @@ function _wizMicWebSpeech(field){
     _wizMicRec.start();
 }
 function _wizMicWhisper(field){
-    return; // BUG1_DIAG step 3: ENTIRE _wizMicWhisper body disabled
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
@@ -11993,11 +11983,10 @@ function _wizMicWhisper(field){
             fetch('/services/voice-tier2.php',{method:'POST',body:fd,credentials:'same-origin'})
                 .then(function(r){return r.ok?r.json():Promise.reject(r.status)})
                 .then(function(j){
-                    // BUG1_DIAG step 2: response chain DEAD-ENDED — _wizMicApply suppressed
-                    clearUI();
-                    console.log('[BUG1_DIAG] Whisper response suppressed', j);
+                    if(j&&j.ok&&j.data){var t=(j.data.transcript_normalized||j.data.transcript||'').trim();if(t){clearUI();_wizMicApply(field,t);return}}
+                    fallback();
                 })
-                .catch(function(e){ clearUI(); console.log('[BUG1_DIAG] Whisper fetch error', e); });
+                .catch(function(){fallback()});
         };
         rec.start();
         setTimeout(function(){if(rec.state==='recording'){try{rec.stop()}catch(e){}}},5000);
@@ -12011,7 +12000,7 @@ function _wizTrigStart(){
         var r=new SR();r.lang='bg-BG';r.continuous=true;r.interimResults=true;
         r.onresult=function(e){
             for(var i=e.resultIndex;i<e.results.length;i++){
-                if(e.results[i][0].transcript.toLowerCase().indexOf('следващ')>=0){if(typeof wizHighlightNext==='function')wizHighlightNext();return}
+                if(e.results[i][0].transcript.toLowerCase().indexOf('следващ')>=0){if(navigator.vibrate)navigator.vibrate(20);if(typeof wizHighlightNext==='function')wizHighlightNext();return}
             }
         };
         r.onerror=function(){};
@@ -12030,7 +12019,7 @@ function _wizMicInterim(field,text){
     if(el){el.value=text;el.style.color='#64748b'}
 }
 function _wizMicApply(field,text){
-    if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;showToast('Записано ✓','success');wizMarkDone('name');wizHighlightNext()}
+    if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
     else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_bgPrice(text,true);if(n!==null){el.value=n;S.wizData.retail_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.retail_price=parseFloat(el.value)||0}el.style.color='';showToast('Цена: '+el.value,'success');wizMarkDone('retail_price');wizHighlightNext()}
     else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_bgPrice(text,true);if(n!==null){el.value=n;S.wizData.wholesale_price=n}else{el.value=text.replace(/[^\d.,]/g,'');S.wizData.wholesale_price=parseFloat(el.value)||0}el.style.color='';showToast('Едро: '+el.value,'success');wizMarkDone('wholesale_price');wizHighlightNext()}
