@@ -10401,7 +10401,7 @@ function renderWizPhotoStep(){
             '<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
             nextBtn+
         '</div>';
-    return '<div class="wiz-page active" style="padding:18px 14px">'+
+    return '<div class="wiz-page active" style="padding:18px 14px 220px">'+
         headerH+
         '<div style="'+lockStyle+'">'+
             '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
