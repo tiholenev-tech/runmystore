@@ -986,6 +986,44 @@ cron-weather.php → 06:00
 5. TRACK 2 P0 specs (NAME_INPUT_DEAD, D12_REGRESSION, WHOLESALE_NO_CURRENCY)
 
 
+### Update (EOD 04.05 final)
+
+**Voice стратегия LOCKED:** Web Speech bg-BG достига максимум ~80% за BG числа дори с обширно patch-ване (commits af2acdf, daf826b, c2d847c, f3f9258 — всички tested, capped at 80%). Складова програма = много работа с цифри = voice без точност е безполезно.
+
+**Решение:** Whisper Tier 2 (Groq) пренастроен правилно. Не като двата неуспешни опита днес (bd9e7fd halucinations + race conditions), а с пълна инфраструктура.
+
+**Утре S99.VOICE.PROPER_REWRITE — 1 цял ден Code Code Opus работа:**
+
+Компоненти:
+- VAD (Voice Activity Detection) — auto-stop при тишина 1.5s, без halucinations
+- Pre-record buffer 200ms — захваща началото на думи (решава "едно" се губи)
+- Sequential queue — само 1 active Whisper request, без race conditions  
+- Locale-aware prompt context — per-language hints (BG: "цени в лева, числа едно/две...", RO: "preț în lei, numere unu/doi...")
+- Confidence threshold 0.7 — под него → toast "пробвай пак", не записва
+- Post-process парсер per locale — _bgPrice, _roPrice, _elPrice
+- Multi-language locale config — bg/ro/el/sr/hr/mk currency + word maps
+- Web Speech fallback — ако Whisper fail → Web Speech → ако и то fail → numpad
+
+**Multi-country prep:** Румъния (Q3 след BG beta), Гърция (Q4), Сърбия/Хърватия/Македония (Q1 2027). Whisper supports всички, Web Speech качество е много слабо за тези пазари.
+
+**Closed днес 04.05 (повече от очакваното):**
+- F1 wholesale flag (sale.php) — 33982bc
+- F2 audit_log (sale.php) — e94baf1  
+- GROUP_A schema correctness (sale.php) — fddf931
+- 5 EOD drafts applied — 23acdaa
+- AI Studio mockups + LOGIC.md import — 1354803
+- Sale.php audit doc 347 lines — 826ef87
+- Inventory CoD backend + UI live ✅ — 4e0ca43 + 008cd7d
+- Deliveries audit doc 323 lines — 374b18c
+
+**Open за утре:**
+- S99.VOICE.PROPER_REWRITE (целия ден Opus)
+- Wizard cleanup S95-PART2/3/4 (ако Code Code 2 свободен)
+- AI Studio inline entry RWQ-73 (post-voice)
+- Read deliveries audit + answer 5 open questions
+- TRACK 2 P0 specs
+
+
 ## 03.05.2026 — MARKETING AI v1.0 INTEGRATION + ROADMAP REVISION 2
 
 **Triggered by:** Marketing Bible v1.0 (706 + 1733 = 2,439 реда, push commit 54c4e79).
