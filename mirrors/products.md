@@ -11941,7 +11941,7 @@ function wizMic(field){
     // S95.WIZARD.VOICE.PRICE_ONLY (04.05): Whisper само за price полета (всички locales).
     // Други полета → Web Speech (безплатно, достатъчно точно за имена/количества/баркод).
     var lang=(window.CFG&&CFG.lang)||'bg';
-    if(WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(lang!=="bg" && WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
         return;
     }
@@ -11967,7 +11967,7 @@ function _wizMicWebSpeech(field,lang){
         if(final){if(micBtn)micBtn.classList.remove('recording');_wizMicApply(field,final.trim())}
     };
     _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
-    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
+    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');var msg=(['retail_price','cost_price','wholesale_price'].indexOf(field)>=0)?'Кажи в евро и центове 🎤':'Грешка с микрофона';showToast(msg,'warn')};
     _wizMicRec.start();
 }
 function _wizMicWhisper(field,lang){
@@ -12654,7 +12654,7 @@ function wizMicAxis(axIdx){
             renderWizard();
         } else showToast('Вече са добавени','');
     };
-    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');showToast('Грешка с микрофона','error')};
+    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');var msg=(['retail_price','cost_price','wholesale_price'].indexOf(field)>=0)?'Кажи в евро и центове 🎤':'Грешка с микрофона';showToast(msg,'warn')};
     _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
     _wizMicRec.start();
 }
