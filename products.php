@@ -2677,6 +2677,18 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.55);}
 .v4-pz-tip svg{width:10px;height:10px;color:#86efac;flex-shrink:0}
 
+/* ═══ S95.AI_STUDIO_INLINE — RWQ-73 inline AI rows under photo thumb ═══ */
+.q-magic{--qcol:hsl(280,70%,62%)}
+.ai-inline-rows{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
+.ai-inline-row{position:relative;display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(139,92,246,0.10),rgba(99,102,241,0.04));border:1px solid rgba(139,92,246,0.32);color:#e2e8f0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .2s ease,border-color .2s ease;box-shadow:0 0 14px rgba(139,92,246,0.10),inset 0 1px 0 rgba(255,255,255,0.04)}
+.ai-inline-row:active{transform:scale(.98);background:linear-gradient(180deg,rgba(139,92,246,0.18),rgba(99,102,241,0.08))}
+.ai-inline-row.busy{opacity:0.65;pointer-events:none}
+.ai-inline-row.busy::after{content:'';position:absolute;right:14px;top:50%;width:14px;height:14px;border:2px solid rgba(196,181,253,0.3);border-top-color:#c4b5fd;border-radius:50%;transform:translateY(-50%);animation:airSpin .8s linear infinite}
+@keyframes airSpin{to{transform:translateY(-50%) rotate(360deg)}}
+.ai-inline-row .air-ic{flex-shrink:0;font-size:16px;width:22px;text-align:center}
+.ai-inline-row .air-lbl{flex:1;line-height:1.2}
+.ai-inline-row .air-price{flex-shrink:0;font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:.02em}
+
 /* ═══ S95.PART1_1 — Mandatory type toggle (Single / С Вариации) ═══ */
 .s95-type-btn{flex:1;min-height:64px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:700;
   cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
@@ -6267,7 +6279,7 @@ function renderWizPage(step){
                 : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
             var _photoBtns = '<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
             var _photoTips = '<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
-            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _photoContent + _photoBtns + _photoTips + '</div>';
+            photoBlock = '<div class="v4-pz">' + _photoModeToggle + _photoContent + _wizAIInlineRows() + _photoBtns + _photoTips + '</div>';
         }
 
         // S88B-1: Step 3 copyPrev card stub removed. Bulk-copy lives on Step 0 (wizCopyPrevProductFull) and per-field ↻ buttons (Task D).
@@ -7095,6 +7107,109 @@ async function doStudioWhiteBg(){
     // Drawer entry — delegate to the unified wizard auto-flow
     closeDrawer && closeDrawer('studio');
     return wizAIProcessPhoto();
+}
+
+// ═══ S95.AI_STUDIO_INLINE — RWQ-73 inline AI rows under photo thumb (3 actions) ═══
+// Pricing mirrors backend constants in ai-studio-backend.php (AI_BG_PRICE/DESC/MAGIC).
+// /ai-image-credits.php returns plan-quota only (no prices), so JS mirrors server-side
+// constants — single source of truth is the PHP define()s.
+var WIZ_AI_INLINE_PRICES = { bg: 0.05, desc: 0.02, magic: 0.50 };
+
+function _wizAIInlineRows() {
+    if (!S.wizData._photoDataUrl) return '';
+    var p = WIZ_AI_INLINE_PRICES;
+    return '<div class="ai-inline-rows q-magic">' +
+        '<button type="button" class="ai-inline-row" id="aiInlBg" onclick="wizAIInlineBgRemove()"><span class="air-ic">🖼</span><span class="air-lbl">Махни фон</span><span class="air-price">€' + p.bg.toFixed(2) + '</span></button>' +
+        '<button type="button" class="ai-inline-row" id="aiInlSeo" onclick="wizAIInlineSeoDesc()"><span class="air-ic">📝</span><span class="air-lbl">SEO описание</span><span class="air-price">€' + p.desc.toFixed(2) + '</span></button>' +
+        '<button type="button" class="ai-inline-row" id="aiInlMagic" onclick="wizAIInlineMagic()"><span class="air-ic">✨</span><span class="air-lbl">AI магия</span><span class="air-price">€' + p.magic.toFixed(2) + '</span></button>' +
+        '</div>';
+}
+
+async function _wizAIInlineToBlob(src) { var r = await fetch(src); return await r.blob(); }
+
+async function wizAIInlineBgRemove() {
+    if (!S.wizData._photoDataUrl) { showToast('Първо добави снимка', 'error'); return; }
+    var btn = document.getElementById('aiInlBg');
+    if (btn) btn.classList.add('busy');
+    try {
+        var blob = await _wizAIInlineToBlob(S.wizData._photoDataUrl);
+        var fd = new FormData();
+        fd.append('image', new File([blob], 'wiz.' + (blob.type === 'image/png' ? 'png' : 'jpg'), { type: blob.type || 'image/jpeg' }));
+        var r = await fetch('/ai-image-processor.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        var j = await r.json();
+        if (j && j.ok && j.url) {
+            S.wizData._photoBgRemoved = j.url;
+            S.wizData._photoDataUrl = j.url;
+            showToast('Готово ✓', 'success');
+            renderWizard();
+        } else {
+            showToast((j && j.reason) || 'Грешка, опитай пак', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
+}
+
+async function wizAIInlineSeoDesc() {
+    var name = S.wizData.name || '';
+    if (!name) { showToast('Първо въведи име на артикула', 'error'); return; }
+    var btn = document.getElementById('aiInlSeo');
+    if (btn) btn.classList.add('busy');
+    try {
+        var cats = (typeof CFG !== 'undefined' && CFG.categories) ? CFG.categories.find(function(c){return c.id == S.wizData.category_id;}) : null;
+        var sups = (typeof CFG !== 'undefined' && CFG.suppliers) ? CFG.suppliers.find(function(s){return s.id == S.wizData.supplier_id;}) : null;
+        var axes = '';
+        if (S.wizData.axes) S.wizData.axes.forEach(function(a){ if (a.values && a.values.length) axes += a.name + ': ' + a.values.join(', ') + '. '; });
+        var r = await fetch('products.php?ajax=ai_description', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ name: name, category: cats ? cats.name : '', supplier: sups ? sups.name : '', axes: axes, composition: S.wizData.composition || '' })
+        });
+        var j = await r.json();
+        if (j && j.description) {
+            var existing = (S.wizData.composition || '').trim();
+            S.wizData.composition = existing ? (existing + '\n\n' + j.description) : j.description;
+            S.wizData.description = j.description;
+            var compEl = document.getElementById('wComposition');
+            if (compEl) compEl.value = S.wizData.composition;
+            showToast('Описание готово ✓', 'success');
+        } else {
+            showToast('Грешка при генериране', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
+}
+
+async function wizAIInlineMagic() {
+    if (!S.wizData._photoDataUrl) { showToast('Първо добави снимка', 'error'); return; }
+    var btn = document.getElementById('aiInlMagic');
+    if (btn) btn.classList.add('busy');
+    try {
+        var blob = await _wizAIInlineToBlob(S.wizData._photoDataUrl);
+        var fd = new FormData();
+        fd.append('type', 'tryon');
+        fd.append('image', new File([blob], 'wiz.' + (blob.type === 'image/png' ? 'png' : 'jpg'), { type: blob.type || 'image/jpeg' }));
+        if (S.wizEditId) fd.append('product_id', String(S.wizEditId));
+        var cats = (typeof CFG !== 'undefined' && CFG.categories) ? CFG.categories.find(function(c){return c.id == S.wizData.category_id;}) : null;
+        if (cats && cats.name) fd.append('category', cats.name);
+        var r = await fetch('/ai-studio-action.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        var j = await r.json();
+        if (j && j.ok && j.url) {
+            S.wizData._photoDataUrl = j.url;
+            showToast('AI магия готова ✓', 'success');
+            renderWizard();
+        } else {
+            showToast((j && j.reason) || 'Грешка, опитай пак', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
 }
 
 // S82.AI_STUDIO — auto-flow: bg removal + colour detection in parallel.
@@ -10121,7 +10236,7 @@ function renderWizPhotoStep(){
             : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
         var _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
         var _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span></div>';
-        photoBlock='<div class="v4-pz">'+_photoModeToggle+_photoContent+_photoBtns+_photoTips+'</div>';
+        photoBlock='<div class="v4-pz">'+_photoModeToggle+_photoContent+_wizAIInlineRows()+_photoBtns+_photoTips+'</div>';
     }
     // S95.WIZARD.RESTRUCTURE: consolidated step 1 body. Header type-toggle (mandatory PART1_1
     // FIX 1) + Като предния, photo block, name+price, supplier+category+subcategory,
