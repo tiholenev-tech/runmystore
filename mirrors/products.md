@@ -7288,7 +7288,11 @@ function wizGoStep2() {
 
 function wizGoStep1() {
     if (typeof wizCollectData === 'function') wizCollectData();
-    S.wizStep = (typeof S.wizPriorStep === 'number') ? S.wizPriorStep : 2;
+    // S95.AUDIT_AND_REPAIR Q-B: винаги към consolidated Step 1 (step=2), never wizPriorStep —
+    // защото wizPriorStep може да е 3 (стария sub-step path с pricesBody/detailsBody/idBody),
+    // което би върнало потребителя на dead intermediate page (брoйка+cost+markup).
+    S.wizStep = 2;
+    S.wizSubStep = 0;
     if (typeof renderWizard === 'function') renderWizard();
 }
 
