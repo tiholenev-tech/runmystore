@@ -9500,6 +9500,7 @@ async function wizPrefetchSupplierCats(sup){
 }
 async function wizLoadSubcats(catId){
     const sel=document.getElementById('wSubcat');if(!sel)return;
+    sel.disabled=false;
     sel.innerHTML='<option value="">— Зарежда... —</option>';
     const subs=await api('products.php?ajax=subcategories&parent_id='+catId);
     sel.innerHTML='<option value="">— Няма —</option>';
