@@ -10166,7 +10166,7 @@ function renderWizPhotoStep(){
         '<div class="fg" style="margin:0">'+
             '<label class="fl">Цена дребно&nbsp;<span style="color:#ef4444">*</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
-                '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\')" value="'+(S.wizData.retail_price||'')+'" placeholder="напр: 1 евро и 35 цента" style="flex:1">'+
+                '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\')" value="'+(S.wizData.retail_price||'')+'" placeholder="Кажи: 1 евро и 35 цента" style="flex:1">'+
                 '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '</div>'+
         '</div>';
