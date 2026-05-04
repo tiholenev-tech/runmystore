@@ -9483,9 +9483,11 @@ function wizCatsForSupplier(){
     if(S._wizSupCatCache&&S._wizSupCatCache.sup==sup){
         return S._wizSupCatCache.cats||[];
     }
-    // Cache miss → fire-and-forget prefetch + return full list този път.
+    // Cache miss → prefetch + return EMPTY (не показвай глобални категории докато не се
+    // зареди per-supplier филтър — prevents Тихол да избере глобалната "бикини" вместо
+    // per-supplier "бикини" с подкатегории). Auto-refresh dropdown on prefetch resolve.
     wizPrefetchSupplierCats(sup);
-    return (CFG.categories||[]).filter(function(c){return !c.parent_id});
+    return [];
 }
 
 async function wizPrefetchSupplierCats(sup){
