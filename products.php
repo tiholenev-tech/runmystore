@@ -11941,7 +11941,7 @@ function wizMic(field){
     // S95.WIZARD.VOICE.PRICE_ONLY (04.05): Whisper само за price полета (всички locales).
     // Други полета → Web Speech (безплатно, достатъчно точно за имена/количества/баркод).
     var lang=(window.CFG&&CFG.lang)||'bg';
-    if(WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(lang!=="bg" && WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
         return;
     }
