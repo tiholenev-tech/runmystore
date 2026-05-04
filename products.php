@@ -2689,6 +2689,26 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .ai-inline-row .air-lbl{flex:1;line-height:1.2}
 .ai-inline-row .air-price{flex-shrink:0;font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:.02em}
 
+/* ═══ S95.WIZARD.STEP2_OPTIONAL — "По желание" sections, margin badge, radio toggles ═══ */
+.s2-section{position:relative;padding:14px 14px 12px;margin-bottom:14px;border-radius:14px;background:linear-gradient(180deg,rgba(15,18,36,0.65),rgba(8,11,24,0.55));border:1px solid rgba(99,102,241,0.18);box-shadow:0 4px 18px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.04);contain:layout style}
+.s2-section-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#a5b4fc;margin-bottom:10px;text-shadow:0 0 8px rgba(165,180,252,0.25)}
+.s2-section-title .s2ti-ic{font-size:14px;width:20px;text-align:center}
+.s2-margin-badge{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:30px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:800;letter-spacing:0.02em;font-variant-numeric:tabular-nums;border:1px solid;transition:background .2s ease,border-color .2s ease,color .2s ease}
+.s2-margin-badge.dim{color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)}
+.s2-margin-badge.q-gain{color:#86efac;background:rgba(34,197,94,0.14);border-color:rgba(34,197,94,0.45);text-shadow:0 0 8px rgba(34,197,94,0.45)}
+.s2-margin-badge.q-amber{color:#fbbf24;background:rgba(245,158,11,0.14);border-color:rgba(245,158,11,0.45);text-shadow:0 0 8px rgba(245,158,11,0.45)}
+.s2-margin-badge.q-loss{color:#fca5a5;background:rgba(239,68,68,0.14);border-color:rgba(239,68,68,0.45);text-shadow:0 0 8px rgba(239,68,68,0.45)}
+.s2-radio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.s2-radio-btn{flex:1;min-width:0;padding:10px 12px;min-height:42px;border-radius:10px;border:1px solid rgba(99,102,241,0.22);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.7);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .12s ease,background .2s ease,border-color .2s ease}
+.s2-radio-btn:active{transform:scale(.97)}
+.s2-radio-btn.active{background:linear-gradient(180deg,rgba(99,102,241,0.22),rgba(67,56,202,0.10));border-color:rgba(139,92,246,0.55);color:#dbeafe;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.06)}
+.s2-footer{position:sticky;bottom:0;left:0;right:0;padding:12px;margin:24px -14px 0;background:linear-gradient(180deg,rgba(10,11,20,0.85),rgba(10,11,20,0.98));border-top:1px solid rgba(99,102,241,0.20);display:flex;gap:8px;backdrop-filter:blur(8px)}
+.s2-foot-back,.s2-foot-print,.s2-foot-save{height:46px;border-radius:12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:0.02em}
+.s2-foot-back{flex:0 0 64px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.7)}
+.s2-foot-print{flex:0 0 48px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#cbd5e1}
+.s2-foot-save{flex:1;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-weight:800;text-transform:uppercase;box-shadow:0 4px 14px rgba(22,163,74,0.4)}
+.s2-foot-back:active,.s2-foot-print:active,.s2-foot-save:active{transform:scale(.97)}
+
 /* ═══ S95.PART1_1 — Mandatory type toggle (Single / С Вариации) ═══ */
 .s95-type-btn{flex:1;min-height:64px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:700;
   cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
@@ -6180,6 +6200,9 @@ async function renderWizard(){
 function renderWizPage(step){
     const vskip=S.wizVoiceMode?'<button class="abtn" onclick="wizGo('+(step+1)+')" style="margin-top:6px;border-color:rgba(245,158,11,0.2);color:#fbbf24">⏭ Пропусни</button>':'';
 
+    // S95.WIZARD.STEP2_OPTIONAL: Step 8 = "По желание" optional details page (single mode only).
+    if (step === 8) return renderWizStep2();
+
     // ═══ STEP 0/1: ELIMINATED in S95.WIZARD.RESTRUCTURE — type cards moved to header
     // toggle on consolidated step 1. wizGo() routes 0/1 → 2 directly; if a stale code path
     // still calls renderWizPage(0|1) we render the consolidated body too. ═══
@@ -6293,7 +6316,7 @@ function renderWizPage(step){
             ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'+'<div class="fg">'+fieldLabel('Мин. количество','name','<span class="hint">(за сигнали)</span>')+'<div style="display:flex;border:1px solid rgba(245,158,11,0.15);border-radius:12px;overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-right:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-left:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">+</button></div>'+cpy('min_quantity')+'</div>'
             : '';
 
-        const stickyFooter='<div style="padding:16px 12px;margin:24px 0 64px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);display:flex;gap:8px"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGo('+nextStep+')" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
+        const stickyFooter='<div style="padding:16px 12px;margin:24px 0 64px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);display:flex;gap:8px"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGoNextFromStep1()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
 
         // S92.WIZARD_REWRITE: build per-sub-step body. Запазваме всички DOM IDs (wPrice, wWprice, wCostPrice,
         // wMarkupPct, wSupDD, wCatDD, wSubcat, wColor, wSize, wComposition, wOrigin, wUnit, wCode, wBarcode,
@@ -7210,6 +7233,150 @@ async function wizAIInlineMagic() {
     } finally {
         if (btn) btn.classList.remove('busy');
     }
+}
+
+// ═══ S95.WIZARD.STEP2_OPTIONAL — "По желание" optional details page (single mode only) ═══
+// Q1=C: routed via wizGoStep2() which sets S.wizStep=8; renderWizPage hooks step 8 → renderWizStep2().
+// Q2=C: independent path; existing pricesBody/detailsBody sub-step infrastructure untouched.
+// Q3=C: shared margin formula _wizMarginPct used by both wizUpdateMarkup and _step2RecalcMargin.
+// Q5=A: new BG/foreign radio toggle for is_domestic; existing detailsBody (sub-step) keeps text input.
+
+function _wizMarginPct(cost, retail) {
+    cost = parseFloat(cost) || 0;
+    retail = parseFloat(retail) || 0;
+    if (cost <= 0 || retail <= 0) return null;
+    return ((retail - cost) / retail) * 100;
+}
+
+function _step2RecalcMargin() {
+    var badge = document.getElementById('s2MarginBadge');
+    if (!badge) return;
+    var costEl = document.getElementById('wCostPrice');
+    var cost = costEl ? parseFloat(costEl.value) || 0 : (parseFloat(S.wizData.cost_price) || 0);
+    var retail = parseFloat(S.wizData.retail_price) || 0;
+    var pct = _wizMarginPct(cost, retail);
+    if (pct === null) {
+        badge.textContent = '—';
+        badge.className = 's2-margin-badge dim';
+        return;
+    }
+    badge.textContent = pct.toFixed(1) + '%';
+    badge.className = 's2-margin-badge ' + (pct > 30 ? 'q-gain' : (pct > 15 ? 'q-amber' : 'q-loss'));
+}
+
+function _step2OriginToggle(isDomestic) {
+    S.wizData.is_domestic = isDomestic ? 1 : 0;
+    var btnBg = document.getElementById('s2OriginBg');
+    var btnFr = document.getElementById('s2OriginFr');
+    var box = document.getElementById('s2CountryBox');
+    if (btnBg) btnBg.classList.toggle('active', !!isDomestic);
+    if (btnFr) btnFr.classList.toggle('active', !isDomestic);
+    if (box) box.style.display = isDomestic ? 'none' : 'block';
+    if (isDomestic) {
+        S.wizData.origin_country = 'България';
+        var inp = document.getElementById('wOrigin');
+        if (inp) inp.value = 'България';
+    }
+}
+
+function wizGoStep2() {
+    if (typeof wizCollectData === 'function') wizCollectData();
+    S.wizPriorStep = S.wizStep;
+    S.wizStep = 8;
+    if (typeof renderWizard === 'function') renderWizard();
+}
+
+function wizGoStep1() {
+    if (typeof wizCollectData === 'function') wizCollectData();
+    S.wizStep = (typeof S.wizPriorStep === 'number') ? S.wizPriorStep : 2;
+    if (typeof renderWizard === 'function') renderWizard();
+}
+
+// S95.STEP2_OPTIONAL: route Step 1 footer "Напред ›" — single → Step 2 optional; variant → existing flow.
+function wizGoNextFromStep1() {
+    if (S.wizType === 'single') {
+        wizGoStep2();
+    } else {
+        wizGo((S.wizType === 'variant') ? 4 : 5);
+    }
+}
+
+function renderWizStep2() {
+    var hasLast = false;
+    try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
+    var cpy = function(f) {
+        return hasLast ? '<button type="button" onclick="wizCopyFieldFromPrev(\'' + f + '\')" title="Копирай от последния" style="width:30px;height:36px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>' : '';
+    };
+    var esc = function(s) { return (typeof window.esc === 'function') ? window.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+
+    var costPrice = (S.wizData.cost_price != null && S.wizData.cost_price !== '') ? S.wizData.cost_price : '';
+    var wholesalePrice = (S.wizData.wholesale_price != null && S.wizData.wholesale_price !== '') ? S.wizData.wholesale_price : '';
+    var composition = S.wizData.composition || '';
+    var origin = S.wizData.origin_country || '';
+    var unit = S.wizData.unit || 'бр';
+    var location = S.wizData.location || '';
+    var isDomestic = (S.wizData.is_domestic == null) ? 1 : (parseInt(S.wizData.is_domestic) || 0);
+
+    var initPct = _wizMarginPct(costPrice, S.wizData.retail_price);
+    var initBadgeClass = initPct === null ? 'dim' : (initPct > 30 ? 'q-gain' : (initPct > 15 ? 'q-amber' : 'q-loss'));
+    var initBadgeText = initPct === null ? '—' : (initPct.toFixed(1) + '%');
+
+    var compList = (window._bizCompositions || []).map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
+    var ctryList = (window._bizCountries || []).map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
+
+    var unitOpts = ['бр', 'кг', 'л', 'м'];
+    var unitRadios = unitOpts.map(function(u){
+        return '<button type="button" class="s2-radio-btn s2-unit-r' + (unit === u ? ' active' : '') + '" data-u="' + u + '" onclick="S.wizData.unit=\'' + u + '\';document.querySelectorAll(\'.s2-unit-r\').forEach(function(b){b.classList.toggle(\'active\',b.dataset.u===\'' + u + '\')})">' + u + '</button>';
+    }).join('');
+
+    var pricesSection =
+        '<div class="s2-section">' +
+            '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
+            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + cpy('cost_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\')" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + cpy('wholesale_price') + '</div></div>' +
+            '<div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0"><label class="fl" style="margin:0">Печалба %</label><span id="s2MarginBadge" class="s2-margin-badge ' + initBadgeClass + '">' + initBadgeText + '</span></div>' +
+        '</div>';
+
+    var detailsSection =
+        '<div class="s2-section">' +
+            '<div class="s2-section-title"><span class="s2ti-ic">🏷️</span><span>Детайли</span></div>' +
+            '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" list="s2CompList" value="' + esc(composition) + '" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1"><datalist id="s2CompList">' + compList + '</datalist>' + cpy('composition') + '</div></div>' +
+            '<div class="fg"><label class="fl">Произход</label>' +
+                '<div class="s2-radio-row">' +
+                    '<button type="button" id="s2OriginBg" class="s2-radio-btn' + (isDomestic ? ' active' : '') + '" onclick="_step2OriginToggle(true)">🇧🇬 Българска</button>' +
+                    '<button type="button" id="s2OriginFr" class="s2-radio-btn' + (!isDomestic ? ' active' : '') + '" onclick="_step2OriginToggle(false)">🌍 Чуждестранна</button>' +
+                '</div>' +
+                '<div id="s2CountryBox" style="display:' + (isDomestic ? 'none' : 'block') + ';margin-top:8px"><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wOrigin" list="s2CtryList" value="' + esc(origin) + '" placeholder="напр. Турция, Италия, Китай" oninput="S.wizData.origin_country=this.value" style="flex:1"><datalist id="s2CtryList">' + ctryList + '</datalist>' + cpy('origin_country') + '</div></div>' +
+            '</div>' +
+            '<div class="fg"><label class="fl">Мерна единица</label><div class="s2-radio-row">' + unitRadios + '</div></div>' +
+            '<div class="fg" style="margin-bottom:0"><label class="fl">Зона в магазина <span class="hint">(по желание)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wLocation" value="' + esc(location) + '" placeholder="напр. Рафт A2, Витрина 3" oninput="S.wizData.location=this.value" style="flex:1">' + cpy('location') + '</div></div>' +
+        '</div>';
+
+    var aiSection = '';
+    if (S.wizData._photoDataUrl) {
+        aiSection =
+            '<div class="s2-section">' +
+                '<div class="s2-section-title"><span class="s2ti-ic">🎨</span><span>AI Studio</span></div>' +
+                _wizAIInlineRows() +
+            '</div>';
+    }
+
+    var header =
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(99,102,241,0.12)">' +
+            '<button type="button" onclick="wizGoStep1()" style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад към Step 1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">По желание</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:1px">Допълнителни данни · може да пропуснеш</div></div>' +
+        '</div>';
+
+    var footer =
+        '<div class="s2-footer">' +
+            '<button type="button" class="s2-foot-back" onclick="wizGoStep1()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>' +
+            '<button type="button" class="s2-foot-print" onclick="showToast(\'Печат — S73.B.5\')" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' +
+            '<button type="button" class="s2-foot-save" onclick="wizSave()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши финал</button>' +
+        '</div>';
+
+    return '<div class="wiz-page active" style="padding:18px 14px 220px">' +
+        header + pricesSection + detailsSection + aiSection + footer +
+    '</div>';
 }
 
 // S82.AI_STUDIO — auto-flow: bg removal + colour detection in parallel.
@@ -9990,13 +10157,17 @@ function wizUpdateMarkup(){
     var costEl=document.getElementById('wCostPrice');
     var retailEl=document.getElementById('wPrice');
     var mEl=document.getElementById('wMarkupPct');
-    if(!mEl)return;
+    if(!mEl){
+        if (typeof _step2RecalcMargin === 'function') _step2RecalcMargin();
+        return;
+    }
     var cost=parseFloat(costEl?costEl.value:0)||0;
     var retail=parseFloat(retailEl?retailEl.value:0)||0;
     if(cost>0){
         mEl.disabled=false;
         if(retail>0){
-            mEl.value=Math.round(((retail-cost)/retail)*100);
+            var pct=_wizMarginPct(cost,retail);
+            mEl.value=Math.round(pct);
             mEl.placeholder='auto';
         }else{
             mEl.value='';
@@ -10007,6 +10178,7 @@ function wizUpdateMarkup(){
         mEl.disabled=true;
         mEl.placeholder='(въведи доставна)';
     }
+    if (typeof _step2RecalcMargin === 'function') _step2RecalcMargin();
 }
 // S92.PRODUCTS.PRICE_LAYOUT: typing margin m → retail = cost / (1 - m/100). Inverse на margin
 // формулата. m≥100 е невалидно (печалба не може да е 100%+ върху продажната — при m=100
