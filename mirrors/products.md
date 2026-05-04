@@ -6926,11 +6926,10 @@ function renderWizPagePart2(step){
         var minQtyH='<div class="fg" style="margin-bottom:8px">'+fieldLabel('Минимално количество (глобално)','min_qty')+
         '<input type="number" class="fc" id="wMinQty" value="'+(S.wizData.min_quantity||0)+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" placeholder="0" style="font-size:12px"></div>';
 
-        // S94.WIZARD.RESTRUCTURE: Зона в магазина — нов field в Step 5 (matrix area).
-        // Помага при ревизии (zone walk). Voice mic за hands-free input. DOM ID
-        // wZoneInput — wizCollectData syncs към S.wizData.location.
-        var zoneH='<div class="fg" style="margin-bottom:8px">'+fieldLabel('Зона в магазина','zone','<span class="hint">(стелаж 3 рафт 2)</span>')+
-        '<div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wZoneInput" value="'+esc(S.wizData.location||'')+'" oninput="S.wizData.location=this.value" placeholder="напр. стелаж 3 рафт 2" style="flex:1;font-size:12px">'+mic('zone')+'</div></div>';
+        // S95.STEP2_ENHANCE Q3=A: zone field removed — deduped to Step 2 (renderWizStep2 has wLocation
+        // input + mic('location') + cpy('location') with proper Web Speech BG handler in _wizMicApply).
+        // Variant flow now routes through Step 2 via wizFinalAINo → wizGoStep2.
+        var zoneH='';
 
         // AI description
         var descH='<div class="fg" style="margin-top:8px">'+fieldLabel('AI SEO описание','description')+
@@ -7288,11 +7287,16 @@ function wizGoStep2() {
 
 function wizGoStep1() {
     if (typeof wizCollectData === 'function') wizCollectData();
-    // S95.AUDIT_AND_REPAIR Q-B: винаги към consolidated Step 1 (step=2), never wizPriorStep —
-    // защото wizPriorStep може да е 3 (стария sub-step path с pricesBody/detailsBody/idBody),
-    // което би върнало потребителя на dead intermediate page (брoйка+cost+markup).
-    S.wizStep = 2;
-    S.wizSubStep = 0;
+    // S95.STEP2_ENHANCE Q3=A: type-aware back navigation от Step 2:
+    //  - single → step 2 (consolidated Step 1)
+    //  - variant → step 5 (matrix step с finalPromptH)
+    // wizPriorStep НЕ ползваме (би върнало dead sub-step path при stale draft).
+    if (S.wizType === 'variant') {
+        S.wizStep = 5;
+    } else {
+        S.wizStep = 2;
+        S.wizSubStep = 0;
+    }
     if (typeof renderWizard === 'function') renderWizard();
 }
 
@@ -7312,6 +7316,9 @@ function renderWizStep2() {
         return hasLast ? '<button type="button" onclick="wizCopyFieldFromPrev(\'' + f + '\')" title="Копирай от последния" style="width:30px;height:36px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>' : '';
     };
     var esc = function(s) { return (typeof window.esc === 'function') ? window.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+    // S95.STEP2_ENHANCE: voice mic helper — same SVG/style като Step 1 mic. Routes:
+    // cost_price/wholesale_price → Whisper (price fields). composition/origin/location → Web Speech BG.
+    var mic = function(f) { return '<button type="button" class="wiz-mic" onclick="wizMic(\'' + f + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'; };
 
     var costPrice = (S.wizData.cost_price != null && S.wizData.cost_price !== '') ? S.wizData.cost_price : '';
     var wholesalePrice = (S.wizData.wholesale_price != null && S.wizData.wholesale_price !== '') ? S.wizData.wholesale_price : '';
@@ -7336,24 +7343,24 @@ function renderWizStep2() {
     var pricesSection =
         '<div class="s2-section">' +
             '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
-            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + cpy('cost_price') + '</div></div>' +
-            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\')" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + cpy('wholesale_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + mic('cost_price') + cpy('cost_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\')" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + mic('wholesale_price') + cpy('wholesale_price') + '</div></div>' +
             '<div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0"><label class="fl" style="margin:0">Печалба %</label><span id="s2MarginBadge" class="s2-margin-badge ' + initBadgeClass + '">' + initBadgeText + '</span></div>' +
         '</div>';
 
     var detailsSection =
         '<div class="s2-section">' +
             '<div class="s2-section-title"><span class="s2ti-ic">🏷️</span><span>Детайли</span></div>' +
-            '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" list="s2CompList" value="' + esc(composition) + '" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1"><datalist id="s2CompList">' + compList + '</datalist>' + cpy('composition') + '</div></div>' +
+            '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" list="s2CompList" value="' + esc(composition) + '" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1"><datalist id="s2CompList">' + compList + '</datalist>' + mic('composition') + cpy('composition') + '</div></div>' +
             '<div class="fg"><label class="fl">Произход</label>' +
                 '<div class="s2-radio-row">' +
                     '<button type="button" id="s2OriginBg" class="s2-radio-btn' + (isDomestic ? ' active' : '') + '" onclick="_step2OriginToggle(true)">🇧🇬 Българска</button>' +
                     '<button type="button" id="s2OriginFr" class="s2-radio-btn' + (!isDomestic ? ' active' : '') + '" onclick="_step2OriginToggle(false)">🌍 Чуждестранна</button>' +
                 '</div>' +
-                '<div id="s2CountryBox" style="display:' + (isDomestic ? 'none' : 'block') + ';margin-top:8px"><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wOrigin" list="s2CtryList" value="' + esc(origin) + '" placeholder="напр. Турция, Италия, Китай" oninput="S.wizData.origin_country=this.value" style="flex:1"><datalist id="s2CtryList">' + ctryList + '</datalist>' + cpy('origin_country') + '</div></div>' +
+                '<div id="s2CountryBox" style="display:' + (isDomestic ? 'none' : 'block') + ';margin-top:8px"><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wOrigin" list="s2CtryList" value="' + esc(origin) + '" placeholder="напр. Турция, Италия, Китай" oninput="S.wizData.origin_country=this.value" style="flex:1"><datalist id="s2CtryList">' + ctryList + '</datalist>' + mic('origin') + cpy('origin_country') + '</div></div>' +
             '</div>' +
             '<div class="fg"><label class="fl">Мерна единица</label><div class="s2-radio-row">' + unitRadios + '</div></div>' +
-            '<div class="fg" style="margin-bottom:0"><label class="fl">Зона в магазина <span class="hint">(по желание)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wLocation" value="' + esc(location) + '" placeholder="напр. Рафт A2, Витрина 3" oninput="S.wizData.location=this.value" style="flex:1">' + cpy('location') + '</div></div>' +
+            '<div class="fg" style="margin-bottom:0"><label class="fl">Зона в магазина <span class="hint">(по желание)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wLocation" value="' + esc(location) + '" placeholder="напр. Рафт A2, Витрина 3" oninput="S.wizData.location=this.value" style="flex:1">' + mic('location') + cpy('location') + '</div></div>' +
         '</div>';
 
     var aiSection = '';
@@ -7368,7 +7375,7 @@ function renderWizStep2() {
     var header =
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(99,102,241,0.12)">' +
             '<button type="button" onclick="wizGoStep1()" style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад към Step 1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
-            '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">По желание</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:1px">Допълнителни данни · може да пропуснеш</div></div>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Препоръчителни</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:1px">Допълнителни данни · може да пропуснеш</div></div>' +
         '</div>';
 
     var footer =
@@ -7798,6 +7805,13 @@ function wizFinalAIYes() {
 
 function wizFinalAINo() {
     S.wizData._openStudioAfterSave = false;
+    // S95.STEP2_ENHANCE Q3=A: variant flow consistent със single — route through Step 2
+    // ("Препоръчителни" optional fields) преди save. From Step 2 → wizSave() finalize.
+    // Single mode не достига wizFinalAINo (то е call от variant step 5 finalPromptH).
+    if (S.wizType === 'variant' && typeof wizGoStep2 === 'function') {
+        wizGoStep2();
+        return;
+    }
     if (typeof wizSave === 'function') wizSave();
 }
 
@@ -10583,7 +10597,7 @@ function renderWizPhotoStep(){
     var saveDisabled=typeChosen?'':'opacity:0.45;pointer-events:none;cursor:not-allowed;';
     var nextBtn=(S.wizType==='variant')
         ? '<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
-        : (typeChosen?'<button type="button" onclick="wizCollectData();wizGoStep2()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">По желание<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'');
+        : (typeChosen?'<button type="button" onclick="wizCollectData();wizGoStep2()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Препоръчителни<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'');
     var footer=
         '<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+
             '<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
@@ -12365,6 +12379,8 @@ function _wizMicApply(field,text){
     else if(field==='composition'){var el=document.getElementById('wComposition');el.value=text;el.style.color='';S.wizData.composition=text;showToast('Записано ✓','success')}
     else if(field==='quantity'){var el=document.getElementById('wSingleQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}
     else if(field==='min_quantity'){var el=document.getElementById('wMinQty');var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}
+    // S95.STEP2_ENHANCE: location voice handler (Step 2 wLocation field; Web Speech BG).
+    else if(field==='location'){var el=document.getElementById('wLocation');if(el){el.value=text;el.style.color='';}S.wizData.location=text;showToast('Зона: '+text,'success');}
 }
 function _bgNum(t){return _bgPrice(t)}
 function _bgPrice(t,forcePrice){
