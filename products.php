@@ -1105,7 +1105,7 @@ foreach ($_custom_colors as $cc) {
 
 /* mod-prod-* helpers (преди бяха inline стилове, извадени в класове) */
 .mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
-.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0));background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
+.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0);padding:8px 12px 18px;background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
 .mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
@@ -10141,7 +10141,7 @@ function showMiniPrintOverlay(){
     var ov=document.createElement('div');
     ov.id='s95MiniPrintOv';
     ov.className='s95-mini-ov';
-    ov.onclick=function(e){if(e.target===ov){closeMiniPrintOverlay();closeWizard();}};
+    ov.onclick=function(e){/* no-op — само бутоните затварят overlay-а */};
     ov.innerHTML=
         '<div class="s95-mini-box glass v4-glass-pro">'+
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
@@ -10149,8 +10149,8 @@ function showMiniPrintOverlay(){
             '<div class="s95-mini-title">Артикулът е записан!</div>'+
             '<div class="s95-mini-sub">'+nm+' · '+pr+'</div>'+
             '<div class="s95-mini-actions">'+
-                '<button type="button" class="s95-mini-btn print" onclick="wizStep1MiniPrintAndClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>🖨 ПЕЧАТАЙ ЕТИКЕТ</button>'+
-                '<button type="button" class="s95-mini-btn done" onclick="closeMiniPrintOverlay();closeWizard()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>✓ ГОТОВО</button>'+
+                '<button type="button" class="s95-mini-btn print" onclick="wizStep1MiniPrintAndClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>ПЕЧАТАЙ ЕТИКЕТ</button>'+
+                '<button type="button" class="s95-mini-btn done" onclick="closeMiniPrintOverlay();closeWizard()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ГОТОВО</button>'+
             '</div>'+
         '</div>';
     document.body.appendChild(ov);
@@ -10165,8 +10165,9 @@ async function wizStep1MiniPrintAndClose(){
     try{
         var ok=await wizPrintLabels(-1);
         if(ok!==false){closeMiniPrintOverlay();setTimeout(function(){closeWizard();},250);}
+        else{showToast('Принтът не успя — провери дали принтерът е включен. Опитай пак или натисни ГОТОВО.','warn');}
     }catch(e){
-        // print failed — overlay стои отворено, Тихол може да опита пак или да натисне ГОТОВО
+        showToast('Принтът не успя — провери настройките на принтера. Опитай пак или натисни ГОТОВО.','warn');
     }
 }
 // S95.WIZARD.RESTRUCTURE: consolidated step 1 renderer (rewritten from S88B-1 photo-only step).
