@@ -10165,9 +10165,9 @@ async function wizStep1MiniPrintAndClose(){
     try{
         var ok=await wizPrintLabels(-1);
         if(ok!==false){closeMiniPrintOverlay();setTimeout(function(){closeWizard();},250);}
-        else{showToast('Принтът не успя — провери дали принтерът е включен. Опитай пак или натисни ГОТОВО.','warn');}
+        else{showToast('🖨️ Принтерът не отговаря. Провери: (1) включен ли е, (2) Bluetooth активен, (3) близо до телефона. Опитай пак или натисни ГОТОВО.','warn',8000);}
     }catch(e){
-        showToast('Принтът не успя — провери настройките на принтера. Опитай пак или натисни ГОТОВО.','warn');
+        showToast('🖨️ Грешка с принтера. Ако пак не стане → Настройки → Bluetooth → провери връзката с DTM-5811.','warn',10000);
     }
 }
 // S95.WIZARD.RESTRUCTURE: consolidated step 1 renderer (rewritten from S88B-1 photo-only step).
@@ -11950,7 +11950,7 @@ async function wizPrintLabelsMobile(comboIdx){
     }
     if (!items.length) {
         if (typeof CapPrinter !== 'undefined' && !CapPrinter.hasPairedPrinter()) {
-            if(confirm('Принтерът не е свързан. Да го свържем сега?')){try{await CapPrinter.pair();showToast('Принтерът е сдвоен. Натисни пак "Печат".','success');}catch(e){showToast('Неуспешно сдвояване','error');}}
+            if(confirm('🖨️ Принтерът не е свързан.\n\nКликни OK за да го свържем сега (увери се, че е включен и Bluetooth е активен).')){try{await CapPrinter.pair();showToast('✓ Принтерът е сдвоен. Натисни пак "Печат".','success',5000);}catch(e){showToast('Неуспешно сдвояване. Провери Настройки → Bluetooth и опитай пак.','error',8000);}}
         } else {
             showToast('Няма етикети за печат — провери бройка','warn');
         }
