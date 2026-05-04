@@ -1105,7 +1105,7 @@ foreach ($_custom_colors as $cc) {
 
 /* mod-prod-* helpers (преди бяха inline стилове, извадени в класове) */
 .mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
-.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px calc(60px + env(safe-area-inset-bottom,0px));background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
+.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
 .mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
@@ -1570,7 +1570,7 @@ body::before{
 /* S92.PRODUCTS.PRICE_LAYOUT: padding sides 16px → 8px. На малки cover display-и
  * (Samsung Z Flip6 ~373px wide) 16px от двете страни ядеше ~33px от ширината,
  * което караше 3-те input-а в price-row да се crop-ват. */
-.wiz-page{display:none;padding:14px 8px max(120px,calc(16px + env(safe-area-inset-bottom)))}
+.wiz-page{display:none;padding:14px 8px max(180px,calc(80px + env(safe-area-inset-bottom)))}
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 /* S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint — Pesho вижда какво е AI vs какво е писал. */
