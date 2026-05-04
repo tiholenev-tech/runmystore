@@ -11,14 +11,18 @@ $user_id = $_SESSION['user_id'];
 $store_id = $_SESSION['store_id'] ?? 1;
 
 // Tenant info
-$tenant = DB::run("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+// S96.SALE.TENANT_GUARD — refuse to render for suspended tenants (defense-in-depth at page-load).
+$tenant = DB::run("SELECT * FROM tenants WHERE id = ? AND is_active = 1", [$tenant_id])->fetch(PDO::FETCH_ASSOC);
+if (!$tenant) { session_destroy(); header('Location: login.php'); exit; }
 $supato_mode = $tenant['supato_mode'] ?? 0;
 $lang = $tenant['lang'] ?? 'bg';
 $business_type = $tenant['business_type'] ?? '';
 $currency = htmlspecialchars($tenant['currency'] ?? 'лв');
 
 // User info
-$user = DB::run("SELECT * FROM users WHERE id = ?", [$user_id])->fetch(PDO::FETCH_ASSOC);
+// S96.SALE.TENANT_GUARD — bind user lookup to current tenant (foreign-tenant user_id in session = boot to login).
+$user = DB::run("SELECT * FROM users WHERE id = ? AND tenant_id = ? AND is_active = 1", [$user_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+if (!$user) { session_destroy(); header('Location: login.php'); exit; }
 $user_role = $user['role'] ?? 'seller';
 $user_name = $user['name'] ?? '';
 $max_discount = floatval($user['max_discount_pct'] ?? 100);
