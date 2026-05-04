@@ -233,7 +233,7 @@ if (!$code) {
     $words = preg_split('/\s+/', $name);
     $code = '';
     foreach ($words as $w) { $code .= mb_strtoupper(mb_substr($w, 0, 2)); }
-    $code = substr($code, 0, 6) . '-' . rand(10,99);
+    $code = mb_substr($code, 0, 6, 'UTF-8') . '-' . rand(10,99);
     $exists = DB::run("SELECT id FROM products WHERE tenant_id=? AND code=?", [$tenant_id, $code])->fetch();
     if ($exists) $code .= rand(1,9);
 }
