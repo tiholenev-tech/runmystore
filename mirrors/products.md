@@ -12083,19 +12083,22 @@ var _BG_WORD_NUMS={
     'хиляда':'1000','хиляди':'1000','сто':'100','десет':'10','нула':'0','половин':'0.5','половинка':'0.5'
 };
 var _BG_WORD_KEYS=Object.keys(_BG_WORD_NUMS).sort(function(a,b){return b.length-a.length});
+var _CYR_B_WP="(?<![\u0400-\u04FF0-9])";
+var _CYR_A_WP="(?![\u0400-\u04FF0-9])";
 function _wizPriceParse(text){
     if(text===undefined||text===null)return null;
     var raw=String(text).toLowerCase().trim();
     if(!raw)return null;
-    // Quick fix: Web Speech често реже водеща "едно/една". Ако transcript започва с "и " → префиксирай "1 "
+    raw=raw.replace(/[.,!?;:\u201E\u201C\u201D]/g,' ').replace(/\s+/g,' ').trim();
     if (/^и\s/i.test(raw)) raw = "1 " + raw.substring(2);
-    var hasStotinki=/(стотинки?|стот\.|цент[аи]?|cents?|копейк|пени)/i.test(raw);
-    var pre=raw.replace(/\bзапетая\b/gi,',').replace(/\bточка\b/gi,'.');
+    var hasStotinki=new RegExp(_CYR_B_WP+'(стотинки?|стот|цент[аи]?|cents?|копейк|пени)'+_CYR_A_WP,'i').test(raw);
+    var pre=raw.replace(new RegExp(_CYR_B_WP+'запетая'+_CYR_A_WP,'gi'),',').replace(new RegExp(_CYR_B_WP+'точка'+_CYR_A_WP,'gi'),'.');
     for(var i=0;i<_BG_WORD_KEYS.length;i++){
-        pre=pre.replace(new RegExp('\\b'+_BG_WORD_KEYS[i]+'\\b','gi'),' '+_BG_WORD_NUMS[_BG_WORD_KEYS[i]]+' ');
+        pre=pre.replace(new RegExp(_CYR_B_WP+_BG_WORD_KEYS[i]+_CYR_A_WP,'gi'),' '+_BG_WORD_NUMS[_BG_WORD_KEYS[i]]+' ');
     }
     pre=pre.replace(/\s+/g,' ').trim();
-    var cleaned=pre.replace(/лева?|лв\.?|евро|€|eur|euro|usd|\$|gbp|£|ron|lei|лей|стотинки?|стот\.?|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|и/gi,' ').replace(/\s+/g,' ').trim();
+    var _FILLER_WP='(лева?|лв|евро|€|eur|euro|usd|gbp|ron|lei|лей|стотинки?|стот|цент[аи]?|cents?|пени|пенс|сантим[аи]?|копейк[аи]?|около|примерно|горе|долу|май|по|и|на|за|от)';
+    var cleaned=pre.replace(new RegExp(_CYR_B_WP+_FILLER_WP+_CYR_A_WP,'gi'),' ').replace(/[$£]/g,' ').replace(/\s+/g,' ').trim();
     var nums=cleaned.match(/\d+(?:[.,]\d+)?/g);
     if(!nums||!nums.length)return null;
     var first=nums[0].replace(',','.');
