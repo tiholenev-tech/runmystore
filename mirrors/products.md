@@ -10166,7 +10166,7 @@ function renderWizPhotoStep(){
         '<div class="fg" style="margin:0">'+
             '<label class="fl">Цена дребно&nbsp;<span style="color:#ef4444">*</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
-                '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\')" value="'+(S.wizData.retail_price||'')+'" placeholder="0.00" style="flex:1">'+
+                '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\')" value="'+(S.wizData.retail_price||'')+'" placeholder="напр: 1 евро и 35 цента" style="flex:1">'+
                 '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '</div>'+
         '</div>';
@@ -10297,12 +10297,18 @@ function renderWizPhotoStep(){
                 categoryH+
                 subcatH+
             '</div>'+
-            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
-                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
-                codeH+
-                barcodeH+
-            '</div>'+
             qtyH+
+            '<div class="glass v4-glass-pro" style="padding:10px 14px;margin-bottom:10px">'+
+                '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<div id="wIdBarHdr" onclick="var b=document.getElementById(\'wIdBarBox2\');var c=document.getElementById(\'wIdBarChev\');if(b){var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';if(c)c.style.transform=open?\'rotate(0deg)\':\'rotate(180deg)\'}" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">'+
+                    '<div style="font-size:12px;font-weight:600;color:#cbd5e1;flex:1">Артикулен номер и баркод <span style="font-weight:400;color:#64748b">(по желание · AI авто)</span></div>'+
+                    '<svg id="wIdBarChev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:'+((S.wizData.code||S.wizData.barcode)?'rotate(180deg)':'rotate(0deg)')+'"><polyline points="6 9 12 15 18 9"/></svg>'+
+                '</div>'+
+                '<div id="wIdBarBox2" style="display:'+((S.wizData.code||S.wizData.barcode)?'block':'none')+';margin-top:10px">'+
+                    codeH+
+                    barcodeH+
+                '</div>'+
+            '</div>'+
             footer+
         '</div>'+
     '</div>';
