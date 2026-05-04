@@ -10148,6 +10148,7 @@ function showMiniPrintOverlay(){
             '<div class="s95-mini-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
             '<div class="s95-mini-title">Артикулът е записан!</div>'+
             '<div class="s95-mini-sub">'+nm+' · '+pr+'</div>'+
+            '<div id="s95MiniErr" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.5);border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:12px;color:#fecaca;line-height:1.5"></div>'+
             '<div class="s95-mini-actions">'+
                 '<button type="button" class="s95-mini-btn print" onclick="wizStep1MiniPrintAndClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>ПЕЧАТАЙ ЕТИКЕТ</button>'+
                 '<button type="button" class="s95-mini-btn done" onclick="closeMiniPrintOverlay();closeWizard()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ГОТОВО</button>'+
@@ -10162,12 +10163,24 @@ function closeMiniPrintOverlay(){
 }
 async function wizStep1MiniPrintAndClose(){
     if(typeof wizPrintLabels!=='function')return;
+    var errEl=document.getElementById('s95MiniErr');
+    if(errEl){errEl.style.display='none';errEl.innerHTML='';}
     try{
         var ok=await wizPrintLabels(-1);
         if(ok!==false){closeMiniPrintOverlay();setTimeout(function(){closeWizard();},250);}
-        else{showToast('🖨️ Принтерът не отговаря. Провери: (1) включен ли е, (2) Bluetooth активен, (3) близо до телефона. Опитай пак или натисни ГОТОВО.','warn',8000);}
+        else{
+            if(errEl){
+                errEl.innerHTML='<b>🖨️ Принтерът не отговаря.</b><br>Провери:<br>1) Принтерът включен ли е?<br>2) Bluetooth активен ли е на телефона?<br>3) Принтерът близо ли е?<br><br>Натисни <b>ПЕЧАТАЙ ЕТИКЕТ</b> отново когато си готов.';
+                errEl.style.display='block';
+            }
+            if(navigator.vibrate)navigator.vibrate([50,50,50]);
+        }
     }catch(e){
-        showToast('🖨️ Грешка с принтера. Ако пак не стане → Настройки → Bluetooth → провери връзката с DTM-5811.','warn',10000);
+        if(errEl){
+            errEl.innerHTML='<b>🖨️ Грешка с принтера.</b><br>Опитай:<br>1) Изключи и включи принтера отново<br>2) Изчакай 5 секунди<br>3) Натисни <b>ПЕЧАТАЙ ЕТИКЕТ</b><br><br>Ако пак не стане — натисни <b>ГОТОВО</b>, артикулът е записан.';
+            errEl.style.display='block';
+        }
+        if(navigator.vibrate)navigator.vibrate([50,50,50]);
     }
 }
 // S95.WIZARD.RESTRUCTURE: consolidated step 1 renderer (rewritten from S88B-1 photo-only step).
