@@ -11820,14 +11820,22 @@ async function wizPrintLabelsMobile(comboIdx){
     var items = [];
     if (comboIdx === -1) {
         combos.forEach(function(c, i){
-            var qty = parseInt(document.getElementById('lblQty' + i)?.value) || 0;
+            var inp = document.getElementById('lblQty' + i);
+            var qty = inp ? (parseInt(inp.value) || 0) : (c.printQty || 1);
             if (qty > 0) items.push({combo: c, qty: qty});
         });
     } else {
         var qty = parseInt(document.getElementById('lblQty' + comboIdx)?.value) || 1;
         items.push({combo: combos[comboIdx], qty: qty});
     }
-    if (!items.length) { showToast('Няма етикети за печат', 'error'); return; }
+    if (!items.length) {
+        if (typeof CapPrinter !== 'undefined' && !CapPrinter.hasPairedPrinter()) {
+            if(confirm('Принтерът не е свързан. Да го свържем сега?')){try{await CapPrinter.pair();showToast('Принтерът е сдвоен. Натисни пак "Печат".','success');}catch(e){showToast('Неуспешно сдвояване','error');}}
+        } else {
+            showToast('Няма етикети за печат — провери бройка','warn');
+        }
+        return;
+    }
 
     // If no printer paired yet — prompt pair
     if (!CapPrinter.hasPairedPrinter()) {
