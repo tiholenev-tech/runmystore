@@ -139,15 +139,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $idp = floatval($it['discount_pct'] ?? 0);
             $ist = round($price * $qty * (1 - $idp / 100), 2);
 
-            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?)",
-                [$sale_id, $pid, $qty, $price, $idp, $ist]);
+            // S96.HARDEN.E8 — snapshot cost_price (tenant-scoped) so margin reports
+            // don't drift if products.cost_price is updated after the sale.
+            $cost_price = DB::run("SELECT cost_price FROM products WHERE id = ? AND tenant_id = ?",
+                [$pid, $tenant_id])->fetchColumn();
+            $cost_price = ($cost_price === false || $cost_price === null) ? null : (float)$cost_price;
+
+            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
             $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
                 [$qty, $pid, $store_id, $qty]);
             if ($upd->rowCount() === 0) {
                 throw new Exception("Артикулът свърши преди да го продадеш. Презареди и опитай отново.");
             }
-            DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, quantity, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, 'out', 'sale', ?, NOW())",
-                [$tenant_id, $pid, $store_id, $qty, $sale_id]);
+            // S96.HARDEN.E3 — user_id ("who decremented stock", needed for RWQ-64) + price (margin/dispute audit).
+            DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', 'sale', ?, NOW())",
+                [$tenant_id, $pid, $store_id, $user_id, $qty, $price, $sale_id]);
         }
         $pdo->commit();
 
