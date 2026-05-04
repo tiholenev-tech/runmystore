@@ -1105,7 +1105,7 @@ foreach ($_custom_colors as $cc) {
 
 /* mod-prod-* helpers (преди бяха inline стилове, извадени в класове) */
 .mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
-.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0);padding:8px 12px 18px;background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
+.mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px calc(18px + env(safe-area-inset-bottom,32px));background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
 .mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
@@ -11954,7 +11954,7 @@ async function wizPrintLabelsMobile(comboIdx){
         } else {
             showToast('Няма етикети за печат — провери бройка','warn');
         }
-        return;
+        return false;
     }
 
     // If no printer paired yet — prompt pair
