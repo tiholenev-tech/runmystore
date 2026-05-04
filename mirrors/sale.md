@@ -101,16 +101,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
     header('Content-Type: application/json; charset=utf-8');
+
+    // S96.HARDEN.KAT4.6 — re-verify session against live DB on every save.
+    // Stale sessions (suspended tenants, deactivated users) must not be able to write sales.
+    $session_check = DB::run("
+        SELECT u.is_active AS user_active, u.max_discount_pct, t.is_active AS tenant_active
+        FROM users u JOIN tenants t ON t.id = u.tenant_id
+        WHERE u.id = ? AND u.tenant_id = ? LIMIT 1
+    ", [$user_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+    if (!$session_check || !$session_check['user_active'] || !$session_check['tenant_active']) {
+        echo json_encode(['success' => false, 'error' => 'Сесията е невалидна. Презареди.']);
+        exit;
+    }
+    $max_discount_runtime = floatval($session_check['max_discount_pct'] ?? 100);
+
     $data = json_decode(file_get_contents('php://input'), true);
     $items = $data['items'] ?? [];
     $payment_method = $data['payment_method'] ?? 'cash';
-    $discount_pct = floatval($data['discount_pct'] ?? 0);
+
+    // S96.HARDEN.E7 — server-side clamp discount_pct (DevTools tamper protection).
+    // Three-way min: per-user cap, global 100%, never negative.
+    $discount_pct = max(0.0, min(floatval($data['discount_pct'] ?? 0), $max_discount_runtime, 100.0));
+
     $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
     $received = floatval($data['received'] ?? 0);
     // S96.HARDEN.F1 — persist wholesale flag → sales.type column.
     $sale_type = !empty($data['is_wholesale']) ? 'wholesale' : 'retail';
 
     if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
+
+    // S96.HARDEN.E6 — customer_id MUST belong to current tenant (cross-tenant tag protection).
+    if ($customer_id !== null) {
+        $cust_ok = DB::run("SELECT 1 FROM customers WHERE id = ? AND tenant_id = ? LIMIT 1",
+            [$customer_id, $tenant_id])->fetchColumn();
+        if (!$cust_ok) {
+            echo json_encode(['success' => false, 'error' => 'Невалиден клиент.']);
+            exit;
+        }
+    }
 
     try {
         $pdo->beginTransaction();
@@ -136,14 +164,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $pid = intval($it['product_id']);
             $qty = intval($it['quantity']);
             $price = floatval($it['unit_price']);
-            $idp = floatval($it['discount_pct'] ?? 0);
+            // S96.HARDEN.E7 — clamp per-item discount_pct same as global (0..max..100).
+            $idp = max(0.0, min(floatval($it['discount_pct'] ?? 0), $max_discount_runtime, 100.0));
+            // S96.HARDEN: also reject quantity <= 0 / negative price (cart should never submit these).
+            if ($qty <= 0 || $price < 0) {
+                throw new Exception("Невалиден артикул (#$pid): количество и цена трябва да са положителни.");
+            }
             $ist = round($price * $qty * (1 - $idp / 100), 2);
 
-            // S96.HARDEN.E8 — snapshot cost_price (tenant-scoped) so margin reports
-            // don't drift if products.cost_price is updated after the sale.
-            $cost_price = DB::run("SELECT cost_price FROM products WHERE id = ? AND tenant_id = ?",
-                [$pid, $tenant_id])->fetchColumn();
-            $cost_price = ($cost_price === false || $cost_price === null) ? null : (float)$cost_price;
+            // S96.HARDEN.E7 + E8 — tenant-scoped product fetch (rejects foreign-tenant IDs)
+            // and snapshots cost_price so margin reports don't drift if products.cost_price is updated later.
+            $prod = DB::run("SELECT cost_price FROM products WHERE id = ? AND tenant_id = ? LIMIT 1",
+                [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+            if (!$prod) {
+                throw new Exception("Артикул #$pid не съществува в твоя магазин.");
+            }
+            $cost_price = ($prod['cost_price'] === null) ? null : (float)$prod['cost_price'];
 
             DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
