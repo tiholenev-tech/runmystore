@@ -1989,7 +1989,7 @@ select.fc{
 .inline-add button{padding:7px 12px;border-radius:6px;border:none;background:var(--indigo-500);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .wiz-mic{width:42px;min-width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .wiz-mic:active{background:rgba(239,68,68,.2);transform:scale(.95)}
-.fg.wiz-next{background:rgba(99,102,241,.08);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35);animation:wizNextPulse 1.5s infinite}
+.fg.wiz-next{background:rgba(99,102,241,.08);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35)}
 .fg.wiz-next .wiz-mic{background:rgba(99,102,241,.25);border-color:#6366f1;animation:wizNextPulse 1.5s infinite}
 @keyframes wizNextPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.2)}50%{box-shadow:0 0 14px 4px rgba(99,102,241,.2)}}
 .fg.wiz-done .fl::after{content:' \2713';color:#4ade80;font-weight:700}
@@ -2626,9 +2626,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   box-shadow:
     0 8px 40px rgba(0,0,0,0.4),
     0 0 30px rgba(99,102,241,0.18),
-    0 0 60px rgba(139,92,246,0.08),
     inset 0 1px 0 rgba(255,255,255,0.06) !important;
   border-color:rgba(99,102,241,0.28) !important;
+  contain: layout style;
 }
 /* Photo zone ALL-IN-ONE */
 .v4-pz{
@@ -12032,9 +12032,9 @@ function _wizMicInterim(field,text){
 function _wizMicApply(field,text){
     if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
     else if(field==='code'){var el=document.getElementById('wCode');el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}
-    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);console.log('[DEBUG] retail_price raw=',text,'parsed=',n);showToast('🐛 RAW: "'+text+'" → '+n,'info');if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
-    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);console.log('[DEBUG] wholesale_price raw=',text,'parsed=',n);showToast('🐛 RAW: "'+text+'" → '+n,'info');if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
-    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);console.log('[DEBUG] cost_price raw=',text,'parsed=',n);showToast('🐛 RAW: "'+text+'" → '+n,'info');if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');_wizBigDisplay(el.value,'Цена',false);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');_wizBigDisplay(el.value,'Едро',false);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');_wizBigDisplay(el.value,'Доставна',false);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}
     else if(field==='barcode'){var el=document.getElementById('wBarcode');el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}
     else if(field==='supplier'){var tl=text.toLowerCase();var m=CFG.suppliers.find(function(s){return s.name.toLowerCase().includes(tl)||tl.includes(s.name.toLowerCase())});if(m){var inp=document.getElementById('wSupDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.supplier_id=m.id;showToast('Доставчик: '+m.name,'success');wizMarkDone('supplier');wizHighlightNext()}else{if(confirm('Няма доставчик "'+text+'". Да го добавя?')){document.getElementById('inlSupName').value=text;S._wizMicVoiceAdd=true;wizAddInline('supplier')}}}
     else if(field==='category'){var tl=text.toLowerCase();var m=CFG.categories.find(function(c){return !c.parent_id&&(c.name.toLowerCase().includes(tl)||tl.includes(c.name.toLowerCase()))});if(m){var inp=document.getElementById('wCatDD');inp.value=m.name;inp._selectedId=m.id;S.wizData.category_id=m.id;showToast('Категория: '+m.name,'success');wizLoadSubcats(m.id);wizMarkDone('category');wizHighlightNext()}else{if(confirm('Няма категория "'+text+'". Да я добавя?')){document.getElementById('inlCatName').value=text;wizAddInline('category')}}}
