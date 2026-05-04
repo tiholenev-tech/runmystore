@@ -11929,12 +11929,13 @@ function wizReturnToInventory(){
 var _wizMicRec=null;
 // S95.WIZARD.VOICE_MIN: числовите полета минават през Whisper Tier 2 (по-точно за цифри/EAN). Закон №1.
 var WIZ_NUMERIC_FIELDS=['retail_price','cost_price','wholesale_price','quantity','min_quantity','barcode','code'];
+var WIZ_PRICE_FIELDS=['retail_price','cost_price','wholesale_price'];
 var _wizTrigRec=null;
 function wizMic(field){
-    // S95.WIZARD.VOICE: per-locale routing. bg → Web Speech (Chrome е силен + auto-stop).
-    // Други езици → Whisper Tier 2 за numeric (Chrome е слаб за ro/el/sr/hr; Groq е по-добър).
+    // S95.WIZARD.VOICE.PRICE_ONLY (04.05): Whisper само за price полета (всички locales).
+    // Други полета → Web Speech (безплатно, достатъчно точно за имена/количества/баркод).
     var lang=(window.CFG&&CFG.lang)||'bg';
-    if(lang!=='bg' && WIZ_NUMERIC_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
         _wizMicWhisper(field,lang);
         return;
     }
