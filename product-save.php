@@ -157,6 +157,34 @@ if ($name === '') {
     echo json_encode(['error' => 'Въведи наименование']); exit;
 }
 
+// S97.PRODUCTS.HARDEN_PH2 — numeric guards. Voice/manual/AI-extracted input
+// can deliver negatives or absurd values that would silently corrupt margin
+// reports and inventory. Reject with 422 + machine-readable error code so the
+// wizard can show a per-field hint.
+function _harden_reject(int $code, string $err, string $msg): void {
+    http_response_code($code);
+    echo json_encode(['error' => $err, 'msg' => $msg]);
+    exit;
+}
+if ($cost_price < 0 || $retail_price < 0 || $wholesale_price < 0) {
+    _harden_reject(422, 'negative_price', 'Цените не могат да са отрицателни.');
+}
+if ($min_quantity < 0) {
+    _harden_reject(422, 'negative_qty', 'Количествата не могат да са отрицателни.');
+}
+$initQty = (int)($data['initial_qty'] ?? 0);
+if ($initQty < 0) {
+    _harden_reject(422, 'negative_qty', 'Началното количество не може да е отрицателно.');
+}
+// Cap insanely large data-entry mistakes. 1,000,000 EUR is far above any
+// realistic SKU price; 1,000,000 units is far above any realistic min_qty.
+if ($cost_price > 1000000 || $retail_price > 1000000 || $wholesale_price > 1000000) {
+    _harden_reject(422, 'price_too_high', 'Цена > 1,000,000 — провери.');
+}
+if ($min_quantity > 1000000 || $initQty > 1000000) {
+    _harden_reject(422, 'qty_too_high', 'Количество > 1,000,000 — провери.');
+}
+
 // ── S88.BUG#6: pre-INSERT duplicate guard (skipped if user already confirmed) ──
 // Only on create (edit explicitly updates a known id). Compares against parent
 // products of the same tenant. Skipped when confirm_duplicate flag is set.
