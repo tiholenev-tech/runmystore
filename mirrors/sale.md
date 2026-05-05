@@ -1551,22 +1551,39 @@ body.sale-page #saleWrap{
     filter:none !important;
     will-change:auto !important;
 }
-/* S87E.BUG#1 — action-bar sticky in flow (flex column auto-pushes to bottom) */
+/* S87I.BUGFIX_R4 — summary-bar fixed точно над action-bar. Преди беше static,
+   сега когато action-bar e fixed, summary щеше да остане в потока и да се
+   припокрие с footer-а. */
 body.sale-page .summary-bar{
-    position:static !important;left:auto;right:auto;bottom:auto !important;
-    max-width:none !important;margin:0;z-index:auto;
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index:99 !important;
+    max-width:none !important;
+    margin:0 !important;
 }
+/* S87I.BUGFIX_R4 — position:sticky e нестабилно на Capacitor APK (Android WebView):
+   action-bar изчезваше зад navigation bar. Switch към position:fixed с explicit
+   left/right/bottom + z-index:100 → reliable cross-platform. Bottom padding на
+   #cartZone осигурява, че последният артикул не остава под footer-а. */
 body.sale-page .action-bar{
     display:flex !important;
-    position:sticky !important;
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
     bottom:0 !important;
-    z-index:10;
-    padding:10px 12px max(10px, env(safe-area-inset-bottom)) 12px !important;
+    z-index:100 !important;
+    padding:10px 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
     background:linear-gradient(180deg,transparent 0%,var(--bg-main) 30%) !important;
-    margin-top:auto !important;
-    left:auto;right:auto;max-width:none !important;
+    margin:0 !important;
+    max-width:none !important;
 }
-body.sale-page #cartZone{ padding-bottom:0 !important }
+body.sale-page #cartZone{
+    /* Footer height = summary (44) + action-bar (~58) + padding ≈ 116px;
+       плюс safe-area за iOS notch / Android navigation bar. */
+    padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px)) !important;
+}
 /* S87G.B3 — set-qty-val cosmetics (split-tap zone defined earlier in stylesheet) */
 body.sale-page .set-qty-val{
     cursor:pointer;border-radius:10px;font-size:14px;font-weight:900;
@@ -2584,6 +2601,14 @@ function render() {
             e.stopPropagation();
             qtyTapFeedback();
             STATE.cart[idx].quantity++;
+            // S87I.BUGFIX_R4.PHASE2 — auto-flag когато количество надвиши stock.
+            const _s = parseInt(STATE.cart[idx]._stock_at_add || 0);
+            if (STATE.cart[idx].quantity > _s) {
+                if (!STATE.cart[idx]._needs_inventory_check && typeof showCustomToast === 'function') {
+                    showCustomToast('⚠ Над наличността — ще се продаде в минус', 'warn', 2500);
+                }
+                STATE.cart[idx]._needs_inventory_check = true;
+            }
             render();
         });
         if (qtyVal) qtyVal.addEventListener('click', (e) => {
@@ -2736,11 +2761,18 @@ function addToCart(product, qtyOverride) {
     const price = STATE.isWholesale
         ? (parseFloat(product.wholesale_price) || parseFloat(product.retail_price))
         : parseFloat(product.retail_price);
+    // S87I.BUGFIX_R4.PHASE2 — запазваме stock в cart entry, за да можем при save
+    // да пратим implicit `confirm_negative_stock=1` без да питаме отново.
+    const stock = parseInt(product.stock || 0);
 
     // Check if already in cart
     const existing = STATE.cart.findIndex(it => it.product_id === product.id);
     if (existing >= 0) {
         STATE.cart[existing].quantity += qty;
+        // Re-evaluate флаг ако новото количество е над stock
+        if (STATE.cart[existing].quantity > stock) {
+            STATE.cart[existing]._needs_inventory_check = true;
+        }
         beep(1400, 0.1);
         beep(1800, 0.1); // double beep
     } else {
@@ -2753,6 +2785,8 @@ function addToCart(product, qtyOverride) {
             quantity: qty,
             discount_pct: 0,
             image: product.image || '',
+            _stock_at_add: stock,
+            _needs_inventory_check: (qty > stock),
         });
         beep(1200, 0.15);
     }
@@ -2760,11 +2794,20 @@ function addToCart(product, qtyOverride) {
     greenFlash();
     if (navigator.vibrate) navigator.vibrate(50);
 
-    // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock (informational, не блокира).
-    const _stk = parseInt(product.stock || 0);
-    const _min = parseInt(product.min_stock || 0);
-    if (_stk > 0 && _min > 0 && _stk <= _min && typeof showCustomToast === 'function') {
-        showCustomToast('⚠ Остават ' + _stk + ' бр (под минимум)', 'warn');
+    // S87I.BUGFIX_R4.PHASE2 — non-blocking warning при insufficient stock. Tihol
+    // иска да продължи add-а, log-а става server-side при save (sale_neg).
+    if (qty > stock && typeof showCustomToast === 'function') {
+        if (stock <= 0) {
+            showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
+        } else {
+            showCustomToast('⚠ Налични: ' + stock + ', добавяш ' + qty + ' (минус)', 'warn', 3000);
+        }
+    } else {
+        // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock (informational, не блокира).
+        const _min = parseInt(product.min_stock || 0);
+        if (stock > 0 && _min > 0 && stock <= _min && typeof showCustomToast === 'function') {
+            showCustomToast('⚠ Остават ' + stock + ' бр (под минимум)', 'warn');
+        }
     }
 
     // Reset context to code
@@ -2780,6 +2823,14 @@ function selectCartItem(idx) {
     if (STATE.selectedIndex === idx) {
         // Tap again = increment qty
         STATE.cart[idx].quantity++;
+        // S87I.BUGFIX_R4.PHASE2 — auto-flag при tap-to-increment.
+        const _s = parseInt(STATE.cart[idx]._stock_at_add || 0);
+        if (STATE.cart[idx].quantity > _s) {
+            if (!STATE.cart[idx]._needs_inventory_check && typeof showCustomToast === 'function') {
+                showCustomToast('⚠ Над наличността — ще се продаде в минус', 'warn', 2500);
+            }
+            STATE.cart[idx]._needs_inventory_check = true;
+        }
         beep(1000, 0.08);
     } else {
         STATE.selectedIndex = idx;
@@ -3216,7 +3267,11 @@ function confirmPayment(opts) {
     };
     // S87H.BUGFIX_R3.PHASE2 — opt-in override на наличността. Backend ще
     // позволи stock < 0 + ще log-не stock_movements с reference_type='sale_neg'.
-    if (opts.forceNegative) data.confirm_negative_stock = 1;
+    // S87I.BUGFIX_R4.PHASE2 — implicit override когато потребителят вече е
+    // approved warning при add-to-cart (флаг _needs_inventory_check). Тогава
+    // не показваме отново модал на pay screen.
+    const anyNeedsCheck = (STATE.cart || []).some(it => it && it._needs_inventory_check);
+    if (opts.forceNegative || anyNeedsCheck) data.confirm_negative_stock = 1;
 
     document.getElementById('btnConfirm').disabled = true;
 
@@ -3570,6 +3625,16 @@ function confirmLpPopup() {
             return;
         }
         STATE.cart[idx].quantity = q;
+        // S87I.BUGFIX_R4.PHASE2 — re-check stock при manual qty edit (numpad).
+        const _s = parseInt(STATE.cart[idx]._stock_at_add || 0);
+        if (q > _s) {
+            if (!STATE.cart[idx]._needs_inventory_check && typeof showCustomToast === 'function') {
+                showCustomToast('⚠ Над наличността — ще се продаде в минус', 'warn', 2500);
+            }
+            STATE.cart[idx]._needs_inventory_check = true;
+        } else {
+            STATE.cart[idx]._needs_inventory_check = false;
+        }
         closeLpPopup();
         render();
         return;
@@ -4164,15 +4229,15 @@ function srchOvRenderMasters(masters) {
             trailingHtml;
         if (single) {
             // S87F.SALE.UX Bug #3 — целият row → directly addToCart (no separate [+] needed).
-            // Bug #4: stock=0 → warning toast, не добавя.
+            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме
+            // в cart с флаг → save_sale прави implicit override (sale_neg log).
             // Bug #5: price=0 → custom confirm "Цена 0! Продължи?".
             row.addEventListener('click', () => {
                 const v = m.variants[0];
                 const stk = parseInt(v.stock || 0);
                 const pr = parseFloat(v.retail_price) || 0;
                 if (stk === 0) {
-                    showCustomToast('⚠ Няма налични бройки!', 'warn');
-                    return;
+                    showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
                 }
                 if (pr === 0) {
                     showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
@@ -4224,9 +4289,9 @@ function srchOvOpenVariants(master) {
             '<span class="srch-variant-add" aria-hidden="true" style="color:hsl(var(--hue1) 60% 70%);font-weight:700;font-size:18px;padding:0 4px">+</span>';
         div.addEventListener('click', () => {
             const pr = parseFloat(v.retail_price) || 0;
+            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме.
             if (stock === 0) {
-                showCustomToast('⚠ Няма налични бройки!', 'warn');
-                return;
+                showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
             }
             if (pr === 0) {
                 showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
