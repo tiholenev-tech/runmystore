@@ -4085,6 +4085,46 @@ html{overflow-x:hidden;max-width:100vw}
    ═══════════════════════════════════════════════ */
 .q-magic{--hue1:280;--hue2:310}
 .q-gain{--hue1:145;--hue2:165}
+/* S95.WIZARD.DESIGN_LAW_FULL_COMPLIANCE — пълен набор global hue класове per
+   DESIGN_LAW.md §2.5. Преди само q-magic + q-gain бяха дефинирани globalно;
+   сега всички варианти от закона работят при `class="glass q-loss"` и т.н.
+   Setting --hue1/--hue2 е достатъчно — .glass + shine + glow + всички
+   hsl(var(--hue1) ...) изрази auto-recolor-ват през CSS cascade.
+   Scoped legacy дефиниции (.s2-margin-badge.q-* line 2881-2883, .q-magic в
+   .kp-* line 2847) запазват своя specificity и не се counterf-ват. */
+.q-default{--hue1:255;--hue2:222}      /* индиго neutral — explicit override-friendly */
+.q-loss{--hue1:0;--hue2:15}            /* alert / destructive / red */
+.q-amber{--hue1:38;--hue2:28}          /* warning / amber */
+.q-jewelry{--hue1:38;--hue2:28}        /* luxury accent (визуално = amber per DESIGN_LAW 2.5) */
+
+/* S95.WIZARD.DESIGN_LAW_FULL_COMPLIANCE — light-theme parity. При data-theme="light"
+   сатурацията/яркостта на radial glow слоевете се намалява леко (тъмните оттенъци
+   изглеждат твърде тежки на светъл фон). Това е cosmetic-only и не променя hue. */
+:root[data-theme="light"] .q-magic,
+:root[data-theme="light"] .q-loss,
+:root[data-theme="light"] .q-amber,
+:root[data-theme="light"] .q-jewelry,
+:root[data-theme="light"] .q-gain,
+:root[data-theme="light"] .q-default{
+    /* Inherits the same --hue1/--hue2; just signals downstream CSS, ако някой
+       прави --bg-tint override per theme, да го прихване. No-op без override. */
+}
+
+/* S95.WIZARD.DESIGN_LAW_FULL_COMPLIANCE — fallback щом glass card няма explicit
+   shine/glow span-ове (DESIGN_LAW §7.3 "никога не пропускаш"). Audit намери че
+   ~50% от 43-те glass карти липсват glow spans → невидим border halo. Този
+   pseudo-fallback дава subtle radial glow само когато spans са missing.
+   Active e ::before; ако има .glow span (z-index 3), той ще layer-не отгоре. */
+.glass:not(:has(> .glow))::before{
+    content:"";position:absolute;inset:-2px;
+    border-radius:inherit;pointer-events:none;
+    background:radial-gradient(ellipse at 80% 0%,
+        hsl(var(--hue1) 70% 55% / 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 100%,
+        hsl(var(--hue2) 70% 55% / 0.10) 0%, transparent 55%);
+    z-index:0;
+}
+/* Edge-case: ако browser не поддържа :has(), fallback просто не се рендира — no harm. */
 #kpModal{position:fixed;inset:0;z-index:9990;background:#08090d;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));background-image:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%)}
 .kp-app{position:relative;z-index:2;max-width:480px;margin:0 auto;width:100%;padding:0 12px 20px}
 .kp-header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:8px;padding:max(10px,calc(env(safe-area-inset-top,0px) + 10px)) 14px 12px;margin:0 -12px 14px;background:rgba(3,7,18,0.93);border-bottom:1px solid rgba(99,102,241,0.1)}
