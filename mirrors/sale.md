@@ -5,6 +5,15 @@ require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'config/helpers.php'; // S96.HARDEN.F2 — auditLog() helper
 
+// S97.HARDEN.PH9 — security headers (clickjacking, MIME sniff, referrer leak).
+// CSP omitted intentionally: sale.php loads inline scripts and Google Fonts +
+// runs inside Capacitor APK on file:// — a strict policy here would break both.
+// Tracked at handoff for a follow-up CSP design that uses nonces.
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(self), microphone=(self), geolocation=(self)');
+
 $pdo = DB::get();
 $tenant_id = $_SESSION['tenant_id'];
 $user_id = $_SESSION['user_id'];
