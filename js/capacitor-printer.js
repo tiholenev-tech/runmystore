@@ -318,6 +318,59 @@
 
     bar.appendChild(btnCopy);
     bar.appendChild(btnClear);
+
+    // S95.D520 — quick action buttons за D520BT testing direct from overlay
+    const btnD520Wake = document.createElement('button');
+    btnD520Wake.textContent = '📡 Wakeup';
+    btnD520Wake.style.cssText = 'padding:10px 14px;background:#f59e0b;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnD520Wake.onclick = async function() {
+      try {
+        btnD520Wake.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.d520Wakeup();
+        btnD520Wake.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnD520Wake.textContent = '📡 Wakeup'; }, 2500);
+      } catch (e) {
+        btnD520Wake.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] Wakeup ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnD520Wake.textContent = '📡 Wakeup'; }, 2500);
+      }
+    };
+
+    const btnD520Min = document.createElement('button');
+    btnD520Min.textContent = '⬛ Mini';
+    btnD520Min.style.cssText = 'padding:10px 14px;background:#f59e0b;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnD520Min.onclick = async function() {
+      try {
+        btnD520Min.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.d520Minimal();
+        btnD520Min.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnD520Min.textContent = '⬛ Mini'; }, 2500);
+      } catch (e) {
+        btnD520Min.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] Minimal ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnD520Min.textContent = '⬛ Mini'; }, 2500);
+      }
+    };
+
+    const btnD520Full = document.createElement('button');
+    btnD520Full.textContent = '🏷 Label';
+    btnD520Full.style.cssText = 'padding:10px 14px;background:#10b981;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnD520Full.onclick = async function() {
+      try {
+        btnD520Full.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.d520Test();
+        btnD520Full.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnD520Full.textContent = '🏷 Label'; }, 2500);
+      } catch (e) {
+        btnD520Full.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] Test ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnD520Full.textContent = '🏷 Label'; }, 2500);
+      }
+    };
+
+    bar.appendChild(btnD520Wake);
+    bar.appendChild(btnD520Min);
+    bar.appendChild(btnD520Full);
     bar.appendChild(btnClose);
 
     const pre = document.createElement('pre');
