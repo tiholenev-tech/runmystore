@@ -7070,7 +7070,7 @@ function renderWizPagePart2(step){
                               '<svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
                               '<span>Първо <b>въведи бройки</b> за всеки вариант → tap тук</span>' +
                           '</div>') +
-                    '<div class="s4ai-prompt">' +
+                    '<div class="s4ai-prompt q-magic">' +
                         '<div class="s4ai-prompt-title">' +
                             '<svg viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
                             '✨ Искаш ли AI обработка?' +
@@ -7690,7 +7690,7 @@ function renderWizStep2() {
     // S95.BUGFIX_R4 Bug 3b: cost/wholesale oninput → _step2PriceWarn debounce check.
     var _glassSpans = '<span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>';
     var pricesSection =
-        '<div class="s2-section glass sm q-default">' + _glassSpans +
+        '<div class="s2-section glass sm q-amber">' + _glassSpans +
             '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
             // S95.STEP2_BUGFIX Bug 2: cost_price oninput → _step2RecalcMargin БЕЗ typeof guard.
             // Ако нещо в chain-а throw-не (напр. wizUpdateMarkup намери stale wMarkupPct), recalc
@@ -7739,7 +7739,7 @@ function renderWizStep2() {
     var footerSaveBtn = '<button type="button" class="s2-foot-save" onclick="wizSave()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши финал</button>';
     if (S.wizType === 'variant') {
         finalPromptH =
-            '<div class="s82-finalprompt" style="margin:14px 0 4px">' +
+            '<div class="s82-finalprompt q-magic" style="margin:14px 0 4px">' +
                 '<div class="s82-finalprompt-title">' +
                     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
                     '✨ Искаш ли AI обработка?' +
@@ -8218,7 +8218,7 @@ async function openStudioModal(productId) {
     ov.className = 'studio-modal-ov show';
     ov.onclick = function(e){ if (e.target === ov) closeStudioModal(); };
     ov.innerHTML =
-        '<div class="glass studio-modal" id="aiStudioCard">' +
+        '<div class="glass studio-modal q-magic" id="aiStudioCard">' +
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
             '<div class="studio-modal-hdr">' +
@@ -8584,7 +8584,7 @@ function studioOpenBuyCredits() {
     ov.id = 'studioBuyModal'; ov.className = 'studio-buy-ov';
     ov.onclick = function(e){ if (e.target === ov) studioCloseBuyCredits(); };
     ov.innerHTML =
-        '<div class="glass studio-buy-card">' +
+        '<div class="glass studio-buy-card q-magic">' +
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
             '<div class="studio-buy-hdr">' +
@@ -10758,8 +10758,9 @@ function showMiniPrintOverlay(){
     ov.className='s95-mini-ov';
     ov.onclick=function(e){/* no-op — само бутоните затварят overlay-а */};
     ov.innerHTML=
-        '<div class="s95-mini-box glass v4-glass-pro">'+
+        '<div class="s95-mini-box glass v4-glass-pro q-gain">'+
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+            '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
             '<div class="s95-mini-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
             '<div class="s95-mini-title">Артикулът е записан!</div>'+
             '<div class="s95-mini-sub">'+nm+' · '+pr+'</div>'+
@@ -10995,8 +10996,9 @@ function renderWizPhotoStep(){
         var _qVal=(S.wizData.quantity===undefined?'':S.wizData.quantity);
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity===''?'':S.wizData.min_quantity);
         qtyH=
-            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 '<div class="fg" style="margin:0 0 10px">'+
                     '<label class="fl">📦 Брой&nbsp;<span style="color:#ef4444">*</span></label>'+
                     '<div style="display:flex;gap:6px;align-items:center">'+
@@ -11043,25 +11045,28 @@ function renderWizPhotoStep(){
     return '<div class="wiz-page active" style="padding:18px 14px 220px">'+
         headerH+
         '<div style="'+lockStyle+'">'+
-            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 photoBlock+
             '</div>'+
-            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 nameH+
                 priceH+
             '</div>'+
-            '<div class="glass v4-glass-pro" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 supplierH+
                 categoryH+
                 subcatH+
             '</div>'+
             qtyH+
-            '<div class="glass v4-glass-pro" style="padding:10px 14px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:10px 14px;margin-bottom:10px">'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
+                '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 '<div id="wIdBarHdr" onclick="var b=document.getElementById(\'wIdBarBox2\');var c=document.getElementById(\'wIdBarChev\');if(b){var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';if(c)c.style.transform=open?\'rotate(0deg)\':\'rotate(180deg)\'}" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">'+
                     '<div style="font-size:12px;font-weight:600;color:#cbd5e1;flex:1">Артикулен номер и баркод <span style="font-weight:400;color:#64748b">(по желание · AI авто)</span></div>'+
                     '<svg id="wIdBarChev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:'+((S.wizData.code||S.wizData.barcode)?'rotate(180deg)':'rotate(0deg)')+'"><polyline points="6 9 12 15 18 9"/></svg>'+
