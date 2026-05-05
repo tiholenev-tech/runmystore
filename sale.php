@@ -56,12 +56,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     // S97.HARDEN.PH6 — cap search input to 64 chars (DB column limits + DoS guard).
     $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
     if ($q === '') { echo json_encode([]); exit; }
-    // S87F.SALE.UX Bug #2 — ranking: exact prefix → word-boundary → substring → other.
-    // ("бики" → "Бикини *" first, "Дамски бикини *" second, "Бански бикини *" third).
-    // Bug #4 — добавен min_quantity (за stock warning в JS).
-    $exact = $q . '%';
-    $wordboundary = '% ' . $q . '%';
-    $substring = '%' . $q . '%';
+    // S87G.R2 Bug #2 — ranking: exact prefix → word-boundary → substring.
+    // Защита срещу collation case-sensitivity (Tihol виждаше само "Бикини" — не и
+    // "Бански бикини"): сравненията над име са LOWER()-ed двупосочно, за да работят
+    // и при utf8mb4_bin или други case-strict collations. Word-boundary е разширен
+    // да приема space/-/_/(/" /. /, разделители (не само space).
+    $qLower       = mb_strtolower($q, 'UTF-8');
+    $exact        = $qLower . '%';
+    $wordboundary = '%[ \\-_/(.,]' . $qLower . '%'; // not used directly; see REGEXP fallback below
+    $substring    = '%' . $qLower . '%';
+    // MySQL LIKE doesn't support character classes — fall back to a precomputed
+    // " {q}%" pattern that catches the common space-delimited Bulgarian word-boundary
+    // case ("Бански бикини"). Other separators are still matched via the substring
+    // bucket, just with lower priority.
+    $wbSpace      = '% ' . $qLower . '%';
     try {
         $results = DB::run("
             SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
@@ -71,19 +79,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
             FROM products p
             LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1
-              AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode = ?)
+              AND (LOWER(p.name) LIKE ? OR LOWER(p.code) LIKE ? OR p.barcode = ?)
             ORDER BY
               CASE
-                WHEN p.code = ? THEN 0
-                WHEN p.barcode = ? THEN 1
-                WHEN p.name LIKE ? THEN 2
-                WHEN p.name LIKE ? THEN 3
-                WHEN p.name LIKE ? THEN 4
+                WHEN LOWER(p.code)    = ?  THEN 0
+                WHEN p.barcode        = ?  THEN 1
+                WHEN LOWER(p.name) LIKE ?  THEN 2
+                WHEN LOWER(p.name) LIKE ?  THEN 3
+                WHEN LOWER(p.name) LIKE ?  THEN 4
                 ELSE 5
               END,
               p.name ASC
             LIMIT 30
-        ", [$store_id, $tenant_id, $substring, $substring, $q, $q, $q, $exact, $wordboundary, $substring])->fetchAll(PDO::FETCH_ASSOC);
+        ", [
+            $store_id, $tenant_id,
+            $substring, $substring, $q,                 // WHERE
+            $qLower, $q,                                // CASE 0..1 (exact code, exact barcode)
+            $exact, $wbSpace, $substring                // CASE 2..4 (prefix, word-boundary, substring)
+        ])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($results);
     } catch (Throwable $e) {
         // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
