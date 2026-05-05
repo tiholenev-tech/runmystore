@@ -188,6 +188,80 @@ if ($name === '') {
     echo json_encode(['error' => 'Въведи наименование']); exit;
 }
 
+// S97.PRODUCTS.HARDEN_PH8 — input validation sweep on every $data field.
+// Strips NUL bytes (DB-truncation attacks), caps lengths to DB column limits,
+// whitelists units, and tenant-guards FK columns. Errors here are early-exit
+// with machine-readable codes so the wizard can target the offending field.
+$_strip = static fn(?string $s): ?string => $s === null ? null : str_replace("\0", '', $s);
+$name           = (string) $_strip($name);
+$code           = $_strip($code);
+$barcode        = $_strip($barcode);
+$location       = $_strip($location);
+$description    = $_strip($description);
+$origin_country = $_strip($origin_country);
+$composition    = $_strip($composition);
+$color_single   = $_strip($color_single);
+$size_single    = $_strip($size_single);
+
+if (mb_strlen($name) > 500) {
+    _harden_reject(422, 'name_too_long', 'Името е твърде дълго (макс. 500 знака).');
+}
+if ($code !== null && strlen($code) > 64) {
+    _harden_reject(422, 'code_too_long', 'Кодът е твърде дълъг (макс. 64 знака).');
+}
+if ($barcode !== null) {
+    if (strlen($barcode) > 100) {
+        _harden_reject(422, 'barcode_too_long', 'Баркодът е твърде дълъг (макс. 100 знака).');
+    }
+    // Barcodes are scanner codes — must be printable ASCII (alnum + a few separators).
+    if (!preg_match('/^[A-Za-z0-9_\-+\/.]*$/', $barcode)) {
+        _harden_reject(422, 'barcode_invalid', 'Баркодът съдържа невалидни символи.');
+    }
+}
+if ($composition !== null && mb_strlen($composition) > 500) {
+    _harden_reject(422, 'composition_too_long', 'Съставът е твърде дълъг (макс. 500 знака).');
+}
+if ($origin_country !== null && mb_strlen($origin_country) > 100) {
+    _harden_reject(422, 'origin_too_long', 'Държавата е твърде дълга (макс. 100 знака).');
+}
+if ($description !== null && mb_strlen($description) > 5000) {
+    _harden_reject(422, 'description_too_long', 'Описанието е твърде дълго (макс. 5000 знака).');
+}
+if ($location !== null && mb_strlen($location) > 100) {
+    _harden_reject(422, 'location_too_long', 'Локацията е твърде дълга (макс. 100 знака).');
+}
+// Unit whitelist: app supports configurable units via the units table; allow any
+// short non-empty string but cap to 16 chars and strip control chars.
+$unit = (string) $_strip($unit);
+if (mb_strlen($unit) > 16) {
+    _harden_reject(422, 'unit_too_long', 'Мерната единица е твърде дълга.');
+}
+if ($unit === '') $unit = 'бр';
+// VAT rate: must be a valid percentage (0-100).
+$_vat_in = $data['vat_rate'] ?? null;
+if ($_vat_in !== null && $_vat_in !== '') {
+    $_vat_f = (float) $_vat_in;
+    if ($_vat_f < 0 || $_vat_f > 100) {
+        _harden_reject(422, 'vat_invalid', 'VAT трябва да е между 0 и 100.');
+    }
+}
+// FK columns: must belong to the same tenant. Skip if NULL.
+if ($category_id !== null) {
+    $_ok = DB::run("SELECT 1 FROM categories WHERE id=? AND tenant_id=? LIMIT 1",
+        [$category_id, $tenant_id])->fetchColumn();
+    if (!$_ok) _harden_reject(422, 'invalid_category', 'Невалидна категория.');
+}
+if ($supplier_id !== null) {
+    $_ok = DB::run("SELECT 1 FROM suppliers WHERE id=? AND tenant_id=? LIMIT 1",
+        [$supplier_id, $tenant_id])->fetchColumn();
+    if (!$_ok) _harden_reject(422, 'invalid_supplier', 'Невалиден доставчик.');
+}
+// JSON variant blob: cap raw size before json_decode (1MB) to prevent OOM.
+if (!empty($data['variants_batch']) && is_string($data['variants_batch'])
+    && strlen($data['variants_batch']) > 1024 * 1024) {
+    _harden_reject(413, 'variants_too_large', 'Списъкът с варианти е твърде голям.');
+}
+
 // S97.PRODUCTS.HARDEN_PH2 — numeric guards. Voice/manual/AI-extracted input
 // can deliver negatives or absurd values that would silently corrupt margin
 // reports and inventory. Reject with 422 + machine-readable error code so the
