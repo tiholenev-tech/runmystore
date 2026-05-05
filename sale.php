@@ -48,21 +48,28 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
     if ($q === '') { echo json_encode([]); exit; }
     $like = "%$q%";
-    // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
-    $results = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
-               p.parent_id, p.color, p.size, p.image_url,
-               COALESCE(i.quantity, 0) as stock
-        FROM products p
-        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-        WHERE p.tenant_id = ? AND p.is_active = 1
-          AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
-        ORDER BY
-          CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
-          p.name
-        LIMIT 30
-    ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($results);
+    try {
+        // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
+        $results = DB::run("
+            SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+                   p.parent_id, p.color, p.size, p.image_url,
+                   COALESCE(i.quantity, 0) as stock
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1
+              AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
+            ORDER BY
+              CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
+              p.name
+            LIMIT 30
+        ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($results);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
+        error_log('[sale.quick_search] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode([]);
+    }
     exit;
 }
 
@@ -73,15 +80,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
     // S97.HARDEN.PH6 — barcodes are <= 64 chars in the schema; reject anything longer.
     $barcode = substr(trim($_GET['barcode'] ?? ''), 0, 64);
     if ($barcode === '') { echo json_encode(null); exit; }
-    $product = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
-               COALESCE(i.quantity, 0) as stock
-        FROM products p
-        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-        WHERE p.tenant_id = ? AND p.is_active = 1 AND p.barcode = ?
-        LIMIT 1
-    ", [$store_id, $tenant_id, $barcode])->fetch(PDO::FETCH_ASSOC);
-    echo json_encode($product ?: null);
+    try {
+        $product = DB::run("
+            SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+                   COALESCE(i.quantity, 0) as stock
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.barcode = ?
+            LIMIT 1
+        ", [$store_id, $tenant_id, $barcode])->fetch(PDO::FETCH_ASSOC);
+        echo json_encode($product ?: null);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full error, return null so the scanner UI shows "not found".
+        error_log('[sale.barcode_lookup] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode(null);
+    }
     exit;
 }
 
@@ -138,18 +152,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $ids = array_unique(array_filter(array_map('intval', array_slice((array)($body['product_ids'] ?? []), 0, 200))));
     if (empty($ids)) { echo json_encode([]); exit; }
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $rows = DB::run(
-        "SELECT id, retail_price, wholesale_price FROM products WHERE tenant_id = ? AND id IN ($placeholders)",
-        array_merge([$tenant_id], $ids)
-    )->fetchAll(PDO::FETCH_ASSOC);
-    $out = [];
-    foreach ($rows as $r) {
-        $out[(int)$r['id']] = [
-            'retail' => (float)$r['retail_price'],
-            'wholesale' => (float)($r['wholesale_price'] ?: $r['retail_price']),
-        ];
+    try {
+        $rows = DB::run(
+            "SELECT id, retail_price, wholesale_price FROM products WHERE tenant_id = ? AND id IN ($placeholders)",
+            array_merge([$tenant_id], $ids)
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int)$r['id']] = [
+                'retail' => (float)$r['retail_price'],
+                'wholesale' => (float)($r['wholesale_price'] ?: $r['retail_price']),
+            ];
+        }
+        echo json_encode($out);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full error, return empty map (cart keeps last-known prices).
+        error_log('[sale.refetch_prices] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode([]);
     }
-    echo json_encode($out);
     exit;
 }
 
