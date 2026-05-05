@@ -56,22 +56,34 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     // S97.HARDEN.PH6 — cap search input to 64 chars (DB column limits + DoS guard).
     $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
     if ($q === '') { echo json_encode([]); exit; }
-    $like = "%$q%";
+    // S87F.SALE.UX Bug #2 — ranking: exact prefix → word-boundary → substring → other.
+    // ("бики" → "Бикини *" first, "Дамски бикини *" second, "Бански бикини *" third).
+    // Bug #4 — добавен min_quantity (за stock warning в JS).
+    $exact = $q . '%';
+    $wordboundary = '% ' . $q . '%';
+    $substring = '%' . $q . '%';
     try {
-        // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
         $results = DB::run("
             SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                    p.parent_id, p.color, p.size, p.image_url,
-                   COALESCE(i.quantity, 0) as stock
+                   COALESCE(i.quantity, 0) as stock,
+                   COALESCE(p.min_quantity, 0) as min_stock
             FROM products p
             LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1
-              AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
+              AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode = ?)
             ORDER BY
-              CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
-              p.name
+              CASE
+                WHEN p.code = ? THEN 0
+                WHEN p.barcode = ? THEN 1
+                WHEN p.name LIKE ? THEN 2
+                WHEN p.name LIKE ? THEN 3
+                WHEN p.name LIKE ? THEN 4
+                ELSE 5
+              END,
+              p.name ASC
             LIMIT 30
-        ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
+        ", [$store_id, $tenant_id, $substring, $substring, $q, $q, $q, $exact, $wordboundary, $substring])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($results);
     } catch (Throwable $e) {
         // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
@@ -1537,6 +1549,9 @@ body.sale-page .cam-top{ gap:8px }
     letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .srch-master-meta{font-size:10px;color:var(--text-muted);font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+/* S87F.SALE.UX Bug #11 — out-of-stock master row meta in red */
+.srch-master-meta.out{color:#fca5a5}
+:root[data-theme="light"] .srch-master-meta.out{color:#dc2626}
 .srch-master-arrow{color:rgba(255,255,255,0.3);font-size:18px;flex-shrink:0;font-weight:600}
 /* Variant row */
 .srch-variant{
@@ -1708,6 +1723,33 @@ body.sale-page .pay-confirm-btn{
     text-shadow:0 0 14px rgba(255,255,255,0.35);
 }
 body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+
+/* S87F.SALE.UX — Custom modal pattern (replaces native prompt/confirm/alert).
+   Centered, max 280px, glass styling. Used by showCustomPrompt/Confirm/Toast.
+   Hue HSL vars (palette.js) → q-default fallback. */
+.cm-modal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.cm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:cmFadeIn 0.15s ease-out}
+.cm-box{position:relative;width:100%;max-width:280px;padding:18px 18px 14px;border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2)),hsl(220 25% 8% / 0.95);border:1px solid rgba(255,255,255,0.10);box-shadow:0 16px 48px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);animation:cmSlideIn 0.2s ease-out}
+:root[data-theme="light"] .cm-box{background:rgba(255,255,255,0.97);border-color:rgba(15,23,42,0.10);box-shadow:0 16px 48px rgba(99,102,241,0.18),inset 0 1px 0 rgba(255,255,255,0.7)}
+.cm-title{font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:10px;letter-spacing:-0.01em}
+.cm-msg{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:14px;line-height:1.4;letter-spacing:-0.01em}
+.cm-input{width:100%;padding:12px 14px;border-radius:12px;font-size:18px;font-weight:900;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-primary);font-family:inherit;outline:none;font-variant-numeric:tabular-nums;text-align:center;margin-bottom:12px}
+:root[data-theme="light"] .cm-input{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.10)}
+.cm-input:focus{border-color:hsl(var(--hue1) 60% 50%);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
+.cm-actions{display:flex;gap:8px}
+.cm-btn{flex:1;padding:11px;border-radius:100px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:0.04em;border:1px solid}
+.cm-cancel{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08);color:var(--text-secondary)}
+:root[data-theme="light"] .cm-cancel{background:rgba(15,23,42,0.04);border-color:rgba(15,23,42,0.10);color:var(--text-secondary)}
+.cm-ok{background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 42%));border-color:hsl(var(--hue1) 60% 55%);color:white;box-shadow:0 4px 14px hsl(var(--hue1) 60% 45% / 0.35),inset 0 1px 0 rgba(255,255,255,0.18)}
+@keyframes cmFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes cmSlideIn{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* Toast — used for warnings/success outside modals */
+.cm-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:100px;font-size:12px;font-weight:800;letter-spacing:0.04em;color:white;z-index:310;background:linear-gradient(135deg,hsl(145 70% 45%),hsl(160 70% 40%));box-shadow:0 6px 20px hsl(145 70% 50% / 0.4);animation:cmToastIn 0.25s ease-out}
+.cm-toast.cm-toast-warn{background:linear-gradient(135deg,hsl(38 90% 50%),hsl(28 90% 45%));box-shadow:0 6px 20px hsl(38 90% 50% / 0.45)}
+.cm-toast.cm-toast-error{background:linear-gradient(135deg,hsl(0 75% 55%),hsl(350 70% 50%));box-shadow:0 6px 20px hsl(0 75% 55% / 0.45)}
+.cm-toast.out{opacity:0;transform:translateX(-50%) translateY(-10px);transition:all 0.3s ease}
+@keyframes cmToastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 </style>
 </head>
@@ -3854,39 +3896,50 @@ function srchOvRenderMasters(masters) {
         const priceText = (m.minPrice === m.maxPrice)
             ? fmtPrice(m.minPrice)
             : ('от ' + fmtPrice(m.minPrice));
+        // S87F.SALE.UX Bug #11 — total stock count в master row meta.
+        const totalStock = m.variants.reduce((s, v) => s + (parseInt(v.stock || 0)), 0);
+        const stockText = totalStock === 0 ? ' · няма налични' : (' · ' + totalStock + ' общо');
+        const metaCls = totalStock === 0 ? 'srch-master-meta out' : 'srch-master-meta';
         const ico = m.image
             ? '<img src="' + esc(m.image) + '" alt="" loading="lazy">'
             : '📦';
         const single = m.variants.length === 1;
         const masterKey = single ? ('p:' + m.variants[0].id) : ('m:' + m.key);
         if (srchSelectedKey === masterKey) row.classList.add('selected');
+        // S87F.SALE.UX Bug #3 — single → row tap = directly addToCart (без отделен +).
+        // Multi → row tap = expand variants (без visible "+" бутон).
         const trailingHtml = single
-            ? '<button type="button" class="srch-master-add" aria-label="Добави">+</button>'
+            ? '<span class="srch-master-arrow" aria-hidden="true" style="color:hsl(var(--hue1) 60% 70%);font-weight:700;font-size:18px">+</span>'
             : '<span class="srch-master-arrow" aria-hidden="true">›</span>';
         row.innerHTML =
             '<div class="srch-master-ico">' + ico + '</div>' +
             '<div class="srch-master-info">' +
                 '<div class="srch-master-name">' + esc(m.name) + '</div>' +
-                '<div class="srch-master-meta">' + variantText + ' · ' + priceText + '</div>' +
+                '<div class="' + metaCls + '">' + variantText + ' · ' + priceText + stockText + '</div>' +
             '</div>' +
             trailingHtml;
         if (single) {
-            // Single-variant master: row body tap = select; explicit "+" tap = open numpad.
-            row.addEventListener('click', (e) => {
-                if (e.target.closest('.srch-master-add')) return; // add button handler below
-                srchSelectRow(row, masterKey);
-            });
-            const addBtn = row.querySelector('.srch-master-add');
-            if (addBtn) addBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                srchSelectRow(row, masterKey);
-                srchOvAddProduct(m.variants[0]);
+            // S87F.SALE.UX Bug #3 — целият row → directly addToCart (no separate [+] needed).
+            // Bug #4: stock=0 → warning toast, не добавя.
+            // Bug #5: price=0 → custom confirm "Цена 0! Продължи?".
+            row.addEventListener('click', () => {
+                const v = m.variants[0];
+                const stk = parseInt(v.stock || 0);
+                const pr = parseFloat(v.retail_price) || 0;
+                if (stk === 0) {
+                    showCustomToast('⚠ Няма налични бройки!', 'warn');
+                    return;
+                }
+                if (pr === 0) {
+                    showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
+                        srchOvAddProduct(v);
+                    });
+                    return;
+                }
+                srchOvAddProduct(v);
             });
         } else {
-            // Multi-variant master: row tap = drill-down to variants (no selection persists).
-            row.addEventListener('click', () => {
-                srchOvOpenVariants(m);
-            });
+            row.addEventListener('click', () => srchOvOpenVariants(m));
         }
         c.appendChild(row);
     });
@@ -3914,6 +3967,9 @@ function srchOvOpenVariants(master) {
         const stockCls = stock === 0 ? 'srch-variant-stock zero' : 'srch-variant-stock';
         const colorBg = srchOvColorToCss(v.color);
         const variantTitle = [v.color, v.size].filter(x => x && String(x).trim()).join(' · ') || (v.code || '—');
+        // S87F.SALE.UX Bug #3 — целият row → directly addToCart, без отделен + бутон.
+        // Bug #4 — stock count visible (вече беше) + 0бр → warning, не добавя.
+        // Bug #5 — price=0 → custom confirm.
         div.innerHTML =
             '<span class="srch-variant-color" style="background:' + colorBg + '"></span>' +
             '<div class="srch-variant-info">' +
@@ -3921,16 +3977,19 @@ function srchOvOpenVariants(master) {
                 '<div class="' + stockCls + '">' + stock + ' бр</div>' +
             '</div>' +
             '<span class="srch-variant-price">' + fmtPrice(parseFloat(v.retail_price) || 0) + '</span>' +
-            '<button type="button" class="srch-variant-add" aria-label="Добави">+</button>';
-        // Row body tap = select (visual state); does NOT open numpad.
-        div.addEventListener('click', (e) => {
-            if (e.target.closest('.srch-variant-add')) return; // add button handler below
-            srchSelectRow(div, variantKey);
-        });
-        const addBtn = div.querySelector('.srch-variant-add');
-        if (addBtn) addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            srchSelectRow(div, variantKey);
+            '<span class="srch-variant-add" aria-hidden="true" style="color:hsl(var(--hue1) 60% 70%);font-weight:700;font-size:18px;padding:0 4px">+</span>';
+        div.addEventListener('click', () => {
+            const pr = parseFloat(v.retail_price) || 0;
+            if (stock === 0) {
+                showCustomToast('⚠ Няма налични бройки!', 'warn');
+                return;
+            }
+            if (pr === 0) {
+                showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
+                    srchOvAddProduct(v);
+                });
+                return;
+            }
             srchOvAddProduct(v);
         });
         c.appendChild(div);
@@ -3963,14 +4022,11 @@ function srchOvColorToCss(name) {
     return 'rgba(255,255,255,0.12)';
 }
 
-// S87G.B5 — Search result tap → numpad modal for qty; OK adds with chosen qty.
+// S87F.SALE.UX Bug #3 — tap = directly addToCart (rapid-add UX, без numpad popup).
+// Multiple taps = +1 each (existing in cart logic increments quantity).
 function srchOvAddProduct(product) {
-    if (typeof openSearchAddModal === 'function') {
-        openSearchAddModal(product);
-        return;
-    }
     if (typeof addToCart === 'function') addToCart(product);
-    showSrchToast('✓ ' + (product.name || 'Артикул') + ' добавен');
+    showCustomToast('✓ ' + (product.name || 'Артикул') + ' добавен');
 }
 
 function showSrchToast(msg) {
@@ -3990,7 +4046,7 @@ function srchOvVoice() {
     }
 }
 
-// S87G.B1 — Wire #searchInput live-search (input + keyup, debounced 250ms, min 2 chars, AbortController)
+// S87F.SALE.UX Bug #1 — debounced live-search започва от 1-ва буква (беше 2). 250ms debounce.
 (function wireLiveSearch(){
     function doWire(){
         const input = document.getElementById('searchInput');
@@ -4001,7 +4057,7 @@ function srchOvVoice() {
             STATE.searchText = q;
             clearTimeout(srchOvDebounce);
             if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
-            if (q.length < 2) {
+            if (q.length < 1) {
                 inlineSearchClose();
                 return;
             }
@@ -4013,7 +4069,7 @@ function srchOvVoice() {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const q = (input.value || '').trim();
-                if (q.length >= 2) {
+                if (q.length >= 1) {
                     clearTimeout(srchOvDebounce);
                     doInlineSearch(q);
                 }
@@ -4079,6 +4135,79 @@ document.addEventListener('backbutton', (e) => {
         else document.addEventListener('DOMContentLoaded', attachTap);
     }
 })();
+
+// S87F.SALE.UX — Custom modal helpers (replace native prompt/confirm/alert).
+// Pattern: 280px max-width, glass styling, OK/Cancel buttons, ESC/Enter keys.
+function showCustomPrompt(title, defaultVal, onOk) {
+    document.querySelectorAll('.cm-modal').forEach(m => m.remove());
+    const modal = document.createElement('div');
+    modal.className = 'cm-modal';
+    const safeTitle = String(title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const safeVal = String(defaultVal == null ? '' : defaultVal).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    modal.innerHTML =
+        '<div class="cm-backdrop"></div>' +
+        '<div class="cm-box">' +
+            '<div class="cm-title">' + safeTitle + '</div>' +
+            '<input type="text" inputmode="numeric" class="cm-input" value="' + safeVal + '">' +
+            '<div class="cm-actions">' +
+                '<button class="cm-btn cm-cancel" type="button">Откажи</button>' +
+                '<button class="cm-btn cm-ok" type="button">OK</button>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    const input = modal.querySelector('.cm-input');
+    const ok = modal.querySelector('.cm-ok');
+    const cancel = modal.querySelector('.cm-cancel');
+    const backdrop = modal.querySelector('.cm-backdrop');
+    setTimeout(() => { try { input.focus(); input.select(); } catch(_){} }, 50);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); ok.click(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel.click(); }
+    });
+    ok.addEventListener('click', () => {
+        const val = input.value;
+        modal.remove();
+        if (typeof onOk === 'function') onOk(val);
+    });
+    cancel.addEventListener('click', () => modal.remove());
+    backdrop.addEventListener('click', () => modal.remove());
+}
+
+function showCustomConfirm(message, onYes, onNo) {
+    document.querySelectorAll('.cm-modal').forEach(m => m.remove());
+    const modal = document.createElement('div');
+    modal.className = 'cm-modal';
+    const safeMsg = String(message || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    modal.innerHTML =
+        '<div class="cm-backdrop"></div>' +
+        '<div class="cm-box">' +
+            '<div class="cm-msg">' + safeMsg + '</div>' +
+            '<div class="cm-actions">' +
+                '<button class="cm-btn cm-cancel" type="button">Откажи</button>' +
+                '<button class="cm-btn cm-ok" type="button">Да</button>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.cm-ok').addEventListener('click', () => {
+        modal.remove();
+        if (typeof onYes === 'function') onYes();
+    });
+    modal.querySelector('.cm-cancel').addEventListener('click', () => {
+        modal.remove();
+        if (typeof onNo === 'function') onNo();
+    });
+    modal.querySelector('.cm-backdrop').addEventListener('click', () => modal.remove());
+}
+
+function showCustomToast(msg, kind) {
+    document.querySelectorAll('.cm-toast').forEach(t => t.remove());
+    const t = document.createElement('div');
+    t.className = 'cm-toast' + (kind ? ' cm-toast-' + kind : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('out'), 1700);
+    setTimeout(() => { if (t.parentNode) t.remove(); }, 2100);
+}
 </script>
 
 <script src="/design-kit/theme-toggle.js?v=<?= @filemtime(__DIR__.'/design-kit/theme-toggle.js') ?: 1 ?>"></script>
