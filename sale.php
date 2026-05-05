@@ -3545,7 +3545,11 @@ function parkSale() {
         total: getTotal(),
     });
     saveParked();
-    showToast('Продажба паркирана');
+    if (typeof showSaleSuccess === 'function') {
+        showSaleSuccess('🅿️ Паркирано', 'Парк #' + STATE.parked.length, null);
+    } else {
+        showToast('Продажба паркирана');
+    }
 
     STATE.cart = [];
     STATE.selectedIndex = -1;
