@@ -2756,20 +2756,43 @@ function esc(s) {
 }
 
 // ─── CART OPERATIONS ───
+// S87J.BUGFIX_R5.PHASE1 — централизирана stock логика. Когато stock===0 → glass
+// confirm модал ("Желаеш ли да продължиш?"). Yes → flag _needs_inventory_check
+// + добавяме. No → cancel. За 0<stock<qty → toast warn (informational, не блокира).
+// Search-result handlers вече само викат addToCart — без собствени проверки.
 function addToCart(product, qtyOverride) {
+    const stock = parseInt(product.stock || 0);
     const qty = (typeof qtyOverride === 'number' && qtyOverride > 0) ? qtyOverride : 1;
+
+    // Stock=0 → glass confirm. Само ако helper-ът е зареден (защита fallback).
+    if (stock <= 0 && typeof showCustomConfirm === 'function') {
+        const pname = product.name || 'Артикулът';
+        showCustomConfirm(
+            '"' + pname + '" е на 0 наличност. Желаеш ли да продължиш?',
+            () => _addToCartImpl(product, qty, stock, /*forceFlag*/true),
+            () => {
+                if (typeof showCustomToast === 'function') {
+                    showCustomToast('Отменено', 'warn');
+                }
+            }
+        );
+        return;
+    }
+    _addToCartImpl(product, qty, stock, /*forceFlag*/false);
+}
+
+// Вътрешна функция — actual cart push + flag set + audio/vibrate. Извиква се
+// директно при stock>0 или след confirm при stock=0.
+function _addToCartImpl(product, qty, stock, forceFlag) {
     const price = STATE.isWholesale
         ? (parseFloat(product.wholesale_price) || parseFloat(product.retail_price))
         : parseFloat(product.retail_price);
-    // S87I.BUGFIX_R4.PHASE2 — запазваме stock в cart entry, за да можем при save
-    // да пратим implicit `confirm_negative_stock=1` без да питаме отново.
-    const stock = parseInt(product.stock || 0);
+    const overStock = (qty > stock) || forceFlag;
 
     // Check if already in cart
     const existing = STATE.cart.findIndex(it => it.product_id === product.id);
     if (existing >= 0) {
         STATE.cart[existing].quantity += qty;
-        // Re-evaluate флаг ако новото количество е над stock
         if (STATE.cart[existing].quantity > stock) {
             STATE.cart[existing]._needs_inventory_check = true;
         }
@@ -2786,27 +2809,24 @@ function addToCart(product, qtyOverride) {
             discount_pct: 0,
             image: product.image || '',
             _stock_at_add: stock,
-            _needs_inventory_check: (qty > stock),
+            _needs_inventory_check: overStock,
         });
         beep(1200, 0.15);
     }
 
-    greenFlash();
     if (navigator.vibrate) navigator.vibrate(50);
 
-    // S87I.BUGFIX_R4.PHASE2 — non-blocking warning при insufficient stock. Tihol
-    // иска да продължи add-а, log-а става server-side при save (sale_neg).
-    if (qty > stock && typeof showCustomToast === 'function') {
-        if (stock <= 0) {
-            showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-        } else {
-            showCustomToast('⚠ Налични: ' + stock + ', добавяш ' + qty + ' (минус)', 'warn', 3000);
-        }
+    // S87I.BUGFIX_R4.PHASE2 — non-blocking warning при insufficient stock (но >0).
+    // stock=0 случаят вече e обработен горе чрез confirm.
+    if (overStock && stock > 0 && typeof showCustomToast === 'function') {
+        showCustomToast('Налични: ' + stock + ', добавяш ' + qty + ' (минус)', 'warn');
+    } else if (forceFlag && typeof showCustomToast === 'function') {
+        showCustomToast('Добавен (за инвентаризация)', 'warn');
     } else {
-        // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock (informational, не блокира).
+        // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock.
         const _min = parseInt(product.min_stock || 0);
         if (stock > 0 && _min > 0 && stock <= _min && typeof showCustomToast === 'function') {
-            showCustomToast('⚠ Остават ' + stock + ' бр (под минимум)', 'warn');
+            showCustomToast('Остават ' + stock + ' бр (под минимум)', 'warn');
         }
     }
 
@@ -4229,16 +4249,11 @@ function srchOvRenderMasters(masters) {
             trailingHtml;
         if (single) {
             // S87F.SALE.UX Bug #3 — целият row → directly addToCart (no separate [+] needed).
-            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме
-            // в cart с флаг → save_sale прави implicit override (sale_neg log).
-            // Bug #5: price=0 → custom confirm "Цена 0! Продължи?".
+            // S87J.BUGFIX_R5.PHASE1 — stock=0 confirm е централизиран в addToCart()
+            // (показва glass модал). Тук остава само price=0 защитата (отделна бизнес-проверка).
             row.addEventListener('click', () => {
                 const v = m.variants[0];
-                const stk = parseInt(v.stock || 0);
                 const pr = parseFloat(v.retail_price) || 0;
-                if (stk === 0) {
-                    showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-                }
                 if (pr === 0) {
                     showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
                         srchOvAddProduct(v);
@@ -4289,10 +4304,7 @@ function srchOvOpenVariants(master) {
             '<span class="srch-variant-add" aria-hidden="true" style="color:hsl(var(--hue1) 60% 70%);font-weight:700;font-size:18px;padding:0 4px">+</span>';
         div.addEventListener('click', () => {
             const pr = parseFloat(v.retail_price) || 0;
-            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме.
-            if (stock === 0) {
-                showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-            }
+            // S87J.BUGFIX_R5.PHASE1 — stock=0 confirm централизиран в addToCart().
             if (pr === 0) {
                 showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
                     srchOvAddProduct(v);
