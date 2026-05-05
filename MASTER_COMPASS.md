@@ -2717,3 +2717,11 @@ products.retail_price (НЕ sell_price), inventory.quantity (НЕ qty), products
 
 ### Commits
 - `c9a49f5` — pfHighReturnRate Cartesian fix
+
+### NEW TABLE (05.05.2026): inventory_adjustments
+- Чакаща инвентаризация — pending negative stock events + manual corrections
+- INSERT-ва се от sale.php (sale_negative type) и от бъдещ inventory.php
+- inventory.php (future) → UI list "Чакащи за корекция"
+- AI може да query за reports & insights
+- Schema в STATE_OF_THE_PROJECT.md.
+
