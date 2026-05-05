@@ -1737,6 +1737,24 @@ body.sale-page .pay-confirm-btn{
 }
 body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
 
+/* S87G.R2 — press-and-hold 2s progress fill. Слой над gradient-а с по-светъл
+   sweep отдясно-наляво докато потребителят държи; release преди 2s → reset. */
+body.sale-page .pay-confirm-btn{position:relative;overflow:hidden}
+body.sale-page .pay-confirm-btn .pay-confirm-text,
+body.sale-page .pay-confirm-btn svg{position:relative;z-index:2}
+body.sale-page .pay-confirm-progress{
+    position:absolute;left:0;top:0;bottom:0;width:0;z-index:1;
+    background:linear-gradient(90deg,
+        hsl(var(--hue1) 90% 70% / 0.55),
+        hsl(var(--hue2) 90% 60% / 0.55));
+    transition:width 0s linear;
+    pointer-events:none;
+}
+body.sale-page .pay-confirm-btn.holding .pay-confirm-progress{
+    width:100%;
+    transition:width 2s linear;
+}
+
 /* S87F.SALE.UX — Custom modal pattern (replaces native prompt/confirm/alert).
    Centered, max 280px, glass styling. Used by showCustomPrompt/Confirm/Toast.
    Hue HSL vars (palette.js) → q-default fallback. */
@@ -2117,9 +2135,11 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
         </div>
     </div>
 
-    <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
+    <!-- S87G.R2 — press-and-hold 2s. onclick е премахнат; hold handlers са bind-нати в JS. -->
+    <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" disabled>
+        <div class="pay-confirm-progress" aria-hidden="true"></div>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        ПОТВЪРДИ ПЛАЩАНЕ <span id="payConfirmAmount">0,00 <?= $currency ?></span>
+        <span class="pay-confirm-text">ДРЪЖ 2 СЕК · ПОТВЪРДИ <span id="payConfirmAmount">0,00 <?= $currency ?></span></span>
     </button>
 </div>
 
@@ -3047,6 +3067,52 @@ function updatePayment() {
     payCalcChange();
 }
 function updatePmCardActive() { /* no-op: legacy V5 pkg-card replaced by simple pills */ }
+
+// S87G.R2 — press-and-hold 2 sec върху ПОТВЪРДИ ПЛАЩАНЕ. Защита срещу неволни
+// натискания (ръкав, чужд пръст, фантомен touch). Release/cancel преди 2s →
+// прогрес ринг се reset-ва без call към confirmPayment().
+//
+// Handlers: mousedown / touchstart → старт; mouseup / mouseleave / touchend /
+// touchcancel → отказ. Prevent на context-menu за long-press на mobile.
+let _holdTimer = null;
+let _holdStartedAt = 0;
+function _holdStart(e) {
+    const btn = document.getElementById('btnConfirm');
+    if (!btn || btn.disabled) return;
+    if (e && typeof e.preventDefault === 'function' && e.cancelable) e.preventDefault();
+    if (_holdTimer) clearTimeout(_holdTimer);
+    _holdStartedAt = Date.now();
+    btn.classList.add('holding');
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (_) {} }
+    _holdTimer = setTimeout(() => {
+        btn.classList.remove('holding');
+        _holdTimer = null;
+        if (navigator.vibrate) { try { navigator.vibrate([30, 20, 30]); } catch (_) {} }
+        confirmPayment();
+    }, 2000);
+}
+function _holdCancel() {
+    const btn = document.getElementById('btnConfirm');
+    if (!btn) return;
+    btn.classList.remove('holding');
+    if (_holdTimer) { clearTimeout(_holdTimer); _holdTimer = null; }
+}
+(function _wireHoldConfirm(){
+    function bind() {
+        const btn = document.getElementById('btnConfirm');
+        if (!btn || btn.__holdWired) return;
+        btn.__holdWired = true;
+        btn.addEventListener('mousedown',   _holdStart);
+        btn.addEventListener('touchstart',  _holdStart, { passive: false });
+        btn.addEventListener('mouseup',     _holdCancel);
+        btn.addEventListener('mouseleave',  _holdCancel);
+        btn.addEventListener('touchend',    _holdCancel);
+        btn.addEventListener('touchcancel', _holdCancel);
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+    if (document.readyState !== 'loading') bind();
+    else document.addEventListener('DOMContentLoaded', bind);
+})();
 
 function confirmPayment() {
     const data = {
