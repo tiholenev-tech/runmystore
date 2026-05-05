@@ -42,6 +42,7 @@ $mode = 'simple';
 
 // ─── AJAX: Quick Search ───
 if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
+    sale_rate_limit_or_die('search', 240); // 4 req/sec average, generous for fast typers
     header('Content-Type: application/json; charset=utf-8');
     $q = trim($_GET['q'] ?? '');
     if (strlen($q) < 1) { echo json_encode([]); exit; }
@@ -66,6 +67,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
 
 // ─── AJAX: Barcode Lookup ───
 if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
+    sale_rate_limit_or_die('search', 240); // shared bucket with quick_search
     header('Content-Type: application/json; charset=utf-8');
     $barcode = trim($_GET['barcode'] ?? '');
     $product = DB::run("
@@ -92,6 +94,36 @@ function sale_csrf_guard_or_die(): void {
         echo json_encode(['success' => false, 'err' => 'csrf', 'error' => 'Невалиден CSRF токен. Презареди страницата.']);
         exit;
     }
+}
+
+// S97.HARDEN.PH5 — sliding-window rate limit per session per bucket.
+// $cap = max events allowed in $window seconds. Returns false when over cap.
+// Tuned for live POS: never block legit fast-scanner cadence.
+//   - save_sale       : 30/min (real-world POS never approaches this)
+//   - search_lookup   : 240/min combined (barcode + quick_search; ~4/sec)
+function sale_rate_limit_or_die(string $bucket, int $cap, int $window = 60): void {
+    $now = time();
+    $key = 'rl_' . $bucket;
+    $log = $_SESSION[$key] ?? [];
+    // Drop entries older than the window.
+    $log = array_values(array_filter($log, static fn($t) => $t > $now - $window));
+    if (count($log) >= $cap) {
+        $retry = max(1, $window - ($now - (int) $log[0]));
+        http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Retry-After: ' . $retry);
+        echo json_encode([
+            'success' => false,
+            'err'     => 'rate_limit',
+            'error'   => "Твърде много заявки. Изчакай $retry сек.",
+            'retry_after' => $retry,
+        ]);
+        // Persist (don't add this rejected attempt to the log — would extend the cool-off).
+        $_SESSION[$key] = $log;
+        exit;
+    }
+    $log[] = $now;
+    $_SESSION[$key] = $log;
 }
 
 // ─── AJAX: Refetch Prices (S87 Bug #6 — wholesale toggle memory bug fix) ───
@@ -138,6 +170,7 @@ if (!class_exists('StockException')) {
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
     sale_csrf_guard_or_die();
+    sale_rate_limit_or_die('save_sale', 30); // 30/min — well above any legit POS rate
     header('Content-Type: application/json; charset=utf-8');
 
     // S96.HARDEN.KAT4.6 — re-verify session against live DB on every save.
@@ -2928,6 +2961,11 @@ function confirmPayment() {
             // S97.HARDEN.PH4 — session expired or token mismatch; reload to remint.
             showToast('Сесията изтече. Презареждам…', '', 3000);
             setTimeout(() => location.reload(), 1500);
+        } else if (res.err === 'rate_limit') {
+            // S97.HARDEN.PH5 — too many requests; show retry-after.
+            const sec = parseInt(res.retry_after, 10) || 5;
+            showToast('Твърде много продажби. Изчакай ' + sec + ' сек.', '', 4000);
+            document.getElementById('btnConfirm').disabled = false;
         } else {
             showToast('Грешка: ' + (res.error || 'Неизвестна'), '', 4000);
             document.getElementById('btnConfirm').disabled = false;
