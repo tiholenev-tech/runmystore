@@ -47,6 +47,14 @@ if (isset($_GET['ajax'])) {
     header('Content-Type: application/json; charset=utf-8');
     $ajax = $_GET['ajax'];
 
+    // S97.PRODUCTS.HARDEN_PH3 — CSRF guard on every POST AJAX endpoint.
+    // GET endpoints (search, products, signals, etc.) stay open as before.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfCheck($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'csrf', 'msg' => 'Невалиден CSRF токен. Презареди страницата.']);
+        exit;
+    }
+
     // ─── S78: Trigger product insights compute (skeleton — S79 fills logic) ───
     if ($ajax === 'compute_insights') {
         $cur = $tenant['currency'] ?? 'EUR';
@@ -4650,6 +4658,9 @@ function toggleTheme(){
     if(navigator.vibrate)navigator.vibrate(5);
 }
 
+// S97.PRODUCTS.HARDEN_PH3 — per-session CSRF token attached to every POST below.
+window.RMS_CSRF = <?= json_encode(csrfToken(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 // ═══ PHP → JS CONFIG ═══
 const CFG = {
     storeId: <?= (int)$store_id ?>,
@@ -4717,7 +4728,24 @@ function showToast(msg, type=''){
 }
 
 async function api(url, opts={}){
-    try{const r=await fetch(url, opts);return await r.json()}
+    try{
+        // S97.PRODUCTS.HARDEN_PH3 — attach CSRF token on every mutation.
+        const method = (opts.method || 'GET').toUpperCase();
+        if (method !== 'GET' && method !== 'HEAD') {
+            opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF || ''});
+        }
+        const r=await fetch(url, opts);
+        if (r.status === 403) {
+            const j = await r.json().catch(()=>({}));
+            if (j && j.error === 'csrf') {
+                showToast('Сесията изтече. Презареждам…','error');
+                setTimeout(()=>location.reload(), 1500);
+                return null;
+            }
+            return j || null;
+        }
+        return await r.json();
+    }
     catch(e){console.error(e);showToast('Мрежова грешка','error');return null}
 }
 
@@ -8623,7 +8651,8 @@ function wizColorAddPrompt(){
     var hex=prompt('HEX код (напр. #FF5733):','#');if(!hex)return;hex=hex.trim();
     if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
     var fd=new FormData();fd.append('name',name);fd.append('hex',hex);
-    fetch('products.php?ajax=add_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+    // S97.PRODUCTS.HARDEN_PH3 — attach CSRF on raw fetch (not routed through api()).
+    fetch('products.php?ajax=add_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(d){
         if(d.error){showToast(d.error,'error');return}
         // Update CFG.colors — merge с custom
         if(d.added){
@@ -8643,7 +8672,7 @@ function wizColorEditPrompt(oldName,oldHex){
         // Delete
         if(!confirm('Премахни цвят "'+oldName+'"?'))return;
         var fd=new FormData();fd.append('name',oldName);
-        fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+        fetch('products.php?ajax=delete_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(d){
             if(d.error){showToast(d.error,'error');return}
             CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
             renderWizard();
@@ -8656,9 +8685,9 @@ function wizColorEditPrompt(oldName,oldHex){
     if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
     // Delete + add (name може да се е променило)
     var fd=new FormData();fd.append('name',oldName);
-    fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(){
+    fetch('products.php?ajax=delete_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(){
         var fd2=new FormData();fd2.append('name',name);fd2.append('hex',hex);
-        return fetch('products.php?ajax=add_color',{method:'POST',body:fd2}).then(function(r){return r.json()});
+        return fetch('products.php?ajax=add_color',{method:'POST',body:fd2,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()});
     }).then(function(d){
         CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
         if(d.added)CFG.colors.push(d.added);
@@ -11650,7 +11679,7 @@ async function openProductHistoryS88(productId){
 async function revertChangeS88(historyId, productId){
     if (!confirm('Върни тази промяна? (Текущото състояние ще се запази в история, така че можеш да го върнеш отново.)')) return;
     var fd = new FormData(); fd.append('history_id', historyId);
-    var r = await fetch('products.php?ajax=revert_change', { method: 'POST', body: fd, credentials: 'same-origin' }).then(function(x){return x.json()}).catch(function(){return null});
+    var r = await fetch('products.php?ajax=revert_change', { method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-CSRF-Token': window.RMS_CSRF||''} }).then(function(x){return x.json()}).catch(function(){return null});
     if (!r || r.error){ showToast('Грешка: '+(r&&r.error?r.error:'unknown'),'error'); return; }
     showToast('Върнато ✓','success');
     document.getElementById('s88HistModal')?.remove();

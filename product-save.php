@@ -5,11 +5,23 @@
  * Fix: DB::get()->lastInsertId(), DB::get()->beginTransaction()
  */
 require_once 'config/database.php';
+require_once 'config/helpers.php'; // S97.PRODUCTS.HARDEN_PH3 — csrfToken / csrfCheck
 session_start();
 
 if (!isset($_SESSION['tenant_id'])) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['error' => 'not_logged_in']);
+    exit;
+}
+
+// S97.PRODUCTS.HARDEN_PH3 — CSRF guard on mutating actions. Read-only GETs
+// (?get, ?stock, ?variants, ?categories) stay open; ?delete and the POST
+// path are gated on a session token sent in the X-CSRF-Token header.
+$_isMutation = ($_SERVER['REQUEST_METHOD'] === 'POST') || isset($_GET['delete']);
+if ($_isMutation && !csrfCheck($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'csrf', 'msg' => 'Невалиден CSRF токен. Презареди страницата.']);
     exit;
 }
 

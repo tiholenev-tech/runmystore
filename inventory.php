@@ -9,6 +9,7 @@ session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 require_once 'config/database.php';
 require_once 'config/config.php';
+require_once 'config/helpers.php'; // S97.PRODUCTS.HARDEN_PH3 — csrfToken() for cross-page POSTs to product-save.php / products.php?ajax=*
 $pdo = DB::get();
 $user_id=$_SESSION['user_id'];$tenant_id=$_SESSION['tenant_id'];$store_id=$_SESSION['store_id']??null;$user_role=$_SESSION['role']??'seller';$is_owner=($user_role==='owner');
 $tenant=DB::run("SELECT * FROM tenants WHERE id=?",[$tenant_id])->fetch(PDO::FETCH_ASSOC);
@@ -160,6 +161,8 @@ $onboarding_units=json_decode($tenant_cfg['units_config']??'[]',true)?:['бр','
 // S82.UI — Inherit theme choice from localStorage (toggle lives on parent pages)
 try{if(localStorage.getItem('rms_theme')==='light'){document.documentElement.setAttribute('data-theme','light')}}catch(_){}
 
+// S97.PRODUCTS.HARDEN_PH3 — CSRF token for cross-page POSTs (product-save.php, products.php?ajax=*)
+window.RMS_CSRF=<?= json_encode(csrfToken(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const INV={zones:[],session:null,zm:{id:0,name:'',type:'cashier',photo:null,ctx:'hub'},cameraStream:null,zc:{zoneId:null,zoneName:'',lines:[],activeProduct:null}};
 const PHP={zonesCount:<?=$zones_count?>,hasSession:<?=$active_session?'true':'false'?>,session:<?=json_encode($active_session?:null)?>};
 if(PHP.session)INV.session=PHP.session;
@@ -355,18 +358,18 @@ function npDomToggle(v){document.getElementById('npDomY').classList.toggle('acti
 // ── Inline add supplier/category/subcategory ──
 function npToggleInl(id){const el=document.getElementById(id);if(el)el.classList.toggle('open')}
 async function npAddSupplier(){const n=document.getElementById('npInlSupName').value.trim();if(!n){toast('Въведи име','err');return}
-const d=await fetch('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)}).then(r=>r.json());
+const d=await fetch('products.php?ajax=add_supplier',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':window.RMS_CSRF||''},body:'name='+encodeURIComponent(n)}).then(r=>r.json());
 if(d&&d.id){NP_CFG.suppliers.push({id:d.id,name:d.name||n});NP.supplier_id=d.id;npPopulateDropdowns();document.getElementById('npSupplier').value=d.id;
 document.getElementById('npInlSup').classList.remove('open');document.getElementById('npInlSupName').value='';toast(d.duplicate?'Вече съществува — избран':'Добавен ✓','ok');npMarkDone('supplier');npHighlightNext()}}
 async function npAddCategory(){const n=document.getElementById('npInlCatName').value.trim();if(!n){toast('Въведи име','err');return}
-const d=await fetch('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)}).then(r=>r.json());
+const d=await fetch('products.php?ajax=add_category',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':window.RMS_CSRF||''},body:'name='+encodeURIComponent(n)}).then(r=>r.json());
 if(d&&d.id){NP_CFG.categories.push({id:d.id,name:d.name||n});NP.category_id=d.id;npPopulateDropdowns();document.getElementById('npCategory').value=d.id;
 document.getElementById('npInlCat').classList.remove('open');document.getElementById('npInlCatName').value='';toast(d.duplicate?'Вече съществува — избрана':'Добавена ✓','ok');npMarkDone('category');npHighlightNext();npLoadSubcats()}}
 async function npLoadSubcats(){const cid=NP.category_id;const w=document.getElementById('npSubcatWrap');if(!cid){w.style.display='none';return}
 const subs=NP_CFG.categories.filter(c=>c.parent_id==cid);if(!subs.length){w.style.display='none';return}
 w.style.display='';const sel=document.getElementById('npSubcat');sel.innerHTML='<option value="">— избери —</option>'+subs.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('')}
 async function npAddSubcategory(){const n=document.getElementById('npInlSubcatName').value.trim();if(!n||!NP.category_id){toast('Въведи име и избери категория','err');return}
-const d=await fetch('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'name='+encodeURIComponent(n)+'&parent_id='+NP.category_id}).then(r=>r.json());
+const d=await fetch('products.php?ajax=add_subcategory',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':window.RMS_CSRF||''},body:'name='+encodeURIComponent(n)+'&parent_id='+NP.category_id}).then(r=>r.json());
 if(d&&d.id){NP_CFG.categories.push({id:d.id,name:d.name||n,parent_id:NP.category_id});NP.subcategory_id=d.id;npLoadSubcats();document.getElementById('npSubcat').value=d.id;
 document.getElementById('npInlSubcat').classList.remove('open');document.getElementById('npInlSubcatName').value='';toast('Добавена ✓','ok')}}
 // ── Highlight next empty field ──
@@ -383,7 +386,7 @@ description:null,origin_country:NP.origin_country||null,composition:NP.compositi
 is_domestic:NP.is_domestic?1:0,product_type:NP.type==='variant'?'variant':'simple',
 sizes:NP.sizes,colors:NP.colors,variants:NP.type==='variant'?NP.variants:[{size:null,color:null,qty:NP.singleQty}],
 initial_qty:NP.singleQty,action:'create'};
-try{const r=await fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(x=>x.json());
+try{const r=await fetch('product-save.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':window.RMS_CSRF||''},body:JSON.stringify(payload)}).then(x=>x.json());
 if(!r||(!r.success&&!r.id)){toast(r?.error||'Грешка','err');return}
 NP.savedId=r.id;toast('Добавен!','ok');
 // Get product detail for code + labels
