@@ -143,7 +143,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
     // S96.HARDEN.E7 — server-side clamp discount_pct (DevTools tamper protection).
     // Three-way min: per-user cap, global 100%, never negative.
-    $discount_pct = max(0.0, min(floatval($data['discount_pct'] ?? 0), $max_discount_runtime, 100.0));
+    $discount_pct_raw = floatval($data['discount_pct'] ?? 0);
+    $discount_pct = max(0.0, min($discount_pct_raw, $max_discount_runtime, 100.0));
+    // S97.HARDEN.PH3 — surface clamp to UI when seller (or DevTools) tried >cap.
+    $discount_clamped = ($discount_pct_raw > $discount_pct + 0.001);
+    $discount_cap_pct = floatval($max_discount_runtime);
 
     $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
     $received = floatval($data['received'] ?? 0);
@@ -265,7 +269,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             'sale.php?action=save_sale'
         );
 
-        echo json_encode(['success' => true, 'sale_id' => $sale_id, 'total' => $total]);
+        $resp = ['success' => true, 'sale_id' => $sale_id, 'total' => $total];
+        // S97.HARDEN.PH3 — tell UI when discount was clamped so it can toast.
+        if ($discount_clamped) {
+            $resp['notice'] = 'discount_clamped';
+            $resp['discount_cap'] = $discount_cap_pct;
+            $resp['discount_applied'] = $discount_pct;
+        }
+        echo json_encode($resp);
     } catch (StockException $se) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         // S97.HARDEN.PH1 — structured envelope so the UI can offer "Sell only N available" prompt.
@@ -2875,6 +2886,11 @@ function confirmPayment() {
             greenFlash();
             if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
             showToast('✓ Продажба #' + res.sale_id + ' записана', 'success');
+            // S97.HARDEN.PH3 — server clamped discount; tell the seller why the total differs.
+            if (res.notice === 'discount_clamped') {
+                const cap = (res.discount_cap != null ? res.discount_cap : res.discount_applied);
+                setTimeout(() => showToast('Отстъпка ограничена до ' + cap + '%', '', 4000), 800);
+            }
             closePayment();
 
             // Reset
