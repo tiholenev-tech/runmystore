@@ -621,11 +621,64 @@ body::after{
     100%{box-shadow:inset 0 0 0 0 hsl(var(--hue1) 70% 60% / 0)}
 }
 .hdr-btn{display:none} /* legacy — hidden */
+/* S87J.BUGFIX_R5.PHASE2 — beше fullscreen overlay (inset:0 + rgba(34,197,94,.25))
+   което покриваше целия екран и user-ите го наричаха "грозна елипса". Сега:
+   тънка горна accent линия (3px) която мига зелено и изчезва. Видима, но не
+   дезориентираща. */
 .green-flash{
-    position:fixed;inset:0;background:rgba(34,197,94,0.25);
-    z-index:999;pointer-events:none;opacity:0;transition:opacity 0.05s;
+    position:fixed;left:0;right:0;top:0;height:3px;
+    background:linear-gradient(90deg,transparent,hsl(145 80% 55%),transparent);
+    box-shadow:0 0 12px hsl(145 80% 50% / 0.65);
+    z-index:999;pointer-events:none;opacity:0;
+    transition:opacity 0.15s ease-out;
 }
 .green-flash.active{opacity:1}
+
+/* S87J.BUGFIX_R5.PHASE2 — sale-complete success card. Малък centered glass
+   модал с total + change. Auto-dismiss след 2.6s. Hue=145 (q-gain зелено). */
+.sale-success-mini{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.94);
+    z-index:320;min-width:220px;max-width:300px;padding:18px 22px 16px;
+    border-radius:18px;text-align:center;pointer-events:none;
+    background:linear-gradient(135deg,
+        hsl(145 70% 35% / 0.30) 0%,
+        hsl(160 65% 28% / 0.18) 60%,
+        hsl(220 25% 8% / 0.95) 100%);
+    border:1px solid hsl(145 70% 55% / 0.55);
+    box-shadow:
+        0 16px 48px hsl(145 70% 35% / 0.40),
+        0 0 32px hsl(145 80% 50% / 0.25),
+        inset 0 1px 0 hsl(145 90% 75% / 0.18);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    opacity:0;transition:opacity 0.22s var(--ease),transform 0.28s var(--ease);
+}
+.sale-success-mini.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.sale-success-mini.out{opacity:0;transform:translate(-50%,-50%) scale(1.04)}
+.sale-success-mini .ssm-ico{
+    width:38px;height:38px;border-radius:50%;margin:0 auto 8px;
+    background:linear-gradient(135deg,hsl(145 75% 45%),hsl(160 75% 38%));
+    box-shadow:0 0 16px hsl(145 80% 50% / 0.55),inset 0 1px 0 rgba(255,255,255,0.25);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+}
+.sale-success-mini .ssm-ico svg{width:18px;height:18px}
+.sale-success-mini .ssm-title{
+    font-size:11px;font-weight:800;color:hsl(145 60% 78%);
+    letter-spacing:0.10em;text-transform:uppercase;margin-bottom:4px;
+}
+.sale-success-mini .ssm-amount{
+    font-size:22px;font-weight:900;letter-spacing:-0.01em;
+    color:#f1f5f9;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 12px hsl(145 70% 50% / 0.45);
+}
+.sale-success-mini .ssm-change{
+    margin-top:6px;font-size:11px;font-weight:700;
+    color:hsl(145 50% 75%);font-variant-numeric:tabular-nums;
+    letter-spacing:0.02em;
+}
+.sale-success-mini .ssm-id{
+    margin-top:2px;font-size:9px;font-weight:700;
+    color:rgba(255,255,255,0.45);letter-spacing:0.06em;
+}
 
 /* ═══ SEARCH BAR ═══ */
 .search-bar{
@@ -2462,9 +2515,37 @@ function ching() {
 }
 
 function greenFlash() {
+    // S87J.BUGFIX_R5.PHASE2 — CSS вече прави линия, не overlay (виж .green-flash).
+    // JS логиката оцелява: добавя .active за 120ms.
     const el = document.getElementById('greenFlash');
+    if (!el) return;
     el.classList.add('active');
     setTimeout(() => el.classList.remove('active'), 120);
+}
+
+// S87J.BUGFIX_R5.PHASE2 — малък centered success card с total + change. Заменя
+// предишната пара (greenFlash fullscreen + горен toast) при sale complete.
+// Auto-dismiss след 2600ms; SVG галка вместо emoji per DESIGN_LAW.
+function showSaleSuccess(saleId, total, change) {
+    document.querySelectorAll('.sale-success-mini').forEach(n => n.remove());
+    const card = document.createElement('div');
+    card.className = 'sale-success-mini';
+    const cur = (typeof STATE !== 'undefined' && STATE.currency) ? STATE.currency : '';
+    const totalTxt = (typeof fmtPrice === 'function' ? fmtPrice(total) : total) + ' ' + cur;
+    const changeHtml = (change && change > 0)
+        ? '<div class="ssm-change">Ресто: ' + (typeof fmtPrice === 'function' ? fmtPrice(change) : change) + ' ' + cur + '</div>'
+        : '';
+    const idHtml = saleId ? '<div class="ssm-id">№ ' + saleId + '</div>' : '';
+    card.innerHTML =
+        '<div class="ssm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+        '<div class="ssm-title">Готово</div>' +
+        '<div class="ssm-amount">' + totalTxt + '</div>' +
+        changeHtml +
+        idHtml;
+    document.body.appendChild(card);
+    requestAnimationFrame(() => card.classList.add('show'));
+    setTimeout(() => card.classList.add('out'), 2200);
+    setTimeout(() => { if (card.parentNode) card.remove(); }, 2600);
 }
 
 // ─── RENDER ───
@@ -2756,20 +2837,43 @@ function esc(s) {
 }
 
 // ─── CART OPERATIONS ───
+// S87J.BUGFIX_R5.PHASE1 — централизирана stock логика. Когато stock===0 → glass
+// confirm модал ("Желаеш ли да продължиш?"). Yes → flag _needs_inventory_check
+// + добавяме. No → cancel. За 0<stock<qty → toast warn (informational, не блокира).
+// Search-result handlers вече само викат addToCart — без собствени проверки.
 function addToCart(product, qtyOverride) {
+    const stock = parseInt(product.stock || 0);
     const qty = (typeof qtyOverride === 'number' && qtyOverride > 0) ? qtyOverride : 1;
+
+    // Stock=0 → glass confirm. Само ако helper-ът е зареден (защита fallback).
+    if (stock <= 0 && typeof showCustomConfirm === 'function') {
+        const pname = product.name || 'Артикулът';
+        showCustomConfirm(
+            '"' + pname + '" е на 0 наличност. Желаеш ли да продължиш?',
+            () => _addToCartImpl(product, qty, stock, /*forceFlag*/true),
+            () => {
+                if (typeof showCustomToast === 'function') {
+                    showCustomToast('Отменено', 'warn');
+                }
+            }
+        );
+        return;
+    }
+    _addToCartImpl(product, qty, stock, /*forceFlag*/false);
+}
+
+// Вътрешна функция — actual cart push + flag set + audio/vibrate. Извиква се
+// директно при stock>0 или след confirm при stock=0.
+function _addToCartImpl(product, qty, stock, forceFlag) {
     const price = STATE.isWholesale
         ? (parseFloat(product.wholesale_price) || parseFloat(product.retail_price))
         : parseFloat(product.retail_price);
-    // S87I.BUGFIX_R4.PHASE2 — запазваме stock в cart entry, за да можем при save
-    // да пратим implicit `confirm_negative_stock=1` без да питаме отново.
-    const stock = parseInt(product.stock || 0);
+    const overStock = (qty > stock) || forceFlag;
 
     // Check if already in cart
     const existing = STATE.cart.findIndex(it => it.product_id === product.id);
     if (existing >= 0) {
         STATE.cart[existing].quantity += qty;
-        // Re-evaluate флаг ако новото количество е над stock
         if (STATE.cart[existing].quantity > stock) {
             STATE.cart[existing]._needs_inventory_check = true;
         }
@@ -2786,27 +2890,24 @@ function addToCart(product, qtyOverride) {
             discount_pct: 0,
             image: product.image || '',
             _stock_at_add: stock,
-            _needs_inventory_check: (qty > stock),
+            _needs_inventory_check: overStock,
         });
         beep(1200, 0.15);
     }
 
-    greenFlash();
     if (navigator.vibrate) navigator.vibrate(50);
 
-    // S87I.BUGFIX_R4.PHASE2 — non-blocking warning при insufficient stock. Tihol
-    // иска да продължи add-а, log-а става server-side при save (sale_neg).
-    if (qty > stock && typeof showCustomToast === 'function') {
-        if (stock <= 0) {
-            showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-        } else {
-            showCustomToast('⚠ Налични: ' + stock + ', добавяш ' + qty + ' (минус)', 'warn', 3000);
-        }
+    // S87I.BUGFIX_R4.PHASE2 — non-blocking warning при insufficient stock (но >0).
+    // stock=0 случаят вече e обработен горе чрез confirm.
+    if (overStock && stock > 0 && typeof showCustomToast === 'function') {
+        showCustomToast('Налични: ' + stock + ', добавяш ' + qty + ' (минус)', 'warn');
+    } else if (forceFlag && typeof showCustomToast === 'function') {
+        showCustomToast('Добавен (за инвентаризация)', 'warn');
     } else {
-        // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock (informational, не блокира).
+        // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock.
         const _min = parseInt(product.min_stock || 0);
         if (stock > 0 && _min > 0 && stock <= _min && typeof showCustomToast === 'function') {
-            showCustomToast('⚠ Остават ' + stock + ' бр (под минимум)', 'warn');
+            showCustomToast('Остават ' + stock + ' бр (под минимум)', 'warn');
         }
     }
 
@@ -3284,9 +3385,12 @@ function confirmPayment(opts) {
     .then(res => {
         if (res.success) {
             ching();
-            greenFlash();
             if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-            showToast('✓ Продажба #' + res.sale_id + ' записана', 'success');
+            // S87J.BUGFIX_R5.PHASE2 — заменяме fullscreen greenFlash + горен toast
+            // с малък centered glass success card (total + change + sale ID).
+            const _total = (typeof getTotal === 'function') ? getTotal() : 0;
+            const _change = Math.max(0, (STATE.receivedAmount || 0) - _total);
+            showSaleSuccess(res.sale_id, _total, _change);
             // S97.HARDEN.PH3 — server clamped discount; tell the seller why the total differs.
             if (res.notice === 'discount_clamped') {
                 const cap = (res.discount_cap != null ? res.discount_cap : res.discount_applied);
@@ -4229,16 +4333,11 @@ function srchOvRenderMasters(masters) {
             trailingHtml;
         if (single) {
             // S87F.SALE.UX Bug #3 — целият row → directly addToCart (no separate [+] needed).
-            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме
-            // в cart с флаг → save_sale прави implicit override (sale_neg log).
-            // Bug #5: price=0 → custom confirm "Цена 0! Продължи?".
+            // S87J.BUGFIX_R5.PHASE1 — stock=0 confirm е централизиран в addToCart()
+            // (показва glass модал). Тук остава само price=0 защитата (отделна бизнес-проверка).
             row.addEventListener('click', () => {
                 const v = m.variants[0];
-                const stk = parseInt(v.stock || 0);
                 const pr = parseFloat(v.retail_price) || 0;
-                if (stk === 0) {
-                    showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-                }
                 if (pr === 0) {
                     showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
                         srchOvAddProduct(v);
@@ -4289,10 +4388,7 @@ function srchOvOpenVariants(master) {
             '<span class="srch-variant-add" aria-hidden="true" style="color:hsl(var(--hue1) 60% 70%);font-weight:700;font-size:18px;padding:0 4px">+</span>';
         div.addEventListener('click', () => {
             const pr = parseFloat(v.retail_price) || 0;
-            // S87I.BUGFIX_R4.PHASE2 — stock=0 НЕ блокира add. Toast warn + добавяме.
-            if (stock === 0) {
-                showCustomToast('⚠ Няма налични — ще се продаде в минус', 'warn', 3000);
-            }
+            // S87J.BUGFIX_R5.PHASE1 — stock=0 confirm централизиран в addToCart().
             if (pr === 0) {
                 showCustomConfirm('Цената е 0 EUR! Това е грешка. Продължи?', () => {
                     srchOvAddProduct(v);
