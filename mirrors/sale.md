@@ -289,6 +289,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $received = max(0.0, floatval($data['received'] ?? 0));
     // S96.HARDEN.F1 — persist wholesale flag → sales.type column.
     $sale_type = !empty($data['is_wholesale']) ? 'wholesale' : 'retail';
+    // S87H.BUGFIX_R3.PHASE2 — explicit override flag за продажба под наличността.
+    // Default: throw StockException (S97 поведение). Когато e set → разреши negative
+    // stock + log с reference_type='sale_neg' (override marker за audit/reports).
+    $confirm_neg = !empty($data['confirm_negative_stock']);
 
     if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
     // S97.HARDEN.PH6 — cap items to 200 (any legitimate cart will be much smaller;
@@ -316,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         // post-commit auditLog() outside the transaction.
         [$sale_id, $total, $discount_amount, $paid_amount] = DB::tx(function (PDO $pdo) use (
             $items, $tenant_id, $store_id, $user_id, $customer_id, $sale_type,
-            $payment_method, $discount_pct, $max_discount_runtime
+            $payment_method, $discount_pct, $max_discount_runtime, $confirm_neg
         ) {
             $subtotal = 0;
             foreach ($items as $it) {
@@ -370,22 +374,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                     [$pid, $store_id]
                 )->fetch(PDO::FETCH_ASSOC);
                 $available = $inv ? (int)$inv['quantity'] : 0;
+                $is_negative_override = false;
                 if ($available < $qty) {
-                    throw new StockException($pid, $pname, $available, $qty);
+                    if (!$confirm_neg) {
+                        throw new StockException($pid, $pname, $available, $qty);
+                    }
+                    // S87H.BUGFIX_R3.PHASE2 — override е разрешен. Маркираме реда,
+                    // за да напишем stock_movements с reference_type='sale_neg'
+                    // (тълкуване: "продажба, която мина под наличността").
+                    $is_negative_override = true;
                 }
 
                 DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
-                $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
-                    [$qty, $pid, $store_id, $qty]);
-                if ($upd->rowCount() === 0) {
-                    // Defence in depth: lock should make this unreachable, but keep it
-                    // for the "row inserted between SELECT and UPDATE" edge.
-                    throw new StockException($pid, $pname, max(0, $available), $qty);
+                if ($is_negative_override) {
+                    // Override path: decrement без guard → quantity може да отиде в минус.
+                    // Защитата срещу race condition остава via FOR UPDATE lock по-горе.
+                    $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ?",
+                        [$qty, $pid, $store_id]);
+                    if ($upd->rowCount() === 0) {
+                        // Inventory ред липсва изобщо за този product/store. Insert го с минус,
+                        // за да остане consistent (бъдещи доставки ще го покрият).
+                        DB::run("INSERT INTO inventory (tenant_id, product_id, store_id, quantity) VALUES (?, ?, ?, ?)",
+                            [$tenant_id, $pid, $store_id, -$qty]);
+                    }
+                } else {
+                    $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
+                        [$qty, $pid, $store_id, $qty]);
+                    if ($upd->rowCount() === 0) {
+                        // Defence in depth: lock should make this unreachable, but keep it
+                        // for the "row inserted between SELECT and UPDATE" edge.
+                        throw new StockException($pid, $pname, max(0, $available), $qty);
+                    }
                 }
                 // S96.HARDEN.E3 — user_id ("who decremented stock", needed for RWQ-64) + price (margin/dispute audit).
-                DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', 'sale', ?, NOW())",
-                    [$tenant_id, $pid, $store_id, $user_id, $qty, $price, $sale_id]);
+                // S87H.BUGFIX_R3.PHASE2 — reference_type='sale_neg' за override; иначе 'sale'.
+                $ref_type = $is_negative_override ? 'sale_neg' : 'sale';
+                DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', ?, ?, NOW())",
+                    [$tenant_id, $pid, $store_id, $user_id, $qty, $price, $ref_type, $sale_id]);
             }
 
             return [$sale_id, $total, $discount_amount, $paid_amount];
@@ -3173,7 +3199,8 @@ function _holdCancel() {
     else document.addEventListener('DOMContentLoaded', bind);
 })();
 
-function confirmPayment() {
+function confirmPayment(opts) {
+    opts = opts || {};
     const data = {
         items: STATE.cart.map(it => ({
             product_id: it.product_id,
@@ -3187,6 +3214,9 @@ function confirmPayment() {
         received: STATE.receivedAmount,
         is_wholesale: STATE.isWholesale,
     };
+    // S87H.BUGFIX_R3.PHASE2 — opt-in override на наличността. Backend ще
+    // позволи stock < 0 + ще log-не stock_movements с reference_type='sale_neg'.
+    if (opts.forceNegative) data.confirm_negative_stock = 1;
 
     document.getElementById('btnConfirm').disabled = true;
 
@@ -3241,8 +3271,12 @@ function confirmPayment() {
     });
 }
 
-// S97.HARDEN.PH1 — when server rejects a sale because requested > available,
-// offer the seller a one-tap "Sell only N available" path.
+// S97.HARDEN.PH1 + S87H.BUGFIX_R3.PHASE2 — три-степенен dialog при недостатъчна наличност:
+//   1) Ако налични = 0 → питай "Сигурен ли си че продаваш в минус?" (override).
+//   2) Ако налични > 0 → първо предлагаме "Sell only N available" (S97 поведение).
+//   3) Ако касиерът откаже → втори prompt: "Все пак продай ВСИЧКОТО (минус)?".
+// Override → confirmPayment({forceNegative:true}) → backend позволи stock<0 +
+// logне stock_movements с reference_type='sale_neg'.
 function handleStockShortage(res) {
     const btn = document.getElementById('btnConfirm');
     if (btn) btn.disabled = false;
@@ -3251,12 +3285,24 @@ function handleStockShortage(res) {
     const requested = parseInt(res.requested, 10) || 0;
     const pname = res.product || ('Артикул #' + pid);
 
+    function askForceNegative(prefix) {
+        const deficit = Math.max(0, requested - avail);
+        const msg = (prefix || '') + '"' + pname + '": налични ' + avail
+            + ', поискани ' + requested + '. Да продам всичко '
+            + requested + ' бр (минус ' + deficit + ')?';
+        showCustomConfirm(msg, () => {
+            confirmPayment({forceNegative: true});
+        }, () => {
+            showToast('Продажбата отказана. Коригирай количката.', '', 3000);
+        });
+    }
+
     if (avail <= 0) {
-        showToast('✗ "' + pname + '" — наличност 0. Премахни от количката.', '', 5000);
+        // Няма дори 1 бр → директно питай за override (без "Sell only 0" path).
+        askForceNegative('Няма налични. ');
         return;
     }
 
-    // S87F.SALE.UX Bug #8 — replace native confirm с custom modal (glass styled).
     const msg = '"' + pname + '": налични ' + avail + ' (поискани ' + requested + '). Да продам ' + avail + ' бр?';
     showCustomConfirm(msg, () => {
         const item = (STATE.cart || []).find(it => parseInt(it.product_id, 10) === pid);
@@ -3268,7 +3314,8 @@ function handleStockShortage(res) {
             showToast('Артикулът не е в количката.', '', 3000);
         }
     }, () => {
-        showToast('Продажбата отказана. Коригирай количката.', '', 3000);
+        // Касиер отказа "Sell only N" → предложи override като втори опит.
+        askForceNegative('');
     });
 }
 
