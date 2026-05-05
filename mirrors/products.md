@@ -7060,7 +7060,9 @@ function renderWizPagePart2(step){
                     '</div>' +
                 '</div>';
         }
-        return '<div class="wiz-page active" style="padding-bottom:160px">'+
+        // S95.BUGFIX_R5: padding-bottom 160→200px заради 2-row stacked footer (top
+        // row 42px + gap 8px + recommended button 54px + paddings + safe-area).
+        return '<div class="wiz-page active" style="padding-bottom:200px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             _aiCardH+
@@ -10981,15 +10983,23 @@ function renderWizPhotoStep(){
     }
     // S95.PART1_1: footer ЗАПИШИ disabled if no type chosen.
     var saveDisabled=typeChosen?'':'opacity:0.45;pointer-events:none;cursor:not-allowed;';
-    var nextBtn=(S.wizType==='variant')
-        ? '<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
-        : (typeChosen?'<button type="button" onclick="wizCollectData();wizGoStep2()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Препоръчителни<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'');
-    var footer=
-        '<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+
-            '<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
-            '<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-            nextBtn+
-        '</div>';
+    // S95.BUGFIX_R5: Single Step 1 footer → 2-row stack:
+    //   Top: [ЗАПИШИ] [🖨]
+    //   Bottom: [Допълнителни данни (препоръчително)] full-width q-magic
+    // Variant Step 1 keeps existing 3-button single-row (no recommended at this stage —
+    // variant flow shows recommended after axes selection в Step 4 footer).
+    var saveBtn='<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>';
+    var printBtn='<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>';
+    var footer;
+    if(S.wizType==='variant'){
+        var variantNextBtn='<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        footer='<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+saveBtn+printBtn+variantNextBtn+'</div>';
+    }else{
+        // Single (typeChosen=true) или type не избран (типе choose hide рекомендирания).
+        var topRow='<div style="display:flex;gap:8px;align-items:stretch">'+saveBtn+printBtn+'</div>';
+        var recBtn=typeChosen?('<button type="button" class="wiz-foot-rec q-magic" onclick="wizCollectData();wizGoStep2()"><span class="wfr-shine"></span><span class="wfr-glow"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg><span class="wfr-label">Допълнителни данни (препоръчително)</span></button>'):'';
+        footer='<div class="wiz-foot-stack" style="margin-top:16px">'+topRow+recBtn+'</div>';
+    }
     return '<div class="wiz-page active" style="padding:18px 14px 220px">'+
         headerH+
         '<div style="'+lockStyle+'">'+
