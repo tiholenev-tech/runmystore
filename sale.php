@@ -2560,67 +2560,10 @@ function render() {
             selectCartItem(idx);
         });
 
-        // S87G.B4 — swipe left to reveal delete
-        let sx = 0, sy = 0, sxStart = 0, dragging = false, locked = false;
-        const SWIPE_REVEAL = 90; // matches .ci-delete width
-        const SWIPE_THRESHOLD_PX = 60;
-        const SWIPE_THRESHOLD_PCT = 0.30;
-
-        // S87F.SALE.UX Bug #6 — restore swipe от ВСЯКА точка на row-а (беше restricted в last 30px).
-        // Original спираше swipe ако touch не започне в rightmost 30px → Тихол не може да plъzне.
-        // Сега: позволяваме swipe от всяка точка освен на set-qty-val/btn и ci-delete (own gestures).
-        div.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.set-qty-val')) return;
-            if (e.target.closest('.set-qty-btn')) return;
-            if (e.target.closest('.ci-delete')) return;
-            const t = e.touches[0];
-            sx = t.clientX;
-            sy = t.clientY;
-            dragging = true;
-            locked = false;
-            if (fg) fg.style.transition = 'none';
-        }, {passive: true});
-
-        div.addEventListener('touchmove', (e) => {
-            if (!dragging) return;
-            const t = e.touches[0];
-            const dx = t.clientX - sx;
-            const dy = t.clientY - sy;
-            if (!locked) {
-                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-                // Lock direction on first significant move
-                if (Math.abs(dy) > Math.abs(dx)) { dragging = false; if (fg) fg.style.transform = ''; return; }
-                locked = true;
-            }
-            if (dx > 0) {
-                if (fg) fg.style.transform = '';
-                return;
-            }
-            const clamped = Math.max(dx, -SWIPE_REVEAL);
-            if (fg) fg.style.transform = 'translateX(' + clamped + 'px)';
-            div.classList.add('swiping');
-        }, {passive: true});
-
-        const endSwipe = (e) => {
-            if (!dragging) return;
-            const t = (e.changedTouches && e.changedTouches[0]) || null;
-            const dx = t ? (t.clientX - sx) : 0;
-            const rect = div.getBoundingClientRect();
-            dragging = false;
-            div.classList.remove('swiping');
-            if (fg) fg.style.transition = '';
-            const reveal = (dx <= -SWIPE_THRESHOLD_PX) || (Math.abs(dx) / Math.max(rect.width, 1) >= SWIPE_THRESHOLD_PCT);
-            if (reveal && locked) {
-                div.classList.add('swiped');
-                if (fg) fg.style.transform = '';
-            } else {
-                div.classList.remove('swiped');
-                if (fg) fg.style.transform = '';
-            }
-            locked = false;
-        };
-        div.addEventListener('touchend', endSwipe);
-        div.addEventListener('touchcancel', endSwipe);
+        // S87H.BUGFIX_R3 — swipe wiring е MIGRATED към event delegation (виж
+        // s87hWireSwipeDelegated() след forEach). Преди: per-row touchstart →
+        // render() rebuild → in-progress swipe изгубен. Сега: single global
+        // listener на cartZone оцелява всеки rebuild.
 
         if (delBtn) {
             delBtn.addEventListener('click', (e) => {
@@ -2653,6 +2596,88 @@ function render() {
     // FIX5: persist cart as draft on every render so accidental nav-away is recoverable
     if (typeof s87dDraftSave === 'function') s87dDraftSave();
 }
+
+// S87H.BUGFIX_R3 — swipe-to-delete: event delegation на #cartZone. Wired once,
+// оцелява всеки render() rebuild. Преди (S87G.B4): per-row listener; render()
+// разрушаваше DOM + listeners → Тихол съобщи "swipe регресира". Сега: state е
+// в module scope; row се lookup-ва via closest('.set-row') при всеки event.
+(function s87hWireSwipeDelegated(){
+    const SWIPE_REVEAL = 90;        // matches .ci-delete width
+    const SWIPE_THRESHOLD_PX = 60;
+    const SWIPE_THRESHOLD_PCT = 0.30;
+    const MIN_LOCK_PX = 6;
+    let sx = 0, sy = 0, dragging = false, locked = false;
+    let activeRow = null, activeFg = null;
+
+    function _reset() {
+        if (activeFg) activeFg.style.transition = '';
+        activeRow = null; activeFg = null;
+        dragging = false; locked = false;
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        const row = e.target.closest('#cartZone .set-row');
+        if (!row) return;
+        if (e.target.closest('.set-qty-val')) return;
+        if (e.target.closest('.set-qty-btn')) return;
+        if (e.target.closest('.ci-delete')) return;
+        const t = e.touches[0];
+        sx = t.clientX; sy = t.clientY;
+        dragging = true; locked = false;
+        activeRow = row;
+        activeFg = row.querySelector('.set-row-fg');
+        if (activeFg) activeFg.style.transition = 'none';
+    }, {passive: true});
+
+    document.addEventListener('touchmove', (e) => {
+        if (!dragging || !activeRow) return;
+        const t = e.touches[0];
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+        if (!locked) {
+            if (Math.abs(dx) < MIN_LOCK_PX && Math.abs(dy) < MIN_LOCK_PX) return;
+            if (Math.abs(dy) > Math.abs(dx)) {
+                if (activeFg) activeFg.style.transform = '';
+                _reset();
+                return;
+            }
+            locked = true;
+        }
+        if (dx > 0) {
+            if (activeFg) activeFg.style.transform = '';
+            return;
+        }
+        const clamped = Math.max(dx, -SWIPE_REVEAL);
+        if (activeFg) activeFg.style.transform = 'translateX(' + clamped + 'px)';
+        activeRow.classList.add('swiping');
+    }, {passive: true});
+
+    function endSwipe(e) {
+        if (!dragging || !activeRow) { _reset(); return; }
+        const row = activeRow;
+        const fg = activeFg;
+        const t = (e.changedTouches && e.changedTouches[0]) || null;
+        const dx = t ? (t.clientX - sx) : 0;
+        const rect = row.getBoundingClientRect();
+        row.classList.remove('swiping');
+        if (fg) fg.style.transition = '';
+        const reveal = locked && (
+            (dx <= -SWIPE_THRESHOLD_PX) ||
+            (Math.abs(dx) / Math.max(rect.width, 1) >= SWIPE_THRESHOLD_PCT)
+        );
+        if (reveal) {
+            row.classList.add('swiped');
+            if (fg) fg.style.transform = '';
+        } else {
+            row.classList.remove('swiped');
+            if (fg) fg.style.transform = '';
+        }
+        _reset();
+    }
+    document.addEventListener('touchend', endSwipe);
+    document.addEventListener('touchcancel', endSwipe);
+})();
+
 
 function esc(s) {
     const d = document.createElement('div');
