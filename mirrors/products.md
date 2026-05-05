@@ -487,6 +487,13 @@ if ($ajax === 'sections') {
     }
 
     // ─── HOME STATS ───
+    // S95.BUGFIX_R2 Bug C+G: csrf_refresh endpoint — JS вика след save success ИЛИ
+    // при 403 csrf retry. Връща текущия session token (mint-ва нов ако session е fresh).
+    // Stateless re-fetch — не влиза в conflict с PH3 csrfCheck (няма rotation).
+    if ($ajax === 'csrf_refresh') {
+        echo json_encode(['token' => csrfToken()]);
+        exit;
+    }
     if ($ajax === 'home_stats') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $capital = DB::run("SELECT COALESCE(SUM(i.quantity * p.retail_price), 0) AS retail_value, COALESCE(SUM(i.quantity * p.cost_price), 0) AS cost_value FROM inventory i JOIN products p ON p.id = i.product_id WHERE p.tenant_id = ? AND i.store_id = ? AND i.quantity > 0", [$tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
@@ -4780,13 +4787,28 @@ async function api(url, opts={}){
     try{
         // S97.PRODUCTS.HARDEN_PH3 — attach CSRF token on every mutation.
         const method = (opts.method || 'GET').toUpperCase();
-        if (method !== 'GET' && method !== 'HEAD') {
+        const isMutation = (method !== 'GET' && method !== 'HEAD');
+        if (isMutation) {
             opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF || ''});
         }
         const r=await fetch(url, opts);
         if (r.status === 403) {
             const j = await r.json().catch(()=>({}));
             if (j && j.error === 'csrf') {
+                // S95.BUGFIX_R2 Bug C+G: retry once с refreshed token преди да reload-нем.
+                // Преди: 403 csrf → toast + 1500ms reload (потребителят губи unsaved form).
+                // Сега: re-fetch token → retry. Само ако ВТОРАТА опитка пак fail-не → reload.
+                if (isMutation && !opts.__csrfRetried) {
+                    try {
+                        const fresh = await fetch('products.php?ajax=csrf_refresh').then(x => x.json()).catch(()=>null);
+                        if (fresh && fresh.token) {
+                            window.RMS_CSRF = fresh.token;
+                            opts.__csrfRetried = true;
+                            opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF});
+                            return await api(url, opts);
+                        }
+                    } catch(_) {}
+                }
                 showToast('Сесията изтече. Презареждам…','error');
                 setTimeout(()=>location.reload(), 1500);
                 return null;
@@ -11877,9 +11899,9 @@ function onLiveSearchHome(q) {
         return;
     }
     clearTimeout(_hSearchTO);
-    // S95.BUGFIX_R2 Bug B: explicit 200ms debounce (преди setTimeout(fn) без delay = ~4ms,
-    // което създаваше race condition с типиране на първите букви — dropdown оставаше скрит
-    // докато потребителят не изтрие и пише наново).
+    // S95.BUGFIX_R2 Bug B: debounce reduced 250→150ms за live feel при типиране от 1-ва буква.
+    // Tihol report: "Б → нищо, БИ → нищо, започвам да трия → излиза" — типична debounce race.
+    // 150ms = достатъчно за бърз typer но не толкова бавно че dropdown да изглежда счупен.
     _hSearchTO = setTimeout(async () => {
         const d = await api('products.php?ajax=search&mix=1&q=' + encodeURIComponent(q) + '&store_id=' + CFG.storeId);
         if (!d) { dd.style.display = 'none'; return; }
