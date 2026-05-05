@@ -406,6 +406,24 @@
 
     bar.appendChild(btnLuck);
     bar.appendChild(btnLuckLbl);
+
+    const btnReplay = document.createElement('button');
+    btnReplay.textContent = '🎯 Replay';
+    btnReplay.style.cssText = 'padding:10px 14px;background:#dc2626;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnReplay.onclick = async function() {
+      try {
+        btnReplay.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.tsplReplay();
+        btnReplay.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnReplay.textContent = '🎯 Replay'; }, 2500);
+      } catch (e) {
+        btnReplay.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] Replay ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnReplay.textContent = '🎯 Replay'; }, 2500);
+      }
+    };
+
+    bar.appendChild(btnReplay);
     bar.appendChild(btnClose);
 
     const pre = document.createElement('pre');
@@ -1268,7 +1286,17 @@
         return await this.sendRaw(bytes, 'LuckPrinter SDK label test');
       },
 
-      // S95.D520 — debug helper: показва каквo е paired и какъв тип е.
+      // S95.D520.REPLAY — EXACT byte-for-byte replay от Labelife capture.
+      async tsplReplay() {
+        const REPLAY = "0d0a44454e534954592031310d0a535045454420340d0a5245464552454e434520302c300d0a4f46465345542030206d6d0d0a53495a45203530206d6d2c3730206d6d0d0a47415020332e3030206d6d2c302e3030206d6d0d0a444952454354494f4e20302c300d0a434c530d0a4249544d415020302c302c35302c3536302c342cd600000002ffffffffff2000000000941000019df9df9d200dd01201c1fc1fc1200dc400203fb40007f9e279e73c73c73c73e72007a40101fce739cf200ec40004cf198f3873873820098c0105fe0f999f307307302009c40007ff1fc03f3273273273c720071c0307ff3fc03f2672672670072007c40005fe1f891f0e70e70e20098c0101fe4f999f84062009740504cf39cf1e71e71e2009e40301f8e639c7200dc40005f9e079e33e73e73e20098c01200784042000000000000000000b9c000002ffffffffffffffffffffffffffffffffffffffff1100002c00000002ffffffffff20000000000000000000000000000000da10000cffffffffffffffffffffffffffffff1100002c00000002ffffffffff20000000000000000000000000000000da10000cffffffffffffffffffffffffffffff1100002c00000002ffffffffff20000000000000000000000000000000da10000cffffffffffffffffffffffffffffff1100002c00000002ffffffffff2000000000000000000000000000000000da10000cffffffffffffffffffffffffffffff1100002c00000002ffffffffff20000000000000000000000000000000da10000cffffffffffffffffffffffffffffff1100002a00000002ffffffffff20000000000000000000000000003810000cffffffffffffffffffffffffffffff110000000000000d0a5052494e5420312c310d0a";
+        const bytes = new Uint8Array(REPLAY.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+          bytes[i] = parseInt(REPLAY.substr(i * 2, 2), 16);
+        }
+        return await this.sendRaw(bytes, 'TSPL exact replay (Labelife)');
+      },
+
+      // S95.D520 — debug helper.
       info() {
         const info = {
           deviceId: getSavedDeviceId(),
