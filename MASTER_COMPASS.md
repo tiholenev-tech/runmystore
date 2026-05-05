@@ -144,21 +144,36 @@
 | Gemini 2.5 Flash (2 keys, rotation) | ✅ |
 | OpenAI GPT-4o-mini (fallback 429/503) | ✅ |
 | fal.ai (birefnet + nano-banana-pro) | ✅ |
-| **DTM-5811 Bluetooth Classic printer** (TSPL, BT 2.1.1, BDA DC:0D:51:AC:51:D9) | ⚠ **CSV workaround** — печат през QU Printing app (Dothantech). Native plugin = S82. |
+| **DTM-5811 BLE printer** (TSPL, BLE GATT 18f0/2af1, BDA DC:0D:51:AC:51:D9) | ✅ S82 native Capacitor plugin (`@capacitor-community/bluetooth-le`). Production. |
+| **D520BT printer** (AIMO/Phomemo, TSPL over Bluetooth Classic SPP/RFCOMM 1101, BDA 8a:00:00:54:e8:a0) | ✅ S96 native dual-driver (`@e-is/capacitor-bluetooth-serial`). See `docs/PRINTER_DUAL_DRIVER.md`. |
 | Pusher account (real-time sync) | 🔴 не създаден (S88) |
 | ЕНИ магазин beta | ⏳ 10-15 май 2026 first sale |
 | 2-ри beta tenant (с онлайн) | ⏳ юни 2026 |
 | Android Studio setup + Capacitor проект | ⏳ **prerequisite за S82** (не е инсталиран засега) |
 
-## 🖨 Printer strategy — 3 фази
+## 🖨 Printer strategy — 4 фази
 
-### ФАЗА 1 (S81, ДНЕС) — CSV workaround ✅
+### ФАЗА 1 (S81) — CSV workaround ✅ SUPERSEDED
+### ФАЗА 2 (S82) — DTM-5811 Capacitor native plugin ✅ DONE
+### ФАЗА 2b (S96) — D520BT dual driver ✅ DONE
+- Транспорт: Bluetooth Classic SPP (RFCOMM, SDP 1101). BLE channel proven empty by Wireshark.
+- Plugin: `@e-is/capacitor-bluetooth-serial@^6.0.3`
+- Generator: ASCII-only TSPL (TEXT/BARCODE) с BG→latin transliteration. BITMAP не може заради UTF-8 encoding в plugin write path.
+- Both printers paired in parallel; `CapPrinter.print()` routes by active type. UI selector в `printer-setup.php` когато и двата са сдвоени.
+- Документация: `docs/PRINTER_DUAL_DRIVER.md` (S96.D520.6).
+- Standalone test page: `tools/d520_classic_test.php`.
+
+### ФАЗА 3 (S85.5, преди client launch) — Universal Printer Plugin
+
+### --- legacy details below (S81 / S82 prerequisites) ---
+
+### ФАЗА 1 (S81, ARCHIVED) — CSV workaround
 
 Пешо: products.php → продукт → [🏷 Етикет] → [Свали CSV] → отваря QU Printing app → импортира → печата.
 
-Причина: DTM-5811 е Bluetooth Classic (BT 2.1), Web Bluetooth API не работи с него.
+Причина: DTM-5811 беше си мислил Bluetooth Classic (BT 2.1), Web Bluetooth API не работеше. Реално DTM-5811 е BLE — S82 потвърди.
 
-### ФАЗА 2 (S82, НОВ ЧАТ) — DTM-5811 Capacitor native plugin
+### ФАЗА 2 (S82, ARCHIVED) — DTM-5811 Capacitor native plugin
 
 **Обхват:** само DTM-5811 (200 поръчани принтера).
 
