@@ -1551,22 +1551,39 @@ body.sale-page #saleWrap{
     filter:none !important;
     will-change:auto !important;
 }
-/* S87E.BUG#1 — action-bar sticky in flow (flex column auto-pushes to bottom) */
+/* S87I.BUGFIX_R4 — summary-bar fixed точно над action-bar. Преди беше static,
+   сега когато action-bar e fixed, summary щеше да остане в потока и да се
+   припокрие с footer-а. */
 body.sale-page .summary-bar{
-    position:static !important;left:auto;right:auto;bottom:auto !important;
-    max-width:none !important;margin:0;z-index:auto;
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index:99 !important;
+    max-width:none !important;
+    margin:0 !important;
 }
+/* S87I.BUGFIX_R4 — position:sticky e нестабилно на Capacitor APK (Android WebView):
+   action-bar изчезваше зад navigation bar. Switch към position:fixed с explicit
+   left/right/bottom + z-index:100 → reliable cross-platform. Bottom padding на
+   #cartZone осигурява, че последният артикул не остава под footer-а. */
 body.sale-page .action-bar{
     display:flex !important;
-    position:sticky !important;
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
     bottom:0 !important;
-    z-index:10;
-    padding:10px 12px max(10px, env(safe-area-inset-bottom)) 12px !important;
+    z-index:100 !important;
+    padding:10px 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
     background:linear-gradient(180deg,transparent 0%,var(--bg-main) 30%) !important;
-    margin-top:auto !important;
-    left:auto;right:auto;max-width:none !important;
+    margin:0 !important;
+    max-width:none !important;
 }
-body.sale-page #cartZone{ padding-bottom:0 !important }
+body.sale-page #cartZone{
+    /* Footer height = summary (44) + action-bar (~58) + padding ≈ 116px;
+       плюс safe-area за iOS notch / Android navigation bar. */
+    padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px)) !important;
+}
 /* S87G.B3 — set-qty-val cosmetics (split-tap zone defined earlier in stylesheet) */
 body.sale-page .set-qty-val{
     cursor:pointer;border-radius:10px;font-size:14px;font-weight:900;
