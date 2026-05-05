@@ -2860,7 +2860,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* S95.BUGFIX_R4 Bug 3a: DESIGN_LAW compliance — when s2-section also has .glass.sm,
  * let the глобалния .glass rule (design-kit) контролира bg/border/shadow + shines/glows.
  * `contain` отстраняваме за да не блокира glow псевдо-елементите outside на cardа. */
-.s2-section.glass{background:transparent;border:0;box-shadow:none;contain:none}
+.s2-section.glass{contain:none}
 .s2-section.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 /* Adaptive textarea за състав/материя — auto-grow на височина при text overflow.
  * Ползва same look-and-feel като .fc inputs. */
