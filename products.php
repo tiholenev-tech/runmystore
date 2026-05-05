@@ -831,8 +831,14 @@ if ($ajax === 'sections') {
             exit;
         }
         $url = '/uploads/products/' . $tenant_id . '/' . $filename;
-        // Update DB
+        // S97.PRODUCTS.HARDEN_PH5 — snapshot old image_url BEFORE the UPDATE so the
+        // audit row can record what was replaced.
+        $_oldImg = DB::run("SELECT image_url FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetchColumn();
         DB::run("UPDATE products SET image_url=? WHERE id=? AND tenant_id=?", [$url, $pid, $tenant_id]);
+        DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,source_detail,old_values,new_values) VALUES (?,?,?,?,?,?,?,?)",
+            [$tenant_id, $user_id, 'products', $pid, 'update', 'upload_image',
+             json_encode(['image_url'=>$_oldImg], JSON_UNESCAPED_UNICODE),
+             json_encode(['image_url'=>$url, 'mime'=>$realMime, 'size_bytes'=>strlen($data)], JSON_UNESCAPED_UNICODE)]);
         echo json_encode(['ok'=>true, 'image_url'=>$url]); exit;
     }
 
@@ -1050,8 +1056,22 @@ if ($ajax === 'sections') {
     // ─── SAVE LABELS ───
     if ($ajax === 'save_labels' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        foreach ($input['variations'] ?? [] as $v) { $vid=(int)($v['id']??0); $mq=(int)($v['min_quantity']??0); if($vid>0) DB::run("UPDATE products SET min_quantity=? WHERE id=? AND tenant_id=?",[$mq,$vid,$tenant_id]); }
-        echo json_encode(['ok'=>true]); exit;
+        // S97.PRODUCTS.HARDEN_PH5 — collect changes for a single rolled-up audit row
+        // (one bulk operation per request, rather than one row per variation).
+        $changed = [];
+        foreach ($input['variations'] ?? [] as $v) {
+            $vid=(int)($v['id']??0); $mq=(int)($v['min_quantity']??0);
+            if($vid>0) {
+                DB::run("UPDATE products SET min_quantity=? WHERE id=? AND tenant_id=?",[$mq,$vid,$tenant_id]);
+                $changed[] = ['id'=>$vid, 'min_quantity'=>$mq];
+            }
+        }
+        if ($changed) {
+            DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,source_detail,new_values) VALUES (?,?,?,?,?,?,?)",
+                [$tenant_id, $user_id, 'products', $changed[0]['id'], 'update', 'save_labels',
+                 json_encode(['bulk'=>true,'count'=>count($changed),'changes'=>$changed], JSON_UNESCAPED_UNICODE)]);
+        }
+        echo json_encode(['ok'=>true,'updated'=>count($changed)]); exit;
     }
 
     // ─── EXPORT LABELS ───
