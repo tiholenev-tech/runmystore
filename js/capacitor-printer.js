@@ -50,12 +50,55 @@
   const DTM_SERVICE_UUID  = '000018f0-0000-1000-8000-00805f9b34fb';
   const DTM_WRITE_CHAR_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
 
+  // D520BT (AIMO/Phomemo D-family) — Bluetooth standard service ff00
+  const D520_SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb';
+  const D520_AF30_SERVICE = '0000af30-0000-1000-8000-00805f9b34fb';
+
+  // Printer type constants
+  const TYPE_DTM  = 'DTM';   // TSPL protocol (DTM-5811)
+  const TYPE_D520 = 'D520';  // Phomemo ESC/POS raster (D520BT, 241BT, AIMO D-family)
+
   const STORAGE_KEY         = 'rms_printer_device_id';
   const STORAGE_KEY_SERVICE = 'rms_printer_service_uuid';
   const STORAGE_KEY_WRITE   = 'rms_printer_write_char_uuid';
+  const STORAGE_KEY_TYPE    = 'rms_printer_type';   // S95.D520: DTM | D520
 
   // Max BLE write chunk (DTM-5811 default MTU = 20 bytes safe)
   const CHUNK_SIZE = 100;
+
+  // ─── D520BT protocol constants (Phomemo D-family ESC/POS raster) ───────
+  // Reverse-engineered from polskafan/phomemo_d30 (Bluetooth pcap sniffing
+  // на Print Master Android app). Same family: M02, M02S, M02 Pro, D30,
+  // D11, D110, D520BT, 241BT, AIMO D-series.
+  //
+  // Print sequence:
+  //   1. Send HEADER packets (printer init / wakeup)
+  //   2. Send PRINT_INIT prefix + width(LE) + height(LE)
+  //   3. Send raw raster bytes (1bpp, MSB first, 1=black)
+  //   4. Send FORM_FEED (1 byte: 0x0C) — eject/cut
+  //
+  // D520BT (4×6" shipping label printer):
+  //   - 203 DPI (8 dots/mm)
+  //   - Max width: ~4.6 inch = ~933 dots ≈ 117 bytes
+  //   - 50×30mm price tag = 400×240 dots = 50 bytes wide × 240 high
+  const D520_DPI = 203;
+  const D520_DOTS_PER_MM = 8;  // 203/25.4 ≈ 8
+
+  // Phomemo wakeup/init headers (sniffed from Labelife / Print Master)
+  const D520_HEADER_PACKETS = [
+    [0x1F, 0x11, 0x38],
+    [0x1F, 0x11, 0x12, 0x1F, 0x11, 0x13],
+    [0x1F, 0x11, 0x09],
+    [0x1F, 0x11, 0x11],
+    [0x1F, 0x11, 0x19],
+    [0x1F, 0x11, 0x07],
+    [0x1F, 0x11, 0x0A, 0x1F, 0x11, 0x02, 0x02]
+  ];
+
+  // Print prefix: 1F 11 24 00 (Phomemo magic) + 1B 40 (ESC @) + 1D 76 30 00 (GS v 0)
+  // After this comes: [W_lo, W_hi, H_lo, H_hi, ...raster bytes...]
+  const D520_PRINT_PREFIX = [0x1F, 0x11, 0x24, 0x00, 0x1B, 0x40, 0x1D, 0x76, 0x30, 0x00];
+  const D520_FORM_FEED    = [0x0C];
 
   // ----- Helpers -----
 
@@ -100,11 +143,21 @@
     try { localStorage.setItem(STORAGE_KEY_WRITE, uuid); } catch (e) {}
   }
 
+  // S95.D520 — printer type tracking (DTM TSPL vs D520 Phomemo raster)
+  function getSavedType() {
+    try { return localStorage.getItem(STORAGE_KEY_TYPE); } catch (e) { return null; }
+  }
+
+  function saveType(t) {
+    try { localStorage.setItem(STORAGE_KEY_TYPE, t); } catch (e) {}
+  }
+
   function clearDeviceId() {
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(STORAGE_KEY_SERVICE);
       localStorage.removeItem(STORAGE_KEY_WRITE);
+      localStorage.removeItem(STORAGE_KEY_TYPE);
     } catch (e) {}
   }
 
@@ -117,6 +170,9 @@
   // 18f0 → ползва известния DTM_WRITE_CHAR_UUID (без scan на chars).
   // ff00, af30 → discover-ва char с WRITE или WRITE_NO_RESPONSE.
   // Логва всеки опит в overlay (Тихол вижда какво е пробвано).
+  //
+  // S95.D520 — връща и type: 'DTM' (TSPL) или 'D520' (Phomemo raster).
+  // Type се определя по service UUID + device name fallback.
   async function discoverWriteEndpoint(ble, deviceId, deviceName) {
     const services = await ble.getServices(deviceId);
     const presentUuids = (services || []).map(function(s){ return String(s.uuid).toLowerCase(); });
@@ -132,7 +188,7 @@
       }
       if (uuidEq(known, DTM_SERVICE_UUID)) {
         dbgLog('[D520BT-DEBUG]   try ' + known + ' — DTM service, use known writeChar ' + DTM_WRITE_CHAR_UUID);
-        chosen = { serviceUuid: svc.uuid, writeCharUuid: DTM_WRITE_CHAR_UUID };
+        chosen = { serviceUuid: svc.uuid, writeCharUuid: DTM_WRITE_CHAR_UUID, type: TYPE_DTM };
         break;
       }
       let writable = null;
@@ -142,7 +198,8 @@
       }
       if (writable) {
         dbgLog('[D520BT-DEBUG]   try ' + known + ' — FOUND writable char ' + writable.uuid);
-        chosen = { serviceUuid: svc.uuid, writeCharUuid: writable.uuid };
+        // S95.D520: ff00/af30 → Phomemo D-family raster (D520BT, 241BT, AIMO).
+        chosen = { serviceUuid: svc.uuid, writeCharUuid: writable.uuid, type: TYPE_D520 };
         break;
       }
       dbgLog('[D520BT-DEBUG]   try ' + known + ' — present but NO writable char');
@@ -152,8 +209,21 @@
       throw new Error('Не е намерен writable endpoint в TSPL services. Device exposes: '
         + presentUuids.join(', '));
     }
+
+    // S95.D520 — secondary type detection by device name (override ако е D520
+    // експозира 18f0; rare edge но съм виждал в M02 ODM-и).
+    const nameUpper = String(deviceName || '').toUpperCase();
+    if (chosen.type === TYPE_DTM &&
+        (nameUpper.includes('D520') || nameUpper.includes('241BT') ||
+         nameUpper.includes('PM-241') || nameUpper.includes('PHOMEMO') ||
+         nameUpper.includes('AIMO')   || nameUpper.includes('PM241'))) {
+      dbgLog('[D520BT-DEBUG]   name override → D520 (matched ' + nameUpper + ')');
+      chosen.type = TYPE_D520;
+    }
+
     dbgLog('[D520BT-DEBUG] Selected ' + (deviceName || '(no name)')
-      + ': service=' + chosen.serviceUuid + ', writeChar=' + chosen.writeCharUuid);
+      + ': type=' + chosen.type
+      + ', service=' + chosen.serviceUuid + ', writeChar=' + chosen.writeCharUuid);
     return chosen;
   }
 
@@ -473,6 +543,204 @@
     return concatBytes(parts);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // S95.D520 — D520BT / 241BT / Phomemo D-family driver (ESC/POS raster)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Reverse-engineered protocol (from polskafan/phomemo_d30 + theacodes/m02s):
+  //   [HEADER packets]            ← printer wakeup (sniffed sequence)
+  //   1F 11 24 00                 ← Phomemo magic
+  //   1B 40                       ← ESC @ initialize
+  //   1D 76 30 00                 ← GS v 0 m=0 (raster bit image)
+  //   W_lo W_hi  H_lo H_hi        ← image dims (LE bytes)
+  //   <raster bytes>              ← W*H/8 bytes, MSB first, 1=black
+  //   0C                          ← form feed
+  //
+  // Размери за D520BT @ 50×30mm price tag (203 dpi):
+  //   width  = 50mm × 8 dots/mm = 400 dots = 50 bytes
+  //   height = 30mm × 8 dots/mm = 240 dots
+  // ───────────────────────────────────────────────────────────────────────
+
+  /**
+   * Рендерира пълен 50×30mm price-tag label на canvas:
+   *   ┌──────────────────────────────────┐
+   *   │  Store name             (small)  │ y=4
+   *   │  Product name           (medium) │ y=32
+   *   │  PRICE                  (HUGE)   │ y=72
+   *   │  Code                   (small)  │ y=130
+   *   │  ████ Barcode ████      (160)    │ y=160
+   *   └──────────────────────────────────┘
+   * @returns canvas (400 × 240 pixels @ 203 dpi)
+   */
+  function renderD520LabelCanvas(product, store) {
+    const W = 400;  // 50mm × 8 dots/mm
+    const H = 240;  // 30mm × 8 dots/mm
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Бял фон (1 = white, 0 = black за thermal — printer-ът лее BLACK там, където pixel-ът е dark)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#000000';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    const name = String(product.name || '').replace(/[\r\n\t]/g, ' ').substring(0, 48);
+    const code = String(product.code || '').replace(/[\r\n\t]/g, ' ').substring(0, 24);
+    const barcode = String(product.barcode || product.code || '').replace(/[^0-9A-Za-z]/g, '');
+    const storeName = String(store.name || '').replace(/[\r\n\t]/g, ' ').substring(0, 32);
+
+    // Price string
+    const amt = parseFloat(product.retail_price) || 0;
+    const cur = store.currency || 'EUR';
+    let priceStr;
+    if (cur === 'EUR') priceStr = amt.toFixed(2) + ' EUR';
+    else if (cur === 'BGN') priceStr = amt.toFixed(2) + ' lv';
+    else priceStr = amt.toFixed(2) + ' ' + cur;
+
+    function drawTruncated(text, x, y, fontSpec, maxWidth) {
+      ctx.font = fontSpec;
+      let displayText = text;
+      if (ctx.measureText(displayText).width > maxWidth) {
+        while (displayText.length > 1 && ctx.measureText(displayText + '…').width > maxWidth) {
+          displayText = displayText.slice(0, -1);
+        }
+        displayText += '…';
+      }
+      ctx.fillText(displayText, x, y);
+    }
+
+    // Layout
+    if (storeName) drawTruncated(storeName, 8, 4,  'bold 22px Arial, sans-serif', W - 16);
+    if (name)      drawTruncated(name,      8, 32, 'bold 28px Arial, sans-serif', W - 16);
+    drawTruncated(priceStr,  8, 72, 'bold 48px Arial, sans-serif', W - 16);
+    if (code)      drawTruncated(code,      8, 130, 'bold 16px Arial, sans-serif', W - 16);
+
+    // Barcode — Code128/EAN13 примитив (рисуваме линии директно върху canvas).
+    // Не зависи от външна библиотека. Базиран на широчина-на-цифра ≈ 3px.
+    if (barcode) {
+      drawSimpleBarcode(ctx, barcode, 8, 160, W - 16, 60);
+    }
+
+    return canvas;
+  }
+
+  // Прост Code128-like barcode (визуален, scanable за повечето сканъри).
+  // Не е стрикт Code128, но е стандартен Code 39 fallback. За EAN13 numeric.
+  function drawSimpleBarcode(ctx, value, x, y, maxWidth, height) {
+    // Code 39 (3 of 9) — за всички ASCII chars.
+    // Всеки знак = 9 ленти (5 черни + 4 бели), 3 от 9 са широки.
+    // Star (*) рамкира началото и края.
+    const C39 = {
+      '0': 'NNNWWNWNN', '1': 'WNNWNNNNW', '2': 'NNWWNNNNW', '3': 'WNWWNNNNN',
+      '4': 'NNNWWNNNW', '5': 'WNNWWNNNN', '6': 'NNWWWNNNN', '7': 'NNNWNNWNW',
+      '8': 'WNNWNNWNN', '9': 'NNWWNNWNN',
+      'A': 'WNNNNWNNW', 'B': 'NNWNNWNNW', 'C': 'WNWNNWNNN', 'D': 'NNNNWWNNW',
+      'E': 'WNNNWWNNN', 'F': 'NNWNWWNNN', 'G': 'NNNNNWWNW', 'H': 'WNNNNWWNN',
+      'I': 'NNWNNWWNN', 'J': 'NNNNWWWNN', 'K': 'WNNNNNNWW', 'L': 'NNWNNNNWW',
+      'M': 'WNWNNNNWN', 'N': 'NNNNWNNWW', 'O': 'WNNNWNNWN', 'P': 'NNWNWNNWN',
+      'Q': 'NNNNNNWWW', 'R': 'WNNNNNWWN', 'S': 'NNWNNNWWN', 'T': 'NNNNWNWWN',
+      'U': 'WWNNNNNNW', 'V': 'NWWNNNNNW', 'W': 'WWWNNNNNN', 'X': 'NWNNWNNNW',
+      'Y': 'WWNNWNNNN', 'Z': 'NWWNWNNNN', '-': 'NWNNNNWNW', '.': 'WWNNNNWNN',
+      ' ': 'NWWNNNWNN', '$': 'NWNWNWNNN', '/': 'NWNWNNNWN', '+': 'NWNNNWNWN',
+      '%': 'NNNWNWNWN', '*': 'NWNNWNWNN'
+    };
+    const text = '*' + String(value).toUpperCase().replace(/[^0-9A-Z\-. $\/+%]/g, '') + '*';
+    // Изчисляваме обща дължина в "narrow units": 6 narrow + 3 wide + 1 inter-char
+    const narrow = 1, wide = 2;
+    const charUnits = 6 * narrow + 3 * wide + narrow; // 6N+3W+1N = 11
+    const totalUnits = text.length * charUnits;
+    let unitWidth = Math.floor(maxWidth / totalUnits);
+    if (unitWidth < 1) unitWidth = 1;
+    if (unitWidth > 3) unitWidth = 3;
+
+    let cursorX = x;
+    ctx.fillStyle = '#000';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const pat = C39[ch];
+      if (!pat) continue;
+      let isBlack = true;
+      for (let b = 0; b < pat.length; b++) {
+        const w = (pat[b] === 'W' ? wide : narrow) * unitWidth;
+        if (isBlack) ctx.fillRect(cursorX, y, w, height);
+        cursorX += w;
+        isBlack = !isBlack;
+      }
+      cursorX += narrow * unitWidth; // inter-character gap
+    }
+  }
+
+  /**
+   * Конвертира canvas → 1bpp raster bytes (MSB first, 1=black).
+   * Output дължина = (canvas.width / 8) × canvas.height.
+   * canvas.width ТРЯБВА да е multiple of 8.
+   */
+  function canvasToRasterBytes(canvas) {
+    const W = canvas.width;
+    const H = canvas.height;
+    if (W % 8 !== 0) throw new Error('canvas width must be multiple of 8 (got ' + W + ')');
+    const widthBytes = W / 8;
+    const ctx = canvas.getContext('2d');
+    const px = ctx.getImageData(0, 0, W, H).data;
+    const out = new Uint8Array(widthBytes * H);
+    for (let y = 0; y < H; y++) {
+      for (let bx = 0; bx < widthBytes; bx++) {
+        let byte = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = bx * 8 + bit;
+          const i = (y * W + x) * 4;
+          // dark pixel → 1 (печатай)
+          const dark = (px[i] + px[i + 1] + px[i + 2]) < 384;
+          if (dark) byte |= (1 << (7 - bit));
+        }
+        out[y * widthBytes + bx] = byte;
+      }
+    }
+    return { widthBytes: widthBytes, height: H, bytes: out };
+  }
+
+  /**
+   * Изгражда пълния payload за D520BT print job:
+   *   [headers] + [print_init + dims + raster] + [form feed]
+   *   × n copies
+   */
+  function generateD520Payload(product, store, copies) {
+    const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
+    const canvas = renderD520LabelCanvas(product, store);
+    const raster = canvasToRasterBytes(canvas);
+
+    const parts = [];
+
+    // 1. Header packets (printer wakeup) — once at start of job.
+    for (const pkt of D520_HEADER_PACKETS) {
+      parts.push(new Uint8Array(pkt));
+    }
+
+    // 2-3. Print init + raster — repeat per copy.
+    for (let c = 0; c < n; c++) {
+      const init = new Uint8Array(D520_PRINT_PREFIX.length + 4);
+      init.set(D520_PRINT_PREFIX, 0);
+      // Width в bytes (LE)
+      init[D520_PRINT_PREFIX.length    ] = raster.widthBytes & 0xFF;
+      init[D520_PRINT_PREFIX.length + 1] = (raster.widthBytes >> 8) & 0xFF;
+      // Height в pixels (LE)
+      init[D520_PRINT_PREFIX.length + 2] = raster.height & 0xFF;
+      init[D520_PRINT_PREFIX.length + 3] = (raster.height >> 8) & 0xFF;
+      parts.push(init);
+      parts.push(raster.bytes);
+      parts.push(new Uint8Array(D520_FORM_FEED));
+    }
+
+    return concatBytes(parts);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // END S95.D520 driver
+  // ═══════════════════════════════════════════════════════════════════════
+
   // ----- BLE Write (chunked) -----
 
   async function writeChunked(ble, deviceId, bytes) {
@@ -528,6 +796,8 @@
         saveDeviceId(device.deviceId);
         saveServiceUuid(ep.serviceUuid);
         saveWriteCharUuid(ep.writeCharUuid);
+        saveType(ep.type);  // S95.D520 — DTM | D520 за routing в print()
+        dbgLog('[D520BT-DEBUG] Paired as ' + ep.type + ' printer.');
       } catch (e) {
         try { await ble.disconnect(device.deviceId); } catch (_) {}
         clearDeviceId();
@@ -658,7 +928,11 @@
       if (!isCapacitor()) throw new Error('Мобилен печат не е достъпен тук');
 
       const ble = getBle();
-      const bytes = generateTSPL(product, store, copies || 1);
+      // S95.D520 — routing по принтер тип (DTM TSPL vs D520 Phomemo raster)
+      const type = getSavedType() || TYPE_DTM;  // fallback DTM за legacy paired
+      const bytes = (type === TYPE_D520)
+        ? generateD520Payload(product, store, copies || 1)
+        : generateTSPL(product, store, copies || 1);
 
       let id = getSavedDeviceId();
       if (!id) throw new Error('Няма сдвоен принтер');
@@ -795,12 +1069,79 @@
           0x0C                                          // form feed
         ]);
         return await this.sendRaw(bytes, 'Phomemo Init');
+      },
+
+      // S95.D520 — пълен D520BT test print с реално raster.
+      // Принтерът трябва да изплюе 50×30mm етикет с TEST PRINT текст.
+      // Ако НЕ печата след това, проблемът е в:
+      //   - размер на label (D520 може да очаква по-голям от 50×30)
+      //   - gap detection (paper sensor може да не вижда 50×30 gap)
+      //   - bluetooth chunking (може да трябва различен MTU)
+      async d520Test() {
+        const testProduct = {
+          code: 'TEST-D520',
+          name: 'D520 TEST',
+          retail_price: 99.99,
+          barcode: '0000000000017'
+        };
+        const testStore = { name: 'RUNMYSTORE', currency: 'EUR' };
+        const bytes = generateD520Payload(testProduct, testStore, 1);
+        return await this.sendRaw(bytes, 'D520 raster (full)');
+      },
+
+      // S95.D520 — само headers (provoke wakeup без raster).
+      // Ако светлините на D520BT мигат → принтерът прие headers-ите.
+      async d520Wakeup() {
+        const parts = [];
+        for (const pkt of D520_HEADER_PACKETS) parts.push(new Uint8Array(pkt));
+        return await this.sendRaw(concatBytes(parts), 'D520 wakeup headers');
+      },
+
+      // S95.D520 — съвсем минимален raster (1×8 черни байта = 64 черни pixel-а).
+      // Ако виждаш точка/линия → protocol-ът работи; size-ът е грешен.
+      async d520Minimal() {
+        const w = 8;   // bytes
+        const h = 64;  // pixels
+        const raster = new Uint8Array(w * h);
+        raster.fill(0xFF);  // всички pixel-и черни
+        const init = new Uint8Array(D520_PRINT_PREFIX.length + 4);
+        init.set(D520_PRINT_PREFIX, 0);
+        init[D520_PRINT_PREFIX.length    ] = w & 0xFF;
+        init[D520_PRINT_PREFIX.length + 1] = (w >> 8) & 0xFF;
+        init[D520_PRINT_PREFIX.length + 2] = h & 0xFF;
+        init[D520_PRINT_PREFIX.length + 3] = (h >> 8) & 0xFF;
+        const parts = [];
+        for (const pkt of D520_HEADER_PACKETS) parts.push(new Uint8Array(pkt));
+        parts.push(init);
+        parts.push(raster);
+        parts.push(new Uint8Array(D520_FORM_FEED));
+        return await this.sendRaw(concatBytes(parts), 'D520 minimal black block');
+      },
+
+      // S95.D520 — debug helper: показва каквo е paired и какъв тип е.
+      info() {
+        const info = {
+          deviceId: getSavedDeviceId(),
+          serviceUuid: getSavedServiceUuid(),
+          writeCharUuid: getSavedWriteCharUuid(),
+          type: getSavedType() || '(none)',
+          isCapacitor: isCapacitor()
+        };
+        dbgLog('[D520BT-DEBUG] Info: ' + JSON.stringify(info, null, 2));
+        return info;
       }
     },
 
     showDebugOverlay: showDebugOverlay,
 
+    // S95.D520 — публичен type getter (UI може да показва "DTM-5811" / "D520BT")
+    getType() {
+      return getSavedType() || null;
+    },
+
     _generateTSPL: generateTSPL,
+    _generateD520Payload: generateD520Payload,
+    _renderD520LabelCanvas: renderD520LabelCanvas,
     _isCapacitor: isCapacitor,
     _getDeviceId: getSavedDeviceId,
     _renderTextBitmap: renderTextBitmap,
