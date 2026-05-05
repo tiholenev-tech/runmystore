@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>Като предния · RunMyStore.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* RESET */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+html{overflow-x:hidden;scroll-behavior:smooth}
+
+/* ROOT — DESIGN_LAW §7.2 */
+:root{
+    --hue1:255;--hue2:222;
+    --border:1px;
+    --border-color:hsl(var(--hue2),12%,20%);
+    --radius:22px;--radius-sm:14px;
+    --ease:cubic-bezier(0.5,1,0.89,1);
+    --bg-main:#08090d;
+    --text-primary:#f1f5f9;
+    --text-secondary:rgba(255,255,255,0.6);
+    --text-muted:rgba(255,255,255,0.4);
+    --text-dim:#6b7280;
+    --indigo-300:#a5b4fc;
+    --indigo-400:#818cf8;
+    --indigo-500:#6366f1;
+    --indigo-600:#4f46e5;
+    --danger:#ef4444;
+    --warning:#f59e0b;
+    --success:#22c55e;
+    --purple:#8b5cf6;
+}
+.q-default{--hue1:255;--hue2:222}
+.q-magic  {--hue1:280;--hue2:310}
+.q-loss   {--hue1:0;  --hue2:15}
+.q-gain   {--hue1:145;--hue2:165}
+.q-amber  {--hue1:38; --hue2:28}
+
+html,body{
+    background:var(--bg-main);
+    color:var(--text-primary);
+    font-family:'Montserrat',system-ui,sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+}
+input,button,textarea{font-family:'Montserrat',system-ui,sans-serif}
+.tabular-nums{font-variant-numeric:tabular-nums}
+
+body{
+    background:
+        radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.22) 0%,transparent 60%),
+        radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.22) 0%,transparent 60%),
+        linear-gradient(180deg,#0a0b14 0%,#050609 100%);
+    background-attachment:fixed;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
+}
+body::before{
+    content:'';position:fixed;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity:0.03;pointer-events:none;z-index:1;mix-blend-mode:overlay;
+}
+
+.app{position:relative;z-index:2;max-width:480px;margin:0 auto;width:100%;padding:0 12px 20px}
+
+/* ═══════════════════════════════════════════════ */
+/* §7 GLASS — EXACT CODE FROM chat.php (c2caaf5)  */
+/* DO NOT MODIFY                                   */
+/* ═══════════════════════════════════════════════ */
+.glass{
+    position:relative;
+    border-radius:var(--radius);
+    border:var(--border) solid var(--border-color);
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),
+        linear-gradient(hsl(220deg 25% 4.8% / .78));
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+    isolation:isolate
+}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+.glass .shine,
+.glass .shine::before,
+.glass .shine::after{
+    pointer-events:none;
+    border-radius:0;
+    border-top-right-radius:inherit;
+    border-bottom-left-radius:inherit;
+    border:1px solid transparent;
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    right:calc(var(--border) * -1);top:calc(var(--border) * -1);
+    left:auto;z-index:1;
+    --start:12%;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;
+    mask-clip:padding-box,border-box;
+    mask-composite:subtract
+}
+.glass .shine::before,.glass .shine::after{content:"";width:auto;inset:-2px;mask:none}
+.glass .shine::after{z-index:2;--start:17%;--end:33%;background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,80%),var(--lit,85%)),transparent var(--end,50%))}
+.glass .shine-bottom{top:auto;bottom:calc(var(--border) * -1);left:calc(var(--border) * -1);right:auto}
+.glass .glow{
+    pointer-events:none;
+    border-top-right-radius:calc(var(--radius) * 2.5);
+    border-bottom-left-radius:calc(var(--radius) * 2.5);
+    border:calc(var(--radius) * 1.25) solid transparent;
+    inset:calc(var(--radius) * -2);
+    width:75%;aspect-ratio:1;
+    display:block;position:absolute;
+    left:auto;bottom:auto;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mask-mode:luminance;mask-size:29%;
+    opacity:1;
+    filter:blur(12px) saturate(1.25) brightness(0.5);
+    mix-blend-mode:plus-lighter;
+    z-index:3
+}
+.glass .glow.glow-bottom{inset:calc(var(--radius) * -2);top:auto;right:auto}
+.glass .glow::before,.glass .glow::after{
+    content:"";position:absolute;inset:0;
+    border:inherit;border-radius:inherit;
+    background:conic-gradient(from var(--conic,-45deg) at center in oklch,transparent var(--start,0%),hsl(var(--hue),var(--sat,95%),var(--lit,60%)),transparent var(--end,50%)) border-box;
+    mask:linear-gradient(transparent),linear-gradient(black);
+    mask-repeat:no-repeat;mask-clip:padding-box,border-box;mask-composite:subtract;
+    filter:saturate(2) brightness(1)
+}
+.glass .glow::after{
+    --lit:70%;--sat:100%;--start:15%;--end:35%;
+    border-width:calc(var(--radius) * 1.75);
+    border-radius:calc(var(--radius) * 2.75);
+    inset:calc(var(--radius) * -.25);
+    z-index:4;opacity:.75
+}
+.glass.sm{--radius:var(--radius-sm)}
+
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
+
+/* §15.1 cardin */
+@keyframes cardin{
+    0%   {opacity:0;transform:translateY(30px) scale(0.85)}
+    70%  {transform:translateY(-4px) scale(1.02)}
+    100% {opacity:1;transform:translateY(0) scale(1)}
+}
+.cardin{animation:cardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both}
+.cardin:nth-child(1){animation-delay:0s}
+.cardin:nth-child(2){animation-delay:0.05s}
+.cardin:nth-child(3){animation-delay:0.1s}
+.cardin:nth-child(4){animation-delay:0.15s}
+.cardin:nth-child(5){animation-delay:0.2s}
+.cardin:nth-child(6){animation-delay:0.25s}
+
+/* §7.5 glow pulse — за важните карти */
+@keyframes glowPulse{
+    0%   {box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0)}
+    50%  {box-shadow:0 0 30px 4px hsl(var(--hue1) 70% 60% / 0.4)}
+    100% {box-shadow:0 0 0 0 hsl(var(--hue1) 70% 60% / 0)}
+}
+.glow-on-enter{animation:cardin 0.95s cubic-bezier(0.34,1.8,0.64,1) both,glowPulse 1.6s ease-out 0.9s both}
+
+/* ═══ §12 RMS HEADER (помощна wizard страница) ═══ */
+.rms-header{
+    position:sticky;top:0;z-index:60;
+    display:flex;align-items:center;gap:8px;
+    padding:max(10px,calc(env(safe-area-inset-top,0px) + 10px)) 14px 12px;
+    margin:0 -12px 14px;
+    background:rgba(3,7,18,0.93);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid rgba(99,102,241,0.1);
+}
+.rms-back{
+    width:32px;height:32px;
+    border-radius:10px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.06);
+    color:var(--text-secondary);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;padding:0;
+    transition:all 0.2s var(--ease);
+}
+.rms-back:hover{
+    color:var(--indigo-300);
+    border-color:rgba(99,102,241,0.4);
+    background:rgba(255,255,255,0.06);
+}
+.rms-back svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.rms-title-area{flex:1;min-width:0}
+.rms-title{font-size:13px;font-weight:800;color:var(--text-primary);line-height:1.1}
+.rms-subtitle{font-size:10px;color:var(--text-secondary);margin-top:2px;font-weight:600}
+
+/* §8.2 Save (зелен neon) */
+.save-btn{
+    padding:9px 16px;border-radius:100px;
+    background:linear-gradient(135deg,hsl(145,70%,38%),hsl(165,70%,32%));
+    color:hsl(145,95%,96%);
+    font-weight:900;font-size:11px;letter-spacing:0.04em;
+    cursor:pointer;
+    display:flex;align-items:center;gap:5px;
+    border:1.5px solid hsl(145,75%,60%,0.85);
+    box-shadow:0 0 16px hsl(145,75%,55%,0.45),inset 0 1px 0 hsl(145,80%,70%,0.3);
+    text-shadow:0 0 7px hsl(145,90%,70%,0.5);
+    flex-shrink:0;
+    transition:transform 0.15s var(--ease);
+}
+.save-btn:active{transform:translateY(1px)}
+.save-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+
+/* DEMO mode toggle (mockup only) */
+.demo-modes{
+    display:flex;gap:6px;margin-bottom:10px;
+    padding:4px;border-radius:11px;
+    background:rgba(255,255,255,0.025);
+    border:1px solid rgba(255,255,255,0.05);
+}
+.demo-modes button{
+    flex:1;padding:8px;border-radius:8px;
+    background:transparent;border:0;
+    color:var(--text-muted);
+    font-size:11px;font-weight:800;
+    cursor:pointer;font-family:inherit;
+    transition:all 0.15s var(--ease);
+}
+.demo-modes button.active{
+    background:linear-gradient(135deg,hsl(255,65%,30%),hsl(222,65%,25%));
+    color:hsl(255,95%,95%);
+    box-shadow:0 0 10px hsl(255,70%,50%,0.4),inset 0 1px 0 rgba(255,255,255,0.15);
+    text-shadow:0 0 6px hsl(255,80%,60%,0.4);
+}
+
+/* PHOTO HERO */
+.photo-hero{
+    height:200px;margin-bottom:14px;
+    border-radius:22px;
+    background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));
+    border:1.5px dashed rgba(99,102,241,0.32);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;position:relative;overflow:hidden;
+    transition:all 0.25s var(--ease);
+}
+.photo-hero:hover{
+    border-color:var(--indigo-400);
+    background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.10));
+}
+.ph-icon{
+    width:56px;height:56px;border-radius:16px;
+    background:linear-gradient(135deg,var(--indigo-500),var(--purple));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 32px rgba(99,102,241,0.55),inset 0 1px 0 rgba(255,255,255,0.25);
+    margin-bottom:12px;
+}
+.ph-icon svg{width:24px;height:24px;fill:#fff;filter:drop-shadow(0 0 8px rgba(255,255,255,0.6))}
+.ph-label{font-size:14px;font-weight:800}
+.ph-hint{font-size:11px;color:var(--text-secondary);margin-top:4px;font-weight:600}
+
+/* NAME card */
+.name-card{padding:14px;margin-bottom:12px}
+.label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.label{
+    font-size:11px;font-weight:800;
+    letter-spacing:0.06em;
+    color:hsl(var(--hue1) 70% 75%);
+    text-transform:uppercase;
+}
+.req{color:var(--danger);margin-left:4px}
+
+.voice-mic{
+    width:32px;height:32px;
+    border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.4);
+    border:0;padding:0;flex-shrink:0;
+}
+.voice-mic svg{width:14px;height:14px;fill:#fff}
+
+.input{
+    width:100%;padding:14px;
+    background:rgba(0,0,0,0.4);
+    border:1px solid rgba(99,102,241,0.4);
+    border-radius:12px;
+    color:var(--text-primary);
+    font-size:14px;font-weight:700;
+    outline:none;
+    -webkit-appearance:none;appearance:none;
+    transition:all 0.2s var(--ease);
+}
+.input::placeholder{color:var(--text-dim);font-weight:500}
+.input:focus{
+    border-color:hsl(var(--hue1) 75% 65%);
+    box-shadow:0 0 0 1px hsl(var(--hue1) 80% 65% / 0.3),0 0 18px hsl(var(--hue1) 70% 55% / 0.35);
+}
+
+/* COPIED */
+.copied-card{padding:12px 14px;margin-bottom:12px}
+.copied-head{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.copied-ico{
+    width:28px;height:28px;border-radius:8px;
+    background:linear-gradient(135deg,hsl(145 60% 28%),hsl(145 50% 20%));
+    border:1px solid hsl(145 70% 50% / 0.45);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 0 12px hsl(145 70% 50% / 0.25);
+}
+.copied-ico svg{width:13px;height:13px;stroke:#86efac;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px hsl(145 70% 60%))}
+.copied-text{flex:1;min-width:0}
+.copied-t1{font-size:12px;font-weight:800}
+.copied-t2{font-size:10px;color:var(--text-secondary);margin-top:1px;font-weight:600}
+.chev{
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(255,255,255,0.06);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform 0.25s var(--ease);flex-shrink:0;
+}
+.copied-head.expanded .chev{transform:rotate(180deg)}
+.chev svg{width:11px;height:11px;stroke:var(--text-secondary);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.copied-fields{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)}
+.copied-fields.expanded{display:block}
+.cf-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.05)}
+.cf-row:last-child{border-bottom:0}
+.cf-label{font-size:11px;color:var(--text-secondary);min-width:92px;font-weight:600}
+.cf-value{flex:1;font-size:13px;font-weight:700}
+.cf-value.computed{color:var(--success)}
+.cf-auto{font-size:10px;color:var(--text-dim);font-weight:600}
+.cf-edit{
+    width:26px;height:26px;border-radius:7px;
+    background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+}
+.cf-edit svg{width:11px;height:11px;stroke:var(--indigo-300);fill:none;stroke-width:2}
+
+/* SECTION HEAD */
+.section-head{display:flex;align-items:center;gap:10px;padding:0 4px;margin:18px 0 10px}
+.section-ico{
+    width:32px;height:32px;border-radius:10px;
+    background:linear-gradient(135deg,var(--indigo-600),var(--purple));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 18px rgba(99,102,241,0.35);
+    flex-shrink:0;
+}
+.section-ico svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.section-text{flex:1;min-width:0}
+.section-title{font-size:13px;font-weight:800;letter-spacing:0.02em}
+.section-sub{font-size:10px;color:var(--text-secondary);margin-top:1px;font-weight:600}
+.section-pill{
+    padding:4px 10px;border-radius:100px;
+    font-size:10px;font-weight:800;
+    background:rgba(99,102,241,0.12);
+    color:var(--indigo-300);
+    border:0.5px solid rgba(99,102,241,0.28);
+    flex-shrink:0;letter-spacing:0.05em;
+}
+
+/* COLOR CARD */
+.color-card{margin-bottom:12px;padding:0}
+.cc-head{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.swatch{
+    width:30px;height:30px;
+    border-radius:50%;
+    border:1.5px solid hsl(220,30%,30%,0.4);
+    flex-shrink:0;
+    box-shadow:0 0 8px var(--swatch-glow,currentColor),inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.swatch.c-black{background:linear-gradient(135deg,#2a2a2e,#0f0f12);--swatch-glow:hsl(220,50%,50%)}
+.swatch.c-white{background:linear-gradient(135deg,#f8f8fb,#d8d8de);--swatch-glow:hsl(220,30%,80%)}
+.swatch.c-blue {background:linear-gradient(135deg,#3b82f6,#1d4ed8);--swatch-glow:hsl(220,90%,60%)}
+
+.cc-name{flex:1;font-size:14px;font-weight:800;letter-spacing:-0.01em}
+.cc-total{
+    padding:3px 8px;border-radius:100px;
+    font-size:10px;font-weight:900;letter-spacing:0.04em;
+    background:rgba(129,140,248,0.12);
+    border:1px solid rgba(129,140,248,0.28);
+    color:var(--indigo-300);
+    font-variant-numeric:tabular-nums;
+}
+.cc-remove{
+    width:28px;height:28px;border-radius:8px;
+    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+}
+.cc-remove svg{width:13px;height:13px;stroke:#fca5a5;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+.cc-body{padding:10px 14px}
+.size-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.04)}
+.size-row:last-of-type{border-bottom:0;padding-bottom:4px}
+.sz-label{
+    min-width:36px;padding:5px 10px;border-radius:7px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    font-size:12px;font-weight:800;
+    text-align:center;flex-shrink:0;
+}
+.sz-stepper{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
+.sz-btn{
+    width:30px;height:30px;border-radius:8px;
+    background:hsl(var(--hue1) 60% 35% / 0.25);
+    border:1px solid hsl(var(--hue1) 60% 50% / 0.4);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    color:hsl(var(--hue1) 85% 85%);
+    font-weight:800;font-size:16px;
+    user-select:none;
+    transition:transform 0.15s var(--ease);
+    font-family:inherit;
+}
+.sz-btn:active{transform:scale(0.92)}
+.sz-qty{min-width:44px;text-align:center;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.sz-photo{
+    width:32px;height:32px;border-radius:8px;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+}
+.sz-photo svg{width:13px;height:13px;stroke:var(--text-muted);fill:none;stroke-width:2}
+.sz-photo.has{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3)}
+.sz-photo.has svg{stroke:#86efac}
+
+.add-size-row{
+    margin-top:6px;padding:10px;
+    background:rgba(99,102,241,0.05);border:1px dashed rgba(99,102,241,0.3);
+    border-radius:10px;cursor:pointer;
+    text-align:center;
+    color:var(--indigo-300);
+    font-size:12px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.add-size-row svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+
+/* ADD COLOR — q-magic dashed */
+.add-color{
+    margin:4px 0 14px;
+    padding:14px;
+    background:linear-gradient(135deg,hsl(280 60% 25% / 0.3),hsl(310 60% 25% / 0.2));
+    border:1.5px dashed hsl(280 70% 55% / 0.5);
+    border-radius:22px;cursor:pointer;
+    display:flex;align-items:center;gap:10px;
+    transition:all 0.25s var(--ease);
+}
+.ac-icon{
+    width:36px;height:36px;border-radius:11px;
+    background:linear-gradient(135deg,hsl(280 70% 55%),hsl(310 70% 50%));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 18px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.15);
+    flex-shrink:0;
+}
+.ac-icon svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round}
+.ac-text{flex:1}
+.ac-text .t1{font-size:13px;font-weight:800}
+.ac-text .t2{font-size:10px;color:var(--text-secondary);margin-top:2px;font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:0.01ms !important;transition-duration:0.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<header class="rms-header">
+    <button class="rms-back" aria-label="Назад">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="rms-title-area">
+        <div class="rms-title">Като предния</div>
+        <div class="rms-subtitle">Бикини Тропик · Дафи · Бикини / Плитки</div>
+    </div>
+    <button class="save-btn">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        ЗАПАЗИ
+    </button>
+</header>
+
+<div class="app">
+
+    <div class="demo-modes">
+        <button class="active" onclick="setMode('variant',this)">Вариации</button>
+        <button onclick="setMode('single',this)">Единичен</button>
+    </div>
+
+    <div class="photo-hero cardin">
+        <div class="ph-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 3l-1.5 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9zm3 5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg>
+        </div>
+        <div class="ph-label">Tap за снимка</div>
+        <div class="ph-hint">камера · галерия · може да се пропусне</div>
+    </div>
+
+    <!-- NAME — q-default + 4-span shine/glow -->
+    <div class="glass q-default name-card cardin glow-on-enter">
+        <span class="shine"></span>
+        <span class="shine shine-bottom"></span>
+        <span class="glow"></span>
+        <span class="glow glow-bottom"></span>
+        <div class="label-row">
+            <div class="label">Име на артикула <span class="req">*</span></div>
+            <button class="voice-mic" aria-label="voice">
+                <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+            </button>
+        </div>
+        <input type="text" class="input" placeholder="Напиши име или диктувай…" autofocus>
+    </div>
+
+    <!-- COPIED — q-gain + 4-span -->
+    <div class="glass q-gain sm copied-card cardin">
+        <span class="shine"></span>
+        <span class="shine shine-bottom"></span>
+        <span class="glow"></span>
+        <span class="glow glow-bottom"></span>
+        <div class="copied-head" onclick="this.classList.toggle('expanded'); document.getElementById('cf').classList.toggle('expanded')">
+            <div class="copied-ico">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="copied-text">
+                <div class="copied-t1">Копирано от последния</div>
+                <div class="copied-t2">8 полета · tap за преглед / редакция</div>
+            </div>
+            <div class="chev">
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+        <div class="copied-fields" id="cf">
+            <div class="cf-row">
+                <span class="cf-label">Цена дребно</span>
+                <span class="cf-value tabular-nums">19.90 €</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Доставна</span>
+                <span class="cf-value tabular-nums">11.94 €</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Печалба</span>
+                <span class="cf-value computed tabular-nums">40 % (8.00 €)</span>
+                <span class="cf-auto">авто</span>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Доставчик</span>
+                <span class="cf-value">Дафи</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Категория</span>
+                <span class="cf-value">Бикини</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Подкатегория</span>
+                <span class="cf-value">Плитки</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Материя</span>
+                <span class="cf-value">90% памук, 10% еластан</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+            <div class="cf-row">
+                <span class="cf-label">Произход</span>
+                <span class="cf-value">Турция</span>
+                <div class="cf-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="variantSection">
+        <div class="section-head">
+            <div class="section-ico">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <div class="section-text">
+                <div class="section-title">Вариации</div>
+                <div class="section-sub">3 цвята · 9 размера · <span class="tabular-nums">27</span> артикула</div>
+            </div>
+            <div class="section-pill">3 ЦВЯТА</div>
+        </div>
+
+        <div class="glass q-default sm color-card cardin">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="cc-head">
+                <div class="swatch c-black"></div>
+                <div class="cc-name">Черно</div>
+                <div class="cc-total">9 БР</div>
+                <div class="cc-remove">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+            </div>
+            <div class="cc-body">
+                <div class="size-row">
+                    <div class="sz-label">S</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                    <div class="sz-photo has"><svg viewBox="0 0 24 24"><path d="M9 3l-1.5 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9z"/><circle cx="12" cy="13" r="4"/></svg></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">M</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">L</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="add-size-row">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добави размер
+                </div>
+            </div>
+        </div>
+
+        <div class="glass q-default sm color-card cardin">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="cc-head">
+                <div class="swatch c-white"></div>
+                <div class="cc-name">Бяло</div>
+                <div class="cc-total">9 БР</div>
+                <div class="cc-remove">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+            </div>
+            <div class="cc-body">
+                <div class="size-row">
+                    <div class="sz-label">S</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">M</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">L</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass q-default sm color-card cardin">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="cc-head">
+                <div class="swatch c-blue"></div>
+                <div class="cc-name">Син</div>
+                <div class="cc-total">9 БР</div>
+                <div class="cc-remove">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+            </div>
+            <div class="cc-body">
+                <div class="size-row">
+                    <div class="sz-label">S</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">M</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row">
+                    <div class="sz-label">L</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="add-color">
+            <div class="ac-icon">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="ac-text">
+                <div class="t1">Добави цвят</div>
+                <div class="t2">Tap за нов цвят (текст / диктовка)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="singleSection" style="display:none;">
+        <div class="section-head">
+            <div class="section-ico">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/></svg>
+            </div>
+            <div class="section-text">
+                <div class="section-title">Бройка</div>
+                <div class="section-sub">Колко имаш на склад</div>
+            </div>
+            <div class="section-pill">ЕДИНИЧЕН</div>
+        </div>
+        <div class="glass q-default sm color-card cardin">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="cc-body" style="padding:14px">
+                <div class="size-row" style="border-bottom:0;padding:6px 0 0">
+                    <div class="sz-label" style="min-width:80px">Брой</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">10</span><button class="sz-btn">+</button></div>
+                </div>
+                <div class="size-row" style="border-bottom:0;padding:10px 0 0">
+                    <div class="sz-label" style="min-width:80px">Минимум</div>
+                    <div class="sz-stepper"><button class="sz-btn">−</button><span class="sz-qty">3</span><button class="sz-btn">+</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setMode(m,btn){
+    document.querySelectorAll('.demo-modes button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('variantSection').style.display=m==='variant'?'':'none';
+    document.getElementById('singleSection').style.display=m==='single'?'':'none';
+    if(navigator.vibrate)navigator.vibrate(6);
+}
+document.querySelectorAll('button,.copied-head,.add-color,.swatch,.add-size-row,.cf-edit,.sz-photo').forEach(el=>{
+    el.addEventListener('click',()=>{if(navigator.vibrate)navigator.vibrate(6)});
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+===CONTENT START===
+# 🔍 INVESTIGATION — life-board sees only 1-2 signals/day
+
+**Дата:** 01.05.2026
+**Контекст:** Тихол вижда само 1-2 сигнала на ден в life-board.php (Simple Mode home екран). Очаква десетки.
+
+## ХИПОТЕЗА (от STRESS_BOARD граф 3)
+
+compute-insights.php:235 default $module='products', но life-board.php търси 'home'. 99% от сигналите не стигат до борда.
+
+## REALITY CHECK (verified в кода)
+
+В compute-insights.php ред 234-237:
+
+    $valid_modules = ['home','products','warehouse','stats','sale'];
+    $module = $i['module'] ?? 'products';
+    if (!in_array($module, $valid_modules, true)) $module = 'products';
+
+Default-ът Е 'products'. НО — старите pf функции сетват 'module' => 'home' ИЗРИЧНО (lines 1384, 1435, 1475, 1525, 1581, 1626 — 6 функции). Значи old-school insights ВЛИЗАТ в home правилно.
+
+**Хипотезата е частично грешна.** Бъгът не е в default-а, а в новите S89 функции.
+
+## ОТВОРЕНИ ВЪПРОСИ ЗА ПРОВЕРКА (Diagnostic в S91)
+
+1. Сетват ли новите 6 pf функции от S89 module='home'?
+   - pfOrderStaleNoDelivery
+   - pfPaymentDueReminder
+   - pfNewSupplierFirstDelivery
+   - pfVolumeDiscountDetected
+   - pfDeliveryAnomalyPattern
+   - pfStockoutRiskReduction
+
+   Ако НЕ — те влизат в 'products' module, life-board ги пропуска.
+
+2. Какво е разпределението в DB?
+   SELECT module, COUNT(*) FROM ai_insights WHERE tenant_id=7 AND created_at > NOW() - INTERVAL 7 DAY GROUP BY module;
+
+3. Какво прави life-board.php — точна WHERE clause?
+   grep -n "WHERE.*module" life-board.php
+
+4. Има ли cooldown / urgency лимити които потискат visibility?
+   - helpers.php:161 shouldShowInsight() — cooldown крие виждани сигнали
+   - helpers.php:170 — urgency лимити (critical=2, warning=3, info=3)
+   - Ако има 2 critical активни → 3-те info се скриват
+   - Ако има plan gate → free/start план вижда по-малко
+
+## ОПЦИИ ЗА FIX (с trade-offs)
+
+| Опция | Какво прави | Risk | Прилагай ли |
+|---|---|---|---|
+| A. Fix module за S89 функции | Добави 'module' => 'home' към 6-те нови pf функции | НИСЪК | Препоръчителен ако diag #1 потвърди |
+| B. Унифицирай default → 'home' | Промени ред 236 от 'products' на 'home' | СРЕДЕН (други модули може зависят от 'products') | Не препоръчителен — рискован |
+| C. life-board чете multiple modules | SELECT WHERE module IN ('home','products','sale') | НИСЪК | Алтернатива ако опция A не покрие всичко |
+| D. Махни cooldown за тест период | Disable shouldShowInsight() temporarily | ВИСОК | Само за тест, не production |
+| E. Свали plan gate | Insights за всички планове | НИСЪК | Бизнес решение (paywall) |
+| F. Релакс urgency лимити | Покачи лимити от 2/3/3 на 5/8/10 | НИСЪК | Може да стане spam |
+| G. Investigation първо | Изпълни Diagnostic A+B на droplet, после решение | НУЛЕВ | ПРЕПОРЪЧИТЕЛЕН |
+
+## ПРЕПОРЪКА ЗА S91
+
+1. Изпълни Diagnostic 1 (grep новите pf функции)
+2. Изпълни Diagnostic 2 (SQL разпределение)
+3. На база резултатите → прилагай Опция A (90% вероятност)
+4. Не прилагай Опции B, D, F без Тихол одобрение
+
+---
+
+**ЗАЩО НЕ FIX-НАХ ВЕДНАГА:** insight routing може да счупи множество места. Без diagnostic data — fix-ът би бил guess. STRESS_COMPASS Закон 4 (нов): измерваме преди да действаме.
+===CONTENT END===
+
