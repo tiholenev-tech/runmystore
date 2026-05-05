@@ -5412,6 +5412,11 @@ async function lblPrintMobile(idx){
     var name = p.name || '';
     var code = p.code || '';
     var barcode = p.barcode || ('200' + String(p.id || 0).padStart(9, '0'));
+    // S97: rich label fields — supplier, origin, importer for the printer driver
+    var sup = (typeof CFG !== 'undefined' && CFG.suppliers && p.supplier_id)
+        ? CFG.suppliers.find(function(s){ return s.id == p.supplier_id; }) : null;
+    var supName = sup ? sup.name : '';
+    var pm = (typeof S !== 'undefined' && S._labelPrintMode) || 'eur';
     var storeInfo = {
         name: (typeof CFG !== 'undefined' && CFG.storeName) ? CFG.storeName : '',
         currency: 'EUR'
@@ -5427,15 +5432,22 @@ async function lblPrintMobile(idx){
             var it = items[i];
             var sizeVal = it.v.size || '';
             var colorVal = it.v.color || '';
-            var labelName = name + (sizeVal ? ' ' + sizeVal : '') + (colorVal ? ' ' + colorVal : '');
             var itemBarcode = it.v.barcode || barcode;
             var product = {
+                id: p.id,
                 code: code,
-                name: labelName,
+                name: name,
+                supplier: supName,
+                size: sizeVal,
+                color: colorVal,
                 retail_price: price,
-                barcode: itemBarcode
+                barcode: itemBarcode,
+                origin_material: p.composition || '',
+                origin_country: p.origin_country || '',
+                importer: supName,
+                importer_city: ''
             };
-            await CapPrinter.print(product, storeInfo, it.qty);
+            await CapPrinter.print(product, storeInfo, it.qty, { mode: pm });
         }
         hidePrintOverlay();
         showToast('Готово: ' + totalCopies + ' етикета', 'success');
@@ -8507,15 +8519,24 @@ async function studioExportLabel() {
     if (!pid) { if (typeof showToast === 'function') showToast('Артикулът не е запазен', 'error'); return; }
     if (window.CapPrinter && typeof window.CapPrinter.print === 'function' && typeof window.CapPrinter._isCapacitor === 'function' && window.CapPrinter._isCapacitor()) {
         try {
+            // S97: rich fields — same as wizPrintLabelsMobile
+            var supS = (typeof CFG !== 'undefined' && CFG.suppliers && S.wizData.supplier_id)
+                ? CFG.suppliers.find(function(s){ return s.id == S.wizData.supplier_id; }) : null;
             var prod = {
+                id: pid,
                 code: S.wizData.code || ('PRD' + pid),
                 name: S.wizData.name || '',
+                supplier: supS ? supS.name : '',
                 retail_price: parseFloat(S.wizData.retail_price) || 0,
-                barcode: S.wizData.barcode || ('200' + String(pid).padStart(9, '0'))
+                barcode: S.wizData.barcode || ('200' + String(pid).padStart(9, '0')),
+                origin_material: S.wizData.composition || '',
+                origin_country: S.wizData.origin_country || '',
+                importer: supS ? supS.name : '',
+                importer_city: ''
             };
             var store = { name: (typeof CFG !== 'undefined' && CFG.storeName) || 'Магазин', currency: (typeof CFG !== 'undefined' && CFG.currency) || 'EUR' };
             var copies = parseInt(prompt('Колко етикета?', '1')) || 1;
-            await window.CapPrinter.print(prod, store, copies);
+            await window.CapPrinter.print(prod, store, copies, { mode: 'eur' });
             if (typeof showToast === 'function') showToast('Печатам ' + copies + ' етикет(а) ✓', 'success');
         } catch (err) {
             console.error('[S82.STUDIO.D] print err:', err);
@@ -12638,14 +12659,22 @@ async function wizPrintLabelsMobile(comboIdx){
                 if (n.includes('размер') || n.includes('size')) sizeVal = p.value;
                 else if (n.includes('цвят') || n.includes('color')) colorVal = p.value;
             });
-            var labelName = name + (sizeVal ? ' ' + sizeVal : '') + (colorVal ? ' ' + colorVal : '');
+            // S97: pass rich fields to printer driver (size, color, origin, importer)
             var product = {
+                id: S.wizSavedId || 0,
                 code: code,
-                name: labelName,
+                name: name,
+                supplier: supName,
+                size: sizeVal,
+                color: colorVal,
                 retail_price: price,
-                barcode: barcode
+                barcode: barcode,
+                origin_material: S.wizData.composition || '',
+                origin_country: S.wizData.origin_country || '',
+                importer: supName,
+                importer_city: ''
             };
-            await CapPrinter.print(product, storeInfo, it.qty);
+            await CapPrinter.print(product, storeInfo, it.qty, { mode: (S.wizData._printMode || 'eur') });
             _done += it.qty;
         }
         hidePrintOverlay();
