@@ -80,8 +80,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
     exit;
 }
 
+// S97.HARDEN.PH4 — CSRF guard for every POST endpoint below.
+// Helpers live in config/helpers.php. Token is per-session, validated against
+// X-CSRF-Token header. Reject forgeries with 403 + JSON envelope.
+function sale_csrf_guard_or_die(): void {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+    $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!csrfCheck((string) $sent)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'err' => 'csrf', 'error' => 'Невалиден CSRF токен. Презареди страницата.']);
+        exit;
+    }
+}
+
 // ─── AJAX: Refetch Prices (S87 Bug #6 — wholesale toggle memory bug fix) ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'refetch_prices') {
+    sale_csrf_guard_or_die();
     header('Content-Type: application/json; charset=utf-8');
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $ids = array_filter(array_map('intval', $body['product_ids'] ?? []));
@@ -122,6 +137,7 @@ if (!class_exists('StockException')) {
 
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
+    sale_csrf_guard_or_die();
     header('Content-Type: application/json; charset=utf-8');
 
     // S96.HARDEN.KAT4.6 — re-verify session against live DB on every save.
@@ -2074,6 +2090,9 @@ document.addEventListener('DOMContentLoaded', function(){
     camStatus.addEventListener('touchmove', function(){ clearTimeout(lpTimer); });
 });
 
+// S97.HARDEN.PH4 — per-session CSRF token; attached to every POST below.
+const RMS_CSRF = <?= json_encode(csrfToken(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 // ─── STATE ───
 const STATE = {
     cart: [],               // [{product_id, code, name, meta, unit_price, quantity, discount_pct, image}]
@@ -2876,7 +2895,7 @@ function confirmPayment() {
 
     fetch('sale.php?action=save_sale', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': RMS_CSRF},
         body: JSON.stringify(data),
     })
     .then(r => r.json())
@@ -2905,6 +2924,10 @@ function confirmPayment() {
         } else if (res.err === 'stock') {
             // S97.HARDEN.PH1 — structured stock shortage envelope.
             handleStockShortage(res);
+        } else if (res.err === 'csrf') {
+            // S97.HARDEN.PH4 — session expired or token mismatch; reload to remint.
+            showToast('Сесията изтече. Презареждам…', '', 3000);
+            setTimeout(() => location.reload(), 1500);
         } else {
             showToast('Грешка: ' + (res.error || 'Неизвестна'), '', 4000);
             document.getElementById('btnConfirm').disabled = false;
@@ -2982,7 +3005,7 @@ function selectClient(id, name) {
     debugLog('refetch prices for ' + ids.length + ' items, wholesale=' + STATE.isWholesale);
     fetch('sale.php?action=refetch_prices', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': RMS_CSRF},
         body: JSON.stringify({product_ids: ids}),
     })
     .then(r => r.json())

@@ -422,6 +422,31 @@ function autoGeolocateStore(int $storeId): void {
  * @param array|null $old       Старите стойности (за update/delete)
  * @param array|null $new       Новите стойности (за create/update)
  */
+/**
+ * S97.HARDEN.PH4 — generic per-session CSRF token for app-wide POST endpoints.
+ * The aibrain helper (config/i18n_aibrain.php:48) uses its own session key for the
+ * voice flow; this lives under $_SESSION['app_csrf'] so the two are independent.
+ *
+ * Usage:
+ *   $token = csrfToken();                 // mint or reuse
+ *   if (!csrfCheck($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) jerr(403, 'csrf');
+ */
+function csrfToken(): string {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        // No session = no token. Caller is responsible for ensuring session is started.
+        return '';
+    }
+    if (empty($_SESSION['app_csrf'])) {
+        $_SESSION['app_csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['app_csrf'];
+}
+
+function csrfCheck(string $token): bool {
+    if ($token === '' || empty($_SESSION['app_csrf'])) return false;
+    return hash_equals($_SESSION['app_csrf'], $token);
+}
+
 function auditLog(
     array $user,
     string $action,
