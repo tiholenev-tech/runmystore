@@ -163,73 +163,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     }
 
     try {
-        $pdo->beginTransaction();
-        $subtotal = 0;
-        foreach ($items as $it) {
-            $subtotal += floatval($it['unit_price']) * intval($it['quantity']);
-        }
-        $discount_amount = round($subtotal * ($discount_pct / 100), 2);
-        $total = round($subtotal - $discount_amount, 2);
-
-        // S96.HARDEN.F3 — populate sales.paid_amount + due_date по payment_method.
-        // cash/card → платено в пълния размер; bank_transfer/deferred → paid_amount=0.
-        // due_date се попълва само за 'deferred' (default +30 дни).
-        $paid_amount = in_array($payment_method, ['cash', 'card'], true) ? $total : 0;
-        $due_date = $payment_method === 'deferred' ? date('Y-m-d', strtotime('+30 days')) : null;
-
-        DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, type, subtotal, total, discount_amount, discount_pct, paid_amount, due_date, payment_method, status, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
-            [$tenant_id, $store_id, $user_id, $customer_id, $sale_type, $subtotal, $total, $discount_amount, $discount_pct, $paid_amount, $due_date, $payment_method]);
-        $sale_id = $pdo->lastInsertId();
-
-        foreach ($items as $it) {
-            $pid = intval($it['product_id']);
-            $qty = intval($it['quantity']);
-            $price = floatval($it['unit_price']);
-            // S96.HARDEN.E7 — clamp per-item discount_pct same as global (0..max..100).
-            $idp = max(0.0, min(floatval($it['discount_pct'] ?? 0), $max_discount_runtime, 100.0));
-            // S96.HARDEN: also reject quantity <= 0 / negative price (cart should never submit these).
-            if ($qty <= 0 || $price < 0) {
-                throw new Exception("Невалиден артикул (#$pid): количество и цена трябва да са положителни.");
+        // S97.HARDEN.PH2 — DB::tx() (database.php:116) wraps BEGIN/COMMIT and adds
+        // exponential-backoff retry on MySQL 1213 (deadlock) / 1205 (lock timeout).
+        // The callable is purely DB writes — no Stripe/HTTP/file side effects — so
+        // the idempotency warning is satisfied. It returns the values needed by the
+        // post-commit auditLog() outside the transaction.
+        [$sale_id, $total, $discount_amount, $paid_amount] = DB::tx(function (PDO $pdo) use (
+            $items, $tenant_id, $store_id, $user_id, $customer_id, $sale_type,
+            $payment_method, $discount_pct, $max_discount_runtime
+        ) {
+            $subtotal = 0;
+            foreach ($items as $it) {
+                $subtotal += floatval($it['unit_price']) * intval($it['quantity']);
             }
-            $ist = round($price * $qty * (1 - $idp / 100), 2);
+            $discount_amount = round($subtotal * ($discount_pct / 100), 2);
+            $total = round($subtotal - $discount_amount, 2);
 
-            // S96.HARDEN.E7 + E8 — tenant-scoped product fetch (rejects foreign-tenant IDs)
-            // and snapshots cost_price so margin reports don't drift if products.cost_price is updated later.
-            $prod = DB::run("SELECT cost_price, name FROM products WHERE id = ? AND tenant_id = ? LIMIT 1",
-                [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
-            if (!$prod) {
-                throw new Exception("Артикул #$pid не съществува в твоя магазин.");
-            }
-            $cost_price = ($prod['cost_price'] === null) ? null : (float)$prod['cost_price'];
-            $pname = (string)($prod['name'] ?? "#$pid");
+            // S96.HARDEN.F3 — populate sales.paid_amount + due_date по payment_method.
+            // cash/card → платено в пълния размер; bank_transfer/deferred → paid_amount=0.
+            // due_date се попълва само за 'deferred' (default +30 дни).
+            $paid_amount = in_array($payment_method, ['cash', 'card'], true) ? $total : 0;
+            $due_date = $payment_method === 'deferred' ? date('Y-m-d', strtotime('+30 days')) : null;
 
-            // S97.HARDEN.PH1 — explicit lock + pre-check so we can return
-            // {available, requested} to the UI. Row is held until commit/rollback,
-            // which serialises concurrent sellers/multi-tab on the same SKU.
-            $inv = DB::run(
-                "SELECT quantity FROM inventory WHERE product_id = ? AND store_id = ? FOR UPDATE",
-                [$pid, $store_id]
-            )->fetch(PDO::FETCH_ASSOC);
-            $available = $inv ? (int)$inv['quantity'] : 0;
-            if ($available < $qty) {
-                throw new StockException($pid, $pname, $available, $qty);
+            DB::run("INSERT INTO sales (tenant_id, store_id, user_id, customer_id, type, subtotal, total, discount_amount, discount_pct, paid_amount, due_date, payment_method, status, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())",
+                [$tenant_id, $store_id, $user_id, $customer_id, $sale_type, $subtotal, $total, $discount_amount, $discount_pct, $paid_amount, $due_date, $payment_method]);
+            $sale_id = (int) $pdo->lastInsertId();
+
+            foreach ($items as $it) {
+                $pid = intval($it['product_id']);
+                $qty = intval($it['quantity']);
+                $price = floatval($it['unit_price']);
+                // S96.HARDEN.E7 — clamp per-item discount_pct same as global (0..max..100).
+                $idp = max(0.0, min(floatval($it['discount_pct'] ?? 0), $max_discount_runtime, 100.0));
+                // S96.HARDEN: also reject quantity <= 0 / negative price (cart should never submit these).
+                if ($qty <= 0 || $price < 0) {
+                    throw new Exception("Невалиден артикул (#$pid): количество и цена трябва да са положителни.");
+                }
+
+                // S96.HARDEN.E7 + E8 — tenant-scoped product fetch (rejects foreign-tenant IDs)
+                // and snapshots cost_price so margin reports don't drift if products.cost_price is updated later.
+                $prod = DB::run("SELECT cost_price, name, retail_price FROM products WHERE id = ? AND tenant_id = ? LIMIT 1",
+                    [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+                if (!$prod) {
+                    throw new Exception("Артикул #$pid не съществува в твоя магазин.");
+                }
+                $cost_price = ($prod['cost_price'] === null) ? null : (float)$prod['cost_price'];
+                $pname = (string)($prod['name'] ?? "#$pid");
+
+                // S97.HARDEN.PH3 — per-item discount cannot exceed unit_price → recompute
+                // the implied discount amount and clamp; cap discount_pct at 100.
+                $idp = max(0.0, min($idp, 100.0));
+                $ist = round($price * $qty * (1 - $idp / 100), 2);
+
+                // S97.HARDEN.PH1 — explicit lock + pre-check so we can return
+                // {available, requested} to the UI. Row is held until commit/rollback,
+                // which serialises concurrent sellers/multi-tab on the same SKU.
+                $inv = DB::run(
+                    "SELECT quantity FROM inventory WHERE product_id = ? AND store_id = ? FOR UPDATE",
+                    [$pid, $store_id]
+                )->fetch(PDO::FETCH_ASSOC);
+                $available = $inv ? (int)$inv['quantity'] : 0;
+                if ($available < $qty) {
+                    throw new StockException($pid, $pname, $available, $qty);
+                }
+
+                DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
+                $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
+                    [$qty, $pid, $store_id, $qty]);
+                if ($upd->rowCount() === 0) {
+                    // Defence in depth: lock should make this unreachable, but keep it
+                    // for the "row inserted between SELECT and UPDATE" edge.
+                    throw new StockException($pid, $pname, max(0, $available), $qty);
+                }
+                // S96.HARDEN.E3 — user_id ("who decremented stock", needed for RWQ-64) + price (margin/dispute audit).
+                DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', 'sale', ?, NOW())",
+                    [$tenant_id, $pid, $store_id, $user_id, $qty, $price, $sale_id]);
             }
 
-            DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
-            $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
-                [$qty, $pid, $store_id, $qty]);
-            if ($upd->rowCount() === 0) {
-                // Defence in depth: lock should make this unreachable, but keep it
-                // for the "row inserted between SELECT and UPDATE" edge.
-                throw new StockException($pid, $pname, max(0, $available), $qty);
-            }
-            // S96.HARDEN.E3 — user_id ("who decremented stock", needed for RWQ-64) + price (margin/dispute audit).
-            DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', 'sale', ?, NOW())",
-                [$tenant_id, $pid, $store_id, $user_id, $qty, $price, $sale_id]);
-        }
-        $pdo->commit();
+            return [$sale_id, $total, $discount_amount, $paid_amount];
+        });
 
         // S96.HARDEN.F2 — audit trail (RWQ-64). Outside transaction; helper is no-throw.
         auditLog(
