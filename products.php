@@ -710,26 +710,89 @@ if ($ajax === 'sections') {
 
     // ─── UPLOAD IMAGE ───
     if ($ajax === 'upload_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true);
+        // S97.PRODUCTS.HARDEN_PH1 — base64 image hardening (this endpoint receives
+        // image as a data: URI in a JSON body, not $_FILES). Bounds are checked
+        // against three different sizes: raw payload (before parse), base64 body
+        // (before decode), decoded blob (after decode). Each layer caps memory
+        // and lets us reject before the next allocation.
+        $raw = file_get_contents('php://input');
+        if (strlen($raw) > 8 * 1024 * 1024) {
+            // 8MB JSON cap → ~6MB binary after base64 (encodes ~4/3 size)
+            http_response_code(413);
+            echo json_encode(['error'=>'image_too_large','msg'=>'Снимката е твърде голяма (макс. 5MB)']);
+            exit;
+        }
+        $input = json_decode($raw, true);
         $pid = (int)($input['product_id'] ?? 0);
         $image = $input['image'] ?? '';
         if (!$pid || !$image) { echo json_encode(['error'=>'missing_data']); exit; }
         // Verify product belongs to tenant
         $exists = DB::run("SELECT id FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch();
         if (!$exists) { echo json_encode(['error'=>'not_found']); exit; }
-        // Decode base64
-        if (preg_match('/^data:image\/(\w+);base64,/', $image, $m)) {
-            $ext = $m[1] === 'jpeg' ? 'jpg' : $m[1];
-            $image = preg_replace('/^data:image\/\w+;base64,/', '', $image);
-        } else { $ext = 'jpg'; }
-        $data = base64_decode($image);
-        if (!$data) { echo json_encode(['error'=>'invalid_image']); exit; }
+        // S97.PRODUCTS.HARDEN_PH1 — strip data: prefix and whitelist the declared ext.
+        // Whitelist gates the file extension we'll write to disk; the actual MIME
+        // is re-verified against the decoded bytes below (defence in depth — clients
+        // could lie in the data:image/* header).
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        if (preg_match('/^data:image\/([a-z0-9+]+);base64,/i', $image, $m)) {
+            $declared = strtolower($m[1]);
+            $ext = ($declared === 'jpeg') ? 'jpg' : $declared;
+            if (!in_array($ext, $allowedExts, true)) {
+                http_response_code(415);
+                echo json_encode(['error'=>'invalid_mime','msg'=>'Само JPEG/PNG/WebP/GIF снимки']);
+                exit;
+            }
+            $image = preg_replace('/^data:image\/[a-z0-9+]+;base64,/i', '', $image);
+        } else {
+            $ext = 'jpg';
+        }
+        // S97.PRODUCTS.HARDEN_PH1 — cap base64 body before decode (avoids decoder OOM).
+        if (strlen($image) > 7 * 1024 * 1024) {
+            http_response_code(413);
+            echo json_encode(['error'=>'image_too_large','msg'=>'Снимката е твърде голяма (макс. 5MB)']);
+            exit;
+        }
+        $data = base64_decode($image, true);
+        if ($data === false || strlen($data) < 32) {
+            echo json_encode(['error'=>'invalid_image','msg'=>'Невалидна снимка']);
+            exit;
+        }
+        // S97.PRODUCTS.HARDEN_PH1 — 5MB cap on decoded blob.
+        if (strlen($data) > 5 * 1024 * 1024) {
+            http_response_code(413);
+            echo json_encode(['error'=>'image_too_large','msg'=>'Снимката е твърде голяма (макс. 5MB)']);
+            exit;
+        }
+        // S97.PRODUCTS.HARDEN_PH1 — re-derive MIME from actual bytes.
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $realMime = $finfo->buffer($data) ?: '';
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!in_array($realMime, $allowedMimes, true)) {
+            http_response_code(415);
+            echo json_encode(['error'=>'invalid_mime','msg'=>'Само JPEG/PNG/WebP/GIF снимки','detected'=>$realMime]);
+            exit;
+        }
+        // S97.PRODUCTS.HARDEN_PH1 — sanity-check dimensions (catches polyglots and
+        // pathological zip-bomb images). 8000² is bigger than any product photo.
+        $info = @getimagesizefromstring($data);
+        if (!$info || $info[0] < 1 || $info[1] < 1 || $info[0] > 8000 || $info[1] > 8000) {
+            http_response_code(422);
+            echo json_encode(['error'=>'invalid_image','msg'=>'Невалидна снимка или размери > 8000px']);
+            exit;
+        }
         // Save file
         $dir = __DIR__ . '/uploads/products/' . $tenant_id;
         if (!is_dir($dir)) mkdir($dir, 0755, true);
+        // Filename derived only from server values ($pid, time, ext) — no user-controlled
+        // path component, so traversal is structurally impossible here.
         $filename = $pid . '_' . time() . '.' . $ext;
         $filepath = $dir . '/' . $filename;
-        file_put_contents($filepath, $data);
+        if (file_put_contents($filepath, $data) === false) {
+            error_log('[products.upload_image] file_put_contents failed: ' . $filepath . ' (tenant=' . $tenant_id . ')');
+            http_response_code(500);
+            echo json_encode(['error'=>'write_failed','msg'=>'Грешка при запис на файла']);
+            exit;
+        }
         $url = '/uploads/products/' . $tenant_id . '/' . $filename;
         // Update DB
         DB::run("UPDATE products SET image_url=? WHERE id=? AND tenant_id=?", [$url, $pid, $tenant_id]);
@@ -972,12 +1035,31 @@ if ($ajax === 'sections') {
     // ─── IMPORT CSV ───
     if ($ajax === 'import_csv' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_FILES['file'])) { echo json_encode(['error'=>'Няма файл']); exit; }
-        $file=$_FILES['file']['tmp_name']; $rows=[];
-        if (strtolower(pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION))==='csv') {
-            $handle=fopen($file,'r'); $header=fgetcsv($handle);
-            while (($line=fgetcsv($handle))!==false) { $row=[]; foreach($header as $i=>$col) $row[trim($col)]=$line[$i]??''; $rows[]=$row; }
-            fclose($handle);
+        // S97.PRODUCTS.HARDEN_PH1 — guard against PHP-level upload errors (file too big
+        // for upload_max_filesize / post_max_size, partial upload, no tmp dir).
+        if (($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            echo json_encode(['error'=>'upload_error','msg'=>'Грешка при качване (код '.(int)$_FILES['file']['error'].')']); exit;
         }
+        // S97.PRODUCTS.HARDEN_PH1 — 10MB cap on CSV (catalog imports of ~50K rows fit).
+        if (($_FILES['file']['size'] ?? 0) > 10 * 1024 * 1024) {
+            http_response_code(413);
+            echo json_encode(['error'=>'file_too_large','msg'=>'CSV-ът е твърде голям (макс. 10MB)']); exit;
+        }
+        // S97.PRODUCTS.HARDEN_PH1 — extension whitelist; defence in depth before fopen.
+        if (strtolower(pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION)) !== 'csv') {
+            http_response_code(415);
+            echo json_encode(['error'=>'invalid_type','msg'=>'Само .csv файлове']); exit;
+        }
+        $file=$_FILES['file']['tmp_name']; $rows=[];
+        $handle=fopen($file,'r'); if (!$handle) { echo json_encode(['error'=>'read_failed']); exit; }
+        $header=fgetcsv($handle);
+        // S97.PRODUCTS.HARDEN_PH1 — cap row count so a malicious CSV can't OOM the worker.
+        $maxRows = 100000;
+        while (($line=fgetcsv($handle))!==false) {
+            if (count($rows) >= $maxRows) break;
+            $row=[]; foreach($header as $i=>$col) $row[trim($col)]=$line[$i]??''; $rows[]=$row;
+        }
+        fclose($handle);
         echo json_encode(['columns'=>array_keys($rows[0]??[]),'preview'=>array_slice($rows,0,10),'total'=>count($rows),'all_rows'=>$rows]); exit;
     }
 
