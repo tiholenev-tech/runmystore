@@ -56,12 +56,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     // S97.HARDEN.PH6 — cap search input to 64 chars (DB column limits + DoS guard).
     $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
     if ($q === '') { echo json_encode([]); exit; }
-    // S87F.SALE.UX Bug #2 — ranking: exact prefix → word-boundary → substring → other.
-    // ("бики" → "Бикини *" first, "Дамски бикини *" second, "Бански бикини *" third).
-    // Bug #4 — добавен min_quantity (за stock warning в JS).
-    $exact = $q . '%';
-    $wordboundary = '% ' . $q . '%';
-    $substring = '%' . $q . '%';
+    // S87G.R2 Bug #2 — ranking: exact prefix → word-boundary → substring.
+    // Защита срещу collation case-sensitivity (Tihol виждаше само "Бикини" — не и
+    // "Бански бикини"): сравненията над име са LOWER()-ed двупосочно, за да работят
+    // и при utf8mb4_bin или други case-strict collations. Word-boundary е разширен
+    // да приема space/-/_/(/" /. /, разделители (не само space).
+    $qLower       = mb_strtolower($q, 'UTF-8');
+    $exact        = $qLower . '%';
+    $wordboundary = '%[ \\-_/(.,]' . $qLower . '%'; // not used directly; see REGEXP fallback below
+    $substring    = '%' . $qLower . '%';
+    // MySQL LIKE doesn't support character classes — fall back to a precomputed
+    // " {q}%" pattern that catches the common space-delimited Bulgarian word-boundary
+    // case ("Бански бикини"). Other separators are still matched via the substring
+    // bucket, just with lower priority.
+    $wbSpace      = '% ' . $qLower . '%';
     try {
         $results = DB::run("
             SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
@@ -71,19 +79,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
             FROM products p
             LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
             WHERE p.tenant_id = ? AND p.is_active = 1
-              AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode = ?)
+              AND (LOWER(p.name) LIKE ? OR LOWER(p.code) LIKE ? OR p.barcode = ?)
             ORDER BY
               CASE
-                WHEN p.code = ? THEN 0
-                WHEN p.barcode = ? THEN 1
-                WHEN p.name LIKE ? THEN 2
-                WHEN p.name LIKE ? THEN 3
-                WHEN p.name LIKE ? THEN 4
+                WHEN LOWER(p.code)    = ?  THEN 0
+                WHEN p.barcode        = ?  THEN 1
+                WHEN LOWER(p.name) LIKE ?  THEN 2
+                WHEN LOWER(p.name) LIKE ?  THEN 3
+                WHEN LOWER(p.name) LIKE ?  THEN 4
                 ELSE 5
               END,
               p.name ASC
             LIMIT 30
-        ", [$store_id, $tenant_id, $substring, $substring, $q, $q, $q, $exact, $wordboundary, $substring])->fetchAll(PDO::FETCH_ASSOC);
+        ", [
+            $store_id, $tenant_id,
+            $substring, $substring, $q,                 // WHERE
+            $qLower, $q,                                // CASE 0..1 (exact code, exact barcode)
+            $exact, $wbSpace, $substring                // CASE 2..4 (prefix, word-boundary, substring)
+        ])->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($results);
     } catch (Throwable $e) {
         // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
@@ -1724,6 +1737,24 @@ body.sale-page .pay-confirm-btn{
 }
 body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
 
+/* S87G.R2 — press-and-hold 2s progress fill. Слой над gradient-а с по-светъл
+   sweep отдясно-наляво докато потребителят държи; release преди 2s → reset. */
+body.sale-page .pay-confirm-btn{position:relative;overflow:hidden}
+body.sale-page .pay-confirm-btn .pay-confirm-text,
+body.sale-page .pay-confirm-btn svg{position:relative;z-index:2}
+body.sale-page .pay-confirm-progress{
+    position:absolute;left:0;top:0;bottom:0;width:0;z-index:1;
+    background:linear-gradient(90deg,
+        hsl(var(--hue1) 90% 70% / 0.55),
+        hsl(var(--hue2) 90% 60% / 0.55));
+    transition:width 0s linear;
+    pointer-events:none;
+}
+body.sale-page .pay-confirm-btn.holding .pay-confirm-progress{
+    width:100%;
+    transition:width 2s linear;
+}
+
 /* S87F.SALE.UX — Custom modal pattern (replaces native prompt/confirm/alert).
    Centered, max 280px, glass styling. Used by showCustomPrompt/Confirm/Toast.
    Hue HSL vars (palette.js) → q-default fallback. */
@@ -2104,9 +2135,11 @@ body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shad
         </div>
     </div>
 
-    <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" onclick="confirmPayment()" disabled>
+    <!-- S87G.R2 — press-and-hold 2s. onclick е премахнат; hold handlers са bind-нати в JS. -->
+    <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" disabled>
+        <div class="pay-confirm-progress" aria-hidden="true"></div>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        ПОТВЪРДИ ПЛАЩАНЕ <span id="payConfirmAmount">0,00 <?= $currency ?></span>
+        <span class="pay-confirm-text">ДРЪЖ 2 СЕК · ПОТВЪРДИ <span id="payConfirmAmount">0,00 <?= $currency ?></span></span>
     </button>
 </div>
 
@@ -2318,6 +2351,24 @@ function s87gShowSwipeHintOnce() {
 
 // ─── BEEP ───
 let audioCtx;
+// S87G.R2 Bug #6 — leka обратна връзка за qty + / − tap-ове.
+// Vibrate е 10ms (под прага на „това разсейва"), beep е тих и кратък 800Hz / 50ms.
+// Reuse-ва съществуващия audioCtx без да дублира AudioContext инициализация.
+function qtyTapFeedback() {
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (_) {} }
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.value = 800;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        o.start();
+        o.stop(audioCtx.currentTime + 0.05);
+    } catch (_) {}
+}
 function beep(freq = 1200, dur = 0.15) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const o = audioCtx.createOscillator();
@@ -2466,17 +2517,23 @@ function render() {
 
         // S87F.SALE.UX Bug #7 — visible −/+ бутони + tap на число = custom numpad popup.
         // Преди: невидим split-tap zone (потребителят не знаеше че има split + tap-by-default = +1).
+        // S87G.R2 Bug #6 — leka vibrate + soft beep на + / − да маркира registriran tap
+        // (преди: нямаше feedback → Tihol мислеше че бутонът „блокира" на qty=1).
         if (decBtn) decBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            qtyTapFeedback();
             if (STATE.cart[idx].quantity > 1) {
                 STATE.cart[idx].quantity--;
                 render();
             } else {
+                // S87G.R2 Bug #3+4 — auto-confirm на qty=1: показвай „Премахни?" модал
+                // вместо да оставяш [−] да изглежда счупен.
                 showCustomConfirm('Премахни "' + (STATE.cart[idx].name || 'артикул') + '"?', () => removeItem(idx));
             }
         });
         if (incBtn) incBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            qtyTapFeedback();
             STATE.cart[idx].quantity++;
             render();
         });
@@ -3010,6 +3067,52 @@ function updatePayment() {
     payCalcChange();
 }
 function updatePmCardActive() { /* no-op: legacy V5 pkg-card replaced by simple pills */ }
+
+// S87G.R2 — press-and-hold 2 sec върху ПОТВЪРДИ ПЛАЩАНЕ. Защита срещу неволни
+// натискания (ръкав, чужд пръст, фантомен touch). Release/cancel преди 2s →
+// прогрес ринг се reset-ва без call към confirmPayment().
+//
+// Handlers: mousedown / touchstart → старт; mouseup / mouseleave / touchend /
+// touchcancel → отказ. Prevent на context-menu за long-press на mobile.
+let _holdTimer = null;
+let _holdStartedAt = 0;
+function _holdStart(e) {
+    const btn = document.getElementById('btnConfirm');
+    if (!btn || btn.disabled) return;
+    if (e && typeof e.preventDefault === 'function' && e.cancelable) e.preventDefault();
+    if (_holdTimer) clearTimeout(_holdTimer);
+    _holdStartedAt = Date.now();
+    btn.classList.add('holding');
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (_) {} }
+    _holdTimer = setTimeout(() => {
+        btn.classList.remove('holding');
+        _holdTimer = null;
+        if (navigator.vibrate) { try { navigator.vibrate([30, 20, 30]); } catch (_) {} }
+        confirmPayment();
+    }, 2000);
+}
+function _holdCancel() {
+    const btn = document.getElementById('btnConfirm');
+    if (!btn) return;
+    btn.classList.remove('holding');
+    if (_holdTimer) { clearTimeout(_holdTimer); _holdTimer = null; }
+}
+(function _wireHoldConfirm(){
+    function bind() {
+        const btn = document.getElementById('btnConfirm');
+        if (!btn || btn.__holdWired) return;
+        btn.__holdWired = true;
+        btn.addEventListener('mousedown',   _holdStart);
+        btn.addEventListener('touchstart',  _holdStart, { passive: false });
+        btn.addEventListener('mouseup',     _holdCancel);
+        btn.addEventListener('mouseleave',  _holdCancel);
+        btn.addEventListener('touchend',    _holdCancel);
+        btn.addEventListener('touchcancel', _holdCancel);
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+    if (document.readyState !== 'loading') bind();
+    else document.addEventListener('DOMContentLoaded', bind);
+})();
 
 function confirmPayment() {
     const data = {
@@ -4056,38 +4159,38 @@ function srchOvVoice() {
     }
 }
 
-// S87F.SALE.UX Bug #1 — debounced live-search започва от 1-ва буква (беше 2). 250ms debounce.
-(function wireLiveSearch(){
-    function doWire(){
-        const input = document.getElementById('searchInput');
-        if (!input || input.__s87gWired) return;
-        input.__s87gWired = true;
-        const onChange = () => {
-            const q = (input.value || '').trim();
-            STATE.searchText = q;
-            clearTimeout(srchOvDebounce);
-            if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
-            if (q.length < 1) {
-                inlineSearchClose();
-                return;
-            }
-            srchOvDebounce = setTimeout(() => doInlineSearch(q), 250);
-        };
-        input.addEventListener('input', onChange);
-        input.addEventListener('keyup', onChange);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const q = (input.value || '').trim();
-                if (q.length >= 1) {
-                    clearTimeout(srchOvDebounce);
-                    doInlineSearch(q);
-                }
-            }
-        });
-    }
-    if (document.readyState !== 'loading') doWire();
-    else document.addEventListener('DOMContentLoaded', doWire);
+// S87G.R2 Bug #1 — event delegation за live search.
+// Преди: wire-once IIFE на DOMContentLoaded + __s87gWired guard. При replace на
+// #searchInput (view switch, modal close, render reorder) старият listener гасваше
+// и Tihol виждаше резултати само след Enter (отделен keypress listener на новия input
+// никога не се връзваше). Delegation от body улавя input/keypress независимо от
+// това дали елементът е replace-нат.
+(function wireLiveSearchDelegated(){
+    const SEARCH_DEBOUNCE_MS = 200; // S87G.R2 — по-бързо: 250ms → 200ms
+    document.body.addEventListener('input', (e) => {
+        const t = e.target;
+        if (!t || t.id !== 'searchInput') return;
+        const q = (t.value || '').trim();
+        STATE.searchText = q;
+        clearTimeout(srchOvDebounce);
+        if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
+        if (q.length < 1) {
+            inlineSearchClose();
+            return;
+        }
+        srchOvDebounce = setTimeout(() => doInlineSearch(q), SEARCH_DEBOUNCE_MS);
+    });
+    // Enter триггерира незабавен search (без debounce wait).
+    document.body.addEventListener('keypress', (e) => {
+        const t = e.target;
+        if (!t || t.id !== 'searchInput') return;
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const q = (t.value || '').trim();
+        if (q.length < 1) return;
+        clearTimeout(srchOvDebounce);
+        doInlineSearch(q);
+    });
 })();
 
 // Hardware back (Capacitor): inline-variants → masters; otherwise close inline
