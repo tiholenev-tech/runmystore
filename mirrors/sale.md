@@ -70,7 +70,21 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     // case ("Бански бикини"). Other separators are still matched via the substring
     // bucket, just with lower priority.
     $wbSpace      = '% ' . $qLower . '%';
+    // S87H.BUGFIX_R3.PHASE4 — "Виж всички": user може да поиска лимит до 300.
+    // По default limit = 30 (бърз дропдаун); при &all=1 → 300 (full list).
+    $limitAll  = !empty($_GET['all']);
+    $limit     = $limitAll ? 300 : 30;
     try {
+        // Separate COUNT(*) — cheap (uses same WHERE + indexes), нужен за
+        // "Намерени N · виж всички" CTA когато имаме truncated резултати.
+        $totalRow = DB::run("
+            SELECT COUNT(*) AS n
+            FROM products p
+            WHERE p.tenant_id = ? AND p.is_active = 1
+              AND (LOWER(p.name) LIKE ? OR LOWER(p.code) LIKE ? OR p.barcode = ?)
+        ", [$tenant_id, $substring, $substring, $q])->fetch(PDO::FETCH_ASSOC);
+        $total = (int)($totalRow['n'] ?? 0);
+
         $results = DB::run("
             SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                    p.parent_id, p.color, p.size, p.image_url,
@@ -90,19 +104,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
                 ELSE 5
               END,
               p.name ASC
-            LIMIT 30
+            LIMIT $limit
         ", [
             $store_id, $tenant_id,
             $substring, $substring, $q,                 // WHERE
             $qLower, $q,                                // CASE 0..1 (exact code, exact barcode)
             $exact, $wbSpace, $substring                // CASE 2..4 (prefix, word-boundary, substring)
         ])->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($results);
+        echo json_encode([
+            'items'     => $results,
+            'total'     => $total,
+            'truncated' => $total > count($results),
+            'limit'     => $limit,
+        ]);
     } catch (Throwable $e) {
         // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
         error_log('[sale.quick_search] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
         http_response_code(500);
-        echo json_encode([]);
+        echo json_encode(['items' => [], 'total' => 0, 'truncated' => false]);
     }
     exit;
 }
@@ -2560,67 +2579,10 @@ function render() {
             selectCartItem(idx);
         });
 
-        // S87G.B4 — swipe left to reveal delete
-        let sx = 0, sy = 0, sxStart = 0, dragging = false, locked = false;
-        const SWIPE_REVEAL = 90; // matches .ci-delete width
-        const SWIPE_THRESHOLD_PX = 60;
-        const SWIPE_THRESHOLD_PCT = 0.30;
-
-        // S87F.SALE.UX Bug #6 — restore swipe от ВСЯКА точка на row-а (беше restricted в last 30px).
-        // Original спираше swipe ако touch не започне в rightmost 30px → Тихол не може да plъzне.
-        // Сега: позволяваме swipe от всяка точка освен на set-qty-val/btn и ci-delete (own gestures).
-        div.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.set-qty-val')) return;
-            if (e.target.closest('.set-qty-btn')) return;
-            if (e.target.closest('.ci-delete')) return;
-            const t = e.touches[0];
-            sx = t.clientX;
-            sy = t.clientY;
-            dragging = true;
-            locked = false;
-            if (fg) fg.style.transition = 'none';
-        }, {passive: true});
-
-        div.addEventListener('touchmove', (e) => {
-            if (!dragging) return;
-            const t = e.touches[0];
-            const dx = t.clientX - sx;
-            const dy = t.clientY - sy;
-            if (!locked) {
-                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-                // Lock direction on first significant move
-                if (Math.abs(dy) > Math.abs(dx)) { dragging = false; if (fg) fg.style.transform = ''; return; }
-                locked = true;
-            }
-            if (dx > 0) {
-                if (fg) fg.style.transform = '';
-                return;
-            }
-            const clamped = Math.max(dx, -SWIPE_REVEAL);
-            if (fg) fg.style.transform = 'translateX(' + clamped + 'px)';
-            div.classList.add('swiping');
-        }, {passive: true});
-
-        const endSwipe = (e) => {
-            if (!dragging) return;
-            const t = (e.changedTouches && e.changedTouches[0]) || null;
-            const dx = t ? (t.clientX - sx) : 0;
-            const rect = div.getBoundingClientRect();
-            dragging = false;
-            div.classList.remove('swiping');
-            if (fg) fg.style.transition = '';
-            const reveal = (dx <= -SWIPE_THRESHOLD_PX) || (Math.abs(dx) / Math.max(rect.width, 1) >= SWIPE_THRESHOLD_PCT);
-            if (reveal && locked) {
-                div.classList.add('swiped');
-                if (fg) fg.style.transform = '';
-            } else {
-                div.classList.remove('swiped');
-                if (fg) fg.style.transform = '';
-            }
-            locked = false;
-        };
-        div.addEventListener('touchend', endSwipe);
-        div.addEventListener('touchcancel', endSwipe);
+        // S87H.BUGFIX_R3 — swipe wiring е MIGRATED към event delegation (виж
+        // s87hWireSwipeDelegated() след forEach). Преди: per-row touchstart →
+        // render() rebuild → in-progress swipe изгубен. Сега: single global
+        // listener на cartZone оцелява всеки rebuild.
 
         if (delBtn) {
             delBtn.addEventListener('click', (e) => {
@@ -2653,6 +2615,88 @@ function render() {
     // FIX5: persist cart as draft on every render so accidental nav-away is recoverable
     if (typeof s87dDraftSave === 'function') s87dDraftSave();
 }
+
+// S87H.BUGFIX_R3 — swipe-to-delete: event delegation на #cartZone. Wired once,
+// оцелява всеки render() rebuild. Преди (S87G.B4): per-row listener; render()
+// разрушаваше DOM + listeners → Тихол съобщи "swipe регресира". Сега: state е
+// в module scope; row се lookup-ва via closest('.set-row') при всеки event.
+(function s87hWireSwipeDelegated(){
+    const SWIPE_REVEAL = 90;        // matches .ci-delete width
+    const SWIPE_THRESHOLD_PX = 60;
+    const SWIPE_THRESHOLD_PCT = 0.30;
+    const MIN_LOCK_PX = 6;
+    let sx = 0, sy = 0, dragging = false, locked = false;
+    let activeRow = null, activeFg = null;
+
+    function _reset() {
+        if (activeFg) activeFg.style.transition = '';
+        activeRow = null; activeFg = null;
+        dragging = false; locked = false;
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        const row = e.target.closest('#cartZone .set-row');
+        if (!row) return;
+        if (e.target.closest('.set-qty-val')) return;
+        if (e.target.closest('.set-qty-btn')) return;
+        if (e.target.closest('.ci-delete')) return;
+        const t = e.touches[0];
+        sx = t.clientX; sy = t.clientY;
+        dragging = true; locked = false;
+        activeRow = row;
+        activeFg = row.querySelector('.set-row-fg');
+        if (activeFg) activeFg.style.transition = 'none';
+    }, {passive: true});
+
+    document.addEventListener('touchmove', (e) => {
+        if (!dragging || !activeRow) return;
+        const t = e.touches[0];
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+        if (!locked) {
+            if (Math.abs(dx) < MIN_LOCK_PX && Math.abs(dy) < MIN_LOCK_PX) return;
+            if (Math.abs(dy) > Math.abs(dx)) {
+                if (activeFg) activeFg.style.transform = '';
+                _reset();
+                return;
+            }
+            locked = true;
+        }
+        if (dx > 0) {
+            if (activeFg) activeFg.style.transform = '';
+            return;
+        }
+        const clamped = Math.max(dx, -SWIPE_REVEAL);
+        if (activeFg) activeFg.style.transform = 'translateX(' + clamped + 'px)';
+        activeRow.classList.add('swiping');
+    }, {passive: true});
+
+    function endSwipe(e) {
+        if (!dragging || !activeRow) { _reset(); return; }
+        const row = activeRow;
+        const fg = activeFg;
+        const t = (e.changedTouches && e.changedTouches[0]) || null;
+        const dx = t ? (t.clientX - sx) : 0;
+        const rect = row.getBoundingClientRect();
+        row.classList.remove('swiping');
+        if (fg) fg.style.transition = '';
+        const reveal = locked && (
+            (dx <= -SWIPE_THRESHOLD_PX) ||
+            (Math.abs(dx) / Math.max(rect.width, 1) >= SWIPE_THRESHOLD_PCT)
+        );
+        if (reveal) {
+            row.classList.add('swiped');
+            if (fg) fg.style.transform = '';
+        } else {
+            row.classList.remove('swiped');
+            if (fg) fg.style.transform = '';
+        }
+        _reset();
+    }
+    document.addEventListener('touchend', endSwipe);
+    document.addEventListener('touchcancel', endSwipe);
+})();
+
 
 function esc(s) {
     const d = document.createElement('div');
@@ -3072,14 +3116,14 @@ function updatePayment() {
 }
 function updatePmCardActive() { /* no-op: legacy V5 pkg-card replaced by simple pills */ }
 
-// S87G.R2 — press-and-hold 2 sec върху ПОТВЪРДИ ПЛАЩАНЕ. Защита срещу неволни
-// натискания (ръкав, чужд пръст, фантомен touch). Release/cancel преди 2s →
-// прогрес ринг се reset-ва без call към confirmPayment().
-//
-// Handlers: mousedown / touchstart → старт; mouseup / mouseleave / touchend /
-// touchcancel → отказ. Prevent на context-menu за long-press на mobile.
+// S87H.BUGFIX_R3 — press-and-hold 1.2s (намалено от 2s — Tihol съобщи, че ПЛАТИ
+// "изчезна": реално бутонът е там, но tap не го активира → user не разбираше, че
+// трябва да държи). Сега: по-кратък hold + hint toast при early release. Защита
+// срещу неволни натискания запазена.
+const _HOLD_MS = 1200;
 let _holdTimer = null;
 let _holdStartedAt = 0;
+let _holdHintShown = 0;
 function _holdStart(e) {
     const btn = document.getElementById('btnConfirm');
     if (!btn || btn.disabled) return;
@@ -3093,13 +3137,24 @@ function _holdStart(e) {
         _holdTimer = null;
         if (navigator.vibrate) { try { navigator.vibrate([30, 20, 30]); } catch (_) {} }
         confirmPayment();
-    }, 2000);
+    }, _HOLD_MS);
 }
 function _holdCancel() {
     const btn = document.getElementById('btnConfirm');
     if (!btn) return;
+    const elapsed = _holdStartedAt ? (Date.now() - _holdStartedAt) : 0;
     btn.classList.remove('holding');
     if (_holdTimer) { clearTimeout(_holdTimer); _holdTimer = null; }
+    // Early release (≥120ms = real tap, <_HOLD_MS = aborted): show hint toast,
+    // throttled (max 1 per 3s) so не спам-ва при повторни tap-ове.
+    if (elapsed >= 120 && elapsed < _HOLD_MS && typeof showCustomToast === 'function') {
+        const now = Date.now();
+        if (now - _holdHintShown > 3000) {
+            _holdHintShown = now;
+            showCustomToast('Дръж натиснат, докато се напълни', 'warn');
+        }
+    }
+    _holdStartedAt = 0;
 }
 (function _wireHoldConfirm(){
     function bind() {
@@ -3927,7 +3982,8 @@ function inlineSearchBackToMaster() {
     }
 }
 
-function doInlineSearch(q) {
+function doInlineSearch(q, opts) {
+    opts = opts || {};
     const c = document.getElementById('searchResultsInline');
     if (!c) return;
     c.style.display = '';
@@ -3937,15 +3993,39 @@ function doInlineSearch(q) {
     if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
     srchOvAbortCtl = new AbortController();
 
-    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q), { signal: srchOvAbortCtl.signal })
+    // S87H.BUGFIX_R3.PHASE4 — &all=1 при "Виж всички" CTA → backend разширява до 300.
+    const url = 'sale.php?action=quick_search&q=' + encodeURIComponent(q) + (opts.all ? '&all=1' : '');
+    fetch(url, { signal: srchOvAbortCtl.signal })
         .then(r => r.json())
-        .then(results => {
-            const masters = srchOvGroupByMaster(results || []);
+        .then(resp => {
+            // Back-compat: backend сега връща {items, total, truncated, limit};
+            // legacy array fallback за всеки случай.
+            const items = Array.isArray(resp) ? resp : (resp.items || []);
+            const total = Array.isArray(resp) ? items.length : (resp.total || items.length);
+            const truncated = !Array.isArray(resp) && !!resp.truncated;
+            const masters = srchOvGroupByMaster(items);
             srchOvRenderMasters(masters);
-            const total = (results || []).length;
             const mCount = masters.length;
             const metaEl = c.querySelector('.s-results-inline-meta');
-            if (metaEl) metaEl.textContent = 'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') + ' · ' + total + (total === 1 ? ' вариант' : ' варианта');
+            const itemsLabel = items.length + (items.length === 1 ? ' вариант' : ' варианта');
+            if (metaEl) {
+                metaEl.textContent = 'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') + ' · ' + itemsLabel
+                    + (truncated ? ' (от ' + total + ')' : '');
+            }
+            // S87H.BUGFIX_R3.PHASE4 — "Виж всички N резултата" CTA. Появява се само
+            // когато имаме повече резултати в DB от показаните.
+            if (truncated && !opts.all) {
+                const cta = document.createElement('div');
+                cta.className = 'srch-see-all s87v3-tap';
+                cta.setAttribute('role', 'button');
+                cta.style.cssText = 'margin:8px 0 4px;padding:11px 14px;border-radius:12px;'
+                    + 'background:linear-gradient(135deg,hsl(var(--hue1) 65% 55% / 0.18),hsl(var(--hue2) 60% 50% / 0.12));'
+                    + 'border:1px solid hsl(var(--hue1) 60% 55% / 0.4);color:var(--text-primary);'
+                    + 'font-size:13px;font-weight:800;text-align:center;cursor:pointer;letter-spacing:0.02em;';
+                cta.textContent = '↓ Виж всички ' + total + ' резултата';
+                cta.addEventListener('click', () => doInlineSearch(q, {all: true}));
+                c.appendChild(cta);
+            }
         })
         .catch(err => {
             if (err && err.name === 'AbortError') return;

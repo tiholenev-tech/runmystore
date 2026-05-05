@@ -3396,6 +3396,19 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   gap:5px !important;
   line-height:1.2 !important;
 }
+/* S95.BUGFIX_R3 Bug 3: descriptive question per axis tab (под "Вариация N" header) */
+#wizModal .v-axis-tab .v-tab-q{
+  font-size:9.5px !important;
+  font-weight:500 !important;
+  font-style:italic !important;
+  color:hsl(var(--hue3) 60% 70% / 0.7) !important;
+  line-height:1.2 !important;
+  letter-spacing:-0.005em !important;
+  margin:1px 0 1px !important;
+}
+#wizModal .v-axis-tab.active .v-tab-q{
+  color:hsl(var(--hue3) 75% 80% / 0.95) !important;
+}
 
 /* Tab add бутон — кръгъл + в v4 стил (S76.5 fix) */
 #wizModal .v-axis-tab-add{
@@ -6657,7 +6670,7 @@ function renderWizPagePart2(step){
 
     // ═══ STEP 4: ВАРИАЦИИ (S73.B.6 — 1:1 от add-product-variations.html) ═══
     if(step===4){
-        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizGo(3,false,2)" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
+        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizSafeBack()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
 
         // Init axes
         if(!S.wizData.axes||!S.wizData.axes.length){
@@ -6746,7 +6759,10 @@ function renderWizPagePart2(step){
             var _nmL=ax.name.toLowerCase();
             var _tabSemantic=(_nmL.indexOf('размер')!==-1||_nmL.indexOf('size')!==-1)?'Размер':((_nmL.indexOf('цвят')!==-1||_nmL.indexOf('color')!==-1)?'Цвят':(/^вариация\s*\d+$/i.test(ax.name)?'—':ax.name));
             var _tabTop='Вариация '+(ti+1);
-            tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()"><span class="v-tab-top">'+esc(_tabTop)+'</span><span class="v-tab-bottom">'+icn+esc(_tabSemantic)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></span></button>';
+            // S95.BUGFIX_R3 Bug 3: descriptive question per tab — "Какви размери?" / "Какви цветове?"
+            // под "Вариация N" headers. Tihol UX: при празно axis user не знае какво да въведе.
+            var _tabQuestion = isSz ? 'Какви размери?' : (isCl ? 'Какви цветове?' : ('Какви '+(ax.name||'').toLowerCase()+'?'));
+            tabsH+='<button class="v-axis-tab'+(isAct?' active':'')+'" onclick="S._wizActiveTab='+ti+';S._wizEditingGroup=null;renderWizard()"><span class="v-tab-top">'+esc(_tabTop)+'</span><span class="v-tab-q">'+esc(_tabQuestion)+'</span><span class="v-tab-bottom">'+icn+esc(_tabSemantic)+'<span class="v-axis-tab-count">'+(ax.values.length||0)+'</span></span></button>';
         });
         tabsH+='<button class="v-axis-tab-add" onclick="wizAddAxisFromTab()">+</button>';
         tabsH+='</div>';
@@ -7472,19 +7488,43 @@ function wizGoStep2() {
 }
 
 function wizGoStep1() {
+    // S95.BUGFIX_R3 Bug 2: route through wizSafeBack — single source of truth за
+    // ВСИЧКИ Назад paths. Иначе stale wizSubStep водеше към dead Детайли page.
+    if (typeof wizSafeBack === 'function') { wizSafeBack(); return; }
     if (typeof wizCollectData === 'function') wizCollectData();
-    // S95.STEP2_ENHANCE Q3=A: type-aware back navigation от Step 2:
-    //  - single → step 2 (consolidated Step 1)
-    //  - variant → step 5 (matrix step с finalPromptH)
-    // S95.BUGFIX_R2 Bug F: за variant винаги нулираме wizSubStep — иначе stale sub leak
-    // от step 3 sub 2 (Детайли) причинява render на dead sub-page.
     if (S.wizType === 'variant') {
-        S.wizStep = 5;
+        S.wizStep = 4;
         S.wizSubStep = 0;
     } else {
         S.wizStep = 2;
         S.wizSubStep = 0;
     }
+    if (typeof renderWizard === 'function') renderWizard();
+}
+
+// S95.BUGFIX_R3 Bug 2: централна safe back routing. Всеки Назад/back button
+// в wizard-а минава през тук → никога не route-ва към dead Детайли page (step 3 sub 2),
+// защото wizSubStep винаги нулираме. Спецификация:
+//   variant: Step 8 → Step 4 (chips), Step 5 → Step 4, Step 4 → Step 2 (consol Step 1)
+//   single:  Step 8 → Step 2 (consol), всичко друго → Step 2
+function wizSafeBack() {
+    if (typeof wizCollectData === 'function') wizCollectData();
+    var cur = S.wizStep || 0;
+    var target = 2; // default: consolidated Step 1 (step=2)
+    if (S.wizType === 'variant') {
+        if (cur === 8) target = 4;       // Препоръчителни → chips
+        else if (cur === 5) target = 4;  // legacy matrix → chips
+        else if (cur === 4) target = 2;  // chips → consol Step 1 (skip dead step 3)
+        else if (cur === 3) target = 2;  // legacy 4-sub flow → consol Step 1
+        else target = 2;
+    } else {
+        if (cur === 8) target = 2;
+        else if (cur === 4) target = 2;
+        else if (cur === 3) target = 2;
+        else target = 2;
+    }
+    S.wizStep = target;
+    S.wizSubStep = 0; // ВИНАГИ 0 — никога stale sub leak (Детайли = sub 2 dead)
     if (typeof renderWizard === 'function') renderWizard();
 }
 
@@ -9556,7 +9596,9 @@ function _v4ComputeFooter(axIdx){
     }
     var nextAx=nextEmptyIdx>=0?S.wizData.axes[nextEmptyIdx]:null;
     // S92.WIZARD_REWRITE: Назад от Variations → Детайли (sub 2 на step 3) вместо sub 0.
-    var ftBack='<button type="button" onclick="wizGo(3,false,2)" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
+    // S95.BUGFIX_R3 Bug 2: wizSafeBack вместо wizGo(3,false,2) — преди това
+    // Назад от Step 4 водеше към dead Детайли page (състав/произход/мерна единица).
+    var ftBack='<button type="button" onclick="wizSafeBack()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
     var ftMid;
     if(!hasVals && !anyAxisHasVals){
         // Nothing entered anywhere — keep the original "pick a value" hint.
@@ -9572,7 +9614,10 @@ function _v4ComputeFooter(axIdx){
             var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
             bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit">'+esc(_nextLbl)+'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         }
-        var bSave='<button type="button" onclick="wizScrollToAIPrompt()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Към запис</button>';
+        // S95.BUGFIX_R3 Bug 1: Step 4 footer "Към запис" → "Препоръчителни ›" routes to
+        // Step 8 (Препоръчителни) — variant flow преди това нямаше визуален път към
+        // Препоръчителни → Step 2 unreachable. Premium violet (q-magic) per DESIGN_LAW.
+        var bSave='<button type="button" onclick="wizCollectData();wizGoStep2()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;letter-spacing:0.02em">Препоръчителни<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
