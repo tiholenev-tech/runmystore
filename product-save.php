@@ -278,6 +278,34 @@ if (($action ?? 'create') === 'create' && !$confirm_duplicate) {
 }
 // ── /S88.BUG#6 ──
 
+// S97.PRODUCTS.HARDEN_PH6 — HARD barcode-uniqueness check.
+// The S88.BUG#6 soft-duplicate flow above lets the user confirm-through on
+// matching name/code/barcode. For barcode that's wrong: a barcode is a literal
+// scanner code and two SKUs sharing one would silently misroute sales (a
+// barcode_lookup at the POS returns the first match). So enforce uniqueness
+// here regardless of confirm_duplicate — runs on both create and edit.
+$_bc = trim((string) ($data['barcode'] ?? ''));
+if ($_bc !== '') {
+    $_existing = DB::run(
+        "SELECT id, name FROM products
+         WHERE tenant_id=? AND is_active=1 AND barcode=? AND id<>? LIMIT 1",
+        [$tenant_id, $_bc, $id]
+    )->fetch(PDO::FETCH_ASSOC);
+    if ($_existing) {
+        http_response_code(409);
+        echo json_encode([
+            'error'      => 'duplicate_barcode',
+            'msg'        => 'Артикул с този баркод вече съществува (ID ' . (int) $_existing['id'] . ').',
+            'existing_id'   => (int) $_existing['id'],
+            'existing_name' => $_existing['name'],
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+// NOTE: a DB-level UNIQUE (tenant_id, barcode) on `products` would close the
+// race window between the SELECT above and the INSERT below. Auto-mode rule R4
+// forbids ALTER without explicit Tihol confirmation. Flagged in handoff doc.
+
 // VAT rate
 $vat = DB::run(
     "SELECT v.standard_rate FROM tenants t
