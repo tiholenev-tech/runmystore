@@ -2331,6 +2331,24 @@ function s87gShowSwipeHintOnce() {
 
 // ─── BEEP ───
 let audioCtx;
+// S87G.R2 Bug #6 — leka обратна връзка за qty + / − tap-ове.
+// Vibrate е 10ms (под прага на „това разсейва"), beep е тих и кратък 800Hz / 50ms.
+// Reuse-ва съществуващия audioCtx без да дублира AudioContext инициализация.
+function qtyTapFeedback() {
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (_) {} }
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.value = 800;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        o.start();
+        o.stop(audioCtx.currentTime + 0.05);
+    } catch (_) {}
+}
 function beep(freq = 1200, dur = 0.15) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const o = audioCtx.createOscillator();
@@ -2479,17 +2497,23 @@ function render() {
 
         // S87F.SALE.UX Bug #7 — visible −/+ бутони + tap на число = custom numpad popup.
         // Преди: невидим split-tap zone (потребителят не знаеше че има split + tap-by-default = +1).
+        // S87G.R2 Bug #6 — leka vibrate + soft beep на + / − да маркира registriran tap
+        // (преди: нямаше feedback → Tihol мислеше че бутонът „блокира" на qty=1).
         if (decBtn) decBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            qtyTapFeedback();
             if (STATE.cart[idx].quantity > 1) {
                 STATE.cart[idx].quantity--;
                 render();
             } else {
+                // S87G.R2 Bug #3+4 — auto-confirm на qty=1: показвай „Премахни?" модал
+                // вместо да оставяш [−] да изглежда счупен.
                 showCustomConfirm('Премахни "' + (STATE.cart[idx].name || 'артикул') + '"?', () => removeItem(idx));
             }
         });
         if (incBtn) incBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            qtyTapFeedback();
             STATE.cart[idx].quantity++;
             render();
         });
