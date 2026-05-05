@@ -44,8 +44,9 @@ $mode = 'simple';
 if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     sale_rate_limit_or_die('search', 240); // 4 req/sec average, generous for fast typers
     header('Content-Type: application/json; charset=utf-8');
-    $q = trim($_GET['q'] ?? '');
-    if (strlen($q) < 1) { echo json_encode([]); exit; }
+    // S97.HARDEN.PH6 — cap search input to 64 chars (DB column limits + DoS guard).
+    $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
+    if ($q === '') { echo json_encode([]); exit; }
     $like = "%$q%";
     // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
     $results = DB::run("
@@ -69,7 +70,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
 if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
     sale_rate_limit_or_die('search', 240); // shared bucket with quick_search
     header('Content-Type: application/json; charset=utf-8');
-    $barcode = trim($_GET['barcode'] ?? '');
+    // S97.HARDEN.PH6 — barcodes are <= 64 chars in the schema; reject anything longer.
+    $barcode = substr(trim($_GET['barcode'] ?? ''), 0, 64);
+    if ($barcode === '') { echo json_encode(null); exit; }
     $product = DB::run("
         SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                COALESCE(i.quantity, 0) as stock
@@ -131,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     sale_csrf_guard_or_die();
     header('Content-Type: application/json; charset=utf-8');
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
-    $ids = array_filter(array_map('intval', $body['product_ids'] ?? []));
+    // S97.HARDEN.PH6 — cap to 200 IDs and dedupe to keep the IN(...) query bounded.
+    $ids = array_unique(array_filter(array_map('intval', array_slice((array)($body['product_ids'] ?? []), 0, 200))));
     if (empty($ids)) { echo json_encode([]); exit; }
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     $rows = DB::run(
@@ -187,8 +191,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $max_discount_runtime = floatval($session_check['max_discount_pct'] ?? 100);
 
     $data = json_decode(file_get_contents('php://input'), true);
-    $items = $data['items'] ?? [];
-    $payment_method = $data['payment_method'] ?? 'cash';
+    if (!is_array($data)) {
+        echo json_encode(['success' => false, 'error' => 'Невалиден JSON.']);
+        exit;
+    }
+    $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+    // S97.HARDEN.PH6 — payment_method whitelist (must match downstream paid_amount logic).
+    $payment_method_raw = (string) ($data['payment_method'] ?? 'cash');
+    $payment_method = in_array($payment_method_raw, ['cash', 'card', 'bank_transfer', 'deferred'], true)
+        ? $payment_method_raw : 'cash';
 
     // S96.HARDEN.E7 — server-side clamp discount_pct (DevTools tamper protection).
     // Three-way min: per-user cap, global 100%, never negative.
@@ -199,11 +210,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $discount_cap_pct = floatval($max_discount_runtime);
 
     $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
-    $received = floatval($data['received'] ?? 0);
+    // S97.HARDEN.PH6 — received must be non-negative (cosmetic; not persisted directly,
+    // but client could send NaN/-1 and break payCalcChange echo on receipt).
+    $received = max(0.0, floatval($data['received'] ?? 0));
     // S96.HARDEN.F1 — persist wholesale flag → sales.type column.
     $sale_type = !empty($data['is_wholesale']) ? 'wholesale' : 'retail';
 
     if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
+    // S97.HARDEN.PH6 — cap items to 200 (any legitimate cart will be much smaller;
+    // protects against memory-exhaustion via giant POST).
+    if (count($items) > 200) {
+        echo json_encode(['success' => false, 'error' => 'Прекалено много артикули в продажба (макс. 200).']);
+        exit;
+    }
 
     // S96.HARDEN.E6 — customer_id MUST belong to current tenant (cross-tenant tag protection).
     if ($customer_id !== null) {
