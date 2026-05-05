@@ -371,6 +371,41 @@
     bar.appendChild(btnD520Wake);
     bar.appendChild(btnD520Min);
     bar.appendChild(btnD520Full);
+
+    const btnLuck = document.createElement('button');
+    btnLuck.textContent = '🎲 Luck';
+    btnLuck.style.cssText = 'padding:10px 14px;background:#a855f7;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnLuck.onclick = async function() {
+      try {
+        btnLuck.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.luckPrinter();
+        btnLuck.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnLuck.textContent = '🎲 Luck'; }, 2500);
+      } catch (e) {
+        btnLuck.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] Luck ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnLuck.textContent = '🎲 Luck'; }, 2500);
+      }
+    };
+
+    const btnLuckLbl = document.createElement('button');
+    btnLuckLbl.textContent = '🎩 Luck+L';
+    btnLuckLbl.style.cssText = 'padding:10px 14px;background:#a855f7;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px';
+    btnLuckLbl.onclick = async function() {
+      try {
+        btnLuckLbl.textContent = '...';
+        const r = await window.CapPrinter._diagnostics.luckPrinterLabel();
+        btnLuckLbl.textContent = '✓ ' + r.bytes + 'b';
+        setTimeout(function(){ btnLuckLbl.textContent = '🎩 Luck+L'; }, 2500);
+      } catch (e) {
+        btnLuckLbl.textContent = 'ERR';
+        dbgLog('[D520BT-DEBUG] LuckLbl ERR: ' + (e && e.message || e));
+        setTimeout(function(){ btnLuckLbl.textContent = '🎩 Luck+L'; }, 2500);
+      }
+    };
+
+    bar.appendChild(btnLuck);
+    bar.appendChild(btnLuckLbl);
     bar.appendChild(btnClose);
 
     const pre = document.createElement('pre');
@@ -797,13 +832,17 @@
   // ----- BLE Write (chunked) -----
 
   async function writeChunked(ble, deviceId, bytes) {
-    // Backwards-compat: ако сме paired с DTM-5811 преди S88 (без stored UUIDs),
-    // localStorage няма service/writeChar — fallback към DTM известните UUIDs.
     const serviceUuid   = getSavedServiceUuid()   || DTM_SERVICE_UUID;
     const writeCharUuid = getSavedWriteCharUuid() || DTM_WRITE_CHAR_UUID;
+    const type = getSavedType() || TYPE_DTM;
+    const useNoResponse = (type === TYPE_D520);
     for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
       const chunk = bytes.slice(i, i + CHUNK_SIZE);
-      await ble.write(deviceId, serviceUuid, writeCharUuid, bytesToDataView(chunk));
+      if (useNoResponse && typeof ble.writeWithoutResponse === 'function') {
+        await ble.writeWithoutResponse(deviceId, serviceUuid, writeCharUuid, bytesToDataView(chunk));
+      } else {
+        await ble.write(deviceId, serviceUuid, writeCharUuid, bytesToDataView(chunk));
+      }
       await sleep(5);
     }
   }
@@ -1169,6 +1208,64 @@
         parts.push(raster);
         parts.push(new Uint8Array(D520_FORM_FEED));
         return await this.sendRaw(concatBytes(parts), 'D520 minimal black block');
+      },
+
+      // S95.D520.LUCK — LuckPrinter SDK protocol test (D520BT вероятно използва го).
+      // От ChiaraCannolee/thermal-pocket-printer-basic (decompiled Android APK).
+      // Sequence:
+      //   10 FF F1 03        — enable printer
+      //   12 × 00            — wakeup (12 null bytes)
+      //   10 FF 10 00 01     — density normal
+      //   1B 40              — ESC @ init
+      //   1D 76 30 00 W H    — GS v 0 raster header
+      //   ...raster bytes...
+      //   1B 4A 50           — feed 80 dots (или 1D 0C за label paper)
+      //   10 FF F1 45        — stop job (чака ACK)
+      async luckPrinter() {
+        // Minimal black block 50 bytes wide × 80 high (в dots)
+        const w = 50;   // bytes → 400 dots = 50mm
+        const h = 80;   // dots = 10mm
+        const raster = new Uint8Array(w * h);
+        raster.fill(0xFF);  // всички черни
+
+        const parts = [];
+        parts.push(new Uint8Array([0x10, 0xFF, 0xF1, 0x03]));
+        parts.push(new Uint8Array(12));
+        parts.push(new Uint8Array([0x10, 0xFF, 0x10, 0x00, 0x01]));
+        parts.push(new Uint8Array([0x1B, 0x40]));
+        parts.push(new Uint8Array([0x1D, 0x76, 0x30, 0x00,
+                                    w & 0xFF, (w >> 8) & 0xFF,
+                                    h & 0xFF, (h >> 8) & 0xFF]));
+        parts.push(raster);
+        parts.push(new Uint8Array([0x1B, 0x4A, 0x50]));
+        parts.push(new Uint8Array([0x10, 0xFF, 0xF1, 0x45]));
+
+        const bytes = concatBytes(parts);
+        return await this.sendRaw(bytes, 'LuckPrinter SDK test');
+      },
+
+      async luckPrinterLabel() {
+        const w = 50;
+        const h = 80;
+        const raster = new Uint8Array(w * h);
+        raster.fill(0xFF);
+
+        const parts = [];
+        parts.push(new Uint8Array([0x10, 0xFF, 0xF1, 0x03]));
+        parts.push(new Uint8Array(12));
+        parts.push(new Uint8Array([0x10, 0xFF, 0x10, 0x00, 0x01]));
+        parts.push(new Uint8Array([0x1F, 0x11, 0x51]));
+        parts.push(new Uint8Array([0x1B, 0x40]));
+        parts.push(new Uint8Array([0x1D, 0x76, 0x30, 0x00,
+                                    w & 0xFF, (w >> 8) & 0xFF,
+                                    h & 0xFF, (h >> 8) & 0xFF]));
+        parts.push(raster);
+        parts.push(new Uint8Array([0x1D, 0x0C]));
+        parts.push(new Uint8Array([0x1F, 0x11, 0x50]));
+        parts.push(new Uint8Array([0x10, 0xFF, 0xF1, 0x45]));
+
+        const bytes = concatBytes(parts);
+        return await this.sendRaw(bytes, 'LuckPrinter SDK label test');
       },
 
       // S95.D520 — debug helper: показва каквo е paired и какъв тип е.
