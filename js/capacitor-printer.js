@@ -338,6 +338,39 @@
     return /[Ѐ-ӿ]/.test(String(s || ''));
   }
 
+  // BG cyrillic → latin transliteration (S96.D520).
+  // D520BT TSPL TEXT command supports only ASCII fonts (no CP1251 codepage
+  // by default, no cyrillic font ROM). Transliterating preserves readability;
+  // the alternative is `?` placeholders from asciiToBytes.
+  const BG_TRANSLIT = {
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ж':'zh','з':'z','и':'i',
+    'й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s',
+    'т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sht',
+    'ъ':'a','ь':'y','ю':'yu','я':'ya',
+    'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ж':'Zh','З':'Z','И':'I',
+    'Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S',
+    'Т':'T','У':'U','Ф':'F','Х':'H','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Sht',
+    'Ъ':'A','Ь':'Y','Ю':'Yu','Я':'Ya'
+  };
+  function transliterateBG(s) {
+    s = String(s || '');
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      out += (BG_TRANSLIT[ch] !== undefined) ? BG_TRANSLIT[ch] : ch;
+    }
+    return out;
+  }
+  // Sanitize for TSPL TEXT command: transliterate cyrillic, drop non-ASCII,
+  // strip control chars and TSPL-quote-conflicting double-quotes.
+  function tsplSafe(s, maxLen) {
+    let v = transliterateBG(s).replace(/[\r\n\t"]/g, ' ');
+    // Drop any remaining non-printable / non-ASCII (defensive).
+    v = v.replace(/[^\x20-\x7E]/g, '');
+    if (typeof maxLen === 'number' && v.length > maxLen) v = v.substring(0, maxLen);
+    return v;
+  }
+
   // ─── Canvas → TSPL BITMAP (cyrillic via raster) ────────────────────────
 
   /**
@@ -516,13 +549,74 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // D520BT TSPL generator — STUB for Phase 3.
-  // Phase 3 will return ASCII-only TSPL bytes (no BITMAP) suitable for
-  // the @e-is plugin's UTF-8 string write path. Cyrillic store/product names
-  // get transliterated or omitted at this layer.
+  // D520BT TSPL generator (S96.D520.3) — ASCII-only, no BITMAP.
+  //
+  // Constraint: @e-is/capacitor-bluetooth-serial.write() does
+  // String.getBytes(UTF_8) on the Java side, so any byte ≥0x80 is corrupted
+  // into a 2-byte UTF-8 sequence over RFCOMM. We therefore use TSPL TEXT
+  // (printer's built-in ASCII font) instead of BITMAP. Cyrillic input is
+  // transliterated to latin via BG_TRANSLIT.
+  //
+  // Tunables vs. DTM (from Labelife capture, S95):
+  //   DENSITY 11 (DTM=10), SPEED 4 (DTM=3), GAP 3mm (DTM=2mm).
   // ═══════════════════════════════════════════════════════════════════════
-  function generateTSPL_D520(/* product, store, copies */) {
-    throw new Error('S96.D520.3 — generateTSPL_D520 not implemented yet');
+  function generateTSPL_D520(product, store, copies) {
+    const name      = tsplSafe(product.name      || '', 48);
+    const code      = tsplSafe(product.code      || '', 20);
+    const barcode   = String(product.barcode || product.code || '').replace(/[^0-9A-Za-z]/g, '');
+    const storeName = tsplSafe(store.name        || '', 32);
+    const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
+
+    const amt = parseFloat(product.retail_price) || 0;
+    const cur = store.currency || 'EUR';
+    let priceStr;
+    if      (cur === 'EUR') priceStr = amt.toFixed(2) + ' EUR';
+    else if (cur === 'BGN') priceStr = amt.toFixed(2) + ' lv';
+    else                    priceStr = amt.toFixed(2) + ' ' + cur;
+
+    const parts = [];
+    const push = (s) => parts.push(asciiToBytes(s));
+
+    // Header — D520BT recommended params from Labelife capture.
+    push('SIZE 50 mm,30 mm\r\n');
+    push('GAP 3 mm,0\r\n');
+    push('DIRECTION 1\r\n');
+    push('DENSITY 11\r\n');
+    push('SPEED 4\r\n');
+    push('CLS\r\n');
+
+    // Layout (50×30mm @ 8 dots/mm = 400×240 dots).
+    // TSPL TEXT: TEXT x,y,"font",rotation,xscale,yscale,"text"
+    //   font "2" = 12×20 px,  font "3" = 16×24 px,  font "4" = 24×32 px
+    //
+    //   y=4    store name      font 2, scale 1×1
+    //   y=30   product name    font 3, scale 1×1
+    //   y=62   PRICE           font 4, scale 2×2  ≈ 64 dots tall
+    //   y=130  code            font 2, scale 1×1
+    //   y=156  barcode         height 70 dots
+
+    if (storeName) {
+      push('TEXT 10,4,"2",0,1,1,"' + storeName + '"\r\n');
+    }
+    if (name) {
+      push('TEXT 10,30,"3",0,1,1,"' + name + '"\r\n');
+    }
+    push('TEXT 10,62,"4",0,2,2,"' + priceStr + '"\r\n');
+    if (code) {
+      push('TEXT 10,130,"2",0,1,1,"' + code + '"\r\n');
+    }
+    if (barcode) {
+      let fmt = '128';
+      let narrow = 3;
+      if      (/^[0-9]{13}$/.test(barcode)) { fmt = 'EAN13'; narrow = 4; }
+      else if (/^[0-9]{12}$/.test(barcode)) { fmt = 'UPCA';  narrow = 4; }
+      else if (/^[0-9]{8}$/.test(barcode))  { fmt = 'EAN8';  narrow = 4; }
+      push('BARCODE 10,156,"' + fmt + '",70,1,0,' + narrow + ',2,"' + barcode + '"\r\n');
+    }
+
+    push('PRINT ' + n + '\r\n');
+
+    return concatBytes(parts);
   }
 
   // ─── DTM BLE write (chunked) ──────────────────────────────────────────
@@ -536,9 +630,43 @@
     }
   }
 
-  // ─── D520 SPP write — STUB for Phase 3 ─────────────────────────────────
-  async function writeSPP_D520(/* address, bytes */) {
-    throw new Error('S96.D520.3 — writeSPP_D520 not implemented yet');
+  // ─── D520 SPP write (S96.D520.3) ───────────────────────────────────────
+  // Connects RFCOMM, writes the ASCII payload, keeps connection alive for
+  // subsequent prints. Retries once with full reconnect on first-write fail.
+  async function writeSPP_D520(address, bytes) {
+    if (!address) throw new Error('D520 address missing');
+    const spp = getSPP();
+
+    const state = await spp.isEnabled();
+    if (!state || !state.enabled) {
+      try { await spp.enable(); } catch (_) {}
+    }
+
+    if (!window.__sppConnected || window.__sppConnectedAddr !== address) {
+      try {
+        await spp.connect({ address: address });
+      } catch (e) {
+        // Some firmware needs insecure (no PIN re-prompt) for already-bonded.
+        try { await spp.connectInsecure({ address: address }); }
+        catch (e2) { throw e; }
+      }
+      window.__sppConnected = true;
+      window.__sppConnectedAddr = address;
+    }
+
+    const value = asciiBytesToString(bytes);
+    try {
+      await spp.write({ address: address, value: value });
+    } catch (e) {
+      window.__sppConnected = false;
+      try { await spp.disconnect({ address: address }); } catch (_) {}
+      await sleep(300);
+      await spp.connect({ address: address });
+      window.__sppConnected = true;
+      window.__sppConnectedAddr = address;
+      await spp.write({ address: address, value: value });
+    }
+    await sleep(150);
   }
 
   // ─── Public API ────────────────────────────────────────────────────────
@@ -711,8 +839,12 @@
       return { ok: true, type: TYPE_DTM, bytes: bytes.length, copies: copies || 1 };
     },
 
-    async _printD520(/* product, store, copies */) {
-      throw new Error('S96.D520.3 — _printD520 not implemented yet');
+    async _printD520(product, store, copies) {
+      const addr = getD520Address();
+      if (!addr) throw new Error('Няма сдвоен D520BT принтер');
+      const bytes = generateTSPL_D520(product, store, copies || 1);
+      await writeSPP_D520(addr, bytes);
+      return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1 };
     },
 
     async test() {
@@ -939,6 +1071,9 @@
     // Internal exports (for tools/d520_classic_test.php and unit tests).
     _generateTSPL_DTM:  generateTSPL_DTM,
     _generateTSPL_D520: generateTSPL_D520,
+    _writeSPP_D520:     writeSPP_D520,
+    _transliterateBG:   transliterateBG,
+    _tsplSafe:          tsplSafe,
     _isCapacitor:       isCapacitor,
     _getDeviceId:       getSavedDeviceId,
     _getD520Address:    getD520Address,
