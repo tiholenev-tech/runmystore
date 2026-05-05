@@ -47,6 +47,43 @@ if (isset($_GET['ajax'])) {
     header('Content-Type: application/json; charset=utf-8');
     $ajax = $_GET['ajax'];
 
+    // S97.PRODUCTS.HARDEN_PH3 — CSRF guard on every POST AJAX endpoint.
+    // GET endpoints (search, products, signals, etc.) stay open as before.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrfCheck($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'csrf', 'msg' => 'Невалиден CSRF токен. Презареди страницата.']);
+        exit;
+    }
+
+    // S97.PRODUCTS.HARDEN_PH4 — sliding-window per-session rate limit.
+    // Caps tuned so that legit POS/inventory work never trips them.
+    $_rateLimit = function (string $bucket, int $cap, int $window = 60): void {
+        $now = time();
+        $key = 'rl_prod_' . $bucket;
+        $log = array_values(array_filter($_SESSION[$key] ?? [], static fn($t) => $t > $now - $window));
+        if (count($log) >= $cap) {
+            $retry = max(1, $window - ($now - (int) $log[0]));
+            http_response_code(429);
+            header('Retry-After: ' . $retry);
+            echo json_encode(['error'=>'rate_limit','msg'=>"Твърде много заявки. Изчакай $retry сек.",'retry_after'=>$retry]);
+            $_SESSION[$key] = $log; // don't add the rejected attempt to the window
+            exit;
+        }
+        $log[] = $now;
+        $_SESSION[$key] = $log;
+    };
+    // Apply per-endpoint limits.
+    if ($ajax === 'upload_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $_rateLimit('upload_image', 10);
+    } elseif ($ajax === 'search' || $ajax === 'barcode') {
+        $_rateLimit('search', 100);
+    } elseif ($ajax === 'import_csv' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $_rateLimit('import_csv', 5);
+    } elseif (in_array($ajax, ['ai_scan','ai_description','ai_code','ai_assist','ai_image','ai_analyze'], true)) {
+        // AI endpoints cost real $$$ — keep them on a tight leash.
+        $_rateLimit('ai', 20);
+    }
+
     // ─── S78: Trigger product insights compute (skeleton — S79 fills logic) ───
     if ($ajax === 'compute_insights') {
         $cur = $tenant['currency'] ?? 'EUR';
@@ -794,8 +831,14 @@ if ($ajax === 'sections') {
             exit;
         }
         $url = '/uploads/products/' . $tenant_id . '/' . $filename;
-        // Update DB
+        // S97.PRODUCTS.HARDEN_PH5 — snapshot old image_url BEFORE the UPDATE so the
+        // audit row can record what was replaced.
+        $_oldImg = DB::run("SELECT image_url FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetchColumn();
         DB::run("UPDATE products SET image_url=? WHERE id=? AND tenant_id=?", [$url, $pid, $tenant_id]);
+        DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,source_detail,old_values,new_values) VALUES (?,?,?,?,?,?,?,?)",
+            [$tenant_id, $user_id, 'products', $pid, 'update', 'upload_image',
+             json_encode(['image_url'=>$_oldImg], JSON_UNESCAPED_UNICODE),
+             json_encode(['image_url'=>$url, 'mime'=>$realMime, 'size_bytes'=>strlen($data)], JSON_UNESCAPED_UNICODE)]);
         echo json_encode(['ok'=>true, 'image_url'=>$url]); exit;
     }
 
@@ -1013,8 +1056,22 @@ if ($ajax === 'sections') {
     // ─── SAVE LABELS ───
     if ($ajax === 'save_labels' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        foreach ($input['variations'] ?? [] as $v) { $vid=(int)($v['id']??0); $mq=(int)($v['min_quantity']??0); if($vid>0) DB::run("UPDATE products SET min_quantity=? WHERE id=? AND tenant_id=?",[$mq,$vid,$tenant_id]); }
-        echo json_encode(['ok'=>true]); exit;
+        // S97.PRODUCTS.HARDEN_PH5 — collect changes for a single rolled-up audit row
+        // (one bulk operation per request, rather than one row per variation).
+        $changed = [];
+        foreach ($input['variations'] ?? [] as $v) {
+            $vid=(int)($v['id']??0); $mq=(int)($v['min_quantity']??0);
+            if($vid>0) {
+                DB::run("UPDATE products SET min_quantity=? WHERE id=? AND tenant_id=?",[$mq,$vid,$tenant_id]);
+                $changed[] = ['id'=>$vid, 'min_quantity'=>$mq];
+            }
+        }
+        if ($changed) {
+            DB::run("INSERT INTO audit_log (tenant_id,user_id,table_name,record_id,action,source_detail,new_values) VALUES (?,?,?,?,?,?,?)",
+                [$tenant_id, $user_id, 'products', $changed[0]['id'], 'update', 'save_labels',
+                 json_encode(['bulk'=>true,'count'=>count($changed),'changes'=>$changed], JSON_UNESCAPED_UNICODE)]);
+        }
+        echo json_encode(['ok'=>true,'updated'=>count($changed)]); exit;
     }
 
     // ─── EXPORT LABELS ───
@@ -4650,6 +4707,9 @@ function toggleTheme(){
     if(navigator.vibrate)navigator.vibrate(5);
 }
 
+// S97.PRODUCTS.HARDEN_PH3 — per-session CSRF token attached to every POST below.
+window.RMS_CSRF = <?= json_encode(csrfToken(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 // ═══ PHP → JS CONFIG ═══
 const CFG = {
     storeId: <?= (int)$store_id ?>,
@@ -4717,7 +4777,24 @@ function showToast(msg, type=''){
 }
 
 async function api(url, opts={}){
-    try{const r=await fetch(url, opts);return await r.json()}
+    try{
+        // S97.PRODUCTS.HARDEN_PH3 — attach CSRF token on every mutation.
+        const method = (opts.method || 'GET').toUpperCase();
+        if (method !== 'GET' && method !== 'HEAD') {
+            opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF || ''});
+        }
+        const r=await fetch(url, opts);
+        if (r.status === 403) {
+            const j = await r.json().catch(()=>({}));
+            if (j && j.error === 'csrf') {
+                showToast('Сесията изтече. Презареждам…','error');
+                setTimeout(()=>location.reload(), 1500);
+                return null;
+            }
+            return j || null;
+        }
+        return await r.json();
+    }
     catch(e){console.error(e);showToast('Мрежова грешка','error');return null}
 }
 
@@ -8623,7 +8700,8 @@ function wizColorAddPrompt(){
     var hex=prompt('HEX код (напр. #FF5733):','#');if(!hex)return;hex=hex.trim();
     if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
     var fd=new FormData();fd.append('name',name);fd.append('hex',hex);
-    fetch('products.php?ajax=add_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+    // S97.PRODUCTS.HARDEN_PH3 — attach CSRF on raw fetch (not routed through api()).
+    fetch('products.php?ajax=add_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(d){
         if(d.error){showToast(d.error,'error');return}
         // Update CFG.colors — merge с custom
         if(d.added){
@@ -8643,7 +8721,7 @@ function wizColorEditPrompt(oldName,oldHex){
         // Delete
         if(!confirm('Премахни цвят "'+oldName+'"?'))return;
         var fd=new FormData();fd.append('name',oldName);
-        fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+        fetch('products.php?ajax=delete_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(d){
             if(d.error){showToast(d.error,'error');return}
             CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
             renderWizard();
@@ -8656,9 +8734,9 @@ function wizColorEditPrompt(oldName,oldHex){
     if(!/^#[0-9a-fA-F]{6}$/.test(hex)){showToast('Невалиден HEX','error');return}
     // Delete + add (name може да се е променило)
     var fd=new FormData();fd.append('name',oldName);
-    fetch('products.php?ajax=delete_color',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(){
+    fetch('products.php?ajax=delete_color',{method:'POST',body:fd,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()}).then(function(){
         var fd2=new FormData();fd2.append('name',name);fd2.append('hex',hex);
-        return fetch('products.php?ajax=add_color',{method:'POST',body:fd2}).then(function(r){return r.json()});
+        return fetch('products.php?ajax=add_color',{method:'POST',body:fd2,headers:{'X-CSRF-Token':window.RMS_CSRF||''}}).then(function(r){return r.json()});
     }).then(function(d){
         CFG.colors=CFG.colors.filter(function(c){return c.name.toLowerCase()!==oldName.toLowerCase()});
         if(d.added)CFG.colors.push(d.added);
@@ -11650,7 +11728,7 @@ async function openProductHistoryS88(productId){
 async function revertChangeS88(historyId, productId){
     if (!confirm('Върни тази промяна? (Текущото състояние ще се запази в история, така че можеш да го върнеш отново.)')) return;
     var fd = new FormData(); fd.append('history_id', historyId);
-    var r = await fetch('products.php?ajax=revert_change', { method: 'POST', body: fd, credentials: 'same-origin' }).then(function(x){return x.json()}).catch(function(){return null});
+    var r = await fetch('products.php?ajax=revert_change', { method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-CSRF-Token': window.RMS_CSRF||''} }).then(function(x){return x.json()}).catch(function(){return null});
     if (!r || r.error){ showToast('Грешка: '+(r&&r.error?r.error:'unknown'),'error'); return; }
     showToast('Върнато ✓','success');
     document.getElementById('s88HistModal')?.remove();
