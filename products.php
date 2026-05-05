@@ -487,6 +487,13 @@ if ($ajax === 'sections') {
     }
 
     // ─── HOME STATS ───
+    // S95.BUGFIX_R2 Bug C+G: csrf_refresh endpoint — JS вика след save success ИЛИ
+    // при 403 csrf retry. Връща текущия session token (mint-ва нов ако session е fresh).
+    // Stateless re-fetch — не влиза в conflict с PH3 csrfCheck (няма rotation).
+    if ($ajax === 'csrf_refresh') {
+        echo json_encode(['token' => csrfToken()]);
+        exit;
+    }
     if ($ajax === 'home_stats') {
         $sid = (int)($_GET['store_id'] ?? $store_id);
         $capital = DB::run("SELECT COALESCE(SUM(i.quantity * p.retail_price), 0) AS retail_value, COALESCE(SUM(i.quantity * p.cost_price), 0) AS cost_value FROM inventory i JOIN products p ON p.id = i.product_id WHERE p.tenant_id = ? AND i.store_id = ? AND i.quantity > 0", [$tenant_id, $sid])->fetch(PDO::FETCH_ASSOC);
@@ -4780,13 +4787,28 @@ async function api(url, opts={}){
     try{
         // S97.PRODUCTS.HARDEN_PH3 — attach CSRF token on every mutation.
         const method = (opts.method || 'GET').toUpperCase();
-        if (method !== 'GET' && method !== 'HEAD') {
+        const isMutation = (method !== 'GET' && method !== 'HEAD');
+        if (isMutation) {
             opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF || ''});
         }
         const r=await fetch(url, opts);
         if (r.status === 403) {
             const j = await r.json().catch(()=>({}));
             if (j && j.error === 'csrf') {
+                // S95.BUGFIX_R2 Bug C+G: retry once с refreshed token преди да reload-нем.
+                // Преди: 403 csrf → toast + 1500ms reload (потребителят губи unsaved form).
+                // Сега: re-fetch token → retry. Само ако ВТОРАТА опитка пак fail-не → reload.
+                if (isMutation && !opts.__csrfRetried) {
+                    try {
+                        const fresh = await fetch('products.php?ajax=csrf_refresh').then(x => x.json()).catch(()=>null);
+                        if (fresh && fresh.token) {
+                            window.RMS_CSRF = fresh.token;
+                            opts.__csrfRetried = true;
+                            opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRF-Token': window.RMS_CSRF});
+                            return await api(url, opts);
+                        }
+                    } catch(_) {}
+                }
                 showToast('Сесията изтече. Презареждам…','error');
                 setTimeout(()=>location.reload(), 1500);
                 return null;
@@ -6645,6 +6667,21 @@ function renderWizPagePart2(step){
             }
             if(!S.wizData.axes.length){S.wizData.axes.push({name:'Вариация 1',values:[]});S.wizData.axes.push({name:'Вариация 2',values:[]})}
         }
+        // S95.BUGFIX_R2 Bug D: auto-detect axis name от values за generic 'Вариация N' axes.
+        // Преди: само AI photo flow рrenameш-е axis 0 → 'Цвят'. Manual values оставаха generic →
+        // matrix detection (line 7020+) не намира size/color axis → fallback to combo list.
+        S.wizData.axes.forEach(function(_ax) {
+            if (!/^вариация\s*\d+$/i.test(_ax.name || '')) return;
+            if (!_ax.values || !_ax.values.length) return;
+            var _sizePat = /^(xs|s|m|l|xl|xxl|xxxl|xs?-tall|\d{2,3}(\.\d)?(w|t)?)$/i;
+            var _allSize = _ax.values.every(function(v){ return _sizePat.test(String(v).trim()) });
+            if (_allSize) { _ax.name = 'Размер'; return; }
+            var _cfgNames = ((window.CFG && CFG.colors) || []).map(function(c){ return String(c.name||'').toLowerCase().trim() });
+            var _allColor = _cfgNames.length && _ax.values.every(function(v){
+                return _cfgNames.indexOf(String(v).toLowerCase().trim()) >= 0;
+            });
+            if (_allColor) { _ax.name = 'Цвят'; }
+        });
         // S82.COLOR.4: auto-populate color axis from either legacy _aiDetectedColors or new _photos[].ai_color (once)
         var _detectedColors = [];
         if (Array.isArray(S.wizData._aiDetectedColors)) {
@@ -7035,7 +7072,8 @@ function renderWizPagePart2(step){
                     var bgc=hasVal?'rgba(99,102,241,0.08)':'rgba(239,68,68,0.03)';
                     var brc=hasVal?'rgba(99,102,241,0.15)':'rgba(99,102,241,0.05)';
                     matrixH+='<td style="padding:2px;text-align:center">';
-                    matrixH+='<input type="number" min="0" class="fc" id="'+cellId+'" value="'+(hasVal?val:'')+'" placeholder="\u2715" style="width:44px;padding:4px 2px;text-align:center;font-size:12px;font-weight:700;border-radius:6px;background:'+bgc+';border-color:'+brc+'" oninput="wizMatrixChanged(\''+cellId+'\',this.value)" onfocus="this.select()">';
+                    // S95.BUGFIX_R2 Bug E: inputmode="numeric" pattern="[0-9]*" \u2192 mobile \u043f\u043e\u043a\u0430\u0437\u0432\u0430 numeric keyboard (\u043d\u0435 \u0431\u0443\u043a\u0432\u0435\u043d\u0430).
+                    matrixH+='<input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="fc" id="'+cellId+'" value="'+(hasVal?val:'')+'" placeholder="\u2715" style="width:44px;padding:4px 2px;text-align:center;font-size:12px;font-weight:700;border-radius:6px;background:'+bgc+';border-color:'+brc+'" oninput="wizMatrixChanged(\''+cellId+'\',this.value)" onfocus="this.select()">';
                     matrixH+='</td>';
                 });
                 matrixH+='</tr>';
@@ -7427,6 +7465,9 @@ function wizGoStep2() {
     if (typeof wizCollectData === 'function') wizCollectData();
     S.wizPriorStep = S.wizStep;
     S.wizStep = 8;
+    // S95.BUGFIX_R2 Bug F: reset wizSubStep — иначе ако user беше на step 3 sub 2 (Детайли)
+    // преди да попадне в Step 2 → "Назад" може да re-render-не Детайли вместо matrix.
+    S.wizSubStep = 0;
     if (typeof renderWizard === 'function') renderWizard();
 }
 
@@ -7435,9 +7476,11 @@ function wizGoStep1() {
     // S95.STEP2_ENHANCE Q3=A: type-aware back navigation от Step 2:
     //  - single → step 2 (consolidated Step 1)
     //  - variant → step 5 (matrix step с finalPromptH)
-    // wizPriorStep НЕ ползваме (би върнало dead sub-step path при stale draft).
+    // S95.BUGFIX_R2 Bug F: за variant винаги нулираме wizSubStep — иначе stale sub leak
+    // от step 3 sub 2 (Детайли) причинява render на dead sub-page.
     if (S.wizType === 'variant') {
         S.wizStep = 5;
+        S.wizSubStep = 0;
     } else {
         S.wizStep = 2;
         S.wizSubStep = 0;
@@ -9993,6 +10036,13 @@ function wizCollectData(){
     if(el('wCatDD'))S.wizData.category_id=el('wCatDD')._selectedId||S.wizData.category_id||null;
     if(el('wSubcat'))S.wizData.subcategory_id=el('wSubcat').value||null;
     if(el('wUnit'))S.wizData.unit=el('wUnit').value||'бр';
+    // S95.BUGFIX_R2 Bug A: explicitly read wSingleQty into state.
+    // Преди: само oninput sync-ваше quantity → ако oninput не е fire-нал (mic, programmatic
+    // value setter, или edit pre-fill), S.wizData.quantity остава 0/undefined → DB записва 0.
+    if(el('wSingleQty')){
+        var _qv=parseInt(el('wSingleQty').value);
+        if(!isNaN(_qv) && _qv >= 0) S.wizData.quantity=_qv;
+    }
     if(el('wMinQty'))S.wizData.min_quantity=parseInt(el('wMinQty').value)||0;
     if(el('wDesc'))S.wizData.description=el('wDesc').value;
     if(el('wOrigin'))S.wizData.origin_country=el('wOrigin').value;
@@ -11849,6 +11899,9 @@ function onLiveSearchHome(q) {
         return;
     }
     clearTimeout(_hSearchTO);
+    // S95.BUGFIX_R2 Bug B: debounce reduced 250→150ms за live feel при типиране от 1-ва буква.
+    // Tihol report: "Б → нищо, БИ → нищо, започвам да трия → излиза" — типична debounce race.
+    // 150ms = достатъчно за бърз typer но не толкова бавно че dropdown да изглежда счупен.
     _hSearchTO = setTimeout(async () => {
         const d = await api('products.php?ajax=search&mix=1&q=' + encodeURIComponent(q) + '&store_id=' + CFG.storeId);
         if (!d) { dd.style.display = 'none'; return; }
@@ -11896,7 +11949,7 @@ function onLiveSearchHome(q) {
         }
         dd.innerHTML = html;
         dd.style.display = 'block';
-    }, 250);
+    }, 150);
 }
 
 function clearHSearch() {
