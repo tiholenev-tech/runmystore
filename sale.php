@@ -102,6 +102,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     exit;
 }
 
+// S97.HARDEN.PH1 — typed exception for stock shortages so the catch block can
+// return a structured JSON envelope (available/requested/product) for precise UI toasts.
+if (!class_exists('StockException')) {
+    class StockException extends Exception {
+        public int $product_id;
+        public string $product_name;
+        public int $available;
+        public int $requested;
+        public function __construct(int $pid, string $name, int $available, int $requested) {
+            $this->product_id = $pid;
+            $this->product_name = $name;
+            $this->available = $available;
+            $this->requested = $requested;
+            parent::__construct("Недостатъчна наличност за \"$name\": налични $available, поискани $requested.");
+        }
+    }
+}
+
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
     header('Content-Type: application/json; charset=utf-8');
@@ -178,19 +196,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
 
             // S96.HARDEN.E7 + E8 — tenant-scoped product fetch (rejects foreign-tenant IDs)
             // and snapshots cost_price so margin reports don't drift if products.cost_price is updated later.
-            $prod = DB::run("SELECT cost_price FROM products WHERE id = ? AND tenant_id = ? LIMIT 1",
+            $prod = DB::run("SELECT cost_price, name FROM products WHERE id = ? AND tenant_id = ? LIMIT 1",
                 [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
             if (!$prod) {
                 throw new Exception("Артикул #$pid не съществува в твоя магазин.");
             }
             $cost_price = ($prod['cost_price'] === null) ? null : (float)$prod['cost_price'];
+            $pname = (string)($prod['name'] ?? "#$pid");
+
+            // S97.HARDEN.PH1 — explicit lock + pre-check so we can return
+            // {available, requested} to the UI. Row is held until commit/rollback,
+            // which serialises concurrent sellers/multi-tab on the same SKU.
+            $inv = DB::run(
+                "SELECT quantity FROM inventory WHERE product_id = ? AND store_id = ? FOR UPDATE",
+                [$pid, $store_id]
+            )->fetch(PDO::FETCH_ASSOC);
+            $available = $inv ? (int)$inv['quantity'] : 0;
+            if ($available < $qty) {
+                throw new StockException($pid, $pname, $available, $qty);
+            }
 
             DB::run("INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, cost_price, discount_pct, total) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [$sale_id, $pid, $qty, $price, $cost_price, $idp, $ist]);
             $upd = DB::run("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ? AND store_id = ? AND quantity >= ?",
                 [$qty, $pid, $store_id, $qty]);
             if ($upd->rowCount() === 0) {
-                throw new Exception("Артикулът свърши преди да го продадеш. Презареди и опитай отново.");
+                // Defence in depth: lock should make this unreachable, but keep it
+                // for the "row inserted between SELECT and UPDATE" edge.
+                throw new StockException($pid, $pname, max(0, $available), $qty);
             }
             // S96.HARDEN.E3 — user_id ("who decremented stock", needed for RWQ-64) + price (margin/dispute audit).
             DB::run("INSERT INTO stock_movements (tenant_id, product_id, store_id, user_id, quantity, price, type, reference_type, reference_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'out', 'sale', ?, NOW())",
@@ -219,9 +252,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         );
 
         echo json_encode(['success' => true, 'sale_id' => $sale_id, 'total' => $total]);
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    } catch (StockException $se) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        // S97.HARDEN.PH1 — structured envelope so the UI can offer "Sell only N available" prompt.
+        echo json_encode([
+            'success'    => false,
+            'err'        => 'stock',
+            'error'      => $se->getMessage(),
+            'product_id' => $se->product_id,
+            'product'    => $se->product_name,
+            'available'  => $se->available,
+            'requested'  => $se->requested,
+        ]);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        // S97.HARDEN.PH1 — log full detail server-side; show user-safe message only.
+        // PDO/Throwable messages may leak schema/SQL — keep them out of the response.
+        error_log('[sale.save_sale] ' . get_class($e) . ': ' . $e->getMessage()
+            . ' (tenant=' . $tenant_id . ' user=' . $user_id . ')');
+        $isUserSafe = ($e instanceof Exception) && !($e instanceof PDOException) && !($e instanceof RuntimeException);
+        echo json_encode([
+            'success' => false,
+            'error'   => $isUserSafe
+                ? $e->getMessage()
+                : 'Грешка при записване. Опитай пак или съобщи.',
+        ]);
     }
     exit;
 }
@@ -2817,6 +2872,9 @@ function confirmPayment() {
             setNumpadCtx('code');
             updateSearchDisplay();
             render();
+        } else if (res.err === 'stock') {
+            // S97.HARDEN.PH1 — structured stock shortage envelope.
+            handleStockShortage(res);
         } else {
             showToast('Грешка: ' + (res.error || 'Неизвестна'), '', 4000);
             document.getElementById('btnConfirm').disabled = false;
@@ -2826,6 +2884,38 @@ function confirmPayment() {
         showToast('Мрежова грешка', '', 3000);
         document.getElementById('btnConfirm').disabled = false;
     });
+}
+
+// S97.HARDEN.PH1 — when server rejects a sale because requested > available,
+// offer the seller a one-tap "Sell only N available" path.
+function handleStockShortage(res) {
+    const btn = document.getElementById('btnConfirm');
+    if (btn) btn.disabled = false;
+    const pid = parseInt(res.product_id, 10);
+    const avail = Math.max(0, parseInt(res.available, 10) || 0);
+    const requested = parseInt(res.requested, 10) || 0;
+    const pname = res.product || ('Артикул #' + pid);
+
+    if (avail <= 0) {
+        showToast('✗ "' + pname + '" — наличност 0. Премахни от количката.', '', 5000);
+        return;
+    }
+
+    // Show actionable confirm: clamp to available qty and retry, or cancel.
+    const msg = '"' + pname + '": налични ' + avail + ' (поискани ' + requested + '). Да продам ' + avail + ' бр?';
+    if (window.confirm(msg)) {
+        const item = (STATE.cart || []).find(it => parseInt(it.product_id, 10) === pid);
+        if (item) {
+            item.quantity = avail;
+            render();
+            // Retry the same flow — user re-confirms total in payment dialog.
+            confirmPayment();
+        } else {
+            showToast('Артикулът не е в количката.', '', 3000);
+        }
+    } else {
+        showToast('Продажбата отказана. Коригирай количката.', '', 3000);
+    }
 }
 
 // ─── WHOLESALE ───
