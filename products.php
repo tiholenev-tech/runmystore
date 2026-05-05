@@ -1252,6 +1252,26 @@ foreach ($_custom_colors as $cc) {
 /* mod-prod-* helpers (преди бяха inline стилове, извадени в класове) */
 .mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
 .mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
+/* S95.BUGFIX_R5 — wiz-foot-stack: 2-row footer pattern.
+ * Top row: small action buttons (qty + cousin axis + back).
+ * Bottom row: full-width q-magic "Допълнителни данни (препоръчително)" CTA. */
+.wiz-foot-stack{display:flex;flex-direction:column;gap:8px}
+.wiz-foot-stack.fixed-bottom{position:fixed;left:0;right:0;bottom:0;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(10,11,20,0.78),rgba(10,11,20,0.98));border-top:1px solid hsl(var(--hue1) 30% 20% / 0.45);z-index:201;max-width:480px;margin:0 auto;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.wiz-foot-row-top{display:flex;gap:8px;align-items:stretch}
+.wiz-foot-back{flex:0 0 42px;width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0;transition:transform .12s var(--ease)}
+.wiz-foot-back:active{transform:scale(.94)}
+.wiz-foot-half{flex:1;min-width:0;height:42px;border-radius:11px;background:linear-gradient(135deg,hsl(255 65% 32% / 0.55),hsl(222 65% 24% / 0.40));border:1px solid hsl(255 70% 55% / 0.50);color:#dbeafe;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;letter-spacing:0.01em;box-shadow:0 4px 12px hsl(255 65% 30% / 0.30),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;white-space:nowrap;padding:0 10px;transition:transform .12s var(--ease)}
+.wiz-foot-half:active{transform:scale(.97)}
+.wiz-foot-half > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.wiz-foot-half svg{flex-shrink:0}
+/* Q-magic premium recommended CTA — DESIGN_LAW table 2.5 violet */
+.wiz-foot-rec{position:relative;overflow:hidden;width:100%;height:54px;border-radius:14px;background:linear-gradient(135deg,hsl(280 65% 35% / 0.58),hsl(310 60% 25% / 0.30));border:1px solid hsl(280 75% 60% / 0.55);color:#f3e8ff;font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.02em;box-shadow:0 6px 20px hsl(280 70% 40% / 0.32),inset 0 1px 0 rgba(255,255,255,0.10);transition:transform .12s var(--ease)}
+.wiz-foot-rec:active{transform:scale(.98)}
+.wiz-foot-rec span.wfr-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-shadow:0 0 8px hsl(280 80% 65% / 0.40)}
+.wiz-foot-rec svg{flex-shrink:0;filter:drop-shadow(0 0 6px hsl(280 80% 65% / 0.55))}
+.wiz-foot-rec .wfr-shine{position:absolute;top:0;left:-100%;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);animation:wfrShine 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes wfrShine{0%,100%{left:-100%}50%{left:130%}}
+.wiz-foot-rec .wfr-glow{position:absolute;inset:-2px;border-radius:16px;background:radial-gradient(ellipse at 50% 50%,hsl(280 80% 55% / 0.32),transparent 65%);filter:blur(10px);z-index:-1;pointer-events:none}
 .mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
@@ -7040,11 +7060,13 @@ function renderWizPagePart2(step){
                     '</div>' +
                 '</div>';
         }
-        return '<div class="wiz-page active" style="padding-bottom:160px">'+
+        // S95.BUGFIX_R5: padding-bottom 160→200px заради 2-row stacked footer (top
+        // row 42px + gap 8px + recommended button 54px + paddings + safe-area).
+        return '<div class="wiz-page active" style="padding-bottom:200px">'+
             previewH+
             '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             _aiCardH+
-            '<div id="v4Footer" class="mod-prod-v4-footer">'+_footer+'</div>'+
+            '<div id="v4Footer" class="wiz-foot-stack fixed-bottom">'+_footer+'</div>'+
             vskip+'</div>';
     }
 
@@ -9641,6 +9663,33 @@ function wizTogglePresetInline(axIdx,val,chip){
     if(navigator.vibrate)navigator.vibrate(5);
     _v4UpdateAfterToggle(axIdx);
 }
+// S95.BUGFIX_R5 — Reusable footer stack template (per Tihol design).
+// Top row: small back + qty + cousin axis half-buttons.
+// Bottom row: full-width q-magic "Допълнителни данни (препоръчително)" CTA.
+// Параметри: opts={qtyLabel, qtyAction, cousinLabel, cousinAction, backAction, hideRec, recAction, recLabel, hint}
+function _wizFooterStack(opts){
+    opts = opts || {};
+    var _esc = (typeof esc === 'function') ? esc : function(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});};
+    var matrixIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>';
+    var arrowIcon  = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>';
+    var backIcon   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+    var sparkleIcon= '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>';
+
+    var back = opts.backAction ? ('<button type="button" class="wiz-foot-back" onclick="'+opts.backAction+'" title="Назад">'+backIcon+'</button>') : '';
+    var qty  = opts.qtyLabel ? ('<button type="button" class="wiz-foot-half" onclick="'+(opts.qtyAction||'')+'">'+matrixIcon+'<span>'+_esc(opts.qtyLabel)+'</span></button>') : '';
+    var cous = opts.cousinLabel ? ('<button type="button" class="wiz-foot-half" onclick="'+(opts.cousinAction||'')+'"><span>'+_esc(opts.cousinLabel)+'</span>'+arrowIcon+'</button>') : '';
+    var hint = opts.hint ? ('<div class="wiz-foot-half" style="background:transparent;border:1px dashed rgba(255,255,255,0.12);font-style:italic;color:rgba(255,255,255,0.45);font-weight:500;cursor:default"><span>'+_esc(opts.hint)+'</span></div>') : '';
+
+    var topRow = (back || qty || cous || hint) ? ('<div class="wiz-foot-row-top">'+back+qty+cous+hint+'</div>') : '';
+    var recBtn = '';
+    if (!opts.hideRec) {
+        var recAction = opts.recAction || "wizCollectData();wizGoStep2()";
+        var recLabel  = opts.recLabel  || 'Допълнителни данни (препоръчително)';
+        recBtn = '<button type="button" class="wiz-foot-rec q-magic" onclick="'+recAction+'"><span class="wfr-shine"></span><span class="wfr-glow"></span>'+sparkleIcon+'<span class="wfr-label">'+_esc(recLabel)+'</span></button>';
+    }
+    return topRow + recBtn;
+}
+
 function _v4ComputeFooter(axIdx){
     var ax=S.wizData.axes[axIdx]||{name:'',values:[]};
     var hasVals=ax.values&&ax.values.length>0;
@@ -9655,37 +9704,38 @@ function _v4ComputeFooter(axIdx){
         if(!a.values||a.values.length===0){nextEmptyIdx=i;break}
     }
     var nextAx=nextEmptyIdx>=0?S.wizData.axes[nextEmptyIdx]:null;
-    // S92.WIZARD_REWRITE: Назад от Variations → Детайли (sub 2 на step 3) вместо sub 0.
-    // S95.BUGFIX_R3 Bug 2: wizSafeBack вместо wizGo(3,false,2) — преди това
-    // Назад от Step 4 водеше към dead Детайли page (състав/произход/мерна единица).
-    var ftBack='<button type="button" onclick="wizSafeBack()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>';
-    var ftMid;
+
+    // S95.BUGFIX_R5: 2-row stacked footer (per Tihol UX spec).
     if(!hasVals && !anyAxisHasVals){
-        // Nothing entered anywhere — keep the original "pick a value" hint.
+        // Nothing entered anywhere — back + hint, no recommended yet (user trябва
+        // първо да избере axis values).
         var _axLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(ax.name)?('Вариация '+(axIdx+1)):ax.name;
-        ftMid='<div style="flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:11px;color:rgba(255,255,255,0.4);padding:0 10px;text-align:center;font-style:italic">Избери '+esc(_axLbl.toLowerCase())+' за да продължиш</div>';
-    }else{
-        // S82.STUDIO.6: at least one axis has values. Show actions REGARDLESS of which tab
-        // the user is on — Колко бр.? and Към запис must always be reachable, otherwise
-        // colours-only flow gets stuck on the empty Вариация 2 tab with no buttons.
-        var bMatrix='<button type="button" class="mod-prod-mx-cta" onclick="openMxOverlay()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
-        var bNext='';
-        if(nextEmptyIdx>=0 && hasVals){
-            // S95.BUGFIX_R4 Bug 2: dynamic label по типа на следващата axis —
-            // "Кои размери?" / "Кои цветове?" вместо generic "Вариация N".
-            var _nextN=(nextAx.name||'').toLowerCase();
-            var _nextIsSize=_nextN.indexOf('размер')!==-1||_nextN.indexOf('size')!==-1||_nextN.indexOf('ръст')!==-1;
-            var _nextIsColor=_nextN.indexOf('цвят')!==-1||_nextN.indexOf('color')!==-1||_nextN.indexOf('десен')!==-1;
-            var _nextLbl=_nextIsSize?'Кои размери?':(_nextIsColor?'Кои цветове?':(/^вариация\s*\d+$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name));
-            bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;min-width:0;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:10.5px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:3px;font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_nextLbl)+'</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg></button>';
-        }
-        // S95.BUGFIX_R4 Bug 1: "Препоръчителни" клипваше до "оръчите" на 373px (Z Flip6).
-        // Кратко "Доп. поля" + sparkle SVG icon (q-magic premium) → fits 4-button footer.
-        // Q-magic violet hue per DESIGN_LAW 2.5 (виолет за premium/AI/recommended fields).
-        var bSave='<button type="button" onclick="wizCollectData();wizGoStep2()" title="Препоръчителни / допълнителни полета" style="flex:1;min-width:0;height:44px;border-radius:12px;background:linear-gradient(180deg,hsl(280 65% 30% / 0.42),hsl(310 60% 22% / 0.18));border:1px solid hsl(280 70% 60% / 0.55);color:#e9d5ff;font-size:10.5px;font-weight:700;cursor:pointer;box-shadow:0 0 14px hsl(280 70% 50% / 0.28),inset 0 1px 0 rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;letter-spacing:0.02em;overflow:hidden;white-space:nowrap;padding:0 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg><span style="overflow:hidden;text-overflow:ellipsis">Доп. поля</span></button>';
-        ftMid=bMatrix+bNext+bSave;
+        return _wizFooterStack({
+            backAction:'wizSafeBack()',
+            hint:'Избери '+(_axLbl.toLowerCase())+' за да продължиш',
+            hideRec:true
+        });
     }
-    return ftBack+ftMid;
+
+    // Has values somewhere — full stack: back + qty + cousin (top), Допълнителни данни (bottom).
+    var cousinLabel = null;
+    var cousinAction = null;
+    if(nextEmptyIdx>=0 && hasVals){
+        // S95.BUGFIX_R4 Bug 2: dynamic label по типа на следващата axis.
+        var _nextN=(nextAx.name||'').toLowerCase();
+        var _nextIsSize=_nextN.indexOf('размер')!==-1||_nextN.indexOf('size')!==-1||_nextN.indexOf('ръст')!==-1;
+        var _nextIsColor=_nextN.indexOf('цвят')!==-1||_nextN.indexOf('color')!==-1||_nextN.indexOf('десен')!==-1;
+        cousinLabel=_nextIsSize?'Кои размери?':(_nextIsColor?'Кои цветове?':(/^вариация\s*\d+$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name));
+        cousinAction='S._wizActiveTab='+nextEmptyIdx+';renderWizard()';
+    }
+    return _wizFooterStack({
+        backAction:'wizSafeBack()',
+        qtyLabel:'Колко бр?',
+        qtyAction:'openMxOverlay()',
+        cousinLabel:cousinLabel,
+        cousinAction:cousinAction
+        // recAction & recLabel use defaults: wizGoStep2 + "Допълнителни данни (препоръчително)"
+    });
 }
 
 // S82.STUDIO.7: tapped a disabled YES/NO button — guide user to enter qtys first.
@@ -10933,15 +10983,23 @@ function renderWizPhotoStep(){
     }
     // S95.PART1_1: footer ЗАПИШИ disabled if no type chosen.
     var saveDisabled=typeChosen?'':'opacity:0.45;pointer-events:none;cursor:not-allowed;';
-    var nextBtn=(S.wizType==='variant')
-        ? '<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
-        : (typeChosen?'<button type="button" onclick="wizCollectData();wizGoStep2()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Препоръчителни<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>':'');
-    var footer=
-        '<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+
-            '<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
-            '<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
-            nextBtn+
-        '</div>';
+    // S95.BUGFIX_R5: Single Step 1 footer → 2-row stack:
+    //   Top: [ЗАПИШИ] [🖨]
+    //   Bottom: [Допълнителни данни (препоръчително)] full-width q-magic
+    // Variant Step 1 keeps existing 3-button single-row (no recommended at this stage —
+    // variant flow shows recommended after axes selection в Step 4 footer).
+    var saveBtn='<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>';
+    var printBtn='<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>';
+    var footer;
+    if(S.wizType==='variant'){
+        var variantNextBtn='<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        footer='<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+saveBtn+printBtn+variantNextBtn+'</div>';
+    }else{
+        // Single (typeChosen=true) или type не избран (типе choose hide рекомендирания).
+        var topRow='<div style="display:flex;gap:8px;align-items:stretch">'+saveBtn+printBtn+'</div>';
+        var recBtn=typeChosen?('<button type="button" class="wiz-foot-rec q-magic" onclick="wizCollectData();wizGoStep2()"><span class="wfr-shine"></span><span class="wfr-glow"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg><span class="wfr-label">Допълнителни данни (препоръчително)</span></button>'):'';
+        footer='<div class="wiz-foot-stack" style="margin-top:16px">'+topRow+recBtn+'</div>';
+    }
     return '<div class="wiz-page active" style="padding:18px 14px 220px">'+
         headerH+
         '<div style="'+lockStyle+'">'+
