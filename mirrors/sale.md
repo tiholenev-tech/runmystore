@@ -42,63 +42,135 @@ $mode = 'simple';
 
 // ─── AJAX: Quick Search ───
 if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
+    sale_rate_limit_or_die('search', 240); // 4 req/sec average, generous for fast typers
     header('Content-Type: application/json; charset=utf-8');
-    $q = trim($_GET['q'] ?? '');
-    if (strlen($q) < 1) { echo json_encode([]); exit; }
+    // S97.HARDEN.PH6 — cap search input to 64 chars (DB column limits + DoS guard).
+    $q = mb_substr(trim($_GET['q'] ?? ''), 0, 64);
+    if ($q === '') { echo json_encode([]); exit; }
     $like = "%$q%";
-    // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
-    $results = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
-               p.parent_id, p.color, p.size, p.image_url,
-               COALESCE(i.quantity, 0) as stock
-        FROM products p
-        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-        WHERE p.tenant_id = ? AND p.is_active = 1
-          AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
-        ORDER BY
-          CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
-          p.name
-        LIMIT 30
-    ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($results);
+    try {
+        // S87D — returns parent_id, color, size, image_url for variant grouping in Search Overlay
+        $results = DB::run("
+            SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+                   p.parent_id, p.color, p.size, p.image_url,
+                   COALESCE(i.quantity, 0) as stock
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1
+              AND (p.code LIKE ? OR p.name LIKE ? OR p.barcode = ?)
+            ORDER BY
+              CASE WHEN p.code = ? THEN 0 WHEN p.barcode = ? THEN 1 ELSE 2 END,
+              p.name
+            LIMIT 30
+        ", [$store_id, $tenant_id, $like, $like, $q, $q, $q])->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($results);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
+        error_log('[sale.quick_search] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode([]);
+    }
     exit;
 }
 
 // ─── AJAX: Barcode Lookup ───
 if (isset($_GET['action']) && $_GET['action'] === 'barcode_lookup') {
+    sale_rate_limit_or_die('search', 240); // shared bucket with quick_search
     header('Content-Type: application/json; charset=utf-8');
-    $barcode = trim($_GET['barcode'] ?? '');
-    $product = DB::run("
-        SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
-               COALESCE(i.quantity, 0) as stock
-        FROM products p
-        LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
-        WHERE p.tenant_id = ? AND p.is_active = 1 AND p.barcode = ?
-        LIMIT 1
-    ", [$store_id, $tenant_id, $barcode])->fetch(PDO::FETCH_ASSOC);
-    echo json_encode($product ?: null);
+    // S97.HARDEN.PH6 — barcodes are <= 64 chars in the schema; reject anything longer.
+    $barcode = substr(trim($_GET['barcode'] ?? ''), 0, 64);
+    if ($barcode === '') { echo json_encode(null); exit; }
+    try {
+        $product = DB::run("
+            SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
+                   COALESCE(i.quantity, 0) as stock
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+            WHERE p.tenant_id = ? AND p.is_active = 1 AND p.barcode = ?
+            LIMIT 1
+        ", [$store_id, $tenant_id, $barcode])->fetch(PDO::FETCH_ASSOC);
+        echo json_encode($product ?: null);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full error, return null so the scanner UI shows "not found".
+        error_log('[sale.barcode_lookup] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode(null);
+    }
     exit;
+}
+
+// S97.HARDEN.PH4 — CSRF guard for every POST endpoint below.
+// Helpers live in config/helpers.php. Token is per-session, validated against
+// X-CSRF-Token header. Reject forgeries with 403 + JSON envelope.
+function sale_csrf_guard_or_die(): void {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+    $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!csrfCheck((string) $sent)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'err' => 'csrf', 'error' => 'Невалиден CSRF токен. Презареди страницата.']);
+        exit;
+    }
+}
+
+// S97.HARDEN.PH5 — sliding-window rate limit per session per bucket.
+// $cap = max events allowed in $window seconds. Returns false when over cap.
+// Tuned for live POS: never block legit fast-scanner cadence.
+//   - save_sale       : 30/min (real-world POS never approaches this)
+//   - search_lookup   : 240/min combined (barcode + quick_search; ~4/sec)
+function sale_rate_limit_or_die(string $bucket, int $cap, int $window = 60): void {
+    $now = time();
+    $key = 'rl_' . $bucket;
+    $log = $_SESSION[$key] ?? [];
+    // Drop entries older than the window.
+    $log = array_values(array_filter($log, static fn($t) => $t > $now - $window));
+    if (count($log) >= $cap) {
+        $retry = max(1, $window - ($now - (int) $log[0]));
+        http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Retry-After: ' . $retry);
+        echo json_encode([
+            'success' => false,
+            'err'     => 'rate_limit',
+            'error'   => "Твърде много заявки. Изчакай $retry сек.",
+            'retry_after' => $retry,
+        ]);
+        // Persist (don't add this rejected attempt to the log — would extend the cool-off).
+        $_SESSION[$key] = $log;
+        exit;
+    }
+    $log[] = $now;
+    $_SESSION[$key] = $log;
 }
 
 // ─── AJAX: Refetch Prices (S87 Bug #6 — wholesale toggle memory bug fix) ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'refetch_prices') {
+    sale_csrf_guard_or_die();
     header('Content-Type: application/json; charset=utf-8');
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
-    $ids = array_filter(array_map('intval', $body['product_ids'] ?? []));
+    // S97.HARDEN.PH6 — cap to 200 IDs and dedupe to keep the IN(...) query bounded.
+    $ids = array_unique(array_filter(array_map('intval', array_slice((array)($body['product_ids'] ?? []), 0, 200))));
     if (empty($ids)) { echo json_encode([]); exit; }
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $rows = DB::run(
-        "SELECT id, retail_price, wholesale_price FROM products WHERE tenant_id = ? AND id IN ($placeholders)",
-        array_merge([$tenant_id], $ids)
-    )->fetchAll(PDO::FETCH_ASSOC);
-    $out = [];
-    foreach ($rows as $r) {
-        $out[(int)$r['id']] = [
-            'retail' => (float)$r['retail_price'],
-            'wholesale' => (float)($r['wholesale_price'] ?: $r['retail_price']),
-        ];
+    try {
+        $rows = DB::run(
+            "SELECT id, retail_price, wholesale_price FROM products WHERE tenant_id = ? AND id IN ($placeholders)",
+            array_merge([$tenant_id], $ids)
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int)$r['id']] = [
+                'retail' => (float)$r['retail_price'],
+                'wholesale' => (float)($r['wholesale_price'] ?: $r['retail_price']),
+            ];
+        }
+        echo json_encode($out);
+    } catch (Throwable $e) {
+        // S97.HARDEN.PH7 — log full error, return empty map (cart keeps last-known prices).
+        error_log('[sale.refetch_prices] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
+        http_response_code(500);
+        echo json_encode([]);
     }
-    echo json_encode($out);
     exit;
 }
 
@@ -122,6 +194,8 @@ if (!class_exists('StockException')) {
 
 // ─── AJAX: Save Sale ───
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_sale') {
+    sale_csrf_guard_or_die();
+    sale_rate_limit_or_die('save_sale', 30); // 30/min — well above any legit POS rate
     header('Content-Type: application/json; charset=utf-8');
 
     // S96.HARDEN.KAT4.6 — re-verify session against live DB on every save.
@@ -138,8 +212,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $max_discount_runtime = floatval($session_check['max_discount_pct'] ?? 100);
 
     $data = json_decode(file_get_contents('php://input'), true);
-    $items = $data['items'] ?? [];
-    $payment_method = $data['payment_method'] ?? 'cash';
+    if (!is_array($data)) {
+        echo json_encode(['success' => false, 'error' => 'Невалиден JSON.']);
+        exit;
+    }
+    $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+    // S97.HARDEN.PH6 — payment_method whitelist (must match downstream paid_amount logic).
+    $payment_method_raw = (string) ($data['payment_method'] ?? 'cash');
+    $payment_method = in_array($payment_method_raw, ['cash', 'card', 'bank_transfer', 'deferred'], true)
+        ? $payment_method_raw : 'cash';
 
     // S96.HARDEN.E7 — server-side clamp discount_pct (DevTools tamper protection).
     // Three-way min: per-user cap, global 100%, never negative.
@@ -150,11 +231,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $discount_cap_pct = floatval($max_discount_runtime);
 
     $customer_id = !empty($data['customer_id']) ? intval($data['customer_id']) : null;
-    $received = floatval($data['received'] ?? 0);
+    // S97.HARDEN.PH6 — received must be non-negative (cosmetic; not persisted directly,
+    // but client could send NaN/-1 and break payCalcChange echo on receipt).
+    $received = max(0.0, floatval($data['received'] ?? 0));
     // S96.HARDEN.F1 — persist wholesale flag → sales.type column.
     $sale_type = !empty($data['is_wholesale']) ? 'wholesale' : 'retail';
 
     if (empty($items)) { echo json_encode(['success' => false, 'error' => 'Няма артикули']); exit; }
+    // S97.HARDEN.PH6 — cap items to 200 (any legitimate cart will be much smaller;
+    // protects against memory-exhaustion via giant POST).
+    if (count($items) > 200) {
+        echo json_encode(['success' => false, 'error' => 'Прекалено много артикули в продажба (макс. 200).']);
+        exit;
+    }
 
     // S96.HARDEN.E6 — customer_id MUST belong to current tenant (cross-tenant tag protection).
     if ($customer_id !== null) {
@@ -2074,6 +2163,9 @@ document.addEventListener('DOMContentLoaded', function(){
     camStatus.addEventListener('touchmove', function(){ clearTimeout(lpTimer); });
 });
 
+// S97.HARDEN.PH4 — per-session CSRF token; attached to every POST below.
+const RMS_CSRF = <?= json_encode(csrfToken(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 // ─── STATE ───
 const STATE = {
     cart: [],               // [{product_id, code, name, meta, unit_price, quantity, discount_pct, image}]
@@ -2876,7 +2968,7 @@ function confirmPayment() {
 
     fetch('sale.php?action=save_sale', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': RMS_CSRF},
         body: JSON.stringify(data),
     })
     .then(r => r.json())
@@ -2905,6 +2997,15 @@ function confirmPayment() {
         } else if (res.err === 'stock') {
             // S97.HARDEN.PH1 — structured stock shortage envelope.
             handleStockShortage(res);
+        } else if (res.err === 'csrf') {
+            // S97.HARDEN.PH4 — session expired or token mismatch; reload to remint.
+            showToast('Сесията изтече. Презареждам…', '', 3000);
+            setTimeout(() => location.reload(), 1500);
+        } else if (res.err === 'rate_limit') {
+            // S97.HARDEN.PH5 — too many requests; show retry-after.
+            const sec = parseInt(res.retry_after, 10) || 5;
+            showToast('Твърде много продажби. Изчакай ' + sec + ' сек.', '', 4000);
+            document.getElementById('btnConfirm').disabled = false;
         } else {
             showToast('Грешка: ' + (res.error || 'Неизвестна'), '', 4000);
             document.getElementById('btnConfirm').disabled = false;
@@ -2982,7 +3083,7 @@ function selectClient(id, name) {
     debugLog('refetch prices for ' + ids.length + ' items, wholesale=' + STATE.isWholesale);
     fetch('sale.php?action=refetch_prices', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': RMS_CSRF},
         body: JSON.stringify({product_ids: ids}),
     })
     .then(r => r.json())

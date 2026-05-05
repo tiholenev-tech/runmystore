@@ -6922,49 +6922,35 @@ function renderWizPagePart2(step){
             matrixH+='</div>';
         }
 
-        // Min quantity (global)
-        var minQtyH='<div class="fg" style="margin-bottom:8px">'+fieldLabel('Минимално количество (глобално)','min_qty')+
-        '<input type="number" class="fc" id="wMinQty" value="'+(S.wizData.min_quantity||0)+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" placeholder="0" style="font-size:12px"></div>';
+        // S95.STEP2_BUGFIX Bug 4: removed dead minQtyH (минимално количество глобално).
+        // Original line referenced wMinQty но не се събира за variant в save flow.
+        var minQtyH='';
 
         // S95.STEP2_ENHANCE Q3=A: zone field removed — deduped to Step 2 (renderWizStep2 has wLocation
         // input + mic('location') + cpy('location') with proper Web Speech BG handler in _wizMicApply).
         // Variant flow now routes through Step 2 via wizFinalAINo → wizGoStep2.
         var zoneH='';
 
-        // AI description
-        var descH='<div class="fg" style="margin-top:8px">'+fieldLabel('AI SEO описание','description')+
-        '<textarea class="fc" id="wDesc" rows="4" placeholder="Натисни бутона за AI описание..." style="font-size:12px" '+(S.wizData.description?'':'readonly')+'>'+(S.wizData.description?esc(S.wizData.description):'')+'</textarea>'+
-        '<div style="display:flex;gap:6px;margin-top:4px">'+
-        '<span onclick="document.getElementById(\'wDesc\').removeAttribute(\'readonly\');document.getElementById(\'wDesc\').focus()" style="font-size:11px;color:#818cf8;cursor:pointer">\u270E Редактирай</span>'+
-        '<button type="button" class="abtn" onclick="wizGenDescription()" style="font-size:10px;padding:5px 12px;border-color:rgba(99,102,241,0.2)">AI генерирай</button></div></div>';
+        // S95.STEP2_BUGFIX Bug 4: removed dead descH (AI SEO описание).
+        // AI SEO се прави post-save в AI Studio, не на тази страница.
+        var descH='';
 
         // Summary line
         var sumLine='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.04)"><b style="color:var(--text-primary)">'+esc(S.wizData.name||'')+'</b> \u00b7 '+fmtPrice(S.wizData.retail_price)+' \u00b7 Код: '+esc(S.wizData.code||'AI генерира')+'</div>';
 
-        // S82.COLOR.4: final AI Studio prompt — Yes opens Studio after save, No saves directly.
-        var finalPromptH =
-            '<div class="s82-finalprompt">' +
-                '<div class="s82-finalprompt-title">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
-                    '✨ Искаш ли AI обработка?' +
-                '</div>' +
-                '<ul class="s82-finalprompt-list">' +
-                    '<li>Махане на фона на снимките</li>' +
-                    '<li>AI магия (модел носи дрехата)</li>' +
-                    '<li>SEO описание за онлайн магазин</li>' +
-                    '<li>Експорт CSV/PDF/Excel</li>' +
-                '</ul>' +
-                '<div class="s82-finalprompt-actions">' +
-                    '<button type="button" class="s82-finalprompt-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
-                    '<button type="button" class="s82-finalprompt-btn no" onclick="wizFinalAINo()">Не, запази</button>' +
-                '</div>' +
+        // S95.STEP2_BUGFIX Bug 3: finalPromptH (AI Studio yes/no) преместен ПОСЛЕ Step 2.
+        // Step 5 завършва с navigation към Step 2 (Препоръчителни) — там AI Studio prompt-а
+        // се появява в footer-а на renderWizStep2 за variant flow.
+        var navH=
+            '<div style="display:flex;gap:8px;margin-top:14px">'+
+                '<button type="button" class="abtn" onclick="wizGo(4)" style="flex:1;padding:11px;border-color:rgba(255,255,255,0.1);color:#cbd5e1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="15 18 9 12 15 6"/></svg>Назад към вариации</button>'+
+                '<button type="button" class="abtn" onclick="wizCollectData();wizGoStep2()" style="flex:1.2;padding:11px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-weight:700">Препоръчителни <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px"><polyline points="9 18 15 12 9 6"/></svg></button>'+
             '</div>';
 
         return '<div class="wiz-page active">'+
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">Бройки и запис</div>'+
-        sumLine+unitH+matrixH+minQtyH+zoneH+descH+
-        finalPromptH+
-        '<button class="abtn" onclick="wizGo(4)" style="margin-top:10px">\u2190 Назад към вариации</button>'+
+        sumLine+unitH+matrixH+
+        navH+
         vskip+'</div>';
     }
 
@@ -7381,15 +7367,42 @@ function renderWizStep2() {
             '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Препоръчителни</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:1px">Допълнителни данни · може да пропуснеш</div></div>' +
         '</div>';
 
+    // S95.STEP2_BUGFIX Bug 3: AI Studio prompt преместен ОТ Step 5 КЪМ Step 2 (variant flow).
+    // Variant: показваме finalPromptH (Yes opens AI Studio / No just saves) преди footer-а;
+    // footer save бутон се крие за variant (избор е в finalPromptH).
+    // Single: запазва текущия footer "Запиши финал" — single няма AI Studio prompt в spec.
+    var finalPromptH = '';
+    var footerSaveBtn = '<button type="button" class="s2-foot-save" onclick="wizSave()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши финал</button>';
+    if (S.wizType === 'variant') {
+        finalPromptH =
+            '<div class="s82-finalprompt" style="margin:14px 0 4px">' +
+                '<div class="s82-finalprompt-title">' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>' +
+                    '✨ Искаш ли AI обработка?' +
+                '</div>' +
+                '<ul class="s82-finalprompt-list">' +
+                    '<li>Махане на фона на снимките</li>' +
+                    '<li>AI магия (модел носи дрехата)</li>' +
+                    '<li>SEO описание за онлайн магазин</li>' +
+                    '<li>Експорт CSV/PDF/Excel</li>' +
+                '</ul>' +
+                '<div class="s82-finalprompt-actions">' +
+                    '<button type="button" class="s82-finalprompt-btn yes" onclick="wizFinalAIYes()">Да, отвори AI Studio</button>' +
+                    '<button type="button" class="s82-finalprompt-btn no" onclick="wizFinalAINo()">Не, запази</button>' +
+                '</div>' +
+            '</div>';
+        footerSaveBtn = '';
+    }
+
     var footer =
         '<div class="s2-footer">' +
             '<button type="button" class="s2-foot-back" onclick="wizGoStep1()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>' +
             '<button type="button" class="s2-foot-print" onclick="showToast(\'Печат — S73.B.5\')" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' +
-            '<button type="button" class="s2-foot-save" onclick="wizSave()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запиши финал</button>' +
+            footerSaveBtn +
         '</div>';
 
     return '<div class="wiz-page active" style="padding:18px 14px 220px">' +
-        header + pricesSection + detailsSection + aiSection + footer +
+        header + pricesSection + detailsSection + aiSection + finalPromptH + footer +
     '</div>';
 }
 
@@ -7808,13 +7821,9 @@ function wizFinalAIYes() {
 
 function wizFinalAINo() {
     S.wizData._openStudioAfterSave = false;
-    // S95.STEP2_ENHANCE Q3=A: variant flow consistent със single — route through Step 2
-    // ("Препоръчителни" optional fields) преди save. From Step 2 → wizSave() finalize.
-    // Single mode не достига wizFinalAINo (то е call от variant step 5 finalPromptH).
-    if (S.wizType === 'variant' && typeof wizGoStep2 === 'function') {
-        wizGoStep2();
-        return;
-    }
+    // S95.STEP2_BUGFIX Bug 3: finalPromptH сега е В Step 2 (не преди него).
+    // Wizard вече е на Step 2 → "Не, запази" просто финализира save директно.
+    // Премахнат е dead wizGoStep2() routing (би циклирал на текущата страница).
     if (typeof wizSave === 'function') wizSave();
 }
 
@@ -10349,6 +10358,9 @@ function showMiniPrintOverlay(){
                 '<button type="button" class="s95-mini-btn print" onclick="wizStep1MiniPrintAndClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>ПЕЧАТАЙ ЕТИКЕТ</button>'+
                 '<button type="button" class="s95-mini-btn done" onclick="closeMiniPrintOverlay();closeWizard()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ГОТОВО</button>'+
             '</div>'+
+            // S95.STEP2_BUGFIX Bug 5: variant Step 6 има "Свали CSV" но single mini overlay нямаше.
+            // Достъпен под двата action бутона (не доминира print/done CTA).
+            '<button type="button" class="abtn" onclick="wizDownloadCSV()" style="margin-top:10px;font-size:12px;padding:10px;width:100%;border-color:rgba(99,102,241,0.25);color:var(--indigo-300)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Свали CSV за онлайн магазин</button>'+
         '</div>';
     document.body.appendChild(ov);
     if(navigator.vibrate)navigator.vibrate(10);
