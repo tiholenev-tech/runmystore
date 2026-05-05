@@ -25,6 +25,25 @@ if ($_isMutation && !csrfCheck($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
     exit;
 }
 
+// S97.PRODUCTS.HARDEN_PH4 — rate limit on the create/edit path. 30/min covers
+// the fastest realistic catalog-entry rhythm by a wide margin; abusive scripts
+// trying to spam new SKUs will hit 429 + Retry-After.
+if ($_isMutation) {
+    $_now = time();
+    $_log = array_values(array_filter($_SESSION['rl_product_save'] ?? [], static fn($t) => $t > $_now - 60));
+    if (count($_log) >= 30) {
+        $_retry = max(1, 60 - ($_now - (int) $_log[0]));
+        http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Retry-After: ' . $_retry);
+        echo json_encode(['error'=>'rate_limit','msg'=>"Твърде много заявки. Изчакай $_retry сек.",'retry_after'=>$_retry]);
+        $_SESSION['rl_product_save'] = $_log;
+        exit;
+    }
+    $_log[] = $_now;
+    $_SESSION['rl_product_save'] = $_log;
+}
+
 $tenant_id = (int)$_SESSION['tenant_id'];
 $user_id   = (int)$_SESSION['user_id'];
 $role      = $_SESSION['role'] ?? 'seller';

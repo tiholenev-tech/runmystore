@@ -55,6 +55,35 @@ if (isset($_GET['ajax'])) {
         exit;
     }
 
+    // S97.PRODUCTS.HARDEN_PH4 — sliding-window per-session rate limit.
+    // Caps tuned so that legit POS/inventory work never trips them.
+    $_rateLimit = function (string $bucket, int $cap, int $window = 60): void {
+        $now = time();
+        $key = 'rl_prod_' . $bucket;
+        $log = array_values(array_filter($_SESSION[$key] ?? [], static fn($t) => $t > $now - $window));
+        if (count($log) >= $cap) {
+            $retry = max(1, $window - ($now - (int) $log[0]));
+            http_response_code(429);
+            header('Retry-After: ' . $retry);
+            echo json_encode(['error'=>'rate_limit','msg'=>"Твърде много заявки. Изчакай $retry сек.",'retry_after'=>$retry]);
+            $_SESSION[$key] = $log; // don't add the rejected attempt to the window
+            exit;
+        }
+        $log[] = $now;
+        $_SESSION[$key] = $log;
+    };
+    // Apply per-endpoint limits.
+    if ($ajax === 'upload_image' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $_rateLimit('upload_image', 10);
+    } elseif ($ajax === 'search' || $ajax === 'barcode') {
+        $_rateLimit('search', 100);
+    } elseif ($ajax === 'import_csv' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $_rateLimit('import_csv', 5);
+    } elseif (in_array($ajax, ['ai_scan','ai_description','ai_code','ai_assist','ai_image','ai_analyze'], true)) {
+        // AI endpoints cost real $$$ — keep them on a tight leash.
+        $_rateLimit('ai', 20);
+    }
+
     // ─── S78: Trigger product insights compute (skeleton — S79 fills logic) ───
     if ($ajax === 'compute_insights') {
         $cur = $tenant['currency'] ?? 'EUR';
