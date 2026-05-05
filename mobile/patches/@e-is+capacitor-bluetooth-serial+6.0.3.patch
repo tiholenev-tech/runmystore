@@ -1,0 +1,17 @@
+diff --git a/node_modules/@e-is/capacitor-bluetooth-serial/android/src/main/java/com/bluetoothserial/BluetoothDeviceHelper.java b/node_modules/@e-is/capacitor-bluetooth-serial/android/src/main/java/com/bluetoothserial/BluetoothDeviceHelper.java
+index 0000000..1111111 100644
+--- a/node_modules/@e-is/capacitor-bluetooth-serial/android/src/main/java/com/bluetoothserial/BluetoothDeviceHelper.java
++++ b/node_modules/@e-is/capacitor-bluetooth-serial/android/src/main/java/com/bluetoothserial/BluetoothDeviceHelper.java
+@@ -37,7 +37,11 @@ public class BluetoothDeviceHelper implements Serializable {
+             return new byte[0];
+         }
+
+-        return value.getBytes(StandardCharsets.UTF_8);
++        // S97.LABEL.D520_CYRILLIC (RunMyStore patch):
++        // ISO-8859-1 maps JS-string code units 0x00-0xFF 1:1 to bytes, so the JS
++        // layer can pack arbitrary bytes (TSPL BITMAP raster, CP1251 cyrillic,
++        // AIMO frame checksums) and have them survive the bridge intact.
++        return value.getBytes(StandardCharsets.ISO_8859_1);
+     }
+
+ }
