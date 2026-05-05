@@ -70,7 +70,21 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
     // case ("Бански бикини"). Other separators are still matched via the substring
     // bucket, just with lower priority.
     $wbSpace      = '% ' . $qLower . '%';
+    // S87H.BUGFIX_R3.PHASE4 — "Виж всички": user може да поиска лимит до 300.
+    // По default limit = 30 (бърз дропдаун); при &all=1 → 300 (full list).
+    $limitAll  = !empty($_GET['all']);
+    $limit     = $limitAll ? 300 : 30;
     try {
+        // Separate COUNT(*) — cheap (uses same WHERE + indexes), нужен за
+        // "Намерени N · виж всички" CTA когато имаме truncated резултати.
+        $totalRow = DB::run("
+            SELECT COUNT(*) AS n
+            FROM products p
+            WHERE p.tenant_id = ? AND p.is_active = 1
+              AND (LOWER(p.name) LIKE ? OR LOWER(p.code) LIKE ? OR p.barcode = ?)
+        ", [$tenant_id, $substring, $substring, $q])->fetch(PDO::FETCH_ASSOC);
+        $total = (int)($totalRow['n'] ?? 0);
+
         $results = DB::run("
             SELECT p.id, p.code, p.name, p.retail_price, p.wholesale_price, p.barcode,
                    p.parent_id, p.color, p.size, p.image_url,
@@ -90,19 +104,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'quick_search') {
                 ELSE 5
               END,
               p.name ASC
-            LIMIT 30
+            LIMIT $limit
         ", [
             $store_id, $tenant_id,
             $substring, $substring, $q,                 // WHERE
             $qLower, $q,                                // CASE 0..1 (exact code, exact barcode)
             $exact, $wbSpace, $substring                // CASE 2..4 (prefix, word-boundary, substring)
         ])->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($results);
+        echo json_encode([
+            'items'     => $results,
+            'total'     => $total,
+            'truncated' => $total > count($results),
+            'limit'     => $limit,
+        ]);
     } catch (Throwable $e) {
         // S97.HARDEN.PH7 — log full DB error, return empty list to UI (search just looks blank).
         error_log('[sale.quick_search] ' . $e->getMessage() . ' (tenant=' . $tenant_id . ')');
         http_response_code(500);
-        echo json_encode([]);
+        echo json_encode(['items' => [], 'total' => 0, 'truncated' => false]);
     }
     exit;
 }
@@ -3963,7 +3982,8 @@ function inlineSearchBackToMaster() {
     }
 }
 
-function doInlineSearch(q) {
+function doInlineSearch(q, opts) {
+    opts = opts || {};
     const c = document.getElementById('searchResultsInline');
     if (!c) return;
     c.style.display = '';
@@ -3973,15 +3993,39 @@ function doInlineSearch(q) {
     if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
     srchOvAbortCtl = new AbortController();
 
-    fetch('sale.php?action=quick_search&q=' + encodeURIComponent(q), { signal: srchOvAbortCtl.signal })
+    // S87H.BUGFIX_R3.PHASE4 — &all=1 при "Виж всички" CTA → backend разширява до 300.
+    const url = 'sale.php?action=quick_search&q=' + encodeURIComponent(q) + (opts.all ? '&all=1' : '');
+    fetch(url, { signal: srchOvAbortCtl.signal })
         .then(r => r.json())
-        .then(results => {
-            const masters = srchOvGroupByMaster(results || []);
+        .then(resp => {
+            // Back-compat: backend сега връща {items, total, truncated, limit};
+            // legacy array fallback за всеки случай.
+            const items = Array.isArray(resp) ? resp : (resp.items || []);
+            const total = Array.isArray(resp) ? items.length : (resp.total || items.length);
+            const truncated = !Array.isArray(resp) && !!resp.truncated;
+            const masters = srchOvGroupByMaster(items);
             srchOvRenderMasters(masters);
-            const total = (results || []).length;
             const mCount = masters.length;
             const metaEl = c.querySelector('.s-results-inline-meta');
-            if (metaEl) metaEl.textContent = 'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') + ' · ' + total + (total === 1 ? ' вариант' : ' варианта');
+            const itemsLabel = items.length + (items.length === 1 ? ' вариант' : ' варианта');
+            if (metaEl) {
+                metaEl.textContent = 'Намерени: ' + mCount + (mCount === 1 ? ' модел' : ' модела') + ' · ' + itemsLabel
+                    + (truncated ? ' (от ' + total + ')' : '');
+            }
+            // S87H.BUGFIX_R3.PHASE4 — "Виж всички N резултата" CTA. Появява се само
+            // когато имаме повече резултати в DB от показаните.
+            if (truncated && !opts.all) {
+                const cta = document.createElement('div');
+                cta.className = 'srch-see-all s87v3-tap';
+                cta.setAttribute('role', 'button');
+                cta.style.cssText = 'margin:8px 0 4px;padding:11px 14px;border-radius:12px;'
+                    + 'background:linear-gradient(135deg,hsl(var(--hue1) 65% 55% / 0.18),hsl(var(--hue2) 60% 50% / 0.12));'
+                    + 'border:1px solid hsl(var(--hue1) 60% 55% / 0.4);color:var(--text-primary);'
+                    + 'font-size:13px;font-weight:800;text-align:center;cursor:pointer;letter-spacing:0.02em;';
+                cta.textContent = '↓ Виж всички ' + total + ' резултата';
+                cta.addEventListener('click', () => doInlineSearch(q, {all: true}));
+                c.appendChild(cta);
+            }
         })
         .catch(err => {
             if (err && err.name === 'AbortError') return;
