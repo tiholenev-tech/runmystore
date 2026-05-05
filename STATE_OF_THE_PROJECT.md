@@ -38,12 +38,12 @@
 | 4 | RWQ-31 | promotions.php | Phase A2 pull-up (PromotionEngine + DB schema) | REWORK QUEUE #31 | post-beta (Тихол confirm) |
 | 5 | RWQ-47 | tools/diagnostic | DIAG.FIX (status conflict с STATE) | REWORK QUEUE | EOD close — Rule #3 STATE wins |
 | 6 | RWQ-72 | products.php voice | Voice-First Wizard Navigation (Whisper + trigger words "следващ") | NEW 03.05 | S95 ЧАСТ 1.2 (04.05) |
-| 7 | RWQ-73 | products.php AI | AI Studio entry inline (e1 design, 3 reda под снимка conditional) | NEW 03.05 | S95 ЧАСТ 1.3 (04.05) |
+| 7 | RWQ-73 | products.php AI | AI Studio entry inline ✅ DONE — 3 reda под снимка (Махни фон/SEO описание/AI магия), wired производствено, commit 3356920 | DONE 04.05 | — |
 | 8 | NAME_INPUT_DEAD | sale.php или products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
 | 9 | D12_REGRESSION | products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
 | 10 | WHOLESALE_NO_CURRENCY | sale.php или products.php | TRACK 2 finding spec needed | TRACK 2 | post-wizard finish |
 | 11 | S95-PART2 | products.php | Wizard ЧАСТ 2 — matrix preserve + zone field S94 | wizard restructure | 04.05 |
-| 12 | S95-PART3 | products.php | Wizard ЧАСТ 3 — prices/composition step | wizard restructure | 04.05 |
+| 12 | S95-PART3 | products.php | Wizard ЧАСТ 3 — prices/composition step ✅ DONE — Step 2 "По желание" (cost+wholesale+margin% + composition + BG/foreign origin toggle + unit + location), commit 30594a9 | DONE 04.05 | — |
 | 13 | S95-PART4 | products.php | Wizard ЧАСТ 4 — cleanup steps 0/4/6 | wizard restructure | 04.05 |
 | 14 | RWQ-77 | mockups | AI Studio новата визия — mockups upload + commit | NEW 03.05 | 04.05 преди ЧАСТ 1.3 |
 | 15 | RWQ-78 | services/ai-studio-* | AI Studio production wire (try-on €0.30 + SEO €0.02) | NEW 03.05 | post-beta |
@@ -247,3 +247,27 @@ git push origin main
 **НЕ update-вай COMPASS оттук.** Шеф-чат прави merge при следващ старт.
 
 **Цел:** да можеш да отвориш този файл и да знаеш истината за проекта **за 60 секунди** + пълен P0/P1 list **за 30 секунди**.
+
+---
+
+## DB SCHEMA UPDATE (05.05.2026)
+
+### inventory_adjustments table — CREATED
+**Purpose:** Списък за чакаща инвентаризация — negative stock sales, manual corrections, damage, theft, returns.
+
+**Used by:**
+- sale.php — INSERT при продажба под наличност (S87J round 5)
+- inventory.php — UI списък „Чакаща инвентаризация" (post-beta build)
+- transfers.php — manual corrections (когато се build-не)
+- ai-action.php — AI може да query за reports
+
+**Schema:**
+- id, tenant_id, product_id
+- type ENUM('sale_negative','manual_correction','count_diff','damage','theft','return','other')
+- quantity (negative=изваждане, positive=добавяне)
+- reason VARCHAR(255), sale_id (FK), user_id, status ENUM('pending','reviewed','resolved')
+- resolved_at, resolved_by, notes, created_at
+- Indexes: tenant_status, product, sale, created
+
+**Status:** ✅ Created in production DB.
+
