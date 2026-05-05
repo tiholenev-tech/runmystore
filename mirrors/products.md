@@ -7343,8 +7343,11 @@ function renderWizStep2() {
     var pricesSection =
         '<div class="s2-section">' +
             '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
-            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + mic('cost_price') + cpy('cost_price') + '</div></div>' +
-            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\')" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + mic('wholesale_price') + cpy('wholesale_price') + '</div></div>' +
+            // S95.STEP2_BUGFIX Bug 2: cost_price oninput → _step2RecalcMargin БЕЗ typeof guard.
+            // Ако нещо в chain-а throw-не (напр. wizUpdateMarkup намери stale wMarkupPct), recalc
+            // не се извиква и badge остава "—". Добавен typeof guard + recalc и при wholesale change.
+            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + mic('cost_price') + cpy('cost_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\');if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin()" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + mic('wholesale_price') + cpy('wholesale_price') + '</div></div>' +
             '<div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0"><label class="fl" style="margin:0">Печалба %</label><span id="s2MarginBadge" class="s2-margin-badge ' + initBadgeClass + '">' + initBadgeText + '</span></div>' +
         '</div>';
 
@@ -9885,7 +9888,10 @@ async function wizSave(){
         const idx=parseInt(inp.dataset.combo);
         if(combos[idx])combos[idx].qty=parseInt(inp.value)||0;
     });
-    const singleQty=parseInt(document.getElementById('wSingleQty')?.value)||0;
+    // S95.STEP2_BUGFIX Bug 1: на Step 2 wSingleQty DOM-ът не съществува → singleQty=0
+    // → "няма въведени бройки" alert. Fallback към S.wizData.quantity (set от Step 1 oninput).
+    var _wsqEl=document.getElementById('wSingleQty');
+    const singleQty=_wsqEl?(parseInt(_wsqEl.value)||0):(parseInt(S.wizData.quantity)||0);
 
     let sizes=[],colors=[],extraAxes=[];
     (S.wizData.axes||[]).forEach(ax=>{
