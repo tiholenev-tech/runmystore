@@ -4092,10 +4092,11 @@ html{overflow-x:hidden;max-width:100vw}
    hsl(var(--hue1) ...) изрази auto-recolor-ват през CSS cascade.
    Scoped legacy дефиниции (.s2-margin-badge.q-* line 2881-2883, .q-magic в
    .kp-* line 2847) запазват своя specificity и не се counterf-ват. */
-.q-default{--hue1:255;--hue2:222}      /* индиго neutral — explicit override-friendly */
-.q-loss{--hue1:0;--hue2:15}            /* alert / destructive / red */
-.q-amber{--hue1:38;--hue2:28}          /* warning / amber */
-.q-jewelry{--hue1:38;--hue2:28}        /* luxury accent (визуално = amber per DESIGN_LAW 2.5) */
+.q-default,.qd{--hue1:255;--hue2:222}      /* индиго neutral */
+.q-loss,.q1{--hue1:0;--hue2:15}            /* alert / destructive / red */
+.q-amber,.q-jewelry,.q3{--hue1:38;--hue2:28}          /* warning / amber */
+.q-gain,.q4{--hue1:145;--hue2:165}     /* success / green */
+.q-magic,.q5,.q6{--hue1:280;--hue2:310} /* premium violet/indigo */
 
 /* S95.WIZARD.DESIGN_LAW_FULL_COMPLIANCE — light-theme parity. При data-theme="light"
    сатурацията/яркостта на radial glow слоевете се намалява леко (тъмните оттенъци
