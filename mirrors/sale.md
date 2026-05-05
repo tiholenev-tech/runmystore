@@ -2451,50 +2451,45 @@ function render() {
                     <div class="set-val-sub">${unitSub}</div>
                 </div>
                 <div class="set-qty">
+                    <button class="set-qty-btn" data-qty-dec="${idx}" type="button" aria-label="Намали">−</button>
                     <span class="set-qty-val" data-qty-edit="${idx}" role="button" aria-label="Промени брой">${item.quantity}</span>
+                    <button class="set-qty-btn" data-qty-inc="${idx}" type="button" aria-label="Увеличи">+</button>
                 </div>
                 <div class="set-total">${fmtPrice(lineTotal)}</div>
             </div>
         `;
         const fg = div.querySelector('.set-row-fg');
         const qtyVal = div.querySelector('.set-qty-val');
+        const decBtn = div.querySelector('[data-qty-dec]');
+        const incBtn = div.querySelector('[data-qty-inc]');
         const delBtn = div.querySelector('.ci-delete');
 
-        // S87G.B3 — split tap zone on qty value: left half = -1, right half = +1; long-press = numpad
-        let qtyLpTimer = null;
-        let qtyLpFired = false;
-        if (qtyVal) {
-            qtyVal.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (qtyLpFired) { qtyLpFired = false; return; }
-                const rect = qtyVal.getBoundingClientRect();
-                const x = (e.clientX !== undefined ? e.clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : rect.left + rect.width / 2));
-                if (x < rect.left + rect.width / 2) {
-                    if (STATE.cart[idx].quantity > 1) {
-                        STATE.cart[idx].quantity--;
-                        render();
-                    } else {
-                        removeItem(idx);
-                    }
-                } else {
-                    STATE.cart[idx].quantity++;
-                    render();
-                }
-            });
-            qtyVal.addEventListener('touchstart', () => {
-                qtyLpFired = false;
-                clearTimeout(qtyLpTimer);
-                qtyLpTimer = setTimeout(() => { qtyLpFired = true; openQtyEditor(idx); }, 500);
-            }, {passive: true});
-            qtyVal.addEventListener('touchend', () => clearTimeout(qtyLpTimer));
-            qtyVal.addEventListener('touchmove', () => clearTimeout(qtyLpTimer));
-            qtyVal.addEventListener('touchcancel', () => clearTimeout(qtyLpTimer));
-        }
+        // S87F.SALE.UX Bug #7 — visible −/+ бутони + tap на число = custom numpad popup.
+        // Преди: невидим split-tap zone (потребителят не знаеше че има split + tap-by-default = +1).
+        if (decBtn) decBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (STATE.cart[idx].quantity > 1) {
+                STATE.cart[idx].quantity--;
+                render();
+            } else {
+                showCustomConfirm('Премахни "' + (STATE.cart[idx].name || 'артикул') + '"?', () => removeItem(idx));
+            }
+        });
+        if (incBtn) incBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            STATE.cart[idx].quantity++;
+            render();
+        });
+        if (qtyVal) qtyVal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openQtyEditor(idx);
+        });
 
-        // Tap row body (not qty, not delete) = select
+        // Tap row body (not qty/+/−, not delete) = select
         div.addEventListener('click', (e) => {
             if (e.target.closest('.ci-delete')) return;
             if (e.target.closest('.set-qty-val')) return;
+            if (e.target.closest('.set-qty-btn')) return;
             if (div.classList.contains('swiped')) {
                 // Tap outside delete while swiped → close swipe
                 div.classList.remove('swiped');
@@ -2510,13 +2505,14 @@ function render() {
         const SWIPE_THRESHOLD_PX = 60;
         const SWIPE_THRESHOLD_PCT = 0.30;
 
+        // S87F.SALE.UX Bug #6 — restore swipe от ВСЯКА точка на row-а (беше restricted в last 30px).
+        // Original спираше swipe ако touch не започне в rightmost 30px → Тихол не може да plъzне.
+        // Сега: позволяваме swipe от всяка точка освен на set-qty-val/btn и ci-delete (own gestures).
         div.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.set-qty-val')) return; // qty has its own gestures
+            if (e.target.closest('.set-qty-val')) return;
+            if (e.target.closest('.set-qty-btn')) return;
+            if (e.target.closest('.ci-delete')) return;
             const t = e.touches[0];
-            const rect = div.getBoundingClientRect();
-            sxStart = t.clientX - rect.left; // x within row
-            // Spec: ignore swipe unless touchstart is in the rightmost 30px of the row
-            if (sxStart < rect.width - 30) { dragging = false; locked = false; sx = 0; return; }
             sx = t.clientX;
             sy = t.clientY;
             dragging = true;
@@ -2632,6 +2628,13 @@ function addToCart(product, qtyOverride) {
 
     greenFlash();
     if (navigator.vibrate) navigator.vibrate(50);
+
+    // S87F.SALE.UX Bug #12 — soft warning при stock <= min_stock (informational, не блокира).
+    const _stk = parseInt(product.stock || 0);
+    const _min = parseInt(product.min_stock || 0);
+    if (_stk > 0 && _min > 0 && _stk <= _min && typeof showCustomToast === 'function') {
+        showCustomToast('⚠ Остават ' + _stk + ' бр (под минимум)', 'warn');
+    }
 
     // Reset context to code
     setNumpadCtx('code');
@@ -2956,10 +2959,10 @@ function setPayMethod(method, skipShow) {
 }
 
 function payBanknote(amt) {
+    // S87F.SALE.UX Bug #9 — REPLACE not ADD. Преди: 50→100→200 ставаше 350 (cumulative).
+    // Сега: всяка банкнота заменя input стойността независимо от предна.
     const recvInput = document.getElementById('payRecvAmount');
-    const cur = parseFloat((recvInput.value || '0').replace(',', '.')) || 0;
-    const next = cur + parseFloat(amt);
-    recvInput.value = next.toFixed(2).replace('.', ',');
+    recvInput.value = parseFloat(amt).toFixed(2).replace('.', ',');
     payCalcChange();
 }
 
@@ -2970,18 +2973,26 @@ function payExact() {
 }
 
 function payCalcChange() {
+    // S87F.SALE.UX Bug #10 — празно поле = presumed "точно" (recv=total) → ПОТВЪРДИ active + ресто=0.
+    // Преди: празно поле → recv=0 → btnConfirm disabled (разочароващо за касиерите).
+    // Disabled само ако касиерът explicitly е написал стойност И тя е < total.
     const total = getTotal();
-    const inputVal = (document.getElementById('payRecvAmount').value || '0').replace(',', '.');
-    const recv = parseFloat(inputVal) || 0;
+    const inputRaw = (document.getElementById('payRecvAmount').value || '').replace(',', '.').trim();
+    let recv;
+    if (inputRaw === '' || isNaN(parseFloat(inputRaw))) {
+        recv = total;
+    } else {
+        recv = parseFloat(inputRaw);
+    }
     STATE.receivedAmount = recv;
 
-    const change = recv - total;
-    document.getElementById('payChangeAmount').textContent = fmtPrice(Math.max(0, change)) + ' ' + STATE.currency;
+    const change = Math.max(0, recv - total);
+    document.getElementById('payChangeAmount').textContent = fmtPrice(change) + ' ' + STATE.currency;
     document.getElementById('payConfirmAmount').textContent = fmtPrice(total) + ' ' + STATE.currency;
 
     const btnConfirm = document.getElementById('btnConfirm');
     if (STATE.payMethod === 'cash') {
-        btnConfirm.disabled = recv < total;
+        btnConfirm.disabled = (inputRaw !== '' && recv < total);
     } else {
         btnConfirm.disabled = false;
     }
@@ -3083,21 +3094,20 @@ function handleStockShortage(res) {
         return;
     }
 
-    // Show actionable confirm: clamp to available qty and retry, or cancel.
+    // S87F.SALE.UX Bug #8 — replace native confirm с custom modal (glass styled).
     const msg = '"' + pname + '": налични ' + avail + ' (поискани ' + requested + '). Да продам ' + avail + ' бр?';
-    if (window.confirm(msg)) {
+    showCustomConfirm(msg, () => {
         const item = (STATE.cart || []).find(it => parseInt(it.product_id, 10) === pid);
         if (item) {
             item.quantity = avail;
             render();
-            // Retry the same flow — user re-confirms total in payment dialog.
             confirmPayment();
         } else {
             showToast('Артикулът не е в количката.', '', 3000);
         }
-    } else {
+    }, () => {
         showToast('Продажбата отказана. Коригирай количката.', '', 3000);
-    }
+    });
 }
 
 // ─── WHOLESALE ───
@@ -3720,17 +3730,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const ageStr = ageMin < 1 ? 'преди малко' : (ageMin < 60 ? 'преди ' + ageMin + ' мин' : 'преди ' + Math.round(ageMin/60) + ' ч');
     const cnt = d.cart.reduce((s, it) => s + (parseInt(it.quantity) || 0), 0);
 
+    // S87F.SALE.UX Bug #8 — replace native confirm с custom modal.
     setTimeout(() => {
-        if (confirm('Намерена незавършена продажба (' + cnt + ' арт., ' + ageStr + '). Възстанови?')) {
+        showCustomConfirm('Намерена незавършена продажба (' + cnt + ' арт., ' + ageStr + '). Възстанови?', () => {
             STATE.cart = d.cart;
             STATE.discountPct = d.discountPct || 0;
             STATE.customerId = d.customerId || null;
             STATE.customerName = d.customerName || null;
             STATE.isWholesale = !!d.isWholesale;
             render();
-        } else {
+        }, () => {
             s87dDraftClear();
-        }
+        });
     }, 400);
 });
 
@@ -3756,14 +3767,13 @@ window.addEventListener('popstate', (e) => {
         return;
     }
     // 2) main screen: cart non-empty → save draft + confirm
+    // S87F.SALE.UX Bug #8 — replace native confirm с custom modal.
     if (STATE && STATE.cart && STATE.cart.length > 0) {
         s87dDraftSave();
-        // Re-arm one history step so the user can still back out — but warn first
         history.pushState({ rmsGuard: true }, '', location.href);
-        if (confirm('Имате ' + STATE.cart.length + ' арт. в кошницата. Запазени са като чернова. Излез ли?')) {
-            // pop the guard we just pushed, then go back for real
+        showCustomConfirm('Имате ' + STATE.cart.length + ' арт. в кошницата. Запазени са като чернова. Излез ли?', () => {
             history.go(-2);
-        }
+        });
     }
 });
 
