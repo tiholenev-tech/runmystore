@@ -2837,6 +2837,23 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 /* ═══ S95.WIZARD.STEP2_OPTIONAL — "По желание" sections, margin badge, radio toggles ═══ */
 .s2-section{position:relative;padding:14px 14px 12px;margin-bottom:14px;border-radius:14px;background:linear-gradient(180deg,rgba(15,18,36,0.65),rgba(8,11,24,0.55));border:1px solid rgba(99,102,241,0.18);box-shadow:0 4px 18px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.04);contain:layout style}
+/* S95.BUGFIX_R4 Bug 3a: DESIGN_LAW compliance — when s2-section also has .glass.sm,
+ * let the глобалния .glass rule (design-kit) контролира bg/border/shadow + shines/glows.
+ * `contain` отстраняваме за да не блокира glow псевдо-елементите outside на cardа. */
+.s2-section.glass{background:transparent;border:0;box-shadow:none;contain:none}
+.s2-section.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
+/* Adaptive textarea за състав/материя — auto-grow на височина при text overflow.
+ * Ползва same look-and-feel като .fc inputs. */
+.s2-textarea{
+    width:100%;padding:10px 14px;border-radius:12px;
+    border:1px solid var(--border-subtle);background:rgba(30,35,50,0.9);
+    color:var(--text-primary);font-family:inherit;font-size:14px;
+    outline:none;transition:border-color 0.2s;
+    resize:none;overflow:hidden;min-height:42px;line-height:1.4;
+    box-sizing:border-box;
+}
+.s2-textarea:focus{border-color:var(--border-glow);box-shadow:0 0 12px rgba(99,102,241,0.1)}
+.s2-textarea::placeholder{color:var(--text-secondary)}
 .s2-section-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#a5b4fc;margin-bottom:10px;text-shadow:0 0 8px rgba(165,180,252,0.25)}
 .s2-section-title .s2ti-ic{font-size:14px;width:20px;text-align:center}
 .s2-margin-badge{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:30px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:800;letter-spacing:0.02em;font-variant-numeric:tabular-nums;border:1px solid;transition:background .2s ease,border-color .2s ease,color .2s ease}
@@ -6348,6 +6365,14 @@ async function renderWizard(){
             wizPrefetchSupplierCats(S.wizData.supplier_id);
         }
     }
+    // S95.BUGFIX_R4 Bug 3a: post-render hook — auto-grow състав/материя textarea
+    // спрямо началната стойност (иначе pre-filled value остава 1 ред).
+    if(S.wizStep===8){
+        setTimeout(function(){
+            var ta=document.getElementById('wComposition');
+            if(ta && typeof _step2AutoGrow==='function')_step2AutoGrow(ta);
+        },20);
+    }
     // Legacy supplier→category cascade (kept defensively for the old #wSup/#wCat selects if any code path still renders them).
     if(false&&S.wizStep===3){
         const wSup=document.getElementById('wSup');
@@ -7477,6 +7502,36 @@ function _step2OriginToggle(isDomestic) {
     }
 }
 
+// S95.BUGFIX_R4 Bug 3a: adaptive textarea (състав/материя) — auto-grow на височина
+// при overflow. Извиква се oninput + post-render за начален expand на pre-filled value.
+function _step2AutoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    var h = Math.max(42, el.scrollHeight);
+    el.style.height = h + 'px';
+}
+
+// S95.BUGFIX_R4 Bug 3b: price sanity warning — toast при cost > retail или
+// wholesale > retail. Debounced 1s — не spam-ва toast-а на всеки typing keystroke.
+var _step2PriceWarnTO = null;
+function _step2PriceWarn(which) {
+    clearTimeout(_step2PriceWarnTO);
+    _step2PriceWarnTO = setTimeout(function() {
+        var costEl = document.getElementById('wCostPrice');
+        var whEl = document.getElementById('wWprice');
+        var cost = costEl ? parseFloat(costEl.value) || 0 : 0;
+        var wholesale = whEl ? parseFloat(whEl.value) || 0 : 0;
+        var retail = parseFloat(S.wizData.retail_price) || 0;
+        if (retail <= 0) return;
+        if (which === 'cost' && cost > 0 && cost > retail) {
+            if (typeof showToast === 'function') showToast('Доставната цена (' + cost.toFixed(2) + ') е по-висока от продажната (' + retail.toFixed(2) + ')!', 'warn');
+        }
+        if (which === 'wholesale' && wholesale > 0 && wholesale > retail) {
+            if (typeof showToast === 'function') showToast('Едро цена (' + wholesale.toFixed(2) + ') е по-висока от продажната (' + retail.toFixed(2) + ')!', 'warn');
+        }
+    }, 1000);
+}
+
 function wizGoStep2() {
     if (typeof wizCollectData === 'function') wizCollectData();
     S.wizPriorStep = S.wizStep;
@@ -7568,21 +7623,26 @@ function renderWizStep2() {
         return '<button type="button" class="s2-radio-btn s2-unit-r' + (unit === u ? ' active' : '') + '" data-u="' + u + '" onclick="S.wizData.unit=\'' + u + '\';document.querySelectorAll(\'.s2-unit-r\').forEach(function(b){b.classList.toggle(\'active\',b.dataset.u===\'' + u + '\')})">' + u + '</button>';
     }).join('');
 
+    // S95.BUGFIX_R4 Bug 3a: DESIGN_LAW glass.sm wrapper + 4-span shine/glow pattern.
+    // q-default за общи sections, q-magic за AI Studio (premium per таблица 2.5).
+    // S95.BUGFIX_R4 Bug 3b: cost/wholesale oninput → _step2PriceWarn debounce check.
+    var _glassSpans = '<span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>';
     var pricesSection =
-        '<div class="s2-section">' +
+        '<div class="s2-section glass sm q-default">' + _glassSpans +
             '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
             // S95.STEP2_BUGFIX Bug 2: cost_price oninput → _step2RecalcMargin БЕЗ typeof guard.
             // Ако нещо в chain-а throw-не (напр. wizUpdateMarkup намери stale wMarkupPct), recalc
             // не се извиква и badge остава "—". Добавен typeof guard + recalc и при wholesale change.
-            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin()" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + mic('cost_price') + cpy('cost_price') + '</div></div>' +
-            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\');if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin()" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + mic('wholesale_price') + cpy('wholesale_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'cost_price\');if(typeof wizUpdateMarkup===\'function\')wizUpdateMarkup();if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin();if(typeof _step2PriceWarn===\'function\')_step2PriceWarn(\'cost\')" value="' + costPrice + '" placeholder="0.00" style="flex:1">' + mic('cost_price') + cpy('cost_price') + '</div></div>' +
+            '<div class="fg"><label class="fl">Цена едро</label><div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" inputmode="decimal" class="fc" id="wWprice" oninput="S.wizData.wholesale_price=parseFloat(this.value)||0;if(typeof wizClearAIMark===\'function\')wizClearAIMark(\'wholesale_price\');if(typeof _step2RecalcMargin===\'function\')_step2RecalcMargin();if(typeof _step2PriceWarn===\'function\')_step2PriceWarn(\'wholesale\')" value="' + wholesalePrice + '" placeholder="0.00" style="flex:1">' + mic('wholesale_price') + cpy('wholesale_price') + '</div></div>' +
             '<div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0"><label class="fl" style="margin:0">Печалба %</label><span id="s2MarginBadge" class="s2-margin-badge ' + initBadgeClass + '">' + initBadgeText + '</span></div>' +
         '</div>';
 
     var detailsSection =
-        '<div class="s2-section">' +
+        '<div class="s2-section glass sm q-default">' + _glassSpans +
             '<div class="s2-section-title"><span class="s2ti-ic">🏷️</span><span>Детайли</span></div>' +
-            '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wComposition" list="s2CompList" value="' + esc(composition) + '" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value" style="flex:1"><datalist id="s2CompList">' + compList + '</datalist>' + mic('composition') + cpy('composition') + '</div></div>' +
+            // S95.BUGFIX_R4 Bug 3a: composition input → textarea с auto-grow при overflow.
+            '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:flex-start"><textarea class="s2-textarea" id="wComposition" rows="1" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value;_step2AutoGrow(this)" style="flex:1">' + esc(composition) + '</textarea>' + mic('composition') + cpy('composition') + '</div></div>' +
             '<div class="fg"><label class="fl">Произход</label>' +
                 '<div class="s2-radio-row">' +
                     '<button type="button" id="s2OriginBg" class="s2-radio-btn' + (isDomestic ? ' active' : '') + '" onclick="_step2OriginToggle(true)">🇧🇬 Българска</button>' +
@@ -7597,7 +7657,7 @@ function renderWizStep2() {
     var aiSection = '';
     if (S.wizData._photoDataUrl) {
         aiSection =
-            '<div class="s2-section">' +
+            '<div class="s2-section glass sm q-magic">' + _glassSpans +
                 '<div class="s2-section-title"><span class="s2ti-ic">🎨</span><span>AI Studio</span></div>' +
                 _wizAIInlineRows() +
             '</div>';
@@ -9611,13 +9671,18 @@ function _v4ComputeFooter(axIdx){
         var bMatrix='<button type="button" class="mod-prod-mx-cta" onclick="openMxOverlay()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Колко бр.?</button>';
         var bNext='';
         if(nextEmptyIdx>=0 && hasVals){
-            var _nextLbl=/^(размер|size|цвят|color|вариация\s*\d+)$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name;
-            bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit">'+esc(_nextLbl)+'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+            // S95.BUGFIX_R4 Bug 2: dynamic label по типа на следващата axis —
+            // "Кои размери?" / "Кои цветове?" вместо generic "Вариация N".
+            var _nextN=(nextAx.name||'').toLowerCase();
+            var _nextIsSize=_nextN.indexOf('размер')!==-1||_nextN.indexOf('size')!==-1||_nextN.indexOf('ръст')!==-1;
+            var _nextIsColor=_nextN.indexOf('цвят')!==-1||_nextN.indexOf('color')!==-1||_nextN.indexOf('десен')!==-1;
+            var _nextLbl=_nextIsSize?'Кои размери?':(_nextIsColor?'Кои цветове?':(/^вариация\s*\d+$/i.test(nextAx.name)?('Вариация '+(nextEmptyIdx+1)):nextAx.name));
+            bNext='<button type="button" onclick="S._wizActiveTab='+nextEmptyIdx+';renderWizard()" style="flex:1;min-width:0;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(255 70% 52%),hsl(222 70% 42%));border:1px solid hsl(255 70% 55%);color:#fff;font-size:10.5px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(255 70% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:3px;font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(_nextLbl)+'</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg></button>';
         }
-        // S95.BUGFIX_R3 Bug 1: Step 4 footer "Към запис" → "Препоръчителни ›" routes to
-        // Step 8 (Препоръчителни) — variant flow преди това нямаше визуален път към
-        // Препоръчителни → Step 2 unreachable. Premium violet (q-magic) per DESIGN_LAW.
-        var bSave='<button type="button" onclick="wizCollectData();wizGoStep2()" style="flex:1;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;letter-spacing:0.02em">Препоръчителни<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        // S95.BUGFIX_R4 Bug 1: "Препоръчителни" клипваше до "оръчите" на 373px (Z Flip6).
+        // Кратко "Доп. поля" + sparkle SVG icon (q-magic premium) → fits 4-button footer.
+        // Q-magic violet hue per DESIGN_LAW 2.5 (виолет за premium/AI/recommended fields).
+        var bSave='<button type="button" onclick="wizCollectData();wizGoStep2()" title="Препоръчителни / допълнителни полета" style="flex:1;min-width:0;height:44px;border-radius:12px;background:linear-gradient(180deg,hsl(280 65% 30% / 0.42),hsl(310 60% 22% / 0.18));border:1px solid hsl(280 70% 60% / 0.55);color:#e9d5ff;font-size:10.5px;font-weight:700;cursor:pointer;box-shadow:0 0 14px hsl(280 70% 50% / 0.28),inset 0 1px 0 rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;letter-spacing:0.02em;overflow:hidden;white-space:nowrap;padding:0 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg><span style="overflow:hidden;text-overflow:ellipsis">Доп. поля</span></button>';
         ftMid=bMatrix+bNext+bSave;
     }
     return ftBack+ftMid;
