@@ -1737,22 +1737,26 @@ body.sale-page .pay-confirm-btn{
 }
 body.sale-page .pay-confirm-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
 
-/* S87G.R2 — press-and-hold 2s progress fill. Слой над gradient-а с по-светъл
-   sweep отдясно-наляво докато потребителят държи; release преди 2s → reset. */
+/* S87H.BUGFIX_R3 — press-and-hold 1.2s (намалено от 2s, R2 беше прекалено дълго).
+   По-ярка sweep + видим border pulse → user разбира, че трябва да държи.
+   Release преди 1.2s → toast hint + progress reset. */
 body.sale-page .pay-confirm-btn{position:relative;overflow:hidden}
 body.sale-page .pay-confirm-btn .pay-confirm-text,
 body.sale-page .pay-confirm-btn svg{position:relative;z-index:2}
 body.sale-page .pay-confirm-progress{
     position:absolute;left:0;top:0;bottom:0;width:0;z-index:1;
     background:linear-gradient(90deg,
-        hsl(var(--hue1) 90% 70% / 0.55),
-        hsl(var(--hue2) 90% 60% / 0.55));
-    transition:width 0s linear;
+        hsl(var(--hue1) 95% 75% / 0.75),
+        hsl(var(--hue2) 95% 65% / 0.75));
+    transition:width 0.15s ease-out;
     pointer-events:none;
+}
+body.sale-page .pay-confirm-btn.holding{
+    box-shadow:0 0 0 2px hsl(var(--hue1) 80% 60% / 0.6),0 4px 14px hsl(var(--hue1) 65% 55% / 0.45);
 }
 body.sale-page .pay-confirm-btn.holding .pay-confirm-progress{
     width:100%;
-    transition:width 2s linear;
+    transition:width 1.2s linear;
 }
 
 /* S87F.SALE.UX — Custom modal pattern (replaces native prompt/confirm/alert).
@@ -2139,7 +2143,7 @@ body.sale-page .pay-confirm-btn.holding .pay-confirm-progress{
     <button type="button" class="pay-confirm-btn s87v3-tap" id="btnConfirm" disabled>
         <div class="pay-confirm-progress" aria-hidden="true"></div>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <span class="pay-confirm-text">ДРЪЖ 2 СЕК · ПОТВЪРДИ <span id="payConfirmAmount">0,00 <?= $currency ?></span></span>
+        <span class="pay-confirm-text">ДРЪЖ ЗА ПЛАЩАНЕ · <span id="payConfirmAmount">0,00 <?= $currency ?></span></span>
     </button>
 </div>
 
