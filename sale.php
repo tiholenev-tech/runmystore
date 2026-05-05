@@ -4056,38 +4056,38 @@ function srchOvVoice() {
     }
 }
 
-// S87F.SALE.UX Bug #1 — debounced live-search започва от 1-ва буква (беше 2). 250ms debounce.
-(function wireLiveSearch(){
-    function doWire(){
-        const input = document.getElementById('searchInput');
-        if (!input || input.__s87gWired) return;
-        input.__s87gWired = true;
-        const onChange = () => {
-            const q = (input.value || '').trim();
-            STATE.searchText = q;
-            clearTimeout(srchOvDebounce);
-            if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
-            if (q.length < 1) {
-                inlineSearchClose();
-                return;
-            }
-            srchOvDebounce = setTimeout(() => doInlineSearch(q), 250);
-        };
-        input.addEventListener('input', onChange);
-        input.addEventListener('keyup', onChange);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const q = (input.value || '').trim();
-                if (q.length >= 1) {
-                    clearTimeout(srchOvDebounce);
-                    doInlineSearch(q);
-                }
-            }
-        });
-    }
-    if (document.readyState !== 'loading') doWire();
-    else document.addEventListener('DOMContentLoaded', doWire);
+// S87G.R2 Bug #1 — event delegation за live search.
+// Преди: wire-once IIFE на DOMContentLoaded + __s87gWired guard. При replace на
+// #searchInput (view switch, modal close, render reorder) старият listener гасваше
+// и Tihol виждаше резултати само след Enter (отделен keypress listener на новия input
+// никога не се връзваше). Delegation от body улавя input/keypress независимо от
+// това дали елементът е replace-нат.
+(function wireLiveSearchDelegated(){
+    const SEARCH_DEBOUNCE_MS = 200; // S87G.R2 — по-бързо: 250ms → 200ms
+    document.body.addEventListener('input', (e) => {
+        const t = e.target;
+        if (!t || t.id !== 'searchInput') return;
+        const q = (t.value || '').trim();
+        STATE.searchText = q;
+        clearTimeout(srchOvDebounce);
+        if (srchOvAbortCtl) { try { srchOvAbortCtl.abort(); } catch(_){} }
+        if (q.length < 1) {
+            inlineSearchClose();
+            return;
+        }
+        srchOvDebounce = setTimeout(() => doInlineSearch(q), SEARCH_DEBOUNCE_MS);
+    });
+    // Enter триггерира незабавен search (без debounce wait).
+    document.body.addEventListener('keypress', (e) => {
+        const t = e.target;
+        if (!t || t.id !== 'searchInput') return;
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const q = (t.value || '').trim();
+        if (q.length < 1) return;
+        clearTimeout(srchOvDebounce);
+        doInlineSearch(q);
+    });
 })();
 
 // Hardware back (Capacitor): inline-variants → masters; otherwise close inline
