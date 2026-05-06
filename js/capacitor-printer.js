@@ -426,6 +426,40 @@
     }
     return out;
   }
+  // S97.D520_FIX2 — Unicode → CP1251 (Windows-1251 Cyrillic) byte encoder.
+  // CP1251 is a single-byte codepage where Bulgarian cyrillic А-Я а-я maps
+  // to 0xC0-0xFF (offset 0x350). After the @e-is plugin patch (ISO-8859-1),
+  // these bytes pass through the SPP bridge intact. The printer needs to be
+  // primed with `CODEPAGE 1251` for the TEXT command to decode them.
+  // Returns a JS string where each char's code unit is the CP1251 byte.
+  // Use with TSPL TEXT only when BITMAP path fails (e.g. printer ignores BITMAP).
+  function utf16ToCp1251Bytes(s) {
+    let out = '';
+    for (const ch of String(s || '')) {
+      const cp = ch.codePointAt(0);
+      let b;
+      if      (cp <= 0x7F)                       b = cp;          // ASCII passthrough
+      else if (cp >= 0x0410 && cp <= 0x044F)     b = cp - 0x0350; // А..я → 0xC0..0xFF
+      else if (cp === 0x0401)                    b = 0xA8;        // Ё
+      else if (cp === 0x0451)                    b = 0xB8;        // ё
+      else if (cp === 0x0490)                    b = 0xA5;        // Ґ
+      else if (cp === 0x0491)                    b = 0xB4;        // ґ
+      else if (cp === 0x0402)                    b = 0x80;        // Ђ
+      else if (cp === 0x0403)                    b = 0x81;        // Ѓ
+      else if (cp === 0x20AC)                    b = 0x88;        // €
+      else if (cp === 0x2116)                    b = 0xB9;        // №
+      else if (cp === 0x00A0)                    b = 0xA0;        // NBSP
+      else if (cp === 0x00B0)                    b = 0xB0;        // °
+      else if (cp === 0x00B7)                    b = 0xB7;        // · mid-dot
+      else if (cp === 0x2014)                    b = 0x97;        // — em dash
+      else if (cp === 0x2013)                    b = 0x96;        // – en dash
+      else if (cp === 0x2026)                    b = 0x85;        // … ellipsis
+      else                                       b = 0x3F;        // ? for others
+      out += String.fromCharCode(b & 0xFF);
+    }
+    return out;
+  }
+
   // Sanitize for TSPL TEXT command: transliterate cyrillic, drop non-ASCII,
   // strip control chars and TSPL-quote-conflicting double-quotes.
   function tsplSafe(s, maxLen) {
@@ -745,17 +779,24 @@
     const parts = [];
     const push = (s) => parts.push(asciiToBytes(s));
     const pushRaw = (b) => parts.push(b);
+    // S97.D520_FIX2 — Labelife btsnoop capture used BITMAP mode 4, not 0.
+    // mode 0 was producing hieroglyphs (printer falling back to TEXT decode
+    // of the raster bytes via its built-in codepage). Mode 4 is Phomemo's
+    // documented OVERWRITE variant for D-family.
+    const D520_BITMAP_MODE = 4;
     const placeBitmap = (bmp, x, y) => {
       if (!bmp) return;
-      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
+      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',' + D520_BITMAP_MODE + ',');
       pushRaw(bmp.data);
       push('\r\n');
     };
 
-    // Header — D520BT tunables (Labelife capture).
+    // Header — D520BT tunables (Labelife capture verbatim).
     push('SIZE 50 mm,30 mm\r\n');
-    push('GAP 3 mm,0\r\n');
-    push('DIRECTION 1\r\n');
+    push('GAP 3.00 mm,0.00 mm\r\n');
+    push('DIRECTION 0,0\r\n');
+    push('REFERENCE 0,0\r\n');
+    push('OFFSET 0 mm\r\n');
     push('DENSITY 11\r\n');
     push('SPEED 4\r\n');
     push('CLS\r\n');
@@ -1312,18 +1353,22 @@
     },
 
     // Internal exports (for tools/d520_classic_test.php and unit tests).
-    _generateTSPL_DTM:  generateTSPL_DTM,
-    _generateTSPL_D520: generateTSPL_D520,
-    _writeSPP_D520:     writeSPP_D520,
-    _transliterateBG:   transliterateBG,
-    _tsplSafe:          tsplSafe,
-    _isCapacitor:       isCapacitor,
-    _getDeviceId:       getSavedDeviceId,
-    _getD520Address:    getD520Address,
-    _renderTextBitmap:  renderTextBitmap,
-    _asciiToBytes:      asciiToBytes,
+    _generateTSPL_DTM:   generateTSPL_DTM,
+    _generateTSPL_D520:  generateTSPL_D520,
+    _writeSPP_D520:      writeSPP_D520,
+    _transliterateBG:    transliterateBG,
+    _tsplSafe:           tsplSafe,
+    _utf16ToCp1251Bytes: utf16ToCp1251Bytes,
+    _isCapacitor:        isCapacitor,
+    _getDeviceId:        getSavedDeviceId,
+    _getD520Address:     getD520Address,
+    _renderTextBitmap:   renderTextBitmap,
+    _renderBoxedTextBitmap: renderBoxedTextBitmap,
+    _asciiToBytes:       asciiToBytes,
     _asciiBytesToString: asciiBytesToString,
-    _dbgLog:            dbgLog
+    _bytesToLatin1String: bytesToLatin1String,
+    _concatBytes:        concatBytes,
+    _dbgLog:             dbgLog
   };
 
   window.CapPrinter = CapPrinter;
