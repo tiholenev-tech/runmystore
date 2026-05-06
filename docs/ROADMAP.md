@@ -43,6 +43,8 @@
 - ⏳ transfers.php — S90
 - ⏳ inventory.php (Zone Walk) — S91-S93
 - ⏳ warehouse.php (hub) — S94
+- ⏳ **Импорт адаптер — универсален CSV + Microinvest** (S96+, преди или по време на бета) — auto-detect (encoding+разделител+header fingerprint), AI групиране на вариации
+- ⏳ **Фискална Bluetooth интеграция (Елтрейд/Датекс/Тремол/Daisy)** — преди пускане в БГ; стандартен подход, същият като Microinvest/Детелина
 
 **Завършва когато:** Пешо в ЕНИ може да изкара ден работа изцяло от RunMyStore — продажби, доставки, поръчки, броене.
 
@@ -95,6 +97,7 @@
 - WOW Tiers activation (Tier 1/2/3 wow moments)
 - Store Health Score eval
 - Performance: page transitions < 1 сек
+- **AI Cost оптимизации — динамичен контекст + PHP summary** (преди 100 клиента) — категоризация на въпроса в `build-prompt-integration.php` (зарежда САМО нужните слоеве), `buildProductSummary()` PHP функция (200 токена вместо 6000 при големи магазини), per-store контекст при multi-store. Спестяване 57-67%, бруто марж 80-85%.
 
 **Завършва когато:** 10/10 beta клиенти казват „не мога без това". NPS > 50.
 
@@ -113,6 +116,10 @@
 - Legal: антиMLM защита, audit trail
 - Launch landing page + marketing site
 - Help docs + video tutorials
+- **AI рекламен агент на runmystore.ai** — Gemini 2.5 Flash, разговаря с посетителя, персонализира демо по тип бизнес (дрехи/обувки/козметика), плаващ бутон Neon Glass, public_chat_leads таблица, rate limit 30 съобщения/сесия, ~€0.01-0.02 per сесия
+- **Демо страница с интерактивен AI тур** — централната точка на дигиталния маркетинг, всички канали (Facebook/TikTok/Google/LinkedIn) водят към нея, демо данни per тип бизнес, запомня разговора между сесии, събира имейл естествено
+- **TTS voice режим (Режим 3 — AI говори обратно)** — Google Cloud Text-to-Speech (WaveNet $16/1M симв., Chirp 3 HD $30/1M), пълен hands-free цикъл (Whisper → AI → TTS), избираем (НЕ по подразбиране), безплатно за бета (5 магазина = €0)
+- **Stripe Tap to Pay интеграция** (Година 1-2) — Stripe Terminal SDK + Tap to Pay на Android, поддържа Visa/Mastercard/AmEx/Apple Pay/Google Pay/Samsung Pay, 0.5% платформена комисионна чрез Stripe Connect, onboarding 2-3 минути (Stripe Connect Express → KYC → IBAN)
 
 **Завършва когато:** Публично достъпен product-market fit.
 
@@ -131,8 +138,29 @@
 - Localization: UI strings, AI responses, voice recognition
 - Offline mode (IndexedDB queue + Service Worker)
 - Retrospective preceding всеки major release
+- **Импорт адаптери — SmartBill, Sedona, SAGA C** (при навлизане в Румъния) — SmartBill REST API (най-лесен в RO), Sedona Retail (силна поддръжка на вариации за дрехи/обувки), SAGA C (DBF/Excel за счетоводители)
+- **Импорт адаптери — SoftOne, PRISMA Win, Pylon** (при навлизане в Гърция)
+- **Импорт адаптери — Loyverse, Shopify POS, Lightspeed** (международни облачни POS, глобално покритие)
 
 **Завършва когато:** 10 000+ активни tenants в поне 3 държави.
+
+---
+
+## 📍 ФАЗА 7 — ХАРДУЕРНА ЛИНИЯ + ПЪЛНА ВЕРТИКАЛНА ИНТЕГРАЦИЯ (Година 2-3)
+
+**Цел:** RunMyStore не е приложение — е завършен POS продукт.
+
+### Какво се прави:
+- **RunMyStore Terminal — хардуерна линия (Година 2-3)** — Android POS терминал OEM от Китай (Android 13, 5.5" IPS, 5MP камера + LED, NFC, вграден 58mm термален принтер, WiFi/BT/4G LTE, 5000mAh, GPS, ~400g). Себестойност $65-95 при OEM мащаб. RunMyStore APK предварително инсталиран. Цена €149 еднократно ИЛИ безплатен при 12-месечен PRO абонамент. Nespresso модел.
+- Per-държава фискална стратегия:
+  - БГ/РО/ГР/Сърбия/Словакия/Унгария — терминал + Bluetooth към фискален принтер (хардуерна фискализация)
+  - Хърватия/Испания/Полша — софтуерна фискализация (терминалът Е всичко в едно)
+  - UK/IE/Дания/Финландия/Холандия/Люксембург — без фискализация
+- Първа държава за пълен all-in-one terminal: **Хърватия или UK/IE**
+- Импорт адаптери — JTL (DE), Danea Easyfatt (IT), Factusol (ES), Subiekt GT (PL) — per държава при навлизане
+- Stripe Tap to Pay приходен модел — 0.5% × среден €3,000 оборот/мес × N клиенти
+
+**Завършва когато:** Първите 1,000 терминала пуснати, картови плащания генерират >€10k/мес комисионна.
 
 ---
 

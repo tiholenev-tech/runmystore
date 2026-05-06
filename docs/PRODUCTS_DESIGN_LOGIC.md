@@ -712,6 +712,103 @@ Output:
 - Всяка грешка се показва в списък с line number
 - Пешо може да [Fix inline] или [Remove from import]
 
+## 5.6 Auto-detect на програмата (S96)
+
+Преди CSV mapping AI разпознава ОТ КОЯ ПРОГРАМА идва файлът — три стъпки:
+
+**1. Encoding детекция** (PHP `mb_detect_encoding`):
+
+| Encoding | Регион | Типични програми |
+|---|---|---|
+| Windows-1251 (CP1251) | България | Microinvest, StoreHouse, Mistral, GenSoft |
+| Windows-1250 | Полша, Чехия, Румъния (SAGA) | Subiekt GT, Pohoda, SAGA C |
+| Windows-1253 | Гърция | PRISMA Win, SoftOne (стари) |
+| Windows-1252 | Италия, Испания | Danea Easyfatt, Factusol |
+| ISO-8859-2 | Румъния (Sedona) | Sedona Retail |
+| UTF-8 | Международни облачни | Loyverse, Shopify, Lightspeed, SmartBill |
+
+Приоритет на проверка: UTF-8 → CP1251 → CP1250 → CP1253 → CP1252 → ISO-8859-2.
+
+**2. Разделител детекция** (броене на първите 5 реда):
+
+| Разделител | Типични програми |
+|---|---|
+| Точка и запетая (`;`) | Европейски локални (Microinvest, PRISMA, Subiekt, Danea, Factusol) |
+| Запетая (`,`) | Международни облачни (Loyverse, Shopify, Lightspeed, SmartBill) |
+| Таб (`\t`) | Microinvest (алтернативен експорт) |
+
+Който е най-чест и дава еднакъв брой колони — той е разделителят.
+
+**3. Header fingerprint** — пръстов отпечатък на програмата.
+
+## 5.7 Библиотека от известни формати
+
+Системата пази шаблони с уникални заглавни редове и сравнява нормализирания (lowercase, trim, no-BOM) header:
+
+```
+Microinvest:    Наименование;Код;Баркод;Мярка;Група;Цена1;Цена2  (CP1251, ;)
+Eltrade/Детел.: Код;Наименование;Баркод;Цена;Група;ДДС група      (CP1251, ;)
+SmartBill (RO): Nume,SKU,Cod_bare,Pret,UM,Tip                     (UTF-8, ,)
+SAGA C:         Cod;Denumire;UM;Pret_vanzare;Pret_achizitie       (CP1250, ;)
+SoftOne (GR):   Κωδικός;Περιγραφή;Barcode;Τιμή;Χρώμα;Μέγεθος       (UTF-8/CP1253, ;)
+Loyverse:       Handle,Item Name,Category,SKU,Barcode,Price,Option1 Name,Option1 Value
+Shopify:        Handle,Title,Option1 Name,Option1 Value,SKU,Variant Price
+Lightspeed:     ID,Handle,SKU,Name,Variant 1,Variant 2,Price,Retail Price
+```
+
+**Confidence scoring:**
+- **≥ 90%** → автоматично mapping
+- **70-89%** → потвърждение от потребителя ("Това е Microinvest, така ли?")
+- **< 70%** → ръчно mapping (Пешо избира коя колона е какво)
+
+## 5.8 AI групиране на вариации (Gemini)
+
+Главният проблем при импорт: Shopify/Loyverse групират вариациите чрез поле `Handle`, но локалните програми (Microinvest, SAGA, StoreHouse) често експортват вариациите като **напълно отделни редове** без Parent ID:
+
+```
+Nike Air Max 90 - 42 - Черен;NAM-42-BK;...
+Nike Air Max 90 - 43 - Черен;NAM-43-BK;...
+Nike Air Max 90 - 42 - Бял;NAM-42-WH;...
+```
+
+**Алгоритъм:**
+
+1. **Regex базово групиране** — повтарящ се префикс ("Nike Air Max 90") + суфикси (размери/цветове) → кандидат за обединяване
+2. **Gemini верификация** — получава групата имена → връща JSON:
+   ```json
+   {
+     "parent_name": "Nike Air Max 90",
+     "axes": {"size": ["42","43","44"], "color": ["Черен","Бял"]},
+     "confidence": 0.92
+   }
+   ```
+3. **Потребителско потвърждение при confidence < 85%** — "Тези 6 артикула изглеждат като един продукт с вариации. Правилно ли е?" → [Да, обедини] / [Не, остави отделни]
+4. **Mapping към RunMyStore** — създава 1 product (parent) + N product_variants
+
+## 5.9 Импорт на движения (последни 6 месеца)
+
+Освен артикули, при налични данни се импортират и движения за обогатяване на AI контекста:
+
+**Продажби (последни 6 месеца):**
+- Дата, артикул (по код или баркод), количество, цена, тип плащане
+
+**Доставки (последни 6 месеца):**
+- Дата, артикул, количество, покупна цена, доставчик
+
+**Филтриране (какво НЕ дърпаме):**
+- Сторнирани операции с неясна причина
+- Тестови записи
+- Движения по-стари от 6 месеца
+- Артикули с нулево количество И нулеви продажби (мъртви артикули)
+
+**Confidence на импортираните данни:** 60-90% — имат имена, кодове, цени, може количества, но не са физически потвърдени. Препоръчва се **Zone Walk** след импорт за пълна точност.
+
+**Принцип:** Три месеца собствени данни в RunMyStore = по-точни от 2 години мръсна история от стара програма.
+
+## 5.10 Препратка
+
+Пълна спецификация (29 секции, header fingerprints per всяка програма, технически компоненти, DB схема `import_sessions`/`import_mappings`/`import_log`) — виж **DATA_MIGRATION_STRATEGY_v1.md**.
+
 ---
 
 # 6. PRODUCT DETAIL / EDIT FLOW
