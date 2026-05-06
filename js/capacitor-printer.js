@@ -779,24 +779,22 @@
     const parts = [];
     const push = (s) => parts.push(asciiToBytes(s));
     const pushRaw = (b) => parts.push(b);
-    // S97.D520_FIX2 — Labelife btsnoop capture used BITMAP mode 4, not 0.
-    // mode 0 was producing hieroglyphs (printer falling back to TEXT decode
-    // of the raster bytes via its built-in codepage). Mode 4 is Phomemo's
-    // documented OVERWRITE variant for D-family.
-    const D520_BITMAP_MODE = 4;
+    // S97.D520_REVERT_HEADER — FIX2 mode 4 + Labelife-verbatim header caused
+    // the printer to beep and abort (TSPL parse error). Reverted to the
+    // working-but-hieroglyph state so the user can at least reach the
+    // diagnostic page. Hieroglyph fix proceeds via CODEPAGE 1251 + TEXT
+    // path in tools/d520_classic_test.php Step 3c.
     const placeBitmap = (bmp, x, y) => {
       if (!bmp) return;
-      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',' + D520_BITMAP_MODE + ',');
+      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
       pushRaw(bmp.data);
       push('\r\n');
     };
 
-    // Header — D520BT tunables (Labelife capture verbatim).
+    // Header — minimal TSPL accepted by D520BT (pre-FIX2 working baseline).
     push('SIZE 50 mm,30 mm\r\n');
-    push('GAP 3.00 mm,0.00 mm\r\n');
-    push('DIRECTION 0,0\r\n');
-    push('REFERENCE 0,0\r\n');
-    push('OFFSET 0 mm\r\n');
+    push('GAP 3 mm,0\r\n');
+    push('DIRECTION 1\r\n');
     push('DENSITY 11\r\n');
     push('SPEED 4\r\n');
     push('CLS\r\n');

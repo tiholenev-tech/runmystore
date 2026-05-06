@@ -132,11 +132,11 @@ async function ensureConnect(){
   return { addr, spp };
 }
 
-// Build a simple TSPL header (50×30mm)
+// Build a simple TSPL header (50×30mm) — matches generator pre-FIX2 baseline.
 function tsplHeader(extra){
   return 'SIZE 50 mm,30 mm\r\n' +
-         'GAP 3.00 mm,0.00 mm\r\n' +
-         'DIRECTION 0,0\r\n' +
+         'GAP 3 mm,0\r\n' +
+         'DIRECTION 1\r\n' +
          'DENSITY 11\r\n' +
          'SPEED 4\r\n' +
          'CLS\r\n' + (extra || '');
