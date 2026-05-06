@@ -956,6 +956,77 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 06.05.2026 — STRATEGIC DOCS CONSOLIDATION (GROWTH + DATA_MIGRATION)
+
+**Beta countdown:** 8-9 дни до 14-15.05
+**Сесии:** 1 шеф-чат + 1 Code Code (docs sweep)
+**Total commits:** 1 на main (d22f3ba)
+
+### Решения / промени
+
+- **GROWTH_STRATEGY_v1.md (1385 реда)** — authoritative. Заменя PARTNERSHIP_SCALING_MODEL_v1.md (включен 1:1 като ЧАСТ I-VII). Добавя 5 нови части: VIII дигитален маркетинг, IX миграция от стари програми, X RunMyStore Terminal, XI три режима чат, XII AI cost оптимизации.
+- **DATA_MIGRATION_STRATEGY_v1.md (647 реда)** — техническа спецификация за импорт адаптер. 25+ програми в 3 tier-а. Phase 1 beta = универсален CSV + Microinvest.
+- **Docs sweep d22f3ba** — 4 файла: BIBLE_v3_0_APPENDIX §12 (+90), PRODUCTS_DESIGN_LOGIC §5.6-5.10 (+97), 08_onboarding.md (нов 186 реда), ROADMAP Фаза 1/4/5/6 + нова Фаза 7 (+28).
+
+### Логическа част — КЪДЕ влиза какво
+
+| Тема | Логически фейс | Зависимост |
+|---|---|---|
+| Миграция Phase 1 (Universal CSV + Microinvest) | Phase A2 преди ENI beta (универсален CSV) или post-beta S101 (Microinvest specific) | Тихол решава preview/post-beta |
+| BG адаптери Tier 2 (Eltrade/StoreHouse/GenSoft/Mistral/I-Cash) | След beta при BG scaling | post-beta S102+ |
+| RO/GR адаптери | При навлизане Q3-Q4 2026 | Validation Stage 4 |
+| Демо страница + AI агент | След beta, "SaaS readiness" (Validation Stage 5) | след 50+ платящи + onboarding доказан |
+| FB/TikTok/Google ads | След 50+ платящи + доказан onboarding | external accounts |
+| RunMyStore Terminal hardware | Pilot 50 бр Хърватия/UK Q4 2026, scale Q1-Q2 2027 | EU Tap-to-Pay verification gate |
+| Stripe Tap to Pay | Year 1-2, верификация EU availability ПРЕДИ commitment | Stripe Terminal SDK |
+| Фискална Bluetooth (Елтрейд/Датекс/Тремол/Daisy) | ПРЕДИ launch в БГ (post-beta polish) | RWQ-87 |
+| TTS Режим 3 (AI говори) | Optional, post-beta, opt-in not default | Google Cloud TTS WaveNet free tier |
+| AI Cost оптимизации (dynamic context + PHP summary + per-store) | ПРЕДИ 100 платящи (margin protection gate) | RWQ-89, ~200 LOC |
+| Supplier Portal (фабрики €9.99/магазин) | Post-beta scaling phase | RWQ-90, 6 нови DB таблици |
+
+### Техническа част — DB + файлове
+
+**DB таблици нови (10):**
+- `import_sessions` (id, tenant_id, filename, detected_program, confidence, status, created_at)
+- `import_mappings` (session_id, source_column, target_field, confidence)
+- `import_log` (session_id, row_number, status, message)
+- `suppliers`, `supplier_catalog`, `supplier_store_links`, `store_aliases`, `supplier_orders_draft`, `supplier_invitations`
+- `public_chat_leads` (имейл, тип магазин, въпроси, timestamp)
+
+**PHP файлове нови (~12):**
+- `import_adapter.php` (главен контролер)
+- `import_detect.php` (encoding + разделител + header fingerprint)
+- `import_parsers/{microinvest,smartbill,loyverse,shopify,universal_csv}.php`
+- `import_variations.php` (AI групиране чрез Gemini)
+- `supplier-portal.php` (нов модул)
+- `fiscal-bridge.php` (BT към фискални принтери)
+- `stripe-tap-to-pay.php` (Connect + Terminal SDK)
+- `tts-handler.php` (Google Cloud TTS Режим 3)
+
+**build-prompt-integration.php разширения (~200 LOC):**
+- `buildProductSummary()` — PHP агрегира 2000 арт. в 200 токена
+- `categorizeQuery()` — 3K vs 11K токена според query type
+- per-store context loader (multi-store margin protection)
+
+### Conflict resolution
+
+- **Phase номерация конфликт** (GROWTH §27 "Фаза 5 SaaS" vs Marketing Bible "Phase 1-5 Q4 2026-Q2 2027"): решено да се преименоват GROWTH phases като "Validation Stage 1-5" (бизнес валидация), Marketing Bible Phase 1-5 остават продуктови. Обнови при следващ GROWTH update.
+- **Confidence thresholds DATA_MIGRATION** (§4.1 ≥90% програма vs §27.3 <85% вариации): двете са разни scale-ове, остават както са.
+
+### REWORK QUEUE updates
+
+- 🆕 **#80-#82 added** (back-log от 04.05 EOD — declared но не вмъкнати в таблицата)
+- 🆕 **#83-#91 added** (9 нови entries от 06.05 strategic docs)
+
+### Otvoreno za утре (07.05)
+
+1. Тихол решение на 3 въпроса: (a) Phase номерация unify; (b) migration в ENI beta или post-beta; (c) Terminal pilot timing.
+2. Verify wizard voice бугове RWQ-80 — реален save или UI illusion.
+3. S95-PART2/PART4 cleanup (matrix preserve + steps 0/4/6 hard-remove).
+4. TRACK 2 P0 specs (NAME_INPUT_DEAD, D12_REGRESSION, WHOLESALE_NO_CURRENCY).
+
+---
+
 ## 04.05.2026 — S96 SALE.HARDEN + S97 INVENTORY.CoD + S98 DELIVERIES.AUDIT (понеделник)
 
 **Beta countdown:** 10 дни до 14-15.05  
@@ -1977,6 +2048,18 @@ APK-то отваря runmystore.ai в **external Chrome browser**, не в Capa
 | 77 | AI Studio mockups upload + commit (Тихол manual). | mockups/ | 03.05.2026 | ✅ DONE 03.05.2026 (commit 1354803 — 3 mockups + LOGIC spec imported) |
 | 78 | AI Studio production wire (try-on €0.30 + SEO €0.02 endpoints). End-to-end fal.ai. | services/ai-studio-* | 03.05.2026 | ⏳ pending P1, post-beta (S107+) |
 | 79 | RWQ-24b — fal.ai integration end-to-end не production-wired (split от RWQ #24 след FAL_API_KEY done). | services/ai-image-processor.php | 03.05.2026 | ⏳ pending P1, post-beta |
+| 80 | Wizard voice бугове — auto-save illusion + "следващ" trigger + цифри се режат | products.php | 04.05.2026 | ⏳ pending P0, target S99.VOICE.PROPER_REWRITE |
+| 81 | Deliveries P0 — voice fallback dead-end + raw OCR errors leak + defective proactive prompt missing | deliveries.php | 04.05.2026 | ⏳ pending P0, target S98.DELIVERIES |
+| 82 | Deliveries P1 — auto-pricing C8 wire-up + has_mismatch compute + fuzzy product matching | deliveries.php | 04.05.2026 | ⏳ pending P1, post-beta |
+| 83 | Import Adapter Phase 1 beta — universal CSV + Microinvest. 4-step auto-detect (encoding+разделител+header fingerprint) + AI variation grouping чрез Gemini. 8 нови PHP файла + 3 нови DB таблици. | import_adapter.php + import_detect.php + import_parsers/*.php + import_variations.php; import_sessions/mappings/log | 06.05.2026 | ⏳ pending P1, target post-beta S101 (universal CSV може preview в beta exception) |
+| 84 | Import Adapters Tier 2-3 — BG (Eltrade/StoreHouse/GenSoft/Mistral/I-Cash), RO (SmartBill REST API/Sedona/SAGA C), GR (SoftOne/PRISMA Win/Pylon), International cloud (Loyverse/Shopify/Lightspeed), per-country (JTL DE/Danea IT/Factusol ES/Subiekt PL) | import_parsers/*.php | 06.05.2026 | ⏳ pending P2, при scaling per държава |
+| 85 | RunMyStore Terminal hardware line — OEM Android POS. **GATE: pilot 50 бр Хърватия/UK Q4 2026 ПРЕДИ 300+ commitment ($24-28K inventory).** Capacitor preinstall + branding + EMVCo certification. | hardware OEM partner + Capacitor build configs | 06.05.2026 | ⏳ pending P2, target Year 2-3 |
+| 86 | Stripe Tap to Pay интеграция — Stripe Terminal SDK + Connect Express. **GATE: verify EU availability в BG/RO/GR ПРЕДИ хардуерна инвестиция в Terminal.** | stripe-tap-to-pay.php (нов) + Stripe Connect | 06.05.2026 | ⏳ pending P1, target Year 1-2 |
+| 87 | Фискална Bluetooth интеграция — Елтрейд (BT 3.0 SPP), Датекс (BT+3G), Тремол, Daisy. Терминал изпраща сума към фискален принтер по BT, бон се печата автоматично. Стандартен подход (Microinvest/Детелина работят така). | fiscal-bridge.php (нов) + sale.php hook | 06.05.2026 | ⏳ pending P0, ПРЕДИ launch в БГ (post-beta) |
+| 88 | TTS Режим 3 (AI говори обратно) — Google Cloud TTS WaveNet ($16/1M chars). Free tier покрива 7 магазина. Opt-in, не default (Режим 2 диктовка остава default за beta). | tts-handler.php (нов) + chat.php opt-in toggle | 06.05.2026 | ⏳ pending P2, post-beta |
+| 89 | AI Cost оптимизации — (1) Dynamic context loading (3K vs 11K tokens според query type, спестява 40-60%); (2) buildProductSummary() PHP агрегира 2000 арт. в 200 токена (спестява 70% при големи); (3) per-store context при multi-store (margin protection). ~200 LOC в build-prompt-integration.php. | build-prompt-integration.php | 06.05.2026 | ⏳ pending P0, ПРЕДИ 100 платящи (margin protection gate) |
+| 90 | Supplier Portal (B2B2C) — фабрика плаща €9.99/магазин/мес, магазин получава пълен PRO достъп. 6 нови DB таблици + supplier-portal.php. Псевдонимен изглед за GDPR. AI лимит 50 заявки/ден на фабричен магазин + €5/мес auto-stop. | suppliers + supplier_catalog + supplier_store_links + store_aliases + supplier_orders_draft + supplier_invitations + supplier-portal.php | 06.05.2026 | ⏳ pending P1, post-beta scaling |
+| 91 | Демо страница с AI агент — runmystore.ai интерактивно демо. Gemini system prompt с маркетингова инфо + per-business demo data. public_chat_leads табл. Rate limit 30 msg/сесия + 100 сесии/ден. ~€0.01-0.02/сесия. | nov public landing (отделен repo или public/ folder) + public_chat_leads табл | 06.05.2026 | ⏳ pending P1, post-beta след SaaS готовност (Validation Stage 5) |
 
 ---
 
