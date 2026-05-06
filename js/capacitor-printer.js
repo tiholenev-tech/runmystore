@@ -746,15 +746,21 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // D520BT TSPL generator — S97.LABEL.D520_CYRILLIC: full BITMAP rendering.
+  // D520BT TSPL generator — S97.D520_ASCII_FALLBACK.
   //
-  // Same layout & logic as generateTSPL_DTM. Cyrillic (Памук, Турция, лв),
-  // € symbol, ellipsis "…" all render via Canvas → BITMAP. The plugin patch
-  // (mobile/patches/@e-is+capacitor-bluetooth-serial+6.0.3.patch) makes the
-  // bridge use ISO-8859-1 so raw raster bytes survive the SPP write.
+  // PURE ASCII TEXT-based path. Every byte sent ≤ 0x7F so it survives ANY
+  // bridge encoding (UTF-8 or ISO-8859-1, patched plugin or stock). Cyrillic
+  // input is transliterated to latin via tsplSafe(). Currency: "EUR"/"lv".
+  // The brief BITMAP attempt (FIX2) had two failure modes:
+  //   1. mode=0 → printer rendered raster bytes as TEXT in default codepage
+  //              (Chinese), producing hieroglyphs.
+  //   2. mode=4 → TSPL parse error → printer beeped and aborted entire job.
+  // Until we can reliably verify the plugin patch is applied in the deployed
+  // APK, ASCII is the only path that's bulletproof.
   //
-  // Tunables vs. DTM (from Labelife capture):
-  //   DENSITY 11 (DTM=10), SPEED 4 (DTM=3), GAP 3mm (DTM=2mm).
+  // Layout matches products.php wizPrintLabels visual (50×30mm = 400×240
+  // dots) with explicit char-width truncation per font:
+  //   font "1" (~8 dots/char), font "2" (~12), font "3" (~16), font "4" (~24)
   // ═══════════════════════════════════════════════════════════════════════
   function generateTSPL_D520(product, store, copies, opts) {
     product = product || {};
@@ -762,36 +768,26 @@
     opts    = opts    || {};
 
     const mode = opts.mode || product.mode || store.label_mode || defaultLabelMode();
-    // No transliteration — BITMAP renders any unicode via Canvas.
-    const name      = String(product.name      || '').replace(/[\r\n\t"]/g, ' ').substring(0, 48);
-    const supplier  = String(product.supplier  || '').replace(/[\r\n\t"]/g, ' ').substring(0, 16);
-    const code      = String(product.code      || '').replace(/[\r\n\t"]/g, ' ').substring(0, 20);
-    const sizeStr   = String(product.size      || '').replace(/[\r\n\t"]/g, ' ').substring(0, 8);
-    const color     = String(product.color     || '').replace(/[\r\n\t"]/g, ' ').substring(0, 16);
-    const matOrigin = String(product.origin_material || '').replace(/[\r\n\t"]/g, ' ').substring(0, 32);
-    const country   = String(product.origin_country  || '').replace(/[\r\n\t"]/g, ' ').substring(0, 24);
-    const importer  = String(product.importer        || '').replace(/[\r\n\t"]/g, ' ').substring(0, 24);
-    const impCity   = String(product.importer_city   || '').replace(/[\r\n\t"]/g, ' ').substring(0, 24);
+
+    // Transliterate cyrillic + strip non-ASCII; truncate per render width.
+    const name      = tsplSafe(product.name);
+    const supplier  = tsplSafe(product.supplier, 16);
+    const code      = tsplSafe(product.code, 20);
+    const sizeStr   = tsplSafe(product.size, 4);
+    const color     = tsplSafe(product.color, 14);
+    const matOrigin = tsplSafe(product.origin_material, 24);
+    const country   = tsplSafe(product.origin_country, 16);
+    const importer  = tsplSafe(product.importer, 16);
+    const impCity   = tsplSafe(product.importer_city, 16);
     const barcode   = ensureEan13(product.barcode, product.id);
     const amt       = parseFloat(product.retail_price) || 0;
     const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
     const parts = [];
     const push = (s) => parts.push(asciiToBytes(s));
-    const pushRaw = (b) => parts.push(b);
-    // S97.D520_REVERT_HEADER — FIX2 mode 4 + Labelife-verbatim header caused
-    // the printer to beep and abort (TSPL parse error). Reverted to the
-    // working-but-hieroglyph state so the user can at least reach the
-    // diagnostic page. Hieroglyph fix proceeds via CODEPAGE 1251 + TEXT
-    // path in tools/d520_classic_test.php Step 3c.
-    const placeBitmap = (bmp, x, y) => {
-      if (!bmp) return;
-      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
-      pushRaw(bmp.data);
-      push('\r\n');
-    };
 
-    // Header — minimal TSPL accepted by D520BT (pre-FIX2 working baseline).
+    // Header — minimal accepted by D520BT (don't add REFERENCE/OFFSET, those
+    // beep-abort the parser when combined with downstream commands).
     push('SIZE 50 mm,30 mm\r\n');
     push('GAP 3 mm,0\r\n');
     push('DIRECTION 1\r\n');
@@ -799,101 +795,108 @@
     push('SPEED 4\r\n');
     push('CLS\r\n');
 
-    // ── TOP: barcode (left) + name/code (right) ───────────────────────
+    // Layout zones (50×30mm = 400×240 dots, 8 dots padding):
+    //   TOP        y=4    barcode 28×10mm + name/code right
+    //   SEP1       y=92   solid line
+    //   MID        y=100  size pill + color
+    //   SEP2       y=130  solid line
+    //   PRICE      y=140  font 2 centered (eur or dual or noprice→big size)
+    //   SEP3       y=170  solid line
+    //   BOT        y=178  origin/country left + importer right
+    const PAD = 8;
+    const W = 400;
+
+    // ── TOP: barcode (left) + name + code (right) ─────────────────────
     if (barcode) {
-      push('BARCODE ' + LBL_PX + ',' + Z_TOP_Y + ',"EAN13",80,1,0,2,4,"' + barcode + '"\r\n');
+      // narrow=2 wide=4 height=68 → ~228 dots wide × 80 incl. readable text
+      push('BARCODE ' + PAD + ',4,"EAN13",68,1,0,2,4,"' + barcode + '"\r\n');
     }
-    const txX = LBL_PX + 224 + 8;
-    const txMaxW = LBL_W - txX - LBL_PX;
-    let txY = Z_TOP_Y + 2;
+    const txX = PAD + 232;                      // x=240 (right of barcode)
+    // Available width on right: 400 - 240 - 8 = 152 dots.
+    // font 1 ≈ 8 dots/char → 19 chars; font 2 ≈ 12 → 12 chars
     if (name) {
       const nameTxt = supplier ? (name + ' (' + supplier + ')') : name;
-      const bmp = renderTextBitmap(nameTxt, 18, txMaxW);
-      placeBitmap(bmp, txX, txY);
-      txY += (bmp ? bmp.height : 0) + 2;
+      const truncated = nameTxt.substring(0, 18);
+      push('TEXT ' + txX + ',6,"2",0,1,1,"' + truncated + '"\r\n');
     }
     if (code || barcode) {
-      const codeLine = (code ? code : '') + (code && barcode ? ' · ' : '') + (barcode || '');
-      const bmp = renderTextBitmap(codeLine, 12, txMaxW);
-      placeBitmap(bmp, txX, txY);
+      const codeLine = ((code || '') + (code && barcode ? ' ' : '') + (barcode || '')).substring(0, 19);
+      push('TEXT ' + txX + ',32,"1",0,1,1,"' + codeLine + '"\r\n');
     }
 
     // ── Separator 1 ───────────────────────────────────────────────────
-    push('BAR ' + LBL_PX + ',' + Z_SEP1_Y + ',' + (LBL_W - 2 * LBL_PX) + ',1\r\n');
+    push('BAR ' + PAD + ',92,' + (W - 2 * PAD) + ',1\r\n');
 
     // ── MID: [size pill] color ────────────────────────────────────────
-    let midX = LBL_PX;
     if (mode === 'noprice') {
+      // Big centered size pill + color centered below
       if (sizeStr) {
-        const bmp = renderBoxedTextBitmap(sizeStr, 36, 12, 4);
-        if (bmp) {
-          const x = Math.max(LBL_PX, Math.floor((LBL_W - bmp.widthBytes * 8) / 2));
-          placeBitmap(bmp, x, Z_MID_Y);
-        }
+        const pillW = sizeStr.length * 24 + 24;
+        const pillH = 40;
+        const pillX = Math.max(PAD, Math.floor((W - pillW) / 2));
+        push('TEXT ' + (pillX + 12) + ',104,"4",0,1,1,"' + sizeStr + '"\r\n');
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
       }
       if (color) {
-        const bmp = renderTextBitmap(color, 22, LBL_W - 2 * LBL_PX);
-        if (bmp) {
-          const x = Math.max(LBL_PX, Math.floor((LBL_W - bmp.widthBytes * 8) / 2));
-          placeBitmap(bmp, x, Z_PRICE_Y);
-        }
+        const cw = color.length * 16;
+        const cx = Math.max(PAD, Math.floor((W - cw) / 2));
+        push('TEXT ' + cx + ',150,"3",0,1,1,"' + color + '"\r\n');
       }
     } else {
+      let cursorX = PAD;
       if (sizeStr) {
-        const bmp = renderBoxedTextBitmap(sizeStr, 22, 8, 3);
-        placeBitmap(bmp, midX, Z_MID_Y);
-        midX += (bmp ? bmp.widthBytes * 8 : 0) + 8;
+        const pillW = sizeStr.length * 12 + 16;
+        const pillH = 24;
+        const pillX = cursorX;
+        push('TEXT ' + (pillX + 8) + ',104,"2",0,1,1,"' + sizeStr + '"\r\n');
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
+        cursorX = pillX + pillW + 8;
       }
       if (color) {
-        const bmp = renderTextBitmap(color, 16, LBL_W - midX - LBL_PX);
-        placeBitmap(bmp, midX, Z_MID_Y + 6);
+        push('TEXT ' + cursorX + ',106,"2",0,1,1,"' + color + '"\r\n');
       }
     }
 
     // ── Separator 2 ───────────────────────────────────────────────────
     if (mode !== 'noprice') {
-      push('BAR ' + LBL_PX + ',' + Z_SEP2_Y + ',' + (LBL_W - 2 * LBL_PX) + ',1\r\n');
+      push('BAR ' + PAD + ',130,' + (W - 2 * PAD) + ',1\r\n');
     }
 
-    // ── PRICE row ─────────────────────────────────────────────────────
+    // ── PRICE row (ASCII currency: EUR / lv) ──────────────────────────
     if (mode === 'eur') {
-      const bmp = renderTextBitmap(priceEur(amt), 30, LBL_W - 2 * LBL_PX);
-      if (bmp) {
-        const x = Math.max(LBL_PX, Math.floor((LBL_W - bmp.widthBytes * 8) / 2));
-        placeBitmap(bmp, x, Z_PRICE_Y);
-      }
+      // "12,34 EUR" — 9 chars at font 4 = 9×24 = 216 dots; centered at 92
+      const txt = priceEurAscii(amt);
+      const txtW = txt.length * 24;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',140,"4",0,1,1,"' + txt + '"\r\n');
     } else if (mode === 'dual') {
-      const eurBmp = renderTextBitmap(priceEur(amt), 26, 200);
-      const sepBmp = renderTextBitmap('|', 18, 12);
-      const bgnBmp = renderTextBitmap(priceBgn(amt), 18, 160);
-      let cx = LBL_PX;
-      placeBitmap(eurBmp, cx, Z_PRICE_Y + 2);
-      cx += (eurBmp ? eurBmp.widthBytes * 8 : 0) + 6;
-      placeBitmap(sepBmp, cx, Z_PRICE_Y + 8);
-      cx += (sepBmp ? sepBmp.widthBytes * 8 : 0) + 6;
-      placeBitmap(bgnBmp, cx, Z_PRICE_Y + 8);
+      // "12,34 EUR | 24,12 lv" — 20 chars at font 2 = 240 dots; centered at 80
+      const eurT = priceEurAscii(amt);
+      const bgnT = priceBgnAscii(amt);
+      const txt = eurT + ' | ' + bgnT;
+      const txtW = txt.length * 12;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',144,"2",0,1,1,"' + txt + '"\r\n');
     }
 
-    // ── BOT: origin · country | importer city ─────────────────────────
-    const originStr = matOrigin
-      ? (country ? matOrigin + ' · ' + country : matOrigin)
-      : (country || '');
+    // ── BOT: origin / country (left) | importer city (right) ──────────
+    const originStr = (matOrigin
+      ? (country ? matOrigin + ' ' + country : matOrigin)
+      : (country || '')).substring(0, 24);
     const importStr = importer
-      ? ('Внос: ' + importer + (impCity ? ', ' + impCity : ''))
+      ? ('Vnos: ' + importer + (impCity ? ', ' + impCity : '')).substring(0, 24)
       : '';
 
     if (originStr || importStr) {
-      push('BAR ' + LBL_PX + ',' + Z_SEP3_Y + ',' + (LBL_W - 2 * LBL_PX) + ',1\r\n');
+      push('BAR ' + PAD + ',170,' + (W - 2 * PAD) + ',1\r\n');
       if (originStr) {
-        const bmp = renderTextBitmap(originStr, 11, 200);
-        placeBitmap(bmp, LBL_PX, Z_BOT_Y);
+        push('TEXT ' + PAD + ',178,"1",0,1,1,"' + originStr + '"\r\n');
       }
       if (importStr) {
-        const bmp = renderTextBitmap(importStr, 11, 200);
-        if (bmp) {
-          const x = LBL_W - LBL_PX - bmp.widthBytes * 8;
-          placeBitmap(bmp, Math.max(LBL_PX, x), Z_BOT_Y);
-        }
+        // Right-align: font 1 ≈ 8 dots/char
+        const w = importStr.length * 8;
+        const x = Math.max(PAD, W - PAD - w);
+        push('TEXT ' + x + ',178,"1",0,1,1,"' + importStr + '"\r\n');
       }
     }
 
