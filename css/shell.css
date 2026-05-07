@@ -12,12 +12,47 @@
     position:relative;z-index:60;
 }
 .rms-brand{
-    font-size:11px;font-weight:900;
-    letter-spacing:.12em;
-    color:hsl(var(--hue1) 50% 70%);
-    text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3);
+    position:relative;
+    font-size:15px;font-weight:900;
+    letter-spacing:.10em;
     text-decoration:none;
     cursor:pointer;
+    background:linear-gradient(
+        90deg,
+        hsl(var(--hue1) 80% 60%) 0%,
+        hsl(var(--hue2) 80% 60%) 25%,
+        hsl(var(--hue3) 70% 55%) 50%,
+        hsl(var(--hue2) 80% 60%) 75%,
+        hsl(var(--hue1) 80% 60%) 100%
+    );
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    -webkit-text-fill-color:transparent;
+    animation:rmsBrandShimmer 4s linear infinite;
+    filter:drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / .4));
+}
+.rms-brand::after{
+    content:"";
+    position:absolute;
+    inset:-4px -8px;
+    border-radius:8px;
+    background:radial-gradient(ellipse at center,hsl(var(--hue1) 70% 50% / .15) 0%,transparent 70%);
+    z-index:-1;
+    pointer-events:none;
+    animation:rmsBrandPulse 3s ease-in-out infinite;
+}
+@keyframes rmsBrandShimmer{
+    0%{background-position:0% center}
+    100%{background-position:200% center}
+}
+@keyframes rmsBrandPulse{
+    0%,100%{opacity:.5;transform:scale(1)}
+    50%{opacity:.9;transform:scale(1.05)}
+}
+@media (prefers-reduced-motion:reduce){
+    .rms-brand,.rms-brand::after{animation:none}
 }
 .rms-plan-badge{
     padding:3px 8px;border-radius:100px;
@@ -72,7 +107,7 @@
 }
 :root[data-theme="light"] .rms-icon-btn:hover{background:rgba(15,23,42,.08)}
 :root[data-theme="light"] .rms-logout-dd{background:#fff;border-color:rgba(239,68,68,.4);color:#dc2626}
-:root[data-theme="light"] .rms-brand{color:hsl(var(--hue1) 55% 48%);text-shadow:0 0 10px hsl(var(--hue1) 60% 60% / .20)}
+:root[data-theme="light"] .rms-brand{filter:drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / .25))}
 
 /* ─── BOTTOM NAV ─── */
 .rms-bottom-nav{
@@ -162,7 +197,7 @@ body.has-rms-shell{
 /* ─── RESPONSIVE: smaller icons + tighter brand on narrow screens ─── */
 @media (max-width: 380px){
     .rms-header{gap:6px;padding-left:6px;padding-right:6px}
-    .rms-brand{font-size:10px;letter-spacing:.10em}
+    .rms-brand{font-size:13px;letter-spacing:.08em}
     .rms-plan-badge{padding:2px 6px;font-size:8px}
     .rms-icon-btn{width:26px;height:26px}
     .rms-icon-btn svg{width:11px;height:11px}

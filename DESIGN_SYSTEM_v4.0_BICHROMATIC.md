@@ -2407,6 +2407,243 @@ Exit codes:
 
 ---
 
+
+
+# 🆕 ЧАСТ 22.5 — S96 ADDITIONS (07.05.2026)
+
+> Промени след първа реална имплементация на life-board.php.
+> Тези правила са **задължителни** наравно с останалите.
+
+## 22.5.1 Brand logo (анимация — задължително)
+
+`.rms-brand` НИКОГА не е статичен текст. Винаги анимиран:
+
+```css
+.rms-brand {
+  position: relative;
+  font-size: 15px;          /* desktop */
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-decoration: none;
+  background: linear-gradient(90deg,
+    hsl(var(--hue1) 80% 60%) 0%,
+    hsl(var(--hue2) 80% 60%) 25%,
+    hsl(var(--hue3) 70% 55%) 50%,
+    hsl(var(--hue2) 80% 60%) 75%,
+    hsl(var(--hue1) 80% 60%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: rmsBrandShimmer 4s linear infinite;
+  filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+}
+.rms-brand::after {
+  content: "";
+  position: absolute; inset: -4px -8px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center,
+    hsl(var(--hue1) 70% 50% / 0.15) 0%, transparent 70%);
+  z-index: -1; pointer-events: none;
+  animation: rmsBrandPulse 3s ease-in-out infinite;
+}
+@keyframes rmsBrandShimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes rmsBrandPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 0.9; transform: scale(1.05); }
+}
+@media (max-width: 380px) {
+  .rms-brand { font-size: 13px; letter-spacing: 0.08em; }
+}
+```
+
+**ВАЖНО:** brand-ът се ползва **САМО от `partials/header.php`** — никога не пиши custom brand елементи.
+
+## 22.5.2 Store picker (когато има 2+ магазина)
+
+В Simple Mode (`life-board.php`) и Detailed Mode (`chat.php`) — store picker ВИНАГИ е в "Днес" cell-а:
+
+```html
+<div class="cell-header-row">
+  <div class="cell-label">Днес · <?= htmlspecialchars($store_name) ?></div>
+  <?php if (!empty($all_stores) && count($all_stores) > 1): ?>
+  <select class="lb-store-picker" onchange="location.href='?store='+this.value" aria-label="Магазин">
+    <?php foreach ($all_stores as $st): ?>
+    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+    <?php endforeach; ?>
+  </select>
+  <?php endif; ?>
+</div>
+```
+
+```css
+.cell-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+  position: relative; z-index: 5;
+}
+.cell-header-row .cell-label {
+  margin-bottom: 0;
+  flex-shrink: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lb-store-picker {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-radius: var(--radius-pill);
+  padding: 4px 22px 4px 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667' stroke-width='3'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 10px;
+  max-width: 110px;
+  flex-shrink: 0;
+}
+[data-theme="light"] .lb-store-picker,
+:root:not([data-theme]) .lb-store-picker {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="dark"] .lb-store-picker {
+  background-color: hsl(220 25% 8%);
+}
+```
+
+**SQL за `$all_stores` се зарежда винаги:**
+```php
+$all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name', [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+```
+
+## 22.5.3 Засилени op-buttons shadows (depth)
+
+Стандартните `--shadow-card` НЕ са достатъчни за op-buttons. Override:
+
+```css
+[data-theme="light"] .op-btn,
+:root:not([data-theme]) .op-btn {
+  box-shadow:
+    12px 12px 24px var(--shadow-dark),
+    -12px -12px 24px var(--shadow-light) !important;
+}
+[data-theme="light"] .op-btn:active,
+:root:not([data-theme]) .op-btn:active {
+  box-shadow:
+    inset 6px 6px 12px var(--shadow-dark),
+    inset -6px -6px 12px var(--shadow-light) !important;
+}
+[data-theme="light"] .op-icon,
+:root:not([data-theme]) .op-icon {
+  box-shadow:
+    inset 6px 6px 12px var(--shadow-dark),
+    inset -6px -6px 12px var(--shadow-light);
+}
+```
+
+## 22.5.4 Dark mode neon на op-buttons
+
+В DARK mode op-bts получават **outer glow + inner highlight**:
+
+```css
+[data-theme="dark"] .op-btn {
+  box-shadow:
+    inset 0 1px 0 hsl(var(--hue1) 80% 60% / 0.15),
+    0 0 24px hsl(var(--hue1) 80% 50% / 0.18),
+    var(--shadow-card) !important;
+}
+[data-theme="dark"] .op-btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: var(--radius);
+  pointer-events: none;
+  background: radial-gradient(ellipse at top,
+    hsl(var(--hue1) 80% 60% / 0.08) 0%, transparent 60%);
+  z-index: 0;
+}
+[data-theme="dark"] .op-icon {
+  box-shadow:
+    inset 0 0 12px hsl(var(--hue1) 80% 40% / 0.4),
+    0 0 16px hsl(var(--hue1) 80% 50% / 0.3),
+    inset 0 1px 0 hsl(var(--hue1) 80% 70% / 0.2);
+}
+[data-theme="dark"] .op-icon svg {
+  filter: drop-shadow(0 0 6px hsl(var(--hue1) 80% 60% / 0.5));
+}
+```
+
+## 22.5.5 Anti-flicker правило (КРИТИЧНО)
+
+**НЕ слагай transition на body** — premигва при theme switch:
+
+```css
+/* ❌ ЛОШО — премигва */
+body { transition: background 0.5s ease, color 0.5s ease; }
+
+/* ✅ ДОБРЕ — без transition на body */
+body { /* no transition */ }
+```
+
+Всеки компонент може да има свой transition на специфични properties (box-shadow, color), но **не на background**.
+
+## 22.5.6 Theme toggle JavaScript (задължителна логика)
+
+`partials/shell-scripts.php` ТРЯБВА да съдържа:
+
+```javascript
+// INIT THEME (default = light)
+(function () {
+  try {
+    var saved = localStorage.getItem('rms_theme');
+    var initial = saved || 'light';
+    document.documentElement.setAttribute('data-theme', initial);
+  } catch (_) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);  // ВИНАГИ setAttribute
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+  if (navigator.vibrate) navigator.vibrate(5);
+};
+```
+
+**КРИТИЧНО:** НЕ ползвай `removeAttribute('data-theme')` — това активира `:root:not([data-theme])` (light) винаги, а dark mode никога не работи.
+
+## 22.5.7 Google Fonts link (задължителен във всеки модул)
+
+Ако използваш `var(--font)` (Montserrat) и `var(--font-mono)` (DM Mono) — **трябва** да включиш:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+```
+
+> Ако не го включиш — браузърът ще ползва default sans-serif (грозно).
+
+---
+
 # 🔄 ЧАСТ 21 — VERSIONING
 
 | Версия | Дата | Промени |
@@ -2415,6 +2652,7 @@ Exit codes:
 | v2.0 | 2026-04-23 | S79.POLISH2 — пълна Neon Glass спецификация |
 | v3.0 | 2026-04-28 | Пълна спецификация на dark Neon Glass |
 | **v4.0** | **2026-05-07** | **BICHROMATIC. Light = default. Dark = SACRED Neon Glass option. 9 effects continuity. ОТМЕНЯ всички предишни.** |
+| **v4.1** | **2026-05-07** | **S96 ADDITIONS: animated brand, store picker recipe, засилени op shadows, dark ops neon, anti-flicker rule, theme toggle JS spec, fonts requirement.** |
 
 **Bump rules:**
 - Major (v5.0) — фундаментални промени (нов default режим, нова семантика на цветове)

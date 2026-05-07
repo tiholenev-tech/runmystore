@@ -26,11 +26,22 @@
     }
     document.addEventListener('DOMContentLoaded', syncThemeIcons);
 
+    
+    // ─── INIT THEME (S96 PATCH: default = light) ───
+    (function () {
+        try {
+            var saved = localStorage.getItem('rms_theme');
+            var initial = saved || 'light';
+            document.documentElement.setAttribute('data-theme', initial);
+        } catch (_) {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    })();
+
     window.rmsToggleTheme = function () {
         var cur = document.documentElement.getAttribute('data-theme') || 'dark';
         var nxt = (cur === 'light') ? 'dark' : 'light';
-        if (nxt === 'light') document.documentElement.setAttribute('data-theme', 'light');
-        else document.documentElement.removeAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', nxt);
         try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
         syncThemeIcons();
         if (navigator.vibrate) navigator.vibrate(5);
