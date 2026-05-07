@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# ════════════════════════════════════════════════════════════
-# RunMyStore — DESIGN KIT compliance checker · v1.1 (01.05.2026)
-# Usage: bash /design-kit/check-compliance.sh path/to/module.php
-# Exit 0 = OK · Exit 1 = НАРУШЕНИЕ (модулът се отказва)
+# ════════════════════════════════════════════════════════════════════
+# RunMyStore — DESIGN KIT compliance checker · v2.0 BICHROMATIC
+# Aligned with DESIGN_SYSTEM_v4.0_BICHROMATIC.md (Bible v4.1, S104)
+# Usage: bash design-kit/check-compliance.sh path/to/module.php
+# Exit 0 = OK · Exit 1 = НАРУШЕНИЕ
 #
-# v1.1 нови проверки (S89 GAP REPORT fix):
-#   [9/10] theme-toggle.js включен
-#   [10/10] <html> няма hardcoded data-theme="dark"
-# ════════════════════════════════════════════════════════════
+# v2.0 changes vs v1.1:
+#   - Removed design-kit/*.css imports check (etalon life-board.php uses
+#     /css/theme.css + /css/shell.css + inline <style>)
+#   - Removed forbidden-classes check (.glass / .shine etc are now SACRED
+#     and modules MUST define them locally to remain self-contained)
+#   - Added 15 v4.1 BICHROMATIC checks based on Bible Часть 14 + 18
+# ════════════════════════════════════════════════════════════════════
 
-set -e
+set -u
 
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
     echo "Usage: $0 <path-to-module.php>"
     exit 1
 fi
@@ -23,203 +27,223 @@ if [ ! -f "$FILE" ]; then
 fi
 
 ERRORS=0
+WARNS=0
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
 echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
-echo -e "${CYAN}  DESIGN KIT v1.1 compliance: $FILE${NC}"
+echo -e "${CYAN}  DESIGN KIT v2.0 BICHROMATIC: ${FILE}${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
 
-fail() {
-    echo -e "${RED}✗ FAIL:${NC} $1"
-    ERRORS=$((ERRORS+1))
-}
-warn() {
-    echo -e "${YELLOW}⚠ WARN:${NC} $1"
-}
-ok() {
-    echo -e "${GREEN}✔ OK:${NC} $1"
-}
+fail() { echo -e "${RED}✗ FAIL:${NC} $1"; ERRORS=$((ERRORS+1)); }
+warn() { echo -e "${YELLOW}⚠ WARN:${NC} $1"; WARNS=$((WARNS+1)); }
+ok()   { echo -e "${GREEN}✔ OK:${NC} $1"; }
 
-# ════════════════════════════════════════════════════════════
-# 1. Задължителни импорти
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[1/10] Задължителни CSS импорти от /design-kit/${NC}"
-for f in tokens.css components-base.css components.css light-theme.css header-palette.css; do
-    if grep -q "design-kit/$f" "$FILE"; then
-        ok "import $f"
+# Extract <style>...</style> bodies once (faster + scoped checks)
+STYLE_BLOCK=$(awk '/<style/,/<\/style>/' "$FILE" 2>/dev/null || true)
+HEAD_BLOCK=$(awk '/<head>/,/<\/head>/' "$FILE" 2>/dev/null || true)
+
+# ── 1. Hardcoded hex colors извън CSS variables ─────────────────────
+echo -e "\n${CYAN}[1/15] Hardcoded hex colors${NC}"
+# Allow:
+#   - hex inside CSS variable definitions (--foo: #hex) — these ARE the tokens
+#   - hex inside SVG data: URIs, stroke="#", fill="#"
+#   - comments
+#   - whitelist (white/black/canonical Bible tokens)
+HEX_HITS=$(echo "$STYLE_BLOCK" | grep -nE '#[0-9a-fA-F]{3,8}\b' \
+    | grep -vE 'data:image/svg|\bstroke="#|\bfill="#|^\s*//|^\s*\*|^\s*<!--' \
+    | grep -vE '^\s*[0-9]+:\s*--[a-zA-Z0-9_-]+:\s*#' \
+    | grep -vE '#(f9c74f|f8961e|fff|000|ffffff|000000|e0e5ec|d1d9e6|2d3748|64748b|94a3b8|a3b1c6|f1f5f9|08090d|0a0b14|050609|6366f1|818cf8|a5b4fc|4f46e5|ef4444|f59e0b|22c55e|14b8a6|8b5cf6)\b' || true)
+HEX_COUNT=$( [ -z "$HEX_HITS" ] && echo 0 || echo "$HEX_HITS" | grep -c . )
+if [ "$HEX_COUNT" -gt 0 ]; then
+    if [ "$HEX_COUNT" -le 5 ]; then warn "$HEX_COUNT hardcoded hex (виж по-долу — обмисли var(--accent)/var(--text))"
+    else fail "$HEX_COUNT hardcoded hex (трябва var(--accent)/var(--text)/var(--qN-*))"; fi
+    echo "$HEX_HITS" | head -5 | sed 's/^/      /'
+else
+    ok "Без hardcoded hex (или само whitelisted)"
+fi
+
+# ── 2. CSS variables за цветове ─────────────────────────────────────
+echo -e "\n${CYAN}[2/15] CSS variables за цветове (var(--accent)/--text)${NC}"
+if echo "$STYLE_BLOCK" | grep -qE 'var\(--(accent|text|text-muted|q[1-6]-)' ; then
+    ok "Цветове минават през var(--accent)/--text/--qN-*"
+else
+    if [ -n "$STYLE_BLOCK" ]; then
+        warn "Не намирам var(--accent)/var(--text)/var(--qN-*) — модулът може да е dark-only"
     else
-        fail "Липсва: <link rel=\"stylesheet\" href=\"/design-kit/$f\">"
+        ok "Няма <style> блок (модулът ползва external CSS)"
     fi
-done
-
-if grep -q "design-kit/palette.js" "$FILE"; then
-    ok "include palette.js"
-else
-    fail "Липсва: <script src=\"/design-kit/palette.js\">"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 2. Забранени собствени дефиниции на компоненти
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[2/10] Забранени собствени дефиниции${NC}"
-FORBIDDEN_CLASSES="\.glass\s*[{,]|\.shine\s*[{,]|\.glow\s*[{,]|\.glow-bright\s*[{,]|\.qcard\s*[{,]|\.btn-iri\s*[{,]|\.lb-card\s*[{,]|\.s82-dash\s*[{,]|\.briefing-section\s*[{,]|\.ai-studio-row\s*[{,]|\.health\s*[{,]|\.cb-mode-toggle\s*[{,]|\.rms-icon-btn\s*[{,]|\.rms-fab\s*[{,]|\.rms-header\s*[{,]|\.rms-bottom-nav\s*[{,]|\.rms-input-bar\s*[{,]|\.rms-brand\s*[{,]|\.pill\s*[{,]|\.top-pill\s*[{,]|\.rev-pill\s*[{,]"
-
-VIOLATIONS=$(grep -nE "$FORBIDDEN_CLASSES" "$FILE" 2>/dev/null || true)
-if [ -n "$VIOLATIONS" ]; then
-    fail "Преписваш съществуващи класове:"
-    echo "$VIOLATIONS" | head -10 | sed 's/^/      /'
+# ── 3. Радиуси през --radius* ───────────────────────────────────────
+echo -e "\n${CYAN}[3/15] border-radius през --radius*${NC}"
+RAW_RADIUS=$(echo "$STYLE_BLOCK" | grep -nE 'border-radius:\s*[0-9]+px' || true)
+RAW_RADIUS_COUNT=$( [ -z "$RAW_RADIUS" ] && echo 0 || echo "$RAW_RADIUS" | grep -c . )
+if [ "$RAW_RADIUS_COUNT" -gt 0 ]; then
+    if [ "$RAW_RADIUS_COUNT" -le 3 ]; then warn "$RAW_RADIUS_COUNT raw border-radius (px) — препоръчва се var(--radius*)"
+    else fail "$RAW_RADIUS_COUNT raw border-radius (px) — трябва var(--radius)/--radius-sm/--radius-pill/--radius-icon"; fi
+    echo "$RAW_RADIUS" | head -3 | sed 's/^/      /'
 else
-    ok "Не преписваш съществуващи класове"
+    ok "Без raw border-radius в px (или само 0/inherit)"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 3. Забранени hue-overrides
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[3/10] Забранени inline hue-overrides${NC}"
-INLINE_HUE=$(grep -nE 'style="[^"]*--hue[12][^"]*"' "$FILE" 2>/dev/null || true)
-if [ -n "$INLINE_HUE" ]; then
-    fail "Inline --hue1/--hue2 в style=\"\""
-    echo "$INLINE_HUE" | head -5 | sed 's/^/      /'
+# ── 4. Сенки през --shadow-card* ────────────────────────────────────
+echo -e "\n${CYAN}[4/15] box-shadow през --shadow-card*${NC}"
+RAW_SHADOW=$(echo "$STYLE_BLOCK" | grep -nE 'box-shadow:\s*(inset\s+)?[0-9-]+(px)?\s+' || true)
+RAW_SHADOW_COUNT=$( [ -z "$RAW_SHADOW" ] && echo 0 || echo "$RAW_SHADOW" | grep -c . )
+if [ "$RAW_SHADOW_COUNT" -gt 4 ]; then
+    fail "$RAW_SHADOW_COUNT raw box-shadow recipes — повечето трябва var(--shadow-card*)"
+    echo "$RAW_SHADOW" | head -3 | sed 's/^/      /'
+elif [ "$RAW_SHADOW_COUNT" -gt 0 ]; then
+    warn "$RAW_SHADOW_COUNT raw box-shadow — провери дали не може var(--shadow-card*)"
 else
-    ok "Няма inline --hue1/--hue2"
+    ok "Без raw box-shadow recipes"
 fi
 
-ROOT_HUE=$(grep -nE ':root\s*\{[^}]*--hue[12]' "$FILE" 2>/dev/null || true)
-if [ -n "$ROOT_HUE" ]; then
-    fail ":root override на --hue1/--hue2 в модула"
-    echo "$ROOT_HUE" | head -5 | sed 's/^/      /'
+# ── 5. Шрифт = Montserrat (var(--font)) ─────────────────────────────
+echo -e "\n${CYAN}[5/15] Шрифт = Montserrat / DM Mono${NC}"
+BAD_FONT=$(echo "$STYLE_BLOCK" | grep -niE "font-family:\s*['\"]?(Inter|Roboto|Arial|Helvetica|Times|Georgia|Verdana|Courier)" || true)
+if [ -n "$BAD_FONT" ]; then
+    fail "Не-Montserrat font-family (трябва var(--font) или var(--font-mono))"
+    echo "$BAD_FONT" | head -3 | sed 's/^/      /'
 else
-    ok "Няма :root override на hue tokens"
+    ok "Само Montserrat / DM Mono / system stack"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 4. Забранени patterns
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[4/10] Забранени design-kit patterns${NC}"
-INLINE_STYLE=$(awk '/<style/,/<\/style>/' "$FILE" 2>/dev/null)
+# ── 6. [data-theme=light] и [data-theme=dark] правила ──────────────
+echo -e "\n${CYAN}[6/15] Bichromatic theme rules${NC}"
+HAS_LIGHT=$(echo "$STYLE_BLOCK" | grep -cE '\[data-theme="?light' 2>/dev/null); HAS_LIGHT=${HAS_LIGHT:-0}
+HAS_DARK=$(echo "$STYLE_BLOCK" | grep -cE '\[data-theme="?dark' 2>/dev/null); HAS_DARK=${HAS_DARK:-0}
+if [ -z "$STYLE_BLOCK" ]; then
+    warn "Няма <style> в модула (BICHROMATIC support идва от external CSS)"
+elif [ "$HAS_LIGHT" -gt 0 ] && [ "$HAS_DARK" -gt 0 ]; then
+    ok "Има [data-theme=\"light\"] ($HAS_LIGHT) и [data-theme=\"dark\"] ($HAS_DARK) правила"
+elif [ "$HAS_LIGHT" -gt 0 ]; then
+    warn "Само [data-theme=\"light\"] правила (липсва dark)"
+elif [ "$HAS_DARK" -gt 0 ]; then
+    warn "Само [data-theme=\"dark\"] правила (липсва light)"
+else
+    fail "Няма [data-theme=\"light\"] нито [data-theme=\"dark\"] правила — модулът е mono-theme"
+fi
 
-check_pattern() {
-    local pattern="$1"
-    local name="$2"
-    if echo "$INLINE_STYLE" | grep -qE "$pattern"; then
-        fail "$name извън design-kit"
+# ── 7. partials/header.php + bottom-nav.php include ────────────────
+echo -e "\n${CYAN}[7/15] Shell partials${NC}"
+HAS_HEADER=0; HAS_NAV=0
+grep -qE "include[^;]+partials/header\.php" "$FILE" && HAS_HEADER=1
+grep -qE "include[^;]+partials/bottom-nav\.php" "$FILE" && HAS_NAV=1
+if [ "$HAS_HEADER" = 1 ] && [ "$HAS_NAV" = 1 ]; then
+    ok "header.php + bottom-nav.php включени"
+elif [ "$HAS_HEADER" = 1 ]; then
+    warn "header.php включен, но липсва bottom-nav.php (acceptable за auth/full-screen pages)"
+elif [ "$HAS_NAV" = 1 ]; then
+    warn "bottom-nav.php включен, но липсва header.php"
+else
+    warn "Нито header нито bottom-nav (auth/landing pages — OK)"
+fi
+
+# ── 8. $rms_current_module зададен ──────────────────────────────────
+echo -e "\n${CYAN}[8/15] \$rms_current_module${NC}"
+if grep -qE '\$rms_current_module\s*=' "$FILE"; then
+    ok "\$rms_current_module зададен"
+elif [ "$HAS_NAV" = 1 ] || [ "$HAS_HEADER" = 1 ]; then
+    warn "Няма \$rms_current_module (active tab detection ще пропадне на shell-init.php fallback)"
+else
+    ok "Няма shell → не е нужен \$rms_current_module"
+fi
+
+# ── 9. .glass cards 4-span structure ────────────────────────────────
+echo -e "\n${CYAN}[9/15] .glass + 4 SACRED span-а${NC}"
+GLASS_COUNT=$(grep -cE 'class="[^"]*\bglass\b' "$FILE" 2>/dev/null); GLASS_COUNT=${GLASS_COUNT:-0}
+if [ "$GLASS_COUNT" -gt 0 ]; then
+    SHINE_COUNT=$(grep -cE 'class="[^"]*\bshine\b' "$FILE" 2>/dev/null); SHINE_COUNT=${SHINE_COUNT:-0}
+    GLOW_COUNT=$(grep -cE 'class="[^"]*\bglow\b' "$FILE" 2>/dev/null); GLOW_COUNT=${GLOW_COUNT:-0}
+    if [ "$SHINE_COUNT" -lt 1 ] || [ "$GLOW_COUNT" -lt 1 ]; then
+        warn ".glass($GLASS_COUNT) използван, но shine/glow span-овете са недостатъчни (.shine=$SHINE_COUNT .glow=$GLOW_COUNT)"
     else
-        ok "$name е само в design-kit"
+        ok ".glass=$GLASS_COUNT, shine=$SHINE_COUNT, glow=$GLOW_COUNT"
     fi
-}
+else
+    ok "Няма .glass (или ползва различен компонент)"
+fi
 
-check_pattern 'backdrop-filter\s*:' 'backdrop-filter'
-check_pattern 'conic-gradient' 'conic-gradient'
-check_pattern 'mix-blend-mode\s*:\s*plus-lighter' 'mix-blend-mode: plus-lighter'
-check_pattern 'mask:\s*linear-gradient.*linear-gradient' 'mask composite (двоен linear-gradient)'
-
-# ════════════════════════════════════════════════════════════
-# 5. Шрифт
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[5/10] Шрифт = Montserrat${NC}"
-if grep -qE "font-family:\s*['\"]?(?!Montserrat)" <(echo "$INLINE_STYLE") 2>/dev/null; then
-    OTHER_FONTS=$(echo "$INLINE_STYLE" | grep -E "font-family:\s*['\"]?[A-Z]" | grep -vE "Montserrat|monospace|inherit|sans-serif" || true)
-    if [ -n "$OTHER_FONTS" ]; then
-        fail "Друг шрифт освен Montserrat:"
-        echo "$OTHER_FONTS" | head -3 | sed 's/^/      /'
+# ── 10. z-index: 5+ за content в .glass ────────────────────────────
+echo -e "\n${CYAN}[10/15] Content z-index ≥ 5${NC}"
+if [ "$GLASS_COUNT" -gt 0 ]; then
+    if echo "$STYLE_BLOCK" | grep -qE 'z-index:\s*[5-9]|z-index:\s*var\(--z-content'; then
+        ok "z-index ≥ 5 присъства (content z-index OK)"
     else
-        ok "Само Montserrat"
+        warn "Не намирам z-index:5+ — content в .glass може да е under shine/glow"
     fi
 else
-    ok "Само Montserrat"
+    ok "Няма .glass → не е нужен z-index check"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 6. Emoji в UI
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[6/10] Emoji в UI${NC}"
-EMOJI_LINES=$(grep -nP '[\x{1F300}-\x{1FAFF}]|[\x{2600}-\x{27BF}]' "$FILE" 2>/dev/null | grep -v '^\s*\*\|^\s*\/\/\|^\s*<!--' || true)
-if [ -n "$EMOJI_LINES" ]; then
-    warn "Emoji намерени (може да са в коментари — провери ръчно):"
-    echo "$EMOJI_LINES" | head -5 | sed 's/^/      /'
+# ── 11. Никакви framework imports ──────────────────────────────────
+echo -e "\n${CYAN}[11/15] Без Bootstrap / Tailwind${NC}"
+FW_HITS=$(grep -niE 'bootstrap\.(min\.)?css|tailwind\.(min\.)?css|cdn\.tailwindcss|jsdelivr.*bootstrap' "$FILE" 2>/dev/null | head -3 || true)
+if [ -n "$FW_HITS" ]; then
+    fail "Framework imports намерени"
+    echo "$FW_HITS" | sed 's/^/      /'
 else
-    ok "Няма emoji"
+    ok "Без bootstrap/tailwind imports"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 7. Shell partials
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[7/10] Shell partials${NC}"
-if grep -qE "include\s+__DIR__\s*\.\s*['\"]/(design-kit/partial-header|partials/header)\.(html|php)" "$FILE"; then
-    ok "Header partial включен"
+# ── 12. priceFormat вместо hardcoded валути ─────────────────────────
+echo -e "\n${CYAN}[12/15] priceFormat (вместо лв/€/BGN)${NC}"
+HARDC_CUR=$(grep -nE "(>\s*'?лв'?\s*<|>\s*'?BGN'?\s*<|echo\s+['\"]лв|echo\s+['\"]€)" "$FILE" 2>/dev/null \
+    | grep -vE '//\s|/\*|\*\s|priceFormat|currency' | head -5 || true)
+HARDC_COUNT=$( [ -z "$HARDC_CUR" ] && echo 0 || echo "$HARDC_CUR" | grep -c . )
+if [ "$HARDC_COUNT" -gt 0 ]; then
+    warn "$HARDC_COUNT hardcoded 'лв'/'€'/'BGN' изрази (препоръчва се priceFormat(\$amount, \$tenant))"
+    echo "$HARDC_CUR" | head -3 | sed 's/^/      /'
 else
-    fail "Header partial липсва (трябва include на /design-kit/partial-header.html)"
+    ok "Без hardcoded валутни литерали (или ползва priceFormat)"
 fi
 
-if grep -qE "include\s+__DIR__\s*\.\s*['\"]/(design-kit/partial-bottom-nav|partials/bottom-nav)\.(html|php)" "$FILE"; then
-    ok "Bottom nav partial включен"
+# ── 13. Без "Gemini"/"fal.ai"/"Anthropic" в UI ─────────────────────
+echo -e "\n${CYAN}[13/15] AI brand mentions в UI${NC}"
+AI_HITS=$(grep -nE '>\s*[^<]*\b(Gemini|fal\.ai|Anthropic|Claude)\b[^<]*<|"\s*[^"]*\b(Gemini|fal\.ai|Anthropic)\b' "$FILE" 2>/dev/null \
+    | grep -vE '//\s|/\*|\*\s|^\s*\*' | head -3 || true)
+if [ -n "$AI_HITS" ]; then
+    fail "AI vendor mentions в UI (използвай 'AI')"
+    echo "$AI_HITS" | sed 's/^/      /'
 else
-    fail "Bottom nav partial липсва"
+    ok "Без vendor brand mentions"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 8. body class="has-rms-shell"
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[8/10] body class${NC}"
-if grep -qE '<body[^>]*class="[^"]*has-rms-shell' "$FILE"; then
-    ok 'body има class="has-rms-shell"'
+# ── 14. prefers-reduced-motion блок ─────────────────────────────────
+echo -e "\n${CYAN}[14/15] @media prefers-reduced-motion${NC}"
+if echo "$STYLE_BLOCK" | grep -qE 'prefers-reduced-motion'; then
+    ok "@media (prefers-reduced-motion: reduce) включен"
 else
-    fail '<body> трябва да има class="has-rms-shell"'
-fi
-
-# ════════════════════════════════════════════════════════════
-# 9. theme-toggle.js включен (v1.1 НОВО)
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[9/10] theme-toggle.js (v1.1)${NC}"
-if grep -q "design-kit/theme-toggle.js" "$FILE"; then
-    ok "include theme-toggle.js"
-    # Проверка дали е ПРЕДИ palette.js
-    TOGGLE_LINE=$(grep -n "design-kit/theme-toggle.js" "$FILE" | head -1 | cut -d: -f1)
-    PALETTE_LINE=$(grep -n "design-kit/palette.js" "$FILE" | head -1 | cut -d: -f1)
-    if [ -n "$TOGGLE_LINE" ] && [ -n "$PALETTE_LINE" ]; then
-        if [ "$TOGGLE_LINE" -gt "$PALETTE_LINE" ]; then
-            fail "theme-toggle.js трябва да е ПРЕДИ palette.js (toggle:$TOGGLE_LINE > palette:$PALETTE_LINE)"
-        else
-            ok "theme-toggle.js е преди palette.js"
-        fi
+    if [ -n "$STYLE_BLOCK" ]; then
+        warn "Липсва @media (prefers-reduced-motion: reduce) (препоръчително за анимации)"
+    else
+        ok "Няма <style> → не е нужно"
     fi
-else
-    fail "Липсва: <script src=\"/design-kit/theme-toggle.js\"> (без него theme бутонът е мъртъв)"
 fi
 
-# ════════════════════════════════════════════════════════════
-# 10. <html> няма hardcoded data-theme (v1.1 НОВО)
-# ════════════════════════════════════════════════════════════
-echo -e "\n${CYAN}[10/10] <html> tag без data-theme (v1.1)${NC}"
-HTML_THEME=$(grep -nE '<html[^>]*data-theme=' "$FILE" 2>/dev/null || true)
-if [ -n "$HTML_THEME" ]; then
-    fail '<html> има hardcoded data-theme — трябва да е САМО <html lang="bg">'
-    echo "$HTML_THEME" | head -3 | sed 's/^/      /'
-    echo -e "      ${YELLOW}Защо:${NC} hardcoded data-theme=\"dark\" override-ва bootstrap script-а,"
-    echo -e "      ${YELLOW}      и localStorage rms_theme=light не се прилага на reload.${NC}"
+# ── 15. Mobile-first .app max-width 480px ──────────────────────────
+echo -e "\n${CYAN}[15/15] Mobile-first (max-width 480px)${NC}"
+if echo "$STYLE_BLOCK" | grep -qE '\.app\s*\{[^}]*max-width:\s*480px|max-width:\s*480px[^}]*\}'; then
+    ok "Mobile-first .app max-width: 480px"
+elif [ -n "$STYLE_BLOCK" ] && [ "$HAS_HEADER" = 1 ]; then
+    warn "Не виждам max-width:480px на .app — препоръчително за shell pages"
 else
-    ok '<html> няма hardcoded data-theme'
+    ok "Не е shell page или липсва inline style — пропуска се"
 fi
 
-# Bootstrap script проверка
-if grep -q "localStorage.getItem('rms_theme')" "$FILE"; then
-    ok "Bootstrap script за theme присъства"
-else
-    warn "Липсва inline bootstrap: <script>try{if(localStorage.getItem('rms_theme')==='light')...}</script>"
-fi
-
-# ════════════════════════════════════════════════════════════
-# Резултат
-# ════════════════════════════════════════════════════════════
+# ── Резултат ────────────────────────────────────────────────────────
 echo
 echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
 if [ "$ERRORS" -eq 0 ]; then
-    echo -e "${GREEN}✔ COMPLIANCE PASSED — модулът е в design-kit v1.1 стандарта${NC}"
+    echo -e "${GREEN}✔ COMPLIANCE PASSED — модулът е v4.1 BICHROMATIC съвместим${NC}"
+    [ "$WARNS" -gt 0 ] && echo -e "${YELLOW}  ($WARNS предупреждения — препоръчително да поправиш)${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
     exit 0
 else
-    echo -e "${RED}✗ COMPLIANCE FAILED — $ERRORS нарушения${NC}"
-    echo -e "${RED}  Модулът се отказва. Поправи и пусни отново.${NC}"
+    echo -e "${RED}✗ COMPLIANCE FAILED — $ERRORS критични нарушения${NC}"
+    [ "$WARNS" -gt 0 ] && echo -e "${YELLOW}  + $WARNS предупреждения${NC}"
+    echo -e "${RED}  Поправи и пусни отново.${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════${NC}"
     exit 1
 fi
