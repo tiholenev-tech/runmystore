@@ -225,7 +225,7 @@ function api_send(int $tenant_id, int $user_id): array {
 function api_cancel(int $tenant_id, int $user_id): array {
     $oid = (int)($_POST['order_id'] ?? 0);
     if ($oid <= 0) return ['ok' => false, 'error' => 'missing'];
-    DB::run("UPDATE purchase_orders SET status='cancelled' WHERE id=? AND tenant_id=? AND status IN ('draft','sent','partial','stale')",
+    DB::run("UPDATE purchase_orders SET status='canceled' WHERE id=? AND tenant_id=? AND status IN ('draft','sent','partial','stale')",
             [$oid, $tenant_id]);
     return ['ok' => true];
 }
@@ -258,37 +258,37 @@ $is_editable = $order && $order['status'] === 'draft';
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
 
 <style>
 .mod-ord-row{
     display:flex;align-items:center;gap:10px;padding:10px 12px;
     background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-    border-radius:12px;margin-bottom:6px
+    border-radius:var(--radius);margin-bottom:6px
 }
 .mod-ord-row-body{flex:1;min-width:0}
 .mod-ord-row-name{font-size:13px;font-weight:800;color:#f1f5f9;line-height:1.2;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .mod-ord-row-meta{font-size:10px;font-weight:600;color:rgba(255,255,255,.45);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
 .mod-ord-qty-input{
-    width:60px;padding:6px 8px;border-radius:8px;
+    width:60px;padding:6px 8px;border-radius:var(--radius-sm);
     background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
     color:#f1f5f9;font-size:13px;font-weight:800;font-family:inherit;
     font-variant-numeric:tabular-nums;text-align:center
 }
 .mod-ord-row-amt{font-size:13px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;line-height:1}
 .mod-ord-row-rm{
-    width:24px;height:24px;border-radius:6px;flex-shrink:0;
+    width:24px;height:24px;border-radius:var(--radius-sm);flex-shrink:0;
     background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
-    color:#fca5a5;cursor:pointer;font-family:inherit;
+    color:hsl(0 93% 82%);cursor:pointer;font-family:inherit;
     display:flex;align-items:center;justify-content:center
 }
-.mod-ord-totals{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;margin-top:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.mod-ord-totals{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:var(--radius);margin-top:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
 .mod-ord-totals-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em}
 .mod-ord-totals-amt{font-size:18px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums}
 
 .mod-ord-action{
     display:flex;align-items:center;justify-content:center;gap:8px;
-    padding:14px 20px;border-radius:14px;width:100%;
+    padding:14px 20px;border-radius:var(--radius);width:100%;
     font-size:14px;font-weight:900;letter-spacing:.02em;
     text-decoration:none;border:none;cursor:pointer;font-family:inherit;color:#fff
 }
@@ -301,22 +301,37 @@ $is_editable = $order && $order['status'] === 'draft';
 
 .mod-ord-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:center;justify-content:center;padding:20px}
 .mod-ord-overlay.open{opacity:1;pointer-events:auto}
-.mod-ord-modal{background:rgba(8,9,13,.98);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
+.mod-ord-modal{background:rgba(8,9,13,.98);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
 .mod-ord-modal h3{font-size:14px;font-weight:900;color:#f1f5f9;margin-bottom:12px}
-.mod-ord-modal pre{font-family:'Courier New',monospace;font-size:12px;color:#e0e0e0;background:rgba(255,255,255,.04);padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto}
+.mod-ord-modal pre{font-family:var(--font-mono);font-size:12px;color:#e0e0e0;background:rgba(255,255,255,.04);padding:10px;border-radius:var(--radius-sm);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto}
 
-.mod-ord-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:300;padding:12px 16px;border-radius:12px;background:rgba(8,9,13,.95);border:1px solid rgba(34,197,94,.5);color:#86efac;font-size:13px;font-weight:800;transform:translateY(120%);transition:transform .3s}
+.mod-ord-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:300;padding:12px 16px;border-radius:var(--radius);background:rgba(8,9,13,.95);border:1px solid rgba(34,197,94,.5);color:hsl(141 79% 73%);font-size:13px;font-weight:800;transform:translateY(120%);transition:transform .3s}
 .mod-ord-toast.show{transform:translateY(0)}
-.mod-ord-toast.error{border-color:rgba(239,68,68,.6);color:#fca5a5}
-.mod-ord-toast.warn{border-color:rgba(245,158,11,.6);color:#fbbf24}
+.mod-ord-toast.error{border-color:rgba(239,68,68,.6);color:hsl(0 93% 82%)}
+.mod-ord-toast.warn{border-color:rgba(245,158,11,.6);color:hsl(43 96% 56%)}
 
-.mod-ord-status-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
-.mod-ord-status-pill.draft{background:rgba(165,180,252,.12);border:1px solid rgba(165,180,252,.3);color:#c7d2fe}
+.mod-ord-status-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:var(--radius-pill);font-size:10px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+.mod-ord-status-pill.draft{background:rgba(165,180,252,.12);border:1px solid rgba(165,180,252,.3);color:hsl(229 100% 89%)}
 .mod-ord-status-pill.sent{background:rgba(99,150,255,.14);border:1px solid rgba(99,150,255,.32);color:#93c5fd}
-.mod-ord-status-pill.partial{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:#fbbf24}
-.mod-ord-status-pill.received{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac}
-.mod-ord-status-pill.stale{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:#fca5a5}
+.mod-ord-status-pill.partial{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:hsl(43 96% 56%)}
+.mod-ord-status-pill.received{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:hsl(141 79% 73%)}
+.mod-ord-status-pill.stale{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:hsl(0 93% 82%)}
 .mod-ord-status-pill.cancelled{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45)}
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell mode-<?= htmlspecialchars($mode) ?>">
