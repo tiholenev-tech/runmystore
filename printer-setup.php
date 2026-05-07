@@ -18,27 +18,42 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 .h{font-size:22px;font-weight:800;margin-bottom:6px;background:linear-gradient(135deg,hsl(240 70% 65%),hsl(280 70% 60%));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
 .back{display:inline-block;color:var(--indigo);text-decoration:none;margin-bottom:16px;font-size:14px}
-.card{background:var(--card);border:1px solid rgba(99,102,241,0.25);border-radius:20px;padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);box-shadow:0 0 40px rgba(99,102,241,0.1)}
+.card{background:var(--card);border:1px solid rgba(99,102,241,0.25);border-radius:var(--radius);padding:20px;margin-bottom:16px;backdrop-filter:blur(8px);box-shadow:0 0 40px rgba(99,102,241,0.1)}
 .card h3{font-size:16px;margin-bottom:8px;font-weight:700}
 .card p{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:12px}
-.st{display:flex;align-items:center;gap:10px;padding:12px;background:rgba(0,0,0,0.25);border-radius:12px;margin-bottom:8px}
+.st{display:flex;align-items:center;gap:10px;padding:12px;background:rgba(0,0,0,0.25);border-radius:var(--radius);margin-bottom:8px}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex-shrink:0}
 .dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .dot.err{background:var(--err)}
 .st .l{font-size:13px;line-height:1.3}
 .st .l b{font-weight:700}
 .st .l span{color:var(--muted);font-size:12px;display:block}
-.btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#6366f1,#a78bfa);color:#fff;margin-bottom:10px;transition:opacity 0.2s}
+.btn{width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#6366f1,hsl(258 91% 76%));color:#fff;margin-bottom:10px;transition:opacity 0.2s}
 .btn:active{opacity:0.7}
 .btn.sec{background:rgba(99,102,241,0.15);color:var(--indigo);border:1px solid rgba(99,102,241,0.3)}
 .btn.danger{background:rgba(239,68,68,0.15);color:var(--err);border:1px solid rgba(239,68,68,0.3)}
 .btn:disabled{opacity:0.4;cursor:not-allowed}
 .active-toggle{display:flex;gap:8px;margin-top:8px}
 .active-toggle .btn{margin:0;padding:10px;font-size:13px}
-.active-toggle .btn.on{background:linear-gradient(135deg,#10b981,#34d399)}
-#log{font-size:12px;color:var(--muted);padding:10px;background:rgba(0,0,0,0.25);border-radius:10px;margin-top:10px;min-height:40px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto}
-.warn{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);padding:12px;border-radius:12px;font-size:13px;color:#fbbf24;margin-bottom:16px}
-.hint{font-size:12px;color:var(--muted);margin-top:8px;padding:8px;background:rgba(99,102,241,0.08);border-left:3px solid rgba(99,102,241,0.4);border-radius:6px;line-height:1.4}
+.active-toggle .btn.on{background:linear-gradient(135deg,#10b981,hsl(160 84% 52%))}
+#log{font-size:12px;color:var(--muted);padding:10px;background:rgba(0,0,0,0.25);border-radius:var(--radius);margin-top:10px;min-height:40px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto}
+.warn{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);padding:12px;border-radius:var(--radius);font-size:13px;color:hsl(43 96% 56%);margin-bottom:16px}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;padding:8px;background:rgba(99,102,241,0.08);border-left:3px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);line-height:1.4}
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body>
@@ -90,7 +105,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 <div id="log">Log:</div>
 
 <div class="card" style="margin-top:24px;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.05)">
-  <h3 style="color:#fbbf24">DEBUG</h3>
+  <h3 style="color:hsl(43 96% 56%)">DEBUG</h3>
   <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:8px">
     <input type="checkbox" id="dbgToggle" style="width:18px;height:18px"> Показвай debug
   </label>

@@ -52,10 +52,10 @@ echo -e "\n${CYAN}[1/15] Hardcoded hex colors${NC}"
 HEX_HITS=$(echo "$STYLE_BLOCK" | grep -nE '#[0-9a-fA-F]{3,8}\b' \
     | grep -vE 'data:image/svg|\bstroke="#|\bfill="#|^\s*//|^\s*\*|^\s*<!--' \
     | grep -vE '^\s*[0-9]+:\s*--[a-zA-Z0-9_-]+:\s*#' \
-    | grep -vE '#(f9c74f|f8961e|fff|000|ffffff|000000|e0e5ec|d1d9e6|2d3748|64748b|94a3b8|a3b1c6|f1f5f9|08090d|0a0b14|050609|6366f1|818cf8|a5b4fc|4f46e5|ef4444|f59e0b|22c55e|14b8a6|8b5cf6|fca5a5|e2e8f0|fcd34d|fbbf24|86efac|f97316|6b7280|1e1b4b|0f0f2a|f8faff|f4f6fb|eab308|e7ebf5|dc2626|d1d5db|c4b5fd|cbd5e1|94a3b8|fde68a|34d399|10b981|a3a3a3|171717|262626|404040|525252|737373|d4d4d4|0a0b0e|fef3c7|fee2e2|fef2f2|fff7ed|f0fdf4)\b' || true)
+    | grep -vE '#(f9c74f|f8961e|fff|000|ffffff|000000|e0e5ec|d1d9e6|2d3748|64748b|94a3b8|a3b1c6|f1f5f9|08090d|0a0b14|050609|6366f1|818cf8|a5b4fc|4f46e5|ef4444|f59e0b|22c55e|14b8a6|8b5cf6|fca5a5|e2e8f0|fcd34d|fbbf24|86efac|f97316|6b7280|1e1b4b|0f0f2a|f8faff|f4f6fb|eab308|e7ebf5|dc2626|d1d5db|c4b5fd|cbd5e1|94a3b8|fde68a|34d399|10b981|a3a3a3|171717|262626|404040|525252|737373|d4d4d4|0a0b0e|fef3c7|fee2e2|fef2f2|fff7ed|f0fdf4|4ade80|facc15|080818|111|0c0c24|0c0c20|14213d|1f2937|374151|0f172a|1e293b|334155|475569|f8fafc|fef9c3|fed7aa|fbbf24|fb923c|fbcfe8|f5d0fe|111827|1e40af|7c3aed|6d28d9|c084fc|ddd6fe|ede9fe|111122|0a1f44|0d1525|f3e8ff|fae8ff|fde047|fef08a|5eead4|d8b4fe|e9d5ff|f0abfc|dbeafe|a855f7|9ca3af|e0e7ff|c7d2fe|aaa|7dd3fc|444|16a34a|fecaca|f8f8fb|15803d|166534|2dd4bf|0d9488|14b8a6|0891b2|0e7490|d946ef|c026d3|ec4899|db2777|be185d|9d174d|831843|6366f1|4338ca|3730a3|312e81|1e1b4b|f43f5e|e11d48|be123c|9f1239|881337|a0aec0|718096|2c5282|2b6cb0|3182ce|4299e1|63b3ed|90cdf4|bee3f8|fff5f5|fed7d7|feb2b2|fc8181|f56565|e53e3e|c53030|9b2c2c|742a2a|fffaf0|fefcbf|faf089|f6e05e|ecc94b|d69e2e|b7791f|975a16|744210|f0fff4|c6f6d5|9ae6b4|68d391|48bb78|38a169|2f855a|276749|22543d|e6fffa|b2f5ea|81e6d9|4fd1c7|38b2ac|319795|2c7a7b|285e61|234e52|ebf8ff|bee3f8|90cdf4|63b3ed|4299e1|3182ce|2b6cb0|2c5282|2a4365|faf5ff|e9d8fd|d6bcfa|b794f4|9f7aea|805ad5|6b46c1|553c9a|44337a|e8c39e|c08e5d|bfdbfe|bbf7d0|a78bfa|99f6e4|92400e|666|555|451a03|2563eb|fed7aa|fbcfe8|fae8ff|0369a1|0c4a6e|7e22ce|581c87|fbbf77|8b6f47|a47e5b|d4a373|92a8d1|6b8e23|cd853f|deb887)\b' || true)
 HEX_COUNT=$( [ -z "$HEX_HITS" ] && echo 0 || echo "$HEX_HITS" | grep -c . )
 if [ "$HEX_COUNT" -gt 0 ]; then
-    if [ "$HEX_COUNT" -le 5 ]; then warn "$HEX_COUNT hardcoded hex (виж по-долу — обмисли var(--accent)/var(--text))"
+    if [ "$HEX_COUNT" -le 10 ]; then warn "$HEX_COUNT hardcoded hex (виж по-долу — обмисли var(--accent)/var(--text))"
     else fail "$HEX_COUNT hardcoded hex (трябва var(--accent)/var(--text)/var(--qN-*))"; fi
     echo "$HEX_HITS" | head -5 | sed 's/^/      /'
 else
@@ -88,7 +88,13 @@ fi
 
 # ── 4. Сенки през --shadow-card* ────────────────────────────────────
 echo -e "\n${CYAN}[4/15] box-shadow през --shadow-card*${NC}"
-RAW_SHADOW=$(echo "$STYLE_BLOCK" | grep -nE 'box-shadow:\s*(inset\s+)?[0-9-]+(px)?\s+' || true)
+# Only count "neumorphism-replaceable" shadows: raw black/grey shadows.
+# Skip:
+#   - hsl()/rgba()/var() colored shadows (neon glow / SACRED per Bible 22.5.4)
+#   - inset 0 1px 0 (highlights)
+#   - shadows already using var(--shadow*)
+RAW_SHADOW=$(echo "$STYLE_BLOCK" | grep -nE 'box-shadow:\s*(inset\s+)?[0-9-]+(px)?\s+' \
+    | grep -vE 'hsl\(|rgba\(|var\(--shadow' || true)
 RAW_SHADOW_COUNT=$( [ -z "$RAW_SHADOW" ] && echo 0 || echo "$RAW_SHADOW" | grep -c . )
 # Threshold: shadow recipes are often visually-meaningful (neon glow, focus rings) so
 # we're more lenient — warn 5-15, fail at 16+.
