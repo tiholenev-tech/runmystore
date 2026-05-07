@@ -1438,7 +1438,10 @@ body::before{
     background:radial-gradient(ellipse,rgba(99,102,241,0.1) 0%,transparent 70%);
     pointer-events:none;z-index:0;
 }
-.main-wrap{position:relative;z-index:1;padding-bottom:180px;padding-top:0}
+/* S102 BUG #3: махнат z-index:1 — родителски stacking context капваше .prod-hdr (z-index:110 от S101)
+   на ниво глобален stacking → S101 fix-ът беше косметичен. Сега децата си изпълняват z-index-овете
+   спрямо глобалния поток. position:relative оставаме за layout (max-width:480px wrap). */
+.main-wrap{position:relative;padding-bottom:180px;padding-top:0}
 
 /* ═══ HEADER ═══ */
 .top-header{
@@ -2471,10 +2474,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 @keyframes pulseR{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ═══ PRODUCTS LIST HEADER ═══ */
-/* S101 BUG #3: z-index 9 → 110. .sort-dd / dropdowns inside .prod-hdr живееха в parent stacking context.
-   Паралелни елементи (.sig-card.expanding=100) рисуваха ВЪРХУ dropdown-а. 110 ги пуска над expanding cards
-   но остава под drawer overlay (200/201). Подравнено с DESIGN_SYSTEM § D.10 (200/210 за overlays). */
-.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:sticky;top:52px;z-index:110;background:rgba(3,7,18,.92)}
+/* S102 BUG #3: махнат position:sticky + z-index:110 (S101 attempt).
+   Root cause: .qfltr-row / .active-chips / .fltr-label СИБЛИНГИ под .prod-hdr НЕ са sticky →
+   при scroll скриваха под sticky header-а → филтрите ставаха недостъпни ("filter покрит от title").
+   Структурно: цялата навигационна група скролва заедно с content. На върха title + filter and двете видими;
+   при scroll и двете изчезват заедно — без overlap. Drawer (z-index:200/201) продължава да stack-ва
+   над всичко (изпълнява тапа за filter). Без z-index war, без !important. */
+.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:relative;background:rgba(3,7,18,.92)}
 .prod-back{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .prod-title{font-size:14px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui;flex:1}
 .prod-cnt{font-size:10px;color:rgba(165,180,252,.5);font-weight:600;flex-shrink:0}
