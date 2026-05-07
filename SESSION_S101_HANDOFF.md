@@ -413,3 +413,280 @@ S102 (07.05.2026 evening) — Code Code 2 FILTER_VISIBILITY_FIX
 
 **Край на S102 ADDENDUM. Pesho чака финален APK build тест от Тихол.**
 
+---
+
+## PRINTER ADDENDUM (S102D — D520BT UTF-8 RASTER FIX)
+
+**Дата:** 2026-05-07
+**Файл lock:** `js/capacitor-printer.js`
+**Статус:** PATCH READY (`/tmp/s102d_printer.patch`) — НЕ е applied на production. НЕ е committed.
+**Не push-нато** (per Тихол instruction).
+
+### Root cause (verified)
+
+D520BT firmware-ът третира BITMAP raster bytes като **UTF-8 encoded text**, а не като raw binary. High bytes (0x80-0xFF) трябва да се wrap-нат като 2-byte UTF-8 (`0xC0|(b>>6)`, `0x80|(b&0x3F)`); bytes <0x80 минават unchanged. Нашият JS пуска raw binary → high bytes са невалидни UTF-8 → принтерът отхвърля bitmap-а → "no print".
+
+### Evidence (15-job sniff в `bugreport-...2026-05-07-14-40-15.zip`)
+
+| Job set | Encoding | Transmitted bytes | Expansion | Print result |
+|---|---|---|---|---|
+| 13 jobs (1-7, 9-14) — Label app | UTF-8 | 22670-23264 | 1.89-1.94× | ✓ Cyrillic печата |
+| 2 jobs (8, 15) — нашия JS | RAW | 12000-12001 | 1.000× | ✗ "no print" |
+
+Job 1 UTF-8 decoded raster (12000 bytes) → re-encoded с моя rule = **byte-perfect identical** на Label's transmitted blob (22751 bytes). JS implementation cross-verified чрез Node — **EXACT BYTE MATCH** с Python reference. Nedosledni decode failures на 10 jobs са parser frame-boundary artifacts (`\xC3\x01\xBF` = injected RFCOMM `\x01`); expansion ratio (1.939×) consistent с UTF-8 encoded ~94% high-byte raster.
+
+### Patch summary (3 hunks, ~25 LOC, single touch-point)
+
+`/var/www/runmystore/js/capacitor-printer.js` (backup: `*.bak.D520_UTF8_20260507_1223`)
+
+1. **Add flag** `D520_USE_UTF8_RASTER = true` (after `D520_FORM_FEED`).
+2. **Add helper** `rasterToUtf8Bytes(raster)` — pure function, UTF-8 encodes Latin-1 codepoints.
+3. **Modify `generateTSPL_D520_bigbmp`** — single line: `pushRaw(rasterBytes)` where `rasterBytes = D520_USE_UTF8_RASTER ? rasterToUtf8Bytes(raster.bytes) : raster.bytes`.
+4. **Modify `_printD520` default path** — when flag is true, default `path = 'bigbmp'` (full Cyrillic via raster) instead of `'ascii'` (transliterate). LocalStorage `d520_path` override still respected.
+
+DTM5811 path NOT touched (`generateTSPL_DTM`, `_printDTM5811`, `writeWithoutResponse` unchanged). Other D520 paths (`escpos`, `pathc`, `bitmap0`, `bitmap4`, `hybrid`, `replay`, `bmptest`) unchanged.
+
+### Apply on production
+
+```bash
+cd /var/www/runmystore
+cp js/capacitor-printer.js js/capacitor-printer.js.bak.PRE_S102D_$(date +%Y%m%d_%H%M)
+patch -p1 -i /tmp/s102d_printer.patch         # или: git apply /tmp/s102d_printer.patch
+node --check js/capacitor-printer.js          # → "✓"
+```
+
+Verify deploy: `curl -sI https://runmystore.ai/js/capacitor-printer.js | grep Last-Modified`
+
+### Manual test pattern (Тихол)
+
+1. **Baseline (preferable preserve):** print "Тестова Bg" with current production state, photo of label result. (Очаквано: transliterated/no-print — текущ behavior.)
+2. **Apply patch + reload app**, print "Тестова Bg". (Очаквано: Cyrillic печата.)
+   - Ако излезе Cyrillic — ✓ patch работи.
+   - Ако не излезе — flip flag в js: `const D520_USE_UTF8_RASTER = false;` → reload → print again. (Очаквано: matches step 1 baseline.)
+3. **Confirm flag flip works:** ако step 2 успява, опционално flip `false` → reload → print. (Очаквано: revert to baseline.)
+
+Защо този pattern: проверява и forward (UTF-8 fix-ва Cyrillic) и reverse (flag flip връща нашия baseline без revert на patch-а). Ако forward не успява но reverse връща baseline → patch не е counter-productive, само не е достатъчен.
+
+### Очакван commit message (когато Тихол реши да commit-не)
+
+```
+S102D.PRINTER.D520_UTF8_RASTER: encode raw raster bytes как UTF-8 преди RFCOMM write
+
+Verified от Label app sniff (13/15 jobs UTF-8 ~22.7K bytes, прецизно cyrillic;
+2/15 raw 12K bytes, no print). JS rasterToUtf8Bytes byte-perfect identical с
+Label's transmitted blob. Single touch-point в generateTSPL_D520_bigbmp +
+default path flip в _printD520, gated зад D520_USE_UTF8_RASTER flag за лесен
+revert. DTM5811 path не е докоснат.
+```
+
+### Артефакти за отстраняване / съхранение
+
+- `/tmp/s102d_printer.patch` — diff, apply на production
+- `/var/www/runmystore/js/capacitor-printer.js.bak.D520_UTF8_20260507_1223` — pre-patch backup
+- `/tmp/br1440/FS/data/log/bt/btsnoop_hci.log` — sniff с 15 jobs (можеш да го трисне след повърждение)
+- `/tmp/label_pngs/job{01..15}*.{pgm,raw,DECODED.bin}` — extracted Label rasters (виж `cmp_label_job01.png` за reference Cyrillic look)
+- `/tmp/cmp_*.png` — comparison images (Label vs наш JS)
+- `/tmp/parse_label_session.py`, `/tmp/extract_label_jobs.py`, `/tmp/render_label_jobs.py`, `/tmp/decode_label_utf8.py`, `/tmp/verify_utf8_hypothesis.py`, `/tmp/pgm2png.py` — analysis скриптове
+
+### RWQ candidate
+
+"Кои други device printers в каталога ни (или бъдещи) имат firmware-нивo UTF-8/Latin-1 expectation за binary raster?" — Phomemo D-family вероятно същата logic; AIMO unconfirmed. Когато добавяме нов BT printer, добави step "sniff Label/официално приложение, count expansion ratio на raster vs nominal w*h" към onboarding checklist. Avoidва re-discovery.
+
+---
+
+**Край на PRINTER ADDENDUM. Patch чака apply от Тихол.**
+
+═══════════════════════════════════════════════════════════════
+
+# S103 ADDENDUM — SEARCH_FILTER_UNIFY (3 свързани bug-а)
+
+**Дата:** 2026-05-07 (вечер)
+**Сесия:** S103 — single-session, max 2 часа
+**Скоуп:** 3 свързани bug-а: filter btn handler, inline mic, home/list UX unify
+**File lock:** `products.php`
+**Patch:** `/tmp/s103.patch` (3 commits, ready за production apply)
+
+---
+
+## РЕЗЮМЕ
+
+| Bug | Title | Status | Commit |
+|---|---|---|---|
+| #7 | Filter button до микрофон НЕ работи | **DONE** | `fb230e1` |
+| #8 | Mic в search НЕ е като wizard (искаме wizard pattern) | **DONE** | `b7237f7` |
+| #9 | Filter+search в list view НЕ е същия като main | **DONE** | `a704992` |
+
+---
+
+## BUG #7 — FILTER BUTTON БЕЗ HANDLER
+
+**Commit:** `fb230e1 S103.PRODUCTS.SEARCH_FILTER_UNIFY.FILTER_BTN`
+
+### Root cause
+L4322 имаше `<button class="s-btn">` БЕЗ `onclick` handler. Просто рендериран filter funnel SVG + hardcoded `<span class="dot">3</span>` badge. Tap → нищо. Drawer #filterDr (L4733) и `openDrawer/closeDrawer` функциите вече съществуваха от друг flow — нужен само wire-up.
+
+### Fix
+- Добавен `onclick="openDrawer('filter')"`
+- Добавени `type="button"` + `aria-label="Филтри"` (a11y)
+- Добавен `id="hSearchFilterBtn"` + `id="hSearchFilterDot"` за бъдещ JS update
+- Hardcoded "3" → "0" + `display:none` default. **TODO** (out of scope): JS updater да брои active S.catId/S.supId/S.filter и да показва badge с реалното число.
+
+### DOD verification
+- ✅ `php -l products.php` → 0 errors
+- ✅ Diff stat: 1 file, 2+/1-
+- ⚠ Manual test (browser/APK от Тихол): Tap filter → drawer; Apply → list update; 0 console errors
+
+---
+
+## BUG #8 — INLINE MIC (WIZARD PATTERN, БЕЗ OVERLAY)
+
+**Commit:** `b7237f7 S103.PRODUCTS.SEARCH_FILTER_UNIFY.MIC_INLINE`
+
+### Преди
+Tap 🎤 в search → `openVoiceSearch()` → fullscreen `#recOv` overlay. Не като wizMic-а, не като Тихол искаше.
+
+### Сега (wizard pattern)
+- **Web Speech API** (free, native, instant, **zero cost**) — НЕ Whisper Groq за text търсене
+- `continuous=true + interimResults=true` → live transcript
+- 2-сек silence auto-stop (re-arm на всеки `onresult`)
+- Tap пак при recording → manual stop
+- Транскрипт live → `#hSearchInp.value` + `dispatchEvent('input')` →
+  съществуващият `onLiveSearchHome` дебаунсер (150ms) fire-ва → live filter
+- `lang` от `tenant.lang` (CFG.lang) — i18n за 11 езика (bg/ro/el/sr/hr/en/mk/sq/tr/sl/de)
+- `navigator.vibrate(8)` при start (haptic confirm)
+
+### Visual recording state (без !important)
+```css
+.s-btn.mic.recording{background:rgba(239,68,68,.3);border-color:#ef4444;color:#fff;animation:micRecPulse .8s infinite;position:relative}
+.s-btn.mic.recording::after{content:'REC';...top:-14px;...}
+.s-btn.mic.recording::before{content:'';...red dot blinking}
+```
+
+Specificity `.s-btn.mic.recording` (3 классa) > `.s-btn.mic` (2 классa) + source order → wins без `!important`. Reusing existing keyframes `micRecPulse` / `micRecDot` от wizard (L2186-2187) — без duplication.
+
+### ЗАПАЗЕНО (R2)
+- `openVoiceSearch` + `openVoice` + `#recOv` — separate flow (AI chat), непокътнат
+- `wizMic` / `.wiz-mic` CSS — REFERENCE only, не пипнат
+- `onLiveSearchHome` debouncer + `#hSearchDD` dropdown — re-used by event dispatch
+
+### DOD verification
+- ✅ `php -l` → 0 errors
+- ✅ Diff stat: 1 file, 79+/1- (additive)
+- ⚠ Manual test (browser/APK):
+  - Tap 🎤 → red + REC label + dot pulse, **БЕЗ overlay**
+  - Каза "червени обувки" → text live в input + dropdown update
+  - Замълчи 2 сек → auto-stop + final search
+  - Tap 🎤 повторно → manual stop
+  - Web Speech-disabled браузър → toast "не се поддържа", без crash
+
+---
+
+## BUG #9 — HOME ↔ LIST VIEW UNIFY (SEARCH/FILTER/MIC)
+
+**Commit:** `a704992 S103.PRODUCTS.SEARCH_FILTER_UNIFY.LIST_SEARCH`
+
+### Diagnostics
+- Home (`#scrHome`) имаше `.search-wrap` с input + filter btn + mic
+- List (`#scrProducts`) имаше само `.prod-hdr` (back/title/count/sort) + qfltr-pills
+- → две различни UX-а
+
+### Approach (per брийфа: "same DOM, same handlers")
+1. **Дубликат на .search-wrap в #scrProducts** директно след .prod-hdr.
+   - Същата визуална структура (CSS `.search-wrap` reused).
+   - p-prefixed IDs (`pSearchInp`, `pSearchFilterBtn`, `pSearchMicBtn`) — защото двата screen-а съществуват в DOM едновременно (display:none toggle), нямаме право на duplicate IDs.
+2. **`searchInlineMic(btn, inputId)` рефакториран** — приема `inputId` param, default `'hSearchInp'` (backwards compatible). List view вика `searchInlineMic(this, 'pSearchInp')`. **Single mic implementation за двата screen-а — DRY.**
+3. **Backend `?ajax=products` extended с `q` param**:
+   ```php
+   if (isset($_GET['q']) && trim((string)$_GET['q']) !== '') {
+       $q_like = '%' . trim((string)$_GET['q']) . '%';
+       $where[] = "(p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)";
+       $params[] = $q_like; $params[] = $q_like; $params[] = $q_like;
+   }
+   ```
+   tenant_id вече в WHERE → no cross-tenant leak. Combo с всички съществуващи filters (cat/sup/qf/...).
+4. **State**: `S.listQ` (отделно от `S.searchText` / `doSearch` overlay flow).
+5. **Frontend**: `onLiveSearchList(q)` дебаунсер 200ms → reset `S.page=1` + `loadProducts()`. `loadProducts()` сега изпраща `&q=` ако `S.listQ`.
+6. **`goScreen('products', ...)`**: на entry → `S.listQ=''` + `pSearchInp.value=''`. "Виж всички" → fresh list, не stale query.
+
+### ЗАПАЗЕНО
+- Home `#hSearchInp` + `onLiveSearchHome` + `#hSearchDD` dropdown — непокътнат
+- `doSearch()` / `openVoice()` / `#recOv` overlay — отделен flow, непокътнат
+- `.prod-hdr` layout (back/title/count/sort) — непокътнат
+- qfltr-pills + active-chips + signalFilterRow — непокътнат
+- Filter drawer `#filterDr` + `openDrawer/closeDrawer` — reused от двата screen-а
+
+### DOD verification
+- ✅ `php -l products.php` → 0 errors
+- ✅ Diff stat: 1 file, 35+/2-
+- ⚠ Manual test:
+  - Home: title + search + mic + filter + content (както преди)
+  - "Виж всички" → list: title (.prod-hdr) + search-wrap (input + filter + mic) + qfltr-pills
+  - Search input live-filter работи; filter btn → drawer; mic → red REC
+  - Същият `searchInlineMic` handler между двата screen-а (DRY)
+
+---
+
+## ⚠ ОТЛОЖЕНО / TODO (out-of-scope за S103)
+
+| Item | Why | Suggestion |
+|---|---|---|
+| Filter dot badge dynamic count | Hardcoded "0/3" — нужно е JS updater при промяна на S.catId/S.supId/S.filter/qfState | S104 — малка задача, ~10 LOC |
+| Touch target sizing на .s-btn (28×28) | DESIGN_LAW R6 минимум 36px | DESIGN_KIT migration / Option C |
+| Add qfltr-pills to home? | Брийфът беше двусмислен. Запазих home без qfltr-pills (existing layout). | Тихол да реши след visual review |
+| `S.searchText` ⊕ `S.listQ` ⊕ `S.q` reconciliation | Има 3 search states за исторически причини | Refactor в S104+ |
+
+---
+
+## ⚠ APPLY НА PRODUCTION
+
+Sandbox няма GitHub credentials. Тихол да изпълни:
+
+```bash
+cd /var/www/runmystore && \
+git pull origin main && \
+git am /tmp/s103.patch && \
+git log --oneline -5 && \
+git push origin main
+```
+
+Очаквано на топ след apply:
+1. `S103.PRODUCTS.SEARCH_FILTER_UNIFY.LIST_SEARCH`
+2. `S103.PRODUCTS.SEARCH_FILTER_UNIFY.MIC_INLINE`
+3. `S103.PRODUCTS.SEARCH_FILTER_UNIFY.FILTER_BTN`
+
+Ако `git am` fail-не → `git am --abort` → проверете `git status -s` преди да приложите наново.
+
+---
+
+## [COMPASS UPDATE NEEDED] (S103)
+
+За шеф-чат да добави в LOGIC LOG:
+
+```
+S103 (07.05.2026 evening) — Code Code 2 SEARCH_FILTER_UNIFY
+  ✅ Bug #7 (P0): Filter button next to mic — добавен onclick (просто липсваше)
+     → commit fb230e1
+  ✅ Bug #8 (P0): Inline mic вместо overlay — Web Speech, wizard pattern, 2-сек silence stop
+     → commit b7237f7
+     → KEY DECISION: НЕ Whisper Groq за text търсене (cost). Web Speech free + native.
+     → KEY DECISION: searchInlineMic SOLO function — НЕ extend wizMic (different scope).
+  ✅ Bug #9 (P0): Home/list UX unify — search-wrap дубликат + searchInlineMic shared via inputId
+     → commit a704992
+     → KEY DECISION: dupликирах DOM (p-prefixed IDs) вместо PHP partial. Минимизира invasiveness;
+       partial-ефект възможен в S104.
+
+  RWQ #94 candidate: "Защо имаме 3 различни search state-а (S.searchText, S.listQ, S.q сървърен)?"
+     → Historical accumulation. doSearch() flow + onLiveSearchHome flow + new list flow.
+     → Refactor predicate: единен SearchState{ home, list } object → unify в S104.
+
+  RWQ #95 candidate: "DOM duplication анти-pattern: search-wrap се рендерира 2× в products.php.
+     Когато променяме layout — трябва двата edit. Поне refactor-ваме в php partial / template literal."
+
+  RWQ #96 candidate: "Hardcoded filter dot badge ("3") — никога не отразяваше реалния brой active filters.
+     Бяло петно — не сме имали JS updater. Препоръка: S104 micro-task."
+```
+
+---
+
+**Край на S103 ADDENDUM. Pesho чака финал тест от Тихол.**
+
