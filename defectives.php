@@ -199,15 +199,15 @@ function api_apply_credit(int $tenant_id, int $user_id): array {
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
 
 <style>
 .mod-defect-supplier{margin-bottom:14px}
-.mod-defect-supplier-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:12px 12px 0 0}
+.mod-defect-supplier-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius) 12px 0 0}
 .mod-defect-supplier-name{font-size:14px;font-weight:900;color:#f1f5f9}
 .mod-defect-supplier-stats{display:flex;gap:10px;align-items:center}
 .mod-defect-stat{text-align:right}
-.mod-defect-stat-val{font-size:14px;font-weight:900;color:#fca5a5;font-variant-numeric:tabular-nums;line-height:1}
+.mod-defect-stat-val{font-size:14px;font-weight:900;color:hsl(0 93% 82%);font-variant-numeric:tabular-nums;line-height:1}
 .mod-defect-stat-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 
 .mod-defect-line{display:flex;align-items:center;gap:10px;padding:9px 14px;border-left:1px solid rgba(239,68,68,.15);border-right:1px solid rgba(239,68,68,.15);border-bottom:1px dashed rgba(255,255,255,.06);background:rgba(239,68,68,.02)}
@@ -215,12 +215,12 @@ function api_apply_credit(int $tenant_id, int $user_id): array {
 .mod-defect-line-body{flex:1;min-width:0}
 .mod-defect-line-name{font-size:12px;font-weight:700;color:#f1f5f9;line-height:1.2;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .mod-defect-line-meta{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);margin-top:2px}
-.mod-defect-line-amt{font-size:12px;font-weight:800;color:#fca5a5;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;line-height:1}
+.mod-defect-line-amt{font-size:12px;font-weight:800;color:hsl(0 93% 82%);font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;line-height:1}
 
 .mod-defect-actions{display:flex;gap:6px;padding:10px 14px;background:rgba(239,68,68,.04);border-radius:0 0 12px 12px;border-left:1px solid rgba(239,68,68,.25);border-right:1px solid rgba(239,68,68,.25);border-bottom:1px solid rgba(239,68,68,.25)}
-.mod-defect-btn{flex:1;padding:10px;border-radius:8px;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;border:none;color:#fff;letter-spacing:.02em}
+.mod-defect-btn{flex:1;padding:10px;border-radius:var(--radius-sm);font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;border:none;color:#fff;letter-spacing:.02em}
 .mod-defect-btn.return{background:linear-gradient(135deg,hsl(38 75% 48%),hsl(28 75% 42%));box-shadow:0 0 8px hsl(38 75% 50% / .35)}
-.mod-defect-btn.write-off{background:rgba(255,255,255,.08);color:#cbd5e1;border:1px solid rgba(255,255,255,.12)}
+.mod-defect-btn.write-off{background:rgba(255,255,255,.08);color:hsl(213 27% 84%);border:1px solid rgba(255,255,255,.12)}
 
 .mod-defect-sec-label{font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:hsl(255 50% 70%);margin:14px 4px 8px}
 
@@ -231,13 +231,28 @@ function api_apply_credit(int $tenant_id, int $user_id): array {
 
 .mod-defect-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:center;justify-content:center;padding:20px}
 .mod-defect-overlay.open{opacity:1;pointer-events:auto}
-.mod-defect-modal{background:rgba(8,9,13,.98);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
+.mod-defect-modal{background:rgba(8,9,13,.98);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
 .mod-defect-modal h3{font-size:14px;font-weight:900;color:#f1f5f9;margin-bottom:12px}
-.mod-defect-modal pre{font-family:'Courier New',monospace;font-size:12px;color:#e0e0e0;background:rgba(255,255,255,.04);padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto}
+.mod-defect-modal pre{font-family:var(--font-mono);font-size:12px;color:#e0e0e0;background:rgba(255,255,255,.04);padding:10px;border-radius:var(--radius-sm);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto}
 
-.mod-defect-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:300;padding:12px 16px;border-radius:12px;background:rgba(8,9,13,.95);border:1px solid rgba(34,197,94,.5);color:#86efac;font-size:13px;font-weight:800;transform:translateY(120%);transition:transform .3s}
+.mod-defect-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:300;padding:12px 16px;border-radius:var(--radius);background:rgba(8,9,13,.95);border:1px solid rgba(34,197,94,.5);color:hsl(141 79% 73%);font-size:13px;font-weight:800;transform:translateY(120%);transition:transform .3s}
 .mod-defect-toast.show{transform:translateY(0)}
-.mod-defect-toast.error{border-color:rgba(239,68,68,.6);color:#fca5a5}
+.mod-defect-toast.error{border-color:rgba(239,68,68,.6);color:hsl(0 93% 82%)}
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell mode-<?= htmlspecialchars($mode) ?>">
