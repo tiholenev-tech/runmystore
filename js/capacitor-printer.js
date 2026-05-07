@@ -97,6 +97,36 @@
   const Z_BOT_Y    = Z_SEP3_Y + 4;            // 194
   const Z_BOT_H    = 18;
 
+  // S98.PathE — Phomemo D-family ESC/POS raster protocol.
+  // After confirming printer firmware does NOT parse TSPL BITMAP (any mode →
+  // hieroglyphs or blank), we go direct ESC/POS: render whole label as a
+  // canvas image, pack 1bpp, wrap with Phomemo magic. Reverse-engineered from
+  // polskafan/phomemo_d30 + theacodes/m02s.
+  // Wakeup/init headers (sniffed from Labelife / Print Master Android apps).
+  const D520_HEADER_PACKETS = [
+    [0x1F, 0x11, 0x38],
+    [0x1F, 0x11, 0x12, 0x1F, 0x11, 0x13],
+    [0x1F, 0x11, 0x09],
+    [0x1F, 0x11, 0x11],
+    [0x1F, 0x11, 0x19],
+    [0x1F, 0x11, 0x07],
+    [0x1F, 0x11, 0x0A, 0x1F, 0x11, 0x02, 0x02]
+  ];
+  // Print prefix: 1F 11 24 00 (Phomemo magic) + 1B 40 (ESC @, init) +
+  //               1D 76 30 00 (GS v 0 m=0, raster bit image).
+  // Followed by: [W_lo, W_hi, H_lo, H_hi, ...raster bytes (W*H/8)...].
+  const D520_PRINT_PREFIX = [0x1F, 0x11, 0x24, 0x00, 0x1B, 0x40, 0x1D, 0x76, 0x30, 0x00];
+  const D520_FORM_FEED    = [0x0C];
+
+  // S102D — controls JS-side UTF-8 encoding of BITMAP raster bytes.
+  //   true  → encode each high byte (0x80-0xFF) as 2-byte UTF-8 before push (~12K → ~23K bytes).
+  //   false → push raw raster bytes; rely on @e-is plugin auto-encoding (if any).
+  // Field result 2026-05-07 14:50: flag=true gave ~31% ink "зацапан" output, suggesting
+  // plugin already encodes UTF-8 → JS layer caused DOUBLE encoding → printer interpreted
+  // 0xC3 0xBF pairs as raw bits (4+7 white of 16 = 31% inked). Flipped to false; expect
+  // single (plugin-side) encoding to reach printer correctly.
+  const D520_USE_UTF8_RASTER = false;
+
   // ─── Capacitor plugin accessors ────────────────────────────────────────
 
   function isCapacitor() {
@@ -217,6 +247,14 @@
       const c = s.charCodeAt(i);
       out[i] = c < 128 ? c : 0x3F;
     }
+    return out;
+  }
+
+  // Latin-1 passthrough: preserves byte values 0x00-0xFF. Used for D520
+  // command streams that mix ASCII tokens with CP1251 cyrillic byte payloads.
+  function latin1ToBytes(s) {
+    const out = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i) & 0xFF;
     return out;
   }
 
@@ -470,6 +508,18 @@
     return v;
   }
 
+  // S98.PathD — sanitize for TSPL TEXT body using CP1251 byte payload.
+  // Preserves cyrillic by mapping to single-byte CP1251 codes; the printer
+  // must be primed with `CODEPAGE 1251` for TEXT to decode them. Returns a
+  // JS string where each char's code unit is a CP1251 byte (0x00-0xFF).
+  function tsplSafeCyr(s, maxLen) {
+    let v = String(s || '').replace(/[\r\n\t"]/g, ' ');
+    // Drop control chars (keep printable + cyrillic + extended).
+    v = v.replace(/[\x00-\x1F\x7F]/g, '');
+    if (typeof maxLen === 'number' && v.length > maxLen) v = v.substring(0, maxLen);
+    return utf16ToCp1251Bytes(v);
+  }
+
   // ─── Canvas → TSPL BITMAP (cyrillic via raster) ────────────────────────
 
   // Draw a Canvas, then pack to TSPL BITMAP raw bytes (MSB first, 1=white).
@@ -619,22 +669,27 @@
     const amt       = parseFloat(product.retail_price) || 0;
     const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
+    const bitmapMode = (typeof opts.bitmapMode === 'number') ? opts.bitmapMode : 0;
+    const gapMm      = (typeof opts.gap_mm     === 'number') ? opts.gap_mm     : 2;
+    const density    = (typeof opts.density    === 'number') ? opts.density    : 10;
+    const speed      = (typeof opts.speed      === 'number') ? opts.speed      : 3;
+
     const parts = [];
     const push = (s) => parts.push(asciiToBytes(s));
     const pushRaw = (b) => parts.push(b);
     const placeBitmap = (bmp, x, y) => {
       if (!bmp) return;
-      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',0,');
+      push('BITMAP ' + x + ',' + y + ',' + bmp.widthBytes + ',' + bmp.height + ',' + bitmapMode + ',');
       pushRaw(bmp.data);
       push('\r\n');
     };
 
     // Header
     push('SIZE 50 mm,30 mm\r\n');
-    push('GAP 2 mm,0\r\n');
+    push('GAP ' + gapMm + ' mm,0\r\n');
     push('DIRECTION 1\r\n');
-    push('DENSITY 10\r\n');
-    push('SPEED 3\r\n');
+    push('DENSITY ' + density + '\r\n');
+    push('SPEED ' + speed + '\r\n');
     push('CLS\r\n');
 
     // ── TOP: barcode (left) + name/code (right) ───────────────────────
@@ -746,17 +801,16 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // D520BT TSPL generator — S97.D520_ASCII_FALLBACK.
+  // D520BT TSPL generator — S98.PathD (CODEPAGE 1251 + TEXT).
   //
-  // PURE ASCII TEXT-based path. Every byte sent ≤ 0x7F so it survives ANY
-  // bridge encoding (UTF-8 or ISO-8859-1, patched plugin or stock). Cyrillic
-  // input is transliterated to latin via tsplSafe(). Currency: "EUR"/"lv".
-  // The brief BITMAP attempt (FIX2) had two failure modes:
-  //   1. mode=0 → printer rendered raster bytes as TEXT in default codepage
-  //              (Chinese), producing hieroglyphs.
-  //   2. mode=4 → TSPL parse error → printer beeped and aborted entire job.
-  // Until we can reliably verify the plugin patch is applied in the deployed
-  // APK, ASCII is the only path that's bulletproof.
+  // CP1251 byte payload path. Cyrillic chars map to single-byte CP1251 codes
+  // (0xC0-0xFF for А-я). Header sets `CODEPAGE 1251` so TEXT decodes them.
+  // Bytes 0x80-0xFF require the @e-is plugin patch (ISO-8859-1 instead of
+  // UTF-8) to traverse the SPP bridge intact — see mobile/patches/.
+  // Currency stays ASCII ("EUR"/"lv") for simplicity.
+  // History:
+  //   S97.ASCII_FALLBACK — pure ASCII transliteration (always works).
+  //   S97.FIX2 BITMAP    — failed (mode=0 hieroglyphs, mode=4 parse abort).
   //
   // Layout matches products.php wizPrintLabels visual (50×30mm = 400×240
   // dots) with explicit char-width truncation per font:
@@ -769,22 +823,23 @@
 
     const mode = opts.mode || product.mode || store.label_mode || defaultLabelMode();
 
-    // Transliterate cyrillic + strip non-ASCII; truncate per render width.
-    const name      = tsplSafe(product.name);
-    const supplier  = tsplSafe(product.supplier, 16);
-    const code      = tsplSafe(product.code, 20);
-    const sizeStr   = tsplSafe(product.size, 4);
-    const color     = tsplSafe(product.color, 14);
-    const matOrigin = tsplSafe(product.origin_material, 24);
-    const country   = tsplSafe(product.origin_country, 16);
-    const importer  = tsplSafe(product.importer, 16);
-    const impCity   = tsplSafe(product.importer_city, 16);
+    // S98.PathD — CP1251 byte payload for cyrillic; CODEPAGE 1251 set in header.
+    const name      = tsplSafeCyr(product.name);
+    const supplier  = tsplSafeCyr(product.supplier, 16);
+    const code      = tsplSafeCyr(product.code, 20);
+    const sizeStr   = tsplSafeCyr(product.size, 4);
+    const color     = tsplSafeCyr(product.color, 14);
+    const matOrigin = tsplSafeCyr(product.origin_material, 24);
+    const country   = tsplSafeCyr(product.origin_country, 16);
+    const importer  = tsplSafeCyr(product.importer, 16);
+    const impCity   = tsplSafeCyr(product.importer_city, 16);
     const barcode   = ensureEan13(product.barcode, product.id);
     const amt       = parseFloat(product.retail_price) || 0;
     const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
     const parts = [];
-    const push = (s) => parts.push(asciiToBytes(s));
+    // Latin-1 passthrough: preserves CP1251 bytes 0x80-0xFF mixed with ASCII tokens.
+    const push = (s) => parts.push(latin1ToBytes(s));
 
     // Header — minimal accepted by D520BT (don't add REFERENCE/OFFSET, those
     // beep-abort the parser when combined with downstream commands).
@@ -794,6 +849,7 @@
     push('DENSITY 11\r\n');
     push('SPEED 4\r\n');
     push('CLS\r\n');
+    push('CODEPAGE 1251\r\n');
 
     // Layout zones (50×30mm = 400×240 dots, 8 dots padding):
     //   TOP        y=4    barcode 28×10mm + name/code right
@@ -884,7 +940,7 @@
       ? (country ? matOrigin + ' ' + country : matOrigin)
       : (country || '')).substring(0, 24);
     const importStr = importer
-      ? ('Vnos: ' + importer + (impCity ? ', ' + impCity : '')).substring(0, 24)
+      ? (utf16ToCp1251Bytes('Внос: ') + importer + (impCity ? ', ' + impCity : '')).substring(0, 24)
       : '';
 
     if (originStr || importStr) {
@@ -898,6 +954,520 @@
         const x = Math.max(PAD, W - PAD - w);
         push('TEXT ' + x + ',178,"1",0,1,1,"' + importStr + '"\r\n');
       }
+    }
+
+    push('PRINT ' + n + '\r\n');
+    return concatBytes(parts);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // S98.PathE — D520BT ESC/POS raster generator.
+  //
+  // Renders the entire 50×30mm label (400×240 dots) on a Canvas, packs to
+  // 1bpp raster bytes (MSB-first, 1=black), and wraps with Phomemo headers.
+  // Bypasses the printer's TSPL parser entirely — the printer just receives
+  // a raw bit image. Cyrillic, €, лв all render via system fonts on canvas.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // EAN13 encoding tables (standard).
+  const EAN13_L = ['0001101','0011001','0010011','0111101','0100011',
+                   '0110001','0101111','0111011','0110111','0001011'];
+  const EAN13_G = ['0100111','0110011','0011011','0100001','0011101',
+                   '0111001','0000101','0010001','0001001','0010111'];
+  const EAN13_R = ['1110010','1100110','1101100','1000010','1011100',
+                   '1001110','1010000','1000100','1001000','1110100'];
+  const EAN13_PARITY = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG',
+                        'LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+
+  // Draw a 13-digit EAN13 barcode on canvas at (x,y), with given module width
+  // (px per narrow bar) and height. Includes guard bars + human-readable text.
+  function drawEAN13(ctx, digits, x, y, moduleW, height) {
+    digits = String(digits || '').replace(/[^0-9]/g, '');
+    if (digits.length !== 13) return 0;
+    const first = parseInt(digits[0], 10);
+    const left  = digits.substring(1, 7);
+    const right = digits.substring(7, 13);
+    const parity = EAN13_PARITY[first];
+
+    // Pattern: 101 [L/G×6 = 42] 01010 [R×6 = 42] 101 = 95 modules wide.
+    let modules = '101';
+    for (let i = 0; i < 6; i++) {
+      const d = parseInt(left[i], 10);
+      modules += (parity[i] === 'L') ? EAN13_L[d] : EAN13_G[d];
+    }
+    modules += '01010';
+    for (let i = 0; i < 6; i++) {
+      modules += EAN13_R[parseInt(right[i], 10)];
+    }
+    modules += '101';
+
+    const totalW = modules.length * moduleW;
+    ctx.fillStyle = '#000';
+    // Guard bars extend below digits; data bars stop above text row.
+    const textH = 14;
+    const dataH = height - textH;
+    const guardH = height - 4; // guards extend slightly into text row
+    for (let i = 0; i < modules.length; i++) {
+      if (modules[i] !== '1') continue;
+      const isGuard = (i < 3) || (i >= 45 && i < 50) || (i >= 92);
+      ctx.fillRect(x + i * moduleW, y, moduleW, isGuard ? guardH : dataH);
+    }
+    // Human-readable digits below
+    ctx.font = 'bold 11px monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillText(digits[0], x - 8, y + dataH);
+    ctx.fillText(digits.substring(1, 7), x + 5 * moduleW, y + dataH);
+    ctx.fillText(digits.substring(7, 13), x + 50 * moduleW, y + dataH);
+    return totalW;
+  }
+
+  // Draw a string truncated by ellipsis to fit maxWidth pixels.
+  function _drawTrunc(ctx, text, x, y, font, maxWidth, align) {
+    ctx.font = font;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = align || 'left';
+    let t = String(text || '');
+    if (ctx.measureText(t).width > maxWidth) {
+      while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+      t += '…';
+    }
+    ctx.fillText(t, x, y);
+    return ctx.measureText(t).width;
+  }
+
+  // Render the 50×30mm label canvas matching the S97 layout spec (visual
+  // mirror of products.php wizPrintLabels).
+  function renderD520LabelCanvas(product, store, opts) {
+    opts = opts || {};
+    const mode = opts.mode || product.mode || store.label_mode || defaultLabelMode();
+    const W = 400, H = 240, PAD = 8;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#000';
+
+    const name      = String(product.name || '').replace(/[\r\n\t]/g, ' ');
+    const supplier  = String(product.supplier || '').replace(/[\r\n\t]/g, ' ');
+    const code      = String(product.code || '').replace(/[\r\n\t]/g, ' ');
+    const sizeStr   = String(product.size || '').replace(/[\r\n\t]/g, ' ');
+    const color     = String(product.color || '').replace(/[\r\n\t]/g, ' ');
+    const matOrigin = String(product.origin_material || '').replace(/[\r\n\t]/g, ' ');
+    const country   = String(product.origin_country || '').replace(/[\r\n\t]/g, ' ');
+    const importer  = String(product.importer || '').replace(/[\r\n\t]/g, ' ');
+    const impCity   = String(product.importer_city || '').replace(/[\r\n\t]/g, ' ');
+    const barcode   = ensureEan13(product.barcode, product.id);
+    const amt       = parseFloat(product.retail_price) || 0;
+
+    // ── TOP (y=4..88): EAN13 left + name/code right ──────────────────────
+    if (barcode) {
+      drawEAN13(ctx, barcode, PAD + 4, 6, 2, 78);
+    }
+    const txX = 220, txMaxW = W - txX - PAD;
+    const nameTxt = supplier ? (name + ' (' + supplier + ')') : name;
+    if (nameTxt) _drawTrunc(ctx, nameTxt, txX, 8,  'bold 16px Arial,sans-serif', txMaxW);
+    const codeLine = (code || '') + (code && barcode ? ' ' : '') + (barcode || '');
+    if (codeLine) _drawTrunc(ctx, codeLine, txX, 30, '11px Arial,sans-serif', txMaxW);
+    if (importer || matOrigin || country) {
+      // small extra top-right metadata if room
+    }
+
+    // ── SEP1 (y=92) ──────────────────────────────────────────────────────
+    ctx.fillRect(PAD, 92, W - 2 * PAD, 1);
+
+    // ── MID (y=100..130): size pill + color ─────────────────────────────
+    if (mode === 'noprice') {
+      if (sizeStr) {
+        ctx.font = 'bold 28px Arial,sans-serif';
+        const tw = ctx.measureText(sizeStr).width;
+        const pillW = tw + 16, pillH = 36, pillX = Math.floor((W - pillW) / 2);
+        ctx.fillRect(pillX, 98, pillW, pillH);
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+        ctx.fillText(sizeStr, pillX + 8, 102);
+        ctx.fillStyle = '#000';
+      }
+      if (color) {
+        ctx.font = 'bold 18px Arial,sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(color, W / 2, 144);
+        ctx.textAlign = 'left';
+      }
+    } else {
+      let cx = PAD;
+      if (sizeStr) {
+        ctx.font = 'bold 16px Arial,sans-serif';
+        const tw = ctx.measureText(sizeStr).width;
+        const pillW = tw + 12, pillH = 22, pillX = cx;
+        ctx.fillRect(pillX, 102, pillW, pillH);
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+        ctx.fillText(sizeStr, pillX + 6, 104);
+        ctx.fillStyle = '#000';
+        cx = pillX + pillW + 8;
+      }
+      if (color) {
+        _drawTrunc(ctx, color, cx, 105, 'bold 16px Arial,sans-serif', W - cx - PAD);
+      }
+    }
+
+    // ── SEP2 (y=130) + PRICE (y=140..168) ───────────────────────────────
+    if (mode !== 'noprice') {
+      ctx.fillRect(PAD, 130, W - 2 * PAD, 1);
+    }
+    if (mode === 'eur') {
+      const pe = priceEurAscii(amt).replace('EUR', '€');
+      _drawTrunc(ctx, pe, W / 2, 140, 'bold 30px Arial,sans-serif', W - 2 * PAD, 'center');
+    } else if (mode === 'dual') {
+      const pe = priceEurAscii(amt).replace('EUR', '€');
+      const pl = priceBgnAscii(amt).replace('lv', 'лв');
+      _drawTrunc(ctx, pe + ' | ' + pl, W / 2, 144, 'bold 18px Arial,sans-serif', W - 2 * PAD, 'center');
+    }
+
+    // ── SEP3 (y=170) + BOT (y=178..212): origin | importer ──────────────
+    const originStr = matOrigin
+      ? (country ? matOrigin + ' ' + country : matOrigin)
+      : (country || '');
+    const importStr = importer
+      ? ('Внос: ' + importer + (impCity ? ', ' + impCity : ''))
+      : '';
+    if (originStr || importStr) {
+      ctx.fillRect(PAD, 170, W - 2 * PAD, 1);
+      if (originStr) _drawTrunc(ctx, originStr, PAD,         180, '12px Arial,sans-serif', W / 2 - PAD);
+      if (importStr) _drawTrunc(ctx, importStr, W - PAD,     180, '12px Arial,sans-serif', W / 2 - PAD, 'right');
+    }
+    return canvas;
+  }
+
+  // Pack canvas pixels → 1bpp raster bytes (MSB-first, 1=black for thermal).
+  function canvasToRasterBytes(canvas) {
+    const W = canvas.width, H = canvas.height;
+    if (W % 8 !== 0) throw new Error('canvas width must be multiple of 8 (got ' + W + ')');
+    const widthBytes = W / 8;
+    const px = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+    const out = new Uint8Array(widthBytes * H);
+    for (let y = 0; y < H; y++) {
+      for (let bx = 0; bx < widthBytes; bx++) {
+        let byte = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = bx * 8 + bit;
+          const i = (y * W + x) * 4;
+          if ((px[i] + px[i + 1] + px[i + 2]) < 384) byte |= (1 << (7 - bit));
+        }
+        out[y * widthBytes + bx] = byte;
+      }
+    }
+    return { widthBytes: widthBytes, height: H, bytes: out };
+  }
+
+  // S98.PathF — render arbitrary text (cyrillic OK) as a stream of TSPL BAR
+  // commands. RLE: per row, emit one BAR per horizontal black run ≥minRun px.
+  // Pairs adjacent rows by drawing each BAR with height=2 to halve command
+  // count. Returns ASCII byte payload (concat directly to TSPL stream).
+  // hasCyrillic helper — true if string contains any non-ASCII codepoint.
+  function _hasNonAscii(s) {
+    s = String(s || '');
+    for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) > 0x7F) return true;
+    return false;
+  }
+  function renderTextAsBars(text, offsetX, offsetY, fontPx, maxWidth, opts) {
+    opts = opts || {};
+    const minRun = opts.minRun || 2;
+    const stripeH = opts.stripeH || 2;   // rows per BAR (1 = exact, 2 = halved cmds)
+    const fontSpec = opts.fontSpec || ('bold ' + fontPx + 'px Arial,sans-serif');
+    const align = opts.align || 'left';
+    if (!text) return new Uint8Array(0);
+
+    const canvas = document.createElement('canvas');
+    // Width: clamp by maxWidth; if text is narrower we still use full canvas.
+    const measureCtx = canvas.getContext('2d');
+    measureCtx.font = fontSpec;
+    let w = Math.ceil(measureCtx.measureText(text).width) + 2;
+    if (w > maxWidth) w = maxWidth;
+    if (w < 1) return new Uint8Array(0);
+    // Height: fontPx × 1.25 baseline allowance
+    const h = Math.ceil(fontPx * 1.3);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+    ctx.font = fontSpec;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = align;
+    let drawX = 0;
+    if (align === 'center') drawX = w / 2;
+    else if (align === 'right') drawX = w;
+    // Truncate with ellipsis if needed
+    let t = String(text);
+    if (ctx.measureText(t).width > w - 2) {
+      while (t.length > 1 && ctx.measureText(t + '…').width > w - 2) t = t.slice(0, -1);
+      t += '…';
+    }
+    ctx.fillText(t, drawX, 0);
+
+    const px = ctx.getImageData(0, 0, w, h).data;
+    const cmds = [];
+    // Process in stripes of stripeH rows: union the "black" mask across stripe.
+    for (let y = 0; y < h; y += stripeH) {
+      const sH = Math.min(stripeH, h - y);
+      // Build union row
+      const rowMask = new Uint8Array(w);
+      for (let dy = 0; dy < sH; dy++) {
+        const yy = y + dy;
+        for (let x = 0; x < w; x++) {
+          if (rowMask[x]) continue;
+          const i = (yy * w + x) * 4;
+          if ((px[i] + px[i + 1] + px[i + 2]) < 384) rowMask[x] = 1;
+        }
+      }
+      // RLE the row mask
+      let x = 0;
+      while (x < w) {
+        if (!rowMask[x]) { x++; continue; }
+        const start = x;
+        while (x < w && rowMask[x]) x++;
+        const runW = x - start;
+        if (runW >= minRun) {
+          cmds.push('BAR ' + (offsetX + start) + ',' + (offsetY + y) + ',' + runW + ',' + sH + '\r\n');
+        }
+      }
+    }
+    return asciiToBytes(cmds.join(''));
+  }
+
+  // S98.PathG — verified-from-sniffed-Label-app TSPL BITMAP format.
+  // Pack canvas as 1bpp where 1=white, 0=black (TSPL standard, confirmed by
+  // sniffed Label app traffic — raster of mostly 0xFF with dark spots).
+  function canvasToTsplRaster(canvas) {
+    const W = canvas.width, H = canvas.height;
+    if (W % 8 !== 0) throw new Error('canvas width must be multiple of 8 (got ' + W + ')');
+    const widthBytes = W / 8;
+    const px = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+    const out = new Uint8Array(widthBytes * H);
+    out.fill(0xFF); // default white
+    for (let y = 0; y < H; y++) {
+      for (let bx = 0; bx < widthBytes; bx++) {
+        let byte = 0xFF;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = bx * 8 + bit;
+          const i = (y * W + x) * 4;
+          if ((px[i] + px[i + 1] + px[i + 2]) < 384) byte &= ~(1 << (7 - bit));
+        }
+        out[y * widthBytes + bx] = byte;
+      }
+    }
+    return { widthBytes: widthBytes, height: H, bytes: out };
+  }
+
+  // S102D — UTF-8 encode raster bytes for D520BT firmware (high bytes 0x80-0xFF
+  // wrapped as 2-byte UTF-8 of Latin-1 codepoint). Bytes < 0x80 pass through.
+  // For a 12000-byte raster of mostly 0xFF (~94% white), output is ~23K bytes.
+  function rasterToUtf8Bytes(raster) {
+    let extra = 0;
+    for (let i = 0; i < raster.length; i++) if (raster[i] >= 0x80) extra++;
+    const out = new Uint8Array(raster.length + extra);
+    let o = 0;
+    for (let i = 0; i < raster.length; i++) {
+      const b = raster[i];
+      if (b < 0x80) {
+        out[o++] = b;
+      } else {
+        out[o++] = 0xC0 | (b >> 6);
+        out[o++] = 0x80 | (b & 0x3F);
+      }
+    }
+    return out;
+  }
+
+  // Build TSPL job in the EXACT format observed in the sniffed Label app
+  // traffic that successfully printed Cyrillic on D520BT.
+  function generateTSPL_D520_bigbmp(product, store, copies, opts) {
+    const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
+    const canvas = renderD520LabelCanvas(product || {}, store || {}, opts || {});
+    const raster = canvasToTsplRaster(canvas);
+    const rasterBytes = D520_USE_UTF8_RASTER ? rasterToUtf8Bytes(raster.bytes) : raster.bytes;
+    const parts = [];
+    const push = (s) => parts.push(asciiToBytes(s));
+    const pushRaw = (b) => parts.push(b);
+    // Header — exact format from Label app sniff (\n only, decimals, SET TEAR/PEEL).
+    push('DENSITY 7\n');
+    push('GAP 2.0 mm,0.0 mm\n');
+    push('SIZE 50.0 mm,30.0 mm\n');
+    push('SET TEAR ON\n');
+    push('SET PEEL OFF\n');
+    push('CLS\n');
+    push('BITMAP 0,0,' + raster.widthBytes + ',' + raster.height + ',0,');
+    pushRaw(rasterBytes);
+    push('\n');
+    push('PRINT ' + n + '\n');
+    return concatBytes(parts);
+  }
+
+  // Build full ESC/POS raster job: [headers] + [prefix + dims + raster + FF] × n.
+  function generateD520Raster(product, store, copies, opts) {
+    const n = Math.max(1, Math.min(parseInt(copies) || 1, 50));
+    const canvas = renderD520LabelCanvas(product || {}, store || {}, opts || {});
+    const raster = canvasToRasterBytes(canvas);
+    const parts = [];
+    for (const pkt of D520_HEADER_PACKETS) parts.push(new Uint8Array(pkt));
+    for (let c = 0; c < n; c++) {
+      const init = new Uint8Array(D520_PRINT_PREFIX.length + 4);
+      init.set(D520_PRINT_PREFIX, 0);
+      init[D520_PRINT_PREFIX.length    ] =  raster.widthBytes        & 0xFF;
+      init[D520_PRINT_PREFIX.length + 1] = (raster.widthBytes >> 8)  & 0xFF;
+      init[D520_PRINT_PREFIX.length + 2] =  raster.height            & 0xFF;
+      init[D520_PRINT_PREFIX.length + 3] = (raster.height >> 8)      & 0xFF;
+      parts.push(init);
+      parts.push(raster.bytes);
+      parts.push(new Uint8Array(D520_FORM_FEED));
+    }
+    return concatBytes(parts);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // S98.PathF — D520BT TSPL hybrid (TEXT for ASCII, BAR-RLE raster for cyrillic).
+  // BITMAP confirmed firmware-blocked → fall back to TSPL primitives only.
+  // Each cyrillic field rendered to small canvas, RLE'd into BAR commands.
+  // ═══════════════════════════════════════════════════════════════════════
+  function generateTSPL_D520_hybrid(product, store, copies, opts) {
+    product = product || {};
+    store   = store   || {};
+    opts    = opts    || {};
+    const mode = opts.mode || product.mode || store.label_mode || defaultLabelMode();
+
+    // Preserve cyrillic in source strings (no transliteration).
+    const cleanS = (s, n) => {
+      let v = String(s || '').replace(/[\r\n\t"]/g, ' ');
+      if (typeof n === 'number' && v.length > n) v = v.substring(0, n);
+      return v;
+    };
+    const name      = cleanS(product.name);
+    const supplier  = cleanS(product.supplier, 16);
+    const code      = cleanS(product.code, 20);
+    const sizeStr   = cleanS(product.size, 6);
+    const color     = cleanS(product.color, 16);
+    const matOrigin = cleanS(product.origin_material, 28);
+    const country   = cleanS(product.origin_country, 18);
+    const importer  = cleanS(product.importer, 20);
+    const impCity   = cleanS(product.importer_city, 18);
+    const barcode   = ensureEan13(product.barcode, product.id);
+    const amt       = parseFloat(product.retail_price) || 0;
+    const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
+
+    const PAD = 8;
+    const W = 400;
+    const parts = [];
+    const push = (s) => parts.push(asciiToBytes(s));
+    const pushBars = (b) => parts.push(b);
+
+    // Header
+    push('SIZE 50 mm,30 mm\r\n');
+    push('GAP 3 mm,0\r\n');
+    push('DIRECTION 1\r\n');
+    push('DENSITY 11\r\n');
+    push('SPEED 4\r\n');
+    push('CLS\r\n');
+
+    // Renders text — cyrillic via BAR-RLE, pure ASCII via TSPL TEXT (smaller).
+    function placeText(text, x, y, fontPx, maxWidth, opts2) {
+      if (!text) return;
+      opts2 = opts2 || {};
+      if (_hasNonAscii(text)) {
+        pushBars(renderTextAsBars(text, x, y, fontPx, maxWidth, opts2));
+      } else {
+        // Map fontPx → TSPL font ID + scale.
+        const tsplFont = (fontPx <= 12) ? '1' : (fontPx <= 18) ? '2' : (fontPx <= 24) ? '3' : '4';
+        let tx = x;
+        if (opts2.align === 'center') {
+          // Estimate width by font dot size to center.
+          const w = (fontPx * 0.55) * text.length;
+          tx = Math.max(PAD, Math.floor(x - w / 2));
+        } else if (opts2.align === 'right') {
+          const w = (fontPx * 0.55) * text.length;
+          tx = Math.max(PAD, Math.floor(x - w));
+        }
+        push('TEXT ' + tx + ',' + y + ',"' + tsplFont + '",0,1,1,"' + text + '"\r\n');
+      }
+    }
+
+    // ── TOP: barcode (left) + name + code (right) ─────────────────────
+    if (barcode) {
+      push('BARCODE ' + PAD + ',4,"EAN13",68,1,0,2,4,"' + barcode + '"\r\n');
+    }
+    const txX = PAD + 232;
+    if (name) {
+      const nameTxt = supplier ? (name + ' (' + supplier + ')') : name;
+      placeText(nameTxt, txX, 6, 16, W - txX - PAD);
+    }
+    if (code || barcode) {
+      const codeLine = (code ? code : '') + (code && barcode ? ' ' : '') + (barcode || '');
+      placeText(codeLine, txX, 30, 11, W - txX - PAD);
+    }
+
+    // ── SEP1 ──────────────────────────────────────────────────────────
+    push('BAR ' + PAD + ',92,' + (W - 2 * PAD) + ',1\r\n');
+
+    // ── MID: size pill + color ────────────────────────────────────────
+    if (mode === 'noprice') {
+      if (sizeStr) {
+        // For noprice mode the pill is bigger; size text often digits → TSPL TEXT.
+        const pillW = sizeStr.length * 24 + 24;
+        const pillH = 40;
+        const pillX = Math.max(PAD, Math.floor((W - pillW) / 2));
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
+        // White-on-black: TSPL doesn't have a real color invert in TEXT, so we
+        // overlay TEXT — the REVERSE flips the area, TEXT prints black on now-
+        // white area which then re-flips? Simpler: skip white-on-black, just
+        // print black size text inside the pill (light text on black bg).
+        placeText(sizeStr, pillX + 12, 104, 22, pillW);
+      }
+      if (color) {
+        placeText(color, W / 2, 150, 18, W - 2 * PAD, { align: 'center' });
+      }
+    } else {
+      let cursorX = PAD;
+      if (sizeStr) {
+        const pillW = sizeStr.length * 12 + 16;
+        const pillH = 24;
+        const pillX = cursorX;
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
+        placeText(sizeStr, pillX + 8, 104, 14, pillW);
+        cursorX = pillX + pillW + 8;
+      }
+      if (color) {
+        placeText(color, cursorX, 105, 14, W - cursorX - PAD);
+      }
+    }
+
+    // ── SEP2 + PRICE ──────────────────────────────────────────────────
+    if (mode !== 'noprice') {
+      push('BAR ' + PAD + ',130,' + (W - 2 * PAD) + ',1\r\n');
+    }
+    if (mode === 'eur') {
+      const txt = priceEurAscii(amt);     // "12,34 EUR" — pure ASCII
+      const txtW = txt.length * 24;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',140,"4",0,1,1,"' + txt + '"\r\n');
+    } else if (mode === 'dual') {
+      const eurT = priceEurAscii(amt);
+      const bgnT = priceBgnAscii(amt);
+      const txt = eurT + ' | ' + bgnT;
+      const txtW = txt.length * 12;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',144,"2",0,1,1,"' + txt + '"\r\n');
+    }
+
+    // ── SEP3 + BOT: origin | importer ─────────────────────────────────
+    const originStr = matOrigin
+      ? (country ? matOrigin + ' ' + country : matOrigin)
+      : (country || '');
+    const importStr = importer
+      ? ('Внос: ' + importer + (impCity ? ', ' + impCity : ''))
+      : '';
+    if (originStr || importStr) {
+      push('BAR ' + PAD + ',170,' + (W - 2 * PAD) + ',1\r\n');
+      if (originStr) placeText(originStr, PAD,        180, 12, W / 2 - PAD);
+      if (importStr) placeText(importStr, W - PAD,    180, 12, W / 2 - PAD, { align: 'right' });
     }
 
     push('PRINT ' + n + '\r\n');
@@ -939,19 +1509,39 @@
       window.__sppConnectedAddr = address;
     }
 
-    const value = asciiBytesToString(bytes);
-    try {
-      await spp.write({ address: address, value: value });
-    } catch (e) {
-      window.__sppConnected = false;
-      try { await spp.disconnect({ address: address }); } catch (_) {}
-      await sleep(300);
-      await spp.connect({ address: address });
-      window.__sppConnected = true;
-      window.__sppConnectedAddr = address;
-      await spp.write({ address: address, value: value });
+    // S98.PathH — chunk large payloads. Label app sniff shows 666-byte RFCOMM
+    // frames with ~3-10ms pacing between, so mirror that. Smaller chunks failed
+    // (256B no-reaction; suspicion: Capacitor bridge queue saturation).
+    const CHUNK = 600;
+    const total = bytes.length;
+    let off = 0;
+    let firstWriteFailed = false;
+    let chunkCount = 0;
+    while (off < total) {
+      const end = Math.min(off + CHUNK, total);
+      const slice = bytes.subarray(off, end);
+      const value = asciiBytesToString(slice);
+      try {
+        await spp.write({ address: address, value: value });
+        chunkCount++;
+      } catch (e) {
+        dbgLog('[D520] write fail at off=' + off + '/' + total + ': ' + (e && e.message || e));
+        if (firstWriteFailed) throw e;
+        firstWriteFailed = true;
+        window.__sppConnected = false;
+        try { await spp.disconnect({ address: address }); } catch (_) {}
+        await sleep(300);
+        await spp.connect({ address: address });
+        window.__sppConnected = true;
+        window.__sppConnectedAddr = address;
+        await spp.write({ address: address, value: value });
+        chunkCount++;
+      }
+      off = end;
+      if (off < total) await sleep(8);
     }
-    await sleep(150);
+    dbgLog('[D520] wrote ' + total + ' bytes in ' + chunkCount + ' chunks');
+    await sleep(250);
   }
 
   // ─── Public API ────────────────────────────────────────────────────────
@@ -1124,12 +1714,105 @@
       return { ok: true, type: TYPE_DTM, bytes: bytes.length, copies: copies || 1 };
     },
 
-    async _printD520(product, store, copies) {
+    async _printD520(product, store, copies, opts) {
       const addr = getD520Address();
       if (!addr) throw new Error('Няма сдвоен D520BT принтер');
-      const bytes = generateTSPL_D520(product, store, copies || 1);
+      opts = opts || {};
+
+      // S98 path matrix — set localStorage.d520_path to switch:
+      //   'ascii'    → TSPL ASCII transliterate (default, S97 fallback)
+      //   'bmptest'  → minimal BITMAP polarity probe (8×8 squares, both polarities)
+      //   'escpos'   → Phomemo ESC/POS raster (failed)
+      //   'pathc'    → Phomemo wakeup + TSPL BITMAP mode 4 (failed)
+      //   'bitmap4'  → TSPL BITMAP mode 4, NO wakeup (failed — blank)
+      //   'bitmap0'  → TSPL BITMAP mode 0, NO wakeup (failed — hieroglyphs)
+      let path = opts.path;
+      if (!path) {
+        try { path = localStorage.getItem('d520_path'); } catch (_) {}
+      }
+      // S103D — default 'replay': hard-coded verbatim replay of Label-app Job 1
+      // sniff (js/d520_replay.bin = exact 22857-byte wire payload that prints
+      // Cyrillic correctly on D520BT). Eliminates canvas/encoding/plugin-double-
+      // encode variables for definitive diagnosis. localStorage 'd520_path'
+      // override still respected — set to 'ascii' for transliterate baseline,
+      // 'bigbmp' to test our generator, etc.
+      path = path || 'replay';
+
+      if (path === 'replay') {
+        // Verbatim replay of the sniffed Label app TSPL job (known to print
+        // cyrillic correctly). Confirms the wire-protocol; isolates our canvas
+        // pipeline from the protocol question.
+        const resp = await fetch('/js/d520_replay.bin?t=' + Date.now(), { cache: 'no-store' });
+        const ab   = await resp.arrayBuffer();
+        const bytes = new Uint8Array(ab);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: 1, path: 'replay' };
+      }
+      if (path === 'bigbmp') {
+        const bytes = generateTSPL_D520_bigbmp(product, store, copies || 1, opts);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1, path: 'bigbmp' };
+      }
+      if (path === 'hybrid') {
+        const bytes = generateTSPL_D520_hybrid(product, store, copies || 1, opts);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1, path: 'hybrid' };
+      }
+      if (path === 'bmptest') {
+        // Minimal probe: two 16×16 BITMAPs side by side, one with 0xFF (1=black?),
+        // one with 0x00 (0=black?). TEXT labels around them so we can read which
+        // polarity printed as a solid black square.
+        const FF = 0xFF, ZZ = 0x00;
+        const ones  = new Uint8Array(2 * 16); ones.fill(FF);
+        const zeros = new Uint8Array(2 * 16); zeros.fill(ZZ);
+        const partsT = [];
+        const pushT  = (s) => partsT.push(asciiToBytes(s));
+        const pushTb = (b) => partsT.push(b);
+        pushT('SIZE 50 mm,30 mm\r\n');
+        pushT('GAP 3 mm,0\r\n');
+        pushT('DIRECTION 1\r\n');
+        pushT('DENSITY 11\r\n');
+        pushT('SPEED 4\r\n');
+        pushT('CLS\r\n');
+        pushT('TEXT 8,8,"3",0,1,1,"BITMAP probe"\r\n');
+        pushT('TEXT 8,48,"2",0,1,1,"FF=1bit"\r\n');
+        pushT('BITMAP 96,44,2,16,0,');
+        pushTb(ones);
+        pushT('\r\n');
+        pushT('TEXT 8,80,"2",0,1,1,"00=0bit"\r\n');
+        pushT('BITMAP 96,76,2,16,0,');
+        pushTb(zeros);
+        pushT('\r\n');
+        pushT('TEXT 8,112,"2",0,1,1,"check which is black"\r\n');
+        pushT('PRINT 1\r\n');
+        const bytes = concatBytes(partsT);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: 1, path: 'bmptest' };
+      }
+      if (path === 'escpos') {
+        const bytes = generateD520Raster(product, store, copies || 1, opts);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1, path: 'escpos' };
+      }
+      if (path === 'ascii') {
+        const bytes = generateTSPL_D520(product, store, copies || 1, opts);
+        await writeSPP_D520(addr, bytes);
+        return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1, path: 'ascii' };
+      }
+      if (path === 'pathc') {
+        const wakeup = concatBytes(D520_HEADER_PACKETS.map(p => new Uint8Array(p)));
+        await writeSPP_D520(addr, wakeup);
+        await sleep(120);
+      }
+      const tsplOpts = Object.assign({}, opts, {
+        bitmapMode: (path === 'bitmap0') ? 0 : 4,
+        gap_mm:     3,
+        density:    11,
+        speed:      4
+      });
+      const bytes = generateTSPL_DTM(product, store, copies || 1, tsplOpts);
       await writeSPP_D520(addr, bytes);
-      return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1 };
+      return { ok: true, type: TYPE_D520, bytes: bytes.length, copies: copies || 1, path: path };
     },
 
     async test() {
@@ -1356,10 +2039,15 @@
     // Internal exports (for tools/d520_classic_test.php and unit tests).
     _generateTSPL_DTM:   generateTSPL_DTM,
     _generateTSPL_D520:  generateTSPL_D520,
+    _generateD520Raster: generateD520Raster,
+    _renderD520Canvas:   renderD520LabelCanvas,
+    _canvasToRaster:     canvasToRasterBytes,
     _writeSPP_D520:      writeSPP_D520,
     _transliterateBG:    transliterateBG,
     _tsplSafe:           tsplSafe,
+    _tsplSafeCyr:        tsplSafeCyr,
     _utf16ToCp1251Bytes: utf16ToCp1251Bytes,
+    _latin1ToBytes:      latin1ToBytes,
     _isCapacitor:        isCapacitor,
     _getDeviceId:        getSavedDeviceId,
     _getD520Address:     getD520Address,
