@@ -1,3 +1,12 @@
+---
+# ⚠️ ARCHIVED — НЕ ИЗПОЛЗВАЙ
+
+**Този документ е архивиран на 2026-05-07.**
+**Активен Bible:** `/var/www/runmystore/DESIGN_SYSTEM.md` → DESIGN_SYSTEM_v4.0_BICHROMATIC.md
+
+Не следвай инструкциите тук. Те са САМО за исторически референции.
+---
+
 # DESIGN SYSTEM v2.0 — S79 NEON GLASS STANDARD
 
 **Дата:** 2026-04-23

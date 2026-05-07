@@ -1427,13 +1427,17 @@
     push('BAR ' + PAD + ',86,' + (W - 2 * PAD) + ',1\r\n');
 
     // ── MID: size pill + color (y 90-116, 26 dots tall) ───────────────
+    // S103D.E — REVERSE order fix. TSPL REVERSE flips pixels in its rect AT
+    // print time, so text drawn EARLIER becomes white on black; text drawn
+    // AFTER stays black on now-black background (invisible). Render size text
+    // first, then REVERSE on top → white-on-black pill.
     if (mode === 'noprice') {
       if (sizeStr) {
         const pillW = sizeStr.length * 24 + 24;
         const pillH = 40;
         const pillX = Math.max(PAD, Math.floor((W - pillW) / 2));
-        push('REVERSE ' + pillX + ',92,' + pillW + ',' + pillH + '\r\n');
         placeText(sizeStr, pillX + 12, 96, 22, pillW);
+        push('REVERSE ' + pillX + ',92,' + pillW + ',' + pillH + '\r\n');
       }
       if (color) {
         placeText(color, W / 2, 140, 18, W - 2 * PAD, { align: 'center' });
@@ -1444,8 +1448,8 @@
         const pillW = sizeStr.length * 18 + 20;
         const pillH = 28;
         const pillX = cursorX;
-        push('REVERSE ' + pillX + ',90,' + pillW + ',' + pillH + '\r\n');
         placeText(sizeStr, pillX + 10, 94, 20, pillW);
+        push('REVERSE ' + pillX + ',90,' + pillW + ',' + pillH + '\r\n');
         cursorX = pillX + pillW + 10;
       }
       if (color) {
