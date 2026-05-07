@@ -2,12 +2,14 @@
 
 ## Router + Tracker + Dependency Tree + Change Protocol
 
-**Последна актуализация:** 27.04.2026  
-**Последна завършена сесия:** S82.STUDIO MARATHON — 26-27.04.2026 (3 паралелни Claude Code сесии: STUDIO.11/12/NAV/VISUAL frontend + STUDIO.BACKEND/APPLY backend) + S81.DIAG.VERIFY (pipeline functional, DOD pending S82.DIAG.FIX)
+**Последна актуализация:** 07.05.2026  
+**Последна завършена сесия:** S103D.PRINTER.CYRILLIC — D520BT thermal printer Cyrillic печат via TSPL BAR-RLE hybrid path (handoff: `HANDOFF_S103D_PRINTER_CYRILLIC.md`)
 **Паралелно в ход:** Тихол solo real product entry на tenant=7 (без Claude Code), очаква bug list за S84
 **Следваща сесия:** S83 = Real Entry Day (Тихол solo, 27.04) → S84 = BUGFIX BATCH + STUDIO.REWIRE (28.04, 2 паралелни Code)
 **Текуща Phase:** A1 (Foundation, ~65%) → A2 (Operations Core, преди ЕНИ 14-15 май)  
 **Първа реална продажба target:** ЕНИ магазин, 14-15 май 2026 (FIXED)
+
+- **S103D.PRINTER.CYRILLIC CLOSED (07.05.2026 вечер):** D520BT thermal printer Cyrillic печат работи в production чрез path 'hybrid' (S98.PathF — BAR-RLE rendering на canvas → TSPL `BAR x,y,w,h` команди, pure ASCII wire). Capacitor `@e-is/capacitor-bluetooth-serial` plugin UTF-8-encoding-ва high bytes на native side; S97 patch (`mobile/patches/`) flip-ва на ISO-8859-1 но не влиза в production без APK rebuild → real BITMAP path остава blocked. Hybrid pivot заобикаля проблема. Симулатор build-нат (`/sim_print.php` + `sim_render.py` + `/sim/`) за визуална iteration без printer. Final fixes: REVERSE order swap (text→REVERSE = white-on-black pill), BOT_PAD=16 (left edge crop fix), CODE128 fallback за non-EAN барcодове, "Печат без баркод" toggle в print-modal, cache-bust `?v=mtime` на script tags. Files: `js/capacitor-printer.js`, `products.php` (toggle UI + 2× call-site noBarcode arg), `printer-setup.php` (cache-bust). НЕ committed още. Backups в `js/*.bak.D520_*`. Detailed handoff: `HANDOFF_S103D_PRINTER_CYRILLIC.md`.
 
 - **S82.STUDIO MARATHON CLOSED (27.04.2026):** 3 паралелни Claude Code инстанции, disjoint paths, нула collision. Frontend Code #1: STUDIO.11 (`/ai-studio.php` standalone, mock data), STUDIO.12 (per-product modal в wizard step 5), STUDIO.NAV (magenta button в chat.php), STUDIO.VISUAL Phase 1+2 (chat.php v8 Life Board + life-board.php нов файл 580 реда). Backend Code #2: BACKEND (migration up.sql/down.sql + 9 helpers + ai-studio-action.php endpoint + cron-monthly.php), APPLY (live DB applied + crontab installed + lingerie real prompt seeded). Tags v0.7.30 → v0.7.33. Live commits: 9f8a0b8, 9e7fb6c, 9fa9985, fcf0ec1.
 - **S82.STUDIO known limitations:** /ai-studio.php показва mock data (frontend rewire към get_credit_balance() pending S84.STUDIO.REWIRE). 4 placeholder prompts (clothes/jewelry/acc/other) is_active=0. Diagnostic A=47.83%/D=21.43% pre-existing — НЕ regression от schema, но Rule #21 нарушен (apply без 100%). S82.DIAG.FIX е beta blocker.

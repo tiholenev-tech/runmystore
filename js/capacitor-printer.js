@@ -127,14 +127,6 @@
   // single (plugin-side) encoding to reach printer correctly.
   const D520_USE_UTF8_RASTER = false;
 
-  // S103D.SIM — Server-side simulator. When true, writeSPP_D520 POSTs the raw
-  // JS-side byte stream to /sim_print.php instead of writing to Bluetooth.
-  // Server renders TSPL → PNG; view at /sim/?last=1. Lets us iterate without
-  // physical print. NOTE: this captures bytes from the JS layer, BEFORE the
-  // Capacitor bridge / plugin encoding stage — useful for verifying our
-  // generator output, not for diagnosing plugin-level UTF-8 mangling.
-  const D520_SIMULATE = false;
-  const D520_SIM_ENDPOINT = 'https://runmystore.ai/sim_print.php';
 
   // ─── Capacitor plugin accessors ────────────────────────────────────────
 
@@ -391,13 +383,11 @@
   }
 
   function dbgLog() {
+    // S103D — debug overlay disabled. Console only (kept for chrome://inspect
+    // remote debugging if ever needed). Re-enable showDebugOverlay(line) call
+    // below if Tihol needs the on-device console back.
     const args = Array.prototype.slice.call(arguments);
     try { console.log.apply(console, args); } catch (_) {}
-    const line = args.map(function(a){
-      if (typeof a === 'string') return a;
-      try { return JSON.stringify(a); } catch (_) { return String(a); }
-    }).join(' ');
-    showDebugOverlay(line);
   }
 
   function hasCyrillic(s) {
@@ -448,6 +438,25 @@
       s = s + check;
     }
     return s.length === 13 ? s : '';
+  }
+
+  // S103D.F — Tihol: respect product.barcode as-is. If it's not EAN13/EAN8,
+  // fall back to CODE128 (accepts any alphanumeric). opts.noBarcode skips entirely.
+  // Returns { data, type } or null.
+  function pickBarcode(product, opts) {
+    if (opts && opts.noBarcode) return null;
+    const raw = String(product && product.barcode || '').replace(/[^A-Za-z0-9_-]/g, '');
+    if (raw && /^\d{12,13}$/.test(raw)) {
+      const e = ensureEan13(raw);
+      if (e) return { data: e, type: 'EAN13' };
+    }
+    if (raw && /^\d{8}$/.test(raw)) return { data: raw, type: 'EAN8' };
+    if (raw) return { data: raw, type: '128' };  // CODE128 — alphanumeric
+    if (product && product.id != null) {
+      const e = ensureEan13('', product.id);
+      if (e) return { data: e, type: 'EAN13' };
+    }
+    return null;
   }
 
   // BG cyrillic → latin transliteration (S96.D520).
@@ -1368,7 +1377,8 @@
     const country   = cleanS(product.origin_country, 18);
     const importer  = cleanS(product.importer, 20);
     const impCity   = cleanS(product.importer_city, 18);
-    const barcode   = ensureEan13(product.barcode, product.id);
+    const bcInfo    = pickBarcode(product, opts);   // S103D.F — { data, type } | null
+    const barcode   = bcInfo ? bcInfo.data : '';
     const amt       = parseFloat(product.retail_price) || 0;
     const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
 
@@ -1408,18 +1418,25 @@
       }
     }
 
-    // ── TOP: barcode (left) + name + code (right) ─────────────────────
-    if (barcode) {
-      push('BARCODE ' + PAD + ',4,"EAN13",68,1,0,2,4,"' + barcode + '"\r\n');
+    // ── TOP: barcode (left, optional) + name + code (right) ──────────
+    // S103D.F — bcInfo carries detected type; CODE128 is wider so use 1×narrow.
+    if (bcInfo) {
+      if (bcInfo.type === 'EAN13' || bcInfo.type === 'EAN8') {
+        push('BARCODE ' + PAD + ',4,"' + bcInfo.type + '",68,1,0,2,4,"' + bcInfo.data + '"\r\n');
+      } else { // CODE128
+        push('BARCODE ' + PAD + ',4,"128",68,1,0,1,2,"' + bcInfo.data + '"\r\n');
+      }
     }
-    const txX = PAD + 232;
+    // If no barcode, name uses full width starting from PAD.
+    const txX = bcInfo ? (PAD + 232) : PAD;
+    const txMaxW = bcInfo ? (W - txX - PAD) : (W - 2 * PAD);
     if (name) {
       const nameTxt = supplier ? (name + ' (' + supplier + ')') : name;
-      placeText(nameTxt, txX, 6, 16, W - txX - PAD);
+      placeText(nameTxt, txX, 6, 16, txMaxW);
     }
     if (code || barcode) {
       const codeLine = (code ? code : '') + (code && barcode ? ' ' : '') + (barcode || '');
-      placeText(codeLine, txX, 30, 11, W - txX - PAD);
+      placeText(codeLine, txX, 30, 11, txMaxW);
     }
 
     // S103D.C — compressed vertical layout to fit within 240 dots (no overflow).
@@ -1505,22 +1522,6 @@
   // Connects RFCOMM, writes the ASCII payload, keeps connection alive for
   // subsequent prints. Retries once with full reconnect on first-write fail.
   async function writeSPP_D520(address, bytes) {
-    // S103D.SIM — divert to simulator if flag is set.
-    if (D520_SIMULATE) {
-      const path = (window.__d520_lastPath || 'unknown');
-      const resp = await fetch(D520_SIM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/octet-stream', 'X-D520-Path': path },
-        body: bytes,
-        cache: 'no-store'
-      });
-      const json = await resp.json();
-      const url = 'https://runmystore.ai' + (json.viewer_url || '/sim/?last=1');
-      alert('SIM done: ' + bytes.length + ' bytes → /sim/?last=1\n' +
-            'PNG: ' + (json.png_url || '?') + '\n' +
-            'Open in browser: ' + url);
-      return;
-    }
     if (!address) throw new Error('D520 address missing');
     const spp = getSPP();
 
@@ -1768,7 +1769,6 @@
       // rectangles. ASCII fields use TSPL TEXT directly. Set localStorage
       // 'd520_path' to 'ascii' to revert to transliterated Latin baseline.
       path = path || 'hybrid';
-      window.__d520_lastPath = path;
 
       if (path === 'replay') {
         // Verbatim replay of the sniffed Label app TSPL job (known to print
