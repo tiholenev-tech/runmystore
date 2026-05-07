@@ -668,6 +668,14 @@ if ($ajax === 'sections') {
         if (isset($_GET['margin_max']) && $_GET['margin_max']!=='' && $can_see_margin) { $where[] = "p.cost_price>0 AND ((p.retail_price-p.cost_price)/p.retail_price*100) <= ?"; $params[] = (float)$_GET['margin_max']; }
         if (isset($_GET['date_from']) && $_GET['date_from']!=='') { $where[] = "p.created_at >= ?"; $params[] = $_GET['date_from']; }
         if (isset($_GET['date_to']) && $_GET['date_to']!=='') { $where[] = "p.created_at <= ?"; $params[] = $_GET['date_to'].' 23:59:59'; }
+        // S103 BUG #9: text search in list view (UNIFY с home search bar). Tenant-id вече в $where.
+        if (isset($_GET['q']) && trim((string)$_GET['q']) !== '') {
+            $q_like = '%' . trim((string)$_GET['q']) . '%';
+            $where[]  = "(p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)";
+            $params[] = $q_like;
+            $params[] = $q_like;
+            $params[] = $q_like;
+        }
 
         $where_sql = implode(' AND ', $where);
         $order = match($sort) { 'price_asc'=>'p.retail_price ASC','price_desc'=>'p.retail_price DESC','stock_asc'=>'store_stock ASC','stock_desc'=>'store_stock DESC','newest'=>'p.created_at DESC','margin_desc'=>'((p.retail_price-p.cost_price)/p.retail_price) DESC', default=>'p.name ASC' };
@@ -3905,6 +3913,12 @@ body{padding-bottom:130px;position:relative}
 .s-btn svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .s-btn.mic{background:hsl(340 40% 22% / .6);border-color:hsl(340 50% 40% / .5);color:hsl(340 60% 85%)}
 .s-btn .dot{position:absolute;top:-3px;right:-3px;background:hsl(var(--hue1) 70% 50%);color:#001;font-size:8px;font-weight:900;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #08090d}
+/* S103 BUG #8: inline recording state на search mic — копиран pattern от .wiz-mic.recording (L2183-2187),
+   но без !important (по-висока specificity .s-btn.mic.recording я постига source-order-wise).
+   Reusing existing micRecPulse / micRecDot keyframes от wizard — без duplication. */
+.s-btn.mic.recording{background:rgba(239,68,68,.3);border-color:#ef4444;color:#fff;animation:micRecPulse .8s infinite;position:relative}
+.s-btn.mic.recording::after{content:'REC';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:7px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 6px rgba(239,68,68,.6);pointer-events:none}
+.s-btn.mic.recording::before{content:'';position:absolute;top:-5px;right:-2px;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.5);animation:micRecDot .6s infinite;pointer-events:none}
 
 .add-card{display:flex;align-items:stretch;margin-bottom:16px;padding:0;--radius:16px;overflow:hidden}
 .add-main{flex:1;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;position:relative;z-index:5}
@@ -4319,8 +4333,10 @@ html{overflow-x:hidden;max-width:100vw}
     <div class="search-wrap">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off">
-        <button class="s-btn"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot">3</span></button>
-        <button class="s-btn mic" onclick="openVoiceSearch()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+        <!-- S103 BUG #7: добавен onclick — преди беше "мъртъв" filter бутон без handler. -->
+        <button class="s-btn" id="hSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="hSearchFilterDot" style="display:none">0</span></button>
+        <!-- S103 BUG #8: onclick=openVoiceSearch (fullscreen overlay) → searchInlineMic (inline state, live transcript). -->
+        <button class="s-btn mic" id="hSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     </div>
     <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
     <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:14px;background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
@@ -4647,6 +4663,14 @@ html{overflow-x:hidden;max-width:100vw}
                 <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
             </div>
         </div>
+        <!-- S103 BUG #9: search/filter/mic в list view — IDENTICAL DOM на home (.search-wrap),
+             p-prefixed IDs за да не се сблъскат с #hSearchInp на home (двата screen-а съществуват в DOM едновременно). -->
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="pSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchList(this.value)" autocomplete="off">
+            <button class="s-btn" id="pSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="pSearchFilterDot" style="display:none">0</span></button>
+            <button class="s-btn mic" id="pSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this,'pSearchInp')"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+        </div>
         <!-- Active filters chips -->
         <div class="active-chips" id="activeChips"></div>
         <!-- Subcategory row (appears when category selected) -->
@@ -4885,6 +4909,7 @@ const S = {
     homeTab: 'all', homePage: 1,
     supId: null, catId: null,
     searchText: '', searchTO: null,
+    listQ: '', // S103 BUG #9: text query за list view (отделно от searchText / doSearch overlay flow)
     detailStack: [],
     cameraMode: null, cameraStream: null, barcodeDetector: null, barcodeInterval: null, zxingReader: null,
     recognition: null, isListening: false, lastTranscript: '',
@@ -5030,6 +5055,9 @@ function deactivateProduct(id){ if(confirm('Деактивирай артику�
 // ─── NAVIGATION ───
 function goScreen(scr, params={}){
     S.screen=scr; S.supId=params.sup||null; S.catId=params.cat||null; S.page=1;
+    // S103 BUG #9: при влизане в products list през goScreen (вкл. "Виж всички") → reset list query
+    // и sync visible input. Запазва filter/cat/sup от params; query е separate state.
+    if(scr==='products'){ S.listQ=''; const _pi=document.getElementById('pSearchInp'); if(_pi)_pi.value=''; }
     document.querySelectorAll('.screen-section').forEach(el=>el.classList.remove('active'));
     const map={home:'scrHome',suppliers:'scrSuppliers',categories:'scrCategories',products:'scrProducts'};
     document.getElementById(map[scr])?.classList.add('active');
@@ -5155,6 +5183,8 @@ async function loadProducts(){
     if(S.supId)p+=`&sup=${S.supId}`;
     if(S.catId)p+=`&cat=${S.catId}`;
     if(S.filter!=='all')p+=`&filter=${S.filter}`;
+    // S103 BUG #9: text search в list view (от #pSearchInp).
+    if(S.listQ)p+=`&q=${encodeURIComponent(S.listQ)}`;
     // S43: Quick filter params
     if(_qfState.price_min)p+='&price_min='+_qfState.price_min;
     if(_qfState.price_max)p+='&price_max='+_qfState.price_max;
@@ -5258,6 +5288,88 @@ function openVoiceSearch(){
     openVoice('Кажи какво търсиш',text=>{
         S.searchText=text;updateSearchDisplay();doSearch(text);
     });
+}
+
+// S103 BUG #9: live debounced search за list view (#pSearchInp). Reset page=1 на нов query.
+let _pSearchTO = null;
+function onLiveSearchList(q){
+    q = (q || '').trim();
+    S.listQ = q;
+    S.page = 1;
+    clearTimeout(_pSearchTO);
+    _pSearchTO = setTimeout(() => loadProducts(), 200);
+}
+
+// S103 BUG #8: inline mic за search bar — Web Speech API (free, native, instant).
+// Pattern копиран от wizMic (_wizMicWebSpeech): continuous=true + interimResults=true,
+// 2-сек silence auto-stop, повторен tap = manual stop. Pусна live transcript в #hSearchInp
+// и dispatch-ва 'input' event → съществуващият onLiveSearchHome debouncer fire-ва (zero логика дублирана).
+// НЕ викаме openVoiceSearch / openVoice — те остават за rec-ov overlay flow (AI chat).
+let _searchMicRec = null;
+let _searchMicSilenceTO = null;
+function searchInlineMic(btn, inputId){
+    // Toggle: повторен tap по време на recording → manual stop
+    if (_searchMicRec) { try { _searchMicRec.stop(); } catch(e){} return; }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        if (typeof showToast === 'function') showToast('Гласовото търсене не се поддържа','error');
+        return;
+    }
+    // S103 BUG #9: parameterized inputId — споделя се между home (#hSearchInp) и list (#pSearchInp).
+    const inp = document.getElementById(inputId || 'hSearchInp');
+    if (!inp || !btn) return;
+
+    const lang = (window.CFG && CFG.lang) || 'bg';
+    const langMap = {bg:'bg-BG',ro:'ro-RO',el:'el-GR',sr:'sr-RS',hr:'hr-HR',en:'en-US',mk:'mk-MK',sq:'sq-AL',tr:'tr-TR',sl:'sl-SI',de:'de-DE'};
+
+    btn.classList.add('recording');
+    inp.value = '';
+    inp.dispatchEvent(new Event('input', {bubbles:true})); // изчиства предишен dropdown
+
+    const rec = new SR();
+    rec.lang = langMap[lang] || 'bg-BG';
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    const armSilence = () => {
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicSilenceTO = setTimeout(() => { try { rec.stop(); } catch(e){} }, 2000);
+    };
+
+    rec.onresult = function(e){
+        let final = '', interim = '';
+        for (let i = 0; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+        }
+        const text = (final + ' ' + interim).replace(/\s+/g,' ').trim();
+        inp.value = text;
+        inp.dispatchEvent(new Event('input', {bubbles:true})); // re-fire onLiveSearchHome → debounced search
+        armSilence();
+    };
+    rec.onerror = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+        if (typeof showToast === 'function') showToast('Грешка с микрофона','warn');
+    };
+    rec.onend = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+    };
+
+    try {
+        _searchMicRec = rec;
+        rec.start();
+        armSilence();
+        if (navigator.vibrate) navigator.vibrate(8);
+    } catch (e) {
+        btn.classList.remove('recording');
+        _searchMicRec = null;
+        if (typeof showToast === 'function') showToast('Не може да стартира микрофона','error');
+    }
 }
 
 // ─── DRAWERS ───
