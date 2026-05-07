@@ -4319,7 +4319,8 @@ html{overflow-x:hidden;max-width:100vw}
     <div class="search-wrap">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off">
-        <button class="s-btn"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot">3</span></button>
+        <!-- S103 BUG #7: добавен onclick — преди беше "мъртъв" filter бутон без handler. -->
+        <button class="s-btn" id="hSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="hSearchFilterDot" style="display:none">0</span></button>
         <button class="s-btn mic" onclick="openVoiceSearch()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     </div>
     <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
