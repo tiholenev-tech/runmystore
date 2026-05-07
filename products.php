@@ -2471,7 +2471,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 @keyframes pulseR{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ═══ PRODUCTS LIST HEADER ═══ */
-.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:sticky;top:52px;z-index:9;background:rgba(3,7,18,.92)}
+/* S101 BUG #3: z-index 9 → 110. .sort-dd / dropdowns inside .prod-hdr живееха в parent stacking context.
+   Паралелни елементи (.sig-card.expanding=100) рисуваха ВЪРХУ dropdown-а. 110 ги пуска над expanding cards
+   но остава под drawer overlay (200/201). Подравнено с DESIGN_SYSTEM § D.10 (200/210 за overlays). */
+.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:sticky;top:52px;z-index:110;background:rgba(3,7,18,.92)}
 .prod-back{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .prod-title{font-size:14px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui;flex:1}
 .prod-cnt{font-size:10px;color:rgba(165,180,252,.5);font-weight:600;flex-shrink:0}
