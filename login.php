@@ -47,6 +47,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
     <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
     <style>
+/* ═══ S105 v4.1 BICHROMATIC — Light theme tokens (default) ═══ */
+[data-theme="light"], :root:not([data-theme]) {
+    --bg-main: #e0e5ec;
+    --surface: #e0e5ec;
+    --surface-2: #d1d9e6;
+    --border-color: transparent;
+    --text: #2d3748;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --shadow-light: #ffffff;
+    --shadow-dark: #a3b1c6;
+    --neu-d: 8px; --neu-b: 16px;
+    --neu-d-s: 4px; --neu-b-s: 8px;
+    --shadow-card:
+        var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),
+        calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+    --shadow-card-sm:
+        var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --shadow-pressed:
+        inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --accent: oklch(0.62 0.22 285);
+    --accent-2: oklch(0.65 0.25 305);
+    --q1-loss: oklch(0.65 0.22 25);
+    --q2-why-loss: oklch(0.65 0.25 305);
+    --q3-gain: oklch(0.68 0.18 155);
+    --q4-why-gain: oklch(0.72 0.18 195);
+    --q5-order: oklch(0.72 0.18 70);
+    --q6-no-order: oklch(0.62 0.05 220);
+    --aurora-blend: multiply;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+[data-theme="dark"] {
+    --bg-main: #08090d;
+    --surface: hsl(220, 25%, 4.8%);
+    --surface-2: hsl(220, 25%, 8%);
+    --border-color: hsl(222, 12%, 20%);
+    --text: #f1f5f9;
+    --text-muted: rgba(255, 255, 255, 0.6);
+    --text-faint: rgba(255, 255, 255, 0.4);
+    --shadow-card:
+        hsl(222 50% 2%) 0 10px 16px -8px,
+        hsl(222 50% 4%) 0 20px 36px -14px;
+    --shadow-card-sm: hsl(222 50% 2%) 0 4px 8px -2px;
+    --shadow-pressed: inset 0 2px 4px hsl(222 50% 2%);
+    --accent: hsl(255, 80%, 65%);
+    --accent-2: hsl(222, 80%, 65%);
+    --q1-loss: hsl(0, 85%, 60%);
+    --q2-why-loss: hsl(280, 70%, 65%);
+    --q3-gain: hsl(145, 70%, 55%);
+    --q4-why-gain: hsl(175, 70%, 55%);
+    --q5-order: hsl(38, 90%, 60%);
+    --q6-no-order: hsl(220, 10%, 60%);
+    --aurora-blend: plus-lighter;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+/* ═══ end BICHROMATIC tokens ═══ */
+
+
     /* ═══ S81.BUGFIX.V3.EXT — login.php visual rewrite (chat.php design parity) ═══ */
     :root{
         --hue1:255; --hue2:222;
@@ -191,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .alert-error{
         margin-bottom:16px;
         padding:11px 14px;
-        border-radius:12px;
+        border-radius: var(--radius-sm);
         background:rgba(239,68,68,.10);
         border:1px solid rgba(239,68,68,.28);
         color:#fca5a5;
@@ -216,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     .fc{
         width:100%;padding:12px 14px;
-        border-radius:12px;
+        border-radius: var(--radius-sm);
         border:1px solid rgba(255,255,255,.08);
         background:rgba(20,22,36,.65);
         color:var(--text-primary);
@@ -240,13 +314,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         background:transparent;border:none;cursor:pointer;
         color:var(--text-muted);
         display:flex;align-items:center;justify-content:center;
-        border-radius:8px;transition:color .15s,background .15s;
+        border-radius: var(--radius-sm);transition:color .15s,background .15s;
     }
     .eye-btn:hover{color:#a5b4fc;background:rgba(255,255,255,.04)}
 
     .btn-primary{
         width:100%;padding:14px 16px;margin-top:6px;
-        border-radius:14px;
+        border-radius: var(--radius-sm);
         background:linear-gradient(180deg,hsl(var(--hue1) 72% 62%),hsl(var(--hue1) 72% 48%));
         border:1px solid hsl(var(--hue1) 72% 55% / .6);
         color:#fff;font-size:14px;font-weight:700;
@@ -273,7 +347,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     .foot a{color:hsl(var(--hue1) 60% 72%);text-decoration:none;font-weight:600}
     .foot a:hover{color:#c4b5fd}
-    </style>
+    
+
+/* ═══ S105 — reduced-motion accessibility ═══ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+</style>
 </head>
 <body>
 
