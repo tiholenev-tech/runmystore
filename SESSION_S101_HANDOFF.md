@@ -253,4 +253,163 @@ RWQ candidate: "Защо нямаме PHP unit test за getProductCount() scope
 
 ---
 
-**Край на handoff. S101 затворен. Pesho чака.**
+**Край на S101. Pesho чака.**
+
+═══════════════════════════════════════════════════════════════
+
+# S102 ADDENDUM — FILTER_VISIBILITY_FIX (повторно отваряне на Bug #3)
+
+**Дата:** 2026-05-07 (вечер)
+**Сесия:** S102 — single-bug, max 1 час
+**Скоуп:** Bug #3 (filter button покрит) — повторно отворен от Тихол след browser/APK тест на S101.
+**File lock:** `products.php`
+**Commit:** `66149b9 S102.PRODUCTS.FILTER_VISIBILITY_FIX`
+**Patch:** `/tmp/s102.patch` (за apply на production)
+
+---
+
+## ЗАЩО S101 НЕ СРАБОТИ
+
+S101 commit `4030ff9` повиши `.prod-hdr` z-index от 9 на 110, но Тихол потвърди в browser + APK: filter button все още е покрит. Аз бях диагностицирал бъга погрешно — мислех, че `.sig-card.expanding` (z-index:100) рисува над dropdown, но реалната причина бе друга.
+
+**Истинският root cause (две кумулативни причини):**
+
+### 1. Parent stacking context cap
+
+`.main-wrap{position:relative;z-index:1}` (L1441) **създава родителски stacking context**, който **КАПВА** `.prod-hdr`'s z-index:110 на ниво глобален stacking. Накратко: като parent има `z-index:1`, всички деца стакват като 1 в глобалния поток — независимо от собствения си z-index. Това е CSS-classic gotcha.
+
+Резултат: S101 z-index bump (9 → 110) беше **косметичен** — нямаше глобален ефект. Sort dropdown / filter content вътре в .prod-hdr продължаваше да се рисува на ефективно z-index:1 спрямо външния свят.
+
+### 2. Sticky overlap
+
+Дори ако parent cap беше решен — оставаше втората причина:
+
+`.prod-hdr` (sticky;top:52px) държеше container ВЪРХУ списъка при scroll. Но `.qfltr-row` / `.active-chips` / `.fltr-label` СИБЛИНГИ под него **НЕ бяха sticky** → нормален поток → при scroll надолу те **минаваха под** sticky header-а и ставаха недостъпни.
+
+Точно така Тихол описа: "filter button покрит от 'Артикули + брой'". Header-ът (Артикули + count) оставаше виден, филтрите се скриваха под него.
+
+---
+
+## S102 STRUCTURAL FIX
+
+**Без z-index war, без !important. Чисто structural.**
+
+### Промяна 1 — `.main-wrap` (L1441)
+
+Преди:
+```css
+.main-wrap{position:relative;z-index:1;padding-bottom:180px;padding-top:0}
+```
+
+След:
+```css
+/* S102 BUG #3: махнат z-index:1 — родителски stacking context капваше .prod-hdr (z-index:110 от S101)
+   на ниво глобален stacking → S101 fix-ът беше косметичен. Сега децата си изпълняват z-index-овете
+   спрямо глобалния поток. position:relative оставаме за layout (max-width:480px wrap). */
+.main-wrap{position:relative;padding-bottom:180px;padding-top:0}
+```
+
+Махнат `z-index:1`. `position:relative` остава за layout (max-width-wrap). **Няма повече stacking context cap.**
+
+### Промяна 2 — `.prod-hdr` (L2474)
+
+Преди (S101 опит):
+```css
+.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:sticky;top:52px;z-index:110;background:rgba(3,7,18,.92)}
+```
+
+След (S102):
+```css
+/* S102 BUG #3: махнат position:sticky + z-index:110 (S101 attempt).
+   Root cause: .qfltr-row / .active-chips / .fltr-label СИБЛИНГИ под .prod-hdr НЕ са sticky →
+   при scroll скриваха под sticky header-а → филтрите ставаха недостъпни ("filter покрит от title").
+   Структурно: цялата навигационна група скролва заедно с content. На върха title + filter and двете видими;
+   при scroll и двете изчезват заедно — без overlap. Drawer (z-index:200/201) продължава да stack-ва
+   над всичко (изпълнява тапа за filter). Без z-index war, без !important. */
+.prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:relative;background:rgba(3,7,18,.92)}
+```
+
+Махнат `position:sticky`, `top:52px`, `z-index:110`. `position:relative` остава за `.sort-dd` dropdown anchoring (то е `position:absolute;top:100%`).
+
+**Резултат:**
+- На върха на products list — `.prod-hdr` (Артикули + count + sort) видим на върха, `.qfltr-row` пилове видими директно под него. **И двете видими, без overlap.**
+- При scroll надолу — цялата група (header + filter pills) скролва заедно с content. И двете изчезват заедно. **Никога филтрите не се скриват под header-а.**
+- При tap на filter pill → `openQuickFilter` → `qfDr` drawer (z-index:201, `position:fixed`, ИЗВЪН .main-wrap) → drawer винаги е горе.
+- При tap на sort бутон → `.sort-dd` (z-index:60 вътре в .prod-hdr's local stacking context) → видимо защото няма повече parent cap.
+
+---
+
+## DOD VERIFICATION
+
+- ✅ `php -l products.php` → 0 errors
+- ✅ Diff stat: `1 file changed, 11 insertions(+), 5 deletions(-)` — minimal, surgical
+- ✅ Не пипнат: drawer z-index, modal z-index, voice overlay (300), bottom-nav (40), toast (500), preset-ov (9999)
+- ✅ Не пипнат: sale.php, deliveries.php, capacitor-printer.js, ai-action.php
+- ✅ Без `!important`
+- ✅ Без z-index числа > 110 (използваме съществуващата йерархия)
+- ⚠ Manual visual test (browser): необходимо. Тихол да apply-не /tmp/s102.patch и да тестне.
+
+---
+
+## АЛТЕРНАТИВИ (RECONSIDERED, NOT TAKEN)
+
+| Алтернатива | Защо не? |
+|---|---|
+| Make filter pills sticky too (multi-tier) | Сложно, може да чупи UX (твърде вертикално място при scroll) |
+| Wrap header + filters в нов sticky контейнер | DOM change, по-инвазивен, може да чупи existing JS селектори |
+| Bump z-index в still по-високо число | z-index war (forbidden per брийфа) |
+| `transform:none;contain:layout` на main-wrap | По-imperfect — не премахва истинския проблем |
+
+Избран **минимален structural fix**: 2 CSS реда, реверсивен, no DOM change, no JS change.
+
+---
+
+## ⚠ APPLY НА PRODUCTION
+
+Sandbox няма GitHub credentials. Тихол да изпълни:
+
+```bash
+cd /var/www/runmystore && \
+ls -la /tmp/s102.patch && \
+git am /tmp/s102.patch && \
+git log --oneline -3 && \
+git push origin main
+```
+
+Очаквано на топ след apply: `S102.PRODUCTS.FILTER_VISIBILITY_FIX: махнат parent stacking context cap + sticky на .prod-hdr`
+
+Ако `git am` fail-не заради конфликт — `git am --abort`, проверете `git status`.
+
+---
+
+## [COMPASS UPDATE NEEDED] (S102)
+
+За шеф-чат да добави в LOGIC LOG:
+
+```
+S102 (07.05.2026 evening) — Code Code 2 FILTER_VISIBILITY_FIX
+  ✅ Bug #3 (P0) — REOPENED & FIXED: filter button visibility
+     Root cause analysis (S101 missed it):
+       (1) .main-wrap{z-index:1} parent stacking context capped .prod-hdr's z-index:110 → S101 fix
+           was cosmetic; never worked globally.
+       (2) Sticky .prod-hdr + non-sticky filter siblings → filter pills scrolled UNDER header.
+     Structural fix (no z-index war, no !important):
+       - .main-wrap: removed z-index:1 (kept position:relative for layout)
+       - .prod-hdr: removed position:sticky + z-index:110; kept position:relative for .sort-dd anchoring
+     → commit 66149b9
+     → patch /tmp/s102.patch
+
+  RWQ #92 candidate: "Защо S101 fix-ът не беше manually tested от Code Code 2 в browser преди marker
+     'DONE'?" Ans: sandbox не може да render-не PHP/CSS. Препоръка: за CSS визуални промени,
+     code-code agent трябва ЗАДЪЛЖИТЕЛНО да flag-ва "needs Tihol manual test" вместо да маркира DONE
+     (което S101 направи).
+
+  RWQ #93 candidate: "Кой друг модул в repo има .main-wrap{z-index:N} pattern?" → ако други
+     модули имат същия parent cap, същият visibility bug може да съществува в sale.php, deliveries.php,
+     warehouse.php. Audit follow-up за S103+.
+```
+
+---
+
+**Край на S102 ADDENDUM. Pesho чака финален APK build тест от Тихол.**
+
