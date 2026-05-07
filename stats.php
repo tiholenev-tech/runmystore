@@ -122,7 +122,7 @@ $hlabel = $health_score >= 70 ? 'Бизнесът е в добро здраве'
 <title>Статистики — RunMyStore.ai</title>
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
 <style>
 :root{
     --bg-main: #030712;
@@ -179,7 +179,7 @@ body::before{
 }
 .ph-theme-toggle{
     width:32px;height:32px;
-    border-radius:10px;
+    border-radius:var(--radius);
     background:rgba(255,255,255,.04);
     border:1px solid rgba(255,255,255,.06);
     color:var(--text-secondary);
@@ -221,7 +221,7 @@ body::before{
 .period-pill{
     flex-shrink:0;
     padding:8px 16px;
-    border-radius:12px;
+    border-radius:var(--radius);
     font-size:12px;
     font-weight:700;
     border:1px solid var(--border-subtle);
@@ -271,7 +271,7 @@ body::before{
     flex:1;
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
-    border-radius:12px;
+    border-radius:var(--radius);
     color:var(--indigo-300);
     font-size:12px;
     padding:8px 12px;
@@ -288,7 +288,7 @@ body::before{
     padding:8px 16px;
     background:linear-gradient(135deg,#6366f1,#8b5cf6);
     border:none;
-    border-radius:12px;
+    border-radius:var(--radius);
     color:#fff;
     font-size:12px;
     font-weight:700;
@@ -314,7 +314,7 @@ body::before{
     color:var(--text-secondary);
     border:1px solid var(--border-subtle);
     background:var(--bg-card);
-    border-radius:14px;
+    border-radius:var(--radius);
     cursor:pointer;
     white-space:nowrap;
     transition:all .25s;
@@ -360,7 +360,7 @@ body::before{
     position:relative;
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
-    border-radius:16px;
+    border-radius:var(--radius);
     padding:14px;
     cursor:pointer;
     transition:all .25s;
@@ -433,7 +433,7 @@ body::before{
 .list-card{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
-    border-radius:16px;
+    border-radius:var(--radius);
     overflow:hidden;
     margin-bottom:10px;
     backdrop-filter:blur(12px);
@@ -470,7 +470,7 @@ body::before{
 .badge{
     font-size:10px;
     padding:3px 10px;
-    border-radius:10px;
+    border-radius:var(--radius);
     font-weight:800;
 }
 .badge-red{
@@ -487,7 +487,7 @@ body::before{
 .health-wrap{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
-    border-radius:18px;
+    border-radius:var(--radius);
     padding:20px;
     text-align:center;
     cursor:pointer;
@@ -537,7 +537,7 @@ body::before{
 
 .health-bar-bg{
     background:rgba(99,102,241,.1);
-    border-radius:6px;
+    border-radius:var(--radius-sm);
     height:6px;
     margin:16px 0 4px;
     overflow:hidden;
@@ -547,7 +547,7 @@ body::before{
 
 .health-bar-fill{
     height:6px;
-    border-radius:6px;
+    border-radius:var(--radius-sm);
     width:0;
     transition:width 1.4s cubic-bezier(.34,1.56,.64,1);
 }
@@ -557,7 +557,7 @@ body::before{
     align-items:flex-start;
     gap:10px;
     background:var(--bg-card);
-    border-radius:14px;
+    border-radius:var(--radius);
     padding:12px;
     margin-bottom:8px;
     border:1px solid rgba(239,68,68,.2);
@@ -614,7 +614,7 @@ body::before{
     padding:36px 20px;
     color:var(--text-secondary);
     background:var(--bg-card);
-    border-radius:16px;
+    border-radius:var(--radius);
     border:1px solid var(--border-subtle);
     animation:cardIn .4s ease both;
 }
@@ -635,7 +635,7 @@ body::before{
 .store-select{
     background:var(--bg-card);
     border:1px solid var(--border-subtle);
-    border-radius:12px;
+    border-radius:var(--radius);
     color:var(--indigo-300);
     font-size:12px;
     padding:6px 12px;
@@ -665,7 +665,7 @@ body::before{
     z-index:201;
     background:#080818;
     border-top:1px solid var(--border-glow);
-    border-radius:22px 22px 0 0;
+    border-radius:var(--radius) 22px 0 0;
     padding:0 0 40px;
     transform:translateY(100%);
     transition:transform .32s cubic-bezier(.32,0,.67,0);
@@ -680,7 +680,7 @@ body::before{
     width:36px;
     height:4px;
     background:rgba(99,102,241,.3);
-    border-radius:2px;
+    border-radius:var(--radius-sm);
     margin:14px auto 18px;
 }
 
@@ -708,7 +708,7 @@ body::before{
 .drawer-explain{
     background:rgba(99,102,241,.08);
     border:1px solid var(--border-subtle);
-    border-radius:12px;
+    border-radius:var(--radius);
     padding:12px;
     font-size:13px;
     color:var(--indigo-300);
@@ -719,7 +719,7 @@ body::before{
 .ai-box{
     background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(168,85,247,.08));
     border:1px solid rgba(99,102,241,.2);
-    border-radius:12px;
+    border-radius:var(--radius);
     padding:12px;
     margin-bottom:14px;
     position:relative;
@@ -758,7 +758,7 @@ body::before{
     padding:14px;
     background:linear-gradient(135deg,#6366f1,#8b5cf6);
     border:none;
-    border-radius:14px;
+    border-radius:var(--radius);
     color:#fff;
     font-size:14px;
     font-weight:700;
@@ -772,7 +772,7 @@ body::before{
 .drawer-btn:active{transform:scale(.98)}
 
 .shimmer-text{
-    background:linear-gradient(90deg,var(--indigo-400) 25%,#c7d2fe 50%,var(--indigo-400) 75%);
+    background:linear-gradient(90deg,var(--indigo-400) 25%,hsl(229 100% 89%) 50%,var(--indigo-400) 75%);
     background-size:200% auto;
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
@@ -857,7 +857,7 @@ body::before{
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{
     background:rgba(99,102,241,.3);
-    border-radius:3px;
+    border-radius:var(--radius-sm);
 }
 
 /* S82.CAPACITOR safe-area */
@@ -915,6 +915,21 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         transition:none !important;
     }
 }
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body>
