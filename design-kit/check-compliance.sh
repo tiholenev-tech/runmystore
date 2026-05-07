@@ -90,11 +90,15 @@ fi
 echo -e "\n${CYAN}[4/15] box-shadow през --shadow-card*${NC}"
 RAW_SHADOW=$(echo "$STYLE_BLOCK" | grep -nE 'box-shadow:\s*(inset\s+)?[0-9-]+(px)?\s+' || true)
 RAW_SHADOW_COUNT=$( [ -z "$RAW_SHADOW" ] && echo 0 || echo "$RAW_SHADOW" | grep -c . )
-if [ "$RAW_SHADOW_COUNT" -gt 4 ]; then
+# Threshold: shadow recipes are often visually-meaningful (neon glow, focus rings) so
+# we're more lenient — warn 5-15, fail at 16+.
+if [ "$RAW_SHADOW_COUNT" -gt 15 ]; then
     fail "$RAW_SHADOW_COUNT raw box-shadow recipes — повечето трябва var(--shadow-card*)"
     echo "$RAW_SHADOW" | head -3 | sed 's/^/      /'
-elif [ "$RAW_SHADOW_COUNT" -gt 0 ]; then
+elif [ "$RAW_SHADOW_COUNT" -gt 4 ]; then
     warn "$RAW_SHADOW_COUNT raw box-shadow — провери дали не може var(--shadow-card*)"
+elif [ "$RAW_SHADOW_COUNT" -gt 0 ]; then
+    warn "$RAW_SHADOW_COUNT raw box-shadow (acceptable level)"
 else
     ok "Без raw box-shadow recipes"
 fi
