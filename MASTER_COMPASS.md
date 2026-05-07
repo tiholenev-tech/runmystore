@@ -3,11 +3,14 @@
 ## Router + Tracker + Dependency Tree + Change Protocol
 
 **Последна актуализация:** 07.05.2026  
-**Последна завършена сесия:** S103D.PRINTER.CYRILLIC — D520BT thermal printer Cyrillic печат via TSPL BAR-RLE hybrid path (handoff: `HANDOFF_S103D_PRINTER_CYRILLIC.md`)
+**Последна завършена сесия:** S96.DESIGN.BICHROMATIC — DESIGN_SYSTEM v4.1 (single source of truth, light default + dark Neon Glass SACRED) + life-board.php eталонна миграция + animated brand logo + store picker + theme toggle fix (handoff: `HANDOFF_S96_DESIGN_BICHROMATIC.md`)
+**Предходна сесия:** S103D.PRINTER.CYRILLIC — D520BT thermal printer Cyrillic via TSPL BAR-RLE hybrid path (handoff: `HANDOFF_S103D_PRINTER_CYRILLIC.md`)
 **Паралелно в ход:** Тихол solo real product entry на tenant=7 (без Claude Code), очаква bug list за S84
 **Следваща сесия:** S83 = Real Entry Day (Тихол solo, 27.04) → S84 = BUGFIX BATCH + STUDIO.REWIRE (28.04, 2 паралелни Code)
-**Текуща Phase:** A1 (Foundation, ~65%) → A2 (Operations Core, преди ЕНИ 14-15 май)  
+**Текуща Phase:** A1 (Foundation, ~70% с design system locked) → A2 (Operations Core, преди ЕНИ 14-15 май)  
 **Първа реална продажба target:** ЕНИ магазин, 14-15 май 2026 (FIXED)
+
+- **S96.DESIGN.BICHROMATIC CLOSED (07.05.2026):** Цялостна refactor на дизайн системата. Стария Frankenstein (всеки модул със своя интерпретация на Neon Glass) → единствен canonical документ `DESIGN_SYSTEM_v4.0_BICHROMATIC.md` (v4.1 след S96 patches, 2510+ реда, 22 части). LIGHT mode = default (Neumorphism + 7 от 9 ефекти adapted), DARK mode = SACRED Neon Glass option (запазен 1:1: .glass + .shine + .glow с conic-gradient mask-composite). Continuity matrix — двата режима споделят радиуси/размери/layout/анимации/font; различават се само по background/shadows/blend modes. **9 effects** работят в двата режима. **life-board.php** е eталонна миграция (Simple Mode home — `<style>` блок replaced 252→992 реда CSS, data-theme attribute, aurora div, Google Fonts, store picker от chat.php, conic orb за Life Board). **shell-scripts.php** — theme toggle fix (setAttribute вместо removeAttribute → dark mode сега работи). **css/shell.css** — animated brand logo (15px, rainbow gradient shimmer 4s, pulsing glow). **CLAUDE_CODE_DESIGN_PROMPT.md** създаден — задължителен промпт за всяка дизайн задача в Claude Code (защита от Frankenstein). Архивирани с DEPRECATED banner: `DESIGN_SYSTEM_v3_archived.md`, `DESIGN_LAW.md`, `S95_DESIGN_KIT_HANDOFF.md`, `kato-predniq-law.html`, `SALE_V5_MOCKUP.html` → всички в `docs/archived/`. Изтрити: `products.php.bak.DESIGN_LAW_20260505_0923` (970KB), dublicate S95. Commits: 478eb4d, 3345c83, dd95c74, 29d8d21, c492b57, c64a18f, 54ff51c, 45a0917. **Pending:** Capacitor APK rebuild + Z Flip6 test (mask-composite на Android <11), check-compliance.sh update, миграция на chat.php / sale.php / products.php и т.н. Detailed handoff: `HANDOFF_S96_DESIGN_BICHROMATIC.md`.
 
 - **S103D.PRINTER.CYRILLIC CLOSED (07.05.2026 вечер):** D520BT thermal printer Cyrillic печат работи в production чрез path 'hybrid' (S98.PathF — BAR-RLE rendering на canvas → TSPL `BAR x,y,w,h` команди, pure ASCII wire). Capacitor `@e-is/capacitor-bluetooth-serial` plugin UTF-8-encoding-ва high bytes на native side; S97 patch (`mobile/patches/`) flip-ва на ISO-8859-1 но не влиза в production без APK rebuild → real BITMAP path остава blocked. Hybrid pivot заобикаля проблема. Симулатор build-нат (`/sim_print.php` + `sim_render.py` + `/sim/`) за визуална iteration без printer. Final fixes: REVERSE order swap (text→REVERSE = white-on-black pill), BOT_PAD=16 (left edge crop fix), CODE128 fallback за non-EAN барcодове, "Печат без баркод" toggle в print-modal, cache-bust `?v=mtime` на script tags. Files: `js/capacitor-printer.js`, `products.php` (toggle UI + 2× call-site noBarcode arg), `printer-setup.php` (cache-bust). НЕ committed още. Backups в `js/*.bak.D520_*`. Detailed handoff: `HANDOFF_S103D_PRINTER_CYRILLIC.md`.
 
@@ -2910,6 +2913,33 @@ CREATE TABLE applied (commit `9c0665d` STATE + `2922c70` COMPASS):
 - ⏳ deliveries — след build complete (~07.05)
 - ⏳ transfers — след build (~10.05)
 - ⏳ inventory — след build (~10.05)
+
+
+### 🎨 STANDING RULE #30 — DESIGN AUTHORITY (S96)
+
+**Единствен canonical източник на дизайн:** `/var/www/runmystore/DESIGN_SYSTEM.md` → `DESIGN_SYSTEM_v4.0_BICHROMATIC.md` (v4.1).
+
+**Правила:**
+1. ВСЯКА дизайн задача в Claude Code задължително започва със прочитане на този Bible.
+2. Ползвай `CLAUDE_CODE_DESIGN_PROMPT.md` като wrapper при делегиране.
+3. SACRED elements (НЕ модифицирай):
+   - `.glass` 3-layer linear-gradient + backdrop-filter:blur(12px)
+   - `.shine` conic-gradient + mask-composite: subtract (DARK only)
+   - `.glow` SVG noise mask + plus-lighter blend (DARK only)
+   - `partials/header.php` — 7 елемента fixed order
+   - `partials/bottom-nav.php` — 4 tabs (AI/Склад/Справки/Продажба)
+   - `rmsToggleTheme()` — само `setAttribute`, никога `removeAttribute`
+4. LIGHT = default (`:root:not([data-theme])` или `[data-theme="light"]`).
+5. Никакви hardcoded цветове / радиуси / fonts — само CSS variables.
+6. Reference impl: `life-board.php` (post-S96).
+7. Stari документи (DESIGN_SYSTEM_v1, v3, DESIGN_LAW.md, kato-predniq-law) са в `docs/archived/` — НЕ ги цитирай.
+
+**Compliance check (преди commit):**
+```bash
+bash /var/www/runmystore/design-kit/check-compliance.sh module.php
+```
+*(Note: scriptът все още валидира v3 patterns — pending update в S97/S98.)*
+
 
 ### 🖨️ D520BT PRINTER — HANDOFF КЪМ НОВ OPUS CHAT
 
