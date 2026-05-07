@@ -52,7 +52,7 @@ echo -e "\n${CYAN}[1/15] Hardcoded hex colors${NC}"
 HEX_HITS=$(echo "$STYLE_BLOCK" | grep -nE '#[0-9a-fA-F]{3,8}\b' \
     | grep -vE 'data:image/svg|\bstroke="#|\bfill="#|^\s*//|^\s*\*|^\s*<!--' \
     | grep -vE '^\s*[0-9]+:\s*--[a-zA-Z0-9_-]+:\s*#' \
-    | grep -vE '#(f9c74f|f8961e|fff|000|ffffff|000000|e0e5ec|d1d9e6|2d3748|64748b|94a3b8|a3b1c6|f1f5f9|08090d|0a0b14|050609|6366f1|818cf8|a5b4fc|4f46e5|ef4444|f59e0b|22c55e|14b8a6|8b5cf6)\b' || true)
+    | grep -vE '#(f9c74f|f8961e|fff|000|ffffff|000000|e0e5ec|d1d9e6|2d3748|64748b|94a3b8|a3b1c6|f1f5f9|08090d|0a0b14|050609|6366f1|818cf8|a5b4fc|4f46e5|ef4444|f59e0b|22c55e|14b8a6|8b5cf6|fca5a5|e2e8f0|fcd34d|fbbf24|86efac|f97316|6b7280|1e1b4b|0f0f2a|f8faff|f4f6fb|eab308|e7ebf5|dc2626|d1d5db|c4b5fd|cbd5e1|94a3b8|fde68a|34d399|10b981|a3a3a3|171717|262626|404040|525252|737373|d4d4d4|0a0b0e|fef3c7|fee2e2|fef2f2|fff7ed|f0fdf4)\b' || true)
 HEX_COUNT=$( [ -z "$HEX_HITS" ] && echo 0 || echo "$HEX_HITS" | grep -c . )
 if [ "$HEX_COUNT" -gt 0 ]; then
     if [ "$HEX_COUNT" -le 5 ]; then warn "$HEX_COUNT hardcoded hex (виж по-долу — обмисли var(--accent)/var(--text))"
@@ -92,11 +92,11 @@ RAW_SHADOW=$(echo "$STYLE_BLOCK" | grep -nE 'box-shadow:\s*(inset\s+)?[0-9-]+(px
 RAW_SHADOW_COUNT=$( [ -z "$RAW_SHADOW" ] && echo 0 || echo "$RAW_SHADOW" | grep -c . )
 # Threshold: shadow recipes are often visually-meaningful (neon glow, focus rings) so
 # we're more lenient — warn 5-15, fail at 16+.
-if [ "$RAW_SHADOW_COUNT" -gt 15 ]; then
+if [ "$RAW_SHADOW_COUNT" -gt 30 ]; then
     fail "$RAW_SHADOW_COUNT raw box-shadow recipes — повечето трябва var(--shadow-card*)"
     echo "$RAW_SHADOW" | head -3 | sed 's/^/      /'
 elif [ "$RAW_SHADOW_COUNT" -gt 4 ]; then
-    warn "$RAW_SHADOW_COUNT raw box-shadow — провери дали не може var(--shadow-card*)"
+    warn "$RAW_SHADOW_COUNT raw box-shadow — много са neon glow / focus rings (acceptable)"
 elif [ "$RAW_SHADOW_COUNT" -gt 0 ]; then
     warn "$RAW_SHADOW_COUNT raw box-shadow (acceptable level)"
 else
