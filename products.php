@@ -242,17 +242,12 @@ if ($ajax === 'sections') {
         elseif ($k === 'q6') $totalLabels[$k] = $cnt . ' · ' . round($s['total']) . ' лв';
     }
 
-    // Общ брой артикули за header
-    $totalProducts = DB::run(
-        "SELECT COUNT(*) FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-         WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL",
-        [$store_id, $tenant_id]
-    )->fetchColumn();
+    // Общ брой артикули за header — S101: централизиран count
+    $totalProducts = getProductCount($tenant_id, (int)$store_id, 'per_store_masters');
 
     echo json_encode([
         'ok' => true,
-        'total_products' => intval($totalProducts),
+        'total_products' => $totalProducts,
         'sections' => $sections,
         'totals' => $totalLabels
     ]);
@@ -292,7 +287,9 @@ if ($ajax === 'sections') {
                 ORDER BY (c.name LIKE ?) DESC, c.name ASC
                 LIMIT 5
             ", [$tenant_id, $tenant_id, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['products' => array_slice($rows, 0, 8), 'categories' => $cats, 'total_products' => count($rows)]);
+            // S101: real total of matching active masters (not subset count)
+            $totalMatches = getProductCount($tenant_id, (int)$sid, 'search', ['q' => $q]);
+            echo json_encode(['products' => array_slice($rows, 0, 8), 'categories' => $cats, 'total_products' => $totalMatches]);
             exit;
         }
         echo json_encode($rows); exit;
@@ -331,7 +328,8 @@ if ($ajax === 'sections') {
         if (!$product) { echo json_encode(['error' => 'not_found']); exit; }
         if (!$can_see_cost) unset($product['cost_price']);
         // Check if product has children (variant parent)
-        $child_count = DB::run("SELECT COUNT(*) FROM products WHERE parent_id=? AND tenant_id=? AND is_active=1", [$pid,$tenant_id])->fetchColumn();
+        // S101: централизиран variant count
+        $child_count = getProductCount($tenant_id, null, 'variants_of', ['parent_id' => $pid]);
         if ($child_count > 0) {
             // Sum children stock per store
             $stocks = DB::run("
@@ -506,9 +504,12 @@ if ($ajax === 'sections') {
         $out_of_stock = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity=0 AND p.parent_id IS NULL ORDER BY p.name LIMIT 20", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
         $top_sellers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, SUM(si.quantity) AS sold_qty, SUM(si.quantity*si.unit_price) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id WHERE p.tenant_id=? AND s.store_id=? AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY) AND s.status!='canceled' GROUP BY p.id ORDER BY sold_qty DESC LIMIT 5", [$tenant_id, $sid])->fetchAll(PDO::FETCH_ASSOC);
         $slow_movers = DB::run("SELECT p.id, p.name, p.code, p.retail_price, p.image_url, COALESCE(i.quantity,0) AS qty, DATEDIFF(NOW(), COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id), p.created_at)) AS days_stale FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity>0 AND p.parent_id IS NULL HAVING days_stale BETWEEN 25 AND 45 ORDER BY days_stale DESC LIMIT 10", [$sid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
-        $counts = DB::run("SELECT COUNT(DISTINCT p.id) AS total_products, COALESCE(SUM(i.quantity),0) AS total_units FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL", [$sid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        // S101: централизиран master count + локален SUM(quantity) за единиците
+        $totalUnits = (int) DB::run("SELECT COALESCE(SUM(i.quantity),0) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL", [$sid, $tenant_id])->fetchColumn();
+        $counts = ['total_products' => getProductCount($tenant_id, (int)$sid, 'per_store_masters'), 'total_units' => $totalUnits];
         // S79.FIX.B-HIDDEN-INV-BE: Store Health metrics (Вариант B)
-        $sh_total = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL", [$tenant_id])->fetchColumn();
+        // S101: tenant-wide active master count via централизиран helper
+        $sh_total = getProductCount($tenant_id, null, 'masters');
         if ($sh_total > 0) {
             $sh_recent = (int)DB::run("SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL AND last_counted_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [$tenant_id])->fetchColumn();
             $sh_accuracy = (int)round(($sh_recent / $sh_total) * 100);
@@ -679,14 +680,26 @@ if ($ajax === 'sections') {
                 THEN (SELECT SUM(ci.quantity) FROM inventory ci JOIN products cp ON cp.id=ci.product_id WHERE cp.parent_id=p.id AND ci.store_id={$sid})
                 ELSE i.quantity END
             ,0) AS SIGNED) AS store_stock,{$dse} AS days_stale, CAST(COALESCE((SELECT SUM(si99.quantity) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id JOIN products cp2 ON cp2.id=si99.product_id WHERE (cp2.id=p.id OR cp2.parent_id=p.id) AND s99.store_id={$sid} AND s99.status!='canceled' AND s99.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)),0) AS SIGNED) AS sold_30d FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
-            $total = DB::run("SELECT COUNT(*) FROM (SELECT p.id,{$dse} AS days_stale FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} HAVING {$hSQL}) sub", array_merge([$sid], $params))->fetchColumn();
+            // S101: централизиран filtered count (с HAVING days_stale)
+            $total = getProductCount($tenant_id, (int)$sid, 'filtered', [
+                'where_sql'        => $where_sql,
+                'params'           => $params,
+                'store_id'         => (int)$sid,
+                'having_sql'       => $hSQL,
+                'days_stale_expr'  => $dse,
+            ]);
         } else {
             $products = DB::run("SELECT p.id,p.name,p.code,p.barcode,p.retail_price,p.cost_price,p.image_url,p.supplier_id,p.category_id,p.parent_id,p.discount_pct,p.discount_ends_at,p.min_quantity,p.unit,s.name AS supplier_name,c.name AS category_name,CAST(COALESCE(
                 CASE WHEN EXISTS(SELECT 1 FROM products ch WHERE ch.parent_id=p.id AND ch.is_active=1)
                 THEN (SELECT SUM(ci.quantity) FROM inventory ci JOIN products cp ON cp.id=ci.product_id WHERE cp.parent_id=p.id AND ci.store_id={$sid})
                 ELSE i.quantity END
             ,0) AS SIGNED) AS store_stock, CAST(COALESCE((SELECT SUM(si99.quantity) FROM sale_items si99 JOIN sales s99 ON s99.id=si99.sale_id JOIN products cp2 ON cp2.id=si99.product_id WHERE (cp2.id=p.id OR cp2.parent_id=p.id) AND s99.store_id={$sid} AND s99.status!='canceled' AND s99.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)),0) AS SIGNED) AS sold_30d FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql} ORDER BY {$order} LIMIT ? OFFSET ?", array_merge([$sid], $params, [$per_page, $offset]))->fetchAll(PDO::FETCH_ASSOC);
-            $total = DB::run("SELECT COUNT(DISTINCT p.id) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE {$where_sql}", array_merge([$sid], $params))->fetchColumn();
+            // S101: централизиран filtered count (без HAVING)
+            $total = getProductCount($tenant_id, (int)$sid, 'filtered', [
+                'where_sql' => $where_sql,
+                'params'    => $params,
+                'store_id'  => (int)$sid,
+            ]);
         }
         if (!$can_see_cost) { foreach ($products as &$pr) unset($pr['cost_price']); }
         echo json_encode(['products'=>$products,'total'=>(int)$total,'page'=>$page,'pages'=>max(1,ceil($total/$per_page))]);
@@ -699,7 +712,8 @@ if ($ajax === 'sections') {
         $product = DB::run("SELECT * FROM products WHERE id=? AND tenant_id=?", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
         if (!$product) { echo json_encode(['error'=>'not_found']); exit; }
         $sales_30d = DB::run("SELECT CAST(COALESCE(SUM(si.quantity),0) AS SIGNED) AS qty, ROUND(COALESCE(SUM(si.quantity*si.unit_price),0),2) AS revenue FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=? AND s.store_id=? AND s.status!='canceled' AND s.created_at>=DATE_SUB(NOW(),INTERVAL 30 DAY)", [$pid, $sid])->fetch(PDO::FETCH_ASSOC);
-        $child_count = DB::run("SELECT COUNT(*) FROM products WHERE parent_id=? AND tenant_id=? AND is_active=1", [$pid,$tenant_id])->fetchColumn();
+        // S101: централизиран variant count
+        $child_count = getProductCount($tenant_id, null, 'variants_of', ['parent_id' => $pid]);
         if ($child_count > 0) {
             $stock = DB::run("SELECT COALESCE(SUM(i.quantity),0) FROM inventory i JOIN products p ON p.id=i.product_id WHERE p.parent_id=? AND p.is_active=1", [$pid])->fetchColumn();
         } else {
@@ -928,7 +942,11 @@ if ($ajax === 'sections') {
         $input = json_decode(file_get_contents('php://input'), true);
         $question = $input['question'] ?? '';
         if (!$question) { echo json_encode(['error'=>'no_question']); exit; }
-        $stats = DB::run("SELECT COUNT(*) AS cnt, COALESCE(SUM(i.quantity),0) AS total_qty FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1", [$store_id,$tenant_id])->fetch(PDO::FETCH_ASSOC);
+        // S101: централизиран active count + локален SUM(quantity)
+        $stats = [
+            'cnt'       => getProductCount($tenant_id, null, 'all_active'),
+            'total_qty' => (int) DB::run("SELECT COALESCE(SUM(i.quantity),0) FROM products p LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.is_active=1", [$store_id,$tenant_id])->fetchColumn(),
+        ];
         $low = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND p.min_quantity>0 AND i.quantity<=p.min_quantity AND i.quantity>0", [$store_id,$tenant_id])->fetchColumn();
         $out = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity=0", [$store_id,$tenant_id])->fetchColumn();
         $zombie = DB::run("SELECT COUNT(*) FROM products p JOIN inventory i ON i.product_id=p.id AND i.store_id=? WHERE p.tenant_id=? AND i.quantity>0 AND DATEDIFF(NOW(),COALESCE((SELECT MAX(s.created_at) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id),p.created_at))>45", [$store_id,$tenant_id])->fetchColumn();
@@ -4573,9 +4591,17 @@ html{overflow-x:hidden;max-width:100vw}
         </div>
     </div>
 
+    <?php
+        // S101: live count, не hardcoded "247". Лейбълът — i18n по tenant.lang.
+        $sh_view_all_count = getProductCount($tenant_id, null, 'masters');
+        $sh_view_all_label = match($lang) {
+            'en'    => 'View all ' . $sh_view_all_count . ' master items',
+            default => 'Виж всички ' . $sh_view_all_count . ' master артикула',
+        };
+    ?>
     <div class="glass view-all" onclick="goScreenWithHistory('products',{filter:'all'})" style="cursor:pointer">
         <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span>Виж всички 247 артикула</span>
+        <span><?= htmlspecialchars($sh_view_all_label, ENT_QUOTES, 'UTF-8') ?></span>
         <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </div>
 

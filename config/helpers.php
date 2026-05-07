@@ -501,3 +501,108 @@ function auditLog(
             . " (action=$action, table=$table, id=$recordId)");
     }
 }
+
+// ══════════════════════════════════════
+// 8. PRODUCT COUNT — single source of truth (S101)
+// ══════════════════════════════════════
+
+/**
+ * Returns int product count under explicit scope. Always tenant-guarded.
+ *
+ * Scopes:
+ *  - 'masters'             — active masters: tenant_id + is_active=1 + parent_id IS NULL
+ *  - 'all_active'          — every active product (incl variants): tenant_id + is_active=1
+ *  - 'all_with_variants'   — every product (active + inactive): tenant_id only
+ *  - 'per_store_masters'   — active masters that have an inventory row in the given store
+ *  - 'variants_of'         — active variants for a parent: $filters['parent_id']
+ *  - 'search'              — active masters matching $filters['q'] (name/code/barcode)
+ *  - 'filtered'            — caller-supplied $filters['where_sql'] + $filters['params'];
+ *                            optional $filters['having_sql'] + $filters['days_stale_expr']
+ *                            for HAVING-on-derived-column queries.
+ */
+function getProductCount(int $tenant_id, ?int $store_id, string $scope, array $filters = []): int
+{
+    if ($tenant_id <= 0) return 0;
+
+    switch ($scope) {
+        case 'masters':
+            return (int) DB::run(
+                "SELECT COUNT(*) FROM products
+                 WHERE tenant_id=? AND is_active=1 AND parent_id IS NULL",
+                [$tenant_id]
+            )->fetchColumn();
+
+        case 'all_active':
+            return (int) DB::run(
+                "SELECT COUNT(*) FROM products
+                 WHERE tenant_id=? AND is_active=1",
+                [$tenant_id]
+            )->fetchColumn();
+
+        case 'all_with_variants':
+            return (int) DB::run(
+                "SELECT COUNT(*) FROM products WHERE tenant_id=?",
+                [$tenant_id]
+            )->fetchColumn();
+
+        case 'per_store_masters':
+            if ($store_id === null || $store_id <= 0) return 0;
+            return (int) DB::run(
+                "SELECT COUNT(*) FROM products p
+                 JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+                 WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL",
+                [$store_id, $tenant_id]
+            )->fetchColumn();
+
+        case 'variants_of':
+            $parent_id = (int)($filters['parent_id'] ?? 0);
+            if ($parent_id <= 0) return 0;
+            return (int) DB::run(
+                "SELECT COUNT(*) FROM products
+                 WHERE tenant_id=? AND parent_id=? AND is_active=1",
+                [$tenant_id, $parent_id]
+            )->fetchColumn();
+
+        case 'search':
+            $q = trim((string)($filters['q'] ?? ''));
+            if ($q === '') return 0;
+            $like = '%' . $q . '%';
+            return (int) DB::run(
+                "SELECT COUNT(DISTINCT p.id) FROM products p
+                 WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL
+                   AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)",
+                [$tenant_id, $like, $like, $like]
+            )->fetchColumn();
+
+        case 'filtered':
+            $where_sql      = (string)($filters['where_sql'] ?? 'p.tenant_id=?');
+            $where_params   = (array) ($filters['params']    ?? [$tenant_id]);
+            $sid            = $filters['store_id'] ?? $store_id;
+            $sid            = $sid === null ? 0 : (int)$sid;
+            $having_sql     = $filters['having_sql']       ?? null;
+            $days_stale_exp = $filters['days_stale_expr']  ?? null;
+
+            if (strpos($where_sql, 'tenant_id') === false) {
+                error_log("getProductCount(filtered): where_sql missing tenant_id guard — refusing.");
+                return 0;
+            }
+
+            if ($having_sql !== null && $days_stale_exp !== null) {
+                $sql = "SELECT COUNT(*) FROM (
+                            SELECT p.id, {$days_stale_exp} AS days_stale
+                            FROM products p
+                            LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+                            WHERE {$where_sql} HAVING {$having_sql}
+                        ) sub";
+            } else {
+                $sql = "SELECT COUNT(DISTINCT p.id) FROM products p
+                        LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+                        WHERE {$where_sql}";
+            }
+            return (int) DB::run($sql, array_merge([$sid], $where_params))->fetchColumn();
+
+        default:
+            error_log("getProductCount: unknown scope '{$scope}'");
+            return 0;
+    }
+}
