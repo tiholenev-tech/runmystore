@@ -3905,6 +3905,12 @@ body{padding-bottom:130px;position:relative}
 .s-btn svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .s-btn.mic{background:hsl(340 40% 22% / .6);border-color:hsl(340 50% 40% / .5);color:hsl(340 60% 85%)}
 .s-btn .dot{position:absolute;top:-3px;right:-3px;background:hsl(var(--hue1) 70% 50%);color:#001;font-size:8px;font-weight:900;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #08090d}
+/* S103 BUG #8: inline recording state на search mic — копиран pattern от .wiz-mic.recording (L2183-2187),
+   но без !important (по-висока specificity .s-btn.mic.recording я постига source-order-wise).
+   Reusing existing micRecPulse / micRecDot keyframes от wizard — без duplication. */
+.s-btn.mic.recording{background:rgba(239,68,68,.3);border-color:#ef4444;color:#fff;animation:micRecPulse .8s infinite;position:relative}
+.s-btn.mic.recording::after{content:'REC';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:7px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 6px rgba(239,68,68,.6);pointer-events:none}
+.s-btn.mic.recording::before{content:'';position:absolute;top:-5px;right:-2px;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.5);animation:micRecDot .6s infinite;pointer-events:none}
 
 .add-card{display:flex;align-items:stretch;margin-bottom:16px;padding:0;--radius:16px;overflow:hidden}
 .add-main{flex:1;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;position:relative;z-index:5}
@@ -4321,7 +4327,8 @@ html{overflow-x:hidden;max-width:100vw}
         <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off">
         <!-- S103 BUG #7: добавен onclick — преди беше "мъртъв" filter бутон без handler. -->
         <button class="s-btn" id="hSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="hSearchFilterDot" style="display:none">0</span></button>
-        <button class="s-btn mic" onclick="openVoiceSearch()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+        <!-- S103 BUG #8: onclick=openVoiceSearch (fullscreen overlay) → searchInlineMic (inline state, live transcript). -->
+        <button class="s-btn mic" id="hSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     </div>
     <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
     <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:14px;background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
@@ -5259,6 +5266,77 @@ function openVoiceSearch(){
     openVoice('Кажи какво търсиш',text=>{
         S.searchText=text;updateSearchDisplay();doSearch(text);
     });
+}
+
+// S103 BUG #8: inline mic за search bar — Web Speech API (free, native, instant).
+// Pattern копиран от wizMic (_wizMicWebSpeech): continuous=true + interimResults=true,
+// 2-сек silence auto-stop, повторен tap = manual stop. Pусна live transcript в #hSearchInp
+// и dispatch-ва 'input' event → съществуващият onLiveSearchHome debouncer fire-ва (zero логика дублирана).
+// НЕ викаме openVoiceSearch / openVoice — те остават за rec-ov overlay flow (AI chat).
+let _searchMicRec = null;
+let _searchMicSilenceTO = null;
+function searchInlineMic(btn){
+    // Toggle: повторен tap по време на recording → manual stop
+    if (_searchMicRec) { try { _searchMicRec.stop(); } catch(e){} return; }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        if (typeof showToast === 'function') showToast('Гласовото търсене не се поддържа','error');
+        return;
+    }
+    const inp = document.getElementById('hSearchInp');
+    if (!inp || !btn) return;
+
+    const lang = (window.CFG && CFG.lang) || 'bg';
+    const langMap = {bg:'bg-BG',ro:'ro-RO',el:'el-GR',sr:'sr-RS',hr:'hr-HR',en:'en-US',mk:'mk-MK',sq:'sq-AL',tr:'tr-TR',sl:'sl-SI',de:'de-DE'};
+
+    btn.classList.add('recording');
+    inp.value = '';
+    inp.dispatchEvent(new Event('input', {bubbles:true})); // изчиства предишен dropdown
+
+    const rec = new SR();
+    rec.lang = langMap[lang] || 'bg-BG';
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    const armSilence = () => {
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicSilenceTO = setTimeout(() => { try { rec.stop(); } catch(e){} }, 2000);
+    };
+
+    rec.onresult = function(e){
+        let final = '', interim = '';
+        for (let i = 0; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+        }
+        const text = (final + ' ' + interim).replace(/\s+/g,' ').trim();
+        inp.value = text;
+        inp.dispatchEvent(new Event('input', {bubbles:true})); // re-fire onLiveSearchHome → debounced search
+        armSilence();
+    };
+    rec.onerror = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+        if (typeof showToast === 'function') showToast('Грешка с микрофона','warn');
+    };
+    rec.onend = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+    };
+
+    try {
+        _searchMicRec = rec;
+        rec.start();
+        armSilence();
+        if (navigator.vibrate) navigator.vibrate(8);
+    } catch (e) {
+        btn.classList.remove('recording');
+        _searchMicRec = null;
+        if (typeof showToast === 'function') showToast('Не може да стартира микрофона','error');
+    }
 }
 
 // ─── DRAWERS ───
