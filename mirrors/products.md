@@ -5594,7 +5594,7 @@ async function lblPrintMobile(idx){
                 importer: supName,
                 importer_city: ''
             };
-            await CapPrinter.print(product, storeInfo, it.qty, { mode: pm });
+            await CapPrinter.print(product, storeInfo, it.qty, { mode: pm, noBarcode: !!(S && S.wizData && S.wizData._noBarcode) });
         }
         hidePrintOverlay();
         showToast('Готово: ' + totalCopies + ' етикета', 'success');
@@ -12824,7 +12824,7 @@ async function wizPrintLabelsMobile(comboIdx){
                 importer: supName,
                 importer_city: ''
             };
-            await CapPrinter.print(product, storeInfo, it.qty, { mode: (S.wizData._printMode || 'eur') });
+            await CapPrinter.print(product, storeInfo, it.qty, { mode: (S.wizData._printMode || 'eur'), noBarcode: !!S.wizData._noBarcode });
             _done += it.qty;
         }
         hidePrintOverlay();
