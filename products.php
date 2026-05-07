@@ -668,6 +668,14 @@ if ($ajax === 'sections') {
         if (isset($_GET['margin_max']) && $_GET['margin_max']!=='' && $can_see_margin) { $where[] = "p.cost_price>0 AND ((p.retail_price-p.cost_price)/p.retail_price*100) <= ?"; $params[] = (float)$_GET['margin_max']; }
         if (isset($_GET['date_from']) && $_GET['date_from']!=='') { $where[] = "p.created_at >= ?"; $params[] = $_GET['date_from']; }
         if (isset($_GET['date_to']) && $_GET['date_to']!=='') { $where[] = "p.created_at <= ?"; $params[] = $_GET['date_to'].' 23:59:59'; }
+        // S103 BUG #9: text search in list view (UNIFY с home search bar). Tenant-id вече в $where.
+        if (isset($_GET['q']) && trim((string)$_GET['q']) !== '') {
+            $q_like = '%' . trim((string)$_GET['q']) . '%';
+            $where[]  = "(p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)";
+            $params[] = $q_like;
+            $params[] = $q_like;
+            $params[] = $q_like;
+        }
 
         $where_sql = implode(' AND ', $where);
         $order = match($sort) { 'price_asc'=>'p.retail_price ASC','price_desc'=>'p.retail_price DESC','stock_asc'=>'store_stock ASC','stock_desc'=>'store_stock DESC','newest'=>'p.created_at DESC','margin_desc'=>'((p.retail_price-p.cost_price)/p.retail_price) DESC', default=>'p.name ASC' };
@@ -4655,6 +4663,14 @@ html{overflow-x:hidden;max-width:100vw}
                 <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
             </div>
         </div>
+        <!-- S103 BUG #9: search/filter/mic в list view — IDENTICAL DOM на home (.search-wrap),
+             p-prefixed IDs за да не се сблъскат с #hSearchInp на home (двата screen-а съществуват в DOM едновременно). -->
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="pSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchList(this.value)" autocomplete="off">
+            <button class="s-btn" id="pSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="pSearchFilterDot" style="display:none">0</span></button>
+            <button class="s-btn mic" id="pSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this,'pSearchInp')"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+        </div>
         <!-- Active filters chips -->
         <div class="active-chips" id="activeChips"></div>
         <!-- Subcategory row (appears when category selected) -->
@@ -4893,6 +4909,7 @@ const S = {
     homeTab: 'all', homePage: 1,
     supId: null, catId: null,
     searchText: '', searchTO: null,
+    listQ: '', // S103 BUG #9: text query за list view (отделно от searchText / doSearch overlay flow)
     detailStack: [],
     cameraMode: null, cameraStream: null, barcodeDetector: null, barcodeInterval: null, zxingReader: null,
     recognition: null, isListening: false, lastTranscript: '',
@@ -5038,6 +5055,9 @@ function deactivateProduct(id){ if(confirm('Деактивирай артику�
 // ─── NAVIGATION ───
 function goScreen(scr, params={}){
     S.screen=scr; S.supId=params.sup||null; S.catId=params.cat||null; S.page=1;
+    // S103 BUG #9: при влизане в products list през goScreen (вкл. "Виж всички") → reset list query
+    // и sync visible input. Запазва filter/cat/sup от params; query е separate state.
+    if(scr==='products'){ S.listQ=''; const _pi=document.getElementById('pSearchInp'); if(_pi)_pi.value=''; }
     document.querySelectorAll('.screen-section').forEach(el=>el.classList.remove('active'));
     const map={home:'scrHome',suppliers:'scrSuppliers',categories:'scrCategories',products:'scrProducts'};
     document.getElementById(map[scr])?.classList.add('active');
@@ -5163,6 +5183,8 @@ async function loadProducts(){
     if(S.supId)p+=`&sup=${S.supId}`;
     if(S.catId)p+=`&cat=${S.catId}`;
     if(S.filter!=='all')p+=`&filter=${S.filter}`;
+    // S103 BUG #9: text search в list view (от #pSearchInp).
+    if(S.listQ)p+=`&q=${encodeURIComponent(S.listQ)}`;
     // S43: Quick filter params
     if(_qfState.price_min)p+='&price_min='+_qfState.price_min;
     if(_qfState.price_max)p+='&price_max='+_qfState.price_max;
@@ -5268,6 +5290,16 @@ function openVoiceSearch(){
     });
 }
 
+// S103 BUG #9: live debounced search за list view (#pSearchInp). Reset page=1 на нов query.
+let _pSearchTO = null;
+function onLiveSearchList(q){
+    q = (q || '').trim();
+    S.listQ = q;
+    S.page = 1;
+    clearTimeout(_pSearchTO);
+    _pSearchTO = setTimeout(() => loadProducts(), 200);
+}
+
 // S103 BUG #8: inline mic за search bar — Web Speech API (free, native, instant).
 // Pattern копиран от wizMic (_wizMicWebSpeech): continuous=true + interimResults=true,
 // 2-сек silence auto-stop, повторен tap = manual stop. Pусна live transcript в #hSearchInp
@@ -5275,7 +5307,7 @@ function openVoiceSearch(){
 // НЕ викаме openVoiceSearch / openVoice — те остават за rec-ov overlay flow (AI chat).
 let _searchMicRec = null;
 let _searchMicSilenceTO = null;
-function searchInlineMic(btn){
+function searchInlineMic(btn, inputId){
     // Toggle: повторен tap по време на recording → manual stop
     if (_searchMicRec) { try { _searchMicRec.stop(); } catch(e){} return; }
 
@@ -5284,7 +5316,8 @@ function searchInlineMic(btn){
         if (typeof showToast === 'function') showToast('Гласовото търсене не се поддържа','error');
         return;
     }
-    const inp = document.getElementById('hSearchInp');
+    // S103 BUG #9: parameterized inputId — споделя се между home (#hSearchInp) и list (#pSearchInp).
+    const inp = document.getElementById(inputId || 'hSearchInp');
     if (!inp || !btn) return;
 
     const lang = (window.CFG && CFG.lang) || 'bg';
