@@ -51,12 +51,89 @@ foreach ($stores as $s) {
 <!DOCTYPE html>
 <html lang="bg">
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Чат Обекти — RunMyStore.ai</title>
   <link href="./css/vendors/aos.css" rel="stylesheet">
   <link href="./style.css" rel="stylesheet">
   <style>
+/* ═══ S105 v4.1 BICHROMATIC — Light theme tokens (default) ═══ */
+[data-theme="light"], :root:not([data-theme]) {
+    --bg-main: #e0e5ec;
+    --surface: #e0e5ec;
+    --surface-2: #d1d9e6;
+    --border-color: transparent;
+    --text: #2d3748;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --shadow-light: #ffffff;
+    --shadow-dark: #a3b1c6;
+    --neu-d: 8px; --neu-b: 16px;
+    --neu-d-s: 4px; --neu-b-s: 8px;
+    --shadow-card:
+        var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),
+        calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+    --shadow-card-sm:
+        var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --shadow-pressed:
+        inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --accent: oklch(0.62 0.22 285);
+    --accent-2: oklch(0.65 0.25 305);
+    --q1-loss: oklch(0.65 0.22 25);
+    --q2-why-loss: oklch(0.65 0.25 305);
+    --q3-gain: oklch(0.68 0.18 155);
+    --q4-why-gain: oklch(0.72 0.18 195);
+    --q5-order: oklch(0.72 0.18 70);
+    --q6-no-order: oklch(0.62 0.05 220);
+    --aurora-blend: multiply;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+[data-theme="dark"] {
+    --bg-main: #08090d;
+    --surface: hsl(220, 25%, 4.8%);
+    --surface-2: hsl(220, 25%, 8%);
+    --border-color: hsl(222, 12%, 20%);
+    --text: #f1f5f9;
+    --text-muted: rgba(255, 255, 255, 0.6);
+    --text-faint: rgba(255, 255, 255, 0.4);
+    --shadow-card:
+        hsl(222 50% 2%) 0 10px 16px -8px,
+        hsl(222 50% 4%) 0 20px 36px -14px;
+    --shadow-card-sm: hsl(222 50% 2%) 0 4px 8px -2px;
+    --shadow-pressed: inset 0 2px 4px hsl(222 50% 2%);
+    --accent: hsl(255, 80%, 65%);
+    --accent-2: hsl(222, 80%, 65%);
+    --q1-loss: hsl(0, 85%, 60%);
+    --q2-why-loss: hsl(280, 70%, 65%);
+    --q3-gain: hsl(145, 70%, 55%);
+    --q4-why-gain: hsl(175, 70%, 55%);
+    --q5-order: hsl(38, 90%, 60%);
+    --q6-no-order: hsl(220, 10%, 60%);
+    --aurora-blend: plus-lighter;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+/* ═══ end BICHROMATIC tokens ═══ */
+
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       height: 100dvh;
@@ -228,7 +305,18 @@ foreach ($stores as $s) {
     }
     .nav-item.active { color: #6366f1; }
     .nav-item svg { display: block; }
-  </style>
+  
+
+/* ═══ S105 — reduced-motion accessibility ═══ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+</style>
 </head>
 <body class="bg-gray-950 font-inter text-base text-gray-200 antialiased">
 

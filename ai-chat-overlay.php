@@ -45,6 +45,80 @@
 </div>
 
 <style>
+/* ═══ S105 v4.1 BICHROMATIC — Light theme tokens (default) ═══ */
+[data-theme="light"], :root:not([data-theme]) {
+    --bg-main: #e0e5ec;
+    --surface: #e0e5ec;
+    --surface-2: #d1d9e6;
+    --border-color: transparent;
+    --text: #2d3748;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --shadow-light: #ffffff;
+    --shadow-dark: #a3b1c6;
+    --neu-d: 8px; --neu-b: 16px;
+    --neu-d-s: 4px; --neu-b-s: 8px;
+    --shadow-card:
+        var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),
+        calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+    --shadow-card-sm:
+        var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --shadow-pressed:
+        inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+        inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+    --accent: oklch(0.62 0.22 285);
+    --accent-2: oklch(0.65 0.25 305);
+    --q1-loss: oklch(0.65 0.22 25);
+    --q2-why-loss: oklch(0.65 0.25 305);
+    --q3-gain: oklch(0.68 0.18 155);
+    --q4-why-gain: oklch(0.72 0.18 195);
+    --q5-order: oklch(0.72 0.18 70);
+    --q6-no-order: oklch(0.62 0.05 220);
+    --aurora-blend: multiply;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+[data-theme="dark"] {
+    --bg-main: #08090d;
+    --surface: hsl(220, 25%, 4.8%);
+    --surface-2: hsl(220, 25%, 8%);
+    --border-color: hsl(222, 12%, 20%);
+    --text: #f1f5f9;
+    --text-muted: rgba(255, 255, 255, 0.6);
+    --text-faint: rgba(255, 255, 255, 0.4);
+    --shadow-card:
+        hsl(222 50% 2%) 0 10px 16px -8px,
+        hsl(222 50% 4%) 0 20px 36px -14px;
+    --shadow-card-sm: hsl(222 50% 2%) 0 4px 8px -2px;
+    --shadow-pressed: inset 0 2px 4px hsl(222 50% 2%);
+    --accent: hsl(255, 80%, 65%);
+    --accent-2: hsl(222, 80%, 65%);
+    --q1-loss: hsl(0, 85%, 60%);
+    --q2-why-loss: hsl(280, 70%, 65%);
+    --q3-gain: hsl(145, 70%, 55%);
+    --q4-why-gain: hsl(175, 70%, 55%);
+    --q5-order: hsl(38, 90%, 60%);
+    --q6-no-order: hsl(220, 10%, 60%);
+    --aurora-blend: plus-lighter;
+    --aurora-opacity: 0.35;
+    --radius: 22px; --radius-sm: 14px;
+    --radius-pill: 999px; --radius-icon: 50%;
+    --font: 'Montserrat', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.5, 1, 0.89, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur: 250ms;
+}
+/* ═══ end BICHROMATIC tokens ═══ */
+
+
 /* ═══ AI CHAT OVERLAY ═══ */
 .aico{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;opacity:0;transition:opacity .25s}
 .aico.open{pointer-events:auto;opacity:1}
@@ -54,7 +128,7 @@
     height:80vh;max-height:80vh;
     display:flex;flex-direction:column;
     background:#0b0f1a;
-    border-radius:20px 20px 0 0;
+    border-radius: var(--radius) 20px 0 0;
     border-top:1px solid rgba(99,102,241,0.25);
     box-shadow:0 -8px 40px rgba(0,0,0,0.6);
     transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,.37,1.1);
@@ -88,21 +162,21 @@
 .aico-msg-user{
     align-self:flex-end;max-width:82%;
     background:linear-gradient(135deg,#4f46e5,#6366f1);
-    color:#fff;padding:10px 14px;border-radius:16px 16px 4px 16px;
+    color:#fff;padding:10px 14px;border-radius: var(--radius-sm) 16px 4px 16px;
     font-size:13px;line-height:1.5;word-break:break-word;
 }
 /* AI bubble */
 .aico-msg-ai{
     align-self:flex-start;max-width:88%;
     background:rgba(30,30,60,0.8);border:1px solid rgba(99,102,241,0.1);
-    color:#e2e8f0;padding:10px 14px;border-radius:16px 16px 16px 4px;
+    color:#e2e8f0;padding:10px 14px;border-radius: var(--radius-sm) 16px 16px 4px;
     font-size:13px;line-height:1.6;word-break:break-word;
 }
 .aico-msg-ai b,.aico-msg-ai strong{color:#a5b4fc}
 /* Typing */
 .aico-typing{display:none;padding:0 14px 6px;flex-shrink:0}
 .aico-typing.show{display:block}
-.aico-typing-dots{display:flex;gap:4px;padding:8px 12px;background:rgba(30,30,60,0.6);border-radius:12px;width:fit-content}
+.aico-typing-dots{display:flex;gap:4px;padding:8px 12px;background:rgba(30,30,60,0.6);border-radius: var(--radius-sm);width:fit-content}
 .aico-typing-dots span{width:6px;height:6px;border-radius:50%;background:#6366f1;animation:aicoBounce .6s infinite alternate}
 .aico-typing-dots span:nth-child(2){animation-delay:.15s}
 .aico-typing-dots span:nth-child(3){animation-delay:.3s}
@@ -117,7 +191,7 @@
 .aico-input-wrap{
     flex:1;background:rgba(99,102,241,0.08);
     border:1px solid rgba(99,102,241,0.15);
-    border-radius:20px;padding:0 14px;
+    border-radius: var(--radius);padding:0 14px;
     display:flex;align-items:center;
 }
 .aico-input{
@@ -137,6 +211,17 @@
 @keyframes aicoPulseRec{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
 .aico-send-btn{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff}
 .aico-send-btn:active{transform:scale(.92);filter:brightness(1.2)}
+
+
+/* ═══ S105 — reduced-motion accessibility ═══ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 </style>
 
 <script>
