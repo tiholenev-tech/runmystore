@@ -32,3 +32,10 @@ config/*.local.php
 secrets/
 .claude/settings.local.json
 config/database.php.save
+
+# S96 patches и backup-и (не commit-ваме)
+*.bak.S96_*
+*.bak.PRE_*
+patch*.py
+patch_*.py
+migrate_*.py
