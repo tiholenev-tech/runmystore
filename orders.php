@@ -95,12 +95,12 @@ $low_stock_by_supplier = $low_stock_by_supplier->fetchAll(PDO::FETCH_ASSOC);
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
 
 <style>
 .mod-ord-hero-cta{display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;text-decoration:none;color:inherit;border:none;width:100%;font-family:inherit}
 .mod-ord-hero-ico{
-    width:48px;height:48px;border-radius:14px;flex-shrink:0;
+    width:48px;height:48px;border-radius:var(--radius);flex-shrink:0;
     background:linear-gradient(135deg,hsl(38 75% 52%),hsl(28 75% 46%));
     box-shadow:0 0 16px hsl(38 75% 50% / .5),inset 0 1px 0 rgba(255,255,255,.25);
     display:flex;align-items:center;justify-content:center;color:#fff
@@ -112,12 +112,12 @@ $low_stock_by_supplier = $low_stock_by_supplier->fetchAll(PDO::FETCH_ASSOC);
 .mod-ord-hero-arr{color:hsl(38 80% 70%);font-size:18px;font-weight:900;flex-shrink:0}
 
 .mod-ord-row{
-    display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;
+    display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius);
     background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);
     cursor:pointer;margin-bottom:6px;text-decoration:none;color:inherit
 }
 .mod-ord-ico{
-    width:30px;height:30px;border-radius:9px;flex-shrink:0;
+    width:30px;height:30px;border-radius:var(--radius-sm);flex-shrink:0;
     display:flex;align-items:center;justify-content:center;color:#fff
 }
 .mod-ord-ico.draft{background:linear-gradient(135deg,hsl(255 50% 50%),hsl(222 50% 44%));box-shadow:0 0 8px hsl(255 50% 50% / .35)}
@@ -131,14 +131,14 @@ $low_stock_by_supplier = $low_stock_by_supplier->fetchAll(PDO::FETCH_ASSOC);
 .mod-ord-name{font-size:12px;font-weight:800;color:#f1f5f9;line-height:1.2}
 .mod-ord-meta{font-size:9px;font-weight:600;color:rgba(255,255,255,.4);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;letter-spacing:.02em}
 .mod-ord-status{
-    display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:100px;
+    display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:var(--radius-pill);
     font-size:8px;font-weight:900;letter-spacing:.05em;text-transform:uppercase
 }
-.mod-ord-status.draft{background:rgba(165,180,252,.12);border:1px solid rgba(165,180,252,.3);color:#c7d2fe}
+.mod-ord-status.draft{background:rgba(165,180,252,.12);border:1px solid rgba(165,180,252,.3);color:hsl(229 100% 89%)}
 .mod-ord-status.sent{background:rgba(99,150,255,.14);border:1px solid rgba(99,150,255,.32);color:#93c5fd}
-.mod-ord-status.partial{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:#fbbf24}
-.mod-ord-status.received{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac}
-.mod-ord-status.stale{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:#fca5a5}
+.mod-ord-status.partial{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:hsl(43 96% 56%)}
+.mod-ord-status.received{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:hsl(141 79% 73%)}
+.mod-ord-status.stale{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:hsl(0 93% 82%)}
 .mod-ord-status.cancelled{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45)}
 .mod-ord-amt{font-size:13px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;line-height:1}
 .mod-ord-amt small{display:block;font-size:8px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.06em;margin-top:3px;text-transform:uppercase}
@@ -158,6 +158,21 @@ $low_stock_by_supplier = $low_stock_by_supplier->fetchAll(PDO::FETCH_ASSOC);
 
 .mode-simple .mod-ord-detail-only{display:none}
 .mode-detailed .mod-ord-simple-only{display:none}
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell mode-<?= htmlspecialchars($mode) ?>">
