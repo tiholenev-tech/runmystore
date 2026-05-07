@@ -27,24 +27,39 @@ $plan_label = strtoupper($tenant['plan'] ?? 'free');
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>">
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
+<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg-main);color:var(--text-primary);font-family:'Montserrat',Inter,system-ui,sans-serif;min-height:100dvh}
 .page-wrap{max-width:480px;margin:0 auto;padding:0 12px}
 .section-title{font-size:11px;font-weight:800;color:var(--text-secondary);letter-spacing:.10em;text-transform:uppercase;margin:18px 4px 8px}
-.card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-card)}
+.card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-card)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle)}
 .row:last-child{border-bottom:none}
 .row-label{font-size:13px;font-weight:600;color:var(--text-primary)}
 .row-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
 .row-val{font-size:13px;color:var(--text-secondary);font-weight:600}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-primary);font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--radius);border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-primary);font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit}
 .btn:hover{border-color:var(--border-glow);color:var(--indigo-300)}
-.btn.danger{border-color:rgba(239,68,68,.4);color:#fca5a5;background:rgba(239,68,68,.08)}
+.btn.danger{border-color:rgba(239,68,68,.4);color:hsl(0 93% 82%);background:rgba(239,68,68,.08)}
 .btn.danger:hover{background:rgba(239,68,68,.15)}
 .placeholder{padding:24px 8px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.5}
 .placeholder svg{width:36px;height:36px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.55;margin-bottom:8px}
+
+
+/* ── S106: BICHROMATIC theme support (auto-injected) ── */
+[data-theme="light"] body{background:var(--bg);color:var(--text)}
+[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
+[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* glass content stays above shine/glow spans */
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell">
