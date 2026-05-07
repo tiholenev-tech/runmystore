@@ -1,0 +1,19 @@
+Input: /var/www/runmystore/sim/20260507_133700_clean_test_b7c9d7.bin  (12107 bytes)
+
+SIZE 50.0 mm × 30.0 mm = 400 × 240 dots
+=== HEADER (pre-BITMAP) ===
+DENSITY 7
+GAP 2.0 mm,0.0 mm
+SIZE 50.0 mm,30.0 mm
+SET TEAR ON
+SET PEEL OFF
+CLS
+
+
+BITMAP #1: x=0 y=0 w=50bytes (400px) h=240 mode=0
+  expected raster: 12000 bytes; available after cmd: 12000
+  byte stats: 0xFF=11400  0x00=600  high(0x80+)=11400  total=12000
+
+Total BITMAP commands rendered: 1
+PRINT cmd: copies=b'1' 
+  trailing terminator: OK (after PRINT: b'\n')

@@ -127,15 +127,6 @@
   // single (plugin-side) encoding to reach printer correctly.
   const D520_USE_UTF8_RASTER = false;
 
-  // S103D.SIM — Server-side simulator. When true, writeSPP_D520 POSTs the raw
-  // JS-side byte stream to /sim_print.php instead of writing to Bluetooth.
-  // Server renders TSPL → PNG; view at /sim/?last=1. Lets us iterate without
-  // physical print. NOTE: this captures bytes from the JS layer, BEFORE the
-  // Capacitor bridge / plugin encoding stage — useful for verifying our
-  // generator output, not for diagnosing plugin-level UTF-8 mangling.
-  const D520_SIMULATE = false;
-  const D520_SIM_ENDPOINT = 'https://runmystore.ai/sim_print.php';
-
   // ─── Capacitor plugin accessors ────────────────────────────────────────
 
   function isCapacitor() {
@@ -832,19 +823,16 @@
 
     const mode = opts.mode || product.mode || store.label_mode || defaultLabelMode();
 
-    // S103D.FINAL — pure ASCII transliteration (was S98.PathD CP1251 — broke
-    // due to plugin UTF-8 double-encoding wrecking high bytes; gave hieroglyphs
-    // in bottom-right). Until APK is rebuilt with verified ISO-8859-1 patch,
-    // tsplSafe() transliterates cyrillic → latin and drops anything non-ASCII.
-    const name      = tsplSafe(product.name);
-    const supplier  = tsplSafe(product.supplier, 16);
-    const code      = tsplSafe(product.code, 20);
-    const sizeStr   = tsplSafe(product.size, 4);
-    const color     = tsplSafe(product.color, 14);
-    const matOrigin = tsplSafe(product.origin_material, 24);
-    const country   = tsplSafe(product.origin_country, 16);
-    const importer  = tsplSafe(product.importer, 16);
-    const impCity   = tsplSafe(product.importer_city, 16);
+    // S98.PathD — CP1251 byte payload for cyrillic; CODEPAGE 1251 set in header.
+    const name      = tsplSafeCyr(product.name);
+    const supplier  = tsplSafeCyr(product.supplier, 16);
+    const code      = tsplSafeCyr(product.code, 20);
+    const sizeStr   = tsplSafeCyr(product.size, 4);
+    const color     = tsplSafeCyr(product.color, 14);
+    const matOrigin = tsplSafeCyr(product.origin_material, 24);
+    const country   = tsplSafeCyr(product.origin_country, 16);
+    const importer  = tsplSafeCyr(product.importer, 16);
+    const impCity   = tsplSafeCyr(product.importer_city, 16);
     const barcode   = ensureEan13(product.barcode, product.id);
     const amt       = parseFloat(product.retail_price) || 0;
     const n         = Math.max(1, Math.min(parseInt(copies) || 1, 50));
@@ -861,8 +849,7 @@
     push('DENSITY 11\r\n');
     push('SPEED 4\r\n');
     push('CLS\r\n');
-    // S103D.FINAL — CODEPAGE 1251 dropped (was for CP1251 byte payload, which
-    // is now ASCII-only after tsplSafe transliteration above).
+    push('CODEPAGE 1251\r\n');
 
     // Layout zones (50×30mm = 400×240 dots, 8 dots padding):
     //   TOP        y=4    barcode 28×10mm + name/code right
@@ -953,7 +940,7 @@
       ? (country ? matOrigin + ' ' + country : matOrigin)
       : (country || '')).substring(0, 24);
     const importStr = importer
-      ? ('Vnos: ' + importer + (impCity ? ', ' + impCity : '')).substring(0, 24)
+      ? (utf16ToCp1251Bytes('Внос: ') + importer + (impCity ? ', ' + impCity : '')).substring(0, 24)
       : '';
 
     if (originStr || importStr) {
@@ -1184,9 +1171,9 @@
   }
   function renderTextAsBars(text, offsetX, offsetY, fontPx, maxWidth, opts) {
     opts = opts || {};
-    const minRun = opts.minRun || 1;     // S103D — was 2; smaller runs preserve detail
-    const stripeH = opts.stripeH || 1;   // S103D — was 2; full vertical detail (smoother glyphs)
-    const fontSpec = opts.fontSpec || ('900 ' + fontPx + 'px Arial,sans-serif');  // S103D — heavier weight (was bold)
+    const minRun = opts.minRun || 2;
+    const stripeH = opts.stripeH || 2;   // rows per BAR (1 = exact, 2 = halved cmds)
+    const fontSpec = opts.fontSpec || ('bold ' + fontPx + 'px Arial,sans-serif');
     const align = opts.align || 'left';
     if (!text) return new Uint8Array(0);
 
@@ -1220,11 +1207,6 @@
 
     const px = ctx.getImageData(0, 0, w, h).data;
     const cmds = [];
-    // S103D — fix: respect align by shifting canvas's "left edge" in printer
-    // coordinates. Caller passes offsetX as anchor point (left/center/right edge).
-    const startX = (align === 'right')  ? (offsetX - w) :
-                   (align === 'center') ? (offsetX - Math.floor(w / 2)) :
-                                          offsetX;
     // Process in stripes of stripeH rows: union the "black" mask across stripe.
     for (let y = 0; y < h; y += stripeH) {
       const sH = Math.min(stripeH, h - y);
@@ -1246,7 +1228,7 @@
         while (x < w && rowMask[x]) x++;
         const runW = x - start;
         if (runW >= minRun) {
-          cmds.push('BAR ' + (startX + start) + ',' + (offsetY + y) + ',' + runW + ',' + sH + '\r\n');
+          cmds.push('BAR ' + (offsetX + start) + ',' + (offsetY + y) + ',' + runW + ',' + sH + '\r\n');
         }
       }
     }
@@ -1422,64 +1404,70 @@
       placeText(codeLine, txX, 30, 11, W - txX - PAD);
     }
 
-    // S103D.C — compressed vertical layout to fit within 240 dots (no overflow).
     // ── SEP1 ──────────────────────────────────────────────────────────
-    push('BAR ' + PAD + ',86,' + (W - 2 * PAD) + ',1\r\n');
+    push('BAR ' + PAD + ',92,' + (W - 2 * PAD) + ',1\r\n');
 
-    // ── MID: size pill + color (y 90-116, 26 dots tall) ───────────────
+    // ── MID: size pill + color ────────────────────────────────────────
     if (mode === 'noprice') {
       if (sizeStr) {
+        // For noprice mode the pill is bigger; size text often digits → TSPL TEXT.
         const pillW = sizeStr.length * 24 + 24;
         const pillH = 40;
         const pillX = Math.max(PAD, Math.floor((W - pillW) / 2));
-        push('REVERSE ' + pillX + ',92,' + pillW + ',' + pillH + '\r\n');
-        placeText(sizeStr, pillX + 12, 96, 22, pillW);
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
+        // White-on-black: TSPL doesn't have a real color invert in TEXT, so we
+        // overlay TEXT — the REVERSE flips the area, TEXT prints black on now-
+        // white area which then re-flips? Simpler: skip white-on-black, just
+        // print black size text inside the pill (light text on black bg).
+        placeText(sizeStr, pillX + 12, 104, 22, pillW);
       }
       if (color) {
-        placeText(color, W / 2, 140, 18, W - 2 * PAD, { align: 'center' });
+        placeText(color, W / 2, 150, 18, W - 2 * PAD, { align: 'center' });
       }
     } else {
       let cursorX = PAD;
       if (sizeStr) {
-        const pillW = sizeStr.length * 18 + 20;
-        const pillH = 28;
+        const pillW = sizeStr.length * 12 + 16;
+        const pillH = 24;
         const pillX = cursorX;
-        push('REVERSE ' + pillX + ',90,' + pillW + ',' + pillH + '\r\n');
-        placeText(sizeStr, pillX + 10, 94, 20, pillW);
-        cursorX = pillX + pillW + 10;
+        push('REVERSE ' + pillX + ',100,' + pillW + ',' + pillH + '\r\n');
+        placeText(sizeStr, pillX + 8, 104, 14, pillW);
+        cursorX = pillX + pillW + 8;
       }
       if (color) {
-        placeText(color, cursorX, 95, 18, W - cursorX - PAD);
+        placeText(color, cursorX, 105, 14, W - cursorX - PAD);
       }
     }
 
-    // ── SEP2 + PRICE (y 118-186) ──────────────────────────────────────
+    // ── SEP2 + PRICE ──────────────────────────────────────────────────
     if (mode !== 'noprice') {
-      push('BAR ' + PAD + ',118,' + (W - 2 * PAD) + ',1\r\n');
+      push('BAR ' + PAD + ',130,' + (W - 2 * PAD) + ',1\r\n');
     }
     if (mode === 'eur') {
-      placeText(priceEur(amt), W / 2, 122, 44, W - 2 * PAD, { align: 'center' });
+      const txt = priceEurAscii(amt);     // "12,34 EUR" — pure ASCII
+      const txtW = txt.length * 24;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',140,"4",0,1,1,"' + txt + '"\r\n');
     } else if (mode === 'dual') {
-      placeText(priceEur(amt), W / 2, 122, 44, W - 2 * PAD, { align: 'center' });
-      placeText(priceBgn(amt), W / 2, 168, 20, W - 2 * PAD, { align: 'center' });
+      const eurT = priceEurAscii(amt);
+      const bgnT = priceBgnAscii(amt);
+      const txt = eurT + ' | ' + bgnT;
+      const txtW = txt.length * 12;
+      const cx = Math.max(PAD, Math.floor((W - txtW) / 2));
+      push('TEXT ' + cx + ',144,"2",0,1,1,"' + txt + '"\r\n');
     }
 
-    // ── BOT: stacked importer + origin (y 192-228, fits in label) ─────
-    const originParts = [];
-    if (matOrigin) originParts.push(matOrigin);
-    if (country)   originParts.push('Произход: ' + country);
-    const originStr = originParts.join(' · ');
+    // ── SEP3 + BOT: origin | importer ─────────────────────────────────
+    const originStr = matOrigin
+      ? (country ? matOrigin + ' ' + country : matOrigin)
+      : (country || '');
     const importStr = importer
       ? ('Внос: ' + importer + (impCity ? ', ' + impCity : ''))
       : '';
     if (originStr || importStr) {
-      push('BAR ' + PAD + ',192,' + (W - 2 * PAD) + ',1\r\n');
-      // S103D.D — extra left margin (PAD+8=16) for bottom rows; printer
-      // feed alignment crops first ~5 dots on left edge of label.
-      const BOT_PAD = PAD + 8;
-      let rowY = 196;
-      if (importStr) { placeText(importStr, BOT_PAD, rowY, 12, W - 2 * BOT_PAD); rowY += 14; }
-      if (originStr) { placeText(originStr, BOT_PAD, rowY, 12, W - 2 * BOT_PAD); }
+      push('BAR ' + PAD + ',170,' + (W - 2 * PAD) + ',1\r\n');
+      if (originStr) placeText(originStr, PAD,        180, 12, W / 2 - PAD);
+      if (importStr) placeText(importStr, W - PAD,    180, 12, W / 2 - PAD, { align: 'right' });
     }
 
     push('PRINT ' + n + '\r\n');
@@ -1501,22 +1489,6 @@
   // Connects RFCOMM, writes the ASCII payload, keeps connection alive for
   // subsequent prints. Retries once with full reconnect on first-write fail.
   async function writeSPP_D520(address, bytes) {
-    // S103D.SIM — divert to simulator if flag is set.
-    if (D520_SIMULATE) {
-      const path = (window.__d520_lastPath || 'unknown');
-      const resp = await fetch(D520_SIM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/octet-stream', 'X-D520-Path': path },
-        body: bytes,
-        cache: 'no-store'
-      });
-      const json = await resp.json();
-      const url = 'https://runmystore.ai' + (json.viewer_url || '/sim/?last=1');
-      alert('SIM done: ' + bytes.length + ' bytes → /sim/?last=1\n' +
-            'PNG: ' + (json.png_url || '?') + '\n' +
-            'Open in browser: ' + url);
-      return;
-    }
     if (!address) throw new Error('D520 address missing');
     const spp = getSPP();
 
@@ -1758,13 +1730,13 @@
       if (!path) {
         try { path = localStorage.getItem('d520_path'); } catch (_) {}
       }
-      // S103D.HYBRID — switched to 'hybrid': cyrillic rendered as TSPL BAR
-      // primitives (pure ASCII wire; plugin UTF-8 wrapping cannot corrupt).
-      // Each cyrillic field rendered to canvas, RLE'd into BAR x,y,w,h
-      // rectangles. ASCII fields use TSPL TEXT directly. Set localStorage
-      // 'd520_path' to 'ascii' to revert to transliterated Latin baseline.
-      path = path || 'hybrid';
-      window.__d520_lastPath = path;
+      // S102D — default to 'bigbmp' (full Cyrillic via canvas raster, mirrors
+      // Label-app wire format). Decoupled from D520_USE_UTF8_RASTER so the flag
+      // can be flipped independently to A/B-test raster encoding modes:
+      //   flag=true  + bigbmp → JS-side UTF-8 encoded raster
+      //   flag=false + bigbmp → raw raster (relies on plugin auto-encoding if any)
+      // Set localStorage.d520_path='ascii' for transliterated-latin baseline.
+      path = path || 'bigbmp';
 
       if (path === 'replay') {
         // Verbatim replay of the sniffed Label app TSPL job (known to print

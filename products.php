@@ -4280,7 +4280,7 @@ html{overflow-x:hidden;max-width:100vw}
 .kp-swatch.c-brown{background:linear-gradient(135deg,#92400e,#451a03);--swatch-glow:hsl(25,70%,30%)}
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
-<script src="js/capacitor-printer.js"></script>
+<script src="js/capacitor-printer.js?v=<?= @filemtime(__DIR__.'/js/capacitor-printer.js') ?>"></script>
 <link rel="stylesheet" href="css/aibrain-modals.css">
 </head>
 <body class="has-rms-shell mode-<?= ($user_role === 'seller') ? 'simple' : 'detailed' ?>">
