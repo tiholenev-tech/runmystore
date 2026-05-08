@@ -961,6 +961,38 @@ cron-weather.php → 06:00
 
 # 📝 LOGIC CHANGE LOG
 
+## 08.05.2026 EOD #2 — OPUS MOCKUP SESSION 2: ACCORDION PIVOT + AI STUDIO COMPLETE
+
+**Сесия:** Опус помощен чат #2 (08.05 вечер)
+
+**КРИТИЧНА ПРОМЯНА:** 6 mockups → 1 mockup. P4-P9 заменени с P13_bulk_entry.html (1107 lines) — accordion 5 sections в един екран. P12_matrix.html (467 lines) — CSS Grid matrix overlay. AI Studio пълен set: P8 + P8b (5 категории) + P8c.
+
+**Нови файлове (commits a214949 + 3f46a08):**
+- mockups/P12_matrix.html, P13_bulk_entry.html
+- mockups/P8_studio_main.html, P8b_studio_modal.html, P8b_advanced_clothes/lingerie/jewelry/acc/other.html, P8c_studio_queue.html
+- HANDOFF_FINAL_BETA.md (208 lines)
+- PRODUCTS_BULK_ENTRY_LOGIC.md (856 lines — железна спецификация)
+- Изтрити: P4, P4b, P5, P6, P7, P9, DETAILED_MODE_DECISION.md, SESSION_HANDOFF_CONSOLIDATED.md
+
+**P13 accordion (5 sections):**
+1. Минимум · 2. Вариации · 3. Допълнителни · 4. Снимки (AI photo recognition) · 5. AI Studio
+
+**Bulk session pattern:** 1-ви артикул → bulk_sessions row + template_product_id. 2+ → inherit + "Като предния/Празно" toggle. Voice "следващ" → auto Save.
+
+**DB schema impact (Phase B):** 8 ALTER products + 2 нови tables (bulk_sessions + bulk_session_items).
+
+**Phase plan:** A ✅ (mockups) → B (DB sandbox) → C (5 CC sessions per accordion) → D (i18n) → E (photo AI endpoint) → F (APK) → G (BETA 14-15.05).
+
+**Standing Rule #31 SOFTENED (Тихол executive override):** products.php CC rewrite OK при 6 conditions: accordion modular + ULTRA-STRICT + 1 section/session + 1:1 mockup + _wizPriceParse/voice/numeric UNTOUCHED + Z Flip6 smoke test.
+
+**Locked NEVER touch:** _wizPriceParse(), voice STT routing, numeric handlers, commits 4222a66 + 1b80106.
+
+**Latest commits:** 3f46a08, a214949, e6bc7fe, 16d6535, dd23855, 50a7451, 91b04c4, 5f36cbd.
+
+**Pending:** S122 DB migration (sandbox + .sql) → S123-S127 (5 CC sessions, 1 per accordion section) → APK rebuild → BETA.
+
+---
+
 ## 08.05.2026 EOD — DESIGN MIGRATION DISASTERS + AUDIT BATCH + MOCKUP DESIGN PHASE
 
 **Сесии:** 24-часова шеф-чат orchestration (07.05 вечер → 08.05 сутрин)
@@ -3021,8 +3053,14 @@ COPY END
 ═══════════════════════════════════════════════════════════════
 
 
-- **#31 — products.php е FORBIDDEN ZONE за Code Code rewrite (08.05.2026)**
-  S104+S105+S113 = 3 disaster sessions. 16K LOC monolith не е safe за automated rewrite. РЪЧЕН assembly only за products.php визуален rewrite. Code Code OK САМО за backend AJAX endpoints или малки isolated patches.
+- **#31 — products.php Code Code rewrite — CONDITIONAL (08.05.2026 — softened by Tihol executive override)**
+  S104+S105+S113 = 3 disasters. CC OK ако ВСИЧКИ 6 conditions:
+  1. Mockup е modular accordion (P13_bulk_entry.html canonical)
+  2. ULTRA-STRICT prompt (DELETE+INSERT, no MERGE, no new logic)
+  3. 1 accordion section per CC session (5 sessions: S123-S127)
+  4. _wizPriceParse + voice STT + numeric handlers UNTOUCHED
+  5. Z Flip6 visual smoke test mandatory pre-commit
+  6. P13 followed 1:1 (no "improve", no "optimize")
 
 - **#32 — Mockup = ground truth, DELETE+INSERT not MERGE (08.05.2026)**
   Когато Code Code прави визуален rewrite срещу одобрен mockup:
