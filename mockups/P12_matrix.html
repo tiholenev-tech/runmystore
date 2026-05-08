@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>P12 · Матрица · Добави артикул · RunMyStore.AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+/* P12 v3 — Matrix (CSS Grid, NO table)
+   COL 1   = размери (S, M, L) - вертикално отляво
+   COLS 2+ = цветове (Черен, Червен, Бял, Син) - хоризонтално отгоре
+   Cell [row=S, col=Червен] = въвеждаш qty за S × Червен */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --dur: 250ms;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --shadow-card: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+  --shadow-card-sm: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+  --shadow-pressed: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305);
+  --aurora-blend: multiply; --aurora-opacity: 0.32;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%); --surface-2: hsl(220, 25%, 8%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.aurora-blob { position: absolute; border-radius: var(--radius-icon); filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(var(--hue1),80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(280,70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(var(--hue3),70%,55%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+.mx-shell {
+  position: relative; z-index: 5;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column;
+  max-width: 480px; margin: 0 auto;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* HEADER */
+.mx-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 12px;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+[data-theme="light"] .mx-header, :root:not([data-theme]) .mx-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .mx-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); }
+
+.mx-icon-btn { width: 38px; height: 38px; border-radius: var(--radius-icon); display: grid; place-items: center; flex-shrink: 0; }
+[data-theme="light"] .mx-icon-btn, :root:not([data-theme]) .mx-icon-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="light"] .mx-icon-btn:active, :root:not([data-theme]) .mx-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-icon-btn { background: hsl(220 25% 8%); }
+.mx-icon-btn svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.mx-title-wrap { flex: 1; min-width: 0; }
+.mx-title { font-size: 14px; font-weight: 800; background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mx-sub { font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+.mx-sub b { color: var(--accent); font-weight: 800; }
+[data-theme="dark"] .mx-sub b { color: hsl(var(--hue1) 80% 75%); }
+
+/* INSTRUCTION */
+.mx-instruction {
+  margin: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+[data-theme="light"] .mx-instruction, :root:not([data-theme]) .mx-instruction { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .mx-instruction { background: hsl(220 25% 6% / 0.6); border: 1px solid hsl(var(--hue2) 12% 18%); }
+.mx-instruction b { color: var(--text); font-weight: 800; }
+.mx-instruction-ic { width: 18px; height: 18px; flex-shrink: 0; display: grid; place-items: center; }
+.mx-instruction-ic svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; }
+[data-theme="dark"] .mx-instruction-ic svg { stroke: hsl(var(--hue1) 80% 70%); }
+
+/* QUICK ACTIONS */
+.mx-quick-row { display: flex; gap: 6px; overflow-x: auto; padding: 0 12px 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.mx-quick-row::-webkit-scrollbar { display: none; }
+.mx-quick-btn {
+  flex: 0 0 auto;
+  height: 34px; padding: 0 14px;
+  border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 800;
+  color: var(--text); white-space: nowrap;
+}
+[data-theme="light"] .mx-quick-btn, :root:not([data-theme]) .mx-quick-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="light"] .mx-quick-btn:active, :root:not([data-theme]) .mx-quick-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-quick-btn { background: hsl(220 25% 8%); }
+.mx-quick-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.mx-quick-btn.warning { color: hsl(38 80% 50%); }
+[data-theme="dark"] .mx-quick-btn.warning { color: hsl(38 90% 65%); }
+.mx-quick-btn.primary { color: white; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4); }
+
+/* MATRIX WRAPPER */
+.mx-wrap {
+  flex: 1; min-height: 0;
+  margin: 0 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+[data-theme="light"] .mx-wrap, :root:not([data-theme]) .mx-wrap { background: var(--surface); box-shadow: var(--shadow-card); }
+[data-theme="dark"] .mx-wrap { background: hsl(220 25% 6% / 0.7); backdrop-filter: blur(8px); border: 1px solid hsl(var(--hue2) 12% 18%); }
+
+/* === MATRIX GRID === */
+.mx-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(4, minmax(78px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.mx-corner {
+  display: grid; place-items: center;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.2;
+  padding: 4px;
+}
+[data-theme="light"] .mx-corner, :root:not([data-theme]) .mx-corner { background: var(--bg-main); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-corner { background: hsl(220 25% 4.8%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+
+.mx-head {
+  height: 56px; padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+}
+[data-theme="light"] .mx-head, :root:not([data-theme]) .mx-head { background: var(--bg-main); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .mx-head { background: hsl(220 25% 6%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+
+.mx-head-dot {
+  width: 18px; height: 18px;
+  border-radius: var(--radius-icon);
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+.mx-head-name { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; }
+
+.mx-rowh {
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  min-height: 76px;
+}
+[data-theme="light"] .mx-rowh, :root:not([data-theme]) .mx-rowh { background: var(--bg-main); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .mx-rowh { background: hsl(220 25% 6%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+
+.mx-cell {
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; gap: 4px;
+  align-items: center; justify-content: center;
+  min-height: 76px;
+}
+[data-theme="light"] .mx-cell, :root:not([data-theme]) .mx-cell { background: var(--surface-2); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-cell { background: hsl(220 25% 4.5% / 0.7); border: 1px solid hsl(var(--hue2) 12% 14%); }
+.mx-cell.has-qty { background: oklch(0.94 0.04 285 / 0.6); }
+[data-theme="dark"] .mx-cell.has-qty { background: hsl(var(--hue1) 40% 8% / 0.6); border: 1px solid hsl(var(--hue1) 50% 25% / 0.4); }
+
+.mx-input-qty {
+  width: 100%; max-width: 64px; height: 32px; padding: 0 6px;
+  border-radius: 8px;
+  background: transparent;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 800;
+  color: var(--text); text-align: center;
+  outline: none; border: 1px solid transparent;
+  -moz-appearance: textfield;
+}
+[data-theme="light"] .mx-input-qty, :root:not([data-theme]) .mx-input-qty { background: var(--bg-main); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-input-qty { background: hsl(220 25% 3.5%); border: 1px solid hsl(var(--hue2) 12% 18%); color: hsl(var(--hue1) 70% 80%); }
+.mx-input-qty::-webkit-outer-spin-button, .mx-input-qty::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mx-input-qty:focus { box-shadow: 0 0 0 2px hsl(var(--hue1) 80% 55% / 0.4), var(--shadow-pressed); }
+[data-theme="dark"] .mx-input-qty:focus { border-color: hsl(var(--hue1) 80% 55%); background: hsl(var(--hue1) 40% 12% / 0.6); }
+
+.mx-min-row { display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; color: var(--text-faint); letter-spacing: 0.04em; }
+.mx-input-min {
+  width: 32px; height: 22px; padding: 0 3px;
+  border-radius: 6px;
+  background: transparent;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--text-muted); text-align: center;
+  outline: none; border: 1px solid transparent;
+  -moz-appearance: textfield;
+}
+[data-theme="light"] .mx-input-min, :root:not([data-theme]) .mx-input-min { background: var(--bg-main); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-input-min { background: hsl(220 25% 3.5%); border: 1px solid hsl(38 30% 18%); color: hsl(38 80% 70%); }
+.mx-input-min::-webkit-outer-spin-button, .mx-input-min::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* SUMMARY */
+.mx-summary { margin: 12px; padding: 12px 14px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+[data-theme="light"] .mx-summary, :root:not([data-theme]) .mx-summary { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .mx-summary { background: hsl(145 50% 10% / 0.5); border: 1px solid hsl(145 50% 25% / 0.4); }
+.mx-summary-ic { width: 32px; height: 32px; border-radius: var(--radius-icon); display: grid; place-items: center; flex-shrink: 0; background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%)); box-shadow: 0 4px 12px hsl(145 70% 45% / 0.4); }
+.mx-summary-ic svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 3; }
+.mx-summary-text { flex: 1; min-width: 0; }
+.mx-summary-num { font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--text); }
+.mx-summary-num b { background: linear-gradient(135deg, hsl(145 60% 40%), hsl(155 60% 35%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+[data-theme="dark"] .mx-summary-num b { background: linear-gradient(135deg, hsl(145 70% 70%), hsl(155 70% 60%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mx-summary-sub { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+
+/* FOOTER */
+.mx-footer { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 12px; flex-shrink: 0; }
+[data-theme="light"] .mx-footer, :root:not([data-theme]) .mx-footer { background: var(--bg-main); box-shadow: 0 -4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .mx-footer { background: hsl(220 25% 4.8% / 0.95); backdrop-filter: blur(16px); }
+.mx-fbtn { flex: 1; height: 50px; padding: 0 14px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--text); }
+[data-theme="light"] .mx-fbtn.secondary, :root:not([data-theme]) .mx-fbtn.secondary { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="light"] .mx-fbtn.secondary:active, :root:not([data-theme]) .mx-fbtn.secondary:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .mx-fbtn.secondary { background: hsl(220 25% 8%); }
+.mx-fbtn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.mx-fbtn.primary { color: white; position: relative; overflow: hidden; background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%)); box-shadow: 0 6px 20px hsl(145 70% 45% / 0.5); flex: 2; }
+.mx-fbtn.primary::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 3s linear infinite; }
+.mx-fbtn.primary > * { position: relative; z-index: 1; }
+.mx-fbtn.primary svg { stroke: white; }
+
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-25px) scale(1.1); } 66% { transform: translate(-25px,35px) scale(0.95); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<div class="mx-shell">
+
+  <header class="mx-header">
+    <button class="mx-icon-btn" aria-label="{T_BACK}">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="mx-title-wrap">
+      <div class="mx-title">{T_MATRIX}</div>
+      <div class="mx-sub">{T_SIZE} × {T_COLOR} · <b>12</b> {T_COMBINATIONS}</div>
+    </div>
+    <button class="mx-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="{T_THEME}">
+      <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+      <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+    <button class="mx-icon-btn" aria-label="{T_CLOSE}">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </header>
+
+  <div class="mx-instruction">
+    <span class="mx-instruction-ic">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </span>
+    <span><b>{T_TAP_AND_TYPE}</b> {T_QUANTITY_PER_COMBO}. {T_MIN_AUTO}.</span>
+  </div>
+
+  <div class="mx-quick-row">
+    <button class="mx-quick-btn primary" onclick="mxFillAll(5)">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {T_FILL_ALL_5}
+    </button>
+    <button class="mx-quick-btn" onclick="mxX2()">×2</button>
+    <button class="mx-quick-btn" onclick="mxHalf()">÷2</button>
+    <button class="mx-quick-btn warning" onclick="mxClear()">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+      {T_CLEAR}
+    </button>
+    <button class="mx-quick-btn" onclick="mxImportLast()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      {T_FROM_LAST}
+    </button>
+  </div>
+
+  <!-- ═══ MATRIX (CSS Grid) ═══
+       ROW 1: corner + 4 цвят headers (хоризонтално отгоре)
+       ROWS 2-4: размер + 4 cells (S, M, L вертикално отляво) -->
+  <div class="mx-wrap">
+    <div class="mx-grid">
+
+      <!-- ROW 1 — header -->
+      <div class="mx-corner">{T_SIZE}<br>×<br>{T_COLOR}</div>
+      <div class="mx-head"><span class="mx-head-dot" style="background:#1a1a1a"></span><span class="mx-head-name">Черен</span></div>
+      <div class="mx-head"><span class="mx-head-dot" style="background:#dc2626"></span><span class="mx-head-name">Червен</span></div>
+      <div class="mx-head"><span class="mx-head-dot" style="background:#ffffff;border:1px solid #d1d5db"></span><span class="mx-head-name">Бял</span></div>
+      <div class="mx-head"><span class="mx-head-dot" style="background:#1e40af"></span><span class="mx-head-name">Син</span></div>
+
+      <!-- ROW 2 — S -->
+      <div class="mx-rowh">S</div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="3" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="2" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell">
+        <input type="number" class="mx-input-qty" value="" min="0" placeholder="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="0" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="2" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+
+      <!-- ROW 3 — M -->
+      <div class="mx-rowh">M</div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="4" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="2" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="3" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="2" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="3" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+
+      <!-- ROW 4 — L -->
+      <div class="mx-rowh">L</div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="2" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell has-qty">
+        <input type="number" class="mx-input-qty" value="1" min="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="1" min="0"></div>
+      </div>
+      <div class="mx-cell">
+        <input type="number" class="mx-input-qty" value="" min="0" placeholder="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="0" min="0"></div>
+      </div>
+      <div class="mx-cell">
+        <input type="number" class="mx-input-qty" value="" min="0" placeholder="0" onchange="mxRecalc()">
+        <div class="mx-min-row"><span>{T_MIN}:</span><input type="number" class="mx-input-min" value="0" min="0"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mx-summary">
+    <div class="mx-summary-ic">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="mx-summary-text">
+      <div class="mx-summary-num"><b>22</b> {T_TOTAL_QUANTITY} · <b>9</b>/12 {T_FILLED}</div>
+      <div class="mx-summary-sub">{T_TOTAL_VALUE}: <b>768 €</b> · 1 502,07 лв</div>
+    </div>
+  </div>
+
+  <div class="mx-footer">
+    <button class="mx-fbtn secondary">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>{T_BACK}</span>
+    </button>
+    <button class="mx-fbtn primary">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{T_SAVE_MATRIX}</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+function syncThemeIcons() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeIconSun').style.display  = (t === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (t === 'dark') ? 'none'  : 'block';
+}
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+};
+syncThemeIcons();
+
+function mxRecalc() {
+  document.querySelectorAll('.mx-cell').forEach(c => {
+    const inp = c.querySelector('.mx-input-qty');
+    const v = parseInt(inp.value) || 0;
+    c.classList.toggle('has-qty', v > 0);
+  });
+}
+function mxFillAll(n) {
+  document.querySelectorAll('.mx-input-qty').forEach(i => i.value = n);
+  document.querySelectorAll('.mx-input-min').forEach(i => i.value = Math.max(1, Math.round(n / 2.5)));
+  mxRecalc();
+}
+function mxX2() {
+  document.querySelectorAll('.mx-input-qty').forEach(i => {
+    const v = parseInt(i.value) || 0;
+    if (v > 0) i.value = v * 2;
+  });
+  mxRecalc();
+}
+function mxHalf() {
+  document.querySelectorAll('.mx-input-qty').forEach(i => {
+    const v = parseInt(i.value) || 0;
+    if (v > 0) i.value = Math.max(1, Math.floor(v / 2));
+  });
+  mxRecalc();
+}
+function mxClear() {
+  document.querySelectorAll('.mx-input-qty').forEach(i => i.value = '');
+  document.querySelectorAll('.mx-input-min').forEach(i => i.value = '0');
+  mxRecalc();
+}
+function mxImportLast() { alert('Зареди от последен артикул (mock)'); }
+</script>
+</body>
+</html>
