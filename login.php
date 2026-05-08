@@ -1,5 +1,14 @@
 <?php
 require_once 'config/database.php';
+// S119.SESSION_FIX — secure cookie flags BEFORE session_start
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
 session_start();
 
 if (isset($_SESSION['tenant_id'])) {
@@ -19,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tenant = DB::run("SELECT * FROM tenants WHERE email = ? AND is_active = 1", [$email])->fetch();
         if ($tenant && password_verify($password, $tenant['password'])) {
             $user = DB::run("SELECT * FROM users WHERE tenant_id = ? AND email = ? AND is_active = 1", [$tenant['id'], $email])->fetch();
+
+    // S119.SESSION_FIX — fresh session ID after auth
+    session_regenerate_id(true);
             $_SESSION['tenant_id']   = $tenant['id'];
             $_SESSION['user_id']     = $user['id'] ?? null;
             $_SESSION['role']        = $user['role'] ?? 'owner';

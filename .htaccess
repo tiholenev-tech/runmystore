@@ -1,6 +1,17 @@
 DirectoryIndex index.php index.html
 Options -Indexes
 
+# S119.SESSION_FIX — system-wide session hardening
+<IfModule mod_php.c>
+    php_value session.cookie_secure   1
+    php_value session.cookie_httponly 1
+    php_value session.cookie_samesite Strict
+    php_value session.use_only_cookies 1
+    php_value session.cookie_lifetime  0
+    php_value session.use_strict_mode  1
+</IfModule>
+
+
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
