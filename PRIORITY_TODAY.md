@@ -176,3 +176,35 @@ Edge cases:
 
 ❌ FAILURE if: ЧАСТ 1.2 не завърши (което би значило 4-ти ден на същия проблем)
 PENDING REBOOT: kernel 6.8.0-111-generic — изпълни само при чиста сесия (tmux ls празно + git clean) + СЛЕД beta launch (15.05+)
+
+## PENDING TASKS (move to COMPASS на следваща шеф-чат сесия)
+
+**S116 Security findings (post-S113 mockups):**
+- [P0] CSRF protection на 11/12 POST endpoints (sale-save, product-save, onboarding-save, и т.н.)
+- [P0] session_regenerate_id(true) при login (5-line fix срещу session fixation)
+- [P0] Rotate Gemini + Groq + fal + Ecwid API keys (assume leaked през dev-exec window)
+- [P0] delivery.php OCR upload — добави MIME validation
+- [P1] ~12 stored XSS findings — htmlspecialchars на tenant data в UI
+- [P2] Insecure cookies — добави Secure + HttpOnly flags
+
+**S117 i18n (POST-BETA):**
+- t() функция не съществува — създай framework
+- 50+ hardcoded BG strings → keys
+- 110-key starter template в /tmp/i18n_audit/05_proposed_keys.json
+- 60+ hardcoded date formats → dateFormat() helper
+- Estimate 15-20 дни до EN-launch-ready
+
+**S115 Performance (S118-S122 sessions):**
+- sale-voice.php:14-26 correlated subquery (300-1500ms)
+- sale-search.php:19,31 correlated per-keystroke (80-300ms)
+- products_fetch.php correlated × 6 (zombie/slow-mover)
+- warehouse.php:29-44 → 6 COUNT × → 1 UNION ALL
+- inventory.php:48-54 + delivery.php:425-450 → INSERT...ON DUPLICATE KEY
+- Total ~14h spread over 5 sessions
+
+**Audit reports запазени:**
+- /tmp/perf_audit/ (5 files, S115)
+- /tmp/sec_audit/ (8 files, S116)
+- /tmp/i18n_audit/ (6 files, S117)
+- /tmp/aibrain_audit/ (6 files, S114)
+
