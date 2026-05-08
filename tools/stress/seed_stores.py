@@ -41,7 +41,7 @@ STORES = [
     {
         "name": "Склад",
         "type": "warehouse",
-        "address": "ул. „Тестова" 1, София",
+        "address": "ул. „Тестова“ 1, София",
         "size": "large",
         "metadata": {
             "daily_deliveries": [5, 10],
@@ -55,7 +55,7 @@ STORES = [
     {
         "name": "Магазин дрехи",
         "type": "retail-fashion",
-        "address": "ул. „Витоша" 25, София",
+        "address": "ул. „Витоша“ 25, София",
         "size": "medium",
         "metadata": {
             "daily_sales": [60, 80],
@@ -71,7 +71,7 @@ STORES = [
     {
         "name": "Магазин обувки",
         "type": "retail-shoes",
-        "address": "ул. „Раковски" 50, София",
+        "address": "ул. „Раковски“ 50, София",
         "size": "medium",
         "metadata": {
             "daily_sales": [40, 60],
@@ -87,7 +87,7 @@ STORES = [
     {
         "name": "Магазин mixed",
         "type": "retail-mixed",
-        "address": "ул. „Граф Игнатиев" 10, София",
+        "address": "ул. „Граф Игнатиев“ 10, София",
         "size": "medium",
         "metadata": {
             "daily_sales": [80, 120],
@@ -115,7 +115,7 @@ STORES = [
     {
         "name": "Магазин бижута",
         "type": "retail-jewelry",
-        "address": "ул. „Гурко" 5, София",
+        "address": "ул. „Гурко“ 5, София",
         "size": "small",
         "metadata": {
             "daily_sales": [5, 15],
