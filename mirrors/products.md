@@ -4128,7 +4128,7 @@ html{overflow-x:hidden;max-width:100vw}
 .q-gain{--hue1:145;--hue2:165}
 /* S95.WIZARD.DESIGN_LAW_FULL_COMPLIANCE — пълен набор global hue класове per
    DESIGN_LAW.md §2.5. Преди само q-magic + q-gain бяха дефинирани globalно;
-   сега всички варианти от закона работят при `class="glass q-loss"` и т.н.
+   сега всички варианти от закона работят при `class=&quot;glass q-loss&quot;` и т.н.
    Setting --hue1/--hue2 е достатъчно — .glass + shine + glow + всички
    hsl(var(--hue1) ...) изрази auto-recolor-ват през CSS cascade.
    Scoped legacy дефиниции (.s2-margin-badge.q-* line 2881-2883, .q-magic в
@@ -6830,14 +6830,14 @@ function renderWizPage(step){
         const idBody=
             '<div style="text-align:center;font-size:13px;color:rgba(255,255,255,0.85);margin:0 0 6px;font-weight:600">Готов ли е артикулът?</div>'+
             '<div style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:14px">Артикулен номер и баркод са по желание (AI/auto)</div>'+
-            '<div class="wiz-id-card glass sm" style="padding:10px 12px;margin-top:8px;border-radius:14px">'+
+            '<div class="wiz-id-card glass sm" style="padding:10px 12px;margin-top:8px;border-radius:14px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<div onclick="var b=document.getElementById(\'wIdCodeBox\');if(b)b.style.display=b.style.display===\'none\'?\'\':\'none\'" style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
                     '<div style="font-size:12px;font-weight:600;color:#cbd5e1;flex:1">Артикулен номер <span class="hint" style="font-weight:400;color:#64748b">'+(codeOpen?esc((S.wizData.code||'').slice(0,18)):'(авто ако празно)')+'</span></div>'+
                     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'+
                 '</div>'+
                 '<div id="wIdCodeBox" style="display:'+(codeOpen?'block':'none')+';margin-top:8px"><div style="display:flex;gap:6px;align-items:center"><input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+mic('code')+'<button type="button" class="abtn" onclick="wizScanBarcode(\'wCode\',\'Сканирай артикулен номер\')" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.4)" title="Сканирай артикулен номер" aria-label="Сканирай артикулен номер"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button></div></div>'+
             '</div>'+
-            '<div class="wiz-id-card glass sm" style="padding:10px 12px;margin-top:8px;border-radius:14px">'+
+            '<div class="wiz-id-card glass sm" style="padding:10px 12px;margin-top:8px;border-radius:14px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<div onclick="var b=document.getElementById(\'wIdBarBox\');if(b)b.style.display=b.style.display===\'none\'?\'\':\'none\'" style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
                     '<div style="font-size:12px;font-weight:600;color:#cbd5e1;flex:1">Баркод <span class="hint" style="font-weight:400;color:#64748b">'+(barOpen?esc((S.wizData.barcode||'').slice(0,18)):'(сканирай ако има)')+'</span></div>'+
                     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'+
@@ -6897,7 +6897,7 @@ function renderWizPage(step){
             typeToggle+
             '<div style="text-align:center;font-size:13px;font-weight:600;color:#fff;margin:6px 0 4px">'+esc(subTitle)+'</div>'+
             '<div style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:12px">'+esc(subSubtitle)+'</div>'+
-            '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px">'+
+            '<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
               '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
               '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
               '<span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+
@@ -6914,7 +6914,7 @@ function renderWizPagePart2(step){
 
     // ═══ STEP 4: ВАРИАЦИИ (S73.B.6 — 1:1 от add-product-variations.html) ═══
     if(step===4){
-        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizSafeBack()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
+        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizSafeBack()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
 
         // Init axes
         if(!S.wizData.axes||!S.wizData.axes.length){
@@ -7175,7 +7175,7 @@ function renderWizPagePart2(step){
             }else{
                 var szAx=null,clAx=null;(S.wizData.axes||[]).forEach(function(a){var n=a.name.toLowerCase();if(!szAx&&(n.indexOf('размер')!==-1||n.indexOf('size')!==-1))szAx=a;else if(!clAx&&(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1))clAx=a});
                 var szN=szAx?szAx.values.length:0,clN=clAx?clAx.values.length:0;
-                mcH='<div class="glass sm v-matrix-cta-wrap"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><div class="v-mc-row"><div class="v-mc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="v-mc-text"><div class="v-mc-title">Матрица размер × цвят</div><div class="v-mc-sub"><b>'+szN+' размера</b> × <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b></div></div></div><button class="v-matrix-cta" onclick="openMxOverlay()"><div class="v-matrix-cta-info"><div class="v-matrix-cta-pill">'+combos+'</div><span>Въведи колко бройки имаш и мин. количества за поръчки</span></div><span class="v-matrix-cta-arrow">→</span></button></div>';
+                mcH='<div class="glass sm v-matrix-cta-wrap"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><div class="v-mc-row"><div class="v-mc-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><div class="v-mc-text"><div class="v-mc-title">Матрица размер × цвят</div><div class="v-mc-sub"><b>'+szN+' размера</b> × <b>'+clN+' цвята</b> = <b>'+combos+' комбинации</b></div></div></div><button class="v-matrix-cta" onclick="openMxOverlay()"><div class="v-matrix-cta-info"><div class="v-matrix-cta-pill">'+combos+'</div><span>Въведи колко бройки имаш и мин. количества за поръчки</span></div><span class="v-matrix-cta-arrow">→</span></button></div>';
             }
         }
 
@@ -7263,7 +7263,7 @@ function renderWizPagePart2(step){
         // row 42px + gap 8px + recommended button 54px + paddings + safe-area).
         return '<div class="wiz-page active" style="padding-bottom:200px">'+
             previewH+
-            '<div class="glass v-var-card"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
+            '<div class="glass v-var-card"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span>'+tabsH+selH+pickH+'</div>'+
             _aiCardH+
             '<div id="v4Footer" class="wiz-foot-stack fixed-bottom">'+_footer+'</div>'+
             vskip+'</div>';
@@ -7852,7 +7852,7 @@ function renderWizStep2() {
     // S95.BUGFIX_R4 Bug 3b: cost/wholesale oninput → _step2PriceWarn debounce check.
     var _glassSpans = '<span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>';
     var pricesSection =
-        '<div class="s2-section glass sm q-amber">' + _glassSpans +
+        '<div class="s2-section glass sm q-amber"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>' +
             '<div class="s2-section-title"><span class="s2ti-ic">💰</span><span>Цени</span></div>' +
             // S95.STEP2_BUGFIX Bug 2: cost_price oninput → _step2RecalcMargin БЕЗ typeof guard.
             // Ако нещо в chain-а throw-не (напр. wizUpdateMarkup намери stale wMarkupPct), recalc
@@ -7863,7 +7863,7 @@ function renderWizStep2() {
         '</div>';
 
     var detailsSection =
-        '<div class="s2-section glass sm q-default">' + _glassSpans +
+        '<div class="s2-section glass sm q-default"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>' +
             '<div class="s2-section-title"><span class="s2ti-ic">🏷️</span><span>Детайли</span></div>' +
             // S95.BUGFIX_R4 Bug 3a: composition input → textarea с auto-grow при overflow.
             '<div class="fg"><label class="fl">Състав / Материя</label><div style="display:flex;gap:6px;align-items:flex-start"><textarea class="s2-textarea" id="wComposition" rows="1" placeholder="напр. 98% памук, 2% еластан" oninput="S.wizData.composition=this.value;_step2AutoGrow(this)" style="flex:1">' + esc(composition) + '</textarea>' + mic('composition') + cpy('composition') + '</div></div>' +
@@ -7881,7 +7881,7 @@ function renderWizStep2() {
     var aiSection = '';
     if (S.wizData._photoDataUrl) {
         aiSection =
-            '<div class="s2-section glass sm q-magic">' + _glassSpans +
+            '<div class="s2-section glass sm q-magic"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>' +
                 '<div class="s2-section-title"><span class="s2ti-ic">🎨</span><span>AI Studio</span></div>' +
                 _wizAIInlineRows() +
             '</div>';
@@ -8380,7 +8380,7 @@ async function openStudioModal(productId) {
     ov.className = 'studio-modal-ov show';
     ov.onclick = function(e){ if (e.target === ov) closeStudioModal(); };
     ov.innerHTML =
-        '<div class="glass studio-modal q-magic" id="aiStudioCard">' +
+        '<div class="glass studio-modal q-magic" id="aiStudioCard"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>' +
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
             '<div class="studio-modal-hdr">' +
@@ -8755,7 +8755,7 @@ function studioOpenBuyCredits() {
     ov.id = 'studioBuyModal'; ov.className = 'studio-buy-ov';
     ov.onclick = function(e){ if (e.target === ov) studioCloseBuyCredits(); };
     ov.innerHTML =
-        '<div class="glass studio-buy-card q-magic">' +
+        '<div class="glass studio-buy-card q-magic"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>' +
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>' +
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>' +
             '<div class="studio-buy-hdr">' +
@@ -10929,7 +10929,7 @@ function showMiniPrintOverlay(){
     ov.className='s95-mini-ov';
     ov.onclick=function(e){/* no-op — само бутоните затварят overlay-а */};
     ov.innerHTML=
-        '<div class="s95-mini-box glass v4-glass-pro q-gain">'+
+        '<div class="s95-mini-box glass v4-glass-pro q-gain"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
             '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
             '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
             '<div class="s95-mini-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
@@ -11167,7 +11167,7 @@ function renderWizPhotoStep(){
         var _qVal=(S.wizData.quantity===undefined?'':S.wizData.quantity);
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity===''?'':S.wizData.min_quantity);
         qtyH=
-            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 '<div class="fg" style="margin:0 0 10px">'+
@@ -11216,18 +11216,18 @@ function renderWizPhotoStep(){
     return '<div class="wiz-page active" style="padding:18px 14px 220px">'+
         headerH+
         '<div style="'+lockStyle+'">'+
-            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 photoBlock+
             '</div>'+
-            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 nameH+
                 priceH+
             '</div>'+
-            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:14px 14px 12px;margin-bottom:10px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 supplierH+
@@ -11235,7 +11235,7 @@ function renderWizPhotoStep(){
                 subcatH+
             '</div>'+
             qtyH+
-            '<div class="glass v4-glass-pro q-default" style="padding:10px 14px;margin-bottom:10px">'+
+            '<div class="glass v4-glass-pro q-default" style="padding:10px 14px;margin-bottom:10px"><span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>'+
                 '<span class="shine shine-top"></span><span class="shine shine-bottom"></span>'+
                 '<span class="glow glow-top"></span><span class="glow glow-bottom"></span>'+
                 '<div id="wIdBarHdr" onclick="var b=document.getElementById(\'wIdBarBox2\');var c=document.getElementById(\'wIdBarChev\');if(b){var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';if(c)c.style.transform=open?\'rotate(0deg)\':\'rotate(180deg)\'}" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">'+
