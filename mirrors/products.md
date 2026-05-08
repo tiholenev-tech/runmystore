@@ -4319,45 +4319,54 @@ html{overflow-x:hidden;max-width:100vw}
 
     <!-- ═══ SCREEN: HOME ═══ -->
     <section id="scrHome" class="screen-section active">
-<!-- ═══ S79 A1.7 — SCRHOME START ═══ -->
-<div class="app">
+<!-- ═══ S113.SCRHOME — v4.1 BICHROMATIC (P2 mockup) ═══ -->
 
     <?php include __DIR__ . '/design-kit/partial-header.html'; ?>
 
+    <!-- 0. TITLE ROW (count + store picker) -->
     <div class="title-row">
-        <div class="title-main">Артикули</div>
-        <div class="title-sub" id="hTitleCount">·</div>
-        <button class="store-switch" onclick="if(typeof openStoreSwitcher==='function')openStoreSwitcher()" style="margin-left:auto">Магазин 1<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <span class="title-main">Артикули</span>
+        <span class="title-count" id="hTitleCount">·</span>
+        <select class="store-picker" id="homeStorePicker"
+                onchange="if(typeof switchStore==='function')switchStore(this.value);else location.href='?store='+encodeURIComponent(this.value)"
+                aria-label="Магазин">
+            <?php foreach ($stores as $_s113hs): ?>
+            <option value="<?= (int)$_s113hs['id'] ?>"<?= ((int)$_s113hs['id']===(int)$store_id?' selected':'') ?>><?= htmlspecialchars($_s113hs['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
     </div>
 
-    <div class="search-wrap">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off">
-        <!-- S103 BUG #7: добавен onclick — преди беше "мъртъв" filter бутон без handler. -->
-        <button class="s-btn" id="hSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="hSearchFilterDot" style="display:none">0</span></button>
-        <!-- S103 BUG #8: onclick=openVoiceSearch (fullscreen overlay) → searchInlineMic (inline state, live transcript). -->
-        <button class="s-btn mic" id="hSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+    <!-- 1. SEARCH BAR -->
+    <div class="search-bar">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchHome(this.value)" autocomplete="off" aria-label="Търсене">
+        <button class="search-filter-btn" id="hSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')">
+            <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span class="dot" id="hSearchFilterDot" style="display:none">0</span>
+        </button>
+        <button class="search-mic-btn" id="hSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
     </div>
-    <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
+    <!-- Search autocomplete dropdown (legacy preserved) -->
     <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:var(--radius-sm);background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
 
-
-    <div class="glass add-card">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="add-main" onclick="openManualWizard()" style="cursor:pointer">
-            <div class="add-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-            <div class="add-txt"><div class="add-title">Добави артикул</div><div class="add-hint">Избери начин →</div></div>
-        </div>
-        <div class="add-modes">
-            <!-- S92.PRODUCTS.D9_CLEANUP: махнат микрофон (безсмислен) + молив (дублира главния "Добави артикул") бутони. ⋯ → явен "Като предния" бутон с директен handler. -->
-            <button class="add-mode-kp" onclick="event.stopPropagation();openLikePreviousWizardS88()" style="height:36px;padding:0 14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.45);color:#e2e8f0;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.02em;white-space:nowrap;font-family:inherit">📋 Като предния</button>
-        </div>
+    <!-- 2. ADD PRODUCT CTA + Като предния -->
+    <div class="add-row">
+        <button class="add-cta" onclick="openManualWizard()" type="button">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Добави артикул</span>
+        </button>
+        <button class="like-prev-btn" onclick="event.stopPropagation();openLikePreviousWizardS88()" type="button" aria-label="Като предния">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <span>Като предния</span>
+        </button>
     </div>
 
-<!-- ═══ S79.FIX.B-HIDDEN-INV-UI: Здраве на склада (Вариант B) ═══ -->
-    <div class="health-sec" onclick="openStoreHealthDetail()">
-        <span class="mod-prod-health-line"></span>
+    <!-- 3a. HEALTH BAR (compact) — IDs preserved за existing home_stats JS -->
+    <div class="glass sm health-card" onclick="openStoreHealthDetail()">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="health-row">
             <div class="health-dot" id="healthDot"></div>
             <div class="health-info">
@@ -4369,270 +4378,175 @@ html{overflow-x:hidden;max-width:100vw}
         <div class="health-bar"><div class="health-fill" id="healthFill" style="width:0%"></div></div>
     </div>
 
-        <!-- ═══ 1. КАКВО ГУБИШ ═══ -->
-    <div class="q-head q1" onclick="goScreenWithHistory('products',{filter:'zero_stock'})" style="cursor:pointer">
-        <div class="q-badge">1</div>
-        <div class="q-ttl">
-            <div class="q-nm q1">Какво губиш</div>
-            <div class="q-sub">Артикули с продажби без наличност</div>
-        </div>
-        <div class="q-total q1">−340 лв/седм</div>
+    <!-- 3. SUPPLIERS strip — populated by JS (?ajax=suppliers) -->
+    <div class="section-head">
+        <span class="section-label">Доставчици</span>
+        <a href="#" class="section-see-all" onclick="event.preventDefault();goScreenWithHistory('products',{filter:'all'})">Виж всички →</a>
     </div>
-    <div class="h-scroll">
-        <div class="glass sm q1 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag bad">0 БР</span></div>
-            <div class="art-nm">Nike Air Max 42 черни</div>
-            <div class="art-bot"><div class="art-prc">120 лв</div><div class="art-stk danger">0 бр</div></div>
-            <div class="art-ctx q1">3 търсения /7д · <b>~360 лв profit/мес пропуснат</b></div>
-        </div>
-        <div class="glass sm q1 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag bad">0 БР</span></div>
-            <div class="art-nm">Рокля Zara черна S</div>
-            <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk danger">0 бр</div></div>
-            <div class="art-ctx q1">2 търсения /7д · <b>~178 лв profit/мес</b></div>
-        </div>
-        <div class="glass sm q1 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag bad">1 БР</span></div>
-            <div class="art-nm">Тениска H&M бяла M</div>
-            <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk warn">1 бр</div></div>
-            <div class="art-ctx q1">9 прод/30д · <b>свършва утре</b></div>
-        </div>
-        <div class="glass sm q1 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag bad">1 БР</span></div>
-            <div class="art-nm">Джинси Levi's 501 W32</div>
-            <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk warn">1 бр</div></div>
-            <div class="art-ctx q1">14 прод/30д · <b>под минимум</b></div>
+    <div class="sup-strip" id="supStripHome"></div>
+
+    <!-- 4. INVENTORY card (placeholder; #invStockNeed/#invLastRunMeta updatable via JS) -->
+    <div class="glass sm inv-card">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="inv-row">
+            <div class="inv-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="inv-body">
+                <span class="inv-tag">Инвентаризация</span>
+                <div class="inv-title"><span class="inv-num" id="invStockNeed">—</span> за броене</div>
+                <span class="inv-meta" id="invLastRunMeta">Зареждане...</span>
+            </div>
+            <a href="#" class="inv-cta" onclick="event.preventDefault();if(typeof openInventoryFlow==='function')openInventoryFlow()">Старт →</a>
         </div>
     </div>
 
-    <!-- ═══ 2. ОТ КАКВО ГУБИШ ═══ -->
-    <div class="q-head q2" onclick="goScreenWithHistory('products',{filter:'at_loss'})" style="cursor:pointer">
-        <div class="q-badge">2</div>
-        <div class="q-ttl">
-            <div class="q-nm q2">От какво губиш</div>
-            <div class="q-sub">Артикули които изяждат profit</div>
+    <!-- 5. SIGNALS section header -->
+    <div class="sig-head">
+        <div class="sig-title">
+            <div class="sig-orb"></div>
+            <span class="sig-name">AI вижда</span>
         </div>
-        <div class="q-total q2">−180 лв profit</div>
+        <span class="sig-count" id="sigCountHome">6 неща</span>
     </div>
-    <div class="h-scroll">
-        <div class="glass sm q2 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M3 19h4l3-3V8l6-4v8l3 3v3H3z"/></svg><span class="tag violet">−8%</span></div>
-            <div class="art-nm">Обувки Geox 38</div>
-            <div class="art-bot"><div class="art-prc">65 лв</div><div class="art-stk ok">2 бр</div></div>
-            <div class="art-ctx q2">Доставна 70 лв · <b>продаваш на загуба</b></div>
+
+    <!-- 6 collapsible signals — q1..q6 — outer DOM static; counts/text refreshed by JS -->
+
+    <!-- q1 — Loss -->
+    <div class="glass sm lb-card q1 expanded" data-q="q1" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'zero_stock'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">🔴</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">Какво губиш</span>
+                <span class="lb-collapsed-title" id="q1Title">Артикули с продажби без наличност</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="glass sm q2 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M8 2l-5 4 2 4 2-1v13h10V9l2 1 2-4-5-4-2 3h-4z"/></svg><span class="tag violet">?</span></div>
-            <div class="art-nm">Блуза Mango XS</div>
-            <div class="art-bot"><div class="art-prc">48 лв</div><div class="art-stk ok">5 бр</div></div>
-            <div class="art-ctx q2">Без доставна цена · <b>не виждаш profit</b></div>
-        </div>
-        <div class="glass sm q2 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M4 10h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M8 10V6a4 4 0 018 0v4"/></svg><span class="tag violet">12%</span></div>
-            <div class="art-nm">Чанта Parfois кафява</div>
-            <div class="art-bot"><div class="art-prc">70 лв</div><div class="art-stk ok">3 бр</div></div>
-            <div class="art-ctx q2">Profit 8 лв · <b>под 15% марж</b></div>
-        </div>
-        <div class="glass sm q2 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 4-1 3 2 7h-5l-2-5-2 5H5l2-7-1-3z"/></svg><span class="tag violet">−12%</span></div>
-            <div class="art-nm">Шорти H&M</div>
-            <div class="art-bot"><div class="art-prc">22 лв</div><div class="art-stk ok">4 бр</div></div>
-            <div class="art-ctx q2">Мария даде отстъпки · <b>−48 лв profit</b></div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q1Body">Зареждане на сигнали…</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'zero_stock'})"><span>Виж артикулите →</span></a>
+            </div>
         </div>
     </div>
 
-    <!-- ═══ 3. КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q3" onclick="goScreenWithHistory('products',{filter:'top_sales'})" style="cursor:pointer">
-        <div class="q-badge">3</div>
-        <div class="q-ttl">
-            <div class="q-nm q3">Какво печелиш</div>
-            <div class="q-sub">Топ артикули по profit за 30д</div>
+    <!-- q2 — Why-loss -->
+    <div class="glass sm lb-card q2" data-q="q2" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'at_loss'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">🟣</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">От какво губиш</span>
+                <span class="lb-collapsed-title" id="q2Title">Артикули които изяждат profit</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="q-total q3">+2 840 лв</div>
-    </div>
-    <div class="h-scroll">
-        <div class="glass sm q3 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag good">#1</span></div>
-            <div class="art-nm">Adidas Superstar 40</div>
-            <div class="art-bot"><div class="art-prc">140 лв</div><div class="art-stk ok">8 бр</div></div>
-            <div class="art-ctx q3">18 прод · <b>+840 лв profit</b></div>
-        </div>
-        <div class="glass sm q3 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag good">#2</span></div>
-            <div class="art-nm">Рокля Zara черна M</div>
-            <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk ok">6 бр</div></div>
-            <div class="art-ctx q3">11 прод · <b>+568 лв profit</b></div>
-        </div>
-        <div class="glass sm q3 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag good">#3</span></div>
-            <div class="art-nm">Яке Tommy Hilfiger L</div>
-            <div class="art-bot"><div class="art-prc">320 лв</div><div class="art-stk ok">4 бр</div></div>
-            <div class="art-ctx q3">4 прод · <b>+576 лв profit</b></div>
-        </div>
-        <div class="glass sm q3 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag good">#4</span></div>
-            <div class="art-nm">Джинси Levi's W34</div>
-            <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk ok">5 бр</div></div>
-            <div class="art-ctx q3">8 прод · <b>+720 лв profit</b></div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q2Body">Артикули продавани под 15% марж или без записана доставна цена.</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'at_loss'})"><span>Поправи →</span></a>
+            </div>
         </div>
     </div>
 
-    <!-- ═══ 4. ОТ КАКВО ПЕЧЕЛИШ ═══ -->
-    <div class="q-head q4" onclick="goScreenWithHistory('products',{filter:'top_profit'})" style="cursor:pointer">
-        <div class="q-badge">4</div>
-        <div class="q-ttl">
-            <div class="q-nm q4">От какво печелиш</div>
-            <div class="q-sub">Артикули-причини за profit</div>
+    <!-- q3 — Gain -->
+    <div class="glass sm lb-card q3" data-q="q3" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'top_sales'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">🟢</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">Какво печелиш</span>
+                <span class="lb-collapsed-title" id="q3Title">Топ артикули по profit за 30д</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="q-total q4">4 причини</div>
-    </div>
-    <div class="h-scroll">
-        <div class="glass sm q4 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag teal">58%</span></div>
-            <div class="art-nm">Рокля Zara черна M</div>
-            <div class="art-bot"><div class="art-prc">89 лв</div><div class="art-stk ok">6 бр</div></div>
-            <div class="art-ctx q4">Най-висок марж · <b>58% профитност</b></div>
-        </div>
-        <div class="glass sm q4 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag teal">↑22%</span></div>
-            <div class="art-nm">Adidas Superstar 40</div>
-            <div class="art-bot"><div class="art-prc">140 лв</div><div class="art-stk ok">8 бр</div></div>
-            <div class="art-ctx q4">Растящ тренд · <b>↑22% седмично</b></div>
-        </div>
-        <div class="glass sm q4 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag teal">5×</span></div>
-            <div class="art-nm">Джинси Levi's W32</div>
-            <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk ok">5 бр</div></div>
-            <div class="art-ctx q4">5 повторни клиенти · <b>лоялен артикул</b></div>
-        </div>
-        <div class="glass sm q4 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag teal">+Y</span></div>
-            <div class="art-nm">Тениска H&M бяла</div>
-            <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk ok">12 бр</div></div>
-            <div class="art-ctx q4">Купуват го с джинси · <b>basket driver</b></div>
-        </div>
-        <div class="glass sm q4 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag teal">M</span></div>
-            <div class="art-nm">Яке Tommy L</div>
-            <div class="art-bot"><div class="art-prc">320 лв</div><div class="art-stk ok">4 бр</div></div>
-            <div class="art-ctx q4">Размер M най-продаван · <b>size leader</b></div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q3Body">Топ артикули за последните 30 дни. Viewing-basis за поръчки.</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'top_sales'})"><span>Поръчай отново →</span></a>
+            </div>
         </div>
     </div>
 
-    <!-- ═══ 5. КАКВО ДА ПОРЪЧАШ ═══ -->
-    <div class="q-head q5" onclick="goScreenWithHistory('products',{filter:'low'})" style="cursor:pointer">
-        <div class="q-badge">5</div>
-        <div class="q-ttl">
-            <div class="q-nm q5">Какво да поръчаш</div>
-            <div class="q-sub">Bestsellers с ниска наличност</div>
+    <!-- q4 — Why-gain -->
+    <div class="glass sm lb-card q4" data-q="q4" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'top_profit'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">💎</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">От какво печелиш</span>
+                <span class="lb-collapsed-title" id="q4Title">Артикули-причини за profit</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="q-total q5">6 артикула</div>
-    </div>
-    <div class="h-scroll">
-        <div class="glass sm q5 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tag hot">24</span></div>
-            <div class="art-nm">Nike Air Max 42</div>
-            <div class="art-bot"><div class="art-prc">120 лв</div><div class="art-stk danger">0 бр</div></div>
-            <div class="art-ctx q5">Топ №1 · <b>поръчай 24 бр</b></div>
-        </div>
-        <div class="glass sm q5 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M7 2h10l1 5-1 3 2 12h-5l-2-10-2 10H5l2-12-1-3z"/></svg><span class="tag hot">18</span></div>
-            <div class="art-nm">Levi's 501 W32</div>
-            <div class="art-bot"><div class="art-prc">180 лв</div><div class="art-stk warn">2 бр</div></div>
-            <div class="art-ctx q5">Bestseller · <b>поръчай 18 бр</b></div>
-        </div>
-        <div class="glass sm q5 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg><span class="tag hot">12</span></div>
-            <div class="art-nm">H&M бяла M</div>
-            <div class="art-bot"><div class="art-prc">24 лв</div><div class="art-stk warn">1 бр</div></div>
-            <div class="art-ctx q5">Бърз оборот · <b>поръчай 12 бр</b></div>
-        </div>
-        <div class="glass sm q5 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo"><svg viewBox="0 0 24 24"><path d="M2 12c0-5 4-9 10-9s10 4 10 9"/><path d="M2 12h20l-2 4H4z"/></svg><span class="tag hot">10</span></div>
-            <div class="art-nm">Шапка черна unisex</div>
-            <div class="art-bot"><div class="art-prc">18 лв</div><div class="art-stk warn">2 бр</div></div>
-            <div class="art-ctx q5">5 търсения /седм · <b>поръчай 10</b></div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q4Body">Висок марж, basket drivers, лоялни клиенти, size leaders.</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'top_profit'})"><span>Виж →</span></a>
+            </div>
         </div>
     </div>
 
-    <!-- ═══ 6. КАКВО ДА НЕ ПОРЪЧАШ ═══ -->
-    <div class="q-head q6" onclick="goScreenWithHistory('products',{filter:'zombie'})" style="cursor:pointer">
-        <div class="q-badge">6</div>
-        <div class="q-ttl">
-            <div class="q-nm q6">Какво да НЕ поръчаш</div>
-            <div class="q-sub">Zombie — замразен profit</div>
+    <!-- q5 — Order -->
+    <div class="glass sm lb-card q5" data-q="q5" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'low'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">🟡</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">Какво да поръчаш</span>
+                <span class="lb-collapsed-title" id="q5Title">Bestsellers с ниска наличност</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="q-total q6">7 · 2 480 лв</div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q5Body">Bestsellers, ниски наличности, sizable demand. AI-предложение за нова поръчка.</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'low'})"><span>Поръчай →</span></a>
+            </div>
+        </div>
     </div>
-    <div class="h-scroll">
-        <div class="glass sm q6 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M8 2l-5 4 2 4 2-1v13h10V9l2 1 2-4-5-4-2 3h-4z"/></svg><span class="tag dim">78д</span></div>
-            <div class="art-nm">Блуза Mango розова XS</div>
-            <div class="art-bot"><div class="art-prc">48 лв</div><div class="art-stk ok">5 бр</div></div>
-            <div class="art-ctx q6">78 дни · <b>240 лв замразени</b></div>
+
+    <!-- q6 — Anti-order (zombie) -->
+    <div class="glass sm lb-card q6" data-q="q6" onclick="event.target.closest('.lb-fb-btn')||event.target.closest('.lb-action')?null:goScreenWithHistory('products',{filter:'zombie'})">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="lb-collapsed" onclick="event.stopPropagation();if(typeof lbToggle==='function')lbToggle(event,this)">
+            <span class="lb-emoji">⚪</span>
+            <div class="lb-collapsed-content">
+                <span class="lb-fq-tag-mini">Какво да НЕ поръчаш</span>
+                <span class="lb-collapsed-title" id="q6Title">Zombie — замразен profit</span>
+            </div>
+            <button class="lb-expand-btn" type="button" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
         </div>
-        <div class="glass sm q6 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M4 10h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M8 10V6a4 4 0 018 0v4"/></svg><span class="tag dim">94д</span></div>
-            <div class="art-nm">Чанта Parfois кафява</div>
-            <div class="art-bot"><div class="art-prc">70 лв</div><div class="art-stk ok">3 бр</div></div>
-            <div class="art-ctx q6">94 дни · <b>210 лв замразени</b></div>
-        </div>
-        <div class="glass sm q6 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M6 2h4l2 3 2-3h4l2 4-4 3v13H8V9L4 6z"/><line x1="12" y1="5" x2="12" y2="22"/></svg><span class="tag dim">112д</span></div>
-            <div class="art-nm">Яке зимно XL</div>
-            <div class="art-bot"><div class="art-prc">260 лв</div><div class="art-stk ok">2 бр</div></div>
-            <div class="art-ctx q6">112 дни · <b>промоция или мърдай</b></div>
-        </div>
-        <div class="glass sm q6 art" style="cursor:default">
-            <span class="shine"></span><span class="shine shine-bottom"></span>
-            <div class="art-photo" style="opacity:.6"><svg viewBox="0 0 24 24"><path d="M9 2h6l1 3-2 2v1l4 14H6l4-14V7L8 5z"/></svg><span class="tag dim">−40%</span></div>
-            <div class="art-nm">Рокля Mango XXL</div>
-            <div class="art-bot"><div class="art-prc">75 лв</div><div class="art-stk ok">4 бр</div></div>
-            <div class="art-ctx q6">Спад 40% · <b>не поръчвай</b></div>
+        <div class="lb-expanded">
+            <div class="lb-body" id="q6Body">Артикули без продажба 45+ дни. Замразен капитал.</div>
+            <div class="lb-actions">
+                <a class="lb-action primary" href="#" onclick="event.stopPropagation();goScreenWithHistory('products',{filter:'zombie'})"><span>Намаление →</span></a>
+            </div>
         </div>
     </div>
 
     <?php
-        // S101: live count, не hardcoded "247". Лейбълът — i18n по tenant.lang.
+        // S101 PRESERVED: live count, не hardcoded "247". Лейбълът — i18n по tenant.lang.
         $sh_view_all_count = getProductCount($tenant_id, null, 'masters');
         $sh_view_all_label = match($lang) {
             'en'    => 'View all ' . $sh_view_all_count . ' master items',
             default => 'Виж всички ' . $sh_view_all_count . ' master артикула',
         };
     ?>
-    <div class="glass view-all" onclick="goScreenWithHistory('products',{filter:'all'})" style="cursor:pointer">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span><?= htmlspecialchars($sh_view_all_label, ENT_QUOTES, 'UTF-8') ?></span>
-        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    <div class="see-all-bottom">
+        <a href="#" onclick="event.preventDefault();goScreenWithHistory('products',{filter:'all'})"><?= htmlspecialchars($sh_view_all_label, ENT_QUOTES, 'UTF-8') ?> →</a>
     </div>
 
-</div>
-<!-- ═══ S79 A1.7 — SCRHOME END ═══ -->
-</section>
+<!-- ═══ S113.SCRHOME END ═══ -->
+    </section>
 
     <!-- ═══ SCREEN: SUPPLIERS (preserved) ═══ -->
     <section id="scrSuppliers" class="screen-section">
