@@ -4647,50 +4647,97 @@ html{overflow-x:hidden;max-width:100vw}
     </section>
 
     <!-- ═══ SCREEN: PRODUCTS ═══ -->
+    <!-- ═══ SCREEN: PRODUCTS (S113.v4.1 BICHROMATIC) ═══ -->
     <section id="scrProducts" class="screen-section">
-        <!-- Back + title -->
-        <div class="prod-hdr">
-            <div class="prod-back" onclick="goScreen('home')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></div>
-            <div class="prod-title" id="prodTitle">Артикули</div>
-            <div class="prod-cnt" id="prodCnt"></div>
-            <div class="prod-sort" onclick="toggleSort()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
-            <div class="sort-dd" id="sortDD">
-                <div class="sort-opt active" data-sort="name" onclick="setSort('name')">Име А-Я</div>
-                <div class="sort-opt" data-sort="price_asc" onclick="setSort('price_asc')">Цена нагоре</div>
-                <div class="sort-opt" data-sort="price_desc" onclick="setSort('price_desc')">Цена надолу</div>
-                <div class="sort-opt" data-sort="stock_asc" onclick="setSort('stock_asc')">Наличност нагоре</div>
-                <div class="sort-opt" data-sort="stock_desc" onclick="setSort('stock_desc')">Наличност надолу</div>
-                <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
-            </div>
+        <!-- 0. PAGE HEADER (back + title + count + sort + store-picker) -->
+        <div class="page-hdr">
+            <button class="back-btn" onclick="goScreen('home')" aria-label="Назад">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="page-title" id="prodTitle">Артикули</span>
+            <span class="page-count" id="prodCnt"></span>
+            <button class="sort-btn" id="sortBtn" onclick="toggleSort()" aria-label="Сортиране">
+                <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
+                <div class="sort-dd" id="sortDD">
+                    <div class="sort-opt active" data-sort="name" onclick="setSort('name')">Име А-Я</div>
+                    <div class="sort-opt" data-sort="price_asc" onclick="setSort('price_asc')">Цена нагоре</div>
+                    <div class="sort-opt" data-sort="price_desc" onclick="setSort('price_desc')">Цена надолу</div>
+                    <div class="sort-opt" data-sort="stock_asc" onclick="setSort('stock_asc')">Наличност нагоре</div>
+                    <div class="sort-opt" data-sort="stock_desc" onclick="setSort('stock_desc')">Наличност надолу</div>
+                    <div class="sort-opt" data-sort="newest" onclick="setSort('newest')">Най-нови</div>
+                </div>
+            </button>
+            <select class="store-picker" id="prodStorePicker"
+                    onchange="if(typeof switchStore==='function')switchStore(this.value);else location.href='?store='+encodeURIComponent(this.value)"
+                    aria-label="Магазин">
+                <?php foreach ($stores as $_s113s): ?>
+                <option value="<?= (int)$_s113s['id'] ?>"<?= ((int)$_s113s['id']===(int)$store_id?' selected':'') ?>><?= htmlspecialchars($_s113s['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
-        <!-- S103 BUG #9: search/filter/mic в list view — IDENTICAL DOM на home (.search-wrap),
-             p-prefixed IDs за да не се сблъскат с #hSearchInp на home (двата screen-а съществуват в DOM едновременно). -->
-        <div class="search-wrap">
-            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="pSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchList(this.value)" autocomplete="off">
-            <button class="s-btn" id="pSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="dot" id="pSearchFilterDot" style="display:none">0</span></button>
-            <button class="s-btn mic" id="pSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this,'pSearchInp')"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+
+        <!-- 1. SEARCH BAR -->
+        <div class="search-bar">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="pSearchInp" placeholder="Търси по име, код или баркод..." oninput="onLiveSearchList(this.value)" autocomplete="off" aria-label="Търсене">
+            <button class="search-filter-btn" id="pSearchFilterBtn" type="button" aria-label="Филтри" onclick="openDrawer('filter')">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span class="dot" id="pSearchFilterDot" style="display:none">0</span>
+            </button>
+            <button class="search-mic-btn" id="pSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this,'pSearchInp')">
+                <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
         </div>
-        <!-- Active filters chips -->
+
+        <!-- 2. ACTIVE FILTER CHIPS (filled dynamically by applyFilters/refreshActiveChips) -->
         <div class="active-chips" id="activeChips"></div>
-        <!-- Subcategory row (appears when category selected) -->
-        <div class="fltr-label" id="subcatLabel" style="display:none"><span>Подкатегория</span></div>
-        <div class="fltr-row" id="subcatFilterRow" style="display:none"></div>
-        <!-- Quick filters -->
-        <div class="fltr-label"><span>Филтри</span></div>
+
+        <!-- 3. QUICK FILTER PILLS (Цена / Наличност / Марж / Дата) -->
+        <div class="fltr-label"><span>Бързи филтри</span></div>
         <div class="qfltr-row">
-            <div class="qfltr-pill" onclick="openQuickFilter('price')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</div>
-            <div class="qfltr-pill" onclick="openQuickFilter('stock')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</div>
-            <?php if ($can_see_margin): ?><div class="qfltr-pill" onclick="openQuickFilter('margin')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</div><?php endif; ?>
-            <div class="qfltr-pill" onclick="openQuickFilter('date')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</div>
+            <button class="qfltr-pill" onclick="openQuickFilter('price')"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</button>
+            <button class="qfltr-pill" onclick="openQuickFilter('stock')"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</button>
+            <?php if (!empty($can_see_margin)): ?>
+            <button class="qfltr-pill" onclick="openQuickFilter('margin')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</button>
+            <?php endif; ?>
+            <button class="qfltr-pill" onclick="openQuickFilter('date')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</button>
         </div>
-        <!-- Signal filter pills -->
+
+        <!-- 4. SIGNAL FILTER PILLS (q1-q6) — filled dynamically from ai_insights -->
         <div class="fltr-label"><span>По сигнал</span></div>
-        <div class="qfltr-row" id="signalFilterRow"></div>
+        <div class="sigfltr-row" id="signalFilterRow"></div>
+
+        <!-- 5. SUBCATEGORY (legacy, preserved hidden until selected) -->
+        <div class="fltr-label" id="subcatLabel" style="display:none"><span>Подкатегория</span></div>
+        <div class="f-chip-row" id="subcatFilterRow" style="display:none"></div>
+
+        <!-- 6. CATEGORY chips -->
+        <?php if (!empty($all_categories)): ?>
+        <div class="fltr-label"><span>Категории</span></div>
+        <div class="f-chip-row">
+            <?php foreach ($all_categories as $_s113c): ?>
+            <button class="f-chip" data-cat="<?= (int)$_s113c['id'] ?>" onclick="toggleFChip(this)"><?= htmlspecialchars($_s113c['name']) ?></button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- 7. SUPPLIER chips -->
+        <?php if (!empty($all_suppliers)): ?>
+        <div class="fltr-label"><span>Доставчици</span></div>
+        <div class="f-chip-row">
+            <?php foreach ($all_suppliers as $_s113p): ?>
+            <button class="f-chip" data-sup="<?= (int)$_s113p['id'] ?>" onclick="toggleFChip(this)"><?= htmlspecialchars($_s113p['name']) ?></button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="indigo-sep"></div>
-        <!-- Product list -->
-        <div id="prodList" style="padding:0 12px;margin-top:6px"></div>
-        <div id="prodPag" class="pagination"></div>
+
+        <!-- 8. PRODUCT LIST (rendered by JS via ?ajax=list/search) -->
+        <div id="prodList"></div>
+
+        <!-- 9. PAGINATION -->
+        <div id="prodPag" class="pag-row"></div>
     </section>
 
 </div><!-- /main-wrap -->
@@ -4815,6 +4862,44 @@ html{overflow-x:hidden;max-width:100vw}
 <input type="file" id="filePickerInput" accept="image/*,*/*">
 <!-- S43: removed dup filePickerInput -->
 <input type="file" id="csvInput" accept=".csv,.xlsx,.xls">
+
+
+<!-- ═══ S113 VARIATIONS DRAWER (bottom sheet) ═══ -->
+<div class="var-ov" id="varOv" onclick="closeVariations()"></div>
+<div class="var-sheet" id="varSheet">
+    <div class="var-handle"></div>
+    <div class="var-head">
+        <div class="var-head-photo" id="varHeadPhoto">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        </div>
+        <div class="var-head-info">
+            <div class="var-head-title" id="varTitle">—</div>
+            <div class="var-head-meta" id="varMeta">—</div>
+        </div>
+        <button class="var-close" onclick="closeVariations()" aria-label="Затвори">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div class="var-actions">
+        <button class="var-act-btn primary" id="varPrintAllBtn" onclick="if(typeof printAllVariations==='function')printAllVariations()">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Печатай всички</span>
+        </button>
+        <button class="var-act-btn" id="varExportBtn" onclick="if(typeof exportVariations==='function')exportVariations()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Експорт</span>
+        </button>
+    </div>
+    <div class="var-summary" id="varSummary">
+        <div class="var-summary-cell"><span class="var-summary-num" id="varSumVar">0</span><span class="var-summary-label">Вариации</span></div>
+        <div class="var-summary-cell"><span class="var-summary-num" id="varSumStock">0</span><span class="var-summary-label">Общо наличност</span></div>
+        <div class="var-summary-cell"><span class="var-summary-num" id="varSumOos">0</span><span class="var-summary-label">Без наличност</span></div>
+    </div>
+    <div class="var-table-wrap">
+        <div class="var-table-label">Всички вариации</div>
+        <div class="var-list" id="varList"></div>
+    </div>
+</div>
 
 <script>
 <?php
