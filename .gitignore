@@ -44,3 +44,6 @@ backups/
 *.before-mig
 *.bak.*
 logs/
+*.tar.gz
+*.zip
+files (*.zip
