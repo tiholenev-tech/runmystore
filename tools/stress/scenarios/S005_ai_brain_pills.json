@@ -13,7 +13,7 @@
     "Чети първите 5 pills"
   ],
   "expected_result": [
-    "Pills съдържат конкретни числа (не „X" placeholder)",
+    "Pills съдържат конкретни числа (не „X“ placeholder)",
     "Числата съответстват на реални SQL query резултати",
     "Pills имат правилни цветове по urgency",
     "Pills отварят AI overlay при tap"

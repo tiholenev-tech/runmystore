@@ -5,17 +5,17 @@
   "priority": "P0",
   "status": "active",
   "linked_module": "sale.php search → 0 results",
-  "precondition": "STRESS Lab tenant, артикул „Бели маратонки 38" не съществува",
+  "precondition": "STRESS Lab tenant, артикул „Бели маратонки 38“ не съществува",
   "action_steps": [
     "Open sale.php",
-    "Search „бели маратонки 38"",
+    "Search „бели маратонки 38“",
     "Резултат: 0 артикула",
     "Затвори search без да правиш нищо"
   ],
   "expected_result": [
     "Запис в search_log (query, results_count=0)",
     "Запис в lost_demand (query_text, source='search')",
-    "Появява се в orders.php като „lost demand за този доставчик""
+    "Появява се в orders.php като „lost demand за този доставчик“"
   ],
   "smoke_sql": "SELECT id, query_text, source, created_at FROM lost_demand WHERE created_at >= NOW() - INTERVAL 24 HOUR LIMIT 5",
   "expects_at_least": 0,

@@ -15,7 +15,7 @@
   ],
   "expected_result": [
     "Само единият трябва да успее",
-    "Другият получава грешка „Артикулът свърши"",
+    "Другият получава грешка „Артикулът свърши“",
     "inventory.quantity = 0 (не отрицателно)"
   ],
   "smoke_sql": "SELECT product_id, store_id, quantity FROM inventory WHERE quantity < 0 LIMIT 1",

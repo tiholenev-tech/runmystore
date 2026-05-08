@@ -10,7 +10,7 @@
   "action_steps": [
     "Open orders.php",
     "Избери доставчик X",
-    "Виж AI footer „6 нови артикула (3 от lost_demand)""
+    "Виж AI footer „6 нови артикула (3 от lost_demand)“"
   ],
   "expected_result": [
     "В chernovata фигурират 3 от lost_demand записите като предложени артикули",

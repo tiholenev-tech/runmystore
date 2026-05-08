@@ -8,7 +8,7 @@
   "precondition": "STRESS Lab tenant, products.php wizard отворен на цена поле",
   "action_steps": [
     "Натисни микрофон",
-    "Кажи: „трийсет и пет лева и петдесет""
+    "Кажи: „трийсет и пет лева и петдесет“"
   ],
   "expected_result": [
     "Web Speech API парсва (не Whisper)",
