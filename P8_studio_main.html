@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>P8 · AI Studio · RunMyStore.AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+/* P8 — ai-studio.php standalone (bulk режим)
+   Източник: AI_STUDIO_LOGIC.md §9 + ai-studio-main-v2.html
+   DESIGN_SYSTEM v4.1 BICHROMATIC */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms; --dur: 250ms; --dur-slow: 350ms;
+  --press: 0.97;
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --z-aurora: 0; --z-content: 5; --z-shine: 1; --z-glow: 3; --z-overlay: 50; --z-modal: 100;
+}
+
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card: var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark), calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm: var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed: inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 310);
+  --success: oklch(0.68 0.18 155); --warning: oklch(0.72 0.18 70); --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply; --aurora-opacity: 0.35;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%); --surface-2: hsl(220, 25%, 8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px, hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%); --accent-3: hsl(var(--hue3), 70%, 55%);
+  --magic: hsl(280, 70%, 65%);
+  --success: hsl(145, 70%, 55%); --warning: hsl(38, 90%, 60%); --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(280 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+/* aurora */
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: var(--z-aurora); }
+.aurora-blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(280,80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(38,80%,55%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+/* ═══ CANONICAL HEADER ═══ */
+.rms-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="light"] .rms-header,
+:root:not([data-theme]) .rms-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .rms-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); }
+
+.rms-brand {
+  position: relative; font-size: 15px; font-weight: 900; letter-spacing: 0.10em;
+  background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%) 0%, hsl(var(--hue2) 80% 60%) 25%, hsl(var(--hue3) 70% 55%) 50%, hsl(var(--hue2) 80% 60%) 75%, hsl(var(--hue1) 80% 60%) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  animation: rmsBrandShimmer 4s linear infinite;
+  filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+}
+@media (max-width: 380px) { .rms-brand { font-size: 13px; letter-spacing: 0.08em; } }
+
+.rms-plan-badge {
+  position: relative; padding: 5px 12px; border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text); border: 1px solid var(--border-color); overflow: hidden;
+}
+[data-theme="light"] .rms-plan-badge,
+:root:not([data-theme]) .rms-plan-badge { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .rms-plan-badge { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); }
+.rms-plan-badge::before {
+  content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px;
+  background: conic-gradient(from 0deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 60%), hsl(var(--hue1) 80% 60%));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: conicSpin 3s linear infinite; opacity: 0.6; pointer-events: none;
+}
+
+.rms-header-spacer { flex: 1; }
+.rms-icon-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-icon);
+  border: 1px solid var(--border-color); display: grid; place-items: center;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+  background: var(--surface);
+}
+.rms-icon-btn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2; }
+.rms-icon-btn:active { transform: scale(var(--press)); }
+[data-theme="light"] .rms-icon-btn,
+:root:not([data-theme]) .rms-icon-btn { box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .rms-icon-btn:active,
+:root:not([data-theme]) .rms-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .rms-icon-btn { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); box-shadow: 0 4px 12px hsl(var(--hue2) 50% 4%); }
+
+/* ═══ APP SHELL ═══ */
+.app {
+  position: relative; z-index: 5;
+  max-width: 480px; margin: 0 auto;
+  padding: 12px 12px calc(120px + env(safe-area-inset-bottom, 0));
+}
+
+/* page title */
+.page-title-row {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 4px 14px;
+  position: relative; z-index: 5;
+}
+.page-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--magic), var(--accent-2));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.page-title-meta {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-left: auto;
+}
+
+/* ═══ GLASS BASE ═══ */
+.glass { position: relative; border-radius: var(--radius); border: var(--border) solid var(--border-color); isolation: isolate; }
+.glass.sm { border-radius: var(--radius-sm); }
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+[data-theme="light"] .glass,
+:root:not([data-theme]) .glass { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="light"] .glass .shine,
+[data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine,
+:root:not([data-theme]) .glass .glow { display: none; }
+[data-theme="dark"] .glass {
+  background:
+    linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+    linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+    linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px); box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .glass .shine {
+  pointer-events: none; border-radius: 0;
+  border-top-right-radius: inherit; border-bottom-left-radius: inherit;
+  border: 1px solid transparent;
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  right: calc(var(--border) * -1); top: calc(var(--border) * -1); z-index: 1;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;
+  mask: linear-gradient(transparent), linear-gradient(black);
+  mask-clip: padding-box, border-box; mask-composite: subtract;
+}
+[data-theme="dark"] .glass .shine.shine-bottom { right: auto; top: auto; left: calc(var(--border) * -1); bottom: calc(var(--border) * -1); }
+[data-theme="dark"] .glass .glow {
+  pointer-events: none;
+  border-top-right-radius: calc(var(--radius) * 2.5);
+  border-bottom-left-radius: calc(var(--radius) * 2.5);
+  border: calc(var(--radius) * 1.25) solid transparent;
+  inset: calc(var(--radius) * -2);
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  left: auto; bottom: auto;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);
+  filter: blur(12px) saturate(1.25);
+  mix-blend-mode: plus-lighter; z-index: 3; opacity: 0.6;
+}
+[data-theme="dark"] .glass .glow.glow-bottom { inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2); }
+
+/* hue overrides */
+[data-theme="dark"] .glass.q-magic .shine, [data-theme="dark"] .glass.q-magic .glow { --hue: 280; }
+[data-theme="dark"] .glass.q-magic .shine-bottom, [data-theme="dark"] .glass.q-magic .glow-bottom { --hue: 310; }
+[data-theme="dark"] .glass.q-amber .shine, [data-theme="dark"] .glass.q-amber .glow { --hue: 38; }
+[data-theme="dark"] .glass.q-amber .shine-bottom, [data-theme="dark"] .glass.q-amber .glow-bottom { --hue: 28; }
+[data-theme="dark"] .glass.q-gain .shine, [data-theme="dark"] .glass.q-gain .glow { --hue: 145; }
+[data-theme="dark"] .glass.q-gain .shine-bottom, [data-theme="dark"] .glass.q-gain .glow-bottom { --hue: 165; }
+
+/* ═══ HERO BANNER ═══ */
+.hero-card { padding: 16px 14px; margin-bottom: 14px; animation: fadeInUp 0.6s var(--ease-spring) both; }
+.hero-row { display: flex; align-items: center; gap: 12px; position: relative; z-index: 5; }
+.hero-ic {
+  width: 48px; height: 48px;
+  border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 6px 20px hsl(280 70% 50% / 0.5);
+  position: relative; overflow: hidden;
+}
+.hero-ic::before {
+  content: ''; position: absolute; inset: 0;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%);
+  animation: conicSpin 4s linear infinite;
+}
+.hero-ic svg { width: 22px; height: 22px; stroke: white; fill: none; stroke-width: 2; position: relative; z-index: 1; }
+.hero-text { flex: 1; min-width: 0; }
+.hero-title {
+  font-size: 16px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text), var(--magic));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 2px;
+}
+.hero-sub { font-size: 11px; font-weight: 600; color: var(--text-muted); line-height: 1.3; }
+
+/* ═══ CREDITS BAR — 3 cells + buy CTA ═══ */
+.credits-card {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  position: relative; z-index: 5;
+}
+[data-theme="light"] .credits-card,
+:root:not([data-theme]) .credits-card { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .credits-card {
+  background: linear-gradient(180deg, hsl(220 25% 6% / 0.85), hsl(220 25% 4.8% / 0.7));
+  border: 1px solid hsl(var(--hue2) 12% 18%);
+  box-shadow: 0 4px 12px hsl(var(--hue2) 50% 4% / 0.4);
+}
+.credits-title {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.credits-title-r {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  color: var(--text-faint); letter-spacing: 0.04em;
+}
+.credits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.credit-cell {
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .credit-cell,
+:root:not([data-theme]) .credit-cell { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .credit-cell { background: hsl(220 25% 4%); }
+
+.credit-num { display: block; font-size: 22px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.credit-of { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 1px; }
+.credit-lbl { display: block; font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+
+.credit-cell.q-bg .credit-num { background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.credit-cell.q-bg .credit-lbl { color: hsl(145 60% 45%); }
+[data-theme="dark"] .credit-cell.q-bg .credit-lbl { color: hsl(145 70% 60%); }
+[data-theme="dark"] .credit-cell.q-bg { background: linear-gradient(180deg, hsl(145 50% 8% / 0.5), hsl(220 25% 4%)); border: 1px solid hsl(145 60% 30% / 0.35); }
+
+.credit-cell.q-desc .credit-num { background: linear-gradient(135deg, hsl(180 70% 45%), hsl(195 70% 50%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.credit-cell.q-desc .credit-lbl { color: hsl(190 60% 45%); }
+[data-theme="dark"] .credit-cell.q-desc .credit-lbl { color: hsl(190 70% 65%); }
+[data-theme="dark"] .credit-cell.q-desc { background: linear-gradient(180deg, hsl(190 50% 8% / 0.5), hsl(220 25% 4%)); border: 1px solid hsl(190 60% 30% / 0.35); }
+
+.credit-cell.q-magic .credit-num { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.credit-cell.q-magic .credit-lbl { color: hsl(280 60% 50%); }
+[data-theme="dark"] .credit-cell.q-magic .credit-lbl { color: hsl(280 70% 70%); }
+[data-theme="dark"] .credit-cell.q-magic { background: linear-gradient(180deg, hsl(280 50% 10% / 0.5), hsl(220 25% 4%)); border: 1px solid hsl(280 60% 30% / 0.35); }
+
+.buy-credits-btn {
+  width: 100%;
+  height: 40px; padding: 0 14px;
+  border-radius: var(--radius-pill);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  color: white; border: none; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+}
+[data-theme="light"] .buy-credits-btn,
+:root:not([data-theme]) .buy-credits-btn { background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 12px oklch(0.62 0.22 285 / 0.4); }
+.buy-credits-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%);
+  animation: conicSpin 3s linear infinite;
+}
+.buy-credits-btn > * { position: relative; z-index: 1; }
+.buy-credits-btn svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2.5; }
+
+/* ═══ SECTION CARD ═══ */
+.s-card {
+  padding: 14px;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+}
+.s-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+  position: relative; z-index: 5;
+}
+.s-head-ic {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.s-head-ic svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+.s-head-ic.green { background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%)); box-shadow: 0 4px 12px hsl(145 70% 45% / 0.4); }
+.s-head-ic.magic { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%)); box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5); }
+.s-head-ic.amber { background: linear-gradient(135deg, hsl(38 90% 55%), hsl(28 90% 50%)); box-shadow: 0 4px 12px hsl(38 90% 50% / 0.4); }
+.s-head-ic.gray { background: linear-gradient(135deg, hsl(220 10% 60%), hsl(220 10% 50%)); box-shadow: 0 4px 12px hsl(220 10% 30% / 0.3); }
+
+.s-head-text { flex: 1; min-width: 0; }
+.s-head-title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.s-head-sub { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 1px; }
+.s-head-count {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+[data-theme="light"] .s-head-count,
+:root:not([data-theme]) .s-head-count { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; color: var(--text-muted); }
+[data-theme="dark"] .s-head-count { background: hsl(220 25% 8%); color: var(--text-muted); }
+
+/* ═══ STUDIO OPT ROW (operation row) ═══ */
+.s-list { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 5; }
+
+.s-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  position: relative; overflow: hidden;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+[data-theme="light"] .s-row,
+:root:not([data-theme]) .s-row { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .s-row:active,
+:root:not([data-theme]) .s-row:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .s-row { background: hsl(220 25% 6% / 0.6); }
+.s-row:active { transform: scale(0.99); }
+
+.s-row-ic {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.s-row-ic svg { width: 18px; height: 18px; fill: none; stroke-width: 2; }
+.s-row-text { flex: 1; min-width: 0; }
+.s-row-t { font-size: 13px; font-weight: 700; line-height: 1.15; }
+.s-row-s { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+
+.s-row-act {
+  height: 32px; padding: 0 12px;
+  border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+  color: white; border: none; flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 2px 8px hsl(var(--hue1) 80% 50% / 0.4);
+}
+[data-theme="light"] .s-row-act,
+:root:not([data-theme]) .s-row-act { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.s-row-act svg { width: 11px; height: 11px; stroke: white; fill: none; stroke-width: 2.5; }
+.s-row-act.green { background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%)); box-shadow: 0 2px 8px hsl(145 70% 45% / 0.4); }
+.s-row-act.magic { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%)); box-shadow: 0 2px 8px hsl(280 70% 50% / 0.5); }
+
+/* per-category row icon styling */
+.s-row.cat-clothes .s-row-ic { background: linear-gradient(135deg, hsl(255 60% 25%), hsl(222 60% 22%)); }
+.s-row.cat-clothes .s-row-ic svg { stroke: hsl(255 80% 70%); }
+.s-row.cat-lingerie .s-row-ic { background: linear-gradient(135deg, hsl(330 50% 25%), hsl(305 50% 22%)); }
+.s-row.cat-lingerie .s-row-ic svg { stroke: hsl(330 80% 75%); }
+.s-row.cat-jewelry .s-row-ic { background: linear-gradient(135deg, hsl(38 60% 25%), hsl(28 60% 22%)); }
+.s-row.cat-jewelry .s-row-ic svg { stroke: hsl(38 90% 70%); }
+.s-row.cat-acc .s-row-ic { background: linear-gradient(135deg, hsl(180 50% 22%), hsl(195 50% 22%)); }
+.s-row.cat-acc .s-row-ic svg { stroke: hsl(180 80% 65%); }
+.s-row.cat-other .s-row-ic { background: linear-gradient(135deg, hsl(280 50% 25%), hsl(280 50% 20%)); }
+.s-row.cat-other .s-row-ic svg { stroke: hsl(280 70% 75%); }
+
+[data-theme="light"] .s-row.cat-clothes .s-row-ic,
+:root:not([data-theme]) .s-row.cat-clothes .s-row-ic { background: oklch(0.92 0.04 285); box-shadow: var(--shadow-pressed); }
+[data-theme="light"] .s-row.cat-clothes .s-row-ic svg,
+:root:not([data-theme]) .s-row.cat-clothes .s-row-ic svg { stroke: var(--accent); }
+[data-theme="light"] .s-row.cat-lingerie .s-row-ic,
+:root:not([data-theme]) .s-row.cat-lingerie .s-row-ic { background: oklch(0.94 0.05 330); box-shadow: var(--shadow-pressed); }
+[data-theme="light"] .s-row.cat-lingerie .s-row-ic svg,
+:root:not([data-theme]) .s-row.cat-lingerie .s-row-ic svg { stroke: oklch(0.55 0.22 330); }
+[data-theme="light"] .s-row.cat-jewelry .s-row-ic,
+:root:not([data-theme]) .s-row.cat-jewelry .s-row-ic { background: oklch(0.94 0.05 70); box-shadow: var(--shadow-pressed); }
+[data-theme="light"] .s-row.cat-jewelry .s-row-ic svg,
+:root:not([data-theme]) .s-row.cat-jewelry .s-row-ic svg { stroke: oklch(0.6 0.18 60); }
+[data-theme="light"] .s-row.cat-acc .s-row-ic,
+:root:not([data-theme]) .s-row.cat-acc .s-row-ic { background: oklch(0.94 0.05 195); box-shadow: var(--shadow-pressed); }
+[data-theme="light"] .s-row.cat-acc .s-row-ic svg,
+:root:not([data-theme]) .s-row.cat-acc .s-row-ic svg { stroke: oklch(0.55 0.18 195); }
+[data-theme="light"] .s-row.cat-other .s-row-ic,
+:root:not([data-theme]) .s-row.cat-other .s-row-ic { background: oklch(0.92 0.05 280); box-shadow: var(--shadow-pressed); }
+[data-theme="light"] .s-row.cat-other .s-row-ic svg,
+:root:not([data-theme]) .s-row.cat-other .s-row-ic svg { stroke: var(--magic); }
+
+/* ═══ HISTORY STRIP ═══ */
+.hist-row {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+  position: relative; z-index: 5;
+}
+.hist-row::-webkit-scrollbar { display: none; }
+
+.hist-thumb {
+  width: 64px; height: 64px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  position: relative; overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+.hist-thumb svg { width: 28px; height: 28px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+[data-theme="light"] .hist-thumb,
+:root:not([data-theme]) .hist-thumb { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .hist-thumb { background: hsl(220 25% 6%); }
+
+.hist-tag {
+  position: absolute; bottom: 4px; right: 4px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 10px;
+}
+.hist-tag svg { width: 10px; height: 10px; stroke: white; fill: white; stroke-width: 0; }
+.hist-tag.t-clothes { background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%)); }
+.hist-tag.t-lingerie { background: linear-gradient(135deg, hsl(330 70% 55%), hsl(305 65% 55%)); }
+.hist-tag.t-jewelry { background: linear-gradient(135deg, hsl(38 90% 55%), hsl(28 90% 50%)); }
+.hist-tag.t-acc { background: linear-gradient(135deg, hsl(180 70% 45%), hsl(195 70% 50%)); }
+.hist-tag.t-other { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%)); }
+
+/* ═══ SETTINGS ROW ═══ */
+.settings-row {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  position: relative;
+  margin-bottom: 8px;
+  text-align: left;
+  transition: box-shadow var(--dur) var(--ease);
+}
+.settings-row:last-child { margin-bottom: 0; }
+[data-theme="light"] .settings-row,
+:root:not([data-theme]) .settings-row { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .settings-row:active,
+:root:not([data-theme]) .settings-row:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .settings-row { background: hsl(220 25% 6% / 0.6); }
+
+.settings-row-ic {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .settings-row-ic,
+:root:not([data-theme]) .settings-row-ic { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .settings-row-ic { background: hsl(220 25% 4%); }
+.settings-row-ic svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; }
+
+.settings-row-text { flex: 1; min-width: 0; }
+.settings-row-title { font-size: 12px; font-weight: 700; line-height: 1.15; }
+.settings-row-value { font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+.settings-row-arrow { width: 18px; height: 18px; flex-shrink: 0; display: grid; place-items: center; }
+.settings-row-arrow svg { width: 12px; height: 12px; stroke: var(--text-faint); fill: none; stroke-width: 2.5; }
+
+/* ═══ FAB ═══ */
+.fab-wrap {
+  position: fixed; right: 20px;
+  bottom: calc(64px + 24px + 16px + env(safe-area-inset-bottom, 0));
+  z-index: 60;
+}
+.fab {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 8px 24px hsl(280 70% 50% / 0.55);
+  position: relative; overflow: hidden;
+}
+[data-theme="light"] .fab,
+:root:not([data-theme]) .fab { background: linear-gradient(135deg, var(--magic), var(--accent-2)); box-shadow: 0 8px 24px oklch(0.65 0.25 310 / 0.4); }
+.fab::before {
+  content: ''; position: absolute; inset: 0;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%);
+  animation: conicSpin 3s linear infinite;
+}
+.fab svg { width: 22px; height: 22px; stroke: white; fill: white; stroke-width: 1.5; position: relative; z-index: 1; }
+.fab:active { transform: scale(0.94); }
+
+/* ═══ BOTTOM NAV ═══ */
+.rms-bottom-nav {
+  position: fixed; left: 12px; right: 12px; bottom: 12px;
+  z-index: 50;
+  height: 64px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+[data-theme="light"] .rms-bottom-nav,
+:root:not([data-theme]) .rms-bottom-nav { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .rms-bottom-nav {
+  background:
+    linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+    linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+    linear-gradient(hsl(220 25% 4.8% / .9));
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+}
+.rms-nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 10px; font-weight: 700;
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+.rms-nav-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform var(--dur) var(--ease-spring); }
+.rms-nav-tab:active svg { transform: scale(0.85); }
+.rms-nav-tab.active { color: var(--accent); }
+.rms-nav-tab.active::before {
+  content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  width: 32px; height: 4px; background: var(--accent); border-radius: 999px;
+}
+[data-theme="dark"] .rms-nav-tab.active::before { box-shadow: 0 0 12px var(--accent); }
+
+/* animations */
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-25px) scale(1.1); } 66% { transform: translate(-25px,35px) scale(0.95); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes rmsBrandShimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<header class="rms-header">
+  <a class="rms-brand">RUNMYSTORE.AI</a>
+  <span class="rms-plan-badge">PRO</span>
+  <div class="rms-header-spacer"></div>
+  <button class="rms-icon-btn" aria-label="{T_PRINTER}">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  </button>
+  <a class="rms-icon-btn" aria-label="{T_SETTINGS}">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </a>
+  <button class="rms-icon-btn" aria-label="{T_LOGOUT}">
+    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  </button>
+  <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="{T_THEME}">
+    <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+</header>
+
+<main class="app">
+
+  <!-- Page title -->
+  <div class="page-title-row">
+    <span class="page-title">AI Studio</span>
+    <span class="page-title-meta">385 {T_WAITING}</span>
+  </div>
+
+  <!-- ═══ HERO BANNER (q-magic) ═══ -->
+  <div class="glass sm hero-card q-magic">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="hero-row">
+      <div class="hero-ic">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="hero-text">
+        <div class="hero-title">{T_AI_HERO_TITLE}</div>
+        <div class="hero-sub">{T_AI_HERO_SUB}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CREDITS BAR (3 cells + buy CTA) ═══ -->
+  <div class="credits-card">
+    <div class="credits-title">
+      <span>{T_AI_CREDITS_REMAINING}</span>
+      <span class="credits-title-r">{T_AI_PER_MONTH} · PRO</span>
+    </div>
+    <div class="credits-grid">
+      <div class="credit-cell q-bg">
+        <span class="credit-num">253<span class="credit-of">/300</span></span>
+        <span class="credit-lbl">{T_AI_BG_LBL}</span>
+      </div>
+      <div class="credit-cell q-desc">
+        <span class="credit-num">418<span class="credit-of">/500</span></span>
+        <span class="credit-lbl">{T_AI_DESC_LBL}</span>
+      </div>
+      <div class="credit-cell q-magic">
+        <span class="credit-num">17<span class="credit-of">/30</span></span>
+        <span class="credit-lbl">{T_AI_MAGIC_LBL}</span>
+      </div>
+    </div>
+    <button class="buy-credits-btn">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>{T_AI_BUY_MORE} · {T_AI_DISCOUNTS_43}</span>
+    </button>
+  </div>
+
+  <!-- ═══ SECTION 1: БЪРЗИ ДЕЙСТВИЯ (q-gain) ═══ -->
+  <div class="glass sm s-card q-gain">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="s-head">
+      <div class="s-head-ic green">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div class="s-head-text">
+        <div class="s-head-title">{T_AI_QUICK_TITLE}</div>
+        <div class="s-head-sub">{T_AI_QUICK_SUB}</div>
+      </div>
+      <span class="s-head-count">2</span>
+    </div>
+
+    <div class="s-list">
+      <div class="s-row cat-acc">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">47 {T_AI_PRODUCTS_NO_BG}</div>
+          <div class="s-row-s">birefnet · {T_AI_AUTOMATIC} · ~12 мин · €2,35</div>
+        </div>
+        <button class="s-row-act green">
+          <span>{T_AI_START}</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="s-row cat-clothes">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">89 {T_AI_PRODUCTS_NO_DESC}</div>
+          <div class="s-row-s">Gemini Flash · BG/EN/RO · ~5 мин · €1,78</div>
+        </div>
+        <button class="s-row-act green">
+          <span>{T_AI_START}</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECTION 2: AI МАГИЯ ПО КАТЕГОРИИ (q-magic) ═══ -->
+  <div class="glass s-card q-magic">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="s-head">
+      <div class="s-head-ic magic">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="s-head-text">
+        <div class="s-head-title">{T_AI_MAGIC_TITLE}</div>
+        <div class="s-head-sub">{T_AI_MAGIC_SUB}</div>
+      </div>
+      <span class="s-head-count">30</span>
+    </div>
+
+    <div class="s-list">
+      <div class="s-row cat-clothes">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">{T_AI_CAT_CLOTHES}</div>
+          <div class="s-row-s">8 тениски · 3 рокли · 1 сако</div>
+        </div>
+        <button class="s-row-act magic">
+          <span>12</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="s-row cat-lingerie">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M3 8c0 4 4 6 9 6s9-2 9-6c0-2-2-3-4-3-2 0-3 1-5 1s-3-1-5-1c-2 0-4 1-4 3z"/><path d="M3 8v6c0 3 4 6 9 6s9-3 9-6V8"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">{T_AI_CAT_LINGERIE}</div>
+          <div class="s-row-s">4 сутиена · 3 бикини · 1 цял бански</div>
+        </div>
+        <button class="s-row-act magic">
+          <span>8</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="s-row cat-jewelry">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">{T_AI_CAT_JEWELRY}</div>
+          <div class="s-row-s">2 пръстена · 2 обеци · 1 гердан</div>
+        </div>
+        <button class="s-row-act magic">
+          <span>5</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="s-row cat-acc">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">{T_AI_CAT_ACC}</div>
+          <div class="s-row-s">2 обувки · 1 чанта</div>
+        </div>
+        <button class="s-row-act magic">
+          <span>3</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="s-row cat-other">
+        <div class="s-row-ic">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <div class="s-row-text">
+          <div class="s-row-t">{T_AI_CAT_OTHER}</div>
+          <div class="s-row-s">{T_AI_FREE_DESCRIBE}</div>
+        </div>
+        <button class="s-row-act magic">
+          <span>2</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECTION 3: ПОСЛЕДНО ГЕНЕРИРАНО (q-amber) ═══ -->
+  <div class="glass sm s-card q-amber">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="s-head">
+      <div class="s-head-ic amber">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="s-head-text">
+        <div class="s-head-title">{T_AI_HISTORY_TITLE}</div>
+        <div class="s-head-sub">{T_AI_HISTORY_SUB}</div>
+      </div>
+      <a class="s-head-count">{T_AI_VIEW_ALL} →</a>
+    </div>
+
+    <div class="hist-row">
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M3 8c0 4 4 6 9 6s9-2 9-6"/></svg>
+        <span class="hist-tag t-lingerie"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
+        <span class="hist-tag t-jewelry"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M20 3l-3 1-5 4-5-4L4 3l-2 5 4 4 6-2 6 2 4-4z"/></svg>
+        <span class="hist-tag t-clothes"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/></svg>
+        <span class="hist-tag t-acc"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M3 19h4l3-3V8l6-4v8l3 3v3H3z"/></svg>
+        <span class="hist-tag t-acc"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <span class="hist-tag t-jewelry"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46"/><path d="M8 6v15h8V6"/></svg>
+        <span class="hist-tag t-clothes"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+      <div class="hist-thumb">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        <span class="hist-tag t-other"><svg viewBox="0 0 24 24"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8"/></svg></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECTION 4: СТАНДАРТНИ НАСТРОЙКИ ═══ -->
+  <div class="glass sm s-card">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="s-head">
+      <div class="s-head-ic gray">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>
+      <div class="s-head-text">
+        <div class="s-head-title">{T_AI_DEFAULTS_TITLE}</div>
+        <div class="s-head-sub">{T_AI_DEFAULTS_SUB}</div>
+      </div>
+    </div>
+
+    <button class="settings-row">
+      <div class="settings-row-ic">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="3"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2"/></svg>
+      </div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">{T_AI_DEFAULT_MODEL}</div>
+        <div class="settings-row-value">{T_AI_DEFAULT_MODEL_V}</div>
+      </div>
+      <span class="settings-row-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+
+    <button class="settings-row">
+      <div class="settings-row-ic">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      </div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">{T_AI_DEFAULT_BG}</div>
+        <div class="settings-row-value">{T_AI_DEFAULT_BG_V}</div>
+      </div>
+      <span class="settings-row-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+
+    <button class="settings-row">
+      <div class="settings-row-ic">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">{T_AI_QUALITY_GUARANTEE}</div>
+        <div class="settings-row-value">{T_AI_QUALITY_VALUE}</div>
+      </div>
+      <span class="settings-row-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+  </div>
+
+</main>
+
+<!-- FAB -->
+<div class="fab-wrap">
+  <button class="fab" aria-label="{T_ASK_AI}">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  </button>
+</div>
+
+<!-- Bottom nav -->
+<nav class="rms-bottom-nav">
+  <a class="rms-nav-tab" aria-label="AI">
+    <svg viewBox="0 0 24 24"><path d="M12 8V4M12 4l-3 3M12 4l3 3M5 12H1m4 0l3-3m-3 3l3 3M19 12h4m-4 0l-3-3m3 3l-3 3M12 16v4m0 0l-3-3m3 3l3-3"/></svg>
+    <span>AI</span>
+  </a>
+  <a class="rms-nav-tab" aria-label="{T_NAV_WAREHOUSE}">
+    <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    <span>{T_NAV_WAREHOUSE}</span>
+  </a>
+  <a class="rms-nav-tab" aria-label="{T_NAV_REPORTS}">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>{T_NAV_REPORTS}</span>
+  </a>
+  <a class="rms-nav-tab" aria-label="{T_NAV_SALE}">
+    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <span>{T_NAV_SALE}</span>
+  </a>
+</nav>
+
+<script>
+function syncThemeIcons() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeIconSun').style.display  = (t === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (t === 'dark') ? 'none'  : 'block';
+}
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+};
+syncThemeIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light" data-print-mode="dual">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>P9 · Печат на етикети · RunMyStore.AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+/* P9 — products.php wizard step 6 (печат на етикети)
+   Източник: products.php ред 7417-7482
+   DESIGN_SYSTEM v4.1 BICHROMATIC */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms; --dur: 250ms;
+  --press: 0.97;
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card: var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark), calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm: var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed: inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 310);
+  --success: oklch(0.68 0.18 155); --warning: oklch(0.72 0.18 70); --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply; --aurora-opacity: 0.35;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px, hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%); --accent-3: hsl(var(--hue3), 70%, 55%);
+  --magic: hsl(280, 70%, 65%);
+  --success: hsl(145, 70%, 55%); --warning: hsl(38, 90%, 60%); --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(145 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.aurora-blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(145,80%,55%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(38,80%,55%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+/* ═══ WIZ HEADER ═══ */
+.wiz-header { position: sticky; top: 0; z-index: 50; height: 56px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-top: env(safe-area-inset-top, 0); }
+[data-theme="light"] .wiz-header, :root:not([data-theme]) .wiz-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .wiz-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); }
+.wiz-icon-btn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; border: 1px solid var(--border-color); }
+[data-theme="light"] .wiz-icon-btn, :root:not([data-theme]) .wiz-icon-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .wiz-icon-btn:active, :root:not([data-theme]) .wiz-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .wiz-icon-btn { background: hsl(220 25% 8%); }
+.wiz-icon-btn svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.wiz-title-wrap { flex: 1; min-width: 0; }
+.wiz-title { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(135deg, var(--text), var(--success)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.wiz-subtitle { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 1px; line-height: 1.15; }
+
+.wiz-pro-pill { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; padding: 5px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-color); position: relative; overflow: hidden; flex-shrink: 0; }
+[data-theme="light"] .wiz-pro-pill, :root:not([data-theme]) .wiz-pro-pill { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; color: var(--text); }
+[data-theme="dark"] .wiz-pro-pill { background: hsl(220 25% 8% / 0.7); color: var(--text); }
+.wiz-pro-pill::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; background: conic-gradient(from 0deg, hsl(var(--hue1) 80% 60%), hsl(280 80% 60%), hsl(var(--hue3) 70% 60%), hsl(var(--hue1) 80% 60%)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: conicSpin 3s linear infinite; opacity: 0.6; pointer-events: none; }
+
+/* ═══ STEP INDICATOR (6/6 — всички done + 1 active = последен) ═══ */
+.wiz-steps { display: flex; align-items: center; gap: 5px; padding: 14px 16px 6px; position: relative; z-index: 5; }
+.wiz-step-dot { position: relative; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border-color); }
+[data-theme="light"] .wiz-step-dot, :root:not([data-theme]) .wiz-step-dot { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .wiz-step-dot { background: hsl(220 25% 8%); }
+.wiz-step-dot.done { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; box-shadow: 0 2px 6px hsl(var(--hue1) 80% 50% / 0.3); }
+.wiz-step-dot.done::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center/8px no-repeat; }
+.wiz-step-dot.active { background: conic-gradient(from 0deg, hsl(145 70% 50%), hsl(155 70% 40%), hsl(165 70% 50%), hsl(145 70% 50%)); border: none; box-shadow: 0 0 12px hsl(145 70% 50% / 0.5); animation: orbSpin 5s linear infinite; }
+.wiz-step-dot.active::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--bg-main); }
+[data-theme="dark"] .wiz-step-dot.active::after { background: #08090d; }
+.wiz-step-bar { flex: 1; height: 2px; border-radius: 999px; }
+[data-theme="light"] .wiz-step-bar, :root:not([data-theme]) .wiz-step-bar { background: rgba(163,177,198,0.3); }
+[data-theme="dark"] .wiz-step-bar { background: hsl(var(--hue2) 12% 20%); }
+.wiz-step-bar.done { background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%)); }
+.wiz-step-label { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--success); margin: 0 16px 14px; position: relative; z-index: 5; }
+
+/* ═══ APP ═══ */
+.app { position: relative; z-index: 5; max-width: 480px; margin: 0 auto; padding: 0 12px calc(110px + env(safe-area-inset-bottom, 0)); }
+
+/* ═══ GLASS BASE ═══ */
+.glass { position: relative; border-radius: var(--radius); border: var(--border) solid var(--border-color); isolation: isolate; }
+.glass.sm { border-radius: var(--radius-sm); }
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+[data-theme="light"] .glass, :root:not([data-theme]) .glass { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="light"] .glass .shine, [data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine, :root:not([data-theme]) .glass .glow { display: none; }
+[data-theme="dark"] .glass { background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%), linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%), linear-gradient(hsl(220 25% 4.8% / .78)); backdrop-filter: blur(12px); box-shadow: var(--shadow-card); }
+[data-theme="dark"] .glass .shine { pointer-events: none; border-radius: 0; border-top-right-radius: inherit; border-bottom-left-radius: inherit; border: 1px solid transparent; width: 75%; aspect-ratio: 1; display: block; position: absolute; right: calc(var(--border) * -1); top: calc(var(--border) * -1); z-index: 1; background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box; mask: linear-gradient(transparent), linear-gradient(black); mask-clip: padding-box, border-box; mask-composite: subtract; }
+[data-theme="dark"] .glass .shine.shine-bottom { right: auto; top: auto; left: calc(var(--border) * -1); bottom: calc(var(--border) * -1); }
+[data-theme="dark"] .glass .glow { pointer-events: none; border-top-right-radius: calc(var(--radius) * 2.5); border-bottom-left-radius: calc(var(--radius) * 2.5); border: calc(var(--radius) * 1.25) solid transparent; inset: calc(var(--radius) * -2); width: 75%; aspect-ratio: 1; display: block; position: absolute; left: auto; bottom: auto; background: conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%); filter: blur(12px) saturate(1.25); mix-blend-mode: plus-lighter; z-index: 3; opacity: 0.6; }
+[data-theme="dark"] .glass .glow.glow-bottom { inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2); }
+[data-theme="dark"] .glass.q-gain .shine, [data-theme="dark"] .glass.q-gain .glow { --hue: 145; }
+[data-theme="dark"] .glass.q-gain .shine-bottom, [data-theme="dark"] .glass.q-gain .glow-bottom { --hue: 165; }
+
+/* ═══ SUCCESS HERO CARD (q-gain) ═══ */
+.success-card { padding: 18px 16px; margin-bottom: 14px; text-align: center; animation: fadeInUp 0.6s var(--ease-spring) both; }
+.success-card > * { position: relative; z-index: 5; }
+.success-ic {
+  width: 56px; height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%));
+  box-shadow: 0 8px 24px hsl(145 70% 45% / 0.5);
+  position: relative; overflow: hidden;
+  animation: successPop 0.6s var(--ease-spring) both;
+}
+.success-ic::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 4s linear infinite; }
+.success-ic svg { width: 26px; height: 26px; stroke: white; fill: none; stroke-width: 3; position: relative; z-index: 1; }
+
+.success-title {
+  font-size: 17px; font-weight: 900; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, hsl(145 70% 35%), hsl(155 70% 40%));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+[data-theme="dark"] .success-title { background: linear-gradient(135deg, hsl(145 70% 70%), hsl(155 70% 60%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.success-meta { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.success-meta b { color: var(--text); font-weight: 800; }
+
+/* ═══ PRINT MODE TABS (segmented) ═══ */
+.tabs-row { display: flex; gap: 4px; padding: 3px; border-radius: var(--radius-pill); margin-bottom: 10px; position: relative; z-index: 5; border: 1px solid var(--border-color); }
+[data-theme="light"] .tabs-row, :root:not([data-theme]) .tabs-row { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .tabs-row { background: hsl(220 25% 4%); }
+.tab-btn { flex: 1; height: 36px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); transition: color var(--dur) var(--ease); }
+[data-print-mode="dual"] .tab-btn[data-tab="dual"],
+[data-print-mode="eur"] .tab-btn[data-tab="eur"],
+[data-print-mode="noprice"] .tab-btn[data-tab="noprice"] {
+  color: white;
+  background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+}
+
+/* ═══ TOGGLE ROW (без баркод) ═══ */
+.toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border-color); }
+[data-theme="light"] .toggle-row, :root:not([data-theme]) .toggle-row { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .toggle-row { background: hsl(220 25% 6% / 0.6); }
+.toggle-cb { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--text-faint); display: grid; place-items: center; flex-shrink: 0; transition: all var(--dur) var(--ease); }
+.toggle-cb svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; opacity: 0; }
+.toggle-row.on .toggle-cb { background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%)); border-color: transparent; box-shadow: 0 2px 8px hsl(var(--hue1) 80% 50% / 0.4); }
+.toggle-row.on .toggle-cb svg { opacity: 1; }
+.toggle-text { flex: 1; font-size: 12px; font-weight: 700; color: var(--text); }
+.toggle-row:not(.on) .toggle-text { color: var(--text-muted); }
+
+/* ═══ WARNING BANNER (q-amber) ═══ */
+.warn-banner { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border-color); }
+[data-theme="light"] .warn-banner, :root:not([data-theme]) .warn-banner { background: oklch(0.96 0.05 85); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .warn-banner { background: linear-gradient(180deg, hsl(38 50% 10% / 0.4), hsl(220 25% 4%)); border: 1px solid hsl(38 70% 35% / 0.4); }
+.warn-ic { width: 18px; height: 18px; flex-shrink: 0; }
+.warn-ic svg { width: 16px; height: 16px; stroke: hsl(38 80% 50%); fill: none; stroke-width: 2.5; }
+[data-theme="dark"] .warn-ic svg { stroke: hsl(38 90% 65%); }
+.warn-text { font-size: 10.5px; font-weight: 600; line-height: 1.4; color: hsl(38 60% 35%); }
+[data-theme="dark"] .warn-text { color: hsl(38 80% 75%); }
+.warn-text b { font-weight: 800; }
+
+/* ═══ COMBOS LIST CARD ═══ */
+.combos-card { padding: 12px; margin-bottom: 12px; animation: fadeInUp 0.6s var(--ease-spring) both; }
+.combos-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; position: relative; z-index: 5; }
+.combos-title { flex: 1; font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.x-btn {
+  height: 28px; padding: 0 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  color: var(--accent); border: 1px solid var(--border-color);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+[data-theme="light"] .x-btn, :root:not([data-theme]) .x-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .x-btn:active, :root:not([data-theme]) .x-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .x-btn { background: hsl(220 25% 8%); color: hsl(var(--hue1) 80% 70%); }
+.x-btn.amber { color: hsl(38 80% 50%); }
+[data-theme="dark"] .x-btn.amber { color: hsl(38 90% 65%); }
+
+.combo-list { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 5; }
+
+.combo-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .combo-row, :root:not([data-theme]) .combo-row { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .combo-row { background: hsl(220 25% 6% / 0.6); }
+
+.combo-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.combo-size { font-size: 13px; font-weight: 800; }
+.combo-color-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .combo-color-chip, :root:not([data-theme]) .combo-color-chip { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .combo-color-chip { background: hsl(220 25% 4%); }
+.combo-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2); box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); }
+
+/* qty stepper */
+.qty-step { display: inline-flex; align-items: center; flex-shrink: 0; }
+.qty-btn {
+  width: 26px; height: 28px;
+  border: 1px solid var(--border-color);
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 700;
+  color: var(--text);
+}
+[data-theme="light"] .qty-btn, :root:not([data-theme]) .qty-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .qty-btn:active, :root:not([data-theme]) .qty-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .qty-btn { background: hsl(220 25% 8%); }
+.qty-btn:first-child { border-radius: 8px 0 0 8px; }
+.qty-btn:last-child { border-radius: 0 8px 8px 0; }
+.qty-input {
+  width: 36px; height: 28px;
+  text-align: center;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 800;
+  border: 1px solid var(--border-color);
+  border-left: none; border-right: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  -moz-appearance: textfield;
+}
+[data-theme="light"] .qty-input, :root:not([data-theme]) .qty-input { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .qty-input { background: hsl(220 25% 4%); border-top: 1px solid hsl(var(--hue2) 12% 20%); border-bottom: 1px solid hsl(var(--hue2) 12% 20%); }
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* per-row print btn */
+.combo-print-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 2px 8px hsl(var(--hue1) 80% 50% / 0.4);
+}
+.combo-print-btn svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; }
+
+/* ═══ PRIMARY PRINT-ALL BUTTON ═══ */
+.print-all-btn {
+  width: 100%;
+  height: 56px; padding: 0 16px;
+  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 14px; font-weight: 800;
+  color: white; border: none;
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%));
+  box-shadow: 0 6px 20px hsl(145 70% 45% / 0.5);
+  margin-bottom: 10px;
+}
+.print-all-btn::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 3s linear infinite; }
+.print-all-btn > * { position: relative; z-index: 1; }
+.print-all-btn svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.5; }
+.print-all-btn .count { font-family: var(--font-mono); font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.2); }
+
+/* ═══ CSV BUTTON ═══ */
+.csv-btn {
+  width: 100%;
+  height: 44px; padding: 0 14px;
+  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 12px; font-weight: 700;
+  color: var(--accent); border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+[data-theme="light"] .csv-btn, :root:not([data-theme]) .csv-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .csv-btn:active, :root:not([data-theme]) .csv-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .csv-btn { background: hsl(220 25% 8%); color: hsl(var(--hue1) 80% 70%); }
+.csv-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ═══ FOOTER ACTIONS ═══ */
+.footer-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.fbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 46px; padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 700;
+  color: var(--text); border: 1px solid var(--border-color);
+  flex: 1;
+}
+[data-theme="light"] .fbtn, :root:not([data-theme]) .fbtn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .fbtn:active, :root:not([data-theme]) .fbtn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .fbtn { background: hsl(220 25% 8%); }
+.fbtn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+.fbtn.add { color: var(--accent); }
+[data-theme="dark"] .fbtn.add { color: hsl(var(--hue1) 80% 70%); }
+
+/* "Към инвентаризацията" — green gradient */
+.inv-btn {
+  width: 100%;
+  height: 50px; padding: 0 16px;
+  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 13px; font-weight: 800;
+  color: white; border: none;
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, hsl(145 70% 50%), hsl(155 70% 40%));
+  box-shadow: 0 4px 14px hsl(145 70% 45% / 0.4);
+}
+.inv-btn::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.35) 85%, transparent 100%); animation: conicSpin 4s linear infinite; }
+.inv-btn > * { position: relative; z-index: 1; }
+.inv-btn svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2.5; }
+
+/* anims */
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-25px) scale(1.1); } 66% { transform: translate(-25px,35px) scale(0.95); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes successPop { 0% { opacity: 0; transform: scale(0.5); } 60% { transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<header class="wiz-header">
+  <button class="wiz-icon-btn" aria-label="{T_BACK}">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="wiz-title-wrap">
+    <div class="wiz-title">{T_PRINT_LABELS}</div>
+    <div class="wiz-subtitle">{T_STEP_6_OF_6}</div>
+  </div>
+  <span class="wiz-pro-pill">PRO</span>
+  <button class="wiz-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="{T_THEME}">
+    <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+  <button class="wiz-icon-btn" aria-label="{T_CLOSE}">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</header>
+
+<!-- Step indicator: всички 5 done + 1 active -->
+<div class="wiz-steps">
+  <div class="wiz-step-dot done"></div><div class="wiz-step-bar done"></div>
+  <div class="wiz-step-dot done"></div><div class="wiz-step-bar done"></div>
+  <div class="wiz-step-dot done"></div><div class="wiz-step-bar done"></div>
+  <div class="wiz-step-dot done"></div><div class="wiz-step-bar done"></div>
+  <div class="wiz-step-dot done"></div><div class="wiz-step-bar done"></div>
+  <div class="wiz-step-dot active"></div>
+</div>
+<div class="wiz-step-label">{T_STEP_6_OF_6} · {T_PRINT}</div>
+
+<main class="app">
+
+  <!-- ═══ SUCCESS HERO (q-gain) ═══ -->
+  <div class="glass sm success-card q-gain">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="success-ic">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">{T_PRODUCT_SAVED}</div>
+    <div class="success-meta"><b>Дамски бански Passionata</b> · 34,90 € · 68,28 лв</div>
+  </div>
+
+  <!-- ═══ PRINT MODE TABS ═══ -->
+  <div class="tabs-row">
+    <button class="tab-btn" data-tab="dual" onclick="setPrintMode('dual')">€ + лв</button>
+    <button class="tab-btn" data-tab="eur" onclick="setPrintMode('eur')">{T_PRICE_EUR_ONLY}</button>
+    <button class="tab-btn" data-tab="noprice" onclick="setPrintMode('noprice')">{T_NO_PRICE}</button>
+  </div>
+
+  <!-- ═══ TOGGLE: Печат без баркод ═══ -->
+  <button class="toggle-row" id="noBarcodeToggle" onclick="toggleNoBarcode()">
+    <span class="toggle-cb"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+    <span class="toggle-text">{T_PRINT_NO_BARCODE}</span>
+  </button>
+
+  <!-- ═══ DUAL PRICING WARNING ═══ -->
+  <div class="warn-banner">
+    <span class="warn-ic">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+    <span class="warn-text">{T_DUAL_PRICING_WARN}</span>
+  </div>
+
+  <!-- ═══ COMBOS LIST ═══ -->
+  <div class="glass sm combos-card">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="combos-head">
+      <span class="combos-title">{T_VARIATIONS_FOR_PRINT}</span>
+      <button class="x-btn" onclick="labelsX2()">×2</button>
+      <button class="x-btn amber" onclick="labelsReset()">1:1</button>
+    </div>
+
+    <div class="combo-list">
+      <!-- S — Черен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">S</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#1a1a1a"></span>Черен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(0,-1)">−</button>
+          <input type="number" class="qty-input" id="q0" value="3" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(0,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+
+      <!-- S — Червен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">S</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#dc2626"></span>Червен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(1,-1)">−</button>
+          <input type="number" class="qty-input" id="q1" value="2" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(1,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+
+      <!-- M — Черен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">M</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#1a1a1a"></span>Черен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(2,-1)">−</button>
+          <input type="number" class="qty-input" id="q2" value="4" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(2,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+
+      <!-- M — Червен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">M</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#dc2626"></span>Червен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(3,-1)">−</button>
+          <input type="number" class="qty-input" id="q3" value="3" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(3,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+
+      <!-- L — Черен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">L</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#1a1a1a"></span>Черен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(4,-1)">−</button>
+          <input type="number" class="qty-input" id="q4" value="2" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(4,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+
+      <!-- L — Червен -->
+      <div class="combo-row">
+        <div class="combo-info">
+          <span class="combo-size">L</span>
+          <span class="combo-color-chip"><span class="combo-color-dot" style="background:#dc2626"></span>Червен</span>
+        </div>
+        <div class="qty-step">
+          <button class="qty-btn" onclick="qtyAdj(5,-1)">−</button>
+          <input type="number" class="qty-input" id="q5" value="1" min="0" onchange="qtyRecalc()">
+          <button class="qty-btn" onclick="qtyAdj(5,1)">+</button>
+        </div>
+        <button class="combo-print-btn" aria-label="{T_PRINT_ROW}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PRINT ALL BUTTON ═══ -->
+  <button class="print-all-btn">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    <span>{T_PRINT_ALL}</span>
+    <span class="count" id="totalCount">15 ет.</span>
+  </button>
+
+  <!-- ═══ CSV EXPORT BUTTON ═══ -->
+  <button class="csv-btn">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span>{T_DOWNLOAD_CSV_ONLINE_STORE}</span>
+  </button>
+
+  <!-- ═══ FOOTER ACTIONS ═══ -->
+  <div class="footer-actions">
+    <button class="fbtn add">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>{T_ADD_NEW}</span>
+    </button>
+    <button class="fbtn">
+      <span>{T_CLOSE}</span>
+    </button>
+  </div>
+
+  <!-- ═══ "Към инвентаризацията" (conditional, ако е дошъл от inventory) ═══ -->
+  <button class="inv-btn">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>{T_BACK_TO_INVENTORY}</span>
+  </button>
+
+</main>
+
+<script>
+function syncThemeIcons() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeIconSun').style.display  = (t === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (t === 'dark') ? 'none'  : 'block';
+}
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+};
+syncThemeIcons();
+
+function setPrintMode(m) { document.documentElement.setAttribute('data-print-mode', m); }
+
+function toggleNoBarcode() { document.getElementById('noBarcodeToggle').classList.toggle('on'); }
+
+function qtyAdj(idx, delta) {
+  var inp = document.getElementById('q' + idx);
+  var v = parseInt(inp.value) || 0;
+  v = Math.max(0, v + delta);
+  inp.value = v;
+  qtyRecalc();
+}
+function qtyRecalc() {
+  var total = 0;
+  for (var i = 0; i < 6; i++) {
+    var inp = document.getElementById('q' + i);
+    if (inp) total += parseInt(inp.value) || 0;
+  }
+  document.getElementById('totalCount').textContent = total + ' ет.';
+}
+function labelsX2() {
+  for (var i = 0; i < 6; i++) {
+    var inp = document.getElementById('q' + i);
+    if (inp) inp.value = (parseInt(inp.value) || 0) * 2;
+  }
+  qtyRecalc();
+}
+function labelsReset() {
+  // 1:1 = ресет към default (един етикет на бройка)
+  var defaults = [3, 2, 4, 3, 2, 1];
+  for (var i = 0; i < 6; i++) {
+    var inp = document.getElementById('q' + i);
+    if (inp) inp.value = defaults[i];
+  }
+  qtyRecalc();
+}
+</script>
+</body>
+</html>
