@@ -1,0 +1,88 @@
+# tools/stress/cron/crontab.example
+#
+# STRESS система cron-ове (Етап 3 от STRESS_BUILD_PLAN.md).
+#
+# ВАЖНО: НЕ инсталирам автоматично. Тихол копира тези редове в crontab ръчно:
+#
+#   crontab -e
+#
+# и поставя изброените по-долу редове. Тогава Тихол потвърждава с:
+#
+#   crontab -l
+#
+# и проверява heartbeats през admin/health.php.
+#
+# Защо ръчна инсталация:
+#   - Закон №1 от STRESS_COMPASS.md: "Стрес чатът не пуска cron сам — Тихол
+#     затваря деня → cron работи по запазена инструкция"
+#   - Crontab в production = mutация на shared system → винаги изисква user
+#     confirmation
+#
+# Преди инсталация — провери че env vars са set в /etc/runmystore/cron.env:
+#
+#   CRON_HEALTH_TOKEN=<random 64-char token, споделен с admin/health.php>
+#   CRON_HEALTH_URL=https://runmystore.ai/admin/health.php
+#   TELEGRAM_BOT_TOKEN=<bot token>      (optional — за P0 alert)
+#   TELEGRAM_CHAT_ID=<Тихол chat id>    (optional)
+#   PYTHONPATH=/var/www/runmystore/tools/stress
+#
+# Времеви график (от STRESS_COMPASS.md ред 39-44):
+#
+#   02:00  nightly_robot.py    — стрес симулация
+#   03:00  test_new_features.py — тест на новите commits
+#   06:00  morning_summary.py   — събира raw статистики
+#   06:30  code_analyzer.sh     — пише MORNING_REPORT.md
+#   07:00  sanity_checker.py    — balance validator (Етап 4)
+#
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+
+# Load env (Тихол поставя credentials в /etc/runmystore/cron.env, chmod 600)
+BASH_ENV=/etc/runmystore/cron.env
+
+# ─── 02:00 — Стрес симулация (200-300 действия) ───
+0 2 * * *  www-data  cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/nightly_robot.py --apply >> /var/log/runmystore/nightly_robot.log 2>&1
+
+# ─── 03:00 — Тест на новите commits ───
+0 3 * * *  www-data  cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/test_new_features.py --apply >> /var/log/runmystore/test_new_features.log 2>&1
+
+# ─── 06:00 — Сутрешен summary (raw stats) ───
+0 6 * * *  www-data  cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/morning_summary.py >> /var/log/runmystore/morning_summary.log 2>&1
+
+# ─── 06:30 — Claude Code анализ (пише MORNING_REPORT.md) ───
+30 6 * * *  www-data  cd /var/www/runmystore && /bin/bash tools/stress/cron/code_analyzer.sh >> /var/log/runmystore/code_analyzer.log 2>&1
+
+# ─── 07:00 — Sanity checker (Етап 4: balance validator) ───
+0 7 * * *  www-data  cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/sanity_checker.py >> /var/log/runmystore/sanity_checker.log 2>&1
+
+
+# === ВЕРИФИКАЦИЯ СЛЕД ИНСТАЛАЦИЯ ===
+#
+# 1. Провери че /etc/runmystore/cron.env е създаден и съдържа всички нужни env vars:
+#       sudo cat /etc/runmystore/cron.env
+#       sudo chmod 600 /etc/runmystore/cron.env
+#       sudo chown www-data:www-data /etc/runmystore/cron.env
+#
+# 2. Провери che /var/log/runmystore/ съществува и е писаем:
+#       sudo mkdir -p /var/log/runmystore
+#       sudo chown www-data:www-data /var/log/runmystore
+#
+# 3. Провери че database tables се авто-създават при първи cron run:
+#       cron_heartbeats         (от admin/health.php)
+#       stress_runs             (от nightly_robot.py)
+#       stress_scenarios_log    (от nightly_robot.py)
+#
+# 4. Mock cron run за валидация:
+#       sudo -u www-data python3 /var/www/runmystore/tools/stress/cron/nightly_robot.py --dry-run
+#       sudo -u www-data python3 /var/www/runmystore/tools/stress/cron/morning_summary.py
+#
+# 5. Open admin/health.php в браузъра — провери че heartbeats са OK.
+#
+# 6. След първа седмица — провери MORNING_REPORT.md commit history.
+#
+# === ABSOLUTE GUARDS ===
+#
+# Тези cron-ове НИКОГА не пишат върху ENI tenant_id=7. Виж tools/stress/_db.py
+# assert_stress_tenant() — refuse-ва ENI email и tenant_id=7.

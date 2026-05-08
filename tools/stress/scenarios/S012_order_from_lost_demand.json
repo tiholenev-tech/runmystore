@@ -1,0 +1,23 @@
+{
+  "id": "S012",
+  "name": "Поръчка към доставчик от lost_demand",
+  "category": "orders / cross-module",
+  "priority": "P1",
+  "status": "pending",
+  "pending_reason": "orders.php модулът не е готов",
+  "linked_module": "orders.php + lost_demand",
+  "precondition": "Има 5 записа в lost_demand за доставчик X, orders.php готов",
+  "action_steps": [
+    "Open orders.php",
+    "Избери доставчик X",
+    "Виж AI footer „6 нови артикула (3 от lost_demand)""
+  ],
+  "expected_result": [
+    "В chernovata фигурират 3 от lost_demand записите като предложени артикули",
+    "Когато се потвърди поръчката → lost_demand записите получават suggested_supplier_id"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 0,
+  "expected_outcome": "skip until orders.php готов",
+  "added_date": "2026-05-08"
+}

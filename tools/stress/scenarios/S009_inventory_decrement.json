@@ -1,0 +1,21 @@
+{
+  "id": "S009",
+  "name": "Inventory accuracy — продажба намалява quantity",
+  "category": "inventory",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "sale.php + inventory таблица",
+  "precondition": "Артикул X с inventory.quantity = 10",
+  "action_steps": [
+    "Симулирай продажба на 3 единици от артикул X"
+  ],
+  "expected_result": [
+    "inventory.quantity = 7 (10 - 3)",
+    "Запис в stock_movements / inventory_events",
+    "Realtime pill се обновява в chat.php"
+  ],
+  "smoke_sql": "SELECT product_id, store_id, quantity FROM inventory WHERE quantity < 0 LIMIT 5",
+  "expects_at_least": 0,
+  "fail_means": "Inventory е отишъл под нула — означава GREATEST е премахнат без race protection.",
+  "added_date": "2026-05-08"
+}

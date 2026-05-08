@@ -1,0 +1,27 @@
+{
+  "id": "S001",
+  "name": "Пълен sale flow (продажба от край до край)",
+  "category": "sale flow",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "sale.php",
+  "precondition": "STRESS Lab tenant активен, поне 100 артикула в DB, поне 1 потребител логнат",
+  "action_steps": [
+    "Симулирай scan на баркод",
+    "Добави артикул в количка",
+    "Добави втори артикул",
+    "Натисни „Плати"",
+    "Избери начин на плащане (брой)",
+    "Завърши продажбата"
+  ],
+  "expected_result": [
+    "Записан ред в `sales` таблицата",
+    "2 реда в `sale_items`",
+    "`inventory.quantity` намалено за двата артикула",
+    "`sales.status = 'completed'`",
+    "`sales.total` правилно изчислено"
+  ],
+  "smoke_sql": "SELECT s.id, s.total, COUNT(si.id) AS items FROM sales s LEFT JOIN sale_items si ON si.sale_id = s.id WHERE s.created_at >= NOW() - INTERVAL 24 HOUR GROUP BY s.id LIMIT 5",
+  "expects_at_least": 1,
+  "added_date": "2026-05-08"
+}

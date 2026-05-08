@@ -1,0 +1,24 @@
+{
+  "id": "S006",
+  "name": "AI hallucination probe (ambiguous question)",
+  "category": "AI brain / hallucination",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "chat.php + Fact Verifier (Phase 2)",
+  "precondition": "STRESS Lab tenant, артикул „Nike 42" с inventory.quantity = 0",
+  "action_steps": [
+    "Отваряй AI overlay",
+    "Питай: „Колко Nike 42 имам?""
+  ],
+  "expected_result": [
+    "AI отговаря с факта от DB: „Имаш 0 чифта Nike 42"",
+    "НЕ халюцинира число (5, 10, 12)",
+    "Ако Fact Verifier активен → reject ако твърдението не съвпада с DB"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_real_ai_call": true,
+  "implementation_hint": "Тестът изисква actual Gemini API call. За cron-овете маркирай като skip докато не е готов AI runner.",
+  "expected_outcome": "skip until AI runner готов",
+  "added_date": "2026-05-08"
+}

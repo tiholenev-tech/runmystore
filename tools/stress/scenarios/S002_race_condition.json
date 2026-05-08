@@ -1,0 +1,28 @@
+{
+  "id": "S002",
+  "name": "Race condition (двама продавачи едновременно)",
+  "category": "sale flow / concurrency",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "sale.php",
+  "linked_bug": "BUILD_PLAN ред 54 — GREATEST(quantity, 0) позволява и двете продажби",
+  "precondition": "Артикул X с inventory.quantity = 1, двама потребители логнати",
+  "action_steps": [
+    "Потребител А отваря продажба, скенира артикул X",
+    "Потребител Б отваря продажба, скенира артикул X (СЪЩАТА секунда)",
+    "Потребител А завършва продажбата",
+    "Потребител Б завършва продажбата"
+  ],
+  "expected_result": [
+    "Само единият трябва да успее",
+    "Другият получава грешка „Артикулът свърши"",
+    "inventory.quantity = 0 (не отрицателно)"
+  ],
+  "smoke_sql": "SELECT product_id, store_id, quantity FROM inventory WHERE quantity < 0 LIMIT 1",
+  "expects_at_least": 0,
+  "expected_outcome": "0 rows returned (никой quantity не е отрицателен)",
+  "fail_means": "GREATEST никога не падна под нула — race не е открит",
+  "needs_concurrent_runner": true,
+  "implementation_hint": "Виж tools/stress/inventory_race_test.php за пример с pcntl_fork.",
+  "added_date": "2026-05-08"
+}
