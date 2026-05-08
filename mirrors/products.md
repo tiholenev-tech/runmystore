@@ -1276,7 +1276,7 @@ foreach ($_custom_colors as $cc) {
    ═══════════════════════════════════════════════════════════ */
 
 /* mod-prod-* helpers (преди бяха inline стилове, извадени в класове) */
-.mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
+.mod-prod-more-groups{margin-top:10px;padding:10px 12px;border-radius:var(--radius-sm);border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);cursor:pointer;display:flex;align-items:center;gap:8px;color:hsl(var(--hue1) 60% 78%);font-size:12px;font-weight:600}
 .mod-prod-v4-footer{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(10,11,20,0.98);border-top:1px solid hsl(var(--hue1) 30% 20% / 0.5);z-index:201;display:flex;gap:6px;max-width:480px;margin:0 auto}
 /* S95.BUGFIX_R5 — wiz-foot-stack: 2-row footer pattern.
  * Top row: small action buttons (qty + cousin axis + back).
@@ -1284,26 +1284,26 @@ foreach ($_custom_colors as $cc) {
 .wiz-foot-stack{display:flex;flex-direction:column;gap:8px}
 .wiz-foot-stack.fixed-bottom{position:fixed;left:0;right:0;bottom:0;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(10,11,20,0.78),rgba(10,11,20,0.98));border-top:1px solid hsl(var(--hue1) 30% 20% / 0.45);z-index:201;max-width:480px;margin:0 auto;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .wiz-foot-row-top{display:flex;gap:8px;align-items:stretch}
-.wiz-foot-back{flex:0 0 42px;width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0;transition:transform .12s var(--ease)}
+.wiz-foot-back{flex:0 0 42px;width:42px;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0;transition:transform .12s var(--ease)}
 .wiz-foot-back:active{transform:scale(.94)}
-.wiz-foot-half{flex:1;min-width:0;height:42px;border-radius:11px;background:linear-gradient(135deg,hsl(255 65% 32% / 0.55),hsl(222 65% 24% / 0.40));border:1px solid hsl(255 70% 55% / 0.50);color:#dbeafe;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;letter-spacing:0.01em;box-shadow:0 4px 12px hsl(255 65% 30% / 0.30),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;white-space:nowrap;padding:0 10px;transition:transform .12s var(--ease)}
+.wiz-foot-half{flex:1;min-width:0;height:42px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(255 65% 32% / 0.55),hsl(222 65% 24% / 0.40));border:1px solid hsl(255 70% 55% / 0.50);color:#dbeafe;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;letter-spacing:0.01em;box-shadow:0 4px 12px hsl(255 65% 30% / 0.30),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;white-space:nowrap;padding:0 10px;transition:transform .12s var(--ease)}
 .wiz-foot-half:active{transform:scale(.97)}
 .wiz-foot-half > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .wiz-foot-half svg{flex-shrink:0}
 /* Q-magic premium recommended CTA — DESIGN_LAW table 2.5 violet */
-.wiz-foot-rec{position:relative;overflow:hidden;width:100%;height:54px;border-radius:14px;background:linear-gradient(135deg,hsl(280 65% 35% / 0.58),hsl(310 60% 25% / 0.30));border:1px solid hsl(280 75% 60% / 0.55);color:#f3e8ff;font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.02em;box-shadow:0 6px 20px hsl(280 70% 40% / 0.32),inset 0 1px 0 rgba(255,255,255,0.10);transition:transform .12s var(--ease)}
+.wiz-foot-rec{position:relative;overflow:hidden;width:100%;height:54px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(280 65% 35% / 0.58),hsl(310 60% 25% / 0.30));border:1px solid hsl(280 75% 60% / 0.55);color:#f3e8ff;font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.02em;box-shadow:0 6px 20px hsl(280 70% 40% / 0.32),inset 0 1px 0 rgba(255,255,255,0.10);transition:transform .12s var(--ease)}
 .wiz-foot-rec:active{transform:scale(.98)}
 .wiz-foot-rec span.wfr-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-shadow:0 0 8px hsl(280 80% 65% / 0.40)}
 .wiz-foot-rec svg{flex-shrink:0;filter:drop-shadow(0 0 6px hsl(280 80% 65% / 0.55))}
 .wiz-foot-rec .wfr-shine{position:absolute;top:0;left:-100%;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);animation:wfrShine 3.6s ease-in-out infinite;pointer-events:none}
 @keyframes wfrShine{0%,100%{left:-100%}50%{left:130%}}
-.wiz-foot-rec .wfr-glow{position:absolute;inset:-2px;border-radius:16px;background:radial-gradient(ellipse at 50% 50%,hsl(280 80% 55% / 0.32),transparent 65%);filter:blur(10px);z-index:-1;pointer-events:none}
-.mod-prod-mx-cta{flex:1;height:44px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
+.wiz-foot-rec .wfr-glow{position:absolute;inset:-2px;border-radius:var(--radius);background:radial-gradient(ellipse at 50% 50%,hsl(280 80% 55% / 0.32),transparent 65%);filter:blur(10px);z-index:-1;pointer-events:none}
+.mod-prod-mx-cta{flex:1;height:44px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 65% 42%),hsl(var(--hue2) 65% 36%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 
 /* ═══ VAR STEP (S73.B.6 — 1:1 от add-product-variations.html) ═══ */
 .v-var-card{padding:0;margin-bottom:12px;overflow:hidden}
-.v-preview-pill{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)}
-.v-preview-thumb{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,hsl(var(--hue1) 40% 25%),hsl(var(--hue2) 40% 22%));border:1px solid hsl(var(--hue1) 40% 35% / 0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.v-preview-pill{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)}
+.v-preview-thumb{width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 40% 25%),hsl(var(--hue2) 40% 22%));border:1px solid hsl(var(--hue1) 40% 35% / 0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .v-preview-thumb svg{width:18px;height:18px;stroke:hsl(var(--hue1) 60% 80%);stroke-width:1.5;fill:none}
 .v-preview-info{flex:1;min-width:0}
 .v-preview-name{font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1314,29 +1314,29 @@ foreach ($_custom_colors as $cc) {
 .v-axis-tab{position:relative;padding:14px 18px 12px;font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;margin-bottom:-1px;font-family:inherit;white-space:nowrap}
 .v-axis-tab.active{color:hsl(var(--hue1) 60% 85%);border-bottom-color:hsl(var(--hue1) 70% 55%);text-shadow:0 0 12px hsl(var(--hue1) 60% 50% / 0.4)}
 .v-axis-tab svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.v-axis-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:100px;background:hsl(var(--hue1) 40% 25% / 0.7);color:hsl(var(--hue1) 60% 88%);font-size:10px;font-weight:800;border:1px solid hsl(var(--hue1) 50% 40% / 0.5)}
+.v-axis-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-pill);background:hsl(var(--hue1) 40% 25% / 0.7);color:hsl(var(--hue1) 60% 88%);font-size:10px;font-weight:800;border:1px solid hsl(var(--hue1) 50% 40% / 0.5)}
 .v-axis-tab.active .v-axis-tab-count{background:hsl(var(--hue1) 60% 45%);color:#fff;box-shadow:0 0 10px hsl(var(--hue1) 60% 50% / 0.5)}
 .v-axis-tab-add{padding:14px 14px 12px;color:hsl(var(--hue1) 60% 70%);font-size:18px;cursor:pointer;border:none;background:transparent;font-family:inherit}
 
 .v-sel-bar{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px 10px;align-items:center;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.5);min-height:56px}
-.v-sel-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 11px;border-radius:100px;background:linear-gradient(135deg,hsl(var(--hue1) 50% 28%),hsl(var(--hue1) 60% 22%));border:1px solid hsl(var(--hue1) 60% 50%);color:#fff;font-size:12px;font-weight:700;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 hsl(var(--hue1) 60% 60% / 0.3);cursor:pointer}
+.v-sel-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 11px;border-radius:var(--radius-pill);background:linear-gradient(135deg,hsl(var(--hue1) 50% 28%),hsl(var(--hue1) 60% 22%));border:1px solid hsl(var(--hue1) 60% 50%);color:#fff;font-size:12px;font-weight:700;box-shadow:0 0 10px hsl(var(--hue1) 60% 45% / 0.3),inset 0 1px 0 hsl(var(--hue1) 60% 60% / 0.3);cursor:pointer}
 .v-sel-chip-x{opacity:0.65;font-size:10px;font-weight:400;padding-left:2px}
-.v-sel-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);flex-shrink:0}
+.v-sel-chip .v-dot{width:10px;height:10px;border-radius:var(--radius-icon);border:1px solid rgba(255,255,255,0.3);flex-shrink:0}
 .v-sel-empty{font-size:11px;color:rgba(255,255,255,0.4);font-style:italic;line-height:1.4}
-.v-clear-btn{margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.02em;text-transform:uppercase;font-family:inherit}
+.v-clear-btn{margin-left:auto;padding:4px 10px;border-radius:var(--radius-pill);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.02em;text-transform:uppercase;font-family:inherit}
 
 .v-picker-body{padding:12px 14px 14px;max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .v-picker-search{position:relative;margin-bottom:12px}
-.v-picker-search input{width:100%;padding:10px 14px 10px 38px;border-radius:12px;border:1px solid hsl(var(--hue2) 15% 20% / 0.6);background:linear-gradient(to bottom,hsl(var(--hue1) 20% 15% / 0.2),hsl(var(--hue1) 30% 10% / 0.4));color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
+.v-picker-search input{width:100%;padding:10px 14px 10px 38px;border-radius:var(--radius-sm);border:1px solid hsl(var(--hue2) 15% 20% / 0.6);background:linear-gradient(to bottom,hsl(var(--hue1) 20% 15% / 0.2),hsl(var(--hue1) 30% 10% / 0.4));color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .v-picker-search input:focus{border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
 .v-picker-search-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.4);pointer-events:none}
 .v-picker-search-ic svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
 
-.v-pgroup{border:1px solid hsl(var(--hue1) 20% 18% / 0.4);border-radius:14px;margin-bottom:10px;overflow:hidden;background:rgba(0,0,0,0.15)}
+.v-pgroup{border:1px solid hsl(var(--hue1) 20% 18% / 0.4);border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden;background:rgba(0,0,0,0.15)}
 .v-pgroup-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:linear-gradient(90deg,hsl(var(--hue1) 25% 15% / 0.5),hsl(var(--hue1) 15% 10% / 0.2) 80%,transparent)}
 .v-pgroup-title{flex:1;font-size:11px;font-weight:800;color:hsl(var(--hue1) 50% 80%);letter-spacing:0.05em;text-transform:uppercase}
 .v-pgroup-title.starred::before{content:'★ ';color:hsl(45 90% 65%);font-size:10px;text-shadow:0 0 8px hsl(45 90% 50% / 0.5)}
-.v-pgroup-count{font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);padding:2px 7px;border-radius:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}
+.v-pgroup-count{font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);padding:2px 7px;border-radius:var(--radius-pill);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}
 .v-pgroup-count.has{color:hsl(var(--hue1) 60% 85%);background:hsl(var(--hue1) 40% 25% / 0.6);border-color:hsl(var(--hue1) 50% 40% / 0.6)}
 .v-pgroup-arr{color:hsl(var(--hue1) 40% 55%);font-size:10px;transition:transform 0.25s var(--ease)}
 .v-pgroup.open .v-pgroup-arr{transform:rotate(90deg)}
@@ -1346,52 +1346,52 @@ foreach ($_custom_colors as $cc) {
 .v-pgroup-footer .v-pgroup-act svg{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .v-pgroup-footer .v-pgroup-act.warn{background:linear-gradient(135deg,hsl(var(--hue1) 55% 32%),hsl(var(--hue2) 55% 28%));border-color:hsl(var(--hue1) 60% 50%);color:#fff;box-shadow:0 2px 8px hsl(var(--hue1) 60% 35% / 0.3),inset 0 1px 0 rgba(255,255,255,0.15);font-weight:700}
 .v-pgroup-footer .v-pgroup-act.warn:hover{box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.45)}
-.v-pgroup-act{padding:6px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
+.v-pgroup-act{padding:6px 11px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-family:inherit;min-width:36px;text-align:center}
 .v-pgroup-act:hover{color:hsl(var(--hue1) 60% 85%)}
 .v-pgroup-act.warn{color:rgba(245,158,11,0.9);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.06)}
 .v-pgroup-act.danger{color:rgba(239,68,68,0.7);border-color:rgba(239,68,68,0.2)}
 .v-pgroup-body{display:none;padding:8px 10px 12px;flex-wrap:wrap;gap:6px;border-top:1px solid hsl(var(--hue1) 20% 18% / 0.3);background:rgba(0,0,0,0.2)}
 .v-pgroup.open .v-pgroup-body{display:flex}
 
-.v-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;user-select:none;-webkit-user-select:none;font-family:inherit}
+.v-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius-pill);font-size:12px;font-weight:600;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);cursor:pointer;user-select:none;-webkit-user-select:none;font-family:inherit}
 .v-chip:hover{background:hsl(var(--hue1) 30% 20% / 0.4);border-color:hsl(var(--hue1) 40% 40% / 0.5);color:hsl(var(--hue1) 60% 85%)}
 .v-chip.selected{background:linear-gradient(135deg,hsl(var(--hue1) 70% 45%),hsl(var(--hue1) 80% 35%));border-color:hsl(var(--hue1) 80% 70%);color:#fff;box-shadow:0 0 18px hsl(var(--hue1) 70% 55% / 0.6),0 4px 12px hsl(var(--hue1) 70% 35% / 0.4),inset 0 1px 0 rgba(255,255,255,0.35);font-weight:800;transform:scale(1.03)}
-.v-chip .v-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
+.v-chip .v-dot{width:10px;height:10px;border-radius:var(--radius-icon);border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
 
 .v-custom-row{display:flex;gap:8px;margin-top:12px;align-items:stretch;flex-wrap:nowrap}
 .v-custom-input{min-width:0}
 .v-custom-btn{flex-shrink:0}
-.v-custom-input{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
+.v-custom-input{flex:1;padding:10px 14px;border-radius:var(--radius-sm);border:1px dashed hsl(var(--hue1) 30% 40% / 0.5);background:rgba(255,255,255,0.02);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .v-custom-input:focus{border-style:solid;border-color:hsl(var(--hue1) 50% 55% / 0.7);box-shadow:0 0 0 3px hsl(var(--hue1) 60% 50% / 0.15)}
-.v-custom-btn{padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 65% 45%),hsl(var(--hue1) 75% 38%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.4),0 0 16px hsl(var(--hue1) 60% 50% / 0.3),inset 0 1px 0 rgba(255,255,255,0.3);font-family:inherit;text-shadow:0 0 8px rgba(255,255,255,0.2);white-space:nowrap}
+.v-custom-btn{padding:12px 18px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 65% 45%),hsl(var(--hue1) 75% 38%));border:1px solid hsl(var(--hue1) 65% 60%);color:#fff;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px hsl(var(--hue1) 60% 40% / 0.4),0 0 16px hsl(var(--hue1) 60% 50% / 0.3),inset 0 1px 0 rgba(255,255,255,0.3);font-family:inherit;text-shadow:0 0 8px rgba(255,255,255,0.2);white-space:nowrap}
 .v-custom-btn svg{width:14px;height:14px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
 
 .v-matrix-cta-wrap{padding:16px;margin-bottom:12px}
 .v-mc-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.v-mc-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,hsl(var(--hue1) 50% 30%),hsl(var(--hue2) 50% 25%));border:1px solid hsl(var(--hue1) 50% 45% / 0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px hsl(var(--hue1) 60% 40% / 0.25);flex-shrink:0}
+.v-mc-icon{width:40px;height:40px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 50% 30%),hsl(var(--hue2) 50% 25%));border:1px solid hsl(var(--hue1) 50% 45% / 0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px hsl(var(--hue1) 60% 40% / 0.25);flex-shrink:0}
 .v-mc-icon svg{width:20px;height:20px;stroke:hsl(var(--hue1) 60% 85%);stroke-width:1.8;fill:none}
 .v-mc-text{flex:1}
 .v-mc-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
 .v-mc-sub{font-size:11px;color:rgba(255,255,255,0.4);line-height:1.4}
 .v-mc-sub b{color:hsl(var(--hue1) 60% 85%);font-weight:700}
-.v-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 55% 30% / 0.7),hsl(var(--hue2) 55% 26% / 0.7));border:1px solid hsl(var(--hue1) 60% 55% / 0.6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;text-shadow:0 0 12px rgba(255,255,255,0.2);width:100%;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
+.v-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 55% 30% / 0.7),hsl(var(--hue2) 55% 26% / 0.7));border:1px solid hsl(var(--hue1) 60% 55% / 0.6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;text-shadow:0 0 12px rgba(255,255,255,0.2);width:100%;font-family:inherit;animation:vCtaPulse 2.2s ease-in-out infinite}
 @keyframes vCtaPulse{0%,100%{box-shadow:0 8px 24px hsl(var(--hue1) 70% 30% / 0.35),0 0 20px hsl(var(--hue1) 60% 45% / 0.2),inset 0 1px 0 rgba(255,255,255,0.2)}50%{box-shadow:0 12px 32px hsl(var(--hue1) 70% 40% / 0.55),0 0 40px hsl(var(--hue1) 60% 55% / 0.5),inset 0 1px 0 rgba(255,255,255,0.3)}}
 .v-matrix-cta-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
-.v-matrix-cta-pill{padding:3px 8px;border-radius:8px;background:rgba(0,0,0,0.3);font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,0.15)}
+.v-matrix-cta-pill{padding:3px 8px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.3);font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,0.15)}
 .v-matrix-cta-arrow{font-size:18px;flex-shrink:0}
-.v-matrix-summary{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);margin-bottom:12px}
-.v-ms-check{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(34,197,94,0.5);flex-shrink:0}
+.v-matrix-summary{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);margin-bottom:12px}
+.v-ms-check{width:28px;height:28px;border-radius:var(--radius-icon);background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(34,197,94,0.5);flex-shrink:0}
 .v-ms-check svg{width:14px;height:14px;stroke:#fff;stroke-width:3;fill:none}
 .v-ms-text{flex:1}
 .v-ms-title{font-size:12px;font-weight:700;color:#86efac;margin-bottom:1px}
 .v-ms-sub{font-size:10px;color:rgba(134,239,172,0.7)}
-.v-ms-edit{padding:5px 12px;border-radius:100px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:#86efac;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;font-family:inherit}
+.v-ms-edit{padding:5px 12px;border-radius:var(--radius-pill);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:#86efac;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;font-family:inherit}
 
 /* ═══ MATRIX FULLSCREEN OVERLAY ═══ */
 .mx-overlay{position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.25) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.25) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);display:none;flex-direction:column;opacity:0;transition:opacity 0.25s var(--ease)}
 .mx-overlay.open{display:flex;opacity:1}
 .mx-header{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 16px 12px;background:rgba(3,7,18,0.9);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.6)}
-.mx-close{min-width:36px;height:36px;padding:0 12px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;font-family:inherit}
+.mx-close{min-width:36px;height:36px;padding:0 12px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;font-family:inherit}
 .mx-close svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
 .mx-title-wrap{flex:1;min-width:0}
 .mx-title{font-size:15px;font-weight:800;background:linear-gradient(135deg,#f1f5f9 30%,hsl(var(--hue1) 60% 80%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
@@ -1399,7 +1399,7 @@ foreach ($_custom_colors as $cc) {
 .mx-subtitle b{color:hsl(var(--hue1) 60% 85%);font-weight:700}
 .mx-quick{flex-shrink:0;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.5);background:rgba(3,7,18,0.6)}
 .mx-quick::-webkit-scrollbar{display:none}
-.mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.mx-qchip{flex-shrink:0;padding:7px 13px;border-radius:var(--radius-pill);background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
 .mx-qchip:hover{background:hsl(var(--hue1) 40% 22% / 0.4);border-color:hsl(var(--hue1) 50% 45% / 0.5);color:hsl(var(--hue1) 60% 88%)}
 .mx-qchip.danger{border-color:rgba(239,68,68,0.25);color:#fca5a5}
 .mx-body-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 0;position:relative}
@@ -1408,30 +1408,30 @@ foreach ($_custom_colors as $cc) {
 .mx-head-cell,.mx-row-head,.mx-corner{position:sticky;background:rgba(8,9,13,0.98);z-index:2}
 .mx-corner{left:0;top:0;z-index:4;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
 .mx-head-cell{top:0;z-index:3;padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:hsl(var(--hue1) 60% 85%);min-width:110px;border-bottom:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3)}
-.mx-head-cell .v-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,0.1)}
+.mx-head-cell .v-dot{width:12px;height:12px;border-radius:var(--radius-icon);border:1px solid rgba(255,255,255,0.25);display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,0.1)}
 .mx-row-head{left:0;z-index:2;padding:8px 10px;text-align:center;font-size:13px;font-weight:800;color:hsl(var(--hue1) 60% 88%);min-width:52px;width:52px;border-right:1px solid hsl(var(--hue2) 15% 18% / 0.8);border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);background:linear-gradient(to right,hsl(var(--hue1) 30% 16% / 0.7),hsl(var(--hue1) 20% 12% / 0.6))}
 .mx-cell{padding:6px 4px;min-width:110px;border-bottom:1px solid hsl(var(--hue2) 10% 14% / 0.5);border-left:1px solid hsl(var(--hue2) 10% 14% / 0.3);background:rgba(0,0,0,0.15);vertical-align:middle;animation:mxPulse 1.8s ease-in-out infinite}
 @keyframes mxPulse{0%,100%{background:rgba(0,0,0,0.15);box-shadow:inset 0 0 0 0 hsl(var(--hue1) 60% 50% / 0)}50%{background:hsl(var(--hue1) 50% 20% / 0.55);box-shadow:inset 0 0 0 2px hsl(var(--hue1) 60% 50% / 0.35)}}
 .mx-cell.has-value{background:hsl(var(--hue1) 40% 18% / 0.45);animation:none;box-shadow:inset 0 0 0 1px hsl(var(--hue1) 60% 45% / 0.3)}
 .mx-cell-inputs{display:flex;flex-direction:column;gap:4px;align-items:center}
-.mx-cell-qty{width:54px;height:34px;padding:4px 2px;border-radius:8px;border:1px solid hsl(var(--hue2) 15% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(var(--hue1) 60% 90%);font-size:14px;font-weight:800;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
+.mx-cell-qty{width:54px;height:34px;padding:4px 2px;border-radius:var(--radius-sm);border:1px solid hsl(var(--hue2) 15% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(var(--hue1) 60% 90%);font-size:14px;font-weight:800;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
 .mx-cell-qty::placeholder{color:rgba(255,255,255,0.18);font-weight:500;font-size:10px}
 .mx-cell-min::placeholder{color:rgba(245,158,11,0.25);font-weight:500}
 .mx-cell-qty::-webkit-outer-spin-button,.mx-cell-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-cell-qty:focus{border-color:hsl(var(--hue1) 60% 55%);background:hsl(var(--hue1) 40% 15% / 0.6);box-shadow:0 0 0 2px hsl(var(--hue1) 60% 50% / 0.2)}
 .mx-cell-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase;line-height:1}
 .mx-cell-min-row{display:flex;align-items:center;gap:2px;justify-content:center}
-.mx-cell-min{width:36px;height:26px;padding:0;border-radius:6px;border:1px solid hsl(45 40% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(45 80% 70%);font-size:11px;font-weight:700;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
+.mx-cell-min{width:36px;height:26px;padding:0;border-radius:var(--radius-sm);border:1px solid hsl(45 40% 22% / 0.7);background:rgba(8,9,13,0.5);color:hsl(45 80% 70%);font-size:11px;font-weight:700;font-family:inherit;text-align:center;outline:none;-moz-appearance:textfield}
 .mx-cell-min::-webkit-outer-spin-button,.mx-cell-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-cell-min:focus{border-color:hsl(45 70% 55%);box-shadow:0 0 0 2px hsl(45 70% 50% / 0.2)}
-.mx-min-step{width:18px;height:26px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
+.mx-min-step{width:18px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
 .mx-min-step:hover{background:hsl(45 30% 20% / 0.5);border-color:hsl(45 40% 40% / 0.5)}
 .mx-bottom{flex-shrink:0;padding:14px 16px max(80px, calc(20px + env(safe-area-inset-bottom)));background:rgba(3,7,18,0.95);border-top:1px solid hsl(var(--hue2) 15% 18% / 0.8)}
-.mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
+.mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;padding:10px 14px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
 .mx-stat{text-align:center;flex:1}
 .mx-stat-v{font-size:20px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,hsl(var(--hue1) 60% 85%) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
 .mx-stat-l{font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-top:4px}
-.mx-done{width:100%;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,hsl(var(--hue1) 70% 52%),hsl(var(--hue1) 80% 42%));border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;box-shadow:0 8px 24px hsl(var(--hue1) 70% 40% / 0.4),0 0 24px hsl(var(--hue1) 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);text-shadow:0 0 12px rgba(255,255,255,0.3)}
+.mx-done{width:100%;padding:14px 18px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 70% 52%),hsl(var(--hue1) 80% 42%));border:1px solid hsl(var(--hue1) 60% 55%);color:#fff;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;box-shadow:0 8px 24px hsl(var(--hue1) 70% 40% / 0.4),0 0 24px hsl(var(--hue1) 70% 50% / 0.25),inset 0 1px 0 rgba(255,255,255,0.25);text-shadow:0 0 12px rgba(255,255,255,0.3)}
 .mx-done svg{width:16px;height:16px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{
@@ -1466,7 +1466,7 @@ body::before{
 @keyframes gradShift{0%{background-position:0% center}100%{background-position:200% center}}
 .store-select{
     background:rgba(99,102,241,0.12);border:1px solid var(--border-subtle);
-    color:var(--indigo-300);padding:3px 10px;border-radius:99px;
+    color:var(--indigo-300);padding:3px 10px;border-radius:var(--radius-pill);
     font-size:13px;font-weight:700;font-family:inherit;outline:none;
     -webkit-appearance:none;
 }
@@ -1476,13 +1476,13 @@ body::before{
 .search-display{
     flex:1;height:38px;display:flex;align-items:center;padding:0 12px;gap:6px;
     background:rgba(99,102,241,0.06);border:1px solid var(--border-subtle);
-    border-radius:12px;font-size:13px;color:var(--text-primary);overflow:hidden;white-space:nowrap;
+    border-radius:var(--radius-sm);font-size:13px;color:var(--text-primary);overflow:hidden;white-space:nowrap;
     cursor:pointer;
 }
 .search-display .ph{color:var(--text-secondary);font-size:14px}
 .search-display svg{flex-shrink:0;color:var(--text-secondary)}
 .srch-btn{
-    width:38px;height:38px;border-radius:10px;border:1px solid var(--border-subtle);
+    width:38px;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:rgba(99,102,241,0.06);color:var(--indigo-300);
     display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
     transition:all 0.15s;
@@ -1493,7 +1493,7 @@ body::before{
 .tabs-row{display:flex;gap:6px;padding:8px 16px 0;overflow-x:auto;scrollbar-width:none}
 .tabs-row::-webkit-scrollbar{display:none}
 .tab-pill{
-    padding:6px 14px;border-radius:99px;border:1px solid var(--border-subtle);
+    padding:6px 14px;border-radius:var(--radius-pill);border:1px solid var(--border-subtle);
     background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;
     white-space:nowrap;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all 0.2s;
 }
@@ -1503,24 +1503,24 @@ body::before{
 }
 .tab-pill .cnt{
     display:inline-block;min-width:16px;height:16px;line-height:16px;text-align:center;
-    border-radius:8px;background:rgba(255,255,255,0.15);font-size:12px;margin-left:4px;padding:0 4px;
+    border-radius:var(--radius-sm);background:rgba(255,255,255,0.15);font-size:12px;margin-left:4px;padding:0 4px;
 }
 
 /* ═══ STAT CARDS ═══ */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 16px 0}
 .stat-card{
-    padding:12px 14px;border-radius:12px;background:var(--bg-card);
+    padding:12px 14px;border-radius:var(--radius-sm);background:var(--bg-card);
     border:1px solid var(--border-subtle);position:relative;overflow:hidden;
 }
 .stat-card .st-label{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
 .stat-card .st-value{font-size:20px;font-weight:800;margin-top:3px}
 .stat-card .st-icon{
-    position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;
+    position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:var(--radius-sm);
     background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:15px;
 }
 
 /* ═══ COLLAPSE SECTIONS ═══ */
-.collapse-sec{margin:6px 16px 0;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-subtle);overflow:hidden}
+.collapse-sec{margin:6px 16px 0;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border-subtle);overflow:hidden}
 .collapse-hdr{
     display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
     cursor:pointer;user-select:none;transition:background 0.15s;
@@ -1529,7 +1529,7 @@ body::before{
 .ch-left{display:flex;align-items:center;gap:7px}
 .ch-icon{font-size:14px}
 .ch-title{font-size:14px;font-weight:700}
-.ch-count{font-size:12px;color:var(--text-secondary);background:rgba(99,102,241,0.1);padding:1px 7px;border-radius:99px;font-weight:600}
+.ch-count{font-size:12px;color:var(--text-secondary);background:rgba(99,102,241,0.1);padding:1px 7px;border-radius:var(--radius-pill);font-weight:600}
 .ch-arrow{transition:transform 0.3s;color:var(--text-secondary);font-size:12px}
 .collapse-hdr.open .ch-arrow{transform:rotate(180deg)}
 .collapse-body{max-height:0;overflow:hidden;transition:max-height 0.35s ease}
@@ -1539,7 +1539,7 @@ body::before{
 /* ═══ PRODUCT CARDS ═══ */
 .p-card{
     display:flex;align-items:center;gap:10px;padding:9px 10px 9px 14px;
-    border-radius:10px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-sm);background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);
     margin-bottom:5px;cursor:pointer;position:relative;overflow:hidden;
     transition:all 0.2s;
 }
@@ -1549,10 +1549,10 @@ body::before{
 .stock-bar.yellow{background:var(--warning);box-shadow:0 0 8px rgba(234,179,8,0.6)}
 .stock-bar.red{background:var(--danger);box-shadow:0 0 8px rgba(239,68,68,0.6)}
 .p-thumb{
-    width:38px;height:38px;border-radius:8px;background:rgba(99,102,241,0.08);
+    width:38px;height:38px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);
     display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
 }
-.p-thumb img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.p-thumb img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)}
 .p-info{flex:1;min-width:0}
 .p-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-meta{font-size:12px;color:var(--text-secondary);margin-top:2px;display:flex;gap:5px}
@@ -1560,21 +1560,21 @@ body::before{
 .p-price{font-size:13px;font-weight:700;color:var(--indigo-300)}
 .p-stock{font-size:12px;margin-top:2px}
 .p-stock.ok{color:var(--success)} .p-stock.low{color:var(--warning)} .p-stock.out{color:var(--danger)}
-.p-discount{position:absolute;top:3px;right:3px;font-size:11px;padding:1px 5px;border-radius:4px;background:var(--danger);color:#fff;font-weight:700}
+.p-discount{position:absolute;top:3px;right:3px;font-size:11px;padding:1px 5px;border-radius:var(--radius-sm);background:var(--danger);color:#fff;font-weight:700}
 
 /* ═══ SUPPLIER CARDS (horizontal scroll) ═══ */
 .swipe-row{padding:10px 16px;overflow-x:auto;display:flex;gap:10px;scroll-snap-type:x mandatory;scrollbar-width:none}
 .swipe-row::-webkit-scrollbar{display:none}
 .sup-card{
     min-width:240px;max-width:280px;flex-shrink:0;scroll-snap-align:start;
-    border-radius:14px;padding:14px;background:var(--bg-card);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-sm);padding:14px;background:var(--bg-card);border:1px solid var(--border-subtle);
     cursor:pointer;transition:all 0.2s;position:relative;
 }
 .sup-card:active{transform:scale(0.97)}
 .sup-card .sc-name{font-size:14px;font-weight:700}
 .sup-card .sc-count{font-size:13px;color:var(--text-secondary);margin-top:2px}
 .sup-card .sc-badges{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
-.sc-badge{font-size:12px;padding:2px 7px;border-radius:99px;font-weight:600}
+.sc-badge{font-size:12px;padding:2px 7px;border-radius:var(--radius-pill);font-weight:600}
 .sc-badge.ok{background:rgba(34,197,94,0.15);color:var(--success)}
 .sc-badge.low{background:rgba(234,179,8,0.15);color:var(--warning)}
 .sc-badge.out{background:rgba(239,68,68,0.15);color:var(--danger)}
@@ -1588,7 +1588,7 @@ body::before{
 .cat-item:active{background:rgba(99,102,241,0.06)}
 .cat-item:last-child{border-bottom:none}
 .cat-card{
-    min-width:160px;flex-shrink:0;scroll-snap-align:start;border-radius:12px;padding:12px;
+    min-width:160px;flex-shrink:0;scroll-snap-align:start;border-radius:var(--radius-sm);padding:12px;
     background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer;
     transition:all 0.2s;
 }
@@ -1605,7 +1605,7 @@ body::before{
 /* ═══ PAGINATION ═══ */
 .pagination{display:flex;align-items:center;justify-content:center;gap:4px;padding:12px 16px}
 .pg-btn{
-    width:28px;height:28px;border-radius:7px;border:1px solid var(--border-subtle);
+    width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;
     cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;
 }
@@ -1615,13 +1615,13 @@ body::before{
 .qa-bar{
     position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:41;
     display:flex;gap:5px;
-    background:rgba(8,8,24,0.92);    padding:5px 6px;border-radius:14px;
+    background:rgba(8,8,24,0.92);    padding:5px 6px;border-radius:var(--radius-sm);
     border:1px solid var(--border-glow);
     box-shadow:0 4px 30px rgba(99,102,241,0.15),0 0 50px rgba(0,0,0,0.4);
 }
 .qa-btn{
     display:flex;align-items:center;gap:5px;border:none;cursor:pointer;
-    font-family:inherit;border-radius:10px;transition:all 0.15s;
+    font-family:inherit;border-radius:var(--radius-sm);transition:all 0.15s;
 }
 .qa-btn:active{transform:scale(0.92)}
 .qa-btn span{font-size:12px;font-weight:800;letter-spacing:0.3px}
@@ -1646,11 +1646,11 @@ body::before{
     width:calc(100% - 24px);max-width:400px;z-index:40;
 }
 .screen-nav-inner{
-    display:flex;gap:2px;background:rgba(3,7,18,0.9);    border-radius:11px;padding:3px;border:1px solid var(--border-subtle);
+    display:flex;gap:2px;background:rgba(3,7,18,0.9);    border-radius:var(--radius-sm);padding:3px;border:1px solid var(--border-subtle);
 }
 .sn-btn{
     flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;
-    padding:5px 2px;border-radius:8px;border:none;background:transparent;
+    padding:5px 2px;border-radius:var(--radius-sm);border:none;background:transparent;
     color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
     transition:all 0.2s;
 }
@@ -1676,14 +1676,14 @@ body::before{
     width:100%;max-width:400px;
     background:rgba(15,15,40,0.95);
     border:1px solid var(--border-glow);
-    border-radius:20px;padding:20px;
+    border-radius:var(--radius);padding:20px;
     box-shadow:0 -12px 50px rgba(99,102,241,0.25),0 0 40px rgba(0,0,0,0.5);
     animation:recSlideUp 0.25s ease;
 }
 @keyframes recSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 .rec-status{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .rec-dot{
-    width:16px;height:16px;border-radius:50%;background:var(--danger);flex-shrink:0;
+    width:16px;height:16px;border-radius:var(--radius-icon);background:var(--danger);flex-shrink:0;
     box-shadow:0 0 12px var(--danger),0 0 24px rgba(239,68,68,0.4);
     animation:recPulse 1s ease infinite;
 }
@@ -1698,20 +1698,20 @@ body::before{
 .rec-transcript{
     min-height:44px;padding:10px 14px;margin-bottom:14px;
     background:rgba(99,102,241,0.06);border:1px solid var(--border-subtle);
-    border-radius:12px;font-size:15px;font-weight:500;
+    border-radius:var(--radius-sm);font-size:15px;font-weight:500;
     color:var(--text-primary);line-height:1.4;word-wrap:break-word;
 }
 .rec-transcript.empty{color:var(--text-secondary);font-style:italic}
 .rec-hint{font-size:13px;color:var(--text-secondary);margin-bottom:14px;text-align:center;line-height:1.4}
 .rec-actions{display:flex;gap:8px}
 .rec-btn-cancel{
-    flex:1;height:44px;border-radius:12px;border:1px solid var(--border-subtle);
+    flex:1;height:44px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:var(--bg-card);color:var(--indigo-300);font-size:14px;font-weight:600;
     cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;
 }
 .rec-btn-cancel:active{background:rgba(99,102,241,0.12)}
 .rec-btn-send{
-    flex:2;height:44px;border-radius:12px;border:none;
+    flex:2;height:44px;border-radius:var(--radius-sm);border:none;
     background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500));
     color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
     display:flex;align-items:center;justify-content:center;gap:6px;
@@ -1734,11 +1734,11 @@ body::before{
     box-shadow:0 -20px 60px rgba(99,102,241,0.2);
 }
 .drawer.open{transform:translateY(0)}
-.drawer-handle{width:36px;height:4px;background:rgba(99,102,241,0.3);border-radius:2px;margin:14px auto 10px}
+.drawer-handle{width:36px;height:4px;background:rgba(99,102,241,0.3);border-radius:var(--radius-sm);margin:14px auto 10px}
 .drawer-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .drawer-hdr h3{font-size:15px;font-weight:800;margin:0}
 .drawer-close{
-    width:32px;height:32px;border-radius:10px;background:rgba(99,102,241,0.1);
+    width:32px;height:32px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);
     border:1px solid var(--border-subtle);color:var(--indigo-300);font-size:16px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
 }
@@ -1757,7 +1757,7 @@ body::before{
 .modal-hdr h2{font-size:16px;font-weight:800;margin:0}
 .modal-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .wiz-steps{display:flex;gap:3px;padding:8px 16px}
-.wiz-step{flex:1;height:3px;border-radius:2px;background:var(--border-subtle);transition:all 0.3s}
+.wiz-step{flex:1;height:3px;border-radius:var(--radius-sm);background:var(--border-subtle);transition:all 0.3s}
 .wiz-step.active{background:linear-gradient(to right,var(--indigo-500),var(--purple));box-shadow:0 0 6px rgba(99,102,241,0.3)}
 .wiz-step.done{background:var(--indigo-500)}
 .wiz-label{font-size:12px;color:var(--text-secondary);padding:0 16px 6px}
@@ -1769,12 +1769,12 @@ body::before{
 .wiz-page.active{display:block;animation:wizFade 0.2s ease}
 @keyframes wizFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 /* S90.PRODUCTS.SPRINT_B C4: AI auto-fill hint — Pesho вижда какво е AI vs какво е писал. */
-.wiz-ai-hint{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;font-size:10px;font-weight:600;color:#a5b4fc;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(139,92,246,0.06));border:1px solid rgba(139,92,246,0.28);border-radius:8px;line-height:1.3;letter-spacing:0.01em}
+.wiz-ai-hint{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;font-size:10px;font-weight:600;color:#a5b4fc;background:linear-gradient(135deg,rgba(99,102,241,0.10),rgba(139,92,246,0.06));border:1px solid rgba(139,92,246,0.28);border-radius:var(--radius-sm);line-height:1.3;letter-spacing:0.01em}
 .wiz-ai-hint svg{stroke:#a5b4fc;stroke-width:2.2;fill:none;flex-shrink:0;width:11px;height:11px}
 
 /* === S82.COLOR.4 — Photo mode toggle + multi-photo + camera loop === */
-.photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
-.pmt-opt{flex:1;padding:7px 8px;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:10.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:all .18s}
+.photo-mode-toggle{display:flex;gap:5px;padding:3px;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);margin-bottom:10px;border:1px solid rgba(99,102,241,0.1)}
+.pmt-opt{flex:1;padding:7px 8px;border-radius:var(--radius-sm);background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:10.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:all .18s}
 .pmt-opt.active{background:linear-gradient(180deg,rgba(99,102,241,0.2),rgba(67,56,202,0.1));color:var(--indigo-300);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)}
 .pmt-opt svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
@@ -1782,36 +1782,36 @@ body::before{
 .photo-multi-grid{display:flex;gap:8px;margin-bottom:8px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:2px 2px 8px;scrollbar-width:none;scroll-padding-left:2px}
 .photo-multi-grid::-webkit-scrollbar{display:none}
 .photo-multi-cell{position:relative;display:flex;flex-direction:column;gap:6px;flex:0 0 calc(50% - 4px);min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
-.photo-multi-thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.18)}
+.photo-multi-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.18)}
 .photo-multi-thumb .ph-img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-multi-thumb .ph-num{position:absolute;top:5px;left:5px;padding:2px 7px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;font-weight:800;line-height:1.4}
-.photo-multi-thumb .ph-rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,0.85);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:inherit;line-height:1;padding:0}
+.photo-multi-thumb .ph-num{position:absolute;top:5px;left:5px;padding:2px 7px;border-radius:var(--radius-pill);background:rgba(0,0,0,0.7);color:#fff;font-size:10px;font-weight:800;line-height:1.4}
+.photo-multi-thumb .ph-rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:var(--radius-icon);background:rgba(239,68,68,0.85);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:inherit;line-height:1;padding:0}
 
-.photo-color-input{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 9px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2)}
-.photo-color-swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0;border:0.5px solid rgba(255,255,255,0.2)}
+.photo-color-input{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 9px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2)}
+.photo-color-swatch{width:14px;height:14px;border-radius:var(--radius-sm);flex-shrink:0;border:0.5px solid rgba(255,255,255,0.2)}
 .photo-color-input input{flex:1 1 100%;order:2;background:transparent;border:none;color:var(--text-primary);font-size:11px;font-weight:600;outline:none;font-family:inherit;padding:2px 0;min-width:0}
 .photo-color-conf{font-size:8px;font-weight:800;color:#86efac;letter-spacing:0.05em;flex-shrink:0}
 .photo-color-conf.warn{color:#fbbf24}
 .photo-color-conf.detecting{color:var(--indigo-300)}
 
-.photo-empty-add{aspect-ratio:1;border-radius:10px;background:rgba(99,102,241,0.05);border:1.5px dashed rgba(99,102,241,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--indigo-300);font-size:10px;font-weight:600;font-family:inherit;transition:all .15s;padding:8px}
+.photo-empty-add{aspect-ratio:1;border-radius:var(--radius-sm);background:rgba(99,102,241,0.05);border:1.5px dashed rgba(99,102,241,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--indigo-300);font-size:10px;font-weight:600;font-family:inherit;transition:all .15s;padding:8px}
 .photo-empty-add:hover{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.5)}
 .photo-empty-add svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
-.photo-multi-info{padding:7px 10px;border-radius:9px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
+.photo-multi-info{padding:7px 10px;border-radius:var(--radius-sm);background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);font-size:10.5px;color:var(--indigo-300);font-weight:600;text-align:center;margin-bottom:8px;line-height:1.4}
 .photo-multi-info b{color:var(--text-primary)}
 
 /* ═══ S82.STUDIO.2 — Step 4 inline AI prompt card (replaces step 5 entry) ═══ */
-.step4-ai-card{margin:14px auto 0;padding:16px 14px;border-radius:18px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.45);position:relative;overflow:hidden;max-width:480px;animation:s4aiFadeIn 0.32s ease}
+.step4-ai-card{margin:14px auto 0;padding:16px 14px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.45);position:relative;overflow:hidden;max-width:480px;animation:s4aiFadeIn 0.32s ease}
 @keyframes s4aiFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .step4-ai-card.flash-attention{animation:s4aiPulse 1.6s ease}
 @keyframes s4aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}30%{box-shadow:0 0 0 6px rgba(167,139,250,0.45)}}
-.s4ai-summary{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.32);font-size:12.5px;color:#fff;font-weight:600;margin-bottom:12px;line-height:1.4}
+.s4ai-summary{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.32);font-size:12.5px;color:#fff;font-weight:600;margin-bottom:12px;line-height:1.4}
 .s4ai-summary svg{width:18px;height:18px;flex-shrink:0;fill:none}
 .s4ai-summary b{color:#86efac;font-weight:800}
 .s4ai-summary.warn{background:rgba(251,191,36,0.10);border-color:rgba(251,191,36,0.35);color:#fef3c7}
 .s4ai-summary.warn b{color:#fbbf24}
-.s4ai-minqty{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:11px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.22);margin-bottom:12px}
+.s4ai-minqty{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.22);margin-bottom:12px}
 .s4ai-mq-label{font-size:11.5px;color:#fde68a;font-weight:700;flex:1;min-width:0;line-height:1.3}
 .s4ai-mq-hint{display:block;font-size:9.5px;color:rgba(251,191,36,0.7);font-weight:500;letter-spacing:0.02em;margin-top:1px}
 .s4ai-mq-stepper{display:flex;align-items:center;gap:0;flex-shrink:0}
@@ -1827,8 +1827,8 @@ body::before{
 .s4ai-prompt-list li{margin-bottom:1px}
 /* S82.STUDIO.9: visual feature grid replaces the bullet list */
 .s4ai-feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
-.s4ai-feat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:11px;background:rgba(0,0,0,0.25);border:1px solid rgba(139,92,246,0.18)}
-.s4ai-feat-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s4ai-feat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.25);border:1px solid rgba(139,92,246,0.18)}
+.s4ai-feat-ico{width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .s4ai-feat-ico svg{width:22px;height:22px;fill:none}
 .s4ai-feat-ico.bg{background:linear-gradient(135deg,rgba(165,180,252,0.22),rgba(99,102,241,0.1));color:#a5b4fc;box-shadow:0 0 12px rgba(99,102,241,0.18)}
 .s4ai-feat-ico.magic{background:linear-gradient(135deg,rgba(251,191,36,0.22),rgba(245,158,11,0.1));color:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,0.18)}
@@ -1837,7 +1837,7 @@ body::before{
 .s4ai-feat-lbl{font-size:10.5px;font-weight:700;color:#fff;text-align:center;line-height:1.25}
 .s4ai-feat-sub{font-size:8.5px;font-weight:600;color:rgba(233,213,255,0.55);letter-spacing:0.02em}
 .s4ai-prompt-actions{display:flex;flex-direction:column;gap:7px}
-.s4ai-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
+.s4ai-btn{width:100%;padding:13px;border-radius:var(--radius-sm);font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
 .s4ai-btn:active{transform:scale(0.98)}
 .s4ai-btn.yes{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,0.4)}
 .s4ai-btn.no{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.12);font-weight:700;font-size:12px}
@@ -1854,13 +1854,13 @@ body::before{
 }
 .studio-modal{width:100%;max-width:480px;max-height:92vh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:studioCardIn 0.32s cubic-bezier(0.32, 0.72, 0, 1)}
 @media (min-width: 600px){
-    .studio-modal{border-radius:22px;max-height:88vh}
+    .studio-modal{border-radius:var(--radius);max-height:88vh}
 }
 @keyframes studioCardIn{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 .studio-modal-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border-subtle);flex-shrink:0;position:relative;z-index:5}
 .studio-modal-hdr h2{font-size:17px;font-weight:800;margin:0;flex:1;text-align:center;background:linear-gradient(135deg,#fff,var(--indigo-300));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.studio-mh-close,.studio-mh-help{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0;transition:all 0.18s}
+.studio-mh-close,.studio-mh-help{width:34px;height:34px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0;transition:all 0.18s}
 .studio-mh-close:hover,.studio-mh-help:hover{color:var(--indigo-300);border-color:rgba(99,102,241,0.4)}
 .studio-mh-help{font-size:15px}
 
@@ -1868,27 +1868,27 @@ body::before{
 .studio-modal-body > * + *{margin-top:12px}
 
 .studio-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 20px;color:rgba(255,255,255,0.55);font-size:13px}
-.studio-spin{width:32px;height:32px;border-radius:50%;border:3px solid rgba(167,139,250,0.2);border-top-color:#a78bfa;animation:studioSpin 0.85s linear infinite}
+.studio-spin{width:32px;height:32px;border-radius:var(--radius-icon);border:3px solid rgba(167,139,250,0.2);border-top-color:#a78bfa;animation:studioSpin 0.85s linear infinite}
 @keyframes studioSpin{to{transform:rotate(360deg)}}
 .studio-error{padding:30px 20px;text-align:center;color:#fca5a5;font-size:13px}
 
 /* Plan lock */
 .studio-lock{padding:8px 8px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
-.studio-lock-ico{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));display:flex;align-items:center;justify-content:center;box-shadow:0 0 26px rgba(99,102,241,0.5);margin-bottom:4px}
+.studio-lock-ico{width:54px;height:54px;border-radius:var(--radius-icon);background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));display:flex;align-items:center;justify-content:center;box-shadow:0 0 26px rgba(99,102,241,0.5);margin-bottom:4px}
 .studio-lock-ico svg{width:24px;height:24px}
 .studio-lock-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.01em}
 .studio-lock-sub{font-size:12px;color:rgba(233,213,255,0.72);line-height:1.5;max-width:300px;margin-bottom:6px}
 .studio-lock-features{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:320px;margin-bottom:8px}
-.studio-lock-feat{padding:8px 9px;border-radius:9px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.22);font-size:11px;color:var(--indigo-300);display:flex;align-items:center;gap:6px;font-weight:600}
+.studio-lock-feat{padding:8px 9px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.22);font-size:11px;color:var(--indigo-300);display:flex;align-items:center;gap:6px;font-weight:600}
 .studio-lock-feat svg{width:12px;height:12px;flex-shrink:0;fill:none}
-.studio-lock-cta{padding:13px 24px;border-radius:100px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,58,237,0.45);width:100%;max-width:300px;transition:all 0.18s}
+.studio-lock-cta{padding:13px 24px;border-radius:var(--radius-pill);background:linear-gradient(135deg,#7c3aed,#6366f1);border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,58,237,0.45);width:100%;max-width:300px;transition:all 0.18s}
 .studio-lock-cta:active{transform:translateY(1px)}
 .studio-lock-skip{margin-top:4px;background:transparent;border:none;color:rgba(255,255,255,0.45);font-size:11.5px;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline}
 
 /* Credits bar */
-.studio-credits-bar{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.06));border:1px solid rgba(99,102,241,0.28);width:100%;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s}
+.studio-credits-bar{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.06));border:1px solid rgba(99,102,241,0.28);width:100%;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s}
 .studio-credits-bar:active{transform:scale(0.985)}
-.studio-cr-plan{padding:5px 11px;border-radius:100px;background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));color:#fff;font-size:10px;font-weight:800;letter-spacing:0.06em;flex-shrink:0;box-shadow:0 0 12px rgba(99,102,241,0.4)}
+.studio-cr-plan{padding:5px 11px;border-radius:var(--radius-pill);background:linear-gradient(135deg,var(--indigo-600,#4f46e5),var(--indigo-500,#6366f1));color:#fff;font-size:10px;font-weight:800;letter-spacing:0.06em;flex-shrink:0;box-shadow:0 0 12px rgba(99,102,241,0.4)}
 .studio-cr-plan.start{background:linear-gradient(135deg,#0ea5e9,#0284c7);box-shadow:0 0 12px rgba(14,165,233,0.4)}
 .studio-cr-content{flex:1;min-width:0}
 .studio-cr-line{display:flex;align-items:center;gap:8px;font-size:12px;color:#fff;font-weight:600;margin-bottom:2px}
@@ -1900,45 +1900,45 @@ body::before{
 .studio-cr-arrow svg{width:14px;height:14px;display:block;fill:none}
 
 /* Studio sections */
-.studio-section{padding:14px 13px;border-radius:16px;background:rgba(15,15,40,0.55);border:1px solid var(--border-subtle);position:relative;overflow:hidden}
+.studio-section{padding:14px 13px;border-radius:var(--radius);background:rgba(15,15,40,0.55);border:1px solid var(--border-subtle);position:relative;overflow:hidden}
 .studio-section.studio-soon{opacity:0.55;pointer-events:none}
-.studio-section.studio-soon::after{content:'СКОРО';position:absolute;top:10px;right:10px;font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:var(--indigo-300);padding:3px 7px;border-radius:6px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25)}
+.studio-section.studio-soon::after{content:'СКОРО';position:absolute;top:10px;right:10px;font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:var(--indigo-300);padding:3px 7px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25)}
 .studio-sect-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.studio-sect-ico{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,rgba(167,139,250,0.22),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.32);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--indigo-300)}
+.studio-sect-ico{width:38px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(167,139,250,0.22),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.32);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--indigo-300)}
 .studio-sect-ico svg{width:19px;height:19px;fill:none}
 .studio-sect-title{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:-0.005em}
 .studio-sect-sub{font-size:11px;color:rgba(233,213,255,0.55);margin-top:1px}
-.studio-sect-price{margin-left:auto;font-size:11px;font-weight:700;color:#86efac;background:rgba(34,197,94,0.1);padding:3px 8px;border-radius:6px;border:1px solid rgba(34,197,94,0.25);flex-shrink:0}
+.studio-sect-price{margin-left:auto;font-size:11px;font-weight:700;color:#86efac;background:rgba(34,197,94,0.1);padding:3px 8px;border-radius:var(--radius-sm);border:1px solid rgba(34,197,94,0.25);flex-shrink:0}
 
 /* Bg removal grid */
 .studio-bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:10px}
-.studio-bg-empty{padding:24px 12px;text-align:center;color:rgba(255,255,255,0.4);font-size:12px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px dashed rgba(99,102,241,0.18)}
+.studio-bg-empty{padding:24px 12px;text-align:center;color:rgba(255,255,255,0.4);font-size:12px;background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);border:1px dashed rgba(99,102,241,0.18)}
 .studio-bg-cell{display:flex;flex-direction:column;gap:6px;position:relative}
-.studio-bg-thumb{aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);position:relative}
+.studio-bg-thumb{aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);position:relative}
 .studio-bg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.studio-bg-status{position:absolute;top:5px;left:5px;right:5px;padding:4px 8px;border-radius:7px;font-size:10px;font-weight:700;text-align:center}
+.studio-bg-status{position:absolute;top:5px;left:5px;right:5px;padding:4px 8px;border-radius:var(--radius-sm);font-size:10px;font-weight:700;text-align:center}
 .studio-bg-status.processing{background:rgba(0,0,0,0.7);color:#a5b4fc}
 .studio-bg-status.done{background:rgba(34,197,94,0.85);color:#fff}
 .studio-bg-status.error{background:rgba(239,68,68,0.85);color:#fff;cursor:help}
-.studio-bg-btn{padding:7px 8px;border-radius:9px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:none;color:#fff;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1.2}
+.studio-bg-btn{padding:7px 8px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:none;color:#fff;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1.2}
 .studio-bg-btn svg{width:11px;height:11px;fill:none}
-.studio-bulk-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 14px rgba(124,58,237,0.35)}
+.studio-bulk-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 14px rgba(124,58,237,0.35)}
 .studio-bulk-btn svg{width:14px;height:14px;fill:none}
 
 /* Export bar (Phase 4 — disabled placeholders for now) */
 .studio-export-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.studio-export-btn{padding:10px 6px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.55);font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.18s}
+.studio-export-btn{padding:10px 6px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.55);font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.18s}
 .studio-export-btn svg{width:18px;height:18px;fill:none}
 .studio-export-btn.soon{opacity:0.45;cursor:not-allowed}
 
-.studio-done-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 16px rgba(22,163,74,0.35)}
+.studio-done-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#16a34a,#15803d);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 16px rgba(22,163,74,0.35)}
 .studio-done-btn svg{width:14px;height:14px;fill:none}
 
 /* ═══ S82.STUDIO.3 — Phase D additions (image compare, AI Magic grid, Studio chips, SEO, buy credits) ═══ */
 .studio-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.studio-cmp-cell{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;background:rgba(0,0,0,0.35);border:1px solid rgba(99,102,241,0.22)}
+.studio-cmp-cell{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;background:rgba(0,0,0,0.35);border:1px solid rgba(99,102,241,0.22)}
 .studio-cmp-cell img{width:100%;height:100%;object-fit:cover;display:block}
-.studio-cmp-pill{position:absolute;top:8px;left:8px;padding:4px 10px;border-radius:100px;font-size:9.5px;font-weight:800;letter-spacing:0.06em;z-index:2}
+.studio-cmp-pill{position:absolute;top:8px;left:8px;padding:4px 10px;border-radius:var(--radius-pill);font-size:9.5px;font-weight:800;letter-spacing:0.06em;z-index:2}
 .studio-cmp-pill.before{background:rgba(0,0,0,0.6);color:#fff}
 .studio-cmp-pill.after{background:rgba(34,197,94,0.85);color:#fff;text-shadow:0 0 6px rgba(0,0,0,0.4)}
 .studio-cmp-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,0.4);font-size:11px;background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(139,92,246,0.06))}
@@ -1953,34 +1953,34 @@ body::before{
 .studio-sect-price.tryon{color:#fbbf24;background:rgba(251,191,36,0.10);border-color:rgba(251,191,36,0.28)}
 
 .studio-models-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
-.studio-model-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;border-radius:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.65);cursor:pointer;font-family:inherit;transition:all 0.18s}
+.studio-model-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.65);cursor:pointer;font-family:inherit;transition:all 0.18s}
 .studio-model-btn svg{width:22px;height:22px;fill:none;stroke-width:1.7}
 .studio-model-lbl{font-size:10.5px;font-weight:700;letter-spacing:0.01em}
 .studio-model-btn:active{transform:scale(0.96)}
 .studio-model-btn.sel{background:linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.08));border-color:#fbbf24;color:#fbbf24;box-shadow:0 0 14px rgba(251,191,36,0.3)}
 
 .studio-preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
-.studio-preset-chip{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s}
+.studio-preset-chip{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s}
 .studio-preset-chip svg{width:14px;height:14px;flex-shrink:0;fill:none;stroke-width:1.7}
 .studio-preset-chip:active{transform:scale(0.97)}
 .studio-preset-chip.sel{background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border-color:#86efac;color:#86efac;box-shadow:0 0 12px rgba(34,197,94,0.25)}
 
 .studio-prompt-row{display:flex;gap:6px;margin-bottom:10px}
-.studio-prompt-input{flex:1;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);color:#fff;font-size:12px;font-family:inherit;outline:none;min-width:0}
+.studio-prompt-input{flex:1;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);color:#fff;font-size:12px;font-family:inherit;outline:none;min-width:0}
 .studio-prompt-input::placeholder{color:rgba(255,255,255,0.35);font-style:italic}
 .studio-prompt-input:focus{border-color:rgba(167,139,250,0.55);box-shadow:0 0 0 3px rgba(167,139,250,0.15)}
-.studio-gen-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;border-radius:12px;border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
+.studio-gen-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;border-radius:var(--radius-sm);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:0.005em;transition:transform 0.12s}
 .studio-gen-btn svg{width:14px;height:14px;fill:none;stroke-width:2}
 .studio-gen-btn:active{transform:scale(0.98)}
 .studio-gen-btn.magic{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 16px rgba(245,158,11,0.35)}
 .studio-gen-btn.studio{background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 16px rgba(22,163,74,0.35)}
 
-.studio-seo-textarea{width:100%;min-height:120px;padding:12px;border-radius:12px;background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);color:#fff;font-size:12.5px;line-height:1.55;font-family:inherit;outline:none;resize:vertical;margin-bottom:8px}
+.studio-seo-textarea{width:100%;min-height:120px;padding:12px;border-radius:var(--radius-sm);background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.2);color:#fff;font-size:12.5px;line-height:1.55;font-family:inherit;outline:none;resize:vertical;margin-bottom:8px}
 .studio-seo-textarea::placeholder{color:rgba(255,255,255,0.35);font-style:italic}
 .studio-seo-textarea:focus{border-color:rgba(125,211,252,0.55);box-shadow:0 0 0 3px rgba(125,211,252,0.15)}
 .studio-seo-stats{font-size:10.5px;color:rgba(255,255,255,0.45);font-weight:600;letter-spacing:0.02em;margin-bottom:10px;text-align:right}
 .studio-seo-actions{display:flex;gap:6px}
-.studio-seo-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.78);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.studio-seo-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.78);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .studio-seo-btn svg{width:13px;height:13px;fill:none;stroke-width:2}
 .studio-seo-btn.primary{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(14,165,233,0.35)}
 .studio-seo-btn:active{transform:scale(0.97)}
@@ -1993,14 +1993,14 @@ body::before{
 .studio-buy-ov{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10001;display:flex;align-items:flex-end;justify-content:center;padding:0;animation:studioOvFade 0.22s ease-out}
 @media (min-width: 600px){.studio-buy-ov{align-items:center;padding:24px}}
 .studio-buy-card{width:100%;max-width:420px;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0));display:flex;flex-direction:column;gap:10px;animation:studioCardIn 0.3s cubic-bezier(0.32, 0.72, 0, 1)}
-@media (min-width: 600px){.studio-buy-card{border-radius:22px}}
+@media (min-width: 600px){.studio-buy-card{border-radius:var(--radius)}}
 .studio-buy-hdr{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-.studio-buy-ico{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(99,102,241,0.12));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.studio-buy-ico{width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(99,102,241,0.12));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .studio-buy-ico svg{width:18px;height:18px;fill:none}
 .studio-buy-hdr h3{flex:1;font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.01em;margin:0}
-.studio-buy-x{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.studio-buy-x{width:30px;height:30px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .studio-buy-sub{font-size:11.5px;color:rgba(233,213,255,0.65);line-height:1.5;margin-bottom:4px}
-.studio-pack{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;background:rgba(99,102,241,0.07);border:1.5px solid rgba(99,102,241,0.22);cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s;position:relative}
+.studio-pack{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.07);border:1.5px solid rgba(99,102,241,0.22);cursor:pointer;font-family:inherit;text-align:left;transition:all 0.18s;position:relative}
 .studio-pack:active{transform:scale(0.985)}
 .studio-pack.popular{background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border-color:rgba(167,139,250,0.55);box-shadow:0 0 18px rgba(167,139,250,0.18)}
 .sp-price{font-size:24px;font-weight:900;color:#a5b4fc;letter-spacing:-0.02em;flex-shrink:0;min-width:54px}
@@ -2009,8 +2009,8 @@ body::before{
 .sp-main{font-size:12.5px;color:#fff;font-weight:600}
 .sp-main b{color:#86efac;font-weight:800}
 .sp-sub{font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px}
-.sp-tag{padding:3px 8px;border-radius:100px;font-size:8.5px;font-weight:800;letter-spacing:0.06em;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;flex-shrink:0;box-shadow:0 0 10px rgba(167,139,250,0.45);text-transform:uppercase}
-.studio-buy-cancel{padding:11px;border-radius:11px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px}
+.sp-tag{padding:3px 8px;border-radius:var(--radius-pill);font-size:8.5px;font-weight:800;letter-spacing:0.06em;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;flex-shrink:0;box-shadow:0 0 10px rgba(167,139,250,0.45);text-transform:uppercase}
+.studio-buy-cancel{padding:11px;border-radius:var(--radius-sm);background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px}
 
 /* Camera loop fullscreen overlay (S82.COLOR.10: native phone camera + spinners) */
 .cam-loop-ov{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column}
@@ -2025,7 +2025,7 @@ body::before{
 .cam-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px 28px;text-align:center;animation:camLoadFadeIn 0.18s ease}
 @keyframes camLoadFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .cam-loader{display:flex;gap:14px}
-.cam-loader div{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 28px rgba(167,139,250,0.85),0 0 50px rgba(99,102,241,0.5);opacity:0.35;animation:camLoaderPulse 1.2s infinite ease-in-out}
+.cam-loader div{width:24px;height:24px;border-radius:var(--radius-icon);background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 28px rgba(167,139,250,0.85),0 0 50px rgba(99,102,241,0.5);opacity:0.35;animation:camLoaderPulse 1.2s infinite ease-in-out}
 .cam-loader div:nth-child(1){animation-delay:-0.32s}
 .cam-loader div:nth-child(2){animation-delay:-0.16s}
 @keyframes camLoaderPulse{0%,80%,100%{opacity:0.35;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
@@ -2033,17 +2033,17 @@ body::before{
 .cam-loading-sub{font-size:12.5px;color:rgba(233,213,255,0.65);max-width:280px;line-height:1.5;font-weight:500}
 
 /* S82.COLOR.14: first-time camera tip card */
-.cam-tip{display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 24px;max-width:340px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.4);border-radius:20px;margin:20px}
-.cam-tip-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(99,102,241,0.15));display:flex;align-items:center;justify-content:center}
+.cam-tip{display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 24px;max-width:340px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.4);border-radius:var(--radius);margin:20px}
+.cam-tip-icon{width:56px;height:56px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(99,102,241,0.15));display:flex;align-items:center;justify-content:center}
 .cam-tip-icon svg{width:30px;height:30px}
 .cam-tip-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
 .cam-tip-body{font-size:13px;color:rgba(233,213,255,0.85);text-align:center;line-height:1.6;font-weight:500}
 .cam-tip-body b{color:#fff}
-.cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
-.cam-tip-btn{padding:13px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
+.cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:var(--radius-sm);background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
+.cam-tip-btn{padding:13px 22px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
 
 /* S82.COLOR.17: compact one-line camera tip in the picker drawer */
-.cam-drawer-tip{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;margin-bottom:12px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,0.14),rgba(99,102,241,0.07));border:1px solid rgba(139,92,246,0.32);position:relative;overflow:hidden;animation:tipFadeIn 0.4s ease-out}
+.cam-drawer-tip{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;margin-bottom:12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(124,58,237,0.14),rgba(99,102,241,0.07));border:1px solid rgba(139,92,246,0.32);position:relative;overflow:hidden;animation:tipFadeIn 0.4s ease-out}
 .cam-drawer-tip::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(167,139,250,0.08) 50%,transparent 70%);background-size:200% 200%;animation:tipShine 4s ease-in-out infinite;pointer-events:none}
 @keyframes tipFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes tipShine{0%,100%{background-position:200% 200%}50%{background-position:0% 0%}}
@@ -2051,7 +2051,7 @@ body::before{
 @keyframes tipIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 .cam-drawer-tip-text{font-size:11.5px;color:rgba(233,213,255,0.82);line-height:1.55;font-weight:500;flex:1;min-width:0;position:relative}
 .cam-drawer-tip-text b{color:#fff;font-weight:700}
-.cam-drawer-tip-app{display:inline-block;padding:1px 6px;margin:0 1px;border-radius:5px;background:rgba(167,139,250,0.22);font-size:11px;font-weight:700;border:1px solid rgba(167,139,250,0.35);color:#fff;white-space:nowrap}
+.cam-drawer-tip-app{display:inline-block;padding:1px 6px;margin:0 1px;border-radius:var(--radius-sm);background:rgba(167,139,250,0.22);font-size:11px;font-weight:700;border:1px solid rgba(167,139,250,0.35);color:#fff;white-space:nowrap}
 .cam-drawer-tip-or{display:inline-block;color:rgba(233,213,255,0.6);font-size:11px}
 .cam-drawer-tip-flip{display:inline-block;font-size:13px;animation:tipFlipRot 2.6s linear infinite;vertical-align:middle}
 @keyframes tipFlipRot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
@@ -2064,24 +2064,24 @@ body::before{
 .cam-setup-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.01em;margin-bottom:6px}
 .cam-setup-sub{font-size:13.5px;color:rgba(233,213,255,0.8);line-height:1.5}
 .cam-setup-steps{display:flex;flex-direction:column;gap:11px;margin:8px 0}
-.cam-setup-step{display:flex;gap:14px;align-items:flex-start;padding:14px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(99,102,241,0.08));border:1px solid rgba(139,92,246,0.32);opacity:0;transform:translateX(-12px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-step{display:flex;gap:14px;align-items:flex-start;padding:14px 14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(99,102,241,0.08));border:1px solid rgba(139,92,246,0.32);opacity:0;transform:translateX(-12px);animation:setupStepIn 0.55s ease-out forwards}
 @keyframes setupStepIn{to{opacity:1;transform:translateX(0)}}
-.cam-setup-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,0.5);animation:setupNumPulse 2s ease-in-out infinite}
+.cam-setup-num{width:32px;height:32px;border-radius:var(--radius-icon);background:linear-gradient(135deg,#a78bfa,#6366f1);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,0.5);animation:setupNumPulse 2s ease-in-out infinite}
 @keyframes setupNumPulse{0%,100%{box-shadow:0 0 14px rgba(167,139,250,0.5)}50%{box-shadow:0 0 22px rgba(167,139,250,0.85)}}
 .cam-setup-step-body{flex:1;min-width:0}
 .cam-setup-step-title{font-size:14.5px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:3px}
 .cam-setup-step-desc{font-size:12px;color:rgba(233,213,255,0.72);line-height:1.5}
 .cam-setup-step-desc b{color:#fff}
-.cam-setup-tap{display:inline-block;padding:1px 7px;margin:0 2px;border-radius:5px;background:rgba(167,139,250,0.25);font-size:13px;border:1px solid rgba(167,139,250,0.4)}
-.cam-setup-app{display:inline-block;padding:1px 8px;margin:0 2px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:13px;font-weight:700;border:1px solid rgba(167,139,250,0.4);color:#fff}
+.cam-setup-tap{display:inline-block;padding:1px 7px;margin:0 2px;border-radius:var(--radius-sm);background:rgba(167,139,250,0.25);font-size:13px;border:1px solid rgba(167,139,250,0.4)}
+.cam-setup-app{display:inline-block;padding:1px 8px;margin:0 2px;border-radius:var(--radius-sm);background:rgba(167,139,250,0.25);font-size:13px;font-weight:700;border:1px solid rgba(167,139,250,0.4);color:#fff}
 .cam-setup-flip{display:inline-block;font-size:16px;animation:setupFlipRot 2.4s linear infinite}
 @keyframes setupFlipRot{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.cam-setup-finale{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border:1.5px solid rgba(34,197,94,0.4);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-finale{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border:1.5px solid rgba(34,197,94,0.4);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
 .cam-setup-finale-icon{font-size:32px;animation:setupFinaleSparkle 1.8s ease-in-out infinite}
 @keyframes setupFinaleSparkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.15) rotate(8deg)}}
 .cam-setup-finale-text{font-size:13.5px;color:#fff;font-weight:600;line-height:1.4}
 .cam-setup-finale-text b{color:#86efac}
-.cam-setup-done-btn{margin-top:6px;padding:15px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 22px rgba(124,58,237,0.5);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-done-btn{margin-top:6px;padding:15px 22px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 22px rgba(124,58,237,0.5);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
 .cam-setup-done-btn:active{transform:scale(0.98)}
 .cam-setup-done-btn svg{width:18px;height:18px}
 .cam-setup-skip{margin-top:4px;background:transparent;border:none;color:rgba(255,255,255,0.4);font-size:11.5px;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline}
@@ -2092,26 +2092,26 @@ body::before{
 .cam-picker-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
 .cam-picker-sub{font-size:12px;color:rgba(233,213,255,0.65);text-align:center;line-height:1.55;padding:0 8px}
 .cam-picker-list{display:flex;flex-direction:column;gap:8px;width:100%}
-.cam-picker-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.25)}
+.cam-picker-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.25)}
 .cam-picker-item-info{display:flex;flex-direction:column;gap:2px}
 .cam-picker-item-name{font-size:13px;font-weight:700;color:#fff;word-break:break-word}
 .cam-picker-item-sub{font-size:10.5px;color:rgba(233,213,255,0.55)}
 .cam-picker-item-actions{display:flex;gap:6px}
-.cam-picker-test,.cam-picker-save{flex:1;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
+.cam-picker-test,.cam-picker-save{flex:1;padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
 .cam-picker-test{background:rgba(255,255,255,0.08);color:#e9d5ff;border:1px solid rgba(255,255,255,0.12)}
 .cam-picker-save{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,0.35)}
 .cam-picker-test-bar{position:absolute;bottom:14px;left:14px;right:14px;display:flex;gap:8px;z-index:2}
-.cam-picker-back,.cam-picker-use{flex:1;padding:11px 14px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
+.cam-picker-back,.cam-picker-use{flex:1;padding:11px 14px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
 .cam-picker-back{background:rgba(0,0,0,0.5);color:#fff;border:1px solid rgba(255,255,255,0.15)}
 .cam-picker-use{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 14px rgba(22,163,74,0.4)}
-.cam-change-link{position:absolute;bottom:calc(80px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:100px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;z-index:1}
+.cam-change-link{position:absolute;bottom:calc(80px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;z-index:1}
 
 /* AI Vision processing overlay — fullscreen, sits ABOVE the wizard */
 .ai-working-ov{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:10000;display:flex;align-items:center;justify-content:center;animation:aiOvFade 0.22s ease;padding:20px}
 @keyframes aiOvFade{from{opacity:0}to{opacity:1}}
-.ai-working-card{padding:32px 26px;border-radius:24px;background:linear-gradient(135deg,rgba(124,58,237,0.32),rgba(99,102,241,0.18));border:1.5px solid rgba(139,92,246,0.55);box-shadow:0 0 50px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;gap:14px;min-width:260px;max-width:340px}
+.ai-working-card{padding:32px 26px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(124,58,237,0.32),rgba(99,102,241,0.18));border:1.5px solid rgba(139,92,246,0.55);box-shadow:0 0 50px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;gap:14px;min-width:260px;max-width:340px}
 .ai-working-orb{display:flex;gap:10px;margin-bottom:6px}
-.ai-working-orb div{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 16px rgba(167,139,250,0.7);animation:aiOrbPulse 1.4s infinite ease-in-out}
+.ai-working-orb div{width:16px;height:16px;border-radius:var(--radius-icon);background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 16px rgba(167,139,250,0.7);animation:aiOrbPulse 1.4s infinite ease-in-out}
 .ai-working-orb div:nth-child(1){animation-delay:-0.32s}
 .ai-working-orb div:nth-child(2){animation-delay:-0.16s}
 @keyframes aiOrbPulse{0%,80%,100%{opacity:0.4;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
@@ -2119,23 +2119,23 @@ body::before{
 .ai-working-msg{font-size:13px;color:rgba(233,213,255,0.85);text-align:center;line-height:1.5;font-weight:600}
 .ai-working-hint{font-size:10.5px;color:rgba(233,213,255,0.5);text-align:center;letter-spacing:0.02em}
 .cam-loop-controls{padding:14px 14px calc(14px + env(safe-area-inset-bottom,0));background:rgba(0,0,0,0.9);display:flex;gap:8px;align-items:center;justify-content:center}
-.cam-loop-btn{padding:14px 18px;border-radius:14px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.cam-loop-btn{padding:14px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .cam-loop-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.cam-loop-btn.shoot{width:74px;height:74px;border-radius:50%;background:#fff;color:#000;padding:0;box-shadow:0 0 0 4px rgba(255,255,255,0.25)}
+.cam-loop-btn.shoot{width:74px;height:74px;border-radius:var(--radius-icon);background:#fff;color:#000;padding:0;box-shadow:0 0 0 4px rgba(255,255,255,0.25)}
 .cam-loop-btn.shoot svg{width:30px;height:30px;stroke-width:2.2}
 .cam-loop-btn.next{background:linear-gradient(135deg,var(--indigo-500),var(--indigo-600));color:#fff;flex:1;max-width:160px}
 .cam-loop-btn.done{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;flex:1;max-width:160px}
 .cam-loop-btn.retake{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);flex:1;max-width:140px}
-.cam-loop-btn.cancel{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);width:50px;height:50px;border-radius:14px;padding:0}
-.cam-loop-counter{position:absolute;top:calc(14px + env(safe-area-inset-top,0));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:12px;font-weight:700;z-index:1}
+.cam-loop-btn.cancel{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);width:50px;height:50px;border-radius:var(--radius-sm);padding:0}
+.cam-loop-counter{position:absolute;top:calc(14px + env(safe-area-inset-top,0));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:var(--radius-pill);background:rgba(0,0,0,0.7);color:#fff;font-size:12px;font-weight:700;z-index:1}
 
 /* Step 5 final AI prompt card */
-.s82-finalprompt{margin-top:14px;padding:16px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(99,102,241,.10));border:1.5px solid rgba(139,92,246,.45);position:relative;overflow:hidden}
+.s82-finalprompt{margin-top:14px;padding:16px 14px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(99,102,241,.10));border:1.5px solid rgba(139,92,246,.45);position:relative;overflow:hidden}
 .s82-finalprompt-title{font-size:14px;font-weight:800;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .s82-finalprompt-list{font-size:11px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;padding-left:14px}
 .s82-finalprompt-list li{margin-bottom:2px}
 .s82-finalprompt-actions{display:flex;gap:8px}
-.s82-finalprompt-btn{flex:1;padding:11px;border-radius:11px;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
+.s82-finalprompt-btn{flex:1;padding:11px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
 .s82-finalprompt-btn.yes{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,0.3)}
 .s82-finalprompt-btn.no{background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid rgba(255,255,255,0.1)}
 
@@ -2143,9 +2143,9 @@ body::before{
 .fg{margin-bottom:10px}
 .fl{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl .hint{color:rgba(107,114,128,0.7);font-weight:400;text-transform:none;letter-spacing:0}
-.fl .fl-add{float:right;color:var(--indigo-300);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3)}
+.fl .fl-add{float:right;color:var(--indigo-300);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;padding:4px 10px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3)}
 .fc{
-    width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border-subtle);
+    width:100%;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:rgba(30,35,50,0.9);color:var(--text-primary);font-size:14px;outline:none;
     font-family:inherit;transition:border-color 0.2s;
 }
@@ -2159,7 +2159,7 @@ body::before{
  * Textarea-та са изключени (rows=N контролира височина); матрицата (extends) и label-print
  * inputs не са в .fg, така че не се засягат. */
 .fg input.fc,.fg select.fc{
-    min-height:42px;padding:10px 14px;border-radius:12px;font-size:14px;box-sizing:border-box;
+    min-height:42px;padding:10px 14px;border-radius:var(--radius-sm);font-size:14px;box-sizing:border-box;
 }
 .v-custom-input,.v-custom-btn{min-height:42px;box-sizing:border-box}
 select.fc{
@@ -2170,35 +2170,35 @@ select.fc{
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .inline-add{
     background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.12);
-    border-radius:8px;padding:8px;margin-top:4px;display:none;gap:6px;align-items:center;
+    border-radius:var(--radius-sm);padding:8px;margin-top:4px;display:none;gap:6px;align-items:center;
 }
 .inline-add.open{display:flex;animation:inlGlow 0.4s ease;border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.08);box-shadow:0 0 6px rgba(34,197,94,0.15)}
 @keyframes inlGlow{0%{box-shadow:0 0 0 rgba(34,197,94,0)}50%{box-shadow:0 0 18px rgba(34,197,94,0.4)}100%{box-shadow:0 0 6px rgba(34,197,94,0.15)}}
 .preset-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease}
 .preset-box{background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:20px;border:1px solid var(--border-subtle);border-bottom:none}
-.preset-chip{display:inline-block;padding:8px 16px;margin:4px;border-radius:10px;border:1.5px solid var(--border-subtle);background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;user-select:none}
+.preset-chip{display:inline-block;padding:8px 16px;margin:4px;border-radius:var(--radius-sm);border:1.5px solid var(--border-subtle);background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;user-select:none}
 .preset-chip.sel{border-color:var(--indigo-500);background:rgba(99,102,241,0.2);color:var(--indigo-300);box-shadow:0 0 8px rgba(99,102,241,0.2)}
 .preset-chip:active{transform:scale(0.95)}
 .preset-cat{font-size:13px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:12px 0 6px;letter-spacing:0.5px}
-.inline-add input{flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-card);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
-.inline-add button{padding:7px 12px;border-radius:6px;border:none;background:var(--indigo-500);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
-.wiz-mic{width:42px;min-width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.inline-add input{flex:1;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--bg-card);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
+.inline-add button{padding:7px 12px;border-radius:var(--radius-sm);border:none;background:var(--indigo-500);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.wiz-mic{width:42px;min-width:42px;height:42px;border-radius:var(--radius-sm);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .wiz-mic:active{background:rgba(239,68,68,.2);transform:scale(.95)}
-.fg.wiz-next{background:rgba(99,102,241,.08);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35)}
+.fg.wiz-next{background:rgba(99,102,241,.08);border-radius:var(--radius-sm);padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35)}
 .fg.wiz-next .wiz-mic{background:rgba(99,102,241,.25);border-color:#6366f1;animation:wizNextPulse 1.5s infinite}
 @keyframes wizNextPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.2)}50%{box-shadow:0 0 14px 4px rgba(99,102,241,.2)}}
 .fg.wiz-done .fl::after{content:' \2713';color:#4ade80;font-weight:700}
 .wiz-mic.recording{background:rgba(239,68,68,.3)!important;border-color:#ef4444!important;color:#fff!important;animation:micRecPulse .8s infinite!important;position:relative}
 .wiz-mic.recording::after{content:'REC';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 8px rgba(239,68,68,.6)}
-.wiz-mic.recording::before{content:'';position:absolute;top:-8px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.5);animation:micRecDot .6s infinite}
+.wiz-mic.recording::before{content:'';position:absolute;top:-8px;right:-2px;width:8px;height:8px;border-radius:var(--radius-icon);background:#ef4444;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.5);animation:micRecDot .6s infinite}
 @keyframes micRecPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 16px 4px rgba(239,68,68,.3)}}
 @keyframes micRecDot{0%,100%{opacity:1}50%{opacity:.3}}
-.fg.wiz-active{background:rgba(99,102,241,.06);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.25);transition:all .2s}
+.fg.wiz-active{background:rgba(99,102,241,.06);border-radius:var(--radius-sm);padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.25);transition:all .2s}
 .fg.wiz-active .wiz-mic{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.12)}
 
 /* ═══ ACTION BUTTONS ═══ */
 .abtn{
-    padding:11px;border-radius:12px;border:1px solid var(--border-subtle);
+    padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:var(--bg-card);color:var(--text-primary);font-size:14px;font-weight:600;
     cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
     transition:all 0.15s;font-family:inherit;width:100%;
@@ -2212,7 +2212,7 @@ select.fc{
 /* ═══ TOAST ═══ */
 .toast-c{position:fixed;top:16px;left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .toast{
-    padding:10px 16px;border-radius:12px;background:rgba(15,15,40,0.95);
+    padding:10px 16px;border-radius:var(--radius-sm);background:rgba(15,15,40,0.95);
     border:1px solid var(--border-glow);    color:var(--text-primary);font-size:13px;font-weight:600;
     transform:translateY(-20px);opacity:0;transition:all 0.3s;
     pointer-events:auto;display:flex;align-items:center;gap:6px;
@@ -2222,7 +2222,7 @@ select.fc{
 .toast.error{border-color:rgba(239,68,68,0.4)}
 
 /* ═══ AI INSIGHT CARDS ═══ */
-.ai-insight{padding:10px 12px;border-radius:10px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
+.ai-insight{padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
 .ai-insight.critical{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2)}
 .ai-insight.high{background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2)}
 .ai-insight.medium{background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)}
@@ -2235,14 +2235,14 @@ select.fc{
 .d-row:last-child{border-bottom:none}
 .d-label{font-size:13px;color:var(--text-secondary)}
 .d-value{font-size:13px;font-weight:600}
-.store-stock-row{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:8px;margin-bottom:3px;background:rgba(17,24,44,0.5)}
+.store-stock-row{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:var(--radius-sm);margin-bottom:3px;background:rgba(17,24,44,0.5)}
 
 /* ═══ CAMERA OVERLAY ═══ */
 .camera-ov{position:fixed;inset:0;z-index:350;background:#000;display:none;flex-direction:column}
 .camera-ov.open{display:flex}
 .camera-video{flex:1;object-fit:cover}
 .cam-controls{padding:16px;display:flex;justify-content:center;gap:16px;background:rgba(0,0,0,0.8)}
-.cam-btn{width:56px;height:56px;border-radius:50%;border:3px solid #fff;background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cam-btn{width:56px;height:56px;border-radius:var(--radius-icon);border:3px solid #fff;background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .cam-btn.capture{background:#fff;color:#000}
 .cam-btn.close-cam{border-color:var(--danger);color:var(--danger)}
 .scan-line{
@@ -2264,33 +2264,33 @@ select.fc{
 
 /* ═══ SORT DROPDOWN ═══ */
 .sort-wrap{position:relative}
-.sort-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-secondary);padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px}
-.sort-dd{position:absolute;top:100%;right:0;margin-top:4px;background:#080818;border:1px solid var(--border-subtle);border-radius:10px;padding:4px;min-width:160px;z-index:60;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.sort-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-secondary);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px}
+.sort-dd{position:absolute;top:100%;right:0;margin-top:4px;background:#080818;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:4px;min-width:160px;z-index:60;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
 .sort-dd.open{display:block}
-.sort-opt{padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-secondary);transition:background 0.15s}
+.sort-opt{padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;color:var(--text-secondary);transition:background 0.15s}
 .sort-opt.active{background:rgba(99,102,241,0.12);color:var(--indigo-300)}
 .sort-opt:active{background:rgba(99,102,241,0.08)}
 
 /* ═══ FILTER DRAWER ═══ */
 .filter-chips{display:flex;flex-wrap:wrap;gap:5px}
-.f-chip{padding:7px 13px;border-radius:8px;border:1px solid var(--border-subtle);background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s}
+.f-chip{padding:7px 13px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s}
 .f-chip.sel{background:rgba(99,102,241,0.15);color:var(--indigo-300);border-color:var(--border-glow)}
 
 /* ═══ IMAGE STUDIO ═══ */
 .studio-option{
     display:flex;align-items:center;gap:14px;padding:14px 16px;
-    border-radius:14px;cursor:pointer;margin-bottom:8px;transition:all 0.15s;
+    border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;transition:all 0.15s;
 }
 .studio-option:active{transform:scale(0.98)}
 .studio-icon{
-    width:48px;height:48px;border-radius:14px;display:flex;align-items:center;
+    width:48px;height:48px;border-radius:var(--radius-sm);display:flex;align-items:center;
     justify-content:center;font-size:24px;flex-shrink:0;
 }
-.studio-price{padding:5px 12px;border-radius:10px;font-size:14px;font-weight:800;flex-shrink:0}
+.studio-price{padding:5px 12px;border-radius:var(--radius-sm);font-size:14px;font-weight:800;flex-shrink:0}
 
 /* ═══ LABELS SCREEN ═══ */
 .label-var{
-    padding:10px 12px;border-radius:10px;background:rgba(17,24,44,0.5);
+    padding:10px 12px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.5);
     border:1px solid var(--border-subtle);margin-bottom:6px;
 }
 .label-var .lv-name{font-size:14px;font-weight:600;margin-bottom:2px}
@@ -2299,26 +2299,26 @@ select.fc{
 .label-var .lv-field{flex:1}
 .label-var .lv-field label{font-size:11px;color:var(--text-secondary);text-transform:uppercase}
 .label-var .lv-field input{
-    width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border-subtle);
+    width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:var(--bg-card);color:var(--text-primary);font-size:13px;text-align:center;
     outline:none;font-family:inherit;
 }
 .format-chips{display:flex;gap:6px;margin:10px 0}
 .fmt-chip{
-    padding:6px 14px;border-radius:8px;border:1px solid var(--border-subtle);
+    padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
     background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;
     cursor:pointer;font-family:inherit;transition:all 0.15s;
 }
 .fmt-chip.sel{background:rgba(99,102,241,0.15);color:var(--indigo-300);border-color:var(--border-glow)}
 
 /* ═══ SKELETON ═══ */
-.skeleton{background:linear-gradient(90deg,var(--bg-card) 25%,rgba(99,102,241,0.08) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+.skeleton{background:linear-gradient(90deg,var(--bg-card) 25%,rgba(99,102,241,0.08) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm)}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* ═══ CREDITS BAR ═══ */
 .credits-bar{
     display:flex;justify-content:center;gap:14px;padding:8px 12px;margin:10px 16px;
-    border-radius:10px;background:rgba(99,102,241,0.05);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-sm);background:rgba(99,102,241,0.05);border:1px solid var(--border-subtle);
 }
 .credits-bar .cr-item{font-size:13px;color:var(--text-secondary);font-weight:600}
 .credits-bar .cr-item b{color:var(--text-primary)}
@@ -2338,7 +2338,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 /* ═══ INFO AI BUTTON + PANEL ═══ */
 .info-ai-btn{
-    width:30px;height:30px;flex-shrink:0;border-radius:50%;
+    width:30px;height:30px;flex-shrink:0;border-radius:var(--radius-icon);
     background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.15));
     border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;
     cursor:pointer;font-size:16px;box-shadow:0 0 14px rgba(99,102,241,0.2);
@@ -2360,12 +2360,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     border-bottom:1px solid var(--border-subtle);flex-shrink:0}
 .info-panel-hdr h3{font-size:14px;font-weight:800;margin:0;
     background:linear-gradient(135deg,#f1f5f9,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.info-panel-close{width:28px;height:28px;border-radius:8px;background:rgba(99,102,241,0.1);
+.info-panel-close{width:28px;height:28px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);
     border:1px solid var(--border-subtle);color:var(--indigo-300);font-size:14px;
     display:flex;align-items:center;justify-content:center;cursor:pointer}
 .info-panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px}
 .info-q{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;
-    border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-sm);background:rgba(99,102,241,0.04);border:1px solid var(--border-subtle);
     cursor:pointer;transition:all 0.15s}
 .info-q:active{background:rgba(99,102,241,0.12);transform:scale(0.98)}
 .info-q .iq-icon{font-size:16px;flex-shrink:0}
@@ -2378,7 +2378,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .info-section-title{font-size:12px;font-weight:800;color:var(--indigo-300);text-transform:uppercase;
     letter-spacing:1px;padding:10px 0 4px}
 .info-free-wrap{padding:10px 12px;border-top:1px solid var(--border-subtle);flex-shrink:0}
-.info-free-btn{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(99,102,241,0.25);
+.info-free-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:1px solid rgba(99,102,241,0.25);
     background:rgba(99,102,241,0.06);color:var(--indigo-300);font-size:13px;font-weight:700;
     cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;
     transition:all 0.15s}
@@ -2386,21 +2386,21 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 
 /* ═══ WIZARD INFO SYSTEM ═══ */
-.wiz-info-btn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:rgba(99,102,241,0.15);border:1.5px solid rgba(99,102,241,0.4);align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;margin-left:6px;vertical-align:middle;transition:all 0.15s;flex-shrink:0;color:var(--indigo-300)}
+.wiz-info-btn{display:inline-flex;width:24px;height:24px;border-radius:var(--radius-icon);background:rgba(99,102,241,0.15);border:1.5px solid rgba(99,102,241,0.4);align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;margin-left:6px;vertical-align:middle;transition:all 0.15s;flex-shrink:0;color:var(--indigo-300)}
 .wiz-info-btn:active{background:rgba(99,102,241,0.2);transform:scale(0.9)}
-.wiz-dd-list{position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#1a1f35;border:1px solid var(--border-subtle);border-radius:10px;z-index:100;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.wiz-dd-list{position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#1a1f35;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);z-index:100;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
 .wiz-dd-item{padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04)}
 .wiz-dd-item:hover,.wiz-dd-item:active{background:rgba(99,102,241,0.15)}
 .wiz-dd-item:last-child{border-bottom:none}
 .wiz-info-overlay{position:fixed;inset:0;z-index:400;background:rgba(3,7,18,0.7);display:flex;align-items:center;justify-content:center;padding:20px}
-.wiz-info-box{background:#080818;border:1px solid var(--border-glow);border-radius:16px;padding:16px;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(99,102,241,0.2)}
+.wiz-info-box{background:#080818;border:1px solid var(--border-glow);border-radius:var(--radius);padding:16px;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(99,102,241,0.2)}
 
 /* ═══ NEW HEADER (chat.php matching) ═══ */
 .hdr-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
 .hdr-logo{font-size:14px;font-weight:700;color:rgba(165,180,252,.6);letter-spacing:.5px}
 .hdr-right{display:flex;align-items:center;gap:8px}
-.hdr-badge{font-size:11px;font-weight:800;letter-spacing:.8px;padding:3px 8px;border-radius:6px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.25);color:#4ade80}
-.hdr-ico{width:26px;height:26px;border-radius:50%;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;text-decoration:none}
+.hdr-badge{font-size:11px;font-weight:800;letter-spacing:.8px;padding:3px 8px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.25);color:#4ade80}
+.hdr-ico{width:26px;height:26px;border-radius:var(--radius-icon);background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;text-decoration:none}
 .hdr-row2{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
 .hdr-page-title{font-size:15px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui}
 .hdr-count{font-size:13px;color:rgba(165,180,252,.5);font-weight:600}
@@ -2408,27 +2408,27 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 /* ═══ NEW SEARCH ═══ */
 .new-search-sec{display:flex;align-items:center;gap:6px;padding:12px 16px 0;position:relative}
-.new-search-bar{display:flex;align-items:center;gap:10px;background:rgba(15,15,40,.6);border:1px solid rgba(99,102,241,.12);border-radius:14px;padding:10px 14px;flex:1;cursor:pointer}
+.new-search-bar{display:flex;align-items:center;gap:10px;background:rgba(15,15,40,.6);border:1px solid rgba(99,102,241,.12);border-radius:var(--radius-sm);padding:10px 14px;flex:1;cursor:pointer}
 .new-search-bar svg{flex-shrink:0;opacity:.5}
 .new-search-ph{font-size:15px;color:rgba(165,180,252,.4);font-weight:500;flex:1}
-.new-search-mic{width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.new-info-btn{width:16px;height:16px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.new-search-mic{width:28px;height:28px;border-radius:var(--radius-icon);background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.new-info-btn{width:16px;height:16px;border-radius:var(--radius-icon);background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 
 /* ═══ CASCADE FILTERS ═══ */
 .fltr-label{display:flex;align-items:center;gap:6px;padding:0 16px;margin-top:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(165,180,252,.35)}
 .fltr-label span{white-space:nowrap}
 .fltr-hint{font-size:11px;color:rgba(165,180,252,.2);font-weight:500;text-transform:none;letter-spacing:0}
-.fltr-info{width:15px;height:15px;border-radius:50%;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.fltr-info{width:15px;height:15px;border-radius:var(--radius-icon);background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .fltr-row{display:flex;gap:6px;padding:8px 16px 0;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
 .fltr-row::-webkit-scrollbar{display:none}
-.fltr-btn{padding:6px 13px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid rgba(99,102,241,.1);background:rgba(15,15,40,.4);color:rgba(165,180,252,.45);flex-shrink:0;cursor:pointer;transition:all .2s}
+.fltr-btn{padding:6px 13px;border-radius:var(--radius-sm);font-size:11px;font-weight:600;white-space:nowrap;border:1px solid rgba(99,102,241,.1);background:rgba(15,15,40,.4);color:rgba(165,180,252,.45);flex-shrink:0;cursor:pointer;transition:all .2s}
 .fltr-btn.active{background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3);color:#a5b4fc}
 .fltr-btn .fc{font-size:9px;opacity:.6;margin-left:3px}
 
 /* ═══ QUICK FILTER PILLS ═══ */
 .qfltr-row{display:flex;gap:5px;padding:6px 16px 0;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
 .qfltr-row::-webkit-scrollbar{display:none}
-.qfltr-pill{padding:4px 10px;border-radius:16px;font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;cursor:pointer;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);color:rgba(165,180,252,.5);transition:all .2s}
+.qfltr-pill{padding:4px 10px;border-radius:var(--radius);font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;cursor:pointer;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);color:rgba(165,180,252,.5);transition:all .2s}
 .qfltr-pill.active{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.35);color:#a5b4fc}
 .qfltr-pill svg{opacity:.5}
 /* Signal pills with colors */
@@ -2446,9 +2446,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .add-sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .add-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#818cf8}
 .add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.add-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px 12px;border-radius:14px;background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.08);cursor:pointer;position:relative}
+.add-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px 12px;border-radius:var(--radius-sm);background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.08);cursor:pointer;position:relative}
 .add-btn span{font-size:10px;font-weight:600;color:#9ca3af}
-.add-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.add-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center}
 .add-ai .add-icon{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05));border:1px solid rgba(99,102,241,.25)}
 .add-manual .add-icon{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.2)}
 .add-scan .add-icon{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.2)}
@@ -2467,8 +2467,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .sig-group-label.sg-purple{color:rgba(216,180,254,.5)}
 .sig-group-label.sg-blue{color:rgba(165,180,252,.4)}
 .sig-group-label.sg-orange{color:rgba(251,146,60,.5)}
-.sig-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(15,15,40,.7);cursor:pointer;margin-bottom:6px}
-.sig-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sig-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(15,15,40,.7);cursor:pointer;margin-bottom:6px}
+.sig-dot{width:7px;height:7px;border-radius:var(--radius-icon);flex-shrink:0}
 .sig-info{flex:1}
 .sig-label{font-size:11px;font-weight:700}
 .sig-desc{font-size:10px;color:#9ca3af;margin-top:1px}
@@ -2489,13 +2489,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
    при scroll и двете изчезват заедно — без overlap. Drawer (z-index:200/201) продължава да stack-ва
    над всичко (изпълнява тапа за filter). Без z-index war, без !important. */
 .prod-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;position:relative;background:rgba(3,7,18,.92)}
-.prod-back{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.prod-back{width:30px;height:30px;border-radius:var(--radius-sm);background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .prod-title{font-size:14px;font-weight:800;color:#e2e8f0;font-family:'Montserrat',system-ui;flex:1}
 .prod-cnt{font-size:10px;color:rgba(165,180,252,.5);font-weight:600;flex-shrink:0}
-.prod-sort{width:30px;height:30px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.prod-sort{width:30px;height:30px;border-radius:var(--radius-sm);background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .active-chips{display:flex;gap:5px;padding:6px 16px 0;flex-wrap:wrap}
-.act-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:600;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#a5b4fc}
-.act-chip .chip-x{width:14px;height:14px;border-radius:50%;background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#818cf8;font-weight:800}
+.act-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-sm);font-size:10px;font-weight:600;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#a5b4fc}
+.act-chip .chip-x{width:14px;height:14px;border-radius:var(--radius-icon);background:rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#818cf8;font-weight:800}
 
 /* ═══ FLOATING AI BUTTON ═══ */
 
@@ -2532,23 +2532,23 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .ai-float-btn {
     position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
     display: flex; align-items: center; gap: 12px;
-    padding: 10px 24px; border-radius: 20px;
+    padding: 10px 24px; border-radius:var(--radius);
     background: rgba(15,15,40,0.75); border: 1px solid rgba(99,102,241,0.2);
     cursor: pointer; z-index: 41; white-space: nowrap;
 }
 .ai-float-btn span { font-size: 13px; font-weight: 600; color: #a5b4fc; }
 .ai-waves { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
-.ai-wave-bar { width: 3px; border-radius: 2px; background: currentColor; animation: wave-anim 1s ease-in-out infinite; }
+.ai-wave-bar { width: 3px; border-radius:var(--radius-sm); background: currentColor; animation: wave-anim 1s ease-in-out infinite; }
 @keyframes wave-anim { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 
 
 /* ═══ S43: RICH PRODUCT CARDS ═══ */
-.rc-card{position:relative;background:rgba(15,15,40,.75);border:1px solid var(--border-subtle);border-radius:14px;overflow:hidden;margin-bottom:8px}
+.rc-card{position:relative;background:rgba(15,15,40,.75);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px}
 .rc-card .stock-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-.rc-card .p-discount{position:absolute;top:6px;right:8px;font-size:9px;padding:2px 6px;border-radius:5px;background:var(--danger);color:#fff;font-weight:700;z-index:2}
+.rc-card .p-discount{position:absolute;top:6px;right:8px;font-size:9px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--danger);color:#fff;font-weight:700;z-index:2}
 .rc-top{display:flex;gap:10px;padding:12px 12px 0 14px;cursor:pointer}
-.rc-thumb{width:52px;height:52px;border-radius:10px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
-.rc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.rc-thumb{width:52px;height:52px;border-radius:var(--radius-sm);background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.rc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)}
 .rc-info{flex:1;min-width:0}
 .rc-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .rc-name{font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
@@ -2556,7 +2556,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .rc-code{font-size:10px;color:var(--text-secondary);margin-top:1px}
 .rc-code span{color:var(--indigo-400)}
 .rc-pills{display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px 0 14px;cursor:pointer}
-.rc-pill{font-size:9px;padding:2px 7px;border-radius:6px;font-weight:600}
+.rc-pill{font-size:9px;padding:2px 7px;border-radius:var(--radius-sm);font-weight:600}
 .rc-sup{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.12);color:#818cf8}
 .rc-cat{background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.12);color:#5eead4}
 .rc-danger{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
@@ -2572,14 +2572,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .rc-act{flex:1;padding:8px;text-align:center;font-size:10px;font-weight:600;color:#818cf8;cursor:pointer;border-right:1px solid rgba(99,102,241,.08);transition:background .15s}
 .rc-act:last-child{border-right:none}
 .rc-act:active{background:rgba(99,102,241,.1)}
-.rc-more-dd{background:#080818;border:1px solid var(--border-glow);border-radius:12px;padding:4px;min-width:180px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.6)}
-.rc-dd-item{padding:9px 14px;border-radius:8px;font-size:12px;color:var(--text-primary);cursor:pointer;transition:background .15s}
+.rc-more-dd{background:#080818;border:1px solid var(--border-glow);border-radius:var(--radius-sm);padding:4px;min-width:180px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.rc-dd-item{padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;color:var(--text-primary);cursor:pointer;transition:background .15s}
 .rc-dd-item:active{background:rgba(99,102,241,.1)}
 .rc-dd-danger{color:var(--danger)}
 /* S73.A start */
 /* S73.A — Neon Glass + Matrix CSS */
 
-.v4-var-card{padding:0;margin-bottom:12px;overflow:hidden;border-radius:18px;
+.v4-var-card{padding:0;margin-bottom:12px;overflow:hidden;border-radius:var(--radius);
     border:1px solid rgba(99,102,241,.18);
     background:linear-gradient(235deg,hsl(255 50% 10% / .55),hsl(255 50% 10% / 0) 33%),
         linear-gradient(45deg,hsl(222 50% 10% / .55),hsl(222 50% 10% / 0) 33%),
@@ -2598,7 +2598,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-axis-tab svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;
     stroke-linecap:round;stroke-linejoin:round}
 .v4-axis-count{display:inline-flex;align-items:center;justify-content:center;
-    min-width:20px;height:20px;padding:0 6px;border-radius:100px;
+    min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-pill);
     background:hsl(255 40% 25% / .7);color:hsl(255 60% 88%);
     font-size:10px;font-weight:800;border:1px solid hsl(255 50% 40% / .5)}
 .v4-axis-tab.active .v4-axis-count{background:hsl(255 60% 45%);color:#fff;
@@ -2607,7 +2607,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-selected-bar{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px 10px;
     align-items:center;border-bottom:1px solid hsl(222 15% 18% / .5);min-height:56px}
 .v4-sel-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 11px;
-    border-radius:100px;
+    border-radius:var(--radius-pill);
     background:linear-gradient(135deg,hsl(255 50% 28%),hsl(255 60% 22%));
     border:1px solid hsl(255 60% 50%);color:#fff;font-size:12px;font-weight:700;
     box-shadow:0 0 10px hsl(255 60% 45% / .3),inset 0 1px 0 hsl(255 60% 60% / .3);
@@ -2615,10 +2615,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-sel-chip:hover{background:linear-gradient(135deg,hsl(255 55% 32%),hsl(255 65% 26%));
     transform:translateY(-1px)}
 .v4-sel-chip-x{opacity:.65;font-size:10px;font-weight:400;padding-left:2px}
-.v4-sel-chip .v4-dot{width:10px;height:10px;border-radius:50%;
+.v4-sel-chip .v4-dot{width:10px;height:10px;border-radius:var(--radius-icon);
     border:1px solid rgba(255,255,255,.3);flex-shrink:0}
 .v4-sel-empty{font-size:11px;color:rgba(255,255,255,.4);font-style:italic;line-height:1.4}
-.v4-clear-btn{margin-left:auto;padding:4px 10px;border-radius:100px;
+.v4-clear-btn{margin-left:auto;padding:4px 10px;border-radius:var(--radius-pill);
     background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
     color:#fca5a5;font-size:10px;font-weight:700;cursor:pointer;
     letter-spacing:.02em;text-transform:uppercase;font-family:inherit}
@@ -2626,7 +2626,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 .v4-picker-body{padding:12px 14px 14px;max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .v4-picker-search{position:relative;margin-bottom:12px}
-.v4-picker-search input{width:100%;padding:10px 14px 10px 38px;border-radius:12px;
+.v4-picker-search input{width:100%;padding:10px 14px 10px 38px;border-radius:var(--radius-sm);
     border:1px solid hsl(222 15% 20% / .6);
     background:linear-gradient(to bottom,hsl(255 20% 15% / .2),hsl(255 30% 10% / .4));
     color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
@@ -2637,7 +2637,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     color:rgba(255,255,255,.4);pointer-events:none}
 .v4-picker-search-icon svg{width:16px;height:16px;stroke-width:2;fill:none;stroke:currentColor}
 
-.v4-preset-group{border:1px solid hsl(255 20% 18% / .4);border-radius:14px;
+.v4-preset-group{border:1px solid hsl(255 20% 18% / .4);border-radius:var(--radius-sm);
     margin-bottom:10px;overflow:hidden;background:rgba(0,0,0,.15)}
 .v4-preset-group-header{display:flex;align-items:center;gap:8px;padding:10px 12px;
     cursor:pointer;transition:background .15s;
@@ -2648,7 +2648,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-preset-group-title.starred::before{content:'\2605  ';color:hsl(45 90% 65%);
     font-size:10px;text-shadow:0 0 8px hsl(45 90% 50% / .5)}
 .v4-preset-group-count{font-size:9px;font-weight:700;color:rgba(255,255,255,.4);
-    padding:2px 7px;border-radius:100px;background:rgba(255,255,255,.04);
+    padding:2px 7px;border-radius:var(--radius-pill);background:rgba(255,255,255,.04);
     border:1px solid rgba(255,255,255,.06)}
 .v4-preset-group-count.has-selected{color:hsl(255 60% 85%);background:hsl(255 40% 25% / .6);
     border-color:hsl(255 50% 40% / .6)}
@@ -2659,7 +2659,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-preset-group.open .v4-preset-group-body{display:flex}
 
 .v4-p-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
-    border-radius:100px;font-size:12px;font-weight:600;
+    border-radius:var(--radius-pill);font-size:12px;font-weight:600;
     background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
     color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;
     user-select:none;-webkit-user-select:none}
@@ -2669,16 +2669,16 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     border-color:hsl(255 60% 55%);color:#fff;
     box-shadow:0 0 10px hsl(255 60% 45% / .4),inset 0 1px 0 hsl(255 60% 65% / .3);
     font-weight:700}
-.v4-p-chip .v4-dot{width:10px;height:10px;border-radius:50%;
+.v4-p-chip .v4-dot{width:10px;height:10px;border-radius:var(--radius-icon);
     border:1px solid rgba(255,255,255,.2);flex-shrink:0}
 
 .v4-add-row{display:flex;gap:8px;margin-top:10px;align-items:center}
-.v4-add-input{flex:1;padding:10px 14px;border-radius:12px;
+.v4-add-input{flex:1;padding:10px 14px;border-radius:var(--radius-sm);
     border:1px dashed hsl(255 30% 40% / .5);background:rgba(255,255,255,.02);
     color:var(--text-primary);font-size:13px;outline:none;font-family:inherit}
 .v4-add-input:focus{border-style:solid;border-color:hsl(255 50% 55% / .7);
     box-shadow:0 0 0 3px hsl(255 60% 50% / .15)}
-.v4-add-btn{padding:10px 14px;border-radius:12px;
+.v4-add-btn{padding:10px 14px;border-radius:var(--radius-sm);
     background:linear-gradient(135deg,hsl(255 60% 35%),hsl(255 70% 28%));
     border:1px solid hsl(255 60% 50%);color:#fff;font-size:12px;font-weight:700;
     cursor:pointer;display:flex;align-items:center;gap:5px;
@@ -2687,7 +2687,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-add-btn svg{width:14px;height:14px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
 
 .v4-matrix-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:14px 16px;border-radius:14px;
+    padding:14px 16px;border-radius:var(--radius-sm);
     background:linear-gradient(135deg,hsl(255 55% 30% / .7),hsl(222 55% 26% / .7));
     border:1px solid hsl(255 60% 55% / .6);color:#fff;font-size:13px;font-weight:700;
     cursor:pointer;transition:all .25s;
@@ -2698,7 +2698,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-matrix-cta:hover{transform:translateY(-1px)}
 .v4-matrix-cta:active{transform:translateY(0) scale(.98)}
 .v4-matrix-cta-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left}
-.v4-matrix-cta-pill{padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.3);
+.v4-matrix-cta-pill{padding:3px 8px;border-radius:var(--radius-sm);background:rgba(0,0,0,.3);
     font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,.15)}
 .v4-matrix-cta-arrow{font-size:18px;flex-shrink:0}
 
@@ -2711,7 +2711,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 .v4-mx-header{flex-shrink:0;display:flex;align-items:center;gap:10px;
     padding:14px 16px 12px;background:rgba(3,7,18,.9);    border-bottom:1px solid hsl(222 15% 18% / .6)}
-.v4-mx-close{width:36px;height:36px;border-radius:11px;
+.v4-mx-close{width:36px;height:36px;border-radius:var(--radius-sm);
     background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
     color:rgba(255,255,255,.6);cursor:pointer;display:flex;
     align-items:center;justify-content:center}
@@ -2729,7 +2729,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     padding:10px 16px;scrollbar-width:none;
     border-bottom:1px solid hsl(222 15% 18% / .5);background:rgba(3,7,18,.6)}
 .v4-mx-quick::-webkit-scrollbar{display:none}
-.v4-qchip{flex-shrink:0;padding:7px 13px;border-radius:100px;
+.v4-qchip{flex-shrink:0;padding:7px 13px;border-radius:var(--radius-pill);
     background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
     color:rgba(255,255,255,.6);font-size:11px;font-weight:700;cursor:pointer;
     transition:all .2s;white-space:nowrap;font-family:inherit}
@@ -2749,7 +2749,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     font-size:11px;font-weight:700;color:hsl(255 60% 85%);min-width:110px;
     border-bottom:1px solid hsl(222 15% 18% / .8);
     border-left:1px solid hsl(222 10% 14% / .3)}
-.v4-mx-head .v4-dot{width:12px;height:12px;border-radius:50%;
+.v4-mx-head .v4-dot{width:12px;height:12px;border-radius:var(--radius-icon);
     border:1px solid rgba(255,255,255,.25);display:inline-block;
     margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(255,255,255,.1)}
 .v4-mx-rowh{left:0;z-index:2;padding:8px 14px;text-align:left;font-size:13px;
@@ -2765,7 +2765,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 .v4-cell-inputs{display:flex;flex-direction:column;gap:4px;align-items:stretch}
 .v4-cell-qty-row{display:flex;align-items:center;gap:4px;justify-content:center}
-.v4-cell-input{width:54px;height:34px;padding:4px 2px;border-radius:8px;
+.v4-cell-input{width:54px;height:34px;padding:4px 2px;border-radius:var(--radius-sm);
     border:1px solid hsl(222 15% 22% / .7);background:rgba(8,9,13,.5);
     color:var(--text-primary);font-size:14px;font-weight:800;font-family:inherit;
     text-align:center;outline:none;transition:all .15s;-moz-appearance:textfield}
@@ -2781,7 +2781,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     letter-spacing:.08em;text-transform:uppercase;text-align:center;
     width:54px;line-height:1;margin:0 auto}
 .v4-cell-min-row{display:flex;align-items:center;gap:2px;justify-content:center}
-.v4-min-step{width:18px;height:26px;border-radius:6px;
+.v4-min-step{width:18px;height:26px;border-radius:var(--radius-sm);
     background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
     color:hsl(45 80% 70%);cursor:pointer;display:flex;align-items:center;
     justify-content:center;font-size:10px;font-weight:700;font-family:inherit;padding:0}
@@ -2790,7 +2790,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-mx-bottom{flex-shrink:0;padding:14px 16px 20px;background:rgba(3,7,18,.95);
     border-top:1px solid hsl(222 15% 18% / .8)}
 .v4-mx-stats{display:flex;justify-content:space-around;gap:8px;margin-bottom:12px;
-    padding:10px 14px;border-radius:14px;background:rgba(0,0,0,.3);
+    padding:10px 14px;border-radius:var(--radius-sm);background:rgba(0,0,0,.3);
     border:1px solid rgba(255,255,255,.05)}
 .v4-mx-stat{text-align:center;flex:1}
 .v4-mx-stat-value{font-size:20px;font-weight:800;letter-spacing:-.02em;
@@ -2801,9 +2801,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     letter-spacing:.1em;font-weight:700;margin-top:4px}
 
 .v4-mx-summary{display:flex;align-items:center;gap:10px;padding:12px 14px;
-    border-radius:14px;background:rgba(34,197,94,.06);
+    border-radius:var(--radius-sm);background:rgba(34,197,94,.06);
     border:1px solid rgba(34,197,94,.25);margin-top:12px}
-.v4-mx-summary-check{width:28px;height:28px;border-radius:50%;
+.v4-mx-summary-check{width:28px;height:28px;border-radius:var(--radius-icon);
     background:linear-gradient(135deg,#22c55e,#16a34a);
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 0 12px rgba(34,197,94,.5);flex-shrink:0;color:#fff;
@@ -2811,7 +2811,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-mx-summary-text{flex:1}
 .v4-mx-summary-title{font-size:12px;font-weight:700;color:#86efac;margin-bottom:1px}
 .v4-mx-summary-sub{font-size:10px;color:rgba(134,239,172,.7)}
-.v4-mx-summary-edit{padding:5px 12px;border-radius:100px;
+.v4-mx-summary-edit{padding:5px 12px;border-radius:var(--radius-pill);
     background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);
     color:#86efac;font-size:10px;font-weight:700;cursor:pointer;
     text-transform:uppercase;letter-spacing:.03em;font-family:inherit}
@@ -2834,7 +2834,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* Photo zone ALL-IN-ONE */
 .v4-pz{
   position:relative;overflow:hidden;
-  border-radius:18px;margin-bottom:14px;padding:16px 14px 12px;
+  border-radius:var(--radius);margin-bottom:14px;padding:16px 14px 12px;
   background:
     radial-gradient(ellipse 80% 60% at 50% 30%, rgba(99,102,241,0.10), transparent 70%),
     linear-gradient(180deg, rgba(99,102,241,0.04), rgba(8,11,24,0.5));
@@ -2844,7 +2844,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   background:linear-gradient(90deg,transparent,rgba(165,180,252,0.5),transparent);}
 .v4-pz-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .v4-pz-ic{
-  width:44px;height:44px;border-radius:13px;flex-shrink:0;
+  width:44px;height:44px;border-radius:var(--radius-sm);flex-shrink:0;
   background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));
   border:1px solid rgba(139,92,246,0.4);
   display:flex;align-items:center;justify-content:center;
@@ -2856,7 +2856,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .v4-pz-sub{font-size:10px;color:rgba(226,232,240,0.55);margin-top:1px}
 .v4-pz-btns{display:flex;gap:8px;margin-bottom:10px}
 .v4-pz-btn{
-  flex:1;height:42px;border-radius:12px;
+  flex:1;height:42px;border-radius:var(--radius-sm);
   display:flex;align-items:center;justify-content:center;gap:6px;
   font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;
 }
@@ -2881,17 +2881,17 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ═══ S95.AI_STUDIO_INLINE — RWQ-73 inline AI rows under photo thumb ═══ */
 .q-magic{--qcol:hsl(280,70%,62%)}
 .ai-inline-rows{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
-.ai-inline-row{position:relative;display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(139,92,246,0.10),rgba(99,102,241,0.04));border:1px solid rgba(139,92,246,0.32);color:#e2e8f0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .2s ease,border-color .2s ease;box-shadow:0 0 14px rgba(139,92,246,0.10),inset 0 1px 0 rgba(255,255,255,0.04)}
+.ai-inline-row{position:relative;display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:44px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(139,92,246,0.10),rgba(99,102,241,0.04));border:1px solid rgba(139,92,246,0.32);color:#e2e8f0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .2s ease,border-color .2s ease;box-shadow:0 0 14px rgba(139,92,246,0.10),inset 0 1px 0 rgba(255,255,255,0.04)}
 .ai-inline-row:active{transform:scale(.98);background:linear-gradient(180deg,rgba(139,92,246,0.18),rgba(99,102,241,0.08))}
 .ai-inline-row.busy{opacity:0.65;pointer-events:none}
-.ai-inline-row.busy::after{content:'';position:absolute;right:14px;top:50%;width:14px;height:14px;border:2px solid rgba(196,181,253,0.3);border-top-color:#c4b5fd;border-radius:50%;transform:translateY(-50%);animation:airSpin .8s linear infinite}
+.ai-inline-row.busy::after{content:'';position:absolute;right:14px;top:50%;width:14px;height:14px;border:2px solid rgba(196,181,253,0.3);border-top-color:#c4b5fd;border-radius:var(--radius-icon);transform:translateY(-50%);animation:airSpin .8s linear infinite}
 @keyframes airSpin{to{transform:translateY(-50%) rotate(360deg)}}
 .ai-inline-row .air-ic{flex-shrink:0;font-size:16px;width:22px;text-align:center}
 .ai-inline-row .air-lbl{flex:1;line-height:1.2}
 .ai-inline-row .air-price{flex-shrink:0;font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:.02em}
 
 /* ═══ S95.WIZARD.STEP2_OPTIONAL — "По желание" sections, margin badge, radio toggles ═══ */
-.s2-section{position:relative;padding:14px 14px 12px;margin-bottom:14px;border-radius:14px;background:linear-gradient(180deg,rgba(15,18,36,0.65),rgba(8,11,24,0.55));border:1px solid rgba(99,102,241,0.18);box-shadow:0 4px 18px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.04);contain:layout style}
+.s2-section{position:relative;padding:14px 14px 12px;margin-bottom:14px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(15,18,36,0.65),rgba(8,11,24,0.55));border:1px solid rgba(99,102,241,0.18);box-shadow:0 4px 18px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.04);contain:layout style}
 /* S95.BUGFIX_R4 Bug 3a: DESIGN_LAW compliance — when s2-section also has .glass.sm,
  * let the глобалния .glass rule (design-kit) контролира bg/border/shadow + shines/glows.
  * `contain` отстраняваме за да не блокира glow псевдо-елементите outside на cardа. */
@@ -2900,7 +2900,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* Adaptive textarea за състав/материя — auto-grow на височина при text overflow.
  * Ползва same look-and-feel като .fc inputs. */
 .s2-textarea{
-    width:100%;padding:10px 14px;border-radius:12px;
+    width:100%;padding:10px 14px;border-radius:var(--radius-sm);
     border:1px solid var(--border-subtle);background:rgba(30,35,50,0.9);
     color:var(--text-primary);font-family:inherit;font-size:14px;
     outline:none;transition:border-color 0.2s;
@@ -2911,24 +2911,24 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .s2-textarea::placeholder{color:var(--text-secondary)}
 .s2-section-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#a5b4fc;margin-bottom:10px;text-shadow:0 0 8px rgba(165,180,252,0.25)}
 .s2-section-title .s2ti-ic{font-size:14px;width:20px;text-align:center}
-.s2-margin-badge{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:30px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:800;letter-spacing:0.02em;font-variant-numeric:tabular-nums;border:1px solid;transition:background .2s ease,border-color .2s ease,color .2s ease}
+.s2-margin-badge{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:30px;padding:0 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:800;letter-spacing:0.02em;font-variant-numeric:tabular-nums;border:1px solid;transition:background .2s ease,border-color .2s ease,color .2s ease}
 .s2-margin-badge.dim{color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)}
 .s2-margin-badge.q-gain{color:#86efac;background:rgba(34,197,94,0.14);border-color:rgba(34,197,94,0.45);text-shadow:0 0 8px rgba(34,197,94,0.45)}
 .s2-margin-badge.q-amber{color:#fbbf24;background:rgba(245,158,11,0.14);border-color:rgba(245,158,11,0.45);text-shadow:0 0 8px rgba(245,158,11,0.45)}
 .s2-margin-badge.q-loss{color:#fca5a5;background:rgba(239,68,68,0.14);border-color:rgba(239,68,68,0.45);text-shadow:0 0 8px rgba(239,68,68,0.45)}
 .s2-radio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.s2-radio-btn{flex:1;min-width:0;padding:10px 12px;min-height:42px;border-radius:10px;border:1px solid rgba(99,102,241,0.22);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.7);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .12s ease,background .2s ease,border-color .2s ease}
+.s2-radio-btn{flex:1;min-width:0;padding:10px 12px;min-height:42px;border-radius:var(--radius-sm);border:1px solid rgba(99,102,241,0.22);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.7);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .12s ease,background .2s ease,border-color .2s ease}
 .s2-radio-btn:active{transform:scale(.97)}
 .s2-radio-btn.active{background:linear-gradient(180deg,rgba(99,102,241,0.22),rgba(67,56,202,0.10));border-color:rgba(139,92,246,0.55);color:#dbeafe;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.06)}
 .s2-footer{position:sticky;bottom:0;left:0;right:0;padding:12px;margin:24px -14px 0;background:linear-gradient(180deg,rgba(10,11,20,0.85),rgba(10,11,20,0.98));border-top:1px solid rgba(99,102,241,0.20);display:flex;gap:8px;backdrop-filter:blur(8px)}
-.s2-foot-back,.s2-foot-print,.s2-foot-save{height:46px;border-radius:12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:0.02em}
+.s2-foot-back,.s2-foot-print,.s2-foot-save{height:46px;border-radius:var(--radius-sm);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:0.02em}
 .s2-foot-back{flex:0 0 64px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.7)}
 .s2-foot-print{flex:0 0 48px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#cbd5e1}
 .s2-foot-save{flex:1;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-weight:800;text-transform:uppercase;box-shadow:0 4px 14px rgba(22,163,74,0.4)}
 .s2-foot-back:active,.s2-foot-print:active,.s2-foot-save:active{transform:scale(.97)}
 
 /* ═══ S95.PART1_1 — Mandatory type toggle (Single / С Вариации) ═══ */
-.s95-type-btn{flex:1;min-height:64px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:700;
+.s95-type-btn{flex:1;min-height:64px;border-radius:var(--radius-sm);font-family:inherit;font-size:13px;font-weight:700;
   cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   background:rgba(255,255,255,0.03);border:1px solid rgba(99,102,241,0.22);color:rgba(255,255,255,0.62);
   transition:transform .12s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
@@ -2947,17 +2947,17 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ═══ S95.WIZARD.RESTRUCTURE — Mini print overlay (post-Single-save) ═══ */
 .s95-mini-ov{position:fixed;inset:0;background:rgba(8,11,24,0.86);
   display:flex;align-items:flex-end;justify-content:center;z-index:10001;animation:s95MiniFade .18s ease-out}
-.s95-mini-box{width:100%;max-width:440px;margin:0 12px 80px;padding:22px 18px 18px;border-radius:20px;
+.s95-mini-box{width:100%;max-width:440px;margin:0 12px 80px;padding:22px 18px 18px;border-radius:var(--radius);
   background:linear-gradient(180deg,rgba(17,24,44,0.95),rgba(8,11,24,0.92));border:1px solid rgba(99,102,241,0.32);
   box-shadow:0 -8px 28px rgba(0,0,0,0.5),0 0 24px rgba(99,102,241,0.18);position:relative;overflow:hidden;
   animation:s95MiniSlide .22s cubic-bezier(.16,.84,.44,1)}
-.s95-mini-icon{width:54px;height:54px;border-radius:50%;background:rgba(34,197,94,0.14);border:1px solid rgba(34,197,94,0.32);
+.s95-mini-icon{width:54px;height:54px;border-radius:var(--radius-icon);background:rgba(34,197,94,0.14);border:1px solid rgba(34,197,94,0.32);
   display:flex;align-items:center;justify-content:center;margin:0 auto 10px;
   box-shadow:0 0 18px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.08)}
 .s95-mini-title{text-align:center;font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:-0.01em}
 .s95-mini-sub{text-align:center;font-size:11px;color:rgba(226,232,240,0.6);margin-bottom:16px}
 .s95-mini-actions{display:flex;gap:10px;align-items:stretch}
-.s95-mini-btn{flex:1;height:52px;border-radius:14px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
+.s95-mini-btn{flex:1;height:52px;border-radius:var(--radius-sm);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.04em;text-transform:uppercase;
   border:1px solid;transition:transform .12s ease}
 .s95-mini-btn:active{transform:scale(.97)}
@@ -2989,7 +2989,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 /* Chip inline input (for "+ нова" unit) */
 .v4-chipInput{
-  min-width:90px;padding:8px 12px;border-radius:100px;
+  min-width:90px;padding:8px 12px;border-radius:var(--radius-pill);
   background:linear-gradient(180deg,rgba(17,24,44,0.4),rgba(8,11,24,0.6));
   border:1px dashed rgba(99,102,241,0.4);
   color:#fff;font-size:11px;font-weight:500;font-family:inherit;
@@ -3067,7 +3067,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ═══ S75 TYPE TOGGLE (Единичен / С варианти) ═══ */
 .v4-type-toggle{
   display:grid;grid-template-columns:1fr 1fr;gap:6px;
-  padding:4px;margin-bottom:14px;border-radius:14px;
+  padding:4px;margin-bottom:14px;border-radius:var(--radius-sm);
   background:linear-gradient(145deg,rgba(17,24,44,0.65),rgba(10,13,30,0.85));
   border:1px solid rgba(99,102,241,0.18);
     box-shadow:0 4px 20px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.04);
@@ -3079,7 +3079,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 .v4-tt-opt{
   display:flex;align-items:center;justify-content:center;gap:7px;
-  height:40px;border-radius:10px;cursor:pointer;
+  height:40px;border-radius:var(--radius-sm);cursor:pointer;
   background:transparent;border:1px solid transparent;
   color:rgba(255,255,255,0.55);
   font-family:inherit;font-size:12px;font-weight:600;
@@ -3517,7 +3517,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* S76.8 applied: floating back button */
 #mxFocusBack{
   position:fixed; top:max(12px,env(safe-area-inset-top,12px)); left:12px;
-  width:44px; height:44px; border-radius:14px;
+  width:44px; height:44px; border-radius:var(--radius-sm);
   background:linear-gradient(145deg,rgba(99,102,241,0.25),rgba(67,56,202,0.12));
   border:1px solid rgba(139,92,246,0.55);
   color:#c4b5fd;
@@ -3689,7 +3689,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ── Q-head (section header) ── */
 .q-head { display: flex; align-items: center; gap: 10px; padding: 16px 4px 10px; }
 .q-badge {
-    width: 28px; height: 28px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius:var(--radius-icon);
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: 900; color: white;
     flex-shrink: 0;
@@ -3712,7 +3712,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .q-sub { font-size: 9.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.02em; font-weight: 600; }
 
 .q-total {
-    padding: 5px 11px; border-radius: 100px;
+    padding: 5px 11px; border-radius:var(--radius-pill);
     font-size: 11px; font-weight: 800;
     white-space: nowrap; flex-shrink: 0;
     letter-spacing: 0.01em;
@@ -3746,7 +3746,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .art:active { transform: scale(0.98); }
 .art-photo {
     width: 100%; aspect-ratio: 1;
-    border-radius: 12px;
+    border-radius:var(--radius-sm);
     background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.02));
     border: 1px solid rgba(99,102,241,.12);
     display: flex; align-items: center; justify-content: center;
@@ -3756,7 +3756,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 .art-photo .tag {
     position: absolute; top: 6px; right: 6px;
-    padding: 2px 7px; border-radius: 100px;
+    padding: 2px 7px; border-radius:var(--radius-pill);
     font-size: 9px; font-weight: 800; letter-spacing: 0.02em;
     }
 .art-photo .tag.bad    { background: rgba(239,68,68,.22); border: 1px solid rgba(239,68,68,.45); color: #fca5a5; box-shadow: 0 0 10px rgba(239,68,68,.3); }
@@ -3775,7 +3775,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 .art-bot { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; position: relative; z-index: 5; }
 .art-prc { font-size: 11px; font-weight: 800; color: var(--text-primary, #f1f5f9); }
-.art-stk { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+.art-stk { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius:var(--radius-sm); }
 .art-stk.ok     { background: rgba(34,197,94,.1); color: #86efac; }
 .art-stk.warn   { background: rgba(245,158,11,.1); color: #fbbf24; }
 .art-stk.danger { background: rgba(239,68,68,.1); color: #fca5a5; }
@@ -3814,7 +3814,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.03) 75%);
     background-size: 200% 100%;
     animation: skelShimmer 1.5s infinite;
-    border-radius: 8px;
+    border-radius:var(--radius-sm);
 }
 .skel-photo { width: 100%; aspect-ratio: 1; margin-bottom: 8px; }
 .skel-line { height: 10px; margin-bottom: 6px; }
@@ -3826,7 +3826,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .ask-ai {
     position: fixed; bottom: 84px; left: 50%;
     transform: translateX(-50%);
-    width: 56px; height: 56px; border-radius: 50%;
+    width: 56px; height: 56px; border-radius:var(--radius-icon);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, hsl(255 70% 55%), hsl(222 70% 50%));
@@ -3839,7 +3839,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 }
 .ask-ai::before, .ask-ai::after {
     content: ''; position: absolute; inset: -5px;
-    border-radius: 50%;
+    border-radius:var(--radius-icon);
     border: 2px solid hsl(255 70% 60% / .4);
     animation: aiRing 2.5s ease-out infinite;
     pointer-events: none;
@@ -3863,7 +3863,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .view-all-link {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 14px; margin: 10px 4px 0;
-    border-radius: 14px;
+    border-radius:var(--radius-sm);
     background: linear-gradient(135deg, rgba(99,102,241,.1), rgba(139,92,246,.05));
     border: 1px solid rgba(99,102,241,.2);
     font-size: 12px; font-weight: 700;
@@ -3886,55 +3886,55 @@ body{padding-bottom:130px;position:relative}
 .app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:12px}
 
 .header{display:flex;align-items:center;gap:6px;padding:max(4px,calc(env(safe-area-inset-top,0px) + 4px)) 2px 10px;min-height:36px}
-.h-menu,.h-icon{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.h-menu,.h-icon{width:28px;height:28px;border-radius:var(--radius-icon);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .h-menu svg,.h-icon svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .h-icon.h-theme,.h-icon.h-print{position:relative;transition:color .2s,border-color .2s,background .2s}
 .h-icon.h-theme:hover,.h-icon.h-print:hover{color:var(--indigo-300,#a5b4fc);border-color:var(--border-glow,rgba(99,102,241,.40))}
-.h-icon.h-print::after{content:'';position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:50%;background:rgba(148,163,184,.7);border:1.5px solid var(--bg-main,#030712)}
+.h-icon.h-print::after{content:'';position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:var(--radius-icon);background:rgba(148,163,184,.7);border:1.5px solid var(--bg-main,#030712)}
 .h-icon.h-print.paired{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
 .h-icon.h-print.paired::after{background:#22c55e;box-shadow:0 0 6px #22c55e}
 .h-icon.h-print.error{color:#fca5a5;border-color:rgba(239,68,68,.40)}
 .h-icon.h-print.error::after{background:#ef4444;box-shadow:0 0 6px #ef4444}
 .brand{font-size:10.5px;font-weight:900;letter-spacing:.12em;color:hsl(var(--hue1) 50% 70%);text-shadow:0 0 10px hsl(var(--hue1) 60% 50% / .3);white-space:nowrap}
-.store-switch{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:700;color:var(--text-secondary)}
+.store-switch{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:var(--radius-pill);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:700;color:var(--text-secondary)}
 .store-switch svg{width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none}
-.plan-tag{font-size:8.5px;font-weight:900;letter-spacing:.08em;padding:3px 6px;border-radius:6px;background:hsl(var(--hue1) 40% 20% / .5);border:1px solid hsl(var(--hue1) 50% 35% / .4);color:hsl(var(--hue1) 60% 78%)}
+.plan-tag{font-size:8.5px;font-weight:900;letter-spacing:.08em;padding:3px 6px;border-radius:var(--radius-sm);background:hsl(var(--hue1) 40% 20% / .5);border:1px solid hsl(var(--hue1) 50% 35% / .4);color:hsl(var(--hue1) 60% 78%)}
 .h-spacer{flex:1}
 
 .title-row{display:flex;align-items:baseline;gap:8px;padding:6px 4px 10px}
 .title-main{font-size:20px;font-weight:900;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 30%,hsl(var(--hue1) 60% 82%));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .title-sub{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.02em}
 
-.search-wrap{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05);margin-bottom:10px}
+.search-wrap{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:var(--radius-sm);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05);margin-bottom:10px}
 .search-wrap > svg{width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0}
 .search-wrap input{flex:1;background:transparent;border:none;outline:none;color:white;font-size:12px;font-weight:500;min-width:0}
 .search-wrap input::placeholder{color:var(--text-muted)}
-.s-btn{width:28px;height:28px;border-radius:8px;background:hsl(var(--hue1) 40% 22% / .6);border:1px solid hsl(var(--hue1) 50% 40% / .5);color:hsl(var(--hue1) 60% 85%);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.s-btn{width:28px;height:28px;border-radius:var(--radius-sm);background:hsl(var(--hue1) 40% 22% / .6);border:1px solid hsl(var(--hue1) 50% 40% / .5);color:hsl(var(--hue1) 60% 85%);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
 .s-btn svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .s-btn.mic{background:hsl(340 40% 22% / .6);border-color:hsl(340 50% 40% / .5);color:hsl(340 60% 85%)}
-.s-btn .dot{position:absolute;top:-3px;right:-3px;background:hsl(var(--hue1) 70% 50%);color:#001;font-size:8px;font-weight:900;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #08090d}
+.s-btn .dot{position:absolute;top:-3px;right:-3px;background:hsl(var(--hue1) 70% 50%);color:#001;font-size:8px;font-weight:900;width:14px;height:14px;border-radius:var(--radius-icon);display:flex;align-items:center;justify-content:center;border:2px solid #08090d}
 /* S103 BUG #8: inline recording state на search mic — копиран pattern от .wiz-mic.recording (L2183-2187),
    но без !important (по-висока specificity .s-btn.mic.recording я постига source-order-wise).
    Reusing existing micRecPulse / micRecDot keyframes от wizard — без duplication. */
 .s-btn.mic.recording{background:rgba(239,68,68,.3);border-color:#ef4444;color:#fff;animation:micRecPulse .8s infinite;position:relative}
 .s-btn.mic.recording::after{content:'REC';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:7px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 6px rgba(239,68,68,.6);pointer-events:none}
-.s-btn.mic.recording::before{content:'';position:absolute;top:-5px;right:-2px;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.5);animation:micRecDot .6s infinite;pointer-events:none}
+.s-btn.mic.recording::before{content:'';position:absolute;top:-5px;right:-2px;width:6px;height:6px;border-radius:var(--radius-icon);background:#ef4444;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.5);animation:micRecDot .6s infinite;pointer-events:none}
 
 .add-card{display:flex;align-items:stretch;margin-bottom:16px;padding:0;--radius:16px;overflow:hidden}
 .add-main{flex:1;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;position:relative;z-index:5}
-.add-ico{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 70% 38%));border:1px solid hsl(var(--hue1) 60% 55%);color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / .45),inset 0 1px 0 rgba(255,255,255,.2);flex-shrink:0}
+.add-ico{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 60% 45%),hsl(var(--hue2) 70% 38%));border:1px solid hsl(var(--hue1) 60% 55%);color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / .45),inset 0 1px 0 rgba(255,255,255,.2);flex-shrink:0}
 .add-ico svg{width:16px;height:16px;stroke:white;stroke-width:2.8;fill:none;stroke-linecap:round}
 .add-txt{flex:1}
 .add-title{font-size:13.5px;font-weight:800;color:white}
 .add-hint{font-size:10px;font-weight:600;color:var(--text-muted);margin-top:2px}
 .add-modes{display:flex;gap:4px;padding:10px 12px 10px 4px;align-items:center}
-.add-mode{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;z-index:5}
+.add-mode{width:36px;height:36px;border-radius:var(--radius-sm);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;z-index:5}
 .add-mode.voice{background:hsl(340 40% 22% / .5);border-color:hsl(340 50% 38% / .4);color:hsl(340 60% 85%)}
 .add-mode svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
 
 /* QUESTION HEAD */
 .q-head{display:flex;align-items:center;gap:10px;padding:20px 4px 12px}
-.q-badge{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;font-size:11px;font-weight:900;flex-shrink:0;letter-spacing:-.02em}
+.q-badge{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-sm);font-size:11px;font-weight:900;flex-shrink:0;letter-spacing:-.02em}
 .q-head.q1 .q-badge{background:linear-gradient(135deg,hsl(0 60% 42%),hsl(340 60% 38%));color:#fff;border:1px solid hsl(0 60% 55%);box-shadow:0 0 10px hsl(0 70% 45% / .4)}
 .q-head.q2 .q-badge{background:linear-gradient(135deg,hsl(280 55% 45%),hsl(260 55% 40%));color:#fff;border:1px solid hsl(280 55% 60%);box-shadow:0 0 10px hsl(280 60% 50% / .4)}
 .q-head.q3 .q-badge{background:linear-gradient(135deg,hsl(145 60% 38%),hsl(165 60% 36%));color:#fff;border:1px solid hsl(145 60% 52%);box-shadow:0 0 10px hsl(145 60% 45% / .4)}
@@ -3950,7 +3950,7 @@ body{padding-bottom:130px;position:relative}
 .q-nm.q5{color:#fcd34d;text-shadow:0 0 10px rgba(251,191,36,.3)}
 .q-nm.q6{color:rgba(255,255,255,.7)}
 .q-sub{font-size:10px;font-weight:700;color:var(--text-muted);margin-top:2px;letter-spacing:.01em}
-.q-total{font-size:11px;font-weight:900;padding:3px 9px;border-radius:100px;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
+.q-total{font-size:11px;font-weight:900;padding:3px 9px;border-radius:var(--radius-pill);font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
 .q-total.q1{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
 .q-total.q2{background:rgba(192,132,252,.15);color:#d8b4fe;border:1px solid rgba(192,132,252,.4)}
 .q-total.q3{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.4)}
@@ -3962,9 +3962,9 @@ body{padding-bottom:130px;position:relative}
 .h-scroll{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -12px 4px;padding:4px 12px 12px;scrollbar-width:none}
 .h-scroll::-webkit-scrollbar{display:none}
 .art{width:162px;flex-shrink:0;scroll-snap-align:start;padding:10px;--radius:13px;cursor:pointer;display:flex;flex-direction:column}
-.art-photo{width:100%;aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,hsl(var(--hue1) 25% 22%),hsl(var(--hue2) 25% 18%));border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;position:relative;z-index:5;overflow:hidden;color:hsl(var(--hue1) 55% 82%)}
+.art-photo{width:100%;aspect-ratio:1;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(var(--hue1) 25% 22%),hsl(var(--hue2) 25% 18%));border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;position:relative;z-index:5;overflow:hidden;color:hsl(var(--hue1) 55% 82%)}
 .art-photo svg{width:50px;height:50px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 10px hsl(var(--hue1) 60% 50% / .4))}
-.art-photo .tag{position:absolute;top:5px;right:5px;font-size:8px;font-weight:900;letter-spacing:.04em;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.7)}
+.art-photo .tag{position:absolute;top:5px;right:5px;font-size:8px;font-weight:900;letter-spacing:.04em;padding:2px 6px;border-radius:var(--radius-sm);background:rgba(0,0,0,.7)}
 .art-photo .tag.bad{color:#fca5a5;border:1px solid rgba(239,68,68,.5);background:rgba(60,0,0,.75)}
 .art-photo .tag.good{color:#86efac;border:1px solid rgba(34,197,94,.5);background:rgba(0,40,10,.75)}
 .art-photo .tag.teal{color:#5eead4;border:1px solid rgba(45,212,191,.5);background:rgba(0,40,35,.75)}
@@ -3988,7 +3988,7 @@ body{padding-bottom:130px;position:relative}
 .art-ctx b{font-weight:900}
 
 /* S88.PRODUCTS.AIBRAIN_WIRE — call-to-action button под art-ctx (mobile 375px optimized) */
-.art-action{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:9.5px;font-weight:900;letter-spacing:.01em;text-align:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.12);cursor:pointer;position:relative;z-index:6;transition:background .15s ease;font-family:inherit;line-height:1.2}
+.art-action{display:block;width:100%;margin-top:6px;padding:6px 8px;border-radius:var(--radius-sm);font-size:9.5px;font-weight:900;letter-spacing:.01em;text-align:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.12);cursor:pointer;position:relative;z-index:6;transition:background .15s ease;font-family:inherit;line-height:1.2}
 .art-action:hover{background:rgba(255,255,255,.14)}
 .art-action.q1{background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(239,68,68,.08));border-color:rgba(239,68,68,.3);color:#fecaca}
 .art-action.q2{background:linear-gradient(135deg,rgba(192,132,252,.18),rgba(192,132,252,.08));border-color:rgba(192,132,252,.3);color:#e9d5ff}
@@ -4002,7 +4002,7 @@ body{padding-bottom:130px;position:relative}
 .view-all span{position:relative;z-index:5}
 
 .bnav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;display:flex;padding:8px 8px 14px;background:linear-gradient(180deg,hsl(220 25% 6% / .85),hsl(220 25% 4% / .95));border-top:1px solid hsl(var(--hue2) 20% 15% / .5);z-index:40}
-.ntab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px 4px;border-radius:12px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit}
+.ntab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px 4px;border-radius:var(--radius-sm);background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit}
 .ntab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
 .ntab-lbl{font-size:9px;font-weight:700;letter-spacing:.02em}
 .ntab.active{color:hsl(var(--hue1) 60% 88%);text-shadow:0 0 8px hsl(var(--hue1) 70% 50% / .5)}
@@ -4048,12 +4048,12 @@ body{padding-bottom:130px;position:relative}
 }
 
 /* ═══ S79.FIX.B-HIDDEN-INV-UI: Store Health card ═══ */
-.health-sec{margin:14px 12px 0;padding:14px 14px 12px;border:1px solid rgba(20,184,166,0.25);background:linear-gradient(135deg,rgba(20,184,166,0.08),rgba(6,182,212,0.05));border-radius:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.health-sec{margin:14px 12px 0;padding:14px 14px 12px;border:1px solid rgba(20,184,166,0.25);background:linear-gradient(135deg,rgba(20,184,166,0.08),rgba(6,182,212,0.05));border-radius:var(--radius);cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .health-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(20,184,166,0.12),transparent 60%);pointer-events:none}
 .health-sec:active{transform:scale(.99)}
 .health-sec .mod-prod-health-line{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.6),transparent);pointer-events:none}
 .health-row{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
-.health-dot{width:10px;height:10px;border-radius:50%;background:#64748b;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.health-dot{width:10px;height:10px;border-radius:var(--radius-icon);background:#64748b;flex-shrink:0;transition:background .3s,box-shadow .3s}
 .health-dot.dot-green{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.7)}
 .health-dot.dot-yellow{background:#eab308;box-shadow:0 0 10px rgba(234,179,8,.7)}
 .health-dot.dot-orange{background:#f97316;box-shadow:0 0 10px rgba(249,115,22,.7)}
@@ -4062,8 +4062,8 @@ body{padding-bottom:130px;position:relative}
 .health-title{font-size:13px;font-weight:600;color:#5eead4;margin-bottom:2px;letter-spacing:.2px}
 .health-meta{font-size:11px;color:rgba(94,234,212,.7);line-height:1.3}
 .health-pct{font-size:18px;font-weight:700;color:#5eead4;flex-shrink:0;font-variant-numeric:tabular-nums}
-.health-bar{margin-top:10px;height:5px;background:rgba(20,184,166,.12);border-radius:3px;overflow:hidden;position:relative;z-index:1}
-.health-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:3px;transition:width .8s ease-out;box-shadow:0 0 8px rgba(20,184,166,.5)}
+.health-bar{margin-top:10px;height:5px;background:rgba(20,184,166,.12);border-radius:var(--radius-sm);overflow:hidden;position:relative;z-index:1}
+.health-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:var(--radius-sm);transition:width .8s ease-out;box-shadow:0 0 8px rgba(20,184,166,.5)}
 .health-fill.fill-yellow{background:linear-gradient(90deg,#eab308,#ca8a04)}
 .health-fill.fill-orange{background:linear-gradient(90deg,#f97316,#ea580c)}
 .health-fill.fill-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
@@ -4074,7 +4074,7 @@ body{padding-bottom:130px;position:relative}
 .health-ov-box{position:relative;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:linear-gradient(180deg,rgba(15,15,40,0.95),rgba(8,12,30,0.98));border-top:1px solid rgba(20,184,166,0.35);border-radius:20px 20px 0 0;padding:24px 18px 32px;box-shadow:0 -16px 60px rgba(20,184,166,0.15);transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
 .health-ov.open .health-ov-box{transform:translateY(0)}
 .health-ov-box .mod-prod-health-line{position:absolute;top:0;left:18%;right:18%;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.7),transparent);pointer-events:none}
-.health-ov-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.health-ov-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:var(--radius-icon);background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .health-ov-close:active{background:rgba(99,102,241,.25)}
 .health-ov-hdr{text-align:center;padding:6px 0 18px}
 .health-ov-icon{margin-bottom:8px;display:flex;justify-content:center}
@@ -4088,16 +4088,16 @@ body{padding-bottom:130px;position:relative}
 .hov-row{display:flex;align-items:center;gap:8px;margin-top:12px}
 .hov-row:first-child{margin-top:0}
 .hov-lbl{font-size:11px;color:#5eead4;width:88px;flex-shrink:0;font-weight:600}
-.hov-bar{flex:1;height:5px;background:rgba(20,184,166,.12);border-radius:3px;overflow:hidden}
-.hov-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:3px;box-shadow:0 0 6px rgba(20,184,166,.4);transition:width .8s ease-out}
+.hov-bar{flex:1;height:5px;background:rgba(20,184,166,.12);border-radius:var(--radius-sm);overflow:hidden}
+.hov-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#06b6d4);border-radius:var(--radius-sm);box-shadow:0 0 6px rgba(20,184,166,.4);transition:width .8s ease-out}
 .hov-val{font-size:12px;color:#5eead4;font-weight:700;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
 .hov-sub{font-size:10px;color:rgba(148,163,184,.6);margin:3px 0 0 96px;line-height:1.3}
 .health-ov-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 4px 16px}
-.hov-meta-cell{text-align:center;padding:10px 6px;background:rgba(15,15,40,.4);border:1px solid rgba(99,102,241,.15);border-radius:12px}
+.hov-meta-cell{text-align:center;padding:10px 6px;background:rgba(15,15,40,.4);border:1px solid rgba(99,102,241,.15);border-radius:var(--radius-sm)}
 .hov-meta-num{font-size:20px;font-weight:700;color:#e0e7ff;font-variant-numeric:tabular-nums}
 .hov-meta-lbl{font-size:10px;color:rgba(165,180,252,.7);margin-top:2px}
 .health-ov-actions{display:flex;flex-direction:column;gap:8px;padding:0 2px}
-.hov-act{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(15,15,40,.5);border:1px solid rgba(99,102,241,.2);border-radius:14px;cursor:pointer;text-align:left;color:inherit;font-family:inherit;transition:all .15s;min-height:60px}
+.hov-act{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(15,15,40,.5);border:1px solid rgba(99,102,241,.2);border-radius:var(--radius-sm);cursor:pointer;text-align:left;color:inherit;font-family:inherit;transition:all .15s;min-height:60px}
 .hov-act:active{transform:scale(.99);background:rgba(15,15,40,.7)}
 .hov-act-primary{border-color:rgba(20,184,166,.4);background:linear-gradient(135deg,rgba(20,184,166,.12),rgba(6,182,212,.08))}
 .hov-act-primary:active{background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(6,182,212,.12))}
@@ -4170,22 +4170,22 @@ html{overflow-x:hidden;max-width:100vw}
 #kpModal{position:fixed;inset:0;z-index:9990;background:#08090d;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));background-image:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / 0.22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / 0.22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%)}
 .kp-app{position:relative;z-index:2;max-width:480px;margin:0 auto;width:100%;padding:0 12px 20px}
 .kp-header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:8px;padding:max(10px,calc(env(safe-area-inset-top,0px) + 10px)) 14px 12px;margin:0 -12px 14px;background:rgba(3,7,18,0.93);border-bottom:1px solid rgba(99,102,241,0.1)}
-.kp-back{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;font-family:inherit;transition:all 0.2s var(--ease)}
+.kp-back{width:32px;height:32px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;font-family:inherit;transition:all 0.2s var(--ease)}
 .kp-back:hover{color:var(--indigo-300);border-color:rgba(99,102,241,0.4)}
 .kp-back svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .kp-title-area{flex:1;min-width:0}
 .kp-title{font-size:13px;font-weight:800;color:var(--text-primary);line-height:1.1}
 .kp-subtitle{font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kp-save{padding:9px 16px;border-radius:100px;background:linear-gradient(135deg,hsl(145,70%,38%),hsl(165,70%,32%));color:hsl(145,95%,96%);font-weight:900;font-size:11px;letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;gap:5px;border:1.5px solid hsl(145,75%,60%,0.85);box-shadow:0 0 16px hsl(145,75%,55%,0.45),inset 0 1px 0 hsl(145,80%,70%,0.3);text-shadow:0 0 7px hsl(145,90%,70%,0.5);flex-shrink:0;font-family:inherit;transition:transform 0.15s var(--ease)}
+.kp-save{padding:9px 16px;border-radius:var(--radius-pill);background:linear-gradient(135deg,hsl(145,70%,38%),hsl(165,70%,32%));color:hsl(145,95%,96%);font-weight:900;font-size:11px;letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;gap:5px;border:1.5px solid hsl(145,75%,60%,0.85);box-shadow:0 0 16px hsl(145,75%,55%,0.45),inset 0 1px 0 hsl(145,80%,70%,0.3);text-shadow:0 0 7px hsl(145,90%,70%,0.5);flex-shrink:0;font-family:inherit;transition:transform 0.15s var(--ease)}
 .kp-save:active{transform:translateY(1px)}
 .kp-save svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.kp-photo-hero{height:200px;margin-bottom:14px;border-radius:22px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));border:1.5px dashed rgba(99,102,241,0.32);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all 0.25s var(--ease)}
+.kp-photo-hero{height:200px;margin-bottom:14px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));border:1.5px dashed rgba(99,102,241,0.32);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all 0.25s var(--ease)}
 .kp-photo-hero.has-photo{border-style:solid;padding:0;border-color:rgba(99,102,241,0.6)}
 .kp-photo-hero img{width:100%;height:100%;object-fit:cover}
 /* S88B.KP: BIBLE 7.2.8.5 v1.3 — overlay pill в долен ляв ъгъл */
 .kp-photo-overlay{position:absolute;left:0;bottom:0;padding:10px;pointer-events:none;display:flex}
-.kp-photo-overlay-text{font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;background:rgba(0,0,0,0.6);padding:6px 10px;border-radius:8px;opacity:0.7}
-.kp-ph-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--indigo-500),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(99,102,241,0.55),inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:12px}
+.kp-photo-overlay-text{font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;background:rgba(0,0,0,0.6);padding:6px 10px;border-radius:var(--radius-sm);opacity:0.7}
+.kp-ph-icon{width:56px;height:56px;border-radius:var(--radius);background:linear-gradient(135deg,var(--indigo-500),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px rgba(99,102,241,0.55),inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:12px}
 .kp-ph-icon svg{width:24px;height:24px;fill:#fff;filter:drop-shadow(0 0 8px rgba(255,255,255,0.6))}
 .kp-ph-label{font-size:14px;font-weight:800;color:var(--text-primary)}
 .kp-ph-hint{font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;font-weight:600}
@@ -4193,20 +4193,20 @@ html{overflow-x:hidden;max-width:100vw}
 .kp-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .kp-label{font-size:11px;font-weight:800;letter-spacing:0.06em;color:hsl(var(--hue1) 70% 75%);text-transform:uppercase}
 .kp-req{color:var(--danger);margin-left:4px}
-.kp-voice-mic{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;border:0;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.4);font-family:inherit}
+.kp-voice-mic{width:32px;height:32px;border-radius:var(--radius-icon);background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;border:0;box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / 0.4);font-family:inherit}
 .kp-voice-mic[disabled]{opacity:0.35;cursor:not-allowed;box-shadow:none}
 .kp-voice-mic svg{width:14px;height:14px;fill:#fff}
-.kp-input{width:100%;padding:14px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:12px;color:var(--text-primary);font-size:14px;font-weight:700;outline:none;-webkit-appearance:none;appearance:none;transition:all 0.2s var(--ease);font-family:inherit}
+.kp-input{width:100%;padding:14px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;font-weight:700;outline:none;-webkit-appearance:none;appearance:none;transition:all 0.2s var(--ease);font-family:inherit}
 .kp-input::placeholder{color:#6b7280;font-weight:500}
 .kp-input:focus{border-color:hsl(var(--hue1) 75% 65%);box-shadow:0 0 0 1px hsl(var(--hue1) 80% 65% / 0.3),0 0 18px hsl(var(--hue1) 70% 55% / 0.35)}
 .kp-copied-card{padding:12px 14px;margin-bottom:12px}
 .kp-copied-head{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-.kp-copied-ico{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,hsl(145 60% 28%),hsl(145 50% 20%));border:1px solid hsl(145 70% 50% / 0.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 0 12px hsl(145 70% 50% / 0.25)}
+.kp-copied-ico{width:28px;height:28px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(145 60% 28%),hsl(145 50% 20%));border:1px solid hsl(145 70% 50% / 0.45);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 0 12px hsl(145 70% 50% / 0.25)}
 .kp-copied-ico svg{width:13px;height:13px;stroke:#86efac;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px hsl(145 70% 60%))}
 .kp-copied-text{flex:1;min-width:0}
 .kp-copied-t1{font-size:12px;font-weight:800;color:var(--text-primary)}
 .kp-copied-t2{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;font-weight:600}
-.kp-chev{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;transition:transform 0.25s var(--ease);flex-shrink:0}
+.kp-chev{width:22px;height:22px;border-radius:var(--radius-icon);background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;transition:transform 0.25s var(--ease);flex-shrink:0}
 .kp-copied-head.expanded .kp-chev{transform:rotate(180deg)}
 .kp-chev svg{width:11px;height:11px;stroke:rgba(255,255,255,0.6);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .kp-copied-fields{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -4216,44 +4216,44 @@ html{overflow-x:hidden;max-width:100vw}
 .kp-cf-label{font-size:11px;color:rgba(255,255,255,0.6);min-width:92px;font-weight:600}
 .kp-cf-value{flex:1;font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kp-cf-value.computed{color:var(--success)}
-.kp-cf-input{flex:1;padding:6px 8px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:700;outline:none;font-family:inherit;min-width:0}
+.kp-cf-input{flex:1;padding:6px 8px;background:rgba(0,0,0,0.4);border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-weight:700;outline:none;font-family:inherit;min-width:0}
 .kp-cf-auto{font-size:10px;color:#6b7280;font-weight:600}
-.kp-cf-edit{width:26px;height:26px;border-radius:7px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
+.kp-cf-edit{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
 .kp-cf-edit svg{width:11px;height:11px;stroke:var(--indigo-300);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .kp-section-head{display:flex;align-items:center;gap:10px;padding:0 4px;margin:18px 0 10px}
-.kp-section-ico{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--indigo-600),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.35);flex-shrink:0}
+.kp-section-ico{width:32px;height:32px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--indigo-600),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.35);flex-shrink:0}
 .kp-section-ico svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .kp-section-text{flex:1;min-width:0}
 .kp-section-title{font-size:13px;font-weight:800;letter-spacing:0.02em;color:var(--text-primary)}
 .kp-section-sub{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;font-weight:600}
-.kp-section-pill{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:800;background:rgba(99,102,241,0.12);color:var(--indigo-300);border:0.5px solid rgba(99,102,241,0.28);flex-shrink:0;letter-spacing:0.05em}
+.kp-section-pill{padding:4px 10px;border-radius:var(--radius-pill);font-size:10px;font-weight:800;background:rgba(99,102,241,0.12);color:var(--indigo-300);border:0.5px solid rgba(99,102,241,0.28);flex-shrink:0;letter-spacing:0.05em}
 .kp-color-card{margin-bottom:12px;padding:0}
 .kp-cc-head{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.kp-swatch{width:30px;height:30px;border-radius:50%;border:1.5px solid hsl(220,30%,30%,0.4);flex-shrink:0;box-shadow:0 0 8px var(--swatch-glow,currentColor),inset 0 1px 0 rgba(255,255,255,0.18)}
+.kp-swatch{width:30px;height:30px;border-radius:var(--radius-icon);border:1.5px solid hsl(220,30%,30%,0.4);flex-shrink:0;box-shadow:0 0 8px var(--swatch-glow,currentColor),inset 0 1px 0 rgba(255,255,255,0.18)}
 .kp-cc-name{flex:1;font-size:14px;font-weight:800;letter-spacing:-0.01em;color:var(--text-primary)}
-.kp-cc-total{padding:3px 8px;border-radius:100px;font-size:10px;font-weight:900;letter-spacing:0.04em;background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.28);color:var(--indigo-300);font-variant-numeric:tabular-nums}
-.kp-cc-remove{width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
+.kp-cc-total{padding:3px 8px;border-radius:var(--radius-pill);font-size:10px;font-weight:900;letter-spacing:0.04em;background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.28);color:var(--indigo-300);font-variant-numeric:tabular-nums}
+.kp-cc-remove{width:28px;height:28px;border-radius:var(--radius-sm);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;font-family:inherit}
 .kp-cc-remove svg{width:13px;height:13px;stroke:#fca5a5;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .kp-cc-body{padding:10px 14px}
 .kp-size-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.04)}
 .kp-size-row:last-of-type{border-bottom:0;padding-bottom:4px}
-.kp-sz-label{min-width:36px;padding:5px 10px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;font-weight:800;text-align:center;flex-shrink:0;color:var(--text-primary)}
+.kp-sz-label{min-width:36px;padding:5px 10px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;font-weight:800;text-align:center;flex-shrink:0;color:var(--text-primary)}
 .kp-sz-stepper{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
-.kp-sz-btn{width:30px;height:30px;border-radius:8px;background:hsl(var(--hue1) 60% 35% / 0.25);border:1px solid hsl(var(--hue1) 60% 50% / 0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;color:hsl(var(--hue1) 85% 85%);font-weight:800;font-size:16px;user-select:none;transition:transform 0.15s var(--ease);font-family:inherit;padding:0}
+.kp-sz-btn{width:30px;height:30px;border-radius:var(--radius-sm);background:hsl(var(--hue1) 60% 35% / 0.25);border:1px solid hsl(var(--hue1) 60% 50% / 0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;color:hsl(var(--hue1) 85% 85%);font-weight:800;font-size:16px;user-select:none;transition:transform 0.15s var(--ease);font-family:inherit;padding:0}
 .kp-sz-btn:active{transform:scale(0.92)}
 .kp-sz-qty{min-width:44px;text-align:center;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary)}
-.kp-add-color{margin:4px 0 14px;padding:14px;background:linear-gradient(135deg,hsl(280 60% 25% / 0.3),hsl(310 60% 25% / 0.2));border:1.5px dashed hsl(280 70% 55% / 0.5);border-radius:22px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s var(--ease)}
-.kp-ac-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(310 70% 50%));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.15);flex-shrink:0}
+.kp-add-color{margin:4px 0 14px;padding:14px;background:linear-gradient(135deg,hsl(280 60% 25% / 0.3),hsl(310 60% 25% / 0.2));border:1.5px dashed hsl(280 70% 55% / 0.5);border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s var(--ease)}
+.kp-ac-icon{width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(280 70% 55%),hsl(310 70% 50%));display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.15);flex-shrink:0}
 .kp-ac-icon svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .kp-ac-text{flex:1}
 .kp-ac-text .kp-t1{font-size:13px;font-weight:800;color:var(--text-primary)}
 .kp-ac-text .kp-t2{font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;font-weight:600}
-.kp-copy-qty-row{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-top:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:12px;cursor:pointer;user-select:none}
+.kp-copy-qty-row{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-top:8px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-sm);cursor:pointer;user-select:none}
 .kp-copy-qty-row input[type="checkbox"]{width:18px;height:18px;accent-color:hsl(255 70% 60%);cursor:pointer;flex-shrink:0}
 .kp-copy-qty-row .kp-cq-label{font-size:12px;font-weight:700;color:var(--text-primary);flex:1}
 .kp-copy-qty-row .kp-cq-hint{font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);font-variant-numeric:tabular-nums}
 .kp-bottom-bar{display:flex;gap:10px;margin-top:18px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:50;background:linear-gradient(180deg,rgba(8,9,13,0) 0%,rgba(8,9,13,0.95) 30%,rgba(8,9,13,1) 100%)}
-.kp-btn-print,.kp-btn-ai{flex:1;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:0.04em;cursor:pointer;padding:0 14px;font-family:inherit;transition:transform 0.15s var(--ease)}
+.kp-btn-print,.kp-btn-ai{flex:1;height:46px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:0.04em;cursor:pointer;padding:0 14px;font-family:inherit;transition:transform 0.15s var(--ease)}
 .kp-btn-print:active,.kp-btn-ai:active{transform:translateY(1px)}
 .kp-btn-print{background:linear-gradient(135deg,hsl(255,65%,38%),hsl(222,65%,32%));color:hsl(255,95%,96%);border:1.5px solid hsl(255,75%,60%,0.85);box-shadow:0 0 16px hsl(255,75%,55%,0.4),inset 0 1px 0 hsl(255,80%,70%,0.3);text-shadow:0 0 7px hsl(255,90%,70%,0.4)}
 .kp-btn-ai{background:linear-gradient(135deg,hsl(280,70%,42%),hsl(310,70%,36%));color:hsl(280,95%,96%);border:1.5px solid hsl(280,75%,62%,0.9);box-shadow:0 0 18px hsl(280,75%,55%,0.5),inset 0 1px 0 hsl(280,80%,70%,0.3);text-shadow:0 0 7px hsl(280,90%,72%,0.5)}
@@ -4339,7 +4339,7 @@ html{overflow-x:hidden;max-width:100vw}
         <button class="s-btn mic" id="hSearchMicBtn" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
     </div>
     <!-- S79.FIX Bug #2: Search autocomplete dropdown -->
-    <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:14px;background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+    <div id="hSearchDD" style="display:none;margin:0 12px 8px;border-radius:var(--radius-sm);background:rgba(8,8,24,0.97);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
 
 
     <div class="glass add-card">
@@ -4351,7 +4351,7 @@ html{overflow-x:hidden;max-width:100vw}
         </div>
         <div class="add-modes">
             <!-- S92.PRODUCTS.D9_CLEANUP: махнат микрофон (безсмислен) + молив (дублира главния "Добави артикул") бутони. ⋯ → явен "Като предния" бутон с директен handler. -->
-            <button class="add-mode-kp" onclick="event.stopPropagation();openLikePreviousWizardS88()" style="height:36px;padding:0 14px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.45);color:#e2e8f0;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.02em;white-space:nowrap;font-family:inherit">📋 Като предния</button>
+            <button class="add-mode-kp" onclick="event.stopPropagation();openLikePreviousWizardS88()" style="height:36px;padding:0 14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.45);color:#e2e8f0;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.02em;white-space:nowrap;font-family:inherit">📋 Като предния</button>
         </div>
     </div>
 
@@ -4775,7 +4775,7 @@ html{overflow-x:hidden;max-width:100vw}
 <!-- ═══ MANUAL WIZARD MODAL ═══ -->
 <div class="modal-ov" id="wizModal">
     <div class="modal-hdr">
-        <button id="wizBackBtn" onclick="wizPrev()" aria-label="Назад" title="Назад" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;padding:0">
+        <button id="wizBackBtn" onclick="wizPrev()" aria-label="Назад" title="Назад" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);padding:0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <h2 id="wizTitle">Нов артикул</h2>
@@ -4798,7 +4798,7 @@ html{overflow-x:hidden;max-width:100vw}
     <button class="mx-close" onclick="mxCancel()" title="Назад — откажи промените"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>
     <div class="mx-title-wrap"><div class="mx-title">Матрица на бройките</div><div class="mx-subtitle" id="mxSubtitle">—</div></div>
   </div>
-  <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:160px"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.55">Въведи бройка за всяка комбинация (важи и за единична вариация — само цвят или само размер). <b style="color:#a5b4fc">МКП</b> (<b>М</b>инимално <b>К</b>оличество за <b>П</b>оръчка) се изчислява автоматично от системата за всеки вариант — когато наличността падне под МКП, артикулът се отбелязва за поръчка от доставчик.</div></div>
+  <div id="mxInstruction" style="flex-shrink:0;padding:10px 16px;background:rgba(99,102,241,0.08);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;gap:10px;align-items:flex-start;transition:max-height .25s,opacity .25s,padding .25s;overflow:hidden;max-height:160px"><div style="width:24px;height:24px;border-radius:var(--radius-icon);background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">i</div><div style="font-size:11px;color:#c7d2fe;line-height:1.55">Въведи бройка за всяка комбинация (важи и за единична вариация — само цвят или само размер). <b style="color:#a5b4fc">МКП</b> (<b>М</b>инимално <b>К</b>оличество за <b>П</b>оръчка) се изчислява автоматично от системата за всеки вариант — когато наличността падне под МКП, артикулът се отбелязва за поръчка от доставчик.</div></div>
 <div class="mx-quick">
     <button class="mx-qchip" onclick="mxFillAll(1)">Всички = 1</button>
     <button class="mx-qchip" onclick="mxFillAll(2)">Всички = 2</button>
@@ -4809,7 +4809,7 @@ html{overflow-x:hidden;max-width:100vw}
   <div class="mx-body-wrap"><table class="mx-table" id="mxTable"><thead id="mxThead"></thead><tbody id="mxTbody"></tbody></table></div>
   <div class="mx-bottom">
     <div class="mx-stats"><div class="mx-stat"><div class="mx-stat-v" id="mxStatCells">0</div><div class="mx-stat-l">Попълнени</div></div><div class="mx-stat"><div class="mx-stat-v" id="mxStatTotal">0</div><div class="mx-stat-l">Общо бр</div></div><div class="mx-stat" title="МКП = Минимално Количество за Поръчка"><div class="mx-stat-v" id="mxStatMin">0</div><div class="mx-stat-l">МКП общо</div></div></div>
-    <div style="display:flex;gap:8px"><button type="button" onclick="mxCancel()" style="flex:1;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Откажи</button><button class="mx-done" onclick="mxDone()" style="flex:2"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button></div>
+    <div style="display:flex;gap:8px"><button type="button" onclick="mxCancel()" style="flex:1;padding:14px 18px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Откажи</button><button class="mx-done" onclick="mxDone()" style="flex:2"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button></div>
   </div>
 </div>
 <input type="file" id="filePickerInput" accept="image/*,*/*">
@@ -4852,8 +4852,7 @@ if (!$_current_store_name) {
 function toggleTheme(){
     var cur=document.documentElement.getAttribute('data-theme')||'dark';
     var nxt=(cur==='light')?'dark':'light';
-    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
-    else{document.documentElement.removeAttribute('data-theme')}
+    document.documentElement.setAttribute('data-theme',nxt);
     try{localStorage.setItem('rms_theme',nxt)}catch(_){}
     var sun=document.getElementById('themeIconSun');
     var moon=document.getElementById('themeIconMoon');
@@ -5142,8 +5141,8 @@ async function loadCategories(){
     const el=document.getElementById('catContent');
     if(S.supId){
         el.innerHTML=d.length===0?`<div class="empty-st"><div class="es-text">Няма категории</div></div>`:
-        `<div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-subtle);overflow:hidden">`+
-        d.map(c=>`<div class="cat-item" onclick="goScreenWithHistory('products',{sup:${S.supId},cat:${c.id}})"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div><div><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary)">${c.product_count} арт. · ${fmtNum(c.total_stock)} бр.</div></div></div><span style="color:var(--text-secondary)">›</span></div>`).join('')+`</div>`;
+        `<div style="background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);overflow:hidden">`+
+        d.map(c=>`<div class="cat-item" onclick="goScreenWithHistory('products',{sup:${S.supId},cat:${c.id}})"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div><div><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary)">${c.product_count} арт. · ${fmtNum(c.total_stock)} бр.</div></div></div><span style="color:var(--text-secondary)">›</span></div>`).join('')+`</div>`;
     }else{
         el.innerHTML=d.length===0?`<div class="empty-st"><div class="es-text">Няма категории</div></div>`:
         `<div class="swipe-row">`+d.map(c=>`<div class="cat-card" onclick="goScreenWithHistory('products',{cat:${c.id}})"><div style="font-size:13px;font-weight:600">${esc(c.name)}</div><div style="font-size:10px;color:var(--text-secondary);margin-top:3px">${c.product_count} арт.${c.supplier_count?' · '+c.supplier_count+' дост.':''}</div></div>`).join('')+`</div>`;
@@ -5239,14 +5238,14 @@ function onLiveSearch(q){
     _searchTO=setTimeout(async()=>{
         const d=await api('products.php?ajax=search&q='+encodeURIComponent(q)+'&store_id='+CFG.storeId);
         if(!d){results.style.display='none';return}
-        if(!d.length){results.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12)"><span style="font-size:10px;font-weight:700;color:var(--text-secondary)">0 резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke=\x22#818cf8\x22 stroke-width=\x223\x22><path d=\x22M18 6L6 18M6 6l12 12\x22/></svg></div></div><div style="padding:16px;text-align:center;font-size:12px;color:var(--text-secondary)">Нищо за "'+esc(q)+'"</div>';results.style.display='block';return}
-        var closeH='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12);position:sticky;top:0;background:rgba(8,8,24,0.97);z-index:1"><span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">'+d.length+' резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>';
+        if(!d.length){results.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12)"><span style="font-size:10px;font-weight:700;color:var(--text-secondary)">0 резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:var(--radius-sm);background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke=\x22#818cf8\x22 stroke-width=\x223\x22><path d=\x22M18 6L6 18M6 6l12 12\x22/></svg></div></div><div style="padding:16px;text-align:center;font-size:12px;color:var(--text-secondary)">Нищо за "'+esc(q)+'"</div>';results.style.display='block';return}
+        var closeH='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12);position:sticky;top:0;background:rgba(8,8,24,0.97);z-index:1"><span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">'+d.length+' резултата</span><div onclick="clearLiveSearch()" style="width:24px;height:24px;border-radius:var(--radius-sm);background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>';
         results.innerHTML=closeH+d.slice(0,15).map(p=>{
             const q=parseInt(p.total_stock||0);
             const sc=q>0?'var(--success)':'var(--danger)';
             const thumb=p.image_url?'<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.25)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>';
             return '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickSearchResult('+p.id+')">'+
-            '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+thumb+'</div>'+
+            '<div style="width:36px;height:36px;border-radius:var(--radius-sm);background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+thumb+'</div>'+
             '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</div>'+
             '<div style="font-size:9px;color:var(--text-secondary)">'+esc(p.code||'')+' · '+esc(p.supplier_name||'')+'</div></div>'+
             '<div style="text-align:right;flex-shrink:0"><div style="font-size:12px;font-weight:700;color:var(--indigo-300)">'+fmtPrice(p.retail_price)+'</div>'+
@@ -5429,13 +5428,13 @@ function renderLabelsDrawer(){
     var showDual=isBG&&beforeDL;
     var h='<div style="padding:0 4px">';
     // Tabs
-    h+='<div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px">';
-    if(showDual)h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='dual'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'dual\';renderLabelsDrawer()">\u20ac + \u043b\u0432</div>';
-    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='eur'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'eur\';renderLabelsDrawer()">\u0421\u0430\u043c\u043e \u20ac</div>';
-    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='noprice'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'noprice\';renderLabelsDrawer()">\u0411\u0435\u0437 \u0446\u0435\u043d\u0430</div>';
+    h+='<div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:var(--radius-sm);padding:3px">';
+    if(showDual)h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='dual'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'dual\';renderLabelsDrawer()">\u20ac + \u043b\u0432</div>';
+    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='eur'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'eur\';renderLabelsDrawer()">\u0421\u0430\u043c\u043e \u20ac</div>';
+    h+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='noprice'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S._labelPrintMode=\'noprice\';renderLabelsDrawer()">\u0411\u0435\u0437 \u0446\u0435\u043d\u0430</div>';
     h+='</div>';
     // Warning dual
-    if(showDual&&pm==='dual')h+='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:10px;color:#fbbf24">\u0414\u0432\u043e\u0439\u043d\u043e \u0438\u0437\u043f\u0438\u0441\u0432\u0430\u043d\u0435 \u0434\u043e 08.08.2026</div>';
+    if(showDual&&pm==='dual')h+='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:10px;font-size:10px;color:#fbbf24">\u0414\u0432\u043e\u0439\u043d\u043e \u0438\u0437\u043f\u0438\u0441\u0432\u0430\u043d\u0435 \u0434\u043e 08.08.2026</div>';
     // Header
     h+='<div style="display:flex;align-items:center;padding:4px 10px;gap:4px;margin-bottom:4px">';
     h+='<div style="flex:1;font-size:10px;font-weight:700;color:var(--text-secondary)">\u0412\u0410\u0420\u0418\u0410\u0426\u0418\u042f</div>';
@@ -5453,19 +5452,19 @@ function renderLabelsDrawer(){
         totalQty+=v._printQty;
         var label=esc(v.name);
         if(v.size)label='<span style="font-size:13px;font-weight:700;margin-right:4px">'+esc(v.size)+'</span>';
-        if(v.color){var cc=CFG.colors.find(function(x){return x.name===v.color});var hex=cc?cc.hex:'#666';label+='<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(v.color)+'</span></span>';}
+        if(v.color){var cc=CFG.colors.find(function(x){return x.name===v.color});var hex=cc?cc.hex:'#666';label+='<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:var(--radius-icon);background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(v.color)+'</span></span>';}
         if(!v.size&&!v.color)label='<span style="font-size:11px">'+esc(v.name)+'</span>';
-        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)">';
+        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)">';
         h+='<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+label+'</div>';
         h+='<div style="display:flex;align-items:center;gap:0">';
         h+='<button type="button" onclick="lblAdj('+i+',-1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">\u2212</button>';
         h+='<input type="number" class="fc" id="lbl'+i+'" style="width:32px;padding:2px 0;text-align:center;font-size:12px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="'+v._printQty+'" min="0" onchange="lblRecalc()">';
         h+='<button type="button" onclick="lblAdj('+i+',1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">+</button></div>';
-        h+='<div onclick="lblPrint('+i+')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
+        h+='<div onclick="lblPrint('+i+')" style="width:30px;height:30px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
     });
 
     h+='<div style="display:flex;gap:8px;margin-top:10px;align-items:stretch">';
-    h+='<button type="button" onclick="openPrinterSettings()" title="Настройки принтер" style="width:48px;flex-shrink:0;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.25);border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">⚙️</button>';
+    h+='<button type="button" onclick="openPrinterSettings()" title="Настройки принтер" style="width:48px;flex-shrink:0;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.25);border-radius:var(--radius-sm);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">⚙️</button>';
     h+='<button type="button" class="abtn save" style="flex:1;font-size:13px;padding:12px" onclick="lblPrint(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>\u041f\u0435\u0447\u0430\u0442\u0430\u0439 \u0432\u0441\u0438\u0447\u043a\u0438 (<span id="lblTot">'+totalQty+'</span> \u0435\u0442.)</button></div>';
     h+='<button type="button" class="abtn" onclick="lblCSV()" style="margin-top:6px;font-size:11px;padding:8px;border-color:rgba(99,102,241,.15);color:var(--indigo-300)">\u0421\u0432\u0430\u043b\u0438 CSV</button>';
     h+='</div>';
@@ -5507,7 +5506,7 @@ function lblPrint(idx){
     items.forEach(function(item){for(var q=0;q<item.qty;q++){labels.push({size:item.v.size||'',color:item.v.color||'',barcode:item.v.barcode||barcode})}});
     var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Labels</title>';
     html+='<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>';
-    html+='<style>@page{size:50mm 30mm;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;color:#000}.label{width:50mm;height:30mm;padding:1.5mm 2mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;overflow:hidden}.l-top{display:flex;gap:1.5mm;align-items:flex-start}.l-name{font-size:7pt;font-weight:700;line-height:1.15}.l-code{font-size:5pt;color:#555;margin-top:0.3mm}.l-mid{display:flex;align-items:center;gap:1.5mm}.l-sz{background:#000;color:#fff;font-size:10pt;font-weight:700;padding:0.5mm 2.5mm;border-radius:1mm}.l-clr{font-size:7pt;color:#333}.l-dash{border-top:0.3mm dashed #aaa;padding-top:0.8mm}.l-pr{display:flex;align-items:baseline;gap:1.5mm}.l-eur{font-size:12pt;font-weight:700}.l-bgn{font-size:8pt;font-weight:600;color:#444}.l-eur-only{font-size:14pt;font-weight:700;text-align:center}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>';
+    html+='<style>@page{size:50mm 30mm;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Montserrat,Arial,sans-serif;color:#000}.label{width:50mm;height:30mm;padding:1.5mm 2mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;overflow:hidden}.l-top{display:flex;gap:1.5mm;align-items:flex-start}.l-name{font-size:7pt;font-weight:700;line-height:1.15}.l-code{font-size:5pt;color:#555;margin-top:0.3mm}.l-mid{display:flex;align-items:center;gap:1.5mm}.l-sz{background:#000;color:#fff;font-size:10pt;font-weight:700;padding:0.5mm 2.5mm;border-radius:1mm}.l-clr{font-size:7pt;color:#333}.l-dash{border-top:0.3mm dashed #aaa;padding-top:0.8mm}.l-pr{display:flex;align-items:baseline;gap:1.5mm}.l-eur{font-size:12pt;font-weight:700}.l-bgn{font-size:8pt;font-weight:600;color:#444}.l-eur-only{font-size:14pt;font-weight:700;text-align:center}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>';
     labels.forEach(function(lb,i){
         html+='<div class="label"><div class="l-top"><svg id="bc'+i+'" style="width:28mm;height:12mm;flex-shrink:0"></svg><div><div class="l-name">'+name+'</div><div class="l-code">'+code+' \u00b7 '+lb.barcode+'</div></div></div>';
         if(pm==='noprice'){
@@ -5635,7 +5634,7 @@ function renderStudioInDrawer(hasImg, imgUrl) {
         h += '<button class="abtn" onclick="studioPickPhoto()" style="flex:1">Галерия</button></div>';
     } else {
         h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
-        h += '<img src="'+imgUrl+'" style="width:60px;height:60px;border-radius:10px;object-fit:cover;border:1px solid var(--border-subtle)">';
+        h += '<img src="'+imgUrl+'" style="width:60px;height:60px;border-radius:var(--radius-sm);object-fit:cover;border:1px solid var(--border-subtle)">';
         h += '<button class="abtn" onclick="studioPickPhoto()" style="font-size:10px;padding:6px 12px">Смени снимката</button></div>';
     }
     // Credits
@@ -5647,13 +5646,13 @@ function renderStudioInDrawer(hasImg, imgUrl) {
         return;
     }
     // ─── OPTION 1: Бял фон ───
-    h += '<div style="padding:10px;border-radius:12px;background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'bg_removal\')">';
+    h += '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);margin-bottom:6px;cursor:pointer" onclick="studioAction(\'bg_removal\')">';
     h += '<div style="display:flex;align-items:center;gap:8px">';
     h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
     h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">Бял фон</div><div style="font-size:9px;color:var(--text-secondary)">Махва фона, чисто бяло</div></div>';
     h += '<span style="font-size:11px;font-weight:600;color:#22c55e">0.05\u20ac</span></div></div>';
     // ─── OPTION 2: Дрехи на модел ───
-    h += '<div style="padding:10px;border-radius:12px;background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.2);margin-bottom:6px">';
+    h += '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.2);margin-bottom:6px">';
     h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
     h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
     h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — дрехи</div><div style="font-size:9px;color:var(--text-secondary)">Облечи на модел</div></div>';
@@ -5664,20 +5663,20 @@ function renderStudioInDrawer(hasImg, imgUrl) {
     models.forEach(function(m){
         var sel=S.studioModel===m[0];
         var bg=sel?'rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35)':'rgba(99,102,241,.05);border:0.5px solid rgba(99,102,241,.15)';
-        h+='<div style="text-align:center;padding:7px 2px;border-radius:7px;background:'+bg+';cursor:pointer" onclick="S.studioModel=\''+m[0]+'\';renderStudioInDrawer(true,\''+imgUrl.replace(/'/g,"\\'")+'\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+(sel?'#c4b5fd':'#a5b4fc')+'" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg><div style="font-size:9px;color:'+(sel?'#c4b5fd':'#a5b4fc')+'">'+m[1]+'</div></div>';
+        h+='<div style="text-align:center;padding:7px 2px;border-radius:var(--radius-sm);background:'+bg+';cursor:pointer" onclick="S.studioModel=\''+m[0]+'\';renderStudioInDrawer(true,\''+imgUrl.replace(/'/g,"\\'")+'\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+(sel?'#c4b5fd':'#a5b4fc')+'" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg><div style="font-size:9px;color:'+(sel?'#c4b5fd':'#a5b4fc')+'">'+m[1]+'</div></div>';
     });
     h += '</div>';
     h += '<div style="margin-bottom:6px"><input type="text" class="fc" id="studioPromptClothes" placeholder="допълни: стояща поза, профил..." style="font-size:11px;padding:6px 10px"></div>';
     h += '<button class="abtn" onclick="studioAction(\'tryon_\'+(S.studioModel||\'woman\')" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:11px">Генерирай на модел</button></div>';
     // ─── OPTION 3: Предмети ───
-    h += '<div style="padding:10px;border-radius:12px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.2);margin-bottom:6px">';
+    h += '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.2);margin-bottom:6px">';
     h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
     h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>';
     h += '<div style="flex:1"><div style="font-size:13px;font-weight:600">AI Магия — предмети</div><div style="font-size:9px;color:var(--text-secondary)">Бижута, обувки, чанти</div></div>';
     h += '<span style="font-size:11px;font-weight:600;color:#fbbf24">0.50\u20ac</span></div>';
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">';
     ['Бижу на ръка','На кадифе','На мрамор','Макро близък план','На дърво','Lifestyle сцена','Обувка на крак','Чанта на рамо'].forEach(function(label){
-        h+='<div style="padding:5px 8px;border-radius:6px;background:rgba(234,179,8,.06);border:0.5px solid rgba(234,179,8,.15);cursor:pointer;font-size:10px;color:#fcd34d" onclick="document.getElementById(\'studioPromptObjects\')||null;if(document.getElementById(\'studioPromptObjects\')){document.getElementById(\'studioPromptObjects\'). value=\''+label+'\';}">'+label+'</div>';
+        h+='<div style="padding:5px 8px;border-radius:var(--radius-sm);background:rgba(234,179,8,.06);border:0.5px solid rgba(234,179,8,.15);cursor:pointer;font-size:10px;color:#fcd34d" onclick="document.getElementById(\'studioPromptObjects\')||null;if(document.getElementById(\'studioPromptObjects\')){document.getElementById(\'studioPromptObjects\'). value=\''+label+'\';}">'+label+'</div>';
     });
     h += '</div>';
     h += '<div style="margin-bottom:6px"><input type="text" class="fc" id="studioPromptObjects" placeholder="или опиши: пръстен в кутийка..." style="font-size:11px;padding:6px 10px"></div>';
@@ -5736,7 +5735,7 @@ async function openProductDetail(id){
     const p=d.product;
     document.getElementById('detailTitle').textContent=p.name;
     let h='';
-    if(p.image_url)h+=`<div style="text-align:center;margin-bottom:12px"><img src="${p.image_url}" style="max-width:180px;border-radius:12px;border:1px solid var(--border-subtle)"></div>`;
+    if(p.image_url)h+=`<div style="text-align:center;margin-bottom:12px"><img src="${p.image_url}" style="max-width:180px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle)"></div>`;
     h+=`<div class="d-row"><span class="d-label">Код</span><span class="d-value">${esc(p.code)||'—'}</span></div>`;
     h+=`<div class="d-row"><span class="d-label">Цена</span><span class="d-value">${fmtPrice(p.retail_price)}</span></div>`;
     if(CFG.canSeeCost)h+=`<div class="d-row"><span class="d-label">Доставна</span><span class="d-value">${fmtPrice(p.cost_price)}</span></div>`;
@@ -5750,7 +5749,7 @@ async function openProductDetail(id){
     if(d.variations?.length>0){
         h+=`<div style="margin-top:12px;font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:5px">Вариации</div>`;
         d.variations.forEach(v=>{
-            const vThumb=v.image_url?`<img src="${v.image_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;margin-left:8px;flex-shrink:0">`:'';
+            const vThumb=v.image_url?`<img src="${v.image_url}" style="width:32px;height:32px;border-radius:var(--radius-sm);object-fit:cover;margin-left:8px;flex-shrink:0">`:'';
             h+=`<div class="p-card" onclick="openProductDetail(${v.id})" style="margin-bottom:3px"><div class="stock-bar ${stockBar(v.total_stock,0)}"></div>${vThumb}<div class="p-info" style="margin-left:10px"><div class="p-name" style="font-size:11px">${esc(v.name)}</div><div class="p-meta">${v.size?`<span>${esc(v.size)}</span>`:''}${v.color?`<span>${esc(v.color)}</span>`:''}</div></div><div class="p-right"><div class="p-price">${fmtPrice(v.retail_price)}</div><div class="p-stock ${stockClass(v.total_stock,0)}">${v.total_stock} бр.</div></div></div>`;
         });
     }
@@ -6159,11 +6158,11 @@ function wizDupeCheckName(name){
             var priceTxt=(top.price>0)?(' ('+top.price.toFixed(2)+' '+CFG.currency+')'):'';
             var pct=Math.round(top.score*100);
             banner.style.display='block';
-            banner.innerHTML='<div class="wiz-dupe-banner" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.42);color:#fcd34d">'
+            banner.innerHTML='<div class="wiz-dupe-banner" style="margin-top:8px;padding:10px 12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(245,158,11,0.16),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.42);color:#fcd34d">'
                 +'<div style="display:flex;align-items:flex-start;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'
                 +'<div style="flex:1;min-width:0;font-size:11.5px;line-height:1.45">Близко до съществуващ артикул: <b style="color:#fff">'+_escDupe(top.name)+'</b>'+priceTxt+' · <span style="color:#fde68a">'+pct+'% близко</span>. Същото ли е?</div></div>'
-                +'<div style="display:flex;gap:6px;margin-top:8px"><button type="button" onclick="wizDupeOpenExisting('+top.id+')" style="flex:1;padding:8px;border-radius:8px;background:rgba(99,102,241,0.18);border:1px solid rgba(139,92,246,0.45);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Да, отвори същото</button>'
-                +'<button type="button" onclick="wizDupeDismiss()" style="flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Не, продължи</button></div>'
+                +'<div style="display:flex;gap:6px;margin-top:8px"><button type="button" onclick="wizDupeOpenExisting('+top.id+')" style="flex:1;padding:8px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.18);border:1px solid rgba(139,92,246,0.45);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Да, отвори същото</button>'
+                +'<button type="button" onclick="wizDupeDismiss()" style="flex:1;padding:8px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Не, продължи</button></div>'
                 +'</div>';
         }).catch(function(){});
     },350);
@@ -6674,12 +6673,12 @@ function renderWizPage(step){
         const mic=(f)=>'<button type="button" class="wiz-mic" onclick="wizMic(\''+f+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>';
         // S88B-1 / Task D: ↻ "като предния" per-field copy button. Hidden when no previous artikel exists.
         const cpyHas=(function(){try{return !!localStorage.getItem('_rms_lastWizProductFields')}catch(e){return false}})();
-        const cpy=(f)=>cpyHas?'<button type="button" onclick="wizCopyFieldFromPrev(\''+f+'\')" title="Копирай това поле от последния" style="width:30px;height:36px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>':'';
+        const cpy=(f)=>cpyHas?'<button type="button" onclick="wizCopyFieldFromPrev(\''+f+'\')" title="Копирай това поле от последния" style="width:30px;height:36px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>':'';
 
         const units=(CFG&&CFG.units&&CFG.units.length)?CFG.units:['бр','сет','кг','м','л'];
         // S76.2d: dropdown + inline add
         var _unitOpts='';units.forEach(function(u){_unitOpts+='<option value="'+u+'" '+(u===un?'selected':'')+'>'+u+'</option>'});
-        var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:10px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
+        var unitChips='<div style="display:flex;gap:8px;align-items:stretch"><div style="flex:1;position:relative"><select class="fc" id="wUnit" onchange="S.wizData.unit=this.value" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit">'+_unitOpts+'</select><svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><button type="button" onclick="toggleInl(\'wizUnitAdd\')" style="padding:0 14px;height:auto;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 0 10px rgba(139,92,246,0.18),inset 0 1px 0 rgba(255,255,255,0.05);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div><div id="wizUnitAdd" style="display:none;margin-top:8px"><div style="display:flex;gap:6px;align-items:stretch"><input type="text" class="fc" id="wNewUnit" placeholder="напр. метър, кг..." style="flex:1;font-family:inherit"><button type="button" onclick="wizAddUnitFromChip()" style="padding:0 14px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 0 10px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.04);display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button></div></div>';
 
         const _hasPhoto=!!S.wizData._photoDataUrl;
         // S82.COLOR.4: photo mode toggle (single | multi). Multi is meaningful only for variant type.
@@ -6737,7 +6736,7 @@ function renderWizPage(step){
             photoBlock = '<div class="v4-pz">' + _photoModeToggle + _info + _gridH + '</div>';
         } else {
             var _photoContent = _hasPhoto
-                ? '<img src="' + S.wizData._photoDataUrl + '" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+                ? '<img src="' + S.wizData._photoDataUrl + '" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:10px">'
                 : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
             var _photoBtns = '<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
             var _photoTips = '<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ясна, неразмазана</span></div>';
@@ -6752,10 +6751,10 @@ function renderWizPage(step){
         // S82.COLOR.4: prominent AI Studio CTA + _aiState/_aiCTA*/_aiAutoTrigger removed (replaced by photo-mode toggle + step 5 final prompt).
         var _mqVal=(S.wizData.min_quantity===undefined||S.wizData.min_quantity===null||S.wizData.min_quantity==='')?1:S.wizData.min_quantity;
         const qtyBlock=isSingle
-            ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'+'<div class="fg">'+fieldLabel('Мин. количество','name','<span class="hint">(за сигнали)</span>')+'<div style="display:flex;border:1px solid rgba(245,158,11,0.15);border-radius:12px;overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-right:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-left:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">+</button></div>'+cpy('min_quantity')+'</div>'
+            ? '<div class="fg">'+fieldLabel('Брой','name')+'<div style="display:flex;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);overflow:hidden;height:42px"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-right:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wSingleQty" value="'+qt+'" oninput="S.wizData.quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wSingleQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.quantity=parseInt(e.value)||0" style="width:46px;background:rgba(99,102,241,0.08);border:none;border-left:1px solid rgba(255,255,255,0.08);color:#a5b4fc;font-size:18px;cursor:pointer">+</button></div></div>'+'<div class="fg">'+fieldLabel('Мин. количество','name','<span class="hint">(за сигнали)</span>')+'<div style="display:flex;border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius-sm);overflow:hidden;height:42px;background:rgba(245,158,11,0.03)"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=Math.max(0,(parseInt(e.value)||0)-1);S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-right:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">−</button><input type="number" inputmode="numeric" id="wMinQty" value="'+_mqVal+'" oninput="S.wizData.min_quantity=parseInt(this.value)||0" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:500;text-align:center;outline:none"><button type="button" onclick="var e=document.getElementById(\'wMinQty\');e.value=(parseInt(e.value)||0)+1;S.wizData.min_quantity=parseInt(e.value)||0" style="width:46px;background:rgba(245,158,11,0.08);border:none;border-left:1px solid rgba(245,158,11,0.12);color:#fbbf24;font-size:18px;cursor:pointer">+</button></div>'+cpy('min_quantity')+'</div>'
             : '';
 
-        const stickyFooter='<div style="padding:16px 12px;margin:24px 0 64px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);display:flex;gap:8px"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGoNextFromStep1()" style="flex:1;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
+        const stickyFooter='<div style="padding:16px 12px;margin:24px 0 64px;background:rgba(10,11,20,0.95);border-top:1px solid rgba(99,102,241,0.15);display:flex;gap:8px"><button type="button" onclick="closeWizard()" style="width:42px;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer" title="Назад">‹</button><button type="button" onclick="showToast(\'Печат — S73.B.5\')" style="width:42px;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Печат"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button><button type="button" onclick="wizSave()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.4);display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Запази</button><button type="button" onclick="wizGoNextFromStep1()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;gap:5px">Напред ›</button></div>';
 
         // S92.WIZARD_REWRITE: build per-sub-step body. Запазваме всички DOM IDs (wPrice, wWprice, wCostPrice,
         // wMarkupPct, wSupDD, wCatDD, wSubcat, wColor, wSize, wComposition, wOrigin, wUnit, wCode, wBarcode,
@@ -6780,10 +6779,10 @@ function renderWizPage(step){
                   'onblur="setTimeout(function(){var l=document.getElementById(\'wSupDDList\');if(l)l.style.display=\'none\';wizMaybeAdvanceSub(1)},220)" '+
                   'oninput="wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])">'+
                 mic('supplier')+
-                '<button type="button" onclick="toggleInl(\'inlSup\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нов доставчик">+</button>'+
+                '<button type="button" onclick="toggleInl(\'inlSup\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нов доставчик">+</button>'+
                 cpy('supplier_id')+
               '</div>'+
-              '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
+              '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
               '<div id="inlSup" class="inline-add"><input type="text" id="inlSupName" placeholder="Нов доставчик"><button type="button" onclick="wizAddInline(\'supplier\')">+ Добави</button></div>'+
             '</div>'+
             '<div class="fg" style="position:relative">'+fieldLabel('Категория *','category',(S.wizData.supplier_id?'<span class="hint">(само от избрания доставчик)</span>':''))+
@@ -6793,10 +6792,10 @@ function renderWizPage(step){
                   'onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\';wizMaybeAdvanceSub(1)},220)" '+
                   'oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
                 mic('category')+
-                '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
+                '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
                 cpy('category_id')+
               '</div>'+
-              '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
+              '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
               '<div id="inlCat" class="inline-add"><input type="text" id="inlCatName" placeholder="Нова категория"><button type="button" onclick="wizAddInline(\'category\')">+ Добави</button></div>'+
               wizAIHint('category')+
             '</div>'+
@@ -6804,7 +6803,7 @@ function renderWizPage(step){
               '<div style="display:flex;gap:6px;align-items:center">'+
                 '<select class="fc" id="wSubcat" '+(S.wizData.category_id?'':'disabled')+' onchange="S.wizData.subcategory_id=this.value||null" style="flex:1;appearance:none;-webkit-appearance:none;padding-right:32px;cursor:pointer;font-family:inherit"><option value="">'+(S.wizData.category_id?'— Няма —':'— Избери първо категория —')+'</option></select>'+
                 mic('subcategory')+
-                '<button type="button" onclick="if(S.wizData.category_id)toggleInl(\'inlSubcat\');else showToast(\'Избери първо категория\',\'error\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова подкатегория">+</button>'+
+                '<button type="button" onclick="if(S.wizData.category_id)toggleInl(\'inlSubcat\');else showToast(\'Избери първо категория\',\'error\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова подкатегория">+</button>'+
                 cpy('subcategory_id')+
               '</div>'+
               '<div id="inlSubcat" class="inline-add"><input type="text" id="inlSubcatName" placeholder="Нова подкатегория"><button type="button" onclick="wizAddSubcat()">+ Добави</button></div>'+
@@ -6868,28 +6867,28 @@ function renderWizPage(step){
 
         // Footer per sub-step
         var subFooter='';
-        var backBtn='<button type="button" onclick="wizPrev()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>';
+        var backBtn='<button type="button" onclick="wizPrev()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>';
         if(sub<=0){
             // Цени → Класификация (validate retail_price)
             subFooter='<div style="display:flex;gap:8px;margin-top:14px">'+backBtn+
-                '<button type="button" onclick="wizCollectData();if(!S.wizData.retail_price){showToast(\'Въведи цена на дребно\',\'error\');document.getElementById(\'wPrice\').focus();return}wizSubGo(1)" class="v4-foot-next" style="flex:1.6;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+                '<button type="button" onclick="wizCollectData();if(!S.wizData.retail_price){showToast(\'Въведи цена на дребно\',\'error\');document.getElementById(\'wPrice\').focus();return}wizSubGo(1)" class="v4-foot-next" style="flex:1.6;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
             '</div>';
         }else if(sub===1){
             // Класификация → Детайли (validate supplier+category)
             subFooter='<div style="display:flex;gap:8px;margin-top:14px">'+backBtn+
-                '<button type="button" onclick="wizCollectData();if(!S.wizData.supplier_id){showToast(\'Избери доставчик\',\'error\');document.getElementById(\'wSupDD\').focus();return}if(!S.wizData.category_id){showToast(\'Избери категория\',\'error\');document.getElementById(\'wCatDD\').focus();return}wizSubGo(2)" class="v4-foot-next" style="flex:1.6;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+                '<button type="button" onclick="wizCollectData();if(!S.wizData.supplier_id){showToast(\'Избери доставчик\',\'error\');document.getElementById(\'wSupDD\').focus();return}if(!S.wizData.category_id){showToast(\'Избери категория\',\'error\');document.getElementById(\'wCatDD\').focus();return}wizSubGo(2)" class="v4-foot-next" style="flex:1.6;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
             '</div>';
         }else if(sub===2){
             // Детайли → ако variant: step 4 (Variations); ако single: sub 3 (Identification)
             const fwdJs=(S.wizType==='variant')?'wizCollectData();wizGo(4)':'wizCollectData();wizSubGo(3)';
             subFooter='<div style="display:flex;gap:8px;margin-top:14px">'+backBtn+
-                '<button type="button" onclick="'+fwdJs+'" style="flex:1;height:42px;border-radius:12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit">⏭ Пропусни</button>'+
-                '<button type="button" onclick="'+fwdJs+'" class="v4-foot-next" style="flex:1.4;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
+                '<button type="button" onclick="'+fwdJs+'" style="flex:1;height:42px;border-radius:var(--radius-sm);background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit">⏭ Пропусни</button>'+
+                '<button type="button" onclick="'+fwdJs+'" class="v4-foot-next" style="flex:1.4;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+
             '</div>';
         }else{
             // Sub 3 — финална стъпка с голям червен бутон Запиши.
             subFooter='<div style="display:flex;gap:8px;margin-top:18px">'+backBtn+
-                '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');wizGo(2);return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');wizSubGo(0);return}wizSave()" style="flex:2;height:54px;border-radius:14px;background:linear-gradient(135deg,#ef4444,#b91c1c);border:1px solid #ef4444;color:#fff;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 22px rgba(239,68,68,0.55),inset 0 1px 0 rgba(255,255,255,0.15);text-transform:uppercase;animation:wiz-save-pulse 1.6s ease-in-out infinite"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
+                '<button type="button" onclick="wizCollectData();if(!S.wizData.name){showToast(\'Въведи наименование\',\'error\');wizGo(2);return}if(!S.wizData.retail_price){showToast(\'Въведи цена\',\'error\');wizSubGo(0);return}wizSave()" style="flex:2;height:54px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#ef4444,#b91c1c);border:1px solid #ef4444;color:#fff;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 22px rgba(239,68,68,0.55),inset 0 1px 0 rgba(255,255,255,0.15);text-transform:uppercase;animation:wiz-save-pulse 1.6s ease-in-out infinite"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>'+
             '</div>'+
             '<style>@keyframes wiz-save-pulse{0%,100%{box-shadow:0 0 22px rgba(239,68,68,0.55),inset 0 1px 0 rgba(255,255,255,0.15)}50%{box-shadow:0 0 32px rgba(239,68,68,0.85),inset 0 1px 0 rgba(255,255,255,0.15)}}</style>';
         }
@@ -6915,7 +6914,7 @@ function renderWizPagePart2(step){
 
     // ═══ STEP 4: ВАРИАЦИИ (S73.B.6 — 1:1 от add-product-variations.html) ═══
     if(step===4){
-        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizSafeBack()" style="flex:1;height:42px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
+        if(S.wizType==='single'){var _sfBody='<div class="glass v4-glass-pro" style="padding:18px 16px 16px;margin-bottom:14px"><span class="shine shine-top"></span><span class="shine shine-bottom"></span><span class="glow glow-top"></span><span class="glow glow-bottom"></span><span class="glow glow-bright glow-top"></span><span class="glow glow-bright glow-bottom"></span><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><div style="width:46px;height:46px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.15));border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(99,102,241,0.25),inset 0 1px 0 rgba(255,255,255,0.08);flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Единичен артикул</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:2px">Без вариации — продължи напред</div></div></div></div>';var _sfFoot='<div style="display:flex;gap:8px;margin-top:14px">'+'<button type="button" onclick="wizSafeBack()" style="flex:1;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Назад</button>'+'<button type="button" onclick="showToast(\'Печат — S76\')" style="width:48px;height:48px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Печат"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+'<button type="button" onclick="wizSave()" class="v4-foot-save" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(34,197,94,0.12),rgba(22,163,74,0.05));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(34,197,94,0.18),inset 0 1px 0 rgba(255,255,255,0.04)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Запази</button>'+'<button type="button" onclick="wizGoPreview()" class="v4-foot-next" style="flex:1.3;height:42px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;position:relative;overflow:hidden;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'+'</div>';return '<div class="wiz-page active">'+_sfBody+_sfFoot+'</div>';}
 
         // Init axes
         if(!S.wizData.axes||!S.wizData.axes.length){
@@ -7136,7 +7135,7 @@ function renderWizPagePart2(step){
             pickH+='<span class="v-pgroup-act'+(_colorEditMode?' danger':'')+'" onclick="S._wizEditingColors='+(_colorEditMode?'false':'true')+';renderWizard()">'+(_colorEditMode?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>готово':'<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>редакт.')+'</span>';
             pickH+='</div></div>';
             // HEX picker
-            pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:8px;background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1;min-width:0"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div></div><div style="display:flex;align-items:stretch;gap:6px;margin-top:8px;width:100%"><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име на цвят (напр. шампанско)..." style="flex:1;font-size:12px;padding:10px 14px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()" style="flex-shrink:0"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div></div></div>';
+            pickH+='<div class="v-pgroup open" style="margin-top:10px"><div class="v-pgroup-head"><div class="v-pgroup-title">Избери от палитра</div></div><div class="v-pgroup-body" style="flex-direction:column;align-items:stretch"><div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;line-height:1.4">Плъзни пръст по палитрата за точен цвят. Или напиши име (шампанско, мента...) и цветът се подбира автоматично.</div><canvas id="wizHslCanvas" width="280" height="160" style="width:100%;height:120px;border-radius:var(--radius-sm);cursor:crosshair;touch-action:none;border:1px solid rgba(255,255,255,0.08)"></canvas><input type="range" id="wizHueSlider" min="0" max="360" value="0" style="width:100%;margin:6px 0;accent-color:var(--indigo-400)" oninput="wizDrawHsl()"><div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%"><div id="wizColorPreview" style="width:32px;height:32px;border-radius:var(--radius-sm);background:#ff0000;border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div><div style="flex:1;min-width:0"><div id="wizHexVal" style="font-size:12px;font-weight:700;color:var(--indigo-300)">#FF0000</div><div id="wizColorSuggest" style="font-size:9px;color:var(--text-secondary)">Червен</div></div></div><div style="display:flex;align-items:stretch;gap:6px;margin-top:8px;width:100%"><input type="text" class="v-custom-input" id="wizHexName" placeholder="Име на цвят (напр. шампанско)..." style="flex:1;font-size:12px;padding:10px 14px" oninput="wizNameToHex(this.value)"><button class="v-custom-btn" onclick="wizAddHexColor()" style="flex-shrink:0"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добави</button></div></div></div>';
         }
 
 
@@ -7149,10 +7148,10 @@ function renderWizPagePart2(step){
         }
 
         // Create new group
-        pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:14px;border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова вариация</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Напр. Материя, Модел, Обем...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Създай</button></div>';
+        pickH+='<div style="padding:10px 12px;margin-top:10px;border-radius:var(--radius-sm);border:1px dashed rgba(255,255,255,0.08);background:rgba(255,255,255,0.015)"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">+ Нова вариация</div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">Напр. Материя, Модел, Обем...</div><div style="display:flex;gap:4px"><input type="text" class="v-custom-input" id="newGrpName" placeholder="Име..." style="font-size:12px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wizCreateCustomGroup()}"><button class="v-custom-btn" onclick="wizCreateCustomGroup()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Създай</button></div>';
         if(S._wizNewCustomGroup){
             var ncg=S._wizNewCustomGroup;
-            pickH+='<div style="margin-top:8px;padding:8px;border-radius:10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:3px">Нова вариация: <b>'+esc(ncg.name)+'</b></div><div style="font-size:10px;color:rgba(134,239,172,0.7);margin-bottom:6px">Стойности: '+(ncg.values||[]).map(esc).join(', ')+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
+            pickH+='<div style="margin-top:8px;padding:8px;border-radius:var(--radius-sm);background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2)"><div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:3px">Нова вариация: <b>'+esc(ncg.name)+'</b></div><div style="font-size:10px;color:rgba(134,239,172,0.7);margin-bottom:6px">Стойности: '+(ncg.values||[]).map(esc).join(', ')+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">';
             (ncg.values||[]).forEach(function(v,vi){
                 pickH+='<span class="v-chip" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2);color:#86efac;cursor:pointer" onclick="S._wizNewCustomGroup.values.splice('+vi+',1);renderWizard()">'+esc(v)+' ✕</span>';
             });
@@ -7293,7 +7292,7 @@ function renderWizPagePart2(step){
 
         if(!hasCombos){
             // Single product — just qty + min
-            matrixH='<div style="padding:10px 12px;border-radius:10px;background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08);margin-bottom:10px">';
+            matrixH='<div style="padding:10px 12px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.08);margin-bottom:10px">';
             matrixH+='<div style="font-size:12px;font-weight:600;color:var(--indigo-300);margin-bottom:6px">Наличност</div>';
             matrixH+='<div style="display:flex;gap:8px">';
             matrixH+='<div style="flex:1"><div style="font-size:9px;font-weight:700;color:var(--indigo-300);margin-bottom:3px">БРОЙКА</div><div style="display:flex;align-items:center;gap:0">';
@@ -7319,7 +7318,7 @@ function renderWizPagePart2(step){
             matrixH+='<tr><td style="padding:4px 6px;font-size:9px;font-weight:700;color:var(--text-secondary);position:sticky;left:0;background:#080818;z-index:1;min-width:50px"></td>';
             colors.forEach(function(c,ci){
                 var cc=CFG.colors.find(function(x){return x.name===c});
-                var dot=cc?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:2px;border:1px solid rgba(255,255,255,0.15)"></span>':'';
+                var dot=cc?'<span style="display:inline-block;width:8px;height:8px;border-radius:var(--radius-icon);background:'+cc.hex+';margin-right:2px;border:1px solid rgba(255,255,255,0.15)"></span>':'';
                 matrixH+='<td style="padding:4px 3px;text-align:center;font-size:8px;font-weight:600;color:var(--text-secondary);min-width:48px">'+dot+esc(c)+'</td>';
             });
             matrixH+='</tr>';
@@ -7336,7 +7335,7 @@ function renderWizPagePart2(step){
                     var brc=hasVal?'rgba(99,102,241,0.15)':'rgba(99,102,241,0.05)';
                     matrixH+='<td style="padding:2px;text-align:center">';
                     // S95.BUGFIX_R2 Bug E: inputmode="numeric" pattern="[0-9]*" \u2192 mobile \u043f\u043e\u043a\u0430\u0437\u0432\u0430 numeric keyboard (\u043d\u0435 \u0431\u0443\u043a\u0432\u0435\u043d\u0430).
-                    matrixH+='<input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="fc" id="'+cellId+'" value="'+(hasVal?val:'')+'" placeholder="\u2715" style="width:44px;padding:4px 2px;text-align:center;font-size:12px;font-weight:700;border-radius:6px;background:'+bgc+';border-color:'+brc+'" oninput="wizMatrixChanged(\''+cellId+'\',this.value)" onfocus="this.select()">';
+                    matrixH+='<input type="number" inputmode="numeric" pattern="[0-9]*" min="0" class="fc" id="'+cellId+'" value="'+(hasVal?val:'')+'" placeholder="\u2715" style="width:44px;padding:4px 2px;text-align:center;font-size:12px;font-weight:700;border-radius:var(--radius-sm);background:'+bgc+';border-color:'+brc+'" oninput="wizMatrixChanged(\''+cellId+'\',this.value)" onfocus="this.select()">';
                     matrixH+='</td>';
                 });
                 matrixH+='</tr>';
@@ -7345,10 +7344,10 @@ function renderWizPagePart2(step){
 
             // Quick actions for matrix
             matrixH+='<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
-            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:6px;border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(1)">Всички = 1</span>';
-            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:6px;border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(2)">Всички = 2</span>';
-            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:6px;border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(5)">Всички = 5</span>';
-            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);color:var(--danger);cursor:pointer" onclick="wizMatrixClear()">Изчисти</span>';
+            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(1)">Всички = 1</span>';
+            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(2)">Всички = 2</span>';
+            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);color:var(--indigo-400);cursor:pointer" onclick="wizMatrixFillAll(5)">Всички = 5</span>';
+            matrixH+='<span style="font-size:9px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid rgba(239,68,68,0.2);color:var(--danger);cursor:pointer" onclick="wizMatrixClear()">Изчисти</span>';
             matrixH+='</div></div>';
 
         }else{
@@ -7364,19 +7363,19 @@ function renderWizPagePart2(step){
                     if(n.indexOf('цвят')!==-1||n.indexOf('color')!==-1){
                         var cc=CFG.colors.find(function(x){return x.name===p.value});
                         var hex=cc?cc.hex:'#666';
-                        labelH+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(p.value)+'</span></span>';
+                        labelH+='<span style="display:inline-flex;align-items:center;gap:3px;margin-right:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:var(--radius-icon);background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(p.value)+'</span></span>';
                     }else{
                         labelH+='<span style="font-size:12px;font-weight:700;margin-right:4px">'+esc(p.value)+'</span>';
                     }
                 });
                 if(!labelH)labelH='<span style="font-size:11px">'+esc(v.axisValues||'')+'</span>';
-                matrixH+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;padding:5px 8px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+idx+'">';
+                matrixH+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;padding:5px 8px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)" id="comboRow'+idx+'">';
                 matrixH+='<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap">'+labelH+'</div>';
                 matrixH+='<div style="display:flex;align-items:center;gap:0">';
                 matrixH+='<button type="button" onclick="wizComboQty('+idx+',-1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">\u2212</button>';
                 matrixH+='<input type="number" class="fc" style="width:34px;padding:3px 0;text-align:center;font-size:13px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="1" min="0" data-combo="'+idx+'" data-field="qty">';
                 matrixH+='<button type="button" onclick="wizComboQty('+idx+',1)" style="width:22px;height:28px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:14px;cursor:pointer;padding:0">+</button></div>';
-                matrixH+='<input type="number" class="fc" style="width:40px;padding:3px;text-align:center;font-size:11px;font-weight:600;border-radius:6px;border-color:rgba(245,158,11,0.3)" value="1" min="0" data-combo="'+idx+'" data-field="min">';
+                matrixH+='<input type="number" class="fc" style="width:40px;padding:3px;text-align:center;font-size:11px;font-weight:600;border-radius:var(--radius-sm);border-color:rgba(245,158,11,0.3)" value="1" min="0" data-combo="'+idx+'" data-field="min">';
                 matrixH+='</div>';
             });
             matrixH+='</div>';
@@ -7396,7 +7395,7 @@ function renderWizPagePart2(step){
         var descH='';
 
         // Summary line
-        var sumLine='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.04)"><b style="color:var(--text-primary)">'+esc(S.wizData.name||'')+'</b> \u00b7 '+fmtPrice(S.wizData.retail_price)+' \u00b7 Код: '+esc(S.wizData.code||'AI генерира')+'</div>';
+        var sumLine='<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.04)"><b style="color:var(--text-primary)">'+esc(S.wizData.name||'')+'</b> \u00b7 '+fmtPrice(S.wizData.retail_price)+' \u00b7 Код: '+esc(S.wizData.code||'AI генерира')+'</div>';
 
         // S95.STEP2_BUGFIX Bug 3: finalPromptH (AI Studio yes/no) преместен ПОСЛЕ Step 2.
         // Step 5 завършва с navigation към Step 2 (Препоръчителни) — там AI Studio prompt-а
@@ -7427,17 +7426,17 @@ function renderWizPagePart2(step){
         var supName=sup?sup.name:'';
         var supCity=sup?sup.city||'':'';
 
-        var tabsH='<div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px">';
-        if(showDual)tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='dual'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'dual\';renderWizard()">€ + лв</div>';
-        tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='eur'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'eur\';renderWizard()">Само €</div>';
-        tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;'+(pm==='noprice'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'noprice\';renderWizard()">Без цена</div>';
+        var tabsH='<div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:var(--radius-sm);padding:3px">';
+        if(showDual)tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='dual'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'dual\';renderWizard()">€ + лв</div>';
+        tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='eur'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'eur\';renderWizard()">Само €</div>';
+        tabsH+='<div style="flex:1;text-align:center;padding:7px 4px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;'+(pm==='noprice'?'background:rgba(99,102,241,0.2);font-weight:600;color:#a5b4fc':'color:#64748b')+'" onclick="S.wizData._printMode=\'noprice\';renderWizard()">Без цена</div>';
         tabsH+='</div>';
         // S103D.F — toggle за "Печат без баркод" (Tihol).
         var nbc=!!S.wizData._noBarcode;
-        tabsH+='<div onclick="S.wizData._noBarcode=!S.wizData._noBarcode;renderWizard()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:10px;background:rgba(255,255,255,0.04);border-radius:8px;cursor:pointer;font-size:11px;color:'+(nbc?'#a5b4fc':'#64748b')+'"><div style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(nbc?'#818cf8':'#475569')+';background:'+(nbc?'#818cf8':'transparent')+';display:flex;align-items:center;justify-content:center">'+(nbc?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</div>Печат без баркод</div>';
+        tabsH+='<div onclick="S.wizData._noBarcode=!S.wizData._noBarcode;renderWizard()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:10px;background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);cursor:pointer;font-size:11px;color:'+(nbc?'#a5b4fc':'#64748b')+'"><div style="width:14px;height:14px;border-radius:var(--radius-sm);border:1.5px solid '+(nbc?'#818cf8':'#475569')+';background:'+(nbc?'#818cf8':'transparent')+';display:flex;align-items:center;justify-content:center">'+(nbc?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</div>Печат без баркод</div>';
 
         var warnH='';
-        if(showDual&&pm==='dual')warnH='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="font-size:10px;color:#fbbf24">Двойно изписване до 08.08.2026. След тази дата тази опция ще изчезне автоматично.</span></div>';
+        if(showDual&&pm==='dual')warnH='<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:10px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="font-size:10px;color:#fbbf24">Двойно изписване до 08.08.2026. След тази дата тази опция ще изчезне автоматично.</span></div>';
 
         var totalQty=0;
         var listH='<div style="font-size:11px;color:#64748b;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span>Вариации за печат:</span><button type="button" class="abtn" onclick="wizLabelsX2()" style="font-size:10px;padding:4px 10px;border-color:rgba(99,102,241,0.2)">x2</button><button type="button" class="abtn" onclick="wizLabelsReset()" style="font-size:10px;padding:4px 10px;border-color:rgba(245,158,11,0.2);color:#fbbf24;margin-left:4px">1:1</button></div>';
@@ -7450,7 +7449,7 @@ function renderWizPagePart2(step){
                 else if(n.includes('цвят')||n.includes('color')){
                     var cc=CFG.colors.find(function(x){return x.name===p.value});
                     var hex=cc?cc.hex:'#666';
-                    labelH+='<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(p.value)+'</span></span>';
+                    labelH+='<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:9px;height:9px;border-radius:var(--radius-icon);background:'+hex+';border:1px solid rgba(255,255,255,0.2)"></span><span style="font-size:11px">'+esc(p.value)+'</span></span>';
                 }else{
                     labelH+='<span style="font-size:11px;margin-right:4px">'+esc(p.value)+'</span>';
                 }
@@ -7458,19 +7457,19 @@ function renderWizPagePart2(step){
             if(!labelH)labelH='<span style="font-size:12px;font-weight:600">Единичен</span>';
             var qty=c.printQty||1;
             totalQty+=qty;
-            listH+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;border-radius:8px;background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)">'+
+            listH+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.3);border:1px solid var(--border-subtle)">'+
             '<div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+labelH+'</div>'+
             '<div style="display:flex;align-items:center;gap:0">'+
             '<button type="button" onclick="wizLblAdj('+i+',-1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:4px 0 0 4px;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">\u2212</button>'+
             '<input type="number" class="fc" id="lblQty'+i+'" style="width:32px;padding:2px 0;text-align:center;font-size:12px;font-weight:700;border-radius:0;border-left:0;border-right:0" value="'+qty+'" min="0" onchange="wizLblRecalc()">'+
             '<button type="button" onclick="wizLblAdj('+i+',1)" style="width:22px;height:26px;border:1px solid var(--border-subtle);border-radius:0 4px 4px 0;background:rgba(17,24,44,0.5);color:var(--text-primary);font-size:13px;cursor:pointer;padding:0">+</button></div>'+
-            '<div onclick="wizPrintLabels('+i+')" style="width:30px;height:30px;border-radius:8px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
+            '<div onclick="wizPrintLabels('+i+')" style="width:30px;height:30px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div></div>';
         });
 
         var btnH='<button type="button" class="abtn save" style="margin-top:12px;font-size:14px;padding:12px" onclick="wizPrintLabels(-1)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Печатай всички (<span id="lblTotal">'+totalQty+'</span> ет.)</button>';
 
         return '<div class="wiz-page active"><div style="text-align:center;padding:16px 0 10px">'+
-        '<div style="width:48px;height:48px;border-radius:50%;background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 8px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>'+
+        '<div style="width:48px;height:48px;border-radius:var(--radius-icon);background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 8px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>'+
         '<div style="font-size:15px;font-weight:700;color:var(--success)">Артикулът е записан!</div>'+
         '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">'+esc(S.wizData.name||'')+' \u00b7 '+fmtPrice(S.wizData.retail_price)+'</div></div>'+
         tabsH+warnH+listH+btnH+
@@ -7497,7 +7496,7 @@ function renderStudioStep(){
     '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px">AI обработва снимката — махане на фон, обличане на модел, студийна снимка за бижута и предмети. Снимката се използва и за AI описание.</div>'+
 
     // Credits
-    '<div style="padding:8px 12px;border-radius:8px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.15);margin-bottom:8px">'+
+    '<div style="padding:8px 12px;border-radius:var(--radius-sm);background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.15);margin-bottom:8px">'+
     '<div style="font-size:9px;color:#6b7280;margin-bottom:4px">БЕЗПЛАТНИ КРЕДИТИ (ВКЛЮЧЕНИ В ПЛАНА)</div>'+
     '<div style="display:flex;gap:16px;align-items:center">'+
     '<div><span style="font-size:18px;font-weight:700;color:#22c55e">'+CFG.aiBg+'</span> <span style="font-size:10px;color:#6b7280">бял фон (0.05€)</span></div>'+
@@ -7505,17 +7504,17 @@ function renderStudioStep(){
     '<div><span style="font-size:18px;font-weight:700;color:#a78bfa">'+CFG.aiTryon+'</span> <span style="font-size:10px;color:#6b7280">магия (0.50€)</span></div></div></div>'+
 
     // Buy credits
-    (CFG.aiBg<=0||CFG.aiTryon<=0?'<div style="padding:6px 10px;border-radius:8px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);margin-bottom:8px;display:flex;align-items:center;gap:8px"><div style="flex:1;font-size:10px;color:#fca5a5">Кредитите свършиха!</div><button class="abtn" style="width:auto;padding:4px 12px;font-size:10px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:none" onclick="location.href=\'settings.php?buy_credits=1\'">Купи</button></div>':'')+
+    (CFG.aiBg<=0||CFG.aiTryon<=0?'<div style="padding:6px 10px;border-radius:var(--radius-sm);background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);margin-bottom:8px;display:flex;align-items:center;gap:8px"><div style="flex:1;font-size:10px;color:#fca5a5">Кредитите свършиха!</div><button class="abtn" style="width:auto;padding:4px 12px;font-size:10px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:none" onclick="location.href=\'settings.php?buy_credits=1\'">Купи</button></div>':'')+
 
     // ─── OPTION 1: Бял фон ───
-    '<div style="padding:10px;border-radius:12px;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.2);margin-bottom:6px;cursor:pointer" onclick="doStudioWhiteBg()">'+
+    '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.2);margin-bottom:6px;cursor:pointer" onclick="doStudioWhiteBg()">'+
     '<div style="display:flex;align-items:center;gap:8px">'+
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'+
     '<div style="flex:1"><div style="font-size:13px;font-weight:500;color:#e2e8f0">Бял фон</div><div style="font-size:10px;color:#6b7280">Махва фона, чисто бяло</div></div>'+
     '<span style="font-size:11px;font-weight:500;color:#22c55e">0.05€</span>'+infoBtn('bg_removal','#22c55e')+'</div></div>'+
 
     // ─── OPTION 2: Дрехи на модел ───
-    '<div style="padding:10px;border-radius:12px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.2);margin-bottom:6px">'+
+    '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.2);margin-bottom:6px">'+
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>'+
     '<div style="flex:1"><div style="font-size:13px;font-weight:500;color:#e2e8f0">AI Магия — дрехи</div><div style="font-size:10px;color:#6b7280">Облечи на модел</div></div>'+
@@ -7528,7 +7527,7 @@ function renderStudioStep(){
     '<button class="abtn" onclick="doStudioTryon()" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:11px">Генерирай на модел</button></div>'+
 
     // ─── OPTION 3: Предмети ───
-    '<div style="padding:10px;border-radius:12px;background:rgba(234,179,8,0.04);border:1px solid rgba(234,179,8,0.2);margin-bottom:6px">'+
+    '<div style="padding:10px;border-radius:var(--radius-sm);background:rgba(234,179,8,0.04);border:1px solid rgba(234,179,8,0.2);margin-bottom:6px">'+
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><path d="M12 2L9 9H2l5.5 4-2 7L12 16l6.5 4-2-7L22 9h-7z"/></svg>'+
     '<div style="flex:1"><div style="font-size:13px;font-weight:500;color:#e2e8f0">AI Магия — предмети</div><div style="font-size:10px;color:#6b7280">Бижута, обувки, чанти, аксесоари</div></div>'+
@@ -7541,7 +7540,7 @@ function renderStudioStep(){
     '<button class="abtn" onclick="doStudioObjects()" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none;font-size:11px">Генерирай студийна снимка</button></div>'+
 
     // Skip
-    '<div style="padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(6)"><span style="font-size:11px;color:#4b5563">Пропусни →</span></div>'+
+    '<div style="padding:8px;border-radius:var(--radius-sm);border:1px dashed rgba(255,255,255,0.08);text-align:center;margin-bottom:6px;cursor:pointer" onclick="wizGo(6)"><span style="font-size:11px;color:#4b5563">Пропусни →</span></div>'+
 
     '<button class="abtn" onclick="wizGo(5)" style="margin-top:4px">← Назад</button>'+
     vskip+'</div>';
@@ -7549,13 +7548,13 @@ function renderStudioStep(){
 
 function studioModelBtn(key,label,sel){
     const bg=sel?'rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35)':'rgba(99,102,241,0.05);border:0.5px solid rgba(99,102,241,0.15)';
-    return '<div style="text-align:center;padding:7px 2px;border-radius:7px;background:'+bg+';cursor:pointer" onclick="selectStudioModel(\''+key+'\',this)">'+
+    return '<div style="text-align:center;padding:7px 2px;border-radius:var(--radius-sm);background:'+bg+';cursor:pointer" onclick="selectStudioModel(\''+key+'\',this)">'+
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(sel?'#c4b5fd':'#a5b4fc')+'" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg>'+
     '<div style="font-size:9px;color:'+(sel?'#c4b5fd':'#a5b4fc')+';font-weight:500">'+label+'</div></div>';
 }
 
 function studioPreset(label){
-    return '<div style="padding:5px 8px;border-radius:6px;background:rgba(234,179,8,0.06);border:0.5px solid rgba(234,179,8,0.15);cursor:pointer;font-size:10px;color:#fcd34d" onclick="selectStudioPreset(\''+label+'\',this)">'+label+'</div>';
+    return '<div style="padding:5px 8px;border-radius:var(--radius-sm);background:rgba(234,179,8,0.06);border:0.5px solid rgba(234,179,8,0.15);cursor:pointer;font-size:10px;color:#fcd34d" onclick="selectStudioPreset(\''+label+'\',this)">'+label+'</div>';
 }
 
 S.studioModel='woman';
@@ -7821,7 +7820,7 @@ function renderWizStep2() {
     var hasLast = false;
     try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
     var cpy = function(f) {
-        return hasLast ? '<button type="button" onclick="wizCopyFieldFromPrev(\'' + f + '\')" title="Копирай от последния" style="width:30px;height:36px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>' : '';
+        return hasLast ? '<button type="button" onclick="wizCopyFieldFromPrev(\'' + f + '\')" title="Копирай от последния" style="width:30px;height:36px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">↻</button>' : '';
     };
     var esc = function(s) { return (typeof window.esc === 'function') ? window.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
     // S95.STEP2_ENHANCE: voice mic helper — same SVG/style като Step 1 mic. Routes:
@@ -7890,7 +7889,7 @@ function renderWizStep2() {
 
     var header =
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(99,102,241,0.12)">' +
-            '<button type="button" onclick="wizGoStep1()" style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад към Step 1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+            '<button type="button" onclick="wizGoStep1()" style="width:36px;height:36px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit" title="Назад към Step 1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
             '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Препоръчителни</div><div style="font-size:10.5px;color:rgba(226,232,240,0.55);margin-top:1px">Допълнителни данни · може да пропуснеш</div></div>' +
         '</div>';
 
@@ -8025,10 +8024,10 @@ function wizPhotoMultiPick() {
             '</div>' +
         '</div>' +
         '<div style="display:flex;gap:8px">' +
-            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
-            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
         '</div>' +
-        '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
+        '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:var(--radius-sm);background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
     '</div>';
     document.body.appendChild(dr);
 }
@@ -8734,7 +8733,7 @@ function studioExportPDF() {
     if (!w) { if (typeof showToast === 'function') showToast('Pop-up блокиран', 'error'); return; }
     var photos = (_studioState.photos || []).map(function(p){ return '<img src="' + p.dataUrl + '" style="width:200px;height:200px;object-fit:cover;border:1px solid #ccc;margin:4px">'; }).join('');
     var html = '<!doctype html><html><head><meta charset="utf-8"><title>' + (S.wizData.name || 'Артикул') + '</title>' +
-        '<style>body{font-family:system-ui,sans-serif;padding:30px;color:#222;max-width:800px;margin:auto}' +
+        '<style>body{font-family:Montserrat,system-ui,sans-serif;padding:30px;color:#222;max-width:800px;margin:auto}' +
         'h1{font-size:22px;margin-bottom:8px}.meta{color:#666;font-size:12px;margin-bottom:18px}' +
         '.gallery{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}' +
         '.desc{font-size:13px;line-height:1.6;margin-top:10px}' +
@@ -8918,7 +8917,7 @@ function wizScanBarcode(targetField,title){
     ov.innerHTML='<style>#wizBcVid::-webkit-media-controls,#wizBcVid::-webkit-media-controls-panel,#wizBcVid::-webkit-media-controls-overlay-play-button,#wizBcVid::-webkit-media-controls-play-button,#wizBcVid::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}</style>'+
     '<div class="preset-box" style="text-align:center;padding:16px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:15px;font-weight:700">'+title+'</span><span style="font-size:22px;cursor:pointer" onclick="closeBarcodeScan()">✕</span></div>'+
-    '<div id="wizBcWrap" style="position:relative;width:100%;aspect-ratio:16/10;max-height:250px;border-radius:12px;background:#000;overflow:hidden">'+
+    '<div id="wizBcWrap" style="position:relative;width:100%;aspect-ratio:16/10;max-height:250px;border-radius:var(--radius-sm);background:#000;overflow:hidden">'+
       '<video id="wizBcVid" autoplay playsinline muted disablepictureinpicture style="width:100%;height:100%;object-fit:cover;visibility:hidden"></video>'+
       '<div id="wizBcLoad" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg>Стартиране на камерата…</div>'+
     '</div>'+
@@ -9171,7 +9170,7 @@ function wizShowMoreGroups(axIdx){
     var html='<div style="max-height:60vh;overflow-y:auto;padding:8px">';
     html+='<div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:8px">Избери група за добавяне:</div>';
     available.forEach(function(g,gi){
-        html+='<div style="padding:10px 12px;margin-bottom:4px;border-radius:8px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="wizAddPinnedGroup(\''+g.id.replace(/'/g,"\\'")+'\',\''+g.label.replace(/'/g,"\\'")+'\');closePresetPicker()">';
+        html+='<div style="padding:10px 12px;margin-bottom:4px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="wizAddPinnedGroup(\''+g.id.replace(/'/g,"\\'")+'\',\''+g.label.replace(/'/g,"\\'")+'\');closePresetPicker()">';
         html+='<div><div style="font-size:12px;font-weight:600;color:var(--text-primary)">'+esc(g.label)+'</div><div style="font-size:9px;color:var(--text-secondary)">'+g.vals.length+' стойности</div></div>';
         html+='<span style="font-size:9px;color:var(--indigo-400);font-weight:600">+ Добави</span></div>';
     });
@@ -9315,7 +9314,7 @@ function wizShowMoreGroups(axIdx){
     var html='<div style="max-height:60vh;overflow-y:auto;padding:8px">';
     html+='<div style="font-size:12px;font-weight:700;color:var(--indigo-300);margin-bottom:8px">Избери група:</div>';
     available.forEach(function(g){
-        html+='<div style="padding:10px 12px;margin-bottom:4px;border-radius:8px;background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="wizAddPinnedGroup(\''+g.id.replace(/'/g,"\\'")+'\');closePresetPicker()">';
+        html+='<div style="padding:10px 12px;margin-bottom:4px;border-radius:var(--radius-sm);background:rgba(17,24,44,0.5);border:1px solid var(--border-subtle);cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="wizAddPinnedGroup(\''+g.id.replace(/'/g,"\\'")+'\');closePresetPicker()">';
         html+='<div><div style="font-size:12px;font-weight:600;color:var(--text-primary)">'+esc(g.label)+'</div><div style="font-size:9px;color:var(--text-secondary)">'+g.vals.length+' стойности</div></div>';
         html+='<span style="font-size:10px;color:var(--indigo-400);font-weight:600">+ Добави</span></div>';
     });
@@ -9518,7 +9517,7 @@ function wizSearchPresets(axIdx,q){
         var isExpanded=nameMatch;
         var matchCount=nameMatch?g.vals.length:valMatches.length;
         
-        html+='<div style="margin-bottom:4px;border:1px solid rgba(99,102,241,0.1);border-radius:8px;overflow:hidden">';
+        html+='<div style="margin-bottom:4px;border:1px solid rgba(99,102,241,0.1);border-radius:var(--radius-sm);overflow:hidden">';
         html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;cursor:pointer;background:rgba(15,15,40,0.4);font-size:11px;color:var(--text-secondary)" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'flex\':\'none\'"><span>'+esc(g.label)+' <span style="font-size:9px;color:var(--indigo-400)">('+matchCount+')</span></span><span style="font-size:8px">'+(isExpanded?'\u25BC':'\u25B6')+'</span></div>';
         html+='<div style="'+(isExpanded?'display:flex;':'display:none;')+'flex-wrap:wrap;gap:3px;padding:6px 8px">';
         g.vals.forEach(function(v){
@@ -9526,7 +9525,7 @@ function wizSearchPresets(axIdx,q){
             var isMatch=nameMatch||valMatches.indexOf(v)!==-1;
             var opacity=isMatch?'':'opacity:0.25;';
             var sw='';
-            if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.15)"></span>'}
+            if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:9px;height:9px;border-radius:var(--radius-icon);background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.15)"></span>'}
             html+='<span class="preset-chip'+(isSel?' sel':'')+'" style="padding:4px 9px;font-size:10px;'+opacity+'" onclick="wizTogglePresetInline('+axIdx+',\''+v.replace(/'/g,"\\'")+'\',this)">'+sw+esc(v)+'</span>';
         });
         html+='</div></div>';
@@ -10030,16 +10029,16 @@ function _wizUpdateSummaryBar(axIdx){
     var bar=document.getElementById('wizSumBar');
     if(!bar)return;
     if(!ax.values.length){
-        bar.innerHTML='<div style="padding:8px 10px;border-radius:8px;background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
+        bar.innerHTML='<div style="padding:8px 10px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.03);border:1px dashed rgba(99,102,241,0.12);color:var(--text-secondary);font-size:11px">Избери от групите, търси, въведи ръчно или с глас</div>';
         return;
     }
     var h='';
     ax.values.forEach(function(v,vi){
         var sw='';
-        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
-        h+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:3px;opacity:0.5;font-size:9px">\u2715</span></span>';
+        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:8px;height:8px;border-radius:var(--radius-icon);background:'+cc.hex+';margin-right:3px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+        h+='<span style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values.splice('+vi+',1);renderWizard()">'+sw+esc(v)+' <span style="margin-left:3px;opacity:0.5;font-size:9px">\u2715</span></span>';
     });
-    h+='<span style="margin-left:auto;padding:4px 8px;border-radius:8px;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values=[];renderWizard()">Изчисти</span>';
+    h+='<span style="margin-left:auto;padding:4px 8px;border-radius:var(--radius-sm);background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;font-weight:600;cursor:pointer" onclick="S.wizData.axes['+axIdx+'].values=[];renderWizard()">Изчисти</span>';
     bar.innerHTML=h;
 }
 function _wizUpdateTabCount(axIdx){
@@ -10065,7 +10064,7 @@ function openPresetPicker(axIdx,isSize){
         g.vals.forEach(v=>{
             const sel=existing.has(v)?'sel':'';
             let sw='';
-            if(!isSize){const c=CFG.colors.find(cc=>cc.name===v);if(c)sw='<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c.hex+';margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,0.2)"></span>'}
+            if(!isSize){const c=CFG.colors.find(cc=>cc.name===v);if(c)sw='<span style="display:inline-block;width:14px;height:14px;border-radius:var(--radius-icon);background:'+c.hex+';margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,0.2)"></span>'}
             html+='<span class="preset-chip '+sel+'" onclick="togglePresetVal(this,'+axIdx+',\''+v.replace(/'/g,"\\'")+'\')">' +sw+esc(v)+'</span>';
         });
         html+='</div>';
@@ -10130,7 +10129,7 @@ function wizAxisSuggest(axIdx,q){
     list.innerHTML=filtered.slice(0,12).map(function(v){
         var isMyPreset=myPresets.indexOf(v)!==-1;
         var sw='';
-        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cc.hex+';margin-right:6px;border:1px solid rgba(255,255,255,0.2)"></span>'}
+        if(isColor){var cc=CFG.colors.find(function(x){return x.name===v});if(cc)sw='<span style="display:inline-block;width:12px;height:12px;border-radius:var(--radius-icon);background:'+cc.hex+';margin-right:6px;border:1px solid rgba(255,255,255,0.2)"></span>'}
         return '<div class="wiz-dd-item" onmousedown="event.preventDefault()" onclick="wizPickAxisVal('+axIdx+',\''+v.replace(/'/g,"\\'")+'\')">'+sw+(isMyPreset?'<b>'+v+'</b>':v)+'</div>';
     }).join('');
     list.style.display='block';
@@ -10222,7 +10221,7 @@ async function openSupCatModal(supplierId, supplierName) {
                 const match = catByName[catName.toLowerCase()];
                 const catId = match ? match.id : 'new:' + catName;
                 const checked = match && existingSet.has(match.id) ? 'checked' : '';
-                html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px" data-name="' + esc(catName) + '">';
+                html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px" data-name="' + esc(catName) + '">';
                 html += '<input type="checkbox" value="' + catId + '" ' + checked + ' style="accent-color:var(--indigo-500);width:18px;height:18px">';
                 html += '<span>' + esc(catName) + '</span>';
                 if (!match) html += '<span style="font-size:9px;color:rgba(245,158,11,0.8);margin-left:auto">нова</span>';
@@ -10235,7 +10234,7 @@ async function openSupCatModal(supplierId, supplierName) {
         html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Всички категории:</div>';
         allCats.sort((a,b) => a.name.localeCompare(b.name,'bg')).forEach(c => {
             const checked = existingSet.has(c.id) ? 'checked' : '';
-            html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px" data-name="' + esc(c.name) + '">';
+            html += '<label class="scp-item" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px" data-name="' + esc(c.name) + '">';
             html += '<input type="checkbox" value="' + c.id + '" ' + checked + ' style="accent-color:var(--indigo-500);width:18px;height:18px">';
             html += '<span>' + esc(c.name) + '</span></label>';
         });
@@ -10936,7 +10935,7 @@ function showMiniPrintOverlay(){
             '<div class="s95-mini-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
             '<div class="s95-mini-title">Артикулът е записан!</div>'+
             '<div class="s95-mini-sub">'+nm+' · '+pr+'</div>'+
-            '<div id="s95MiniErr" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.5);border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:12px;color:#fecaca;line-height:1.5"></div>'+
+            '<div id="s95MiniErr" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.5);border-radius:var(--radius-sm);padding:12px 14px;margin:0 0 14px;font-size:12px;color:#fecaca;line-height:1.5"></div>'+
             '<div class="s95-mini-actions">'+
                 '<button type="button" class="s95-mini-btn print" onclick="wizStep1MiniPrintAndClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>ПЕЧАТАЙ ЕТИКЕТ</button>'+
                 '<button type="button" class="s95-mini-btn done" onclick="closeMiniPrintOverlay();closeWizard()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ГОТОВО</button>'+
@@ -10989,9 +10988,9 @@ function renderWizPhotoStep(){
     var _photoModeToggle='';
     if(S.wizType==='variant'){
         _photoModeToggle=
-            '<div class="photo-mode-toggle" style="display:flex;gap:6px;margin-bottom:12px;padding:4px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">'+
-                '<button type="button" class="pmt-opt'+(_photoMode==='single'?' active':'')+'" onclick="wizSetPhotoMode(\'single\')" style="flex:1;padding:10px;border-radius:9px;background:'+(_photoMode==='single'?'linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08))':'transparent')+';border:1px solid '+(_photoMode==='single'?'rgba(139,92,246,0.5)':'transparent')+';color:'+(_photoMode==='single'?'#c4b5fd':'rgba(255,255,255,0.55)')+';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Само главна снимка</button>'+
-                '<button type="button" class="pmt-opt'+(_photoMode==='multi'?' active':'')+'" onclick="wizSetPhotoMode(\'multi\')" style="flex:1;padding:10px;border-radius:9px;background:'+(_photoMode==='multi'?'linear-gradient(180deg,rgba(217,70,239,0.18),rgba(168,85,247,0.08))':'transparent')+';border:1px solid '+(_photoMode==='multi'?'rgba(217,70,239,0.5)':'transparent')+';color:'+(_photoMode==='multi'?'#f0abfc':'rgba(255,255,255,0.55)')+';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Снимки на вариации</button>'+
+            '<div class="photo-mode-toggle" style="display:flex;gap:6px;margin-bottom:12px;padding:4px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">'+
+                '<button type="button" class="pmt-opt'+(_photoMode==='single'?' active':'')+'" onclick="wizSetPhotoMode(\'single\')" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:'+(_photoMode==='single'?'linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08))':'transparent')+';border:1px solid '+(_photoMode==='single'?'rgba(139,92,246,0.5)':'transparent')+';color:'+(_photoMode==='single'?'#c4b5fd':'rgba(255,255,255,0.55)')+';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Само главна снимка</button>'+
+                '<button type="button" class="pmt-opt'+(_photoMode==='multi'?' active':'')+'" onclick="wizSetPhotoMode(\'multi\')" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:'+(_photoMode==='multi'?'linear-gradient(180deg,rgba(217,70,239,0.18),rgba(168,85,247,0.08))':'transparent')+';border:1px solid '+(_photoMode==='multi'?'rgba(217,70,239,0.5)':'transparent')+';color:'+(_photoMode==='multi'?'#f0abfc':'rgba(255,255,255,0.55)')+';font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Снимки на вариации</button>'+
             '</div>';
     }
     var photoBlock='';
@@ -11008,11 +11007,11 @@ function renderWizPhotoStep(){
             var swHex=p.ai_hex||'#666';
             var nm=(p.ai_color||'').replace(/"/g,'&quot;');
             var isMain=!!p.is_main;
-            var mainBadge=isMain?'<span style="position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:7px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f1224;font-size:9px;font-weight:800;letter-spacing:0.04em;box-shadow:0 2px 8px rgba(251,191,36,0.5);z-index:2">★ ГЛАВНА</span>':'';
+            var mainBadge=isMain?'<span style="position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f1224;font-size:9px;font-weight:800;letter-spacing:0.04em;box-shadow:0 2px 8px rgba(251,191,36,0.5);z-index:2">★ ГЛАВНА</span>':'';
             var cellBorder=isMain?'border:2px solid #fbbf24;box-shadow:0 0 14px rgba(251,191,36,0.35)':'';
             var mainBtn=isMain
                 ? '<div style="margin-top:6px;font-size:10px;color:#fbbf24;text-align:center;font-weight:600">★ Главна снимка</div>'
-                : '<button type="button" onclick="wizSetMainPhoto('+i+')" style="margin-top:6px;width:100%;padding:7px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);color:#fcd34d;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">★ Направи главна</button>';
+                : '<button type="button" onclick="wizSetMainPhoto('+i+')" style="margin-top:6px;width:100%;padding:7px;border-radius:var(--radius-sm);background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);color:#fcd34d;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">★ Направи главна</button>';
             _gridH+=
                 '<div class="photo-multi-cell" style="position:relative;'+cellBorder+'">'+
                     '<div class="photo-multi-thumb" style="position:relative">'+
@@ -11041,7 +11040,7 @@ function renderWizPhotoStep(){
         photoBlock='<div class="v4-pz">'+_photoModeToggle+_info+_gridH+'</div>';
     }else{
         var _photoContent=_hasPhoto
-            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;cursor:pointer;margin-bottom:10px">'
+            ? '<img src="'+S.wizData._photoDataUrl+'" onclick="document.getElementById(\'filePickerInput\').click()" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:10px">'
             : '<div class="v4-pz-top"><div class="v4-pz-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div style="flex:1;min-width:0"><div class="v4-pz-title">Снимай артикула</div><div class="v4-pz-sub">AI анализира снимката</div></div></div>';
         var _photoBtns='<div class="v4-pz-btns"><button type="button" onclick="document.getElementById(\'photoInput\').click()" class="v4-pz-btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button><button type="button" onclick="document.getElementById(\'filePickerInput\').click()" class="v4-pz-btn sec"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button></div>';
         var _photoTips='<div class="v4-pz-tips"><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Равна светла повърхност</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Без други предмети</span><span class="v4-pz-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Добро осветление</span></div>';
@@ -11054,8 +11053,8 @@ function renderWizPhotoStep(){
     // S95.PART1_1_A FIX 3: винаги render-вай "Като предния" — disabled placeholder ако няма
     // предишен артикул (преди button-а изобщо не се показваше при празен localStorage).
     var copyPrevBtn = hasLast
-        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:42px;padding:0 18px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);width:100%">📋 Като предния</button>'
-        : '<button type="button" onclick="showToast(\'📋 Налично след първия записан артикул\',\'info\')" style="height:42px;padding:0 18px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);color:rgba(255,255,255,0.42);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;width:100%">📋 Като предния <span style="font-size:10px;color:rgba(255,255,255,0.32)">(след първия запис)</span></button>';
+        ? '<button type="button" onclick="wizCopyPrevProductFull()" style="height:42px;padding:0 18px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;box-shadow:0 0 12px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05);width:100%">📋 Като предния</button>'
+        : '<button type="button" onclick="showToast(\'📋 Налично след първия записан артикул\',\'info\')" style="height:42px;padding:0 18px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);color:rgba(255,255,255,0.42);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;width:100%">📋 Като предния <span style="font-size:10px;color:rgba(255,255,255,0.32)">(след първия запис)</span></button>';
     // S95.PART1_1 FIX 1: mandatory type buttons. Hint above. Active button glows.
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
@@ -11085,7 +11084,7 @@ function renderWizPhotoStep(){
             '<label class="fl">Име&nbsp;<span style="color:#ef4444">*</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
             '</div>'+
             '<div id="wDupeBanner" style="display:none"></div>'+
         '</div>';
@@ -11094,7 +11093,7 @@ function renderWizPhotoStep(){
             '<label class="fl">Цена дребно&nbsp;<span style="color:#ef4444">*</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\')" value="'+(S.wizData.retail_price||'')+'" placeholder="Кажи: 1 евро и 35 цента" style="flex:1">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
             '</div>'+
         '</div>';
     var supSelName=(function(){if(!S.wizData.supplier_id)return''; var s=(CFG.suppliers||[]).find(function(x){return x.id==S.wizData.supplier_id}); return s?s.name:''})();
@@ -11106,10 +11105,10 @@ function renderWizPhotoStep(){
             '<label class="fl">Доставчик</label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="text" class="fc" id="wSupDD" autocomplete="off" value="'+esc(supSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])" onclick="this._focused=true;wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])" onblur="setTimeout(function(){var l=document.getElementById(\'wSupDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizSearchDropdown(\'wSupDD\',\'wSupDDList\',CFG.suppliers||[])">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'supplier\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'supplier\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
-                '<button type="button" onclick="toggleInl(\'inlSup\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нов доставчик">+</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'supplier\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'supplier\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" onclick="toggleInl(\'inlSup\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нов доставчик">+</button>'+
             '</div>'+
-            '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
+            '<div id="wSupDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
             '<div id="inlSup" class="inline-add"><input type="text" id="inlSupName" placeholder="Нов доставчик"><button type="button" onclick="wizAddInline(\'supplier\')">+ Добави</button></div>'+
         '</div>';
     var categoryH=
@@ -11117,10 +11116,10 @@ function renderWizPhotoStep(){
             '<label class="fl">Категория</label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="text" class="fc" id="wCatDD" autocomplete="off" value="'+esc(catSelName)+'" placeholder="търси или избери..." style="flex:1" onfocus="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" onclick="this._focused=true;wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())" onblur="setTimeout(function(){var l=document.getElementById(\'wCatDDList\');if(l)l.style.display=\'none\'},220)" oninput="wizClearAIMark(\'category\');wizSearchDropdown(\'wCatDD\',\'wCatDDList\',wizCatsForSupplier())">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'category\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'category\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
-                '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'category\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'category\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" onclick="toggleInl(\'inlCat\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова категория">+</button>'+
             '</div>'+
-            '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:10px;max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
+            '<div id="wCatDDList" class="wiz-dd-list" style="display:none;position:absolute;left:0;right:88px;top:60px;background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;z-index:50;font-size:12px"></div>'+
             '<div id="inlCat" class="inline-add"><input type="text" id="inlCatName" placeholder="Нова категория"><button type="button" onclick="wizAddInline(\'category\')">+ Добави</button></div>'+
         '</div>';
     // S95.PART1_1 FIX 4: subcategory keeps native <select> (compat with wizLoadSubcats/wizCollectData/wizAddSubcat)
@@ -11136,7 +11135,7 @@ function renderWizPhotoStep(){
                     '<select class="fc" id="wSubcat" '+subcatDisabledAttr+' onchange="S.wizData.subcategory_id=this.value||null" style="width:100%;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:34px;cursor:pointer;font-family:inherit"><option value="">'+subcatPlaceholder+'</option></select>'+
                     '<svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:'+(S.wizData.category_id?'#a5b4fc':'rgba(165,180,252,0.4)')+'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'+
                 '</div>'+
-                '<button type="button" onclick="if(S.wizData.category_id)toggleInl(\'inlSubcat\');else showToast(\'Избери първо категория\',\'error\')" style="width:34px;height:38px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова подкатегория">+</button>'+
+                '<button type="button" onclick="if(S.wizData.category_id)toggleInl(\'inlSubcat\');else showToast(\'Избери първо категория\',\'error\')" style="width:34px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit" title="Нова подкатегория">+</button>'+
             '</div>'+
             '<div id="inlSubcat" class="inline-add"><input type="text" id="inlSubcatName" placeholder="Нова подкатегория"><button type="button" onclick="wizAddSubcat()">+ Добави</button></div>'+
         '</div>';
@@ -11145,7 +11144,7 @@ function renderWizPhotoStep(){
             '<label class="fl">Артикулен номер <span class="hint" style="font-weight:400;color:#64748b">(авто ако празно)</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="text" class="fc" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЪMUSI-42" oninput="S.wizData.code=this.value.trim()" style="flex:1">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'code\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'code\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'code\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'code\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
                 '<button type="button" class="abtn" onclick="wizScanBarcode(\'wCode\',\'Сканирай артикулен номер\')" style="width:auto;padding:8px 12px;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.4)" title="Сканирай артикулен номер"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'+
             '</div>'+
         '</div>';
@@ -11154,7 +11153,7 @@ function renderWizPhotoStep(){
             '<label class="fl">Баркод <span class="hint" style="font-weight:400;color:#64748b">(сканирай ако има)</span></label>'+
             '<div style="display:flex;gap:6px;align-items:center">'+
                 '<input type="text" class="fc" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="сканирай или въведи" oninput="S.wizData.barcode=this.value.trim()" style="flex:1">'+
-                '<button type="button" class="wiz-mic" onclick="wizMic(\'barcode\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'barcode\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                '<button type="button" class="wiz-mic" onclick="wizMic(\'barcode\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'barcode\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
                 '<button type="button" class="abtn" onclick="wizScanBarcode(\'wBarcode\',\'Сканирай баркод\')" style="width:auto;padding:8px 12px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4)" title="Сканирай баркод"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>'+
             '</div>'+
         '</div>';
@@ -11174,23 +11173,23 @@ function renderWizPhotoStep(){
                 '<div class="fg" style="margin:0 0 10px">'+
                     '<label class="fl">📦 Брой&nbsp;<span style="color:#ef4444">*</span></label>'+
                     '<div style="display:flex;gap:6px;align-items:center">'+
-                        '<div style="display:flex;border:1px solid rgba(99,102,241,0.25);border-radius:12px;overflow:hidden;height:42px;flex:1">'+
+                        '<div style="display:flex;border:1px solid rgba(99,102,241,0.25);border-radius:var(--radius-sm);overflow:hidden;height:42px;flex:1">'+
                             '<button type="button" onclick="s95QtyAdjust(\'wSingleQty\',-1)" style="width:46px;background:rgba(99,102,241,0.10);border:none;border-right:1px solid rgba(99,102,241,0.18);color:#a5b4fc;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">−</button>'+
                             '<input type="number" inputmode="numeric" min="0" id="wSingleQty" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit">'+
                             '<button type="button" onclick="s95QtyAdjust(\'wSingleQty\',1)" style="width:46px;background:rgba(99,102,241,0.10);border:none;border-left:1px solid rgba(99,102,241,0.18);color:#a5b4fc;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">+</button>'+
                         '</div>'+
-                        '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'quantity\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                        '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'quantity\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
                     '</div>'+
                 '</div>'+
                 '<div class="fg" style="margin:0">'+
                     '<label class="fl">📦 Минимално кол. <span class="hint" style="font-weight:400;color:#64748b">(авто от брой)</span></label>'+
                     '<div style="display:flex;gap:6px;align-items:center">'+
-                        '<div style="display:flex;border:1px solid rgba(245,158,11,0.20);border-radius:12px;overflow:hidden;height:42px;flex:1;background:rgba(245,158,11,0.03)">'+
+                        '<div style="display:flex;border:1px solid rgba(245,158,11,0.20);border-radius:var(--radius-sm);overflow:hidden;height:42px;flex:1;background:rgba(245,158,11,0.03)">'+
                             '<button type="button" onclick="s95MinAdjust(-1)" style="width:46px;background:rgba(245,158,11,0.10);border:none;border-right:1px solid rgba(245,158,11,0.18);color:#fbbf24;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">−</button>'+
                             '<input type="number" inputmode="numeric" min="0" id="wMinQty" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'" style="flex:1;background:transparent;border:none;color:#fff;font-size:15px;font-weight:600;text-align:center;outline:none;font-family:inherit">'+
                             '<button type="button" onclick="s95MinAdjust(1)" style="width:46px;background:rgba(245,158,11,0.10);border:none;border-left:1px solid rgba(245,158,11,0.18);color:#fbbf24;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">+</button>'+
                         '</div>'+
-                        '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'min_quantity\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+                        '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+'<button type="button" onclick="wizCopyFieldFromPrev(\'min_quantity\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
                     '</div>'+
                 '</div>'+
             '</div>';
@@ -11202,11 +11201,11 @@ function renderWizPhotoStep(){
     //   Bottom: [Допълнителни данни (препоръчително)] full-width q-magic
     // Variant Step 1 keeps existing 3-button single-row (no recommended at this stage —
     // variant flow shows recommended after axes selection в Step 4 footer).
-    var saveBtn='<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>';
-    var printBtn='<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>';
+    var saveBtn='<button type="button" onclick="wizStep1Save()" class="v4-foot-save" style="flex:1.4;height:44px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(34,197,94,0.16),rgba(22,163,74,0.07));border:1px solid rgba(34,197,94,0.5);color:#86efac;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;letter-spacing:0.04em;box-shadow:0 0 14px rgba(34,197,94,0.22),inset 0 1px 0 rgba(255,255,255,0.05);text-transform:uppercase;'+saveDisabled+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ЗАПИШИ</button>';
+    var printBtn='<button type="button" onclick="wizStep1Print()" title="Печатай етикет" style="width:48px;height:44px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>';
     var footer;
     if(S.wizType==='variant'){
-        var variantNextBtn='<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        var variantNextBtn='<button type="button" onclick="wizStep1Next()" class="v4-foot-next" style="flex:1.2;height:44px;border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(99,102,241,0.18),rgba(67,56,202,0.08));border:1px solid rgba(139,92,246,0.5);color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;letter-spacing:0.02em;box-shadow:0 0 14px rgba(139,92,246,0.22),inset 0 1px 0 rgba(255,255,255,0.05)">Напред<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
         footer='<div style="display:flex;gap:8px;margin-top:16px;align-items:stretch">'+saveBtn+printBtn+variantNextBtn+'</div>';
     }else{
         // Single (typeChosen=true) или type не избран (типе choose hide рекомендирания).
@@ -11361,7 +11360,7 @@ document.getElementById('photoInput').addEventListener('change',async function()
     reader.onload=e=>{
         S.wizData._photoDataUrl=e.target.result;
         S.wizData._hasPhoto=true;
-        if(document.getElementById('wizPhotoPreview'))document.getElementById('wizPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:10px;border:1px solid var(--border-subtle);margin-top:8px">';
+        if(document.getElementById('wizPhotoPreview'))document.getElementById('wizPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);margin-top:8px">';
         if(result)result.innerHTML='<div style="font-size:12px;color:var(--success);margin-top:6px">Снимката е заредена</div>';
         showToast('Снимка добавена','success');
         // S73.B.35: Rerender за да се покаже снимката в photo zone на Step 1
@@ -11440,7 +11439,7 @@ function showDuplicatesModalS88(matches, fields){
         var first = matches[0] || {};
         var listH = matches.slice(0,5).map(function(m){
             var byTxt = fieldNames[m.by] || m.by;
-            return '<div style="padding:8px 10px;border:1px solid rgba(99,102,241,0.2);border-radius:8px;margin:4px 0;background:rgba(99,102,241,0.06);font-size:11px;color:#cbd5e1">'
+            return '<div style="padding:8px 10px;border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-sm);margin:4px 0;background:rgba(99,102,241,0.06);font-size:11px;color:#cbd5e1">'
                 + '<b style="color:#fff">'+(m.name||'')+'</b>'
                 + (m.code ? ' · код <span style="color:#a5b4fc">'+m.code+'</span>' : '')
                 + (m.barcode ? ' · ШК <span style="color:#a5b4fc">'+m.barcode+'</span>' : '')
@@ -11450,14 +11449,14 @@ function showDuplicatesModalS88(matches, fields){
         ov.id = 's88DupModal';
         ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
         ov.innerHTML =
-            '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:16px;padding:18px;max-width:380px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.6)">'
+            '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius);padding:18px;max-width:380px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.6)">'
             + '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px">⚠ Дубликат в '+labelMap+'</div>'
             + '<div style="font-size:11px;color:#a5b4fc;margin-bottom:10px">Има артикул(и) с подобни данни:</div>'
             + listH
             + '<div style="display:flex;flex-direction:column;gap:6px;margin-top:14px">'
-            + '<button id="s88DupSave" style="padding:10px;border-radius:10px;background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Запази въпреки това</button>'
-            + '<button id="s88DupOpen" style="padding:10px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:700;cursor:pointer">📂 Отвори съществуващия (#'+(first.id||'?')+')</button>'
-            + '<button id="s88DupCancel" style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">✕ Отказ</button>'
+            + '<button id="s88DupSave" style="padding:10px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Запази въпреки това</button>'
+            + '<button id="s88DupOpen" style="padding:10px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#6366f1,#4338ca);border:1px solid #6366f1;color:#fff;font-size:12px;font-weight:700;cursor:pointer">📂 Отвори съществуващия (#'+(first.id||'?')+')</button>'
+            + '<button id="s88DupCancel" style="padding:10px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">✕ Отказ</button>'
             + '</div></div>';
         document.body.appendChild(ov);
         var done = function(v){ ov.remove(); resolve(v); };
@@ -11478,9 +11477,9 @@ function openMoreAddOptionsS88(anchor){
     ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;justify-content:center;padding:0';
     ov.innerHTML =
         '<div style="background:#0f1224;border-top:1px solid rgba(99,102,241,0.4);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:14px 14px 22px">'
-        + '<div style="width:38px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 10px"></div>'
-        + '<button id="s88MoreLikePrev" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.5);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px">📋 Като предния</button>'
-        + '<button id="s88MoreClose" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">Отказ</button>'
+        + '<div style="width:38px;height:4px;background:rgba(255,255,255,0.2);border-radius:var(--radius-sm);margin:0 auto 10px"></div>'
+        + '<button id="s88MoreLikePrev" style="width:100%;padding:14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(67,56,202,0.06));border:1px solid rgba(139,92,246,0.5);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px">📋 Като предния</button>'
+        + '<button id="s88MoreClose" style="width:100%;margin-top:8px;padding:12px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer">Отказ</button>'
         + '</div>';
     document.body.appendChild(ov);
     var close = function(){ ov.remove(); };
@@ -12135,14 +12134,14 @@ async function openProductHistoryS88(productId){
         }
         var canRevert = (r.action === 'update' && r.old_values);
         var revertBtn = canRevert
-            ? '<button onclick="revertChangeS88('+r.id+','+productId+')" style="margin-top:6px;padding:6px 10px;border-radius:8px;background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(217,119,6,0.06));border:1px solid rgba(245,158,11,0.45);color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer">↶ Върни и презапиши</button>'
+            ? '<button onclick="revertChangeS88('+r.id+','+productId+')" style="margin-top:6px;padding:6px 10px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(217,119,6,0.06));border:1px solid rgba(245,158,11,0.45);color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer">↶ Върни и презапиши</button>'
             : '';
         var sourceTag = r.source_detail && r.source_detail.indexOf('revert_of:') === 0
-            ? '<span style="margin-left:6px;padding:1px 6px;border-radius:6px;background:rgba(245,158,11,0.15);color:#fcd34d;font-size:9px;font-weight:700">REVERT</span>'
+            ? '<span style="margin-left:6px;padding:1px 6px;border-radius:var(--radius-sm);background:rgba(245,158,11,0.15);color:#fcd34d;font-size:9px;font-weight:700">REVERT</span>'
             : '';
-        return '<div style="padding:10px;border:1px solid rgba(99,102,241,0.18);border-radius:10px;margin:6px 0;background:rgba(255,255,255,0.02)">'
+        return '<div style="padding:10px;border:1px solid rgba(99,102,241,0.18);border-radius:var(--radius-sm);margin:6px 0;background:rgba(255,255,255,0.02)">'
              + '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">'
-             +   '<span style="padding:2px 8px;border-radius:6px;background:'+actBg+';color:'+actCol+';font-weight:700">'+actIcon+' '+r.action+'</span>'
+             +   '<span style="padding:2px 8px;border-radius:var(--radius-sm);background:'+actBg+';color:'+actCol+';font-weight:700">'+actIcon+' '+r.action+'</span>'
              +   sourceTag
              +   '<span style="color:#94a3b8;font-size:10px">'+esc(r.created_at||'')+(r.user_name?' · '+esc(r.user_name):'')+'</span>'
              + '</div>'
@@ -12152,7 +12151,7 @@ async function openProductHistoryS88(productId){
     }).join('');
     if (!rows.length) listH = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">Няма записани промени.</div>';
     ov.innerHTML =
-        '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:16px;padding:14px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column">'
+        '<div style="background:#0f1224;border:1px solid rgba(99,102,241,0.4);border-radius:var(--radius);padding:14px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:#fff">📜 История · Артикул #'+productId+'</div><button onclick="document.getElementById(\'s88HistModal\').remove()" style="background:none;border:none;color:#cbd5e1;font-size:18px;cursor:pointer">✕</button></div>'
       + '<div style="overflow-y:auto;flex:1;padding-right:4px">' + listH + '</div>'
       + '</div>';
@@ -12302,14 +12301,14 @@ function onLiveSearchHome(q) {
         // Header with close
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(99,102,241,.12);position:sticky;top:0;background:rgba(8,8,24,0.98);z-index:1">';
         html += '<span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase">' + (products.length + categories.length) + ' резултата</span>';
-        html += '<div onclick="clearHSearch()" style="width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div>';
+        html += '<div onclick="clearHSearch()" style="width:24px;height:24px;border-radius:var(--radius-sm);background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></div>';
         html += '</div>';
         // Categories first (more important)
         if (categories.length) {
             html += '<div style="padding:6px 14px 2px;font-size:9px;font-weight:800;color:var(--indigo-300);text-transform:uppercase;letter-spacing:0.05em">Категории</div>';
             categories.forEach(c => {
                 html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickHSearchCat(' + c.id + ')">';
-                html += '<div style="width:32px;height:32px;border-radius:8px;background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
+                html += '<div style="width:32px;height:32px;border-radius:var(--radius-sm);background:rgba(20,184,166,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
                 html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + esc(c.name) + '</div><div style="font-size:9px;color:var(--text-secondary)">' + (c.product_count || 0) + ' артикула</div></div>';
                 html += '<span style="color:var(--text-secondary);font-size:14px">›</span></div>';
             });
@@ -12322,7 +12321,7 @@ function onLiveSearchHome(q) {
                 const sc = stock > 0 ? 'var(--success)' : 'var(--danger)';
                 const thumb = p.image_url ? '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
                 html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(99,102,241,.06);cursor:pointer" onclick="pickHSearchProd(' + p.id + ')">';
-                html += '<div style="width:34px;height:34px;border-radius:8px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">' + thumb + '</div>';
+                html += '<div style="width:34px;height:34px;border-radius:var(--radius-sm);background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">' + thumb + '</div>';
                 html += '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.name) + '</div><div style="font-size:9px;color:var(--text-secondary)">' + esc(p.code || '') + (p.supplier_name ? ' · ' + esc(p.supplier_name) : '') + '</div></div>';
                 html += '<div style="text-align:right;flex-shrink:0"><div style="font-size:11px;font-weight:700;color:var(--indigo-300)">' + fmtPrice(p.retail_price) + '</div><div style="font-size:9px;color:' + sc + '">' + stock + ' бр</div></div></div>';
             });
@@ -12427,7 +12426,7 @@ document.getElementById('recOv').addEventListener('click',function(e){
         if (!matches.length) return;
         var dd = document.createElement('div');
         dd.id = listId;
-        dd.style.cssText = 'position:absolute;left:0;right:0;top:100%;background:#1e1e2e;border:1px solid var(--border-subtle);border-radius:8px;max-height:180px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5)';
+        dd.style.cssText = 'position:absolute;left:0;right:0;top:100%;background:#1e1e2e;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);max-height:180px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5)';
         matches.slice(0, 8).forEach(function(m){
             var opt = document.createElement('div');
             opt.textContent = m;
@@ -12586,7 +12585,7 @@ function wizPrintLabels(comboIdx){
     html+='<style>';
     html+='@page{size:50mm 30mm;margin:0}';
     html+='*{box-sizing:border-box;margin:0;padding:0}';
-    html+='body{font-family:Arial,sans-serif;color:#000}';
+    html+='body{font-family:Montserrat,Arial,sans-serif;color:#000}';
     html+='.label{width:50mm;height:30mm;padding:1.5mm 2mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;overflow:hidden}';
     html+='.l-top{display:flex;gap:1.5mm;align-items:flex-start}';
     html+='.l-name{font-size:7pt;font-weight:700;line-height:1.15}';
@@ -12667,16 +12666,16 @@ async function openPrinterSettings(){
     overlay.innerHTML =
         '<div style="position:fixed;inset:0;background:rgba(3,7,18,.85);backdrop-filter:blur(6px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px"' +
         ' onclick="if(event.target===this)document.getElementById(\'prSetOv\').remove()">' +
-        '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 0 60px rgba(99,102,241,.25)">' +
+        '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:var(--radius);padding:24px;max-width:360px;width:100%;box-shadow:0 0 60px rgba(99,102,241,.25)">' +
         '<div style="text-align:center;margin-bottom:16px">' +
         '<div style="font-size:42px;margin-bottom:8px">🖨️</div>' +
         '<div style="font-size:18px;font-weight:700;color:#e4e4f0;margin-bottom:4px">Принтер за етикети</div>' +
         '<div style="font-size:14px;color:'+statusColor+';font-weight:600">'+status+'</div>' +
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">' +
-        '<button id="prSetPair" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:0;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">🔗 '+(paired?'Смени':'Свържи')+' принтер</button>' +
-        (paired ? '<button id="prSetTest" style="background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">🧪 Тестов печат</button>' : '') +
-        (paired ? '<button id="prSetForget" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3);padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">🗑️ Забрави принтера</button>' : '') +
+        '<button id="prSetPair" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:0;padding:14px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">🔗 '+(paired?'Смени':'Свържи')+' принтер</button>' +
+        (paired ? '<button id="prSetTest" style="background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">🧪 Тестов печат</button>' : '') +
+        (paired ? '<button id="prSetForget" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3);padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">🗑️ Забрави принтера</button>' : '') +
         '</div>' +
         '<button onclick="document.getElementById(\'prSetOv\').remove()" style="background:transparent;color:#8b92b0;border:0;padding:10px;width:100%;font-size:14px;cursor:pointer">Затвори</button>' +
         '</div></div>';
@@ -12725,8 +12724,8 @@ function showPrintOverlay(text){
         ov.id = 'printOverlay';
         ov.innerHTML = '<style>@keyframes prSpin{to{transform:rotate(360deg)}}@keyframes prPulse{0%,100%{opacity:.4}50%{opacity:1}}</style>'+
             '<div style="position:fixed;inset:0;background:rgba(3,7,18,.85);backdrop-filter:blur(6px);z-index:999999;display:flex;align-items:center;justify-content:center">'+
-            '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:18px;padding:28px 36px;min-width:220px;text-align:center;box-shadow:0 0 60px rgba(99,102,241,.25)">'+
-            '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(99,102,241,.2);border-top-color:#818cf8;border-radius:50%;animation:prSpin 0.9s linear infinite"></div>'+
+            '<div style="background:rgba(15,15,40,.95);border:1px solid rgba(99,102,241,.4);border-radius:var(--radius);padding:28px 36px;min-width:220px;text-align:center;box-shadow:0 0 60px rgba(99,102,241,.25)">'+
+            '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(99,102,241,.2);border-top-color:#818cf8;border-radius:var(--radius-icon);animation:prSpin 0.9s linear infinite"></div>'+
             '<div id="printOvText" style="font-size:15px;font-weight:600;color:#e4e4f0;margin-bottom:6px">Печат...</div>'+
             '<div style="font-size:11px;color:#8b92b0;animation:prPulse 1.4s ease-in-out infinite">🖨️ Не изключвай принтера</div>'+
             '</div></div>';
@@ -13119,7 +13118,7 @@ function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
 function _wizBigDisplay(value,label,warn){
     if(!document.getElementById('wbdStyles')){
         var s=document.createElement('style');s.id='wbdStyles';
-        s.textContent='.wiz-big-display{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(15,18,36,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(99,102,241,0.6);border-radius:20px;padding:28px 40px;z-index:99999;box-shadow:0 0 60px rgba(99,102,241,0.5),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;pointer-events:none;animation:wbd-in 0.35s cubic-bezier(0.34,1.56,0.64,1);transition:opacity 0.5s ease}.wiz-big-display.warn{border-color:#f59e0b;box-shadow:0 0 60px rgba(245,158,11,0.55),inset 0 1px 0 rgba(255,255,255,0.06)}.wiz-big-display.wbd-fade{opacity:0}.wbd-label{font-size:14px;color:#a5b4fc;font-weight:700;margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase}.wiz-big-display.warn .wbd-label{color:#fbbf24}.wbd-value{font-size:84px;color:#fff;font-weight:900;text-shadow:0 0 30px rgba(99,102,241,0.85);line-height:1;letter-spacing:-0.02em}.wiz-big-display.warn .wbd-value{text-shadow:0 0 30px rgba(245,158,11,0.85)}@keyframes wbd-in{0%{transform:translate(-50%,-50%) scale(0.82);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
+        s.textContent='.wiz-big-display{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(15,18,36,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(99,102,241,0.6);border-radius:var(--radius);padding:28px 40px;z-index:99999;box-shadow:0 0 60px rgba(99,102,241,0.5),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;pointer-events:none;animation:wbd-in 0.35s cubic-bezier(0.34,1.56,0.64,1);transition:opacity 0.5s ease}.wiz-big-display.warn{border-color:#f59e0b;box-shadow:0 0 60px rgba(245,158,11,0.55),inset 0 1px 0 rgba(255,255,255,0.06)}.wiz-big-display.wbd-fade{opacity:0}.wbd-label{font-size:14px;color:#a5b4fc;font-weight:700;margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase}.wiz-big-display.warn .wbd-label{color:#fbbf24}.wbd-value{font-size:84px;color:#fff;font-weight:900;text-shadow:0 0 30px rgba(99,102,241,0.85);line-height:1;letter-spacing:-0.02em}.wiz-big-display.warn .wbd-value{text-shadow:0 0 30px rgba(245,158,11,0.85)}@keyframes wbd-in{0%{transform:translate(-50%,-50%) scale(0.82);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}';
         document.head.appendChild(s);
     }
     var existing=document.getElementById('wizBigDisplay');
@@ -14037,7 +14036,7 @@ window.addEventListener('popstate', function(e){
 
 <!-- Supplier Category Picker Modal -->
 <div id="supCatModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);overflow-y:auto;padding:16px">
-<div style="max-width:480px;margin:20px auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-subtle);padding:16px">
+<div style="max-width:480px;margin:20px auto;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border-subtle);padding:16px">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <div style="font-size:15px;font-weight:700" id="supCatTitle">Категории на доставчика</div>
 <button onclick="closeSupCatModal()" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">✕</button>
