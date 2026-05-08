@@ -517,7 +517,7 @@ function dispView(string $view): bool {
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 
-<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 
 <style>
 /* mod-del-* — само module-specific helpers, не дублира design-kit */
@@ -529,7 +529,7 @@ function dispView(string $view): bool {
     text-decoration:none;color:inherit;border:none;width:100%;font-family:inherit
 }
 .mod-del-entry-ico{
-    width:54px;height:54px;border-radius:var(--radius);flex-shrink:0;
+    width:54px;height:54px;border-radius:16px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;color:#fff;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.25)
 }
@@ -545,13 +545,13 @@ function dispView(string $view): bool {
 .mod-del-row{
     display:flex;align-items:center;gap:10px;padding:10px 12px;
     background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-    border-radius:var(--radius);margin-bottom:6px;cursor:pointer
+    border-radius:12px;margin-bottom:6px;cursor:pointer
 }
 .mod-del-row.approved{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.05)}
 .mod-del-row.uncertain{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
 .mod-del-row.defective{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);opacity:.7}
 .mod-del-check{
-    width:26px;height:26px;border-radius:var(--radius-sm);flex-shrink:0;
+    width:26px;height:26px;border-radius:8px;flex-shrink:0;
     border:2px solid rgba(255,255,255,.25);
     display:flex;align-items:center;justify-content:center;color:transparent
 }
@@ -571,20 +571,20 @@ function dispView(string $view): bool {
 
 .mod-del-totals{
     display:flex;justify-content:space-between;align-items:center;
-    padding:12px 14px;border-radius:var(--radius);margin-top:10px;
+    padding:12px 14px;border-radius:12px;margin-top:10px;
     background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)
 }
 .mod-del-totals-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em}
 .mod-del-totals-amt{font-size:18px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums}
 
 .mod-del-progress{display:flex;align-items:center;gap:10px;padding:8px 12px}
-.mod-del-progress-bar{flex:1;height:6px;border-radius:var(--radius-sm);background:rgba(255,255,255,.08);overflow:hidden}
+.mod-del-progress-bar{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .mod-del-progress-fill{height:100%;background:linear-gradient(90deg,hsl(145 65% 45%),hsl(160 65% 40%));transition:width .3s}
 .mod-del-progress-text{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums}
 
 .mod-del-action-btn{
     display:flex;align-items:center;justify-content:center;gap:8px;
-    padding:14px 20px;border-radius:var(--radius);width:100%;
+    padding:14px 20px;border-radius:14px;width:100%;
     font-size:14px;font-weight:900;letter-spacing:.02em;
     text-decoration:none;border:none;cursor:pointer;font-family:inherit;
     background:linear-gradient(135deg,hsl(145 65% 45%),hsl(160 65% 38%));
@@ -598,21 +598,21 @@ function dispView(string $view): bool {
     position:fixed;left:0;right:0;bottom:0;z-index:200;
     background:rgba(8,9,13,.95);
     border-top:1px solid rgba(255,255,255,.12);
-    border-radius:var(--radius) 18px 0 0;
+    border-radius:18px 18px 0 0;
     padding:18px 16px calc(18px + env(safe-area-inset-bottom,0));
     transform:translateY(110%);transition:transform .25s ease-out;
     max-height:75vh;overflow-y:auto
 }
 .mod-del-sheet.open{transform:translateY(0)}
 .mod-del-sheet-grip{
-    width:48px;height:4px;border-radius:var(--radius-sm);background:rgba(255,255,255,.2);
+    width:48px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);
     margin:-8px auto 12px
 }
 .mod-del-sheet h3{font-size:14px;font-weight:900;color:#f1f5f9;margin-bottom:12px}
 .mod-del-sheet label{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.55);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em}
 .mod-del-sheet input[type=number],
 .mod-del-sheet input[type=text]{
-    width:100%;padding:12px 14px;border-radius:var(--radius);
+    width:100%;padding:12px 14px;border-radius:10px;
     background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
     color:#f1f5f9;font-size:15px;font-weight:700;font-family:inherit;
     font-variant-numeric:tabular-nums
@@ -641,24 +641,24 @@ function dispView(string $view): bool {
 
 .mod-del-toast{
     position:fixed;left:16px;right:16px;bottom:80px;z-index:300;
-    padding:12px 16px;border-radius:var(--radius);
+    padding:12px 16px;border-radius:12px;
     background:rgba(8,9,13,.95);border:1px solid rgba(34,197,94,.5);
-    color:hsl(141 79% 73%);font-size:13px;font-weight:800;
+    color:#86efac;font-size:13px;font-weight:800;
     transform:translateY(120%);transition:transform .3s;
     box-shadow:0 0 16px rgba(34,197,94,.3)
 }
 .mod-del-toast.show{transform:translateY(0)}
-.mod-del-toast.warn{border-color:rgba(245,158,11,.6);color:hsl(43 96% 56%)}
-.mod-del-toast.error{border-color:rgba(239,68,68,.6);color:hsl(0 93% 82%)}
+.mod-del-toast.warn{border-color:rgba(245,158,11,.6);color:#fbbf24}
+.mod-del-toast.error{border-color:rgba(239,68,68,.6);color:#fca5a5}
 
 .mod-del-conf-pill{
     display:inline-flex;align-items:center;gap:4px;
-    padding:2px 8px;border-radius:var(--radius-pill);font-size:9px;font-weight:900;
+    padding:2px 8px;border-radius:100px;font-size:9px;font-weight:900;
     letter-spacing:.05em;text-transform:uppercase
 }
-.mod-del-conf-pill.high{background:rgba(34,197,94,.14);color:hsl(141 79% 73%);border:1px solid rgba(34,197,94,.35)}
-.mod-del-conf-pill.mid{background:rgba(245,158,11,.14);color:hsl(43 96% 56%);border:1px solid rgba(245,158,11,.35)}
-.mod-del-conf-pill.low{background:rgba(239,68,68,.14);color:hsl(0 93% 82%);border:1px solid rgba(239,68,68,.35)}
+.mod-del-conf-pill.high{background:rgba(34,197,94,.14);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+.mod-del-conf-pill.mid{background:rgba(245,158,11,.14);color:#fbbf24;border:1px solid rgba(245,158,11,.35)}
+.mod-del-conf-pill.low{background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
 
 /* Detailed Mode override: показваме table view, ДДС полета, full reconciliation inline */
 .mode-detailed .mod-del-row-meta{font-size:11px}
@@ -669,23 +669,8 @@ function dispView(string $view): bool {
 .mod-del-supplier-pick{
     display:block;width:100%;padding:14px;
     background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
-    border-radius:var(--radius);color:#f1f5f9;font-family:inherit;font-size:14px;font-weight:700
+    border-radius:12px;color:#f1f5f9;font-family:inherit;font-size:14px;font-weight:700
 }
-
-
-/* ── S106: BICHROMATIC theme support (auto-injected) ── */
-[data-theme="light"] body{background:var(--bg);color:var(--text)}
-[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
-[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
-[data-theme="dark"] body{background:var(--bg);color:var(--text)}
-[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
-
-@media (prefers-reduced-motion: reduce){
-  *{transition:none!important;animation:none!important}
-}
-
-/* glass content stays above shine/glow spans */
-.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell mode-<?= htmlspecialchars($mode) ?>">
@@ -744,7 +729,7 @@ function dispView(string $view): bool {
                 </div>
             </div>
             <?php if (!empty($delivery['has_mismatch'])): ?>
-                <div style="margin-top:12px;padding:10px;border-radius:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.32);font-size:11px;color:hsl(43 96% 56%);font-weight:700">
+                <div style="margin-top:12px;padding:10px;border-radius:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.32);font-size:11px;color:#fbbf24;font-weight:700">
                     <?= htmlspecialchars((string)($delivery['mismatch_summary'] ?: 'Има разлика срещу поръчката или фактурата.')) ?>
                 </div>
             <?php endif; ?>
@@ -829,7 +814,7 @@ function dispView(string $view): bool {
     <?php else: ?>
     <div class="glass q3" style="padding:18px;text-align:center;margin:16px 0">
         <span class="shine"></span><span class="glow"></span>
-        <div style="font-size:13px;font-weight:800;color:hsl(141 79% 73%)">Доставката е заприходена</div>
+        <div style="font-size:13px;font-weight:800;color:#86efac">Доставката е заприходена</div>
         <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">
             <?= htmlspecialchars((string)($delivery['committed_at'] ?: '')) ?>
         </div>

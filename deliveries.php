@@ -167,7 +167,7 @@ function payLabel(array $d, string $state): string {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?= htmlspecialchars($lang) ?>" data-theme="<?= ($_COOKIE['rms_theme'] ?? 'light') === 'dark' ? 'dark' : 'light' ?>">
+<html lang="<?= htmlspecialchars($lang) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -183,12 +183,12 @@ function payLabel(array $d, string $state): string {
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
 
-<script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
+<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 
 <style>
 .mod-del-hero-cta{display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;text-decoration:none;color:inherit}
 .mod-del-hero-cta-ico{
-    width:48px;height:48px;border-radius:var(--radius);flex-shrink:0;
+    width:48px;height:48px;border-radius:14px;flex-shrink:0;
     background:linear-gradient(135deg,hsl(38 75% 52%),hsl(28 75% 46%));
     box-shadow:0 0 16px hsl(38 75% 50% / .5),inset 0 1px 0 rgba(255,255,255,.25);
     display:flex;align-items:center;justify-content:center;color:#fff
@@ -199,8 +199,8 @@ function payLabel(array $d, string $state): string {
 .mod-del-hero-cta-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px}
 .mod-del-hero-cta-arr{color:hsl(38 80% 70%);font-size:18px;font-weight:900;flex-shrink:0}
 
-.mod-del-quick-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius);background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:6px;text-decoration:none;color:inherit}
-.mod-del-quick-ico{width:30px;height:30px;border-radius:var(--radius-sm);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
+.mod-del-quick-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-bottom:6px;text-decoration:none;color:inherit}
+.mod-del-quick-ico{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
 .mod-del-quick-ico.ok{background:linear-gradient(135deg,hsl(145 65% 42%),hsl(160 65% 36%));box-shadow:0 0 8px hsl(145 65% 45% / .35)}
 .mod-del-quick-ico.due{background:linear-gradient(135deg,hsl(38 75% 48%),hsl(28 75% 40%));box-shadow:0 0 8px hsl(38 75% 50% / .35)}
 .mod-del-quick-ico.over{background:linear-gradient(135deg,hsl(0 70% 48%),hsl(15 70% 40%));box-shadow:0 0 8px hsl(0 75% 50% / .35)}
@@ -208,10 +208,10 @@ function payLabel(array $d, string $state): string {
 .mod-del-quick-body{flex:1;min-width:0}
 .mod-del-quick-name{font-size:12px;font-weight:800;color:#f1f5f9;line-height:1.2}
 .mod-del-quick-meta{font-size:9px;font-weight:600;color:rgba(255,255,255,.4);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;letter-spacing:.02em}
-.mod-del-pay{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:var(--radius-pill);font-size:8px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
-.mod-del-pay.paid{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:hsl(141 79% 73%)}
-.mod-del-pay.due{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:hsl(43 96% 56%)}
-.mod-del-pay.over{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:hsl(0 93% 82%);animation:modDelPulse 2s ease-in-out infinite}
+.mod-del-pay{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:100px;font-size:8px;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+.mod-del-pay.paid{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac}
+.mod-del-pay.due{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.32);color:#fbbf24}
+.mod-del-pay.over{background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:#fca5a5;animation:modDelPulse 2s ease-in-out infinite}
 @keyframes modDelPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 8px 0 rgba(239,68,68,.55)}}
 .mod-del-quick-amt{font-size:13px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums;text-align:right;flex-shrink:0;line-height:1}
 .mod-del-quick-amt small{display:block;font-size:8px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.06em;margin-top:3px;text-transform:uppercase}
@@ -222,61 +222,24 @@ function payLabel(array $d, string $state): string {
 
 /* DETAILED MODE specific */
 .mod-del-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.mod-del-kpi{padding:14px;border-radius:var(--radius);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.mod-del-kpi{padding:14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .mod-del-kpi-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em}
 .mod-del-kpi-val{font-size:20px;font-weight:900;color:#f1f5f9;font-variant-numeric:tabular-nums;margin-top:4px;line-height:1}
 .mod-del-kpi-sub{font-size:9px;font-weight:600;color:rgba(255,255,255,.4);margin-top:3px}
-.mod-del-kpi.warn .mod-del-kpi-val{color:hsl(43 96% 56%)}
-.mod-del-kpi.danger .mod-del-kpi-val{color:hsl(0 93% 82%)}
+.mod-del-kpi.warn .mod-del-kpi-val{color:#fbbf24}
+.mod-del-kpi.danger .mod-del-kpi-val{color:#fca5a5}
 
 .mod-del-tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;padding:2px}
-.mod-del-tab{padding:7px 12px;border-radius:var(--radius-sm);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);cursor:pointer;text-decoration:none;flex-shrink:0;font-family:inherit}
+.mod-del-tab{padding:7px 12px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);cursor:pointer;text-decoration:none;flex-shrink:0;font-family:inherit}
 .mod-del-tab.active{background:rgba(165,180,252,.14);border-color:rgba(165,180,252,.3);color:#c7d2fe}
 
 .mod-del-rel-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px dashed rgba(255,255,255,.06);font-size:11px;font-weight:700;color:#f1f5f9}
 .mod-del-rel-row:last-child{border-bottom:none}
-.mod-del-rel-bar{width:80px;height:6px;border-radius:var(--radius-sm);background:rgba(255,255,255,.08);overflow:hidden;flex-shrink:0}
+.mod-del-rel-bar{width:80px;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;flex-shrink:0}
 .mod-del-rel-fill{height:100%;background:linear-gradient(90deg,hsl(0 70% 50%),hsl(38 75% 55%),hsl(145 65% 50%));transition:width .3s}
 
 .mode-simple .mod-del-detail-only{display:none}
 .mode-detailed .mod-del-simple-only{display:none}
-/* ── S106: BICHROMATIC theme support ── */
-[data-theme="light"] .mod-del-hero-cta-title,
-[data-theme="light"] .mod-del-quick-name,
-[data-theme="light"] .mod-del-kpi-val,
-[data-theme="light"] .mod-del-quick-amt,
-[data-theme="light"] .mod-del-rel-row{color:var(--text)}
-[data-theme="light"] .mod-del-quick-row{background:rgba(0,0,0,.025);border-color:rgba(0,0,0,.06)}
-[data-theme="light"] .mod-del-quick-meta,
-[data-theme="light"] .mod-del-hero-cta-sub,
-[data-theme="light"] .mod-del-quick-amt small,
-[data-theme="light"] .mod-del-kpi-label,
-[data-theme="light"] .mod-del-kpi-sub{color:var(--text-muted)}
-[data-theme="light"] .mod-del-kpi{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.07)}
-[data-theme="light"] .mod-del-tab{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:var(--text-muted)}
-[data-theme="light"] .mod-del-tab.active{background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3);color:var(--accent)}
-[data-theme="light"] .mod-del-rel-row{border-bottom-color:rgba(0,0,0,.06)}
-[data-theme="light"] .mod-del-rel-bar{background:rgba(0,0,0,.08)}
-[data-theme="light"] .mod-del-see-all,
-[data-theme="light"] .mod-del-sec-label{color:var(--accent)}
-
-[data-theme="dark"] .mod-del-hero-cta-title,
-[data-theme="dark"] .mod-del-quick-name,
-[data-theme="dark"] .mod-del-kpi-val,
-[data-theme="dark"] .mod-del-quick-amt,
-[data-theme="dark"] .mod-del-rel-row{color:var(--text)}
-
-@media (prefers-reduced-motion: reduce){
-  .mod-del-pay.over{animation:none}
-  *{transition:none!important;animation:none!important}
-}
-
-/* glass content z-index ≥ 5 */
-.mod-del-hero-cta,
-.mod-del-quick-row,
-.mod-del-kpi,
-.mod-del-tabs,
-.mod-del-rel-row{position:relative;z-index:5}
 </style>
 </head>
 <body class="has-rms-shell mode-<?= htmlspecialchars($mode) ?>">
@@ -470,13 +433,13 @@ function payLabel(array $d, string $state): string {
             <a class="glass q1" href="/defectives.php" style="padding:14px;text-decoration:none;color:inherit;display:block">
                 <span class="shine"></span><span class="glow"></span>
                 <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em">Дефектни</div>
-                <div style="font-size:18px;font-weight:900;color:hsl(0 93% 82%);font-variant-numeric:tabular-nums;margin-top:4px"><?= $kpi_defectives_count ?></div>
+                <div style="font-size:18px;font-weight:900;color:#fca5a5;font-variant-numeric:tabular-nums;margin-top:4px"><?= $kpi_defectives_count ?></div>
                 <div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:2px"><?= fmtMoney($kpi_defectives_value, $currency) ?></div>
             </a>
             <a class="glass q4" href="/orders.php" style="padding:14px;text-decoration:none;color:inherit;display:block">
                 <span class="shine"></span><span class="glow"></span>
                 <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em">Поръчки</div>
-                <div style="font-size:18px;font-weight:900;color:hsl(43 96% 56%);font-variant-numeric:tabular-nums;margin-top:4px">→</div>
+                <div style="font-size:18px;font-weight:900;color:#fbbf24;font-variant-numeric:tabular-nums;margin-top:4px">→</div>
                 <div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:2px">отвори поръчките</div>
             </a>
         </div>

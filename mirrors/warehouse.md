@@ -52,7 +52,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
     <link href="./css/vendors/aos.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/theme.css?v=<?= @filemtime(__DIR__.'/css/theme.css') ?: 1 ?>" />
     <link rel="stylesheet" href="/css/shell.css?v=<?= @filemtime(__DIR__.'/css/shell.css') ?: 1 ?>" />
-    <script>(function(){try{var s=localStorage.getItem('rms_theme');document.documentElement.setAttribute('data-theme',s||'light')}catch(_){document.documentElement.setAttribute('data-theme','light')}})();</script>
+    <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
     <style>
         /* ═══════════════════════════════════════════════════════════
            UNIFIED DESIGN SYSTEM 2026 — Based on stats.php
@@ -118,7 +118,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             right: 16px;
             top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
             width: 32px; height: 32px;
-            border-radius:var(--radius);
+            border-radius: 10px;
             background: rgba(255,255,255,.04);
             border: 1px solid rgba(255,255,255,.06);
             color: var(--text-secondary);
@@ -156,7 +156,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             gap: 12px;
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius:var(--radius);
+            border-radius: 16px;
             padding: 14px 16px;
             margin-bottom: 20px;
             text-decoration: none;
@@ -183,7 +183,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             50% { box-shadow: 0 0 16px rgba(239, 68, 68, 1), 0 0 24px rgba(239, 68, 68, 0.4); }
         }
         
-        .alert-text { font-size: 13px; font-weight: 700; color: hsl(0 93% 82%); flex: 1; }
+        .alert-text { font-size: 13px; font-weight: 700; color: #fca5a5; flex: 1; }
         .alert-arr { color: #f87171; font-size: 20px; font-weight: bold; }
 
         /* ═══ Grid & Cards — stats.php glassmorphism ═══ */
@@ -200,7 +200,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             flex-direction: column;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
-            border-radius:var(--radius);
+            border-radius: 16px;
             padding: 14px;
             text-decoration: none;
             min-height: 140px;
@@ -234,7 +234,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         .wh-icon { 
             width: 44px; 
             height: 44px; 
-            border-radius:var(--radius); 
+            border-radius: 12px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -257,7 +257,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             right: 12px; 
             min-width: 22px; 
             height: 22px; 
-            border-radius:var(--radius); 
+            border-radius: 11px; 
             font-size: 13px; 
             font-weight: 800; 
             display: flex; 
@@ -278,7 +278,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             justify-content: space-around; 
             padding: 16px 0; 
             background: var(--bg-card); 
-            border-radius:var(--radius); 
+            border-radius: 16px; 
             border: 1px solid var(--border-subtle);
             margin: 10px 0;
             animation: cardIn 0.4s ease both;
@@ -350,7 +350,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
 
         /* Shimmer text effect for important numbers */
         .shimmer-text {
-            background: linear-gradient(90deg, var(--indigo-400) 25%, hsl(229 100% 89%) 50%, var(--indigo-400) 75%);
+            background: linear-gradient(90deg, var(--indigo-400) 25%, #c7d2fe 50%, var(--indigo-400) 75%);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -387,7 +387,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             z-index: 201;
             background: #080818;
             border-top: 1px solid var(--border-glow);
-            border-radius:var(--radius) 22px 0 0;
+            border-radius: 22px 22px 0 0;
             padding: 0 0 40px;
             transform: translateY(100%);
             transition: transform 0.32s cubic-bezier(0.32, 0, 0.67, 0);
@@ -402,7 +402,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
             width: 36px;
             height: 4px;
             background: rgba(99, 102, 241, 0.3);
-            border-radius:var(--radius-sm);
+            border-radius: 2px;
             margin: 14px auto 18px;
         }
 
@@ -411,7 +411,7 @@ if (!$is_seller) { try { $s = $pdo->prepare("SELECT COUNT(*) FROM inventories i 
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb {
             background: rgba(99, 102, 241, 0.3);
-            border-radius:var(--radius-sm);
+            border-radius: 3px;
         }
     
 /* S82.CAPACITOR safe-area */
@@ -469,21 +469,6 @@ body{padding-bottom:env(safe-area-inset-bottom);}
         transition:none !important;
     }
 }
-
-
-/* ── S106: BICHROMATIC theme support (auto-injected) ── */
-[data-theme="light"] body{background:var(--bg);color:var(--text)}
-[data-theme="light"] .glass{background:var(--surface,rgba(255,255,255,.6));border-color:var(--border-color,rgba(0,0,0,.06))}
-[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3{color:var(--text)}
-[data-theme="dark"] body{background:var(--bg);color:var(--text)}
-[data-theme="dark"] .glass{background:var(--surface,rgba(20,22,30,.55))}
-
-@media (prefers-reduced-motion: reduce){
-  *{transition:none!important;animation:none!important}
-}
-
-/* glass content stays above shine/glow spans */
-.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
 </style>
 </head>
 <body>
