@@ -7775,7 +7775,7 @@ async function openAIAnalysis(id){
 }
 
 // ─── FILTER ───
-function toggleFChip(el){el.classList.toggle('sel')}
+function toggleFChip(el){el.classList.toggle('sel');el.classList.toggle('selected')}
 function applyFilters(){
     const cat=document.querySelector('#fCats .f-chip.sel');
     const sup=document.querySelector('#fSups .f-chip.sel');
@@ -16029,6 +16029,169 @@ window.addEventListener('popstate', function(e){
         setTimeout(()=>ov.remove(), 250);
     }
 });
+
+/* ═══════════════════════════════════════════════════════════════════
+   S113 — v4.1 BICHROMATIC handlers (P2 + P3 mockup integrations)
+   - lbToggle: collapse/expand lb-card (scrHome)
+   - openVariations / closeVariations: P3 var-sheet bottom drawer
+   - printAllVariations / exportVariations: stubs that POST to new AJAX
+     endpoints (?ajax=print_all_variations, ?ajax=export_variations).
+     Backend implementation is Phase 6 / S114 follow-up.
+   - sort dropdown: keep existing toggleSort/setSort
+   - rmsToggleTheme is provided by partials/shell-scripts.php — NOT redefined
+   ═══════════════════════════════════════════════════════════════════ */
+(function s113Init(){
+    if (window.__s113_loaded) return;
+    window.__s113_loaded = true;
+
+    // lb-card collapse — only fire if user tapped the .lb-collapsed row, not actions/feedback
+    window.lbToggle = function(e, row){
+        if (!e || !row) return;
+        if (e.target && (e.target.closest('.lb-fb-btn') || e.target.closest('.lb-action'))) return;
+        var card = row.closest && row.closest('.lb-card');
+        if (!card) return;
+        card.classList.toggle('expanded');
+        if (navigator.vibrate) navigator.vibrate(6);
+    };
+
+    // sort dropdown: also support new mockup `.show` class alongside existing `.open`
+    var _origToggleSort = window.toggleSort;
+    window.toggleSort = function(){
+        var dd = document.getElementById('sortDD');
+        if (dd) { dd.classList.toggle('open'); dd.classList.toggle('show'); }
+        if (typeof _origToggleSort === 'function' && _origToggleSort !== window.toggleSort) {
+            // legacy version may already have toggled — undo to avoid double-toggle
+        }
+    };
+
+    // Variations drawer
+    window.openVariations = function(productId){
+        var ov = document.getElementById('varOv');
+        var sh = document.getElementById('varSheet');
+        if (!ov || !sh) return;
+        sh.dataset.productId = productId || '';
+        // Reset content to "loading" state
+        var title = document.getElementById('varTitle');
+        var meta  = document.getElementById('varMeta');
+        var list  = document.getElementById('varList');
+        if (title) title.textContent = 'Зареждане...';
+        if (meta)  meta.textContent  = '—';
+        if (list)  list.innerHTML    = '<div style="padding:12px 4px;color:var(--text-muted);font-size:12px">Зареждане на вариациите...</div>';
+        ov.classList.add('show');
+        sh.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        if (navigator.vibrate) navigator.vibrate(8);
+
+        // Fetch product detail + variations matrix
+        if (productId) {
+            var url = 'products.php?ajax=variations_matrix&product_id=' + encodeURIComponent(productId);
+            fetch(url, {credentials:'same-origin'})
+                .then(function(r){ return r.json(); })
+                .then(function(json){
+                    if (typeof renderVariationsDrawer === 'function') {
+                        renderVariationsDrawer(json);
+                    } else if (list) {
+                        // Minimal fallback render: dump as text
+                        list.innerHTML = '';
+                        var rows = (json && (json.rows || json.matrix || json.items)) || [];
+                        if (!rows.length) {
+                            list.innerHTML = '<div style="padding:12px 4px;color:var(--text-muted);font-size:12px">Няма вариации</div>';
+                        } else {
+                            rows.forEach(function(r){
+                                var stk = (r.stock|0);
+                                var stkClass = stk === 0 ? 'danger' : (stk <= 2 ? 'warn' : 'ok');
+                                var div = document.createElement('div');
+                                div.className = 'var-row';
+                                var color = (r.color_hex || r.color || '#888');
+                                var label = (r.color_name || r.color || '') + (r.size ? ' · <b>' + r.size + '</b>' : '');
+                                div.innerHTML =
+                                    '<span class="var-row-color" style="background:' + color + '"></span>' +
+                                    '<span class="var-row-label">' + label + '</span>' +
+                                    '<span class="var-row-stock ' + stkClass + '">' + stk + ' бр</span>' +
+                                    '<button class="var-row-print" type="button" aria-label="Печат" onclick="event.stopPropagation();if(typeof printLabel===\'function\')printLabel(' + (r.product_id|0) + ')">' +
+                                        '<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
+                                    '</button>';
+                                list.appendChild(div);
+                            });
+                        }
+                        // Update header info if present
+                        if (title && json && json.product && json.product.name) title.textContent = json.product.name;
+                        if (meta && json && json.product) {
+                            var bits = [];
+                            if (json.product.code)     bits.push(json.product.code);
+                            if (json.product.supplier) bits.push(json.product.supplier);
+                            if (json.summary && json.summary.var_count) bits.push(json.summary.var_count + ' вариации');
+                            meta.textContent = bits.join(' · ');
+                        }
+                        // Summary cells
+                        var sv = document.getElementById('varSumVar');
+                        var ss = document.getElementById('varSumStock');
+                        var so = document.getElementById('varSumOos');
+                        if (json && json.summary) {
+                            if (sv) sv.textContent = (json.summary.var_count|0);
+                            if (ss) ss.textContent = (json.summary.total_stock|0);
+                            if (so) so.textContent = (json.summary.out_of_stock|0);
+                        }
+                    }
+                })
+                .catch(function(err){
+                    if (list) list.innerHTML = '<div style="padding:12px 4px;color:var(--danger);font-size:12px">Грешка при зареждане. ' + (err && err.message || '') + '</div>';
+                });
+        }
+    };
+
+    window.closeVariations = function(){
+        var ov = document.getElementById('varOv');
+        var sh = document.getElementById('varSheet');
+        if (ov) ov.classList.remove('show');
+        if (sh) sh.classList.remove('show');
+        document.body.style.overflow = '';
+    };
+
+    // ESC closes drawer
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') {
+            var sh = document.getElementById('varSheet');
+            if (sh && sh.classList.contains('show')) closeVariations();
+        }
+    });
+
+    // Print all variations (Phase 6 backend; UI placeholder for now)
+    window.printAllVariations = function(){
+        var sh = document.getElementById('varSheet');
+        var pid = sh && sh.dataset && sh.dataset.productId;
+        if (!pid) { if (typeof showToast === 'function') showToast('Избери продукт', 'error'); return; }
+        var fd = new FormData();
+        fd.append('parent_product_id', pid);
+        fd.append('format', 'standard');
+        if (window.RMS_CSRF) fd.append('csrf', window.RMS_CSRF);
+        fetch('products.php?ajax=print_all_variations', {method:'POST', body:fd, credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+                if (typeof showToast === 'function') {
+                    if (j && j.printed) showToast('Печатани ' + j.printed + ' етикета', 'success');
+                    else if (j && j.error) showToast(j.error, 'error');
+                    else showToast('Изпратено за печат', 'info');
+                }
+            })
+            .catch(function(){
+                if (typeof showToast === 'function') showToast('Грешка при печат', 'error');
+            });
+    };
+
+    // Export variations (Phase 6 backend; downloads CSV)
+    window.exportVariations = function(){
+        var sh = document.getElementById('varSheet');
+        var pid = sh && sh.dataset && sh.dataset.productId;
+        if (!pid) { if (typeof showToast === 'function') showToast('Избери продукт', 'error'); return; }
+        var url = 'products.php?ajax=export_variations&parent_product_id=' + encodeURIComponent(pid) + '&format=csv';
+        // Use anchor with download attribute so browser triggers Save-As
+        var a = document.createElement('a');
+        a.href = url; a.style.display = 'none';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ a.remove(); }, 200);
+    };
+})();
 </script>
 
 <!-- Supplier Category Picker Modal -->
