@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>{T_PRODUCTS_TITLE} · RunMyStore.AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ANTI-FLICKER theme init (must be inline, before paint) -->
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   P2 — products.php HOME
+   DESIGN_SYSTEM v4.1 BICHROMATIC (Bible)
+   Light = default · Dark = toggle option
+   ════════════════════════════════════════════════════════════════ */
+
+/* ═══ RESET ═══ */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+/* ═══ CONTINUITY TOKENS (двата режима) ═══ */
+:root {
+  --hue1: 255;
+  --hue2: 222;
+  --hue3: 180;
+
+  --radius: 22px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
+  --radius-icon: 50%;
+
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur: 250ms;
+  --dur-slow: 350ms;
+  --press: 0.97;
+
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  --z-aurora: 0;
+  --z-content: 5;
+  --z-shine: 1;
+  --z-glow: 3;
+  --z-overlay: 50;
+  --z-modal: 100;
+}
+
+/* ═══ LIGHT THEME (default) ═══ */
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec;
+  --surface: #e0e5ec;
+  --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --shadow-light: #ffffff;
+  --shadow-dark: #a3b1c6;
+  --neu-d: 8px;
+  --neu-b: 16px;
+  --neu-d-s: 4px;
+  --neu-b-s: 8px;
+  --shadow-card:
+    var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),
+    calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm:
+    var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+    calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed:
+    inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+    inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285);
+  --accent-2: oklch(0.65 0.25 305);
+  --accent-3: oklch(0.78 0.18 195);
+  --q1-loss: oklch(0.65 0.22 25);
+  --q2-why-loss: oklch(0.65 0.25 305);
+  --q3-gain: oklch(0.68 0.18 155);
+  --q4-why-gain: oklch(0.72 0.18 195);
+  --q5-order: oklch(0.72 0.18 70);
+  --q6-no-order: oklch(0.62 0.05 220);
+  --success: oklch(0.68 0.18 155);
+  --warning: oklch(0.72 0.18 70);
+  --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply;
+  --aurora-opacity: 0.35;
+}
+
+/* ═══ DARK THEME ═══ */
+:root[data-theme="dark"] {
+  --bg-main: #08090d;
+  --surface: hsl(220, 25%, 4.8%);
+  --surface-2: hsl(220, 25%, 8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9;
+  --text-muted: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --shadow-card:
+    hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
+    hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%);
+  --accent-2: hsl(var(--hue2), 80%, 65%);
+  --accent-3: hsl(var(--hue3), 70%, 55%);
+  --q1-loss: hsl(0, 85%, 60%);
+  --q2-why-loss: hsl(280, 70%, 65%);
+  --q3-gain: hsl(145, 70%, 55%);
+  --q4-why-gain: hsl(175, 70%, 55%);
+  --q5-order: hsl(38, 90%, 60%);
+  --q6-no-order: hsl(220, 10%, 60%);
+  --success: hsl(145, 70%, 55%);
+  --warning: hsl(38, 90%, 60%);
+  --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter;
+  --aurora-opacity: 0.35;
+}
+
+/* ═══ BACKGROUND (per mode) ═══ */
+:root:not([data-theme]) body,
+[data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%,
+      hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%,
+      hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+/* ═══ AURORA (Effect #1) ═══ */
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: var(--z-aurora); }
+.aurora-blob {
+  position: absolute; border-radius: 50%; filter: blur(60px);
+  opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend);
+  animation: auroraDrift 20s ease-in-out infinite;
+}
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(var(--hue1),80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(var(--hue2),80%,60%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+/* ═══ HEADER (canonical 7 elements) ═══ */
+.rms-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="light"] .rms-header,
+:root:not([data-theme]) .rms-header {
+  background: var(--bg-main);
+  box-shadow: 0 4px 12px rgba(163,177,198,0.15);
+}
+[data-theme="dark"] .rms-header {
+  background: hsl(220 25% 4.8% / 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+
+.rms-brand {
+  position: relative;
+  font-size: 15px; font-weight: 900; letter-spacing: 0.10em;
+  background: linear-gradient(90deg,
+    hsl(var(--hue1) 80% 60%) 0%,
+    hsl(var(--hue2) 80% 60%) 25%,
+    hsl(var(--hue3) 70% 55%) 50%,
+    hsl(var(--hue2) 80% 60%) 75%,
+    hsl(var(--hue1) 80% 60%) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: rmsBrandShimmer 4s linear infinite;
+  filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+}
+.rms-brand::after {
+  content: ""; position: absolute; inset: -4px -8px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center, hsl(var(--hue1) 70% 50% / 0.15) 0%, transparent 70%);
+  z-index: -1; pointer-events: none;
+  animation: rmsBrandPulse 3s ease-in-out infinite;
+}
+@media (max-width: 380px) { .rms-brand { font-size: 13px; letter-spacing: 0.08em; } }
+
+.rms-plan-badge {
+  position: relative;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+[data-theme="light"] .rms-plan-badge,
+:root:not([data-theme]) .rms-plan-badge {
+  background: var(--surface); box-shadow: var(--shadow-card-sm); border: none;
+}
+[data-theme="dark"] .rms-plan-badge {
+  background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px);
+}
+.rms-plan-badge::before {
+  content: ''; position: absolute; inset: -1px;
+  border-radius: inherit; padding: 1.5px;
+  background: conic-gradient(from 0deg,
+    hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%),
+    hsl(var(--hue3) 70% 60%), hsl(var(--hue1) 80% 60%));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: conicSpin 3s linear infinite;
+  opacity: 0.6; pointer-events: none;
+}
+
+.rms-header-spacer { flex: 1; }
+
+.rms-icon-btn {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-icon);
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  display: grid; place-items: center;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+  position: relative;
+}
+.rms-icon-btn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rms-icon-btn:active { transform: scale(var(--press)); }
+[data-theme="light"] .rms-icon-btn,
+:root:not([data-theme]) .rms-icon-btn { box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .rms-icon-btn:active,
+:root:not([data-theme]) .rms-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .rms-icon-btn {
+  background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px hsl(var(--hue2) 50% 4%);
+}
+
+/* ═══ APP CONTAINER ═══ */
+.app {
+  position: relative; z-index: var(--z-content);
+  max-width: 480px; margin: 0 auto;
+  padding: 14px 12px calc(64px + 36px + env(safe-area-inset-bottom, 0));
+}
+
+/* ═══ GLASS BASE (SACRED) ═══ */
+.glass {
+  position: relative;
+  border-radius: var(--radius);
+  border: var(--border) solid var(--border-color);
+  isolation: isolate;
+}
+.glass.sm { border-radius: var(--radius-sm); }
+
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+
+[data-theme="light"] .glass,
+:root:not([data-theme]) .glass {
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  border: none;
+}
+[data-theme="light"] .glass .shine,
+[data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine,
+:root:not([data-theme]) .glass .glow { display: none; }
+
+[data-theme="dark"] .glass {
+  background:
+    linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+    linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+    linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .glass .shine {
+  pointer-events: none; border-radius: 0;
+  border-top-right-radius: inherit; border-bottom-left-radius: inherit;
+  border: 1px solid transparent;
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  right: calc(var(--border) * -1); top: calc(var(--border) * -1);
+  z-index: var(--z-shine);
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch,
+    transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;
+  mask: linear-gradient(transparent), linear-gradient(black);
+  mask-clip: padding-box, border-box; mask-composite: subtract;
+}
+[data-theme="dark"] .glass .shine.shine-bottom {
+  right: auto; top: auto;
+  left: calc(var(--border) * -1); bottom: calc(var(--border) * -1);
+}
+[data-theme="dark"] .glass .glow {
+  pointer-events: none;
+  border-top-right-radius: calc(var(--radius) * 2.5);
+  border-bottom-left-radius: calc(var(--radius) * 2.5);
+  border: calc(var(--radius) * 1.25) solid transparent;
+  inset: calc(var(--radius) * -2);
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  left: auto; bottom: auto;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch,
+    hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);
+  filter: blur(12px) saturate(1.25);
+  mix-blend-mode: plus-lighter;
+  z-index: var(--z-glow);
+  opacity: 0.6;
+}
+[data-theme="dark"] .glass .glow.glow-bottom {
+  inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE-SPECIFIC: products home
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── 0. TITLE ROW (count + store picker) ─── */
+.title-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 4px 12px;
+  padding: 0 2px;
+  flex-wrap: wrap;
+  min-width: 0;
+  animation: fadeInUp 0.45s var(--ease-spring) both;
+}
+.title-main {
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.title-count {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.store-picker {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-radius: var(--radius-pill);
+  padding: 6px 24px 6px 12px;
+  border: 1px solid var(--border-color);
+  color: var(--text);
+  outline: none;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667' stroke-width='3'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+  max-width: 130px;
+  flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme="light"] .store-picker,
+:root:not([data-theme]) .store-picker {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="dark"] .store-picker {
+  background-color: hsl(220 25% 8%);
+}
+
+/* ─── 1. SEARCH BAR (top, big pill) ─── */
+.search-bar {
+  display: flex; align-items: center; gap: 10px;
+  height: 56px;
+  padding: 8px 8px 8px 18px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 12px;
+  position: relative;
+  animation: fadeInUp 0.5s var(--ease-spring) both;
+}
+[data-theme="light"] .search-bar,
+:root:not([data-theme]) .search-bar {
+  background: var(--surface);
+  box-shadow: var(--shadow-pressed);
+}
+[data-theme="dark"] .search-bar {
+  background: hsl(220 25% 4%);
+  border: 1px solid var(--border-color);
+}
+.search-bar > svg {
+  width: 20px; height: 20px;
+  stroke: var(--text-muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none; outline: none;
+  font-size: 14px; font-weight: 500;
+  color: var(--text);
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+
+.search-mic-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,
+    hsl(var(--hue1) 80% 55%),
+    hsl(var(--hue2) 80% 55%));
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 40% / 0.4);
+}
+[data-theme="light"] .search-mic-btn,
+:root:not([data-theme]) .search-mic-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 12px oklch(0.62 0.22 285 / 0.35);
+}
+.search-mic-btn svg {
+  width: 18px; height: 18px;
+  stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.search-mic-btn:active { transform: scale(var(--press)); }
+
+.search-filter-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  position: relative;
+  transition: box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .search-filter-btn,
+:root:not([data-theme]) .search-filter-btn {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="light"] .search-filter-btn:active,
+:root:not([data-theme]) .search-filter-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .search-filter-btn { background: hsl(220 25% 8%); }
+.search-filter-btn svg {
+  width: 16px; height: 16px;
+  stroke: var(--text-muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.search-filter-btn .dot {
+  position: absolute; top: 4px; right: 4px;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  display: grid; place-items: center;
+}
+
+/* ─── 2. ADD PRODUCT CTA + Като предния ─── */
+.add-row {
+  display: flex; gap: 8px;
+  margin-bottom: 18px;
+  animation: fadeInUp 0.55s var(--ease-spring) both;
+  animation-delay: 0.05s;
+}
+.add-cta {
+  position: relative;
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 0.01em;
+  color: white;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    hsl(var(--hue1) 80% 55%),
+    hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 8px 24px hsl(var(--hue1) 80% 40% / 0.4);
+}
+[data-theme="light"] .add-cta,
+:root:not([data-theme]) .add-cta {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: var(--shadow-card), 0 8px 24px oklch(0.62 0.22 285 / 0.3);
+}
+.add-cta::before {
+  content: ''; position: absolute; inset: 0;
+  background: conic-gradient(from 0deg,
+    transparent 70%,
+    rgba(255,255,255,0.4) 85%,
+    transparent 100%);
+  animation: conicSpin 3s linear infinite;
+}
+.add-cta > * { position: relative; z-index: 1; }
+.add-cta svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; }
+.add-cta:active { transform: scale(0.985); }
+
+/* "Като предния" secondary pill */
+.like-prev-btn {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 56px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  transition: box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .like-prev-btn,
+:root:not([data-theme]) .like-prev-btn {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="light"] .like-prev-btn:active,
+:root:not([data-theme]) .like-prev-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .like-prev-btn {
+  background: hsl(220 25% 8% / 0.7);
+  backdrop-filter: blur(8px);
+}
+.like-prev-btn svg {
+  width: 14px; height: 14px;
+  stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ─── 3a. HEALTH BAR (compact) ─── */
+.health-card {
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  position: relative;
+  cursor: pointer;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+  animation-delay: 0.12s;
+}
+.health-row {
+  display: flex; align-items: center; gap: 10px;
+  position: relative; z-index: 5;
+  margin-bottom: 8px;
+}
+.health-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  flex-shrink: 0;
+  animation: healthPulse 2.5s ease-in-out infinite;
+}
+.health-dot.warn { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+.health-dot.bad { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.health-info { flex: 1; min-width: 0; }
+.health-title {
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
+}
+.health-meta {
+  font-size: 10px; font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.health-pct {
+  font-family: var(--font);
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--success);
+}
+.health-pct.warn { color: var(--warning); }
+.health-pct.bad { color: var(--danger); }
+.health-bar {
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative; z-index: 5;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .health-bar,
+:root:not([data-theme]) .health-bar {
+  background: var(--surface);
+  box-shadow: var(--shadow-pressed);
+  border: none;
+}
+[data-theme="dark"] .health-bar { background: hsl(220 25% 4%); }
+.health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), oklch(0.72 0.18 195));
+  border-radius: 999px;
+  transition: width 0.6s var(--ease-spring);
+}
+[data-theme="dark"] .health-fill {
+  background: linear-gradient(90deg, hsl(145 70% 55%), hsl(175 70% 55%));
+  box-shadow: 0 0 8px hsl(145 70% 50% / 0.5);
+}
+@keyframes healthPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* ─── 3. SECTION HEADER (label + see-all) ─── */
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 0 4px 8px;
+  padding: 0 2px;
+}
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.10em;
+  color: var(--text-muted);
+}
+.section-see-all {
+  font-size: 11px; font-weight: 700;
+  color: var(--accent);
+}
+
+/* ─── 4. SUPPLIERS strip (h-scroll chips) ─── */
+.sup-strip {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  margin: 0 -12px 18px;
+  padding: 4px 12px 8px;
+  scroll-snap-type: x proximity;
+  -ms-overflow-style: none; scrollbar-width: none;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+  animation-delay: 0.1s;
+}
+.sup-strip::-webkit-scrollbar { display: none; }
+
+.sup-chip {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  scroll-snap-align: start;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .sup-chip,
+:root:not([data-theme]) .sup-chip {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="light"] .sup-chip:active,
+:root:not([data-theme]) .sup-chip:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .sup-chip {
+  background: hsl(220 25% 8% / 0.7);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px hsl(var(--hue2) 50% 4%);
+}
+
+.sup-name {
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
+}
+.sup-count {
+  display: inline-grid; place-items: center;
+  min-width: 26px; height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white;
+  letter-spacing: 0;
+}
+
+.sup-chip.all .sup-name { color: var(--accent); }
+.sup-chip.all svg {
+  width: 12px; height: 12px;
+  stroke: var(--accent); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ─── 5. INVENTORY card (compact) ─── */
+.inv-card {
+  padding: 14px;
+  margin-bottom: 18px;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+  animation-delay: 0.18s;
+  position: relative;
+}
+.inv-row {
+  display: flex; align-items: center; gap: 12px;
+  position: relative; z-index: 5;
+}
+.inv-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .inv-icon,
+:root:not([data-theme]) .inv-icon {
+  background: var(--surface);
+  box-shadow: var(--shadow-pressed);
+  border: none;
+}
+[data-theme="dark"] .inv-icon { background: hsl(220 25% 4%); }
+.inv-icon svg {
+  width: 18px; height: 18px;
+  stroke: var(--accent-3); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+[data-theme="dark"] .inv-icon svg {
+  filter: drop-shadow(0 0 6px hsl(var(--hue3) 70% 55% / 0.5));
+}
+.inv-body { flex: 1; min-width: 0; }
+.inv-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent-3);
+  margin-bottom: 2px;
+}
+.inv-title {
+  font-size: 13px; font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+}
+.inv-num {
+  font-family: var(--font);
+  font-weight: 800;
+  color: var(--text);
+}
+.inv-meta {
+  display: block;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.inv-cta {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.02em;
+  color: white;
+  background: linear-gradient(135deg,
+    hsl(var(--hue1) 80% 55%),
+    hsl(var(--hue2) 80% 55%));
+  box-shadow: 0 4px 10px hsl(var(--hue1) 80% 40% / 0.4);
+}
+[data-theme="light"] .inv-cta,
+:root:not([data-theme]) .inv-cta {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.inv-cta:active { transform: scale(var(--press)); }
+
+/* ─── 6. SIGNALS section header ─── */
+.sig-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 4px 4px 10px;
+  padding: 0 2px;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+  animation-delay: 0.22s;
+}
+.sig-title {
+  display: flex; align-items: center; gap: 10px;
+}
+.sig-orb {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    hsl(var(--hue1) 80% 60%),
+    hsl(var(--hue2) 80% 60%),
+    hsl(var(--hue3) 70% 60%),
+    hsl(var(--hue1) 80% 60%));
+  position: relative;
+  animation: orbSpin 5s linear infinite;
+}
+.sig-orb::before {
+  content: ''; position: absolute; inset: -6px;
+  border-radius: 50%;
+  background: inherit;
+  filter: blur(8px); opacity: 0.55;
+  z-index: -1;
+}
+.sig-orb::after {
+  content: ''; position: absolute; inset: 4px;
+  border-radius: 50%;
+  background: var(--bg-main);
+}
+[data-theme="dark"] .sig-orb::after { background: #08090d; }
+.sig-name {
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.sig-count {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* ─── 7. LB-CARD (collapsible signals — 1:1 от life-board.php) ─── */
+.lb-card {
+  position: relative;
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  isolation: isolate;
+  animation: fadeInUp 0.55s var(--ease-spring) both;
+  transition: box-shadow 0.3s ease;
+}
+.lb-card:nth-of-type(1) { animation-delay: 0.26s; }
+.lb-card:nth-of-type(2) { animation-delay: 0.32s; }
+.lb-card:nth-of-type(3) { animation-delay: 0.38s; }
+.lb-card:nth-of-type(4) { animation-delay: 0.44s; }
+.lb-card:nth-of-type(5) { animation-delay: 0.50s; }
+.lb-card:nth-of-type(6) { animation-delay: 0.56s; }
+
+.lb-card.q1 { --card-accent: var(--q1-loss); }
+.lb-card.q2 { --card-accent: var(--q2-why-loss); }
+.lb-card.q3 { --card-accent: var(--q3-gain); }
+.lb-card.q4 { --card-accent: var(--q4-why-gain); }
+.lb-card.q5 { --card-accent: var(--q5-order); }
+.lb-card.q6 { --card-accent: var(--q6-no-order); }
+
+/* Effect #6: conic glow ring при expanded */
+.lb-card.expanded::before {
+  content: ''; position: absolute; inset: -1px;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  background: conic-gradient(from 0deg,
+    var(--card-accent, var(--accent)),
+    transparent 60%,
+    var(--card-accent, var(--accent)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: conicSpin 4s linear infinite;
+  opacity: 0.55; pointer-events: none;
+  z-index: 1;
+}
+
+.lb-collapsed {
+  display: flex; align-items: center; gap: 12px;
+  position: relative; z-index: 5;
+}
+.lb-emoji {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-emoji,
+:root:not([data-theme]) .lb-emoji {
+  background: var(--surface);
+  box-shadow: var(--shadow-pressed);
+  border: none;
+}
+[data-theme="dark"] .lb-emoji { background: hsl(220 25% 4%); }
+
+.lb-collapsed-content { flex: 1; min-width: 0; }
+.lb-fq-tag-mini {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  color: var(--card-accent, var(--text-muted));
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.lb-collapsed-title {
+  display: block;
+  font-size: 13px; font-weight: 600;
+  line-height: 1.3;
+}
+
+.lb-expand-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.3s ease, box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .lb-expand-btn,
+:root:not([data-theme]) .lb-expand-btn {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="dark"] .lb-expand-btn { background: hsl(220 25% 8%); }
+.lb-expand-btn svg { width: 12px; height: 12px; stroke: var(--text-muted); fill: none; stroke-width: 2.5; }
+.lb-card.expanded .lb-expand-btn { transform: rotate(180deg); }
+[data-theme="light"] .lb-card.expanded .lb-expand-btn,
+:root:not([data-theme]) .lb-card.expanded .lb-expand-btn { box-shadow: var(--shadow-pressed); }
+.lb-card.expanded .lb-expand-btn svg { stroke: var(--accent); }
+
+.lb-expanded {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding-top 0.35s ease;
+  position: relative; z-index: 5;
+}
+.lb-card.expanded .lb-expanded {
+  max-height: 600px;
+  padding-top: 12px;
+}
+
+.lb-body {
+  font-size: 12px; line-height: 1.5;
+  color: var(--text-muted);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-body,
+:root:not([data-theme]) .lb-body {
+  background: var(--surface);
+  box-shadow: var(--shadow-pressed);
+  border: none;
+}
+[data-theme="dark"] .lb-body { background: hsl(220 25% 4%); }
+
+.lb-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.lb-action {
+  flex: 1; min-width: 60px;
+  padding: 9px 12px;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 700;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  transition: all var(--dur) var(--ease);
+}
+[data-theme="light"] .lb-action,
+:root:not([data-theme]) .lb-action {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="light"] .lb-action:active,
+:root:not([data-theme]) .lb-action:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-action { background: hsl(220 25% 8%); }
+.lb-action:hover { color: var(--accent); }
+
+.lb-action.primary {
+  position: relative;
+  background: linear-gradient(135deg,
+    hsl(var(--hue1) 80% 55%),
+    hsl(var(--hue2) 80% 55%));
+  color: white;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+}
+[data-theme="light"] .lb-action.primary,
+:root:not([data-theme]) .lb-action.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.lb-action.primary::before {
+  content: ''; position: absolute; inset: 0;
+  background: conic-gradient(from 0deg,
+    transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%);
+  animation: conicSpin 3s linear infinite;
+}
+.lb-action.primary > * { position: relative; z-index: 1; }
+.lb-action.primary:hover { color: white; }
+
+.lb-feedback {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-feedback,
+:root:not([data-theme]) .lb-feedback {
+  border-top: 1px solid rgba(163,177,198,0.3);
+}
+.lb-fb-label {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  color: var(--text-muted);
+}
+.lb-fb-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  display: grid; place-items: center;
+  font-size: 13px;
+  transition: all var(--dur) var(--ease);
+}
+[data-theme="light"] .lb-fb-btn,
+:root:not([data-theme]) .lb-fb-btn {
+  background: var(--surface); box-shadow: var(--shadow-card-sm); border: none;
+}
+[data-theme="dark"] .lb-fb-btn { background: hsl(220 25% 8%); }
+.lb-fb-btn:active, .lb-fb-btn.selected { transform: scale(0.92); }
+[data-theme="light"] .lb-fb-btn:active,
+[data-theme="light"] .lb-fb-btn.selected,
+:root:not([data-theme]) .lb-fb-btn:active,
+:root:not([data-theme]) .lb-fb-btn.selected { box-shadow: var(--shadow-pressed); }
+
+/* See more link */
+.see-all-bottom {
+  text-align: center; padding: 14px 0 4px;
+}
+.see-all-bottom a {
+  font-size: 12px; font-weight: 700;
+  color: var(--accent);
+}
+
+/* ═══ BOTTOM NAV ═══ */
+.rms-bottom-nav {
+  position: fixed; left: 12px; right: 12px; bottom: 12px;
+  z-index: 50;
+  height: 64px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+[data-theme="light"] .rms-bottom-nav,
+:root:not([data-theme]) .rms-bottom-nav {
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  border: none;
+}
+[data-theme="dark"] .rms-bottom-nav {
+  background:
+    linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+    linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+    linear-gradient(hsl(220 25% 4.8% / .9));
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+}
+.rms-nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 10px; font-weight: 700;
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+.rms-nav-tab svg {
+  width: 22px; height: 22px;
+  stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--dur) var(--ease-spring);
+}
+.rms-nav-tab:active svg { transform: scale(0.85); }
+.rms-nav-tab.active { color: var(--accent); }
+.rms-nav-tab.active::before {
+  content: '';
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  width: 32px; height: 4px;
+  background: var(--accent);
+  border-radius: 999px;
+  animation: navIndicator 0.4s var(--ease-spring);
+}
+[data-theme="dark"] .rms-nav-tab.active::before {
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(30px,-25px) scale(1.1); }
+  66%     { transform: translate(-25px,35px) scale(0.95); }
+}
+@keyframes navIndicator { from { width: 0; opacity: 0; } to { width: 32px; opacity: 1; } }
+@keyframes rmsBrandShimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@keyframes rmsBrandPulse { 0%,100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.05); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Aurora background -->
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<!-- Header (canonical 7-element) -->
+<header class="rms-header">
+  <a href="#" class="rms-brand" title="{T_HOME}">RUNMYSTORE.AI</a>
+  <span class="rms-plan-badge">PRO</span>
+  <div class="rms-header-spacer"></div>
+  <button class="rms-icon-btn" aria-label="{T_PRINTER}">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  </button>
+  <a href="#" class="rms-icon-btn" aria-label="{T_SETTINGS}">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </a>
+  <button class="rms-icon-btn" aria-label="{T_LOGOUT}">
+    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  </button>
+  <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="{T_THEME}">
+    <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+</header>
+
+<main class="app">
+
+  <!-- 0. TITLE ROW (count + store picker) -->
+  <div class="title-row">
+    <span class="title-main">{T_PRODUCTS_TITLE}</span>
+    <span class="title-count">· 247</span>
+    <select class="store-picker" aria-label="{T_STORE}">
+      <option>ENI · Витоша 25</option>
+      <option>ENI · Студентски град</option>
+      <option>ENI · Младост</option>
+      <option>ENI · Овча купел</option>
+      <option>ENI · Люлин</option>
+    </select>
+  </div>
+
+  <!-- 1. SEARCH BAR -->
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="{T_SEARCH_PRODUCT_PLACEHOLDER}" aria-label="{T_SEARCH}">
+    <button class="search-filter-btn" aria-label="{T_FILTERS}">
+      <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    </button>
+    <button class="search-mic-btn" aria-label="{T_VOICE_SEARCH}">
+      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+  </div>
+
+  <!-- 2. ADD PRODUCT CTA + Като предния -->
+  <div class="add-row">
+    <button class="add-cta">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>{T_ADD_NEW_PRODUCT}</span>
+    </button>
+    <button class="like-prev-btn" aria-label="{T_LIKE_PREVIOUS}">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span>{T_LIKE_PREVIOUS}</span>
+    </button>
+  </div>
+
+  <!-- 3a. HEALTH BAR -->
+  <div class="glass sm health-card">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="health-row">
+      <div class="health-dot"></div>
+      <div class="health-info">
+        <div class="health-title">{T_WAREHOUSE_HEALTH}</div>
+        <div class="health-meta">5 {T_OUT_OF_STOCK_SHORT} · 9 {T_ZOMBIE} · 3 {T_NO_COST}</div>
+      </div>
+      <div class="health-pct">82%</div>
+    </div>
+    <div class="health-bar"><div class="health-fill" style="width:82%"></div></div>
+  </div>
+
+  <!-- 3. SUPPLIERS -->
+  <div class="section-head">
+    <span class="section-label">{T_SUPPLIERS}</span>
+    <a href="#" class="section-see-all">{T_SEE_ALL} →</a>
+  </div>
+  <div class="sup-strip">
+    <button class="sup-chip"><span class="sup-name">Marina</span><span class="sup-count">47</span></button>
+    <button class="sup-chip"><span class="sup-name">Спорт Груп</span><span class="sup-count">82</span></button>
+    <button class="sup-chip"><span class="sup-name">Zara</span><span class="sup-count">23</span></button>
+    <button class="sup-chip"><span class="sup-name">Мода Дистр.</span><span class="sup-count">35</span></button>
+    <button class="sup-chip"><span class="sup-name">Lavazza</span><span class="sup-count">12</span></button>
+    <button class="sup-chip all"><span class="sup-name">{T_ALL_SUPPLIERS}</span><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+
+  <!-- 4. INVENTORY card -->
+  <div class="glass sm inv-card">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="inv-row">
+      <div class="inv-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="inv-body">
+        <span class="inv-tag">{T_INVENTORY}</span>
+        <div class="inv-title"><span class="inv-num">34</span> {T_NEED_COUNTING}</div>
+        <span class="inv-meta">{T_LAST_RUN} 12 {T_DAYS_AGO}</span>
+      </div>
+      <a href="#" class="inv-cta">{T_START} →</a>
+    </div>
+  </div>
+
+  <!-- 5. SIGNALS section -->
+  <div class="sig-head">
+    <div class="sig-title">
+      <div class="sig-orb"></div>
+      <span class="sig-name">{T_AI_SEES}</span>
+    </div>
+    <span class="sig-count">6 {T_THINGS}</span>
+  </div>
+
+  <!-- 6 collapsible signals -->
+
+  <!-- q1 — Loss -->
+  <div class="glass sm lb-card q1 expanded">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">🔴</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q1_NAME}</span>
+        <span class="lb-collapsed-title">5 {T_PRODUCTS} {T_OUT_OF_STOCK} · −340 {T_CURRENCY}/{T_WEEK}</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Nike Air Max 42 · Adidas Stan Smith 38 · Puma RS-X 41 — артикули с продажби, които вече ги няма. Пропуснат profit ~340 {T_CURRENCY}/седмица.</div>
+      <div class="lb-actions">
+        <button class="lb-action">{T_WHY}</button>
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <a class="lb-action primary" href="#"><span>{T_ORDER} →</span></a>
+      </div>
+      <div class="lb-feedback">
+        <span class="lb-fb-label">{T_USEFUL}</span>
+        <button class="lb-fb-btn" aria-label="{T_USEFUL_YES}">👍</button>
+        <button class="lb-fb-btn" aria-label="{T_USEFUL_NO}">👎</button>
+        <button class="lb-fb-btn" aria-label="{T_UNCLEAR}">🤔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- q2 — Why-loss -->
+  <div class="glass sm lb-card q2">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">🟣</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q2_NAME}</span>
+        <span class="lb-collapsed-title">3 {T_MARGIN_PROBLEMS} · −180 {T_CURRENCY} profit</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Артикули продавани под 15% марж или без записана доставна цена. Не виждаш реална печалба.</div>
+      <div class="lb-actions">
+        <button class="lb-action">{T_WHY}</button>
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <a class="lb-action primary" href="#"><span>{T_FIX} →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- q3 — Gain -->
+  <div class="glass sm lb-card q3">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">🟢</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q3_NAME}</span>
+        <span class="lb-collapsed-title">12 {T_TOP_SELLERS} · +2 840 {T_CURRENCY} profit/{T_MONTH}</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Топ 12 артикула за последните 30 дни. Viewing-basis за поръчки.</div>
+      <div class="lb-actions">
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <a class="lb-action primary" href="#"><span>{T_REORDER} →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- q4 — Why-gain -->
+  <div class="glass sm lb-card q4">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">💎</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q4_NAME}</span>
+        <span class="lb-collapsed-title">4 {T_REASONS_GROWING}</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Висок марж, basket drivers, лоялни клиенти, size leaders. Защо ти потръгна.</div>
+      <div class="lb-actions">
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <button class="lb-action primary"><span>{T_TELL_ME_MORE}</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- q5 — Order -->
+  <div class="glass sm lb-card q5">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">🟡</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q5_NAME}</span>
+        <span class="lb-collapsed-title">28 {T_PRODUCTS_TO_ORDER}</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Bestsellers, ниски наличности, sizable demand. AI-предложение за нова поръчка.</div>
+      <div class="lb-actions">
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <a class="lb-action primary" href="#"><span>{T_CREATE_ORDER} →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- q6 — Anti-order (zombie) -->
+  <div class="glass sm lb-card q6">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggle(event,this)">
+      <span class="lb-emoji">⚪</span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q6_NAME}</span>
+        <span class="lb-collapsed-title">9 {T_ZOMBIE} · 2 480 {T_CURRENCY} {T_FROZEN}</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Артикули без продажба 45+ дни. Замразен капитал. Помисли за намаление.</div>
+      <div class="lb-actions">
+        <a class="lb-action" href="#">{T_SHOW}</a>
+        <a class="lb-action primary" href="#"><span>{T_DISCOUNT} →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="see-all-bottom">
+    <a href="#">{T_SEE_ALL_PRODUCTS} 247 →</a>
+  </div>
+
+</main>
+
+<!-- Bottom nav -->
+<nav class="rms-bottom-nav">
+  <a href="#" class="rms-nav-tab" aria-label="AI">
+    <svg viewBox="0 0 24 24"><path d="M12 8V4M12 4l-3 3M12 4l3 3M5 12H1m4 0l3-3m-3 3l3 3M19 12h4m-4 0l-3-3m3 3l-3 3M12 16v4m0 0l-3-3m3 3l3-3"/></svg>
+    <span>AI</span>
+  </a>
+  <a href="#" class="rms-nav-tab active" aria-label="{T_NAV_WAREHOUSE}">
+    <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    <span>{T_NAV_WAREHOUSE}</span>
+  </a>
+  <a href="#" class="rms-nav-tab" aria-label="{T_NAV_REPORTS}">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>{T_NAV_REPORTS}</span>
+  </a>
+  <a href="#" class="rms-nav-tab" aria-label="{T_NAV_SALE}">
+    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <span>{T_NAV_SALE}</span>
+  </a>
+</nav>
+
+<script>
+/* ═══ THEME TOGGLE (Bible §22.5.6) ═══ */
+function syncThemeIcons() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  var sun = document.getElementById('themeIconSun');
+  var moon = document.getElementById('themeIconMoon');
+  if (sun)  sun.style.display  = (t === 'dark') ? 'block' : 'none';
+  if (moon) moon.style.display = (t === 'dark') ? 'none'  : 'block';
+}
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+  if (navigator.vibrate) navigator.vibrate(5);
+};
+syncThemeIcons();
+
+/* ═══ LB-CARD toggle (1:1 от life-board.php) ═══ */
+function lbToggle(e, row) {
+  if (e.target.closest('.lb-fb-btn') || e.target.closest('.lb-action')) return;
+  var card = row.closest('.lb-card');
+  if (!card) return;
+  card.classList.toggle('expanded');
+  if (navigator.vibrate) navigator.vibrate(6);
+}
+
+/* feedback select */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('.lb-fb-btn');
+  if (!b) return;
+  e.stopPropagation();
+  var card = b.closest('.lb-card');
+  if (card) card.querySelectorAll('.lb-fb-btn').forEach(function(x){ x.classList.remove('selected'); });
+  b.classList.add('selected');
+  if (navigator.vibrate) navigator.vibrate(8);
+});
+</script>
+</body>
+</html>
