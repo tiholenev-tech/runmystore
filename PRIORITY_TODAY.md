@@ -175,3 +175,4 @@ Edge cases:
 ✅ Beta countdown: 10 дни  
 
 ❌ FAILURE if: ЧАСТ 1.2 не завърши (което би значило 4-ти ден на същия проблем)
+PENDING REBOOT: kernel 6.8.0-111-generic — изпълни само при чиста сесия (tmux ls празно + git clean) + СЛЕД beta launch (15.05+)
