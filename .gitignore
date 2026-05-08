@@ -39,3 +39,8 @@ config/database.php.save
 patch*.py
 patch_*.py
 migrate_*.py
+backups/
+*.broken
+*.before-mig
+*.bak.*
+logs/
