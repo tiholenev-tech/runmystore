@@ -358,6 +358,140 @@ if ($ajax === 'sections') {
         exit;
     }
 
+    // ─── S113.AJAX.variations_matrix — flat schema за P3 var-sheet drawer ───
+    // Used by openVariations(productId) in inline JS. Returns:
+    //   { product:{name,code,supplier}, summary:{var_count,total_stock,out_of_stock},
+    //     rows:[{product_id,color_name,color_hex,size,stock,retail_price}] }
+    if ($ajax === 'variations_matrix') {
+        $pid = (int)($_GET['product_id'] ?? $_GET['id'] ?? 0);
+        if (!$pid) { echo json_encode(['error' => 'no_id']); exit; }
+        $parent = DB::run("
+            SELECT p.id, p.name, p.code, s.name AS supplier_name
+            FROM products p LEFT JOIN suppliers s ON s.id = p.supplier_id
+            WHERE p.id = ? AND p.tenant_id = ?
+        ", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$parent) { echo json_encode(['error' => 'not_found']); exit; }
+        // Children (variations) at the parent's perspective; if pid is itself a variant,
+        // pivot to its parent so the drawer shows siblings.
+        $effective_parent = $pid;
+        $is_variant = (int)DB::run("SELECT COUNT(*) FROM products WHERE id=? AND parent_id IS NOT NULL", [$pid])->fetchColumn();
+        if ($is_variant) {
+            $effective_parent = (int)DB::run("SELECT parent_id FROM products WHERE id=?", [$pid])->fetchColumn();
+        }
+        $rows_raw = DB::run("
+            SELECT p.id AS product_id, p.code, p.barcode, p.size, p.color,
+                   p.retail_price,
+                   CAST(COALESCE((SELECT SUM(i.quantity) FROM inventory i WHERE i.product_id=p.id AND i.store_id=?), 0) AS SIGNED) AS store_stock,
+                   CAST(COALESCE((SELECT SUM(i.quantity) FROM inventory i WHERE i.product_id=p.id), 0) AS SIGNED) AS total_stock
+            FROM products p
+            WHERE p.parent_id = ? AND p.tenant_id = ? AND p.is_active = 1
+            ORDER BY p.color, p.size
+        ", [$store_id, $effective_parent, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $rows = [];
+        $summary_total = 0;
+        $summary_oos = 0;
+        foreach ($rows_raw as $r) {
+            $stock = (int)$r['store_stock'];
+            $summary_total += $stock;
+            if ($stock <= 0) $summary_oos++;
+            $rows[] = [
+                'product_id'    => (int)$r['product_id'],
+                'code'          => $r['code'],
+                'color_name'    => $r['color'],
+                'color_hex'     => null, // partials/color-map.php — pending Open Question §6.3
+                'size'          => $r['size'],
+                'stock'         => $stock,
+                'retail_price'  => $r['retail_price'] !== null ? (float)$r['retail_price'] : null,
+            ];
+        }
+        echo json_encode([
+            'product' => [
+                'name'     => $parent['name'],
+                'code'     => $parent['code'],
+                'supplier' => $parent['supplier_name'],
+            ],
+            'summary' => [
+                'var_count'    => count($rows),
+                'total_stock'  => $summary_total,
+                'out_of_stock' => $summary_oos,
+            ],
+            'rows' => $rows,
+        ]);
+        exit;
+    }
+
+    // ─── S113.AJAX.print_all_variations — POST endpoint per HANDOFF §3.4 ───
+    // Body: parent_product_id + format. Currently returns counts; actual BLE TSPL
+    // print loop will be wired in S114 (printLabel() helper not yet defined).
+    if ($ajax === 'print_all_variations' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        // CSRF validated globally at top-of-file (line 52) for all POSTs.
+        $pid = (int)($_POST['parent_product_id'] ?? 0);
+        $format = $_POST['format'] ?? 'standard';
+        if (!$pid) { echo json_encode(['error' => 'no_id']); exit; }
+        $children = DB::run("
+            SELECT p.id, p.code, p.barcode, p.size, p.color, p.retail_price
+            FROM products p
+            WHERE p.parent_id = ? AND p.tenant_id = ? AND p.is_active = 1
+            ORDER BY p.color, p.size
+        ", [$pid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        // S113: stub — no actual print_label call (printLabel() function not present in
+        // codebase per HANDOFF §8.2 dead reference). Returns metadata for UI.
+        echo json_encode([
+            'printed' => 0,
+            'queued'  => count($children),
+            'errors'  => [],
+            'format'  => $format,
+            'note'    => 'BLE TSPL print loop pending S114 (printLabel not defined)',
+        ]);
+        exit;
+    }
+
+    // ─── S113.AJAX.export_variations — GET endpoint per HANDOFF §3.5 ───
+    // Body: parent_product_id + format=csv. Outputs UTF-8 BOM CSV (Excel compat).
+    if ($ajax === 'export_variations') {
+        $pid = (int)($_GET['parent_product_id'] ?? $_GET['product_id'] ?? 0);
+        $fmt = strtolower($_GET['format'] ?? 'csv');
+        if (!$pid) { http_response_code(400); echo 'no_id'; exit; }
+        if ($fmt !== 'csv') { http_response_code(400); echo 'unsupported_format'; exit; }
+        $parent = DB::run("SELECT name, code FROM products WHERE id=? AND tenant_id=? LIMIT 1", [$pid, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+        if (!$parent) { http_response_code(404); echo 'not_found'; exit; }
+        $rows = DB::run("
+            SELECT p.color, p.size, p.code, p.barcode, p.retail_price, p.cost_price,
+                   CAST(COALESCE((SELECT SUM(i.quantity) FROM inventory i WHERE i.product_id=p.id AND i.store_id=?), 0) AS SIGNED) AS store_stock
+            FROM products p
+            WHERE p.parent_id = ? AND p.tenant_id = ? AND p.is_active = 1
+            ORDER BY p.color, p.size
+        ", [$store_id, $pid, $tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+        $fname = preg_replace('/[^a-z0-9_-]+/i', '_', ($parent['code'] ?: $parent['name'] ?: 'variations'));
+        $fname .= '_' . date('Ymd') . '.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $fname . '"');
+        $out = fopen('php://output', 'w');
+        // UTF-8 BOM (Excel compat per HANDOFF §3.5)
+        fwrite($out, "\xEF\xBB\xBF");
+        $headers = ['Цвят', 'Размер', 'Код', 'Баркод', 'Стока', 'Цена дребно', 'Цена едро', 'Доставна'];
+        // Hide cost columns if user lacks permission
+        if (!$can_see_cost) { $headers = array_slice($headers, 0, 6); }
+        fputcsv($out, $headers);
+        foreach ($rows as $r) {
+            $line = [
+                $r['color'] ?? '',
+                $r['size'] ?? '',
+                $r['code'] ?? '',
+                $r['barcode'] ?? '',
+                (int)$r['store_stock'],
+                $r['retail_price'] !== null ? number_format((float)$r['retail_price'], 2, '.', '') : '',
+            ];
+            if ($can_see_cost) {
+                $line[] = ''; // wholesale price not in schema currently
+                $line[] = $r['cost_price'] !== null ? number_format((float)$r['cost_price'], 2, '.', '') : '';
+            }
+            fputcsv($out, $line);
+        }
+        fclose($out);
+        exit;
+    }
+
     // ─── S88.BUG#7: product history (audit_log timeline) ───
     if ($ajax === 'product_history') {
         $pid = (int)($_GET['id'] ?? 0);
