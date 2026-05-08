@@ -24,9 +24,9 @@
 |---|---|---|
 | `mockups/P2_home_v2.html` | Стар home (legacy reference) | остава |
 | `mockups/P3_list_v2.html` | **products.php list view** (главна страница артикули) | остава |
-| `mockups/P8_studio_main.html` | AI Studio standalone (`ai-studio.php`) | остава |
-| `mockups/P8b_studio_modal.html` + 5 advanced | AI Studio per-product modal | остават |
-| `mockups/P8c_studio_queue.html` | AI Studio queue overlay | остава |
+| `mockups/ai-studio-main-v2.html` | AI Studio standalone (`ai-studio.php`) | остава |
+| `mockups/ai_studio_FINAL_v5.html` + 5 advanced | AI Studio per-product modal | остават |
+| `mockups/ai-studio-categories.html` | AI Studio queue overlay | остава |
 | `mockups/P10_lesny_mode.html` | `life-board.php` (Лесен режим) | остава |
 | `mockups/P11_detailed_mode.html` | `chat.php` (Подробен режим) | остава |
 | **`mockups/P12_matrix.html`** | **Matrix overlay (fullscreen)** — нов | ✅ нов |
@@ -49,7 +49,7 @@
 
 | Файл | Защо |
 |---|---|
-| `AI_STUDIO_LOGIC_DELTA.md` | Логика за P8/P8b/P8c (AI Studio standalone) |
+| `AI_STUDIO_LOGIC_DELTA.md` | Логика за ai-studio-main-v2 / ai_studio_FINAL_v5 / ai-studio-categories (AI Studio standalone) |
 | `MASTER_COMPASS.md` | Coordination doc (винаги остава) |
 | `SHEF_RESTORE_PROMPT.md` | Boot prompt за Шеф-чат |
 | `DESIGN_SYSTEM_v4.0_BICHROMATIC.md` | Bible (sacred) |
@@ -106,7 +106,7 @@ Replace целия "Добави артикул" wizard в `products.php` с new
 - [ ] Save per section запазва в DB с правилен `confidence_score`
 - [ ] Matrix expand → отваря `P12_matrix.html` overlay
 - [ ] Photo AI detect → закача снимка на правилен цвят (>85% автоматично, <85% потвърждение)
-- [ ] AI Studio link → отваря `P8b_studio_modal.html` модал
+- [ ] AI Studio link → отваря `ai_studio_FINAL_v5.html` модал
 - [ ] Bottom bar Undo маха последна стъпка
 - [ ] "Запази · следващ" dropdown показва "Като предния" + "Празно"
 

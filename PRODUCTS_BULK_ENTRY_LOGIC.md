@@ -162,7 +162,7 @@ Overlays (z-index 90-91):
 
 ### AI Studio (Section 5)
 - `.ai-credits-strip` (gem icon + "17/30 безплатни магии" + "след това €0.05/магия")
-- `.ai-link-row` (large clickable card → отваря P8b modal)
+- `.ai-link-row` (large clickable card → отваря AI Studio modal (ai_studio_FINAL_v5.html))
 - `.ai-link-thumb` (purple/magenta gradient + conic shimmer)
 - `.ai-quick-row` → `.ai-quick-btn` (Премахни фон / SEO описание)
 
@@ -484,7 +484,7 @@ PHP creates `product_images` rows (1 main, others secondary, indexed by color).
 Server-side: `SELECT free_credits_used, free_credits_total FROM tenant_ai_credits WHERE tenant_id=?`
 
 ### AI Studio link (`.ai-link-row`)
-- Tap → opens `P8b_studio_modal.html` modal с product context
+- Tap → opens `ai_studio_FINAL_v5.html` modal с product context
 - Modal закача snimkata (от Section 4) и предлага actions
 - Cancel / Apply → returns to P13 → triggers `.ai-result-ov` overlay
 
@@ -815,7 +815,7 @@ function renderPhotoResult(r) {
   - [ ] Single mode: създай артикул "Test 1" с qty=5, min=2 → save Section 1 → confidence=30
   - [ ] Var mode: създай артикул "Test 2" S/M × Бял/Розов матрица → save Section 2 → 4 inventory rows
   - [ ] Photo upload: качи 2 снимки → AI detect → appears in result list
-  - [ ] AI Studio link: tap → отваря P8b modal
+  - [ ] AI Studio link: tap → отваря AI Studio modal (ai_studio_FINAL_v5.html)
   - [ ] Bulk session: save 1-ви → tap "Като предния" → 2-ри артикул inherited fields
   - [ ] Print: tap → modal с SKUs
   - [ ] Undo: chip toggle → undo → reverts
