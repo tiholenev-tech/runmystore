@@ -109,5 +109,45 @@
     "displaced_elements_count": 0,
     "timestamp": "2026-05-09T15:56:07Z",
     "duration_seconds": 16
+  },
+  {
+    "session": "s136_phaseD_chat_20260509_164735",
+    "file": "chat.php",
+    "mockup": "mockups/P11_detailed_mode.html",
+    "iter_pass": 0,
+    "dom_diff_pct": 36.06,
+    "pixel_diff_pct": 2.54,
+    "missing_classes": [
+      "rms-bottom-nav",
+      "rms-brand",
+      "rms-header",
+      "rms-header-spacer",
+      "rms-icon-btn",
+      "rms-nav-tab",
+      "rms-plan-badge"
+    ],
+    "displaced_elements_count": 33,
+    "timestamp": "2026-05-09T16:48:35Z",
+    "duration_seconds": 60
+  },
+  {
+    "session": "s136_phaseD2_chat_20260509_174505",
+    "file": "chat.php",
+    "mockup": "mockups/P11_detailed_mode.html",
+    "iter_pass": 0,
+    "dom_diff_pct": 31.19,
+    "pixel_diff_pct": 2.48,
+    "missing_classes": [
+      "rms-bottom-nav",
+      "rms-brand",
+      "rms-header",
+      "rms-header-spacer",
+      "rms-icon-btn",
+      "rms-nav-tab",
+      "rms-plan-badge"
+    ],
+    "displaced_elements_count": 33,
+    "timestamp": "2026-05-09T17:46:12Z",
+    "duration_seconds": 66
   }
 ]

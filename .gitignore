@@ -43,7 +43,12 @@ config/database.php.save
 patch*.py
 patch_*.py
 migrate_*.py
-backups/
+# S136 fix: ignore backups/ contents but keep s136_* per-session metadata
+# tracked. INVENTORY_*.md and .bak files travel with each design-rewrite
+# branch as DIFF GATE evidence.
+backups/*
+!backups/s136_*/
+!backups/s136_*/**
 *.broken
 *.before-mig
 *.bak.*

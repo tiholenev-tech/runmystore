@@ -155,8 +155,13 @@ check_file() {
         'Forbidden font. Използвай var(--font) (Montserrat) или var(--font-mono) (DM Mono)'
 
     # 1.5 Forbidden Bootstrap/Tailwind classes
+    # S136 fix: require class name to start at attribute boundary (after `"`) or
+    # whitespace. Old `\b` matched mid-name (e.g. project's `sig-btn-primary`
+    # tripped on the `btn-primary` substring after `-`). Project classes that
+    # legitimately contain `btn-primary` as a suffix segment are no longer false-
+    # flagged. True framework classes still caught (always begin at attr-boundary).
     check_pattern "$file" \
-        'class="[^"]*\b(btn-primary|btn-secondary|d-flex|col-md-|p-[0-9]|m-[0-9]|text-center|bg-white|bg-dark|text-muted|rounded-pill)\b' \
+        'class="([^"]*\s)?(btn-primary|btn-secondary|d-flex|col-md-|p-[0-9]|m-[0-9]|text-center|bg-white|bg-dark|text-muted|rounded-pill)\b' \
         '1.5-forbidden-framework' \
         'Bootstrap/Tailwind class. Project използва vanilla CSS — никакви frameworks.'
 

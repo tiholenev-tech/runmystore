@@ -36,6 +36,48 @@ except ImportError:
 PHP_PLACEHOLDER = "{{PHP_DYNAMIC}}"
 PHP_BLOCK_RE = re.compile(r"<\?(?:php|=)?.*?\?>", re.DOTALL)
 
+# S136 v1.2 — display:none filter. Subtrees that are visually hidden don't
+# contribute to the screenshot the gate uses for pixel diff, so they
+# shouldn't contribute to DOM/position diff either. Without this, files
+# that legitimately preserve overlay panels (chat overlays, modals, signal
+# detail) show DOM diff in the 30-40% range against a mockup that omits
+# them — false-positive for the visual-gate's structural checks.
+DISPLAY_NONE_RE = re.compile(r"display\s*:\s*none\b", re.IGNORECASE)
+
+
+def is_visually_hidden(tag) -> bool:
+    """True if tag is hidden via inline style, hidden attribute, or
+    explicit visual-gate opt-out marker.
+
+    Detects:
+      - style="display:none" / "display: none" / "display:none !important"
+      - hidden boolean attribute (HTML5)
+      - data-vg-skip attribute (any value) — explicit opt-out for subtrees
+        that are class-toggled visible by JS but otherwise stay off-screen
+        (overlays, modals, tooltip portals). The mockup the gate compares
+        against typically omits these, so without an opt-out the structural
+        diff false-flags them.
+
+    Does NOT detect:
+      - CSS-class-based hiding without inline marker (e.g. .ov-bg with
+        opacity:0 in an external stylesheet) — would need CSS parsing.
+      - aria-hidden="true" — accessibility hint, element may still be
+        visible.
+      - off-viewport positioning (left:-9999px etc.) — out of scope.
+    """
+    if not isinstance(tag, Tag):
+        return False
+    if "hidden" in tag.attrs:
+        return True
+    if "data-vg-skip" in tag.attrs:
+        return True
+    style = tag.get("style") or ""
+    if isinstance(style, list):
+        style = " ".join(style)
+    if DISPLAY_NONE_RE.search(style):
+        return True
+    return False
+
 
 def normalize_php(raw: str) -> str:
     """Replace всеки PHP block с placeholder, така че BS4 не го парсва грешно."""
@@ -100,6 +142,17 @@ def extract(html_path: Path):
     # Премахни коментари (BS4 третира ги като NavigableString от type Comment).
     for c in soup.find_all(string=lambda s: isinstance(s, Comment)):
         c.extract()
+
+    # S136 v1.2 — strip visually-hidden subtrees BEFORE extraction.
+    # Snapshot first (find_all returns a list, safe to mutate during iteration),
+    # then decompose; if a parent is decomposed, descendants get removed too,
+    # so subsequent decompose() on those descendants is a no-op (they have no
+    # parent and BS4 handles this gracefully).
+    for tag in list(soup.find_all(True)):
+        if tag.parent is None:
+            continue  # already detached by an earlier decompose
+        if is_visually_hidden(tag):
+            tag.decompose()
 
     elements = []
     for tag in soup.find_all(True):
