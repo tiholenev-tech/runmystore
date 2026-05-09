@@ -446,8 +446,10 @@ for tol in "${ITER_TOL[@]}"; do
     DOM_PASS=$(python3 -c "print(1 if $DOM_PCT <= $DOM_T else 0)")
     echo -e "  CHECK 1 DOM diff:        ${DOM_PCT}%  $([ "$DOM_PASS" = "1" ] && echo -e "${G}PASS${N}" || echo -e "${R}FAIL${N}")"
 
-    # CHECK 2 — CSS coverage
-    if "${SCRIPT_DIR}/css-coverage.sh" "$MOCKUP" "$REWRITE" > "${ITER_DIR}/css_coverage.log" 2>&1; then
+    # CHECK 2 — CSS coverage. S136 v1.2: pass rewrite_dump as 3rd arg so
+    # PHP-included partial classes are visible (previously raw source-only
+    # grep missed any class inside `<?php include ... ?>` blocks).
+    if "${SCRIPT_DIR}/css-coverage.sh" "$MOCKUP" "$REWRITE" "$REWRITE_DUMP" > "${ITER_DIR}/css_coverage.log" 2>&1; then
         CSS_PASS=1; CSS_MSG="PASS"
     else
         CSS_PASS=0; CSS_MSG="FAIL"

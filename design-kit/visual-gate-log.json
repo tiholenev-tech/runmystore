@@ -215,5 +215,37 @@
     "displaced_elements_count": 496,
     "timestamp": "2026-05-09T18:11:35Z",
     "duration_seconds": 81
+  },
+  {
+    "session": "s136_phaseD3_chat_20260509_184756",
+    "file": "chat.php",
+    "mockup": "mockups/P11_detailed_mode.html",
+    "iter_pass": 0,
+    "dom_diff_pct": 27.8,
+    "pixel_diff_pct": 3.72,
+    "missing_classes": [
+      "rms-bottom-nav",
+      "rms-brand",
+      "rms-header",
+      "rms-header-spacer",
+      "rms-icon-btn",
+      "rms-nav-tab",
+      "rms-plan-badge"
+    ],
+    "displaced_elements_count": 20,
+    "timestamp": "2026-05-09T18:48:55Z",
+    "duration_seconds": 58
+  },
+  {
+    "session": "s136_phaseD4_chat_20260509_185050",
+    "file": "chat.php",
+    "mockup": "mockups/P11_detailed_mode.html",
+    "iter_pass": 0,
+    "dom_diff_pct": 27.8,
+    "pixel_diff_pct": 3.96,
+    "missing_classes": [],
+    "displaced_elements_count": 20,
+    "timestamp": "2026-05-09T18:51:47Z",
+    "duration_seconds": 57
   }
 ]

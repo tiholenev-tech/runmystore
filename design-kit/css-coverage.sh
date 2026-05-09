@@ -8,7 +8,14 @@
 # 2+ missing → FAIL
 #
 # Usage:
-#   css-coverage.sh <mockup_file> <rewrite_file>
+#   css-coverage.sh <mockup_file> <rewrite_file> [rewrite_dump_file]
+#
+# S136 v1.2: optional 3rd arg <rewrite_dump_file> — when present, classes
+# are extracted from the rendered DUMP (chromium-resolved) for the rewrite
+# instead of the raw source. Required for files that compose via PHP
+# includes — class attributes inside `<?php include ... ?>` are otherwise
+# invisible to the source-only grep, producing false-positive missing-class
+# verdicts. Mockup is always extracted from source (no PHP).
 #
 # Exit codes:
 #   0 = coverage OK (0 или 1 missing)
@@ -20,9 +27,10 @@ set -u
 
 MOCKUP="${1:-}"
 REWRITE="${2:-}"
+REWRITE_DUMP="${3:-}"
 
 if [ -z "$MOCKUP" ] || [ -z "$REWRITE" ]; then
-    echo "Usage: $0 <mockup_file> <rewrite_file>" >&2
+    echo "Usage: $0 <mockup_file> <rewrite_file> [rewrite_dump_file]" >&2
     exit 2
 fi
 
@@ -33,6 +41,12 @@ fi
 if [ ! -f "$REWRITE" ]; then
     echo "FATAL: rewrite not found: $REWRITE" >&2
     exit 2
+fi
+
+# Use dump for rewrite if provided AND non-empty; else fall back to source.
+REWRITE_FOR_GREP="$REWRITE"
+if [ -n "$REWRITE_DUMP" ] && [ -s "$REWRITE_DUMP" ]; then
+    REWRITE_FOR_GREP="$REWRITE_DUMP"
 fi
 
 # Извлечи всички уникални class-tokens (split по whitespace вътре в class="...").
@@ -52,7 +66,7 @@ TMP_R=$(mktemp)
 trap 'rm -f "$TMP_M" "$TMP_R"' EXIT
 
 extract_classes "$MOCKUP" > "$TMP_M"
-extract_classes "$REWRITE" > "$TMP_R"
+extract_classes "$REWRITE_FOR_GREP" > "$TMP_R"
 
 # missing = в mockup, но липсва в rewrite
 MISSING=$(comm -23 "$TMP_M" "$TMP_R")
