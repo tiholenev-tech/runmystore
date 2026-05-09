@@ -1,0 +1,24 @@
+{
+  "id": "S020",
+  "name": "Discount edge — 100% отстъпка прави total = 0",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php discount",
+  "precondition": "Активна продажба с 1 артикул на 50 лв",
+  "action_steps": [
+    "Натисни „Отстъпка“",
+    "Въведи 100% или 50 лв",
+    "Завърши"
+  ],
+  "expected_result": [
+    "sales.total = 0",
+    "sales.discount_amount = 50.00",
+    "Печат показва „безплатно“ или original/discount двата реда",
+    "inventory все пак се намалява"
+  ],
+  "smoke_sql": "SELECT id, total, discount_amount FROM sales WHERE total = 0 AND discount_amount > 0 AND created_at >= NOW() - INTERVAL 7 DAY LIMIT 5",
+  "expects_at_least": 0,
+  "fail_means": "100% отстъпка чупи payments — payments.amount остава 0 но sales не се завършва.",
+  "added_date": "2026-05-09"
+}

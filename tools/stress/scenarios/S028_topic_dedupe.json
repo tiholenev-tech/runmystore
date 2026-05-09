@@ -1,0 +1,23 @@
+{
+  "id": "S028",
+  "name": "Topic dedupe — 1 insight per topic per ден",
+  "category": "AI brain",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "compute-insights.php UNIQUE index",
+  "linked_bug": "Bugfix 3 (ai_insights_unique) — UNIQUE relax с date bucket",
+  "precondition": "Migration s128_ai_insights_unique_relax.sql приложена",
+  "action_steps": [
+    "Стартирай compute-insights два пъти в рамките на 1 ден",
+    "Чети ai_insights"
+  ],
+  "expected_result": [
+    "Всеки (tenant, store, topic) има точно 1 запис за днес",
+    "Втория run прави ON DUPLICATE KEY UPDATE (не нов insert)",
+    "Утре може да има нов запис за същия topic"
+  ],
+  "smoke_sql": "SELECT tenant_id, store_id, topic_id, created_at_bucket, COUNT(*) AS n FROM ai_insights WHERE created_at >= NOW() - INTERVAL 24 HOUR GROUP BY 1,2,3,4 HAVING n > 1",
+  "expects_at_least": 0,
+  "fail_means": "Dupe-нати insights в рамките на ден — UNIQUE relax не работи правилно.",
+  "added_date": "2026-05-09"
+}

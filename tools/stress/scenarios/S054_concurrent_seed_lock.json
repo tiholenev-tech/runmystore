@@ -1,0 +1,21 @@
+{
+  "id": "S054",
+  "name": "Concurrent seed lock — два seed-а едновременно",
+  "category": "cron / system",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "tools/stress/seed_*.py + flock",
+  "precondition": "Един seed_history стартиран",
+  "action_steps": [
+    "Стартирай втори seed_history paralleлно"
+  ],
+  "expected_result": [
+    "Втория refuseва със „вече тече“ message",
+    "Pid файл / flock пази ексclusion",
+    "Без double-insert в DB"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "implementation_hint": "Use flock(/tmp/stress_seed.lock).",
+  "added_date": "2026-05-09"
+}

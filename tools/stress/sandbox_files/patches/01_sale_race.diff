@@ -1,0 +1,56 @@
+--- BUGFIX 1: sale.php race condition (STRESS_BUILD_PLAN ред 54) ---
+
+Цел: гарантирай че двама продавачи не могат да продадат последния
+артикул едновременно. Заменя `UPDATE inventory SET quantity = GREATEST(...)`
+с pattern: `SELECT FOR UPDATE` + pre-check + decrement без GREATEST.
+
+Текущо състояние (S128, 2026-05-08):
+  Sale.php:373 ВЕЧЕ има `SELECT quantity FROM inventory ... FOR UPDATE`
+  (S97.HARDEN.PH1). Race protection е приложена.
+  Sale.php:402 използва `quantity >= ?` guard в UPDATE — defence in depth.
+  GREATEST е премахнат от sale.php.
+
+Този patch е ARCHIVAL — описва intent. Преди apply провери дали кодът
+не е вече по-нататък от описаното състояние.
+
+================================================================
+diff --git a/sale.php b/sale.php
+@@ -132,7 +132,7 @@
+-                $upd = DB::run(
+-                    "UPDATE inventory SET quantity = GREATEST(quantity - ?, 0) "
+-                    "WHERE product_id = ? AND store_id = ?",
+-                    [$qty, $pid, $store_id]
+-                );
++                // S87H.RACE_FIX — explicit lock + pre-check.
++                // Row hold-натa до commit/rollback → серилизира concurrent sellers.
++                $inv = DB::run(
++                    "SELECT quantity FROM inventory WHERE product_id = ? AND store_id = ? FOR UPDATE",
++                    [$pid, $store_id]
++                )->fetch(PDO::FETCH_ASSOC);
++                $available = $inv ? (int)$inv['quantity'] : 0;
++                if ($available < $qty) {
++                    throw new StockException($pid, $pname, $available, $qty);
++                }
++                $upd = DB::run(
++                    "UPDATE inventory SET quantity = quantity - ? "
++                    "WHERE product_id = ? AND store_id = ? AND quantity >= ?",
++                    [$qty, $pid, $store_id, $qty]
++                );
++                if ($upd->rowCount() === 0) {
++                    // Defence in depth — lock-ът би трябвало да направи
++                    // това unreachable, но го пазим за edge case.
++                    throw new StockException($pid, $pname, max(0, $available), $qty);
++                }
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. Стартирай tools/stress/inventory_race_test.php (10 concurrent sellers,
+     1 артикул в склада).
+  2. Очакван резултат: 1 успешна продажба, 9 StockException.
+  3. inventory.quantity = 0 (никога < 0).
+  4. Сценарий S002 минава.
+
+ROLLBACK план:
+  git revert <commit-hash>
+
+Test scenario: tools/stress/scenarios/S002_race_condition.json

@@ -1,0 +1,23 @@
+{
+  "id": "S040",
+  "name": "Noise interference — voice в шумна среда",
+  "category": "voice",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "voice STT noise filter",
+  "precondition": "Симулиран background noise (60 dB)",
+  "action_steps": [
+    "Натисни мик в шумна среда",
+    "Кажи „четирийсет лева“"
+  ],
+  "expected_result": [
+    "STT парсва правилно ИЛИ показва retry hint",
+    "Не се затваря microphone access без feedback",
+    "Confidence score < 0.7 → user prompted да повтори"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until Playwright runner готов",
+  "added_date": "2026-05-09"
+}

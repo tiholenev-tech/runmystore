@@ -1,0 +1,59 @@
+--- BUGFIX 3: ai_insights UNIQUE ключ relax (STRESS_BUILD_PLAN ред 56) ---
+
+Цел: Премахни прекалено стриктния UNIQUE (tenant_id, store_id, topic_id) индекс,
+който блокира нови записи когато topic_id вече има entry за store. Кодът
+започва само да UPDATE-ва съществуващи редове → новите събития изчезват.
+
+Решение: Заменяме UNIQUE с composite индекс (без UNIQUE) + добавяме
+created_at_bucket колона, за да позволим няколко insights per topic per ден.
+
+================================================================
+-- Migration: sql/s128_ai_insights_unique_relax.sql
+
+ALTER TABLE ai_insights
+    DROP INDEX uniq_tenant_store_topic;       -- ако съществува
+
+ALTER TABLE ai_insights
+    ADD COLUMN created_at_bucket DATE
+      GENERATED ALWAYS AS (DATE(created_at)) STORED AFTER created_at;
+
+ALTER TABLE ai_insights
+    ADD INDEX idx_tenant_store_topic_bucket
+        (tenant_id, store_id, topic_id, created_at_bucket);
+
+-- Нов UNIQUE с bucket → допуска 1 запис per topic per ден
+ALTER TABLE ai_insights
+    ADD UNIQUE INDEX uniq_tenant_store_topic_day
+        (tenant_id, store_id, topic_id, created_at_bucket);
+
+================================================================
+
+Application code change (compute-insights.php):
+
+@@ -253,16 +253,16 @@
+         INSERT INTO ai_insights
+         (tenant_id, store_id, topic_id, category, grp, module, urgency,
+-         fundamental_question, action_type, ...)
++         fundamental_question, action_type, ..., created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ...)
+         ON DUPLICATE KEY UPDATE
+             urgency=VALUES(urgency),
+             fundamental_question=VALUES(fundamental_question),
+             ...
+-            updated_at=NOW();
++            updated_at=NOW();    -- сега ON DUPLICATE се hit-ва само в рамките на 1 ден
+
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. SHOW INDEX FROM ai_insights — потвърди новия uniq_tenant_store_topic_day.
+  2. Стартирай compute-insights.php два пъти един след друг — провери дали
+     има 2 записа (за 2 различни дни) или 1 (същия ден).
+  3. Сценарий S005 трябва да минава 2 нощи подред (нов запис всяка нощ).
+
+ROLLBACK:
+  ALTER TABLE ai_insights DROP INDEX uniq_tenant_store_topic_day;
+  ALTER TABLE ai_insights DROP COLUMN created_at_bucket;
+  -- (възстанови старите индекси ако трябва)
+
+⚠️ ВАЖНО: BACKUP преди apply. mysqldump на ai_insights табл.

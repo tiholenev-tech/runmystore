@@ -1,0 +1,18 @@
+# /etc/cron.d/stress-nightly — STRESS система cron (02:00)
+#
+# ИНСТАЛАЦИЯ (ръчно от Тихол):
+#   sudo cp tools/stress/cron/installable/stress-nightly /etc/cron.d/stress-nightly
+#   sudo chown root:root /etc/cron.d/stress-nightly
+#   sudo chmod 644 /etc/cron.d/stress-nightly
+#   sudo systemctl restart cron
+#
+# Защо НЕ авто-инсталирам: писане в /etc/cron.d/ е shared-system mutация —
+# винаги изисква user confirmation (CLAUDE.md: "actions visible to others").
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+BASH_ENV=/etc/runmystore/cron.env
+
+# 02:00 nightly — 200-300 действия + scenario smoke checks
+0 2 * * * www-data cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/nightly_robot.py --apply >> /var/log/runmystore/nightly_robot.log 2>&1

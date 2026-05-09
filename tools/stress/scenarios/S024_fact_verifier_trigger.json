@@ -1,0 +1,21 @@
+{
+  "id": "S024",
+  "name": "Fact Verifier — trigger на твърдение",
+  "category": "AI brain",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "chat.php Fact Verifier",
+  "precondition": "AI генерира insight с конкретно число",
+  "action_steps": [
+    "Cron compute-insights генерира pill „Продаде 12 Дафи 36 вчера“",
+    "Fact Verifier пуска проверка спрямо DB"
+  ],
+  "expected_result": [
+    "Fact Verifier намира 12 продажби в DB → pill публикуван",
+    "Ако несъвпадение → pill marked като 'unverified' и не се показва",
+    "Запис в fact_verifier_log за всяка проверка"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS verified FROM ai_insights WHERE status = 'live' AND module = 'home' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

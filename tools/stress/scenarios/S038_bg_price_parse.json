@@ -1,0 +1,23 @@
+{
+  "id": "S038",
+  "name": "BG price parse — „трийсет и пет лева и петдесет“",
+  "category": "voice",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "products.php voice price parser",
+  "precondition": "Wizard отворен на цена поле",
+  "action_steps": [
+    "Натисни мик",
+    "Кажи: „трийсет и пет лева и петдесет“"
+  ],
+  "expected_result": [
+    "Парсване → 35.50",
+    "Поле попълнено визуално",
+    "Без втори опит"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until Playwright runner готов",
+  "added_date": "2026-05-09"
+}

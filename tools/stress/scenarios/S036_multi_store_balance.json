@@ -1,0 +1,20 @@
+{
+  "id": "S036",
+  "name": "Multi-store balance — sum quantity = totally on hand",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "balance_validator.py",
+  "precondition": "8 магазина с продукти",
+  "action_steps": [
+    "Run balance_validator: за всеки product изчисли SUM(quantity) over stores",
+    "Сравни с aggregate view"
+  ],
+  "expected_result": [
+    "За всеки product: SUM(per-store quantity) = global view total",
+    "Без losses или duplicate counting"
+  ],
+  "smoke_sql": "SELECT product_id, COUNT(DISTINCT store_id) AS stores, SUM(quantity) AS total FROM inventory GROUP BY product_id HAVING total < 0 LIMIT 5",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

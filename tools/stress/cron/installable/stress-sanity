@@ -1,0 +1,19 @@
+# /etc/cron.d/stress-sanity — STRESS система cron (07:00 + 01:00 cleanup)
+#
+# ИНСТАЛАЦИЯ:
+#   sudo cp tools/stress/cron/installable/stress-sanity /etc/cron.d/stress-sanity
+#   sudo chown root:root /etc/cron.d/stress-sanity
+#   sudo chmod 644 /etc/cron.d/stress-sanity
+#   sudo systemctl restart cron
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+BASH_ENV=/etc/runmystore/cron.env
+
+# 07:00 — Етап 4 balance validator (X-Y+Z aggregate + per-movement)
+0 7 * * * www-data cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/sanity_checker.py >> /var/log/runmystore/sanity_checker.log 2>&1
+
+# 01:00 — STRESS Lab tenant cleanup (60-day window, не пипа master данни)
+# Виж STRESS_COMPASS.md ЗАКОН 4.
+0 1 * * * www-data cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/sanity_checker.py --cleanup-only >> /var/log/runmystore/sanity_cleanup.log 2>&1

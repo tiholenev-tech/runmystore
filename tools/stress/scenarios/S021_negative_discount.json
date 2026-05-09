@@ -1,0 +1,23 @@
+{
+  "id": "S021",
+  "name": "Negative discount — input -10% трябва да rejecte",
+  "category": "sale flow",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "sale.php discount validation",
+  "precondition": "Активна продажба",
+  "action_steps": [
+    "Натисни „Отстъпка“",
+    "Въведи -10 (опит за trick)",
+    "Опитай да завършиш"
+  ],
+  "expected_result": [
+    "Validator rejecте със съобщение",
+    "Sales не се записва с negative discount",
+    "Sale продължава нормално след корекция"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS bad FROM sales WHERE discount_amount < 0 OR discount_percent < 0",
+  "expects_at_least": 0,
+  "fail_means": "В DB има отрицателни отстъпки — total e изкривен.",
+  "added_date": "2026-05-09"
+}

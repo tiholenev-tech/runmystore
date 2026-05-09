@@ -1,0 +1,22 @@
+{
+  "id": "S033",
+  "name": "Count session conflict — продажба по време на броене",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "inventory.php count session + sale.php",
+  "precondition": "Активна inventory_count_session за магазин A",
+  "action_steps": [
+    "Започни count session в магазин A",
+    "Продавач прави продажба от A през count window",
+    "Затвори count session"
+  ],
+  "expected_result": [
+    "Sale продължава нормално",
+    "inventory_count_lines записва before/during/after",
+    "Reconciliation отчита продажбата при затваряне на сесията"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS open_sessions FROM inventory_count_sessions WHERE status = 'open'",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

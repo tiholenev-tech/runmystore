@@ -1,0 +1,22 @@
+{
+  "id": "S037",
+  "name": "Low stock alert — quantity <= min_quantity",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "compute-insights.php low-stock detector",
+  "precondition": "Поне 1 артикул с quantity <= min_quantity",
+  "action_steps": [
+    "Намали artist quantity до threshold",
+    "compute-insights пуска",
+    "Чети ai_insights"
+  ],
+  "expected_result": [
+    "Pill „Малко остана от X“ urgency=warning",
+    "Action button „Поръчай от Y доставчик“",
+    "topic_id съдържа 'low_stock'"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM inventory WHERE quantity <= COALESCE(min_quantity, 0) AND quantity > 0",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}
