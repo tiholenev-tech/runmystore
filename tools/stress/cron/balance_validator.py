@@ -46,9 +46,20 @@ def fetch_history(conn, tenant_id: int, product_id: int | None,
         cur.execute("SHOW TABLES LIKE 'stock_movements'")
         if not cur.fetchone():
             return []
+        # `quantity_after` е опционална snapshot column — не съществува във всички
+        # schema варианти. COALESCE не помага, защото всяко споменаване на колоната
+        # в SELECT изисква тя да съществува. Затова откриваме чрез information_schema
+        # и подменяме SELECT-а ако липсва.
+        cur.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_schema = DATABASE() AND table_name = 'stock_movements' "
+            "AND column_name = 'quantity_after'"
+        )
+        has_quantity_after = bool(cur.fetchone())
+        qa_select = "quantity_after" if has_quantity_after else "NULL"
         cur.execute(
             f"SELECT product_id, store_id, type, quantity, "
-            f"COALESCE(quantity_after, NULL) AS quantity_after, "
+            f"{qa_select} AS quantity_after, "
             f"reference_type, reference_id, created_at "
             f"FROM stock_movements {where} ORDER BY product_id, store_id, created_at",
             params,
