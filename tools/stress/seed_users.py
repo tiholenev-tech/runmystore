@@ -129,6 +129,8 @@ def main():
             row["role"] = u["role"]
         if "password_hash" in cols:
             row["password_hash"] = "PENDING_BCRYPT"  # PHP helper ще го регенерира
+        if "password" in cols:
+            row["password"] = "PENDING_BCRYPT"  # текущата schema има `password` (NOT NULL)
         if "store_id" in cols and u["default_store"]:
             sid = stores_map.get(u["default_store"])
             if sid:
