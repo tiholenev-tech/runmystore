@@ -1,0 +1,25 @@
+{
+  "id": "S072",
+  "name": "Slow query > 5s — detection чрез db_query_profiler",
+  "category": "performance / db",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "db_query_profiler.py / MySQL slow_query_log",
+  "precondition": "MySQL slow_query_log enabled (long_query_time = 5); slow.log path известен.",
+  "action_steps": [
+    "Включи slow_query_log в my.cnf (long_query_time=5, log_output=FILE)",
+    "Изчакай 1+ часа production traffic (или нощен робот run)",
+    "python3 tools/stress/perf/db_query_profiler.py /var/log/mysql/slow.log --top 20 --output /tmp/slow_report.json",
+    "Прегледай рекомендациите"
+  ],
+  "expected_result": [
+    "Top заявки сортирани по count * avg_time",
+    "Recommendations включват SELECT *, missing WHERE, missing index подсказки",
+    "JSON output записан в --output (за index_advisor да го прочете)",
+    "Нито една заявка не трябва да е > 10s в production"
+  ],
+  "smoke_sql": "SHOW VARIABLES LIKE 'slow_query_log'",
+  "expects_at_least": 1,
+  "fail_means": "Slow log не се пише или query_time threshold е прекалено висок -> slow заявки се промъкват необелязани.",
+  "added_date": "2026-05-09"
+}

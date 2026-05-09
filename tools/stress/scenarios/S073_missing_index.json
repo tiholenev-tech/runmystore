@@ -1,0 +1,25 @@
+{
+  "id": "S073",
+  "name": "Missing index — index_advisor предлага CREATE INDEX",
+  "category": "performance / db / schema",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "index_advisor.py / MySQL EXPLAIN",
+  "precondition": "S072 е run-нат и /tmp/slow_report.json съществува, или slow_log е директно достъпен.",
+  "action_steps": [
+    "python3 tools/stress/perf/index_advisor.py --report /tmp/slow_report.json --output suggested_indexes.sql",
+    "Прегледай suggested_indexes.sql",
+    "Тествай 1-2 от предложените CREATE INDEX в STAGING DB",
+    "Ако подобряват performance > 30% — apply в production (отделен PR)"
+  ],
+  "expected_result": [
+    "suggested_indexes.sql съдържа поне 1 CREATE INDEX statement",
+    "Всеки CREATE INDEX има `-- Reason:` коментар",
+    "Композитни индекси за WHERE+ORDER BY combinations",
+    "След apply в STAGING — EXPLAIN показва Index Used"
+  ],
+  "smoke_sql": "SELECT TABLE_NAME, INDEX_NAME, COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('products','sales','sale_items','inventory_events') ORDER BY TABLE_NAME, INDEX_NAME LIMIT 20",
+  "expects_at_least": 0,
+  "fail_means": "Index advisor не предлага индекси или предлага грешни (eg. на noise колони като created_at). Manual review безсмислен.",
+  "added_date": "2026-05-09"
+}
