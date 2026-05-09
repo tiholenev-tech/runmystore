@@ -3311,3 +3311,36 @@ COPY END
 **Open questions от секция 12 чакат твое решение.**
 
 ---
+---
+
+09.05.2026 EOD — VISUAL GATE + DOCUMENTS LOGIC + STRESS LIVE + chat.php DISASTER
+
+Шеф-чат сесия #15. Beta countdown: 5-6 дни.
+
+Свършено:
+
+1. Documents foundation (RWQ-88..94): 7 нови DB таблици в db/migrations/2026_05_documents.up.sql + DOCUMENTS_LOGIC.md v1.1 (16 типа документи, 7 baked решения, ЗДДС compliance)
+
+2. VISUAL_GATE инфраструктура (S134): SPEC v1.0+v1.1, 4 design-kit скрипта, auth fixture, CLAUDE_CODE_DESIGN_PROMPT v3.0. Branch s134-visual-gate push-нат, не merged.
+
+3. Стрес система пълна: 9/9 P0 fixed, sandbox с 9664 sales + 1185 deliveries + 90 дни, 4 cron-а инсталирани, ENI tenant=7 fully removed от sandbox. 3 branches merged към main.
+
+4. life-board.php Pilot (S132) — успешно merged, light theme default.
+
+5. chat.php P11 DISASTER (S133): всички 21 anti-regression rules pass-наха, визуалното счупено, REVERTED от main. Reason for VISUAL_GATE creation.
+
+6. Worktrees установени за паралелни CC (rms-design / rms-stress / rms-visual-gate).
+
+Standing Rules — нови:
+- Rule #35: Никога design rewrite на main без visual-gate PASS
+- Rule #36: CC сесии винаги от tihol, никога от root
+- Rule #37: Паралелни CC = задължително отделни worktrees
+
+Pending за утре:
+- Visual-gate test DB fixtures (s135-vg-fixtures, 1-2h)
+- chat.php P11 rewrite v2 с visual-gate (s136-chat-rewrite-v2, 3-4h)
+- DB migration apply в sandbox
+
+Telegram bot: отложен post-beta (решение от В7).
+
+---
