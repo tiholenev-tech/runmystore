@@ -1,17 +1,25 @@
 <?php
 /**
- * chat.php — RunMyStore.ai Dashboard + AI Chat v8.0
- * S79.VISUAL_REWRITE — home-neon-v2 design + всички S79 patches запазени
+ * chat.php — RunMyStore.ai Подробен режим (S133 P11 rewrite)
  *
- * Затворен: Revenue карта + Точност + Weather + AI Briefing + input бар
- * Отворен:  75vh overlay (WhatsApp стил), blur фон отдолу
- * Signal:   75vh overlay (обяснителна страница), blur фон, same modern design
+ * Visual: mockups/P11_detailed_mode.html (1:1 ground truth) — P10 base + filter pills,
+ *         categorized lb-cards, bottom nav.
+ * Logic: 100% preserved from S132 (3 overlays, Revenue dashboard, Health bar, voice,
+ *        AI insights, proactive pills, chat-send.php integration).
  *
- * Закон №1: Пешо не пише нищо — voice/tap/photo only.
- * Закон №2: PHP смята, Gemini говори. Pills/Signals = чист PHP+SQL.
- * Закон №3: AI мълчи, PHP продължава.
+ * NEW BEHAVIOR (S133):
+ *   1. $_SESSION['ui_mode'] bootstrap (seller→simple, else→detailed)
+ *   2. Render guard: simple back-arrow header + skip bottom nav когато
+ *      ?from=lifeboard или ui_mode==simple (Лесен режим е навигирал тук)
  */
 session_start();
+
+// ─── NEW BEHAVIOR (S133): UI mode bootstrap ───
+if (!isset($_SESSION['ui_mode'])) {
+    $role = $_SESSION['user_role'] ?? 'seller';
+    $_SESSION['ui_mode'] = ($role === 'seller') ? 'simple' : 'detailed';
+}
+
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/helpers.php';
 
@@ -125,11 +133,67 @@ function wmoText($code) {
     return 'Буря';
 }
 
+// ─── P11 helpers (presentation only — NEW for WFC card + filter pills) ───
+function wfcDayClass(int $code): string {
+    if ($code <= 1)  return 'sunny';
+    if ($code <= 3)  return 'partly';
+    if ($code <= 48) return 'cloudy';
+    if ($code <= 67) return 'rain';
+    if ($code <= 77) return 'rain';
+    return 'storm';
+}
+function wfcDayIcon(int $code): string {
+    switch (wfcDayClass($code)) {
+        case 'sunny':
+            return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>';
+        case 'partly':
+            return '<svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg>';
+        case 'cloudy':
+            return '<svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>';
+        case 'rain':
+            return '<svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg>';
+        case 'storm':
+        default:
+            return '<svg viewBox="0 0 24 24"><path d="M19 16.9A5 5 0 0018 7h-1.26a8 8 0 10-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>';
+    }
+}
+function wfcDayName(string $date_str, bool $is_today): string {
+    if ($is_today) return 'Днес';
+    $names = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+    return $names[(int)date('w', strtotime($date_str))];
+}
+// Append from=lifeboard if upstream came from lifeboard (preserves render-guard breadcrumb)
+function chatLink(?string $url): string {
+    if ($url === null || $url === '') return '';
+    $isFrom = isset($_GET['from']) && $_GET['from'] === 'lifeboard';
+    if (!$isFrom) return $url;
+    if (strpos($url, 'from=lifeboard') !== false) return $url;
+    $sep = (strpos($url, '?') !== false) ? '&' : '?';
+    return $url . $sep . 'from=lifeboard';
+}
+// Map insight category → Bulgarian module label for filter pill / lb-fq-tag-mini prefix
+function fqModuleLabel(?string $cat, ?string $module): string {
+    if (!$cat) $cat = '';
+    if (!$module) $module = '';
+    $by_cat = [
+        'profit'=>'ФИНАНСИ','price'=>'ФИНАНСИ','price_change'=>'ФИНАНСИ','cash'=>'ФИНАНСИ','tax'=>'ФИНАНСИ',
+        'wh'=>'СКЛАД','data_quality'=>'СКЛАД',
+        'xfer'=>'ТРАНСФЕРИ',
+        'promo'=>'ПРОДАЖБИ','fashion'=>'ПРОДАЖБИ','shoes'=>'ПРОДАЖБИ','acc'=>'ПРОДАЖБИ',
+        'lingerie'=>'ПРОДАЖБИ','sport'=>'ПРОДАЖБИ','size'=>'ПРОДАЖБИ','new'=>'ПРОДАЖБИ',
+        'expense'=>'РАЗХОДИ',
+    ];
+    if (isset($by_cat[$cat])) return $by_cat[$cat];
+    if ($module === 'warehouse') return 'СКЛАД';
+    if ($module === 'products') return 'ПРОДУКТИ';
+    if ($module === 'stats') return 'ФИНАНСИ';
+    return 'ОБЩО';
+}
+
 $plan_label = strtoupper($plan);
 
 // ══════════════════════════════════════════════
 // S82.STUDIO.NAV — AI Studio entry pending count
-// (products needing bg removal OR description — drives the badge)
 // ══════════════════════════════════════════════
 $ai_studio_count = 0;
 try {
@@ -276,7 +340,6 @@ try {
 
 // Generate action button from insight — DB columns first, fallback to topic_id
 function insightAction(array $ins): array {
-    // DB action columns (from compute-insights.php, populated by next session)
     if (!empty($ins['action_label'])) {
         return [
             'label' => $ins['action_label'],
@@ -285,7 +348,6 @@ function insightAction(array $ins): array {
             'data'  => $ins['action_data'] ? json_decode($ins['action_data'], true) : null,
         ];
     }
-    // S79_P1_INSIGHT_ACTION_FQ — 2-ри fallback: fundamental_question специфични actions
     $fq = $ins['fundamental_question'] ?? '';
     $tid = $ins['topic_id'] ?? '';
     if ($fq && empty($ins['action_label'])) {
@@ -310,7 +372,6 @@ function insightAction(array $ins): array {
                 return ['label' => 'Виж zombie стока', 'type' => 'deeplink', 'url' => 'products.php?filter=zombie', 'data' => null];
         }
     }
-    // 3-ти fallback: derive from topic_id
     $tid = $ins['topic_id'] ?? '';
     if (str_contains($tid, 'zero_stock') || str_contains($tid, 'low_stock'))
         return ['label' => 'Добави за поръчка', 'type' => 'order_draft', 'url' => null, 'data' => null];
@@ -364,7 +425,6 @@ foreach ($insights as $idx => $ins) {
         'data'       => $ins['data_json'] ? json_decode($ins['data_json'], true) : null,
         'action'     => $action,
         'topicId'    => $ins['topic_id'] ?? '',
-        // S79_P2_JS_FQ — fundamental_question + UI hue class
         'fq'         => $ins['fundamental_question'] ?? '',
         'qClass'     => (function($f){ return match($f){
             'loss'=>'q1', 'loss_cause'=>'q2', 'gain'=>'q3',
@@ -406,46 +466,203 @@ $chat_messages = DB::run(
 
 $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 
+// ──────────────────────────────────────────────
+// NEW BEHAVIOR (S133) — render guard
+// ──────────────────────────────────────────────
+$isFromLifeboard = isset($_GET['from']) && $_GET['from'] === 'lifeboard';
+$isSimpleMode = ($_SESSION['ui_mode'] ?? 'detailed') === 'simple';
+$renderSimpleHeader = $isFromLifeboard || $isSimpleMode;
+
+// SVG icon per fq for P11 collapsed lb-card lb-emoji-orb
+$fq_svg_p11 = [
+    'q1' => '<svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    'q2' => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    'q3' => '<svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+    'q4' => '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    'q5' => '<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
+    'q6' => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+];
+
 ?><!DOCTYPE html>
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#08090d">
-<title>Начало — RunMyStore.ai</title>
+<title>Подробен режим — RunMyStore.ai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
 <link rel="stylesheet" href="/design-kit/tokens.css?v=<?= @filemtime(__DIR__.'/design-kit/tokens.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/components-base.css?v=<?= @filemtime(__DIR__.'/design-kit/components-base.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/components.css?v=<?= @filemtime(__DIR__.'/design-kit/components.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
 <link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   chat.php P11 inline additions — only NEW classes not в design-kit
+   (cell, wfc, help-card, fp-row, lb-collapsed, info-overlay, etc.)
+   Preserves all design-kit styles for .glass, .s82-dash, .ov-panel,
+   .lb-card, .health, etc. — those continue to work as before.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Render-guard simple header (S133) */
+.rms-simple-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--border-color, transparent);
+  padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="light"] .rms-simple-header,
+:root:not([data-theme]) .rms-simple-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .rms-simple-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); }
+.rms-simple-back {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-family: 'DM Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text); text-decoration: none;
+}
+[data-theme="light"] .rms-simple-back, :root:not([data-theme]) .rms-simple-back {
+  background: var(--surface); box-shadow: var(--shadow-card-sm);
+}
+[data-theme="dark"] .rms-simple-back { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); }
+.rms-simple-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* P11 TOP ROW (Днес glance + Weather glance) */
+.p11-top-row {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.6s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+.p11-cell { padding: 12px 14px; }
+.p11-cell > * { position: relative; z-index: 5; }
+.p11-cell-header-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.p11-cell-label { font-family: 'DM Mono', ui-monospace, monospace; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p11-cell-numrow { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+.p11-cell-num { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.p11-cell-cur { font-family: 'DM Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.p11-cell-pct { font-family: 'DM Mono', ui-monospace, monospace; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: var(--radius-pill); margin-left: auto; }
+.p11-cell-pct.pos { background: oklch(0.92 0.08 145 / 0.5); color: hsl(145 60% 35%); }
+[data-theme="dark"] .p11-cell-pct.pos { background: hsl(145 50% 12%); color: hsl(145 70% 65%); }
+.p11-cell-pct.neg { background: oklch(0.92 0.08 25 / 0.5); color: hsl(0 60% 45%); }
+[data-theme="dark"] .p11-cell-pct.neg { background: hsl(0 50% 12%); color: hsl(0 80% 70%); }
+.p11-cell-pct.zero { background: oklch(0.92 0.02 220 / 0.5); color: var(--text-muted); }
+[data-theme="dark"] .p11-cell-pct.zero { background: hsl(220 12% 12%); color: var(--text-muted); }
+.p11-cell-meta { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px; line-height: 1.2; }
+.p11-weather-top { display: flex; align-items: baseline; gap: 6px; }
+.p11-weather-icon svg { width: 22px; height: 22px; stroke: hsl(38 80% 50%); fill: hsl(38 80% 60%); stroke-width: 1.5; }
+[data-theme="dark"] .p11-weather-icon svg { stroke: hsl(38 90% 60%); fill: hsl(38 80% 50%); }
+.p11-weather-temp { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.p11-weather-cond { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 3px; }
+
+/* P11 STUDIO ROW restyle */
+.p11-studio-row { margin-bottom: 12px; animation: fadeInUp 0.8s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both; }
+.p11-studio-btn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; position: relative; text-decoration: none; color: var(--text); }
+.p11-studio-btn > * { position: relative; z-index: 5; }
+.p11-studio-btn:active { transform: scale(0.99); }
+.p11-studio-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5);
+  position: relative; overflow: hidden;
+}
+.p11-studio-icon::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 4s linear infinite; }
+.p11-studio-icon svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; position: relative; z-index: 1; }
+.p11-studio-text { flex: 1; min-width: 0; }
+.p11-studio-label { display: block; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.p11-studio-sub { display: block; font-family: 'DM Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+.p11-studio-badge {
+  font-family: 'DM Mono', ui-monospace, monospace; font-size: 10px; font-weight: 800;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  color: white;
+  background: linear-gradient(135deg, hsl(0 75% 55%), hsl(15 75% 55%));
+  box-shadow: 0 2px 8px hsl(0 70% 45% / 0.4);
+  flex-shrink: 0;
+}
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popUp { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
 </head>
 <body class="has-rms-shell mode-detailed">
 
+<?php if ($renderSimpleHeader): ?>
+<!-- ═══ S133 RENDER GUARD: simple back-arrow header ═══ -->
+<header class="rms-simple-header">
+  <a href="/life-board.php" class="rms-simple-back" title="Към начало">
+    <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <span>Към начало</span>
+  </a>
+</header>
+<?php else: ?>
+<!-- ═══ Canonical header (design-kit partial) ═══ -->
+<?php include __DIR__ . '/design-kit/partial-header.html'; ?>
+<?php endif; ?>
+
 <div class="app card-stagger" id="app">
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- HEADER — design-kit v1.1 partial            -->
-    <!-- ═══════════════════════════════════════════ -->
-    <?php include __DIR__ . '/design-kit/partial-header.html'; ?>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S83.PRE_ENTRY.FIX — toggle to Лесен mode   -->
-    <!-- ═══════════════════════════════════════════ -->
+    <?php if (!$renderSimpleHeader): ?>
+    <!-- ═══ S83.PRE_ENTRY.FIX — toggle to Лесен mode ═══ -->
     <div class="cb-mode-row">
         <a href="/life-board.php" class="cb-mode-toggle" title="Лесен режим">
             Лесен <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
     </div>
+    <?php endif; ?>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — DASHBOARD GLASS CARD (qd)      -->
-    <!-- ═══════════════════════════════════════════ -->
+    <!-- ═══ P11 TOP ROW — quick-glance Днес + Времето ═══ -->
     <?php
         $cmp_today = (int)cmpPct($d0['rev'], $d0p['rev']);
+        $glance_class = $cmp_today > 0 ? 'pos' : ($cmp_today < 0 ? 'neg' : 'zero');
+        $glance_sign  = $cmp_today > 0 ? '+' : '';
+    ?>
+    <div class="p11-top-row">
+        <div class="glass sm p11-cell qd">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="p11-cell-header-row">
+                <div class="p11-cell-label">Днес · <?= htmlspecialchars($store_name) ?></div>
+            </div>
+            <div class="p11-cell-numrow">
+                <span class="p11-cell-num"><?= number_format(round($d0['rev']), 0, '.', ' ') ?></span>
+                <span class="p11-cell-cur"><?= $cs ?></span>
+                <span class="p11-cell-pct <?= $glance_class ?>"><?= $glance_sign . $cmp_today ?>%</span>
+            </div>
+            <div class="p11-cell-meta"><?= $d0['cnt'] ?> продажби<?php if ($role === 'owner' && $d0['profit'] > 0): ?> · <?= number_format(round($d0['profit']), 0, '.', ' ') ?> печалба<?php endif; ?></div>
+        </div>
+        <?php if ($weather_today): ?>
+        <div class="glass sm p11-cell qd">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <span class="glow"></span><span class="glow glow-bottom"></span>
+            <div class="p11-weather-top">
+                <span class="p11-weather-icon"><svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg></span>
+                <span class="p11-weather-temp"><?= round($weather_today['temp_max']) ?>°</span>
+            </div>
+            <div class="p11-weather-cond"><?= wmoText((int)$weather_today['weather_code']) ?></div>
+            <div class="p11-cell-meta"><?= round($weather_today['temp_min']) ?>°/<?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
+        </div>
+        <?php else: ?>
+        <div class="glass sm p11-cell qd">
+            <span class="shine"></span><span class="shine shine-bottom"></span>
+            <div class="p11-weather-top">
+                <span class="p11-weather-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg></span>
+                <span class="p11-weather-temp">—</span>
+            </div>
+            <div class="p11-weather-cond">Времето</div>
+            <div class="p11-cell-meta">—</div>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- S82.VISUAL — DASHBOARD GLASS CARD (qd) — KEEP for deep period/mode -->
+    <!-- ═══════════════════════════════════════════ -->
+    <?php
         $cmp_class = $cmp_today > 0 ? '' : ($cmp_today < 0 ? 'neg' : 'zero');
         $cmp_sign  = $cmp_today > 0 ? '+' : '';
     ?>
@@ -494,8 +711,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- S87.HEALTH.RESTORE — STORE HEALTH BAR (AI Точност) -->
-    <!-- DESIGN_SYSTEM § D.5 + BIBLE §25                 -->
+    <!-- S87.HEALTH.RESTORE — STORE HEALTH BAR (AI Точност) — KEEP -->
     <!-- ═══════════════════════════════════════════ -->
     <?php $h_color = $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171'); ?>
     <div class="glass sm health">
@@ -521,67 +737,126 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — WEATHER GLASS CARD (qw)        -->
+    <!-- P11 AI STUDIO ROW — restyled                -->
     <!-- ═══════════════════════════════════════════ -->
-    <?php if ($weather_today): ?>
-    <div class="glass sm s82-weather qw">
+    <div class="p11-studio-row">
+      <a href="<?= htmlspecialchars(chatLink('/ai-studio.php')) ?>" class="glass sm p11-studio-btn" aria-label="AI Studio">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="s82-weather-top">
-            <div class="s82-weather-left">
-                <div class="s82-weather-icon"><svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg></div>
-                <span class="s82-weather-cond"><?= wmoText((int)$weather_today['weather_code']) ?></span>
-            </div>
-            <span class="s82-weather-temp"><?= round($weather_today['temp_max']) ?>°</span>
-        </div>
-        <div class="s82-weather-meta"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
-        <?php if ($weather_suggestion): ?>
-        <div class="s82-weather-sug"><?= htmlspecialchars($weather_suggestion) ?></div>
-        <?php endif; ?>
-        <?php if (count($weather_week) >= 7): ?>
-        <div class="s82-weather-week">
-            <?php foreach (array_slice($weather_week, 1, 7) as $wd):
-                $dname = $bg_days_full[(int)date('w', strtotime($wd['forecast_date']))];
-                $rain = (int)$wd['precipitation_prob'];
-                $rain_cls = $rain > 50 ? 'wet' : 'dry';
-            ?>
-            <div class="s82-weather-day">
-                <div class="s82-weather-day-name"><?= $dname ?></div>
-                <div class="s82-weather-day-temp"><?= round($wd['temp_max']) ?>°</div>
-                <div class="s82-weather-day-rain <?= $rain_cls ?>"><?= $rain ?>%</div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.STUDIO.NAV — AI Studio entry (KEEP)    -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="ai-studio-row">
-      <a href="/ai-studio.php" class="glass sm ai-studio-btn" aria-label="AI Studio">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <span class="as-icon">
+        <span class="p11-studio-icon">
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         </span>
-        <span class="as-text">
-          <span class="as-label">AI Studio</span>
+        <span class="p11-studio-text">
+          <span class="p11-studio-label">AI Studio</span>
           <?php if ($ai_studio_count > 0): ?>
-          <span class="as-sub">· <?= $ai_studio_count ?> чакат</span>
+          <span class="p11-studio-sub"><?= $ai_studio_count ?> ЧАКАТ</span>
           <?php else: ?>
-          <span class="as-sub">· каталог &amp; снимки</span>
+          <span class="p11-studio-sub">КАТАЛОГ &amp; СНИМКИ</span>
           <?php endif; ?>
         </span>
         <?php if ($ai_studio_count > 0): ?>
-        <span class="ai-studio-badge"><?= $ai_studio_count > 99 ? '99+' : $ai_studio_count ?></span>
+        <span class="p11-studio-badge"><?= $ai_studio_count > 99 ? '99+' : $ai_studio_count ?></span>
         <?php endif; ?>
       </a>
     </div>
 
+    <?php if (!empty($weather_week)): ?>
     <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — LIFE BOARD (6 fundamental q)  -->
+    <!-- P11 WEATHER FORECAST CARD (14 дни + AI препоръки)  -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="glass sm wfc q4" data-range="3" style="padding:14px;margin-bottom:14px;animation:fadeInUp 0.85s var(--ease-spring) both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="wfc-head" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative;z-index:5">
+            <div class="wfc-head-ic" style="width:36px;height:36px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(195 75% 60%),hsl(38 85% 60%));box-shadow:0 4px 12px hsl(195 70% 50% / 0.45);position:relative;overflow:hidden">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:white;fill:none;stroke-width:2;position:relative;z-index:1"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            </div>
+            <div class="wfc-head-text" style="flex:1;min-width:0">
+                <div class="wfc-title" style="font-size:14px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,var(--text),hsl(195 70% 50%));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Прогноза за времето</div>
+                <div class="wfc-sub" style="font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-top:1px">AI препоръки за седмицата</div>
+            </div>
+        </div>
+        <div class="wfc-tabs" style="display:flex;gap:3px;padding:3px;border-radius:var(--radius-pill);margin-bottom:12px;position:relative;z-index:5">
+            <button type="button" class="wfc-tab" data-tab="3" onclick="wfcSetRange('3')" style="flex:1;height:28px;border-radius:var(--radius-pill);font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text-muted);border:none;background:transparent">3д</button>
+            <button type="button" class="wfc-tab" data-tab="7" onclick="wfcSetRange('7')" style="flex:1;height:28px;border-radius:var(--radius-pill);font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text-muted);border:none;background:transparent">7д</button>
+            <button type="button" class="wfc-tab" data-tab="14" onclick="wfcSetRange('14')" style="flex:1;height:28px;border-radius:var(--radius-pill);font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text-muted);border:none;background:transparent">14д</button>
+        </div>
+        <div class="wfc-days" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:5">
+            <?php foreach ($weather_week as $idx => $w):
+                $is_today = ($w['forecast_date'] === date('Y-m-d'));
+                $cls = wfcDayClass((int)$w['weather_code']);
+                $rain_pct = (int)$w['precipitation_prob'];
+                $rain_dry = $rain_pct < 30;
+            ?>
+            <div class="wfc-day <?= $cls ?><?= $is_today ? ' today' : '' ?>" style="flex:0 0 auto;width:64px;padding:10px 6px;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div class="wfc-day-name" style="font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)"><?= wfcDayName($w['forecast_date'], $is_today) ?></div>
+                <div class="wfc-day-ic" style="width:28px;height:28px;display:grid;place-items:center"><?= wfcDayIcon((int)$w['weather_code']) ?></div>
+                <div class="wfc-day-temp" style="font-size:14px;font-weight:800;letter-spacing:-0.01em"><?= round($w['temp_max']) ?>°<small style="font-size:10px;font-weight:600;color:var(--text-muted);margin-left:1px">/<?= round($w['temp_min']) ?></small></div>
+                <div class="wfc-day-rain<?= $rain_dry ? ' dry' : '' ?>" style="font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:700;color:<?= $rain_dry ? 'var(--text-faint)' : 'hsl(210 70% 50%)' ?>"><?= $rain_pct ?>%</div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="wfc-recs-divider" style="display:flex;align-items:center;gap:8px;margin:4px 0 10px;font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--magic,oklch(0.65 0.25 310));position:relative;z-index:5">
+            <span style="flex:0 0 auto">AI препоръки</span>
+        </div>
+        <?php if ($weather_suggestion): ?>
+        <div class="wfc-rec window" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:var(--radius-sm);position:relative;z-index:5">
+            <span class="wfc-rec-ic" style="width:30px;height:30px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:hsl(330 50% 92%)">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:hsl(330 70% 50%);fill:none;stroke-width:2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            </span>
+            <div class="wfc-rec-text" style="flex:1;min-width:0">
+                <span class="wfc-rec-label" style="display:block;font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px">Витрина / Трафик</span>
+                <div class="wfc-rec-body" style="font-size:12px;font-weight:600;line-height:1.35"><?= htmlspecialchars($weather_suggestion) ?></div>
+            </div>
+        </div>
+        <?php endif; ?>
+        <div class="wfc-source" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-pill);font-family:'DM Mono',ui-monospace,monospace;font-size:8.5px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;margin-top:8px;position:relative;z-index:5">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12.01" y2="8"/><line x1="11" y1="12" x2="12" y2="16"/></svg>
+            <span>OPEN-METEO · Обновено <?= date('H:i') ?></span>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- P11 AI HELP CARD (qhelp = magic violet)     -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="glass sm help-card qhelp" style="padding:14px;margin-bottom:14px;animation:fadeInUp 0.9s var(--ease-spring) both">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="help-head" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;position:relative;z-index:5">
+            <div class="help-head-ic" style="width:36px;height:36px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.5);position:relative;overflow:hidden">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:white;fill:none;stroke-width:2;position:relative;z-index:1"><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="help-head-text" style="flex:1;min-width:0">
+                <div class="help-title" style="font-size:15px;font-weight:800;letter-spacing:-0.01em;background:linear-gradient(135deg,var(--text),var(--magic,oklch(0.65 0.25 310)));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">AI ти помага</div>
+                <div class="help-sub" style="font-size:11px;font-weight:600;color:var(--text-muted);margin-top:2px;line-height:1.3">Питай за всичко — каталог, продажби, тенденции</div>
+            </div>
+        </div>
+        <div class="help-body" style="font-size:12px;font-weight:600;color:var(--text-muted);line-height:1.5;margin-bottom:10px;position:relative;z-index:5">
+            Просто пиши или говори. <b style="color:var(--text);font-weight:800">AI знае всичко за магазина ти</b>. Не се нуждаеш от меню — само попитай.
+        </div>
+        <div class="help-chips-label" style="font-family:'DM Mono',ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;position:relative;z-index:5">Опитай да попиташ</div>
+        <div class="help-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;position:relative;z-index:5">
+            <button type="button" class="help-chip" onclick="openChatQ('Какво ми тежи на склада')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Какво ми тежи на склада</span></button>
+            <button type="button" class="help-chip" onclick="openChatQ('Кои са топ продавачи')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Кои са топ продавачи</span></button>
+            <button type="button" class="help-chip" onclick="openChatQ('Колко да поръчам')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Колко да поръчам</span></button>
+            <button type="button" class="help-chip" onclick="openChatQ('Защо приходите паднаха')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Защо приходите паднаха</span></button>
+            <button type="button" class="help-chip" onclick="openChatQ('Покажи Adidas 42')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Покажи Adidas 42</span></button>
+            <button type="button" class="help-chip" onclick="openChatQ('Какво продаваме днес')" style="padding:7px 12px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:var(--text);border:none;display:inline-flex;align-items:center;gap:5px;background:var(--surface);box-shadow:var(--shadow-card-sm)"><span style="font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:900;color:var(--magic,oklch(0.65 0.25 310))">?</span><span>Какво продаваме днес</span></button>
+        </div>
+        <div class="help-video-ph" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:8px;background:var(--surface);box-shadow:var(--shadow-pressed);border:1px dashed oklch(0.62 0.22 285 / 0.3);position:relative;z-index:5">
+            <span class="help-video-ic" style="width:28px;height:28px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 2px 6px hsl(280 70% 50% / 0.4)">
+                <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:white;fill:white;stroke-width:0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </span>
+            <div class="help-video-text" style="flex:1;min-width:0">
+                <div class="help-video-title" style="font-size:11.5px;font-weight:700">Видео урок</div>
+                <div class="help-video-sub" style="font-family:'DM Mono',ui-monospace,monospace;font-size:9.5px;font-weight:600;color:var(--text-muted);margin-top:1px">Скоро</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- LIFE BOARD HEADER + FILTER PILLS + CARDS    -->
     <!-- ═══════════════════════════════════════════ -->
     <div class="lb-header">
         <div class="lb-title">
@@ -591,56 +866,101 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
         <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
     </div>
 
+    <?php if (!empty($all_insights_for_js)): ?>
+    <!-- P11 Filter pills (open Signal Browser with category context) -->
+    <div class="fp-row" style="display:flex;gap:6px;overflow-x:auto;padding:0 4px 8px;margin-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:5">
+        <button type="button" class="fp-pill active" onclick="openSignalBrowser()" style="flex:0 0 auto;height:32px;padding:0 14px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:0.04em;color:white;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 12px hsl(255 80% 50% / 0.4);white-space:nowrap">
+            Всички <span class="fp-count" style="font-size:9px;padding:1px 6px;border-radius:var(--radius-pill);background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.2)"><?= count($all_insights_for_js) ?></span>
+        </button>
+        <?php
+        $cat_pill_meta = [
+            'finance'   => ['label' => 'Финанси',  'svg' => '<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'],
+            'sales'     => ['label' => 'Продажби', 'svg' => '<svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/></svg>'],
+            'warehouse' => ['label' => 'Склад',    'svg' => '<svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>'],
+            'products'  => ['label' => 'Продукти', 'svg' => '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'],
+            'expenses'  => ['label' => 'Разходи',  'svg' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>'],
+        ];
+        foreach ($cat_pill_meta as $catKey => $meta):
+            $cnt = count($ui_categories[$catKey]['items'] ?? []);
+            if ($cnt === 0) continue;
+        ?>
+        <button type="button" class="fp-pill" onclick="openSignalBrowser()" style="flex:0 0 auto;height:32px;padding:0 14px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text-muted);border:none;background:var(--surface);box-shadow:var(--shadow-card-sm);white-space:nowrap">
+            <?= $meta['svg'] ?>
+            <?= htmlspecialchars($meta['label']) ?>
+            <span class="fp-count" style="font-size:9px;padding:1px 6px;border-radius:var(--radius-pill);background:var(--accent);color:white"><?= $cnt ?></span>
+        </button>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <?php if (!empty($briefing)):
         $fq_meta = [
-            'loss'       => ['q'=>'q1', 'emoji'=>'🔴', 'name'=>'Какво губиш'],
-            'loss_cause' => ['q'=>'q2', 'emoji'=>'🟣', 'name'=>'От какво губиш'],
-            'gain'       => ['q'=>'q3', 'emoji'=>'🟢', 'name'=>'Какво печелиш'],
-            'gain_cause' => ['q'=>'q4', 'emoji'=>'💎', 'name'=>'От какво печелиш'],
-            'order'      => ['q'=>'q5', 'emoji'=>'🟡', 'name'=>'Поръчай'],
-            'anti_order' => ['q'=>'q6', 'emoji'=>'⚪', 'name'=>'НЕ поръчвай'],
+            'loss'       => ['q'=>'q1', 'name'=>'Какво губиш'],
+            'loss_cause' => ['q'=>'q2', 'name'=>'От какво губиш'],
+            'gain'       => ['q'=>'q3', 'name'=>'Какво печелиш'],
+            'gain_cause' => ['q'=>'q4', 'name'=>'От какво печелиш'],
+            'order'      => ['q'=>'q5', 'name'=>'Поръчай'],
+            'anti_order' => ['q'=>'q6', 'name'=>'НЕ поръчвай'],
         ];
         $topic_to_idx = [];
         foreach ($all_insights_for_js as $idx => $v) {
             $topic_to_idx[$v['topicId']] = $idx;
         }
+        $first_card = true;
         foreach ($briefing as $ins):
             $fq = $ins['fundamental_question'];
-            $meta = $fq_meta[$fq] ?? ['q'=>'q3','emoji'=>'•','name'=>''];
+            $meta = $fq_meta[$fq] ?? ['q'=>'q3','name'=>''];
             $action = insightAction($ins);
             $idx_in_all = $topic_to_idx[$ins['topic_id']] ?? 0;
             $title_js = htmlspecialchars(addslashes($ins['title']), ENT_QUOTES);
+            $svg_html = $fq_svg_p11[$meta['q']] ?? $fq_svg_p11['q3'];
+            $module_label = fqModuleLabel($ins['category'] ?? '', $ins['module'] ?? 'home');
+            // Първият card (gain ако има, иначе loss) — expanded; останалите — collapsed
+            $expanded_class = $first_card ? ' expanded' : '';
+            $first_card = false;
     ?>
-    <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'], ENT_QUOTES) ?>">
+    <div class="glass sm lb-card <?= $meta['q'] ?><?= $expanded_class ?>" data-topic="<?= htmlspecialchars($ins['topic_id'], ENT_QUOTES) ?>" style="padding:12px 14px;margin-bottom:8px;cursor:pointer">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="lb-top">
-            <span class="lb-fq-tag"><span class="lb-fq-emoji"><?= $meta['emoji'] ?></span> <?= $meta['name'] ?></span>
-            <button type="button" class="lb-dismiss" aria-label="Скрий" onclick="lbDismissCard(event,this)">×</button>
+        <div class="lb-collapsed" onclick="lbToggleCard(event,this)" style="display:flex;align-items:center;gap:10px;position:relative;z-index:5">
+            <span class="lb-emoji-orb" style="width:28px;height:28px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:hsl(0 50% 92%);box-shadow:var(--shadow-pressed)"><?= $svg_html ?></span>
+            <div class="lb-collapsed-content" style="flex:1;min-width:0">
+                <span class="lb-fq-tag-mini" style="display:block;font-family:'DM Mono',ui-monospace,monospace;font-size:8.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)"><?= htmlspecialchars($module_label) ?> · <?= htmlspecialchars($meta['name']) ?></span>
+                <span class="lb-collapsed-title" style="display:block;font-size:12px;font-weight:700;margin-top:2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($ins['title']) ?></span>
+            </div>
+            <button type="button" class="lb-expand-btn" aria-label="Разгъни" style="width:24px;height:24px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:var(--surface);box-shadow:var(--shadow-card-sm);border:none;transition:transform 0.3s ease">
+                <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:var(--text-muted);fill:none;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button type="button" class="lb-dismiss" aria-label="Скрий" onclick="lbDismissCard(event,this)" style="width:22px;height:22px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:transparent;border:none;color:var(--text-faint);font-size:14px;line-height:1">×</button>
         </div>
-        <div class="lb-card-title"><?= htmlspecialchars($ins['title']) ?></div>
-        <?php if (!empty($ins['detail_text'])): ?>
-        <div class="lb-body"><?= htmlspecialchars($ins['detail_text']) ?></div>
-        <?php endif; ?>
-        <div class="lb-actions">
-            <button type="button" class="lb-action" onclick="openChatQ('<?= $title_js ?>')">Защо?</button>
-            <button type="button" class="lb-action" onclick="openSignalDetail(<?= $idx_in_all ?>)">Покажи</button>
-            <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
-            <a class="lb-action primary" href="<?= htmlspecialchars($action['url']) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
-            <?php elseif ($action['type'] === 'order_draft'): ?>
-            <button type="button" class="lb-action primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
-            <?php else: ?>
-            <button type="button" class="lb-action primary" onclick="openChatQ('<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
+        <div class="lb-expanded" style="max-height:0;overflow:hidden;transition:max-height 0.35s ease,padding-top 0.35s ease;position:relative;z-index:5">
+            <?php if (!empty($ins['detail_text'])): ?>
+            <div class="lb-body" style="font-size:12px;line-height:1.5;color:var(--text-muted);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:10px;background:var(--surface);box-shadow:var(--shadow-pressed)"><?= htmlspecialchars($ins['detail_text']) ?></div>
             <?php endif; ?>
-        </div>
-        <div class="lb-feedback">
-            <span class="lb-fb-label">Полезно?</span>
-            <button type="button" class="lb-fb-btn" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
-            <button type="button" class="lb-fb-btn" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
-            <button type="button" class="lb-fb-btn" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
+            <div class="lb-actions" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+                <button type="button" class="lb-action" onclick="openChatQ('<?= $title_js ?>')">Защо?</button>
+                <button type="button" class="lb-action" onclick="openSignalDetail(<?= $idx_in_all ?>)">Покажи</button>
+                <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
+                <a class="lb-action primary" href="<?= htmlspecialchars(chatLink($action['url'])) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
+                <?php elseif ($action['type'] === 'order_draft'): ?>
+                <button type="button" class="lb-action primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
+                <?php else: ?>
+                <button type="button" class="lb-action primary" onclick="openChatQ('<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
+                <?php endif; ?>
+            </div>
+            <div class="lb-feedback">
+                <span class="lb-fb-label">Полезно?</span>
+                <button type="button" class="lb-fb-btn" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
+                <button type="button" class="lb-fb-btn" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
+                <button type="button" class="lb-fb-btn" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
+            </div>
         </div>
     </div>
     <?php endforeach; ?>
+    <style>
+    .lb-card.expanded .lb-expanded { max-height: 600px !important; padding-top: 12px !important; }
+    .lb-card.expanded .lb-expand-btn { transform: rotate(180deg); }
+    </style>
     <?php if ($remaining > 0): ?>
     <div class="lb-see-more"><button type="button" onclick="openSignalBrowser()">Виж още <?= $remaining ?> теми →</button></div>
     <?php endif; ?>
@@ -669,14 +989,16 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- INPUT BAR — moved to partials/chat-input-bar.php       -->
+<!-- INPUT BAR — partial (preserved)                        -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
 
+<?php if (!$renderSimpleHeader): ?>
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- BOTTOM NAV — design-kit v1.1 partial                  -->
+<!-- BOTTOM NAV — partial (skip in simple-mode render guard) -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <?php include __DIR__ . '/design-kit/partial-bottom-nav.html'; ?>
+<?php endif; ?>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh CHAT OVERLAY (WhatsApp стил, blur отдолу)         -->
@@ -812,10 +1134,35 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 
 <div class="toast" id="toast"></div>
 
+<!-- ═══ P11 INFO POPOVER (preserved JS for parity, no triggers in chat.php) ═══ -->
+<div class="info-overlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()" style="position:fixed;inset:0;background:rgba(163,177,198,0.5);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px">
+    <div class="info-card" style="width:100%;max-width:380px;border-radius:var(--radius);padding:18px 16px;position:relative;background:var(--surface);box-shadow:var(--shadow-card)">
+        <div class="info-card-head" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div class="info-card-ic" id="infoIc" style="width:44px;height:44px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:var(--surface);box-shadow:var(--shadow-pressed)"></div>
+            <div class="info-card-title" id="infoTitle" style="flex:1;font-size:16px;font-weight:800;letter-spacing:-0.01em"></div>
+            <button type="button" class="info-card-close" onclick="closeInfo()" aria-label="Затвори" style="width:32px;height:32px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:var(--surface);box-shadow:var(--shadow-card-sm);border:none">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="info-card-body" id="infoBody" style="font-size:13px;font-weight:600;color:var(--text-muted);line-height:1.45;margin-bottom:14px"></div>
+        <div class="info-card-voice" style="padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;background:var(--surface);box-shadow:var(--shadow-pressed)">
+            <div class="info-card-voice-label" style="font-family:'DM Mono',ui-monospace,monospace;font-size:8.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--magic,oklch(0.65 0.25 310));margin-bottom:4px;display:flex;align-items:center;gap:4px">
+                <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg>
+                <span>Опитай с глас</span>
+            </div>
+            <div class="info-card-voice-text" id="infoVoice" style="font-size:12px;font-weight:700;color:var(--text);font-style:italic;line-height:1.4"></div>
+        </div>
+        <a class="info-card-cta" id="infoCta" href="#" style="width:100%;height:46px;padding:0 14px;border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:800;color:white;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(255 80% 50% / 0.4);text-decoration:none">
+            <span id="infoCtaLabel"></span>
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:white;fill:none;stroke-width:2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+    </div>
+</div>
+<style>.info-overlay.active { display: flex !important; animation: fadeIn 0.2s ease; }</style>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // THEME TOGGLE — default DARK, user can switch to LIGHT
-// Persisted in localStorage['rms_theme']
 // ═══════════════════════════════════════════════════════
 (function initTheme(){
     try{
@@ -834,10 +1181,9 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
     }catch(_){}
 })();
 function toggleTheme(){
-    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var cur=document.documentElement.getAttribute('data-theme')||'light';
     var nxt=(cur==='light')?'dark':'light';
-    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
-    else{document.documentElement.removeAttribute('data-theme')}
+    document.documentElement.setAttribute('data-theme',nxt);
     try{localStorage.setItem('rms_theme',nxt)}catch(_){}
     var sun=document.getElementById('themeIconSun');
     var moon=document.getElementById('themeIconMoon');
@@ -892,7 +1238,6 @@ function updateRevenue() {
 
     const revEl = $('revNum');
     if (!_revAnimatedOnce && typeof animateCountUp === 'function') {
-        // S87.ANIMATIONS v2.1 — spacious count-up (1.2s delay, 1.8s duration)
         _revAnimatedOnce = true;
         revEl.dataset.count = String(Math.round(val));
         setTimeout(() => animateCountUp(revEl, Math.round(val), 1800), 1200);
@@ -910,7 +1255,7 @@ function updateRevenue() {
     $('revCmp').textContent = sub + ' ' + CS;
 
     let meta = d.cnt + ' продажби';
-    if (IS_OWNER && d.cnt > 0) meta += ' \u00b7 ' + d.margin + '% марж';
+    if (IS_OWNER && d.cnt > 0) meta += ' · ' + d.margin + '% марж';
     $('revMeta').textContent = meta;
 
     const cw = $('confWarn');
@@ -919,8 +1264,6 @@ function updateRevenue() {
 
 function setPeriod(period, el) {
     curPeriod = period;
-    // Period pills are the first 4 .rev-pill buttons (today/7d/30d/365d).
-    // Mode pills (Оборот/Печалба) carry an id (modeRev/modeProfit) — exclude them.
     document.querySelectorAll('.rev-pill').forEach(p => {
         if (p.id === 'modeRev' || p.id === 'modeProfit') return;
         p.classList.toggle('active', p === el);
@@ -947,6 +1290,18 @@ function lbDismissCard(e, btn){
     if (navigator.vibrate) navigator.vibrate(8);
 }
 
+// S133 P11 — Toggle collapsible lb-card (P11 design)
+function lbToggleCard(e, row) {
+    if (e.target.closest('.lb-action') || e.target.closest('.lb-fb-btn') || e.target.closest('.lb-dismiss') || e.target.closest('.lb-expand-btn')) {
+        // Click on inner button — handled separately, but for expand-btn fall through to toggle
+        if (!e.target.closest('.lb-expand-btn')) return;
+    }
+    var card = row.closest('.lb-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+
 function setMode(mode) {
     curMode = mode;
     const mr = $('modeRev'), mp = $('modeProfit');
@@ -964,7 +1319,11 @@ function toggleLogout(e) {
     $('logoutDrop').classList.toggle('show');
 }
 document.addEventListener('click', e => {
-    if (!$('logoutBtn').contains(e.target)) $('logoutDrop').classList.remove('show');
+    var lb = $('logoutBtn');
+    if (lb && !lb.contains(e.target)) {
+        var dr = $('logoutDrop');
+        if (dr) dr.classList.remove('show');
+    }
 });
 
 // ═══════════════════════════════════════════════════════
@@ -1021,7 +1380,6 @@ function openSignalDetail(idx) {
     if (!s) return;
     OV.sig = true;
 
-    // Mark as tapped (S79 ai_shown tracking)
     try {
         if (s.topicId) markInsightShown(s.topicId, 'tapped', s.category || '', 0);
     } catch(e) {}
@@ -1035,27 +1393,23 @@ function openSignalDetail(idx) {
     const body = $('sigBody');
     let h = '';
 
-    // fq badge на върха (S79 §6)
     if (s.fqLabel && s.qClass) {
         h += '<div style="text-align:center;margin-bottom:4px">'
            + '<span class="sig-fq-badge ' + s.qClass + '">' + esc(s.fqLabel) + '</span></div>';
     }
 
-    // Hero number (загуба/печалба)
     if (s.value) {
-        const sign = u === 'info' ? '+' : '\u2212';
+        const sign = u === 'info' ? '+' : '−';
         h += '<div class="sig-hero"><div class="sig-hero-num ' + u + '">'
            + sign + fmt(Math.abs(s.value)) + ' ' + CS + '</div>'
            + '<div class="sig-hero-unit">' + (u === 'info' ? 'печалба / период' : 'пропуснати приходи / период') + '</div></div>';
     }
 
-    // Why box
     if (s.detail) {
         h += '<div class="sig-box"><div class="sig-label">Защо</div>'
            + '<div class="sig-text">' + esc(s.detail) + '</div></div>';
     }
 
-    // Suggestion box + action buttons
     h += '<div class="sig-box"><div class="sig-label">Предложение</div>';
     if (s.detail) {
         h += '<div class="sig-text sig-suggest">Обмисли действие по този сигнал.</div>';
@@ -1077,7 +1431,6 @@ function openSignalDetail(idx) {
     }
     h += '</div>';
 
-    // Засегнати артикули (от data.products)
     if (s.data && s.data.products && s.data.products.length) {
         h += '<div class="sig-section">Засегнати артикули</div>';
         s.data.products.forEach(function(p) {
@@ -1089,7 +1442,6 @@ function openSignalDetail(idx) {
         });
     }
 
-    // Обобщение
     if (s.count > 0) {
         h += '<div class="sig-section">Обобщение</div>';
         h += '<div class="sig-row">'
@@ -1120,7 +1472,6 @@ function addToOrderDraft(idx) {
     if (!s) return;
     showToast('Добавено към чернова поръчка');
     closeSignalDetail();
-    // TODO: actual order draft integration (S83 orders.php)
 }
 
 // ─── SIGNAL BROWSER OVERLAY ───
@@ -1141,7 +1492,7 @@ function openSignalBrowser() {
            + '<div class="browser-cat-h">'
            + '<div class="browser-cat-dot" style="background:' + color + ';color:' + color + '"></div>'
            + '<span class="browser-cat-name" style="color:' + color + '">' + label + '</span>'
-           + '<span class="browser-cat-cnt">' + (items.length || '\u2014') + '</span></div>';
+           + '<span class="browser-cat-cnt">' + (items.length || '—') + '</span></div>';
 
         if (catKey === 'expenses' && items.length === 0) {
             h += '<div class="browser-future">Скоро: наем, ток, заплати, break-even</div></div>';
@@ -1162,7 +1513,7 @@ function openSignalBrowser() {
                + '<div class="sig-card-t">' + esc(s.title) + '</div>'
                + (s.detail ? '<div class="sig-card-d">' + esc(s.detail.substring(0, 80)) + '</div>' : '')
                + '</div>'
-               + '<div class="sig-card-arr">\u203A</div></div>';
+               + '<div class="sig-card-arr">›</div></div>';
         });
         h += '</div>';
     });
@@ -1208,7 +1559,6 @@ let _touchY = 0;
     p.addEventListener('touchstart', e => { _touchY = e.touches[0].clientY; }, { passive: true });
     p.addEventListener('touchend', e => {
         const dy = e.changedTouches[0].clientY - _touchY;
-        // Only close if swipe начва от горните 80px и слиза >80px
         const rect = p.getBoundingClientRect();
         if (_touchY < rect.top + 80 && dy > 80) {
             if (id === 'chatPanel') closeChat();
@@ -1270,12 +1620,12 @@ function addAIBubble(txt, actions) {
     const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
     let h = '<div class="msg-meta">'
           + '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-          + 'AI \u00b7 ' + t + '</div>'
+          + 'AI · ' + t + '</div>'
           + '<div class="msg-ai">' + esc(txt) + '</div>';
     if (actions && actions.length) {
         h += '<div class="action-buttons">';
         actions.forEach(function(a) {
-            h += '<button class="action-button" onclick="window.open(\'' + esc(a.url || '#') + '\',\'_blank\')">' + esc(a.label) + ' \u2192</button>';
+            h += '<button class="action-button" onclick="window.open(\'' + esc(a.url || '#') + '\',\'_blank\')">' + esc(a.label) + ' →</button>';
         });
         h += '</div>';
     }
@@ -1360,14 +1710,49 @@ function proactivePillTap(el, title) {
     const cat = el.getAttribute('data-cat') || '';
     const pid = el.getAttribute('data-pid') || 0;
     markInsightShown(topic, 'tapped', cat, pid);
-    // Опитай да намериш insight в текущия pool
     if (typeof ALL_INSIGHTS !== 'undefined') {
         for (let i = 0; i < ALL_INSIGHTS.length; i++) {
             if (ALL_INSIGHTS[i].topicId === topic) { openSignalDetail(i); return; }
         }
     }
-    // Fallback: отвори чат с title
     openChatQ(title);
+}
+
+// ═══════════════════════════════════════════════════════
+// S133 P11 — Info popover (preserved JS for parity)
+// ═══════════════════════════════════════════════════════
+const INFO_DATA = {};
+function openInfo(key) {
+    const d = INFO_DATA[key]; if (!d) return;
+    document.getElementById('infoIc').innerHTML = d.iconSvg || '';
+    document.getElementById('infoTitle').textContent = d.title || '';
+    document.getElementById('infoBody').innerHTML = d.body || '';
+    document.getElementById('infoVoice').textContent = d.voice || '';
+    document.getElementById('infoCtaLabel').textContent = d.cta || '';
+    if (d.href) document.getElementById('infoCta').setAttribute('href', d.href);
+    document.getElementById('infoOverlay').classList.add('active');
+}
+function closeInfo() {
+    document.getElementById('infoOverlay').classList.remove('active');
+}
+
+// S133 P11 — WFC range tab toggle
+function wfcSetRange(r) {
+    var card = document.querySelector('.wfc');
+    if (card) card.setAttribute('data-range', r);
+    // Update active tab visual
+    document.querySelectorAll('.wfc-tab').forEach(function(t){
+        t.style.color = (t.getAttribute('data-tab') === r) ? 'white' : 'var(--text-muted)';
+        t.style.background = (t.getAttribute('data-tab') === r) ? 'linear-gradient(135deg, hsl(195 70% 50%), hsl(38 80% 55%))' : 'transparent';
+        t.style.boxShadow = (t.getAttribute('data-tab') === r) ? '0 3px 10px hsl(195 70% 45% / 0.4)' : 'none';
+    });
+    // Hide/show wfc-day cells per range
+    var days = document.querySelectorAll('.wfc-days .wfc-day');
+    days.forEach(function(d, i){
+        if (r === '3') d.style.display = (i < 3) ? '' : 'none';
+        else if (r === '7') d.style.display = (i < 7) ? '' : 'none';
+        else d.style.display = '';
+    });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1375,12 +1760,13 @@ function proactivePillTap(el, title) {
 // ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
     updateRevenue();
-    // S58: Auto-reopen chat if was open before navigation
     try {
         if (sessionStorage.getItem('rms_chat_open') === '1') {
             setTimeout(() => openChat(), 300);
         }
     } catch(e) {}
+    // Initialize WFC default range = 3
+    wfcSetRange('3');
 });
 
 document.querySelectorAll(['.sig-card','.sig-more','.nav-tab','.header-icon-btn','.store-sel','.health-link','.health-info','.top-pill','.rev-pill'].join(',')).forEach(el => {
@@ -1399,7 +1785,7 @@ function animateCountUp(el, finalValue, duration) {
     function tick(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.floor(start + (finalValue - start) * eased);
         el.textContent = current.toLocaleString('bg-BG');
         if (progress < 1) {
@@ -1412,13 +1798,11 @@ function animateCountUp(el, finalValue, duration) {
     requestAnimationFrame(tick);
 }
 
-// Apply count-up на всички [data-count] elements after page entrance
 window.addEventListener('load', () => {
     setTimeout(() => {
         document.querySelectorAll('.count-up[data-count]').forEach(el => {
             const v = parseInt(el.dataset.count, 10);
             if (!isNaN(v) && v > 0 && el.id !== 'revNum') {
-                // revNum се анимира от updateRevenue() (динамична стойност)
                 animateCountUp(el, v, 1800);
             }
         });
@@ -1427,10 +1811,7 @@ window.addEventListener('load', () => {
 
 // ═══════════════════════════════════════════════════════
 // S87.ANIMATIONS v3 FULL PACK — Groups 1-6 JS hooks
-// DESIGN_SYSTEM § O.14-O.19
 // ═══════════════════════════════════════════════════════
-
-// GROUP 1 — Scroll-driven reveal + sticky-header blur (§O.14)
 (function s87v3_scroll(){
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var headerEl = document.querySelector('.rms-header') || document.querySelector('.header');
@@ -1453,7 +1834,6 @@ window.addEventListener('load', () => {
         });
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
     window.addEventListener('load', function(){
-        // Auto-tag .lb-card from index 4+ as scroll-reveal (below the fold on phone)
         var cards = document.querySelectorAll('.lb-card');
         for (var i = 4; i < cards.length; i++) cards[i].classList.add('scroll-reveal');
         document.querySelectorAll('.scroll-reveal').forEach(function(el){
@@ -1462,9 +1842,7 @@ window.addEventListener('load', () => {
     });
 })();
 
-// GROUP 2 — State transitions: addMessageWithAnimation hook (§O.15)
 function addMessageWithAnimation(role, txt){
-    // role: 'ai' | 'user'
     var g = document.createElement('div');
     g.className = 'msg-group';
     var t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
@@ -1485,7 +1863,6 @@ function addMessageWithAnimation(role, txt){
     return g;
 }
 
-// GROUP 3 — Live data: smooth number transition + badge bounce (§O.16)
 function animateNumberChange(el, newValue, duration){
     if (!el) return;
     duration = duration || 600;
@@ -1510,9 +1887,7 @@ function bounceBadge(el){
     setTimeout(function(){ el.classList.remove('bounce'); }, 520);
 }
 
-// GROUP 4 — Micro-animations: graceful overlay close + toast hide + elastic pull (§O.17)
 (function s87v3_overlayClose(){
-    // Wrap close functions so panel uses 'closing' choreography before unmount
     function wrapClose(name, panelId){
         var orig = window[name];
         if (typeof orig !== 'function') return;
@@ -1531,7 +1906,6 @@ function bounceBadge(el){
             }
         };
     }
-    // Defer wrapping until DOM ready (orig functions defined earlier in this script)
     if (document.readyState !== 'loading') {
         wrapClose('closeChat', 'chatPanel');
         wrapClose('closeSignal', 'sigPanel');
@@ -1545,7 +1919,6 @@ function bounceBadge(el){
     }
 })();
 
-// Toast graceful hide (overrides showToast's removal step)
 (function s87v3_toastHide(){
     var origToast = window.showToast;
     if (typeof origToast !== 'function') return;
@@ -1564,7 +1937,6 @@ function bounceBadge(el){
     };
 })();
 
-// GROUP 5 — Context changes: changeContext + period pill re-trigger (§O.18)
 function changeContext(targetUrl){
     var app = document.querySelector('.app');
     if (!app || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
@@ -1575,13 +1947,11 @@ function changeContext(targetUrl){
     setTimeout(function(){ window.location.href = targetUrl; }, 250);
 }
 
-// Период pill change → re-trigger num animation на dashboard num (using v3 animateNumberChange)
 (function s87v3_periodSmoothNum(){
     var origSetPeriod = window.setPeriod;
     if (typeof origSetPeriod !== 'function') return;
     window.setPeriod = function(period, el){
         origSetPeriod(period, el);
-        // After updateRevenue() runs, smooth-tween revNum from old to new (only after first count-up)
         try {
             if (typeof _revAnimatedOnce !== 'undefined' && _revAnimatedOnce && typeof P !== 'undefined') {
                 var d = P[period];
@@ -1595,7 +1965,6 @@ function changeContext(targetUrl){
     };
 })();
 
-// GROUP 6 — AI magic moments helper: tag inserted top-pill as .new for slide-in glow (§O.19)
 function spawnTopPill(html){
     var strip = document.querySelector('.top-strip');
     if (!strip) return null;
@@ -1609,7 +1978,6 @@ function spawnTopPill(html){
     return el;
 }
 
-// Spring tap release — overshoot animation на touchend
 (function attachSpringRelease(){
     const SEL = ['.spring-tap', '.briefing-btn-primary', '.briefing-btn-secondary',
                  '.sig-btn-primary', '.sig-btn-secondary',
@@ -1618,10 +1986,11 @@ function spawnTopPill(html){
                  '.sig-card', '.sig-more',
                  '.lb-action', '.lb-dismiss', '.lb-fb-btn',
                  '.chat-mic', '.chat-send',
-                 '.ov-back', '.ov-close'].join(',');
+                 '.ov-back', '.ov-close',
+                 '.fp-pill', '.help-chip', '.wfc-tab', '.lb-expand-btn'].join(',');
     const handler = (el) => {
         el.classList.remove('released');
-        void el.offsetWidth; // force reflow
+        void el.offsetWidth;
         el.classList.add('released');
         setTimeout(() => el.classList.remove('released'), 400);
     };
