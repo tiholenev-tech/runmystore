@@ -19,12 +19,25 @@
 # CSS липсващи class threshold: >=2 → FAIL (виж css-coverage.sh).
 #
 # Usage:
-#   visual-gate.sh <mockup_path> <rewrite_path> <session_dir> [backup_path]
+#   visual-gate.sh [--auth=admin|seller|none] <mockup_path> <rewrite_path> <session_dir> [backup_path]
+#
+#   --auth=admin   priming за login-protected .php (вижте AUTH FIXTURE по-долу)
+#   --auth=seller  same, но role=seller (за simple-mode rendering паttern-и)
+#   --auth=none    default; backwards compatible — без auth fixture
 #
 #   mockup_path: .html файл (mockup; ground truth)
 #   rewrite_path: .php или .html (rewrite; testee)
 #   session_dir: directory за артефакти (positions, screenshots, logs)
 #   backup_path: optional .bak файл за auto-rollback при iter 5 fail
+#
+# AUTH FIXTURE (v1.1):
+#   Когато --auth != none, php -S се стартира с visual-gate-router.php като
+#   router script + VG_AUTH=1, така че auth-fixture.php се require-ва ПРЕДИ
+#   target-ния .php файл. $_SESSION се set-ва само в isolated php -S процеса
+#   (own session storage). Production session storage не се пипа.
+#   Defaults: admin=user_id=1/role=admin/tenant=1/store=1;
+#             seller=user_id=2/role=seller/tenant=1/store=1.
+#   Override чрез env vars: VG_USER_ID, VG_ROLE, VG_TENANT_ID, VG_STORE_ID.
 #
 # Exit codes:
 #   0 = PASS на някой iter (1-5)
@@ -63,13 +76,36 @@ PHP_PID=""
 R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'; B='\033[0;34m'; N='\033[0m'
 
 # ─── args ───────────────────────────────────────────────────────────────
+AUTH_MODE="none"
+POSITIONAL=()
+for arg in "$@"; do
+    case "$arg" in
+        --auth=*)
+            AUTH_MODE="${arg#--auth=}"
+            ;;
+        --auth)
+            echo "FATAL: --auth requires =value (e.g. --auth=admin)" >&2
+            exit 1
+            ;;
+        *)
+            POSITIONAL+=("$arg")
+            ;;
+    esac
+done
+set -- "${POSITIONAL[@]}"
+
 MOCKUP="${1:-}"
 REWRITE="${2:-}"
 SESSION_DIR="${3:-}"
 BACKUP_PATH="${4:-}"
 
+case "$AUTH_MODE" in
+    none|admin|seller) ;;
+    *) echo "FATAL: --auth must be one of: none, admin, seller (got: $AUTH_MODE)" >&2; exit 1 ;;
+esac
+
 if [ -z "$MOCKUP" ] || [ -z "$REWRITE" ] || [ -z "$SESSION_DIR" ]; then
-    echo "Usage: $0 <mockup_path> <rewrite_path> <session_dir> [backup_path]" >&2
+    echo "Usage: $0 [--auth=admin|seller|none] <mockup_path> <rewrite_path> <session_dir> [backup_path]" >&2
     exit 1
 fi
 [ ! -f "$MOCKUP" ] && { echo "FATAL: mockup not found: $MOCKUP" >&2; exit 1; }
@@ -93,10 +129,19 @@ trap cleanup EXIT
 # ─── helpers ────────────────────────────────────────────────────────────
 
 # Стартира PHP вграден сървър (само ако не работи вече) за рендериране на .php
+# Когато AUTH_MODE != none, ползва visual-gate-router.php като router script
+# и ENV_AUTH_FLAGS като env (set от apply_auth_mode по-горе).
 ensure_php_server() {
     local doc_root="$1"
     if [ -n "$PHP_PID" ] && kill -0 "$PHP_PID" 2>/dev/null; then return 0; fi
-    php -S "127.0.0.1:${PHP_PORT}" -t "$doc_root" >/dev/null 2>&1 &
+    local router_args=()
+    if [ "$AUTH_MODE" != "none" ]; then
+        local router="${SCRIPT_DIR}/visual-gate-router.php"
+        [ -f "$router" ] || { echo "FATAL: router missing: $router" >&2; return 1; }
+        router_args=("$router")
+    fi
+    # env е вече exported от apply_auth_mode (VG_AUTH, VG_USER_ID, ...)
+    php -S "127.0.0.1:${PHP_PORT}" -t "$doc_root" "${router_args[@]}" >/dev/null 2>&1 &
     PHP_PID=$!
     # дай малко време да стартира
     for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -106,6 +151,31 @@ ensure_php_server() {
         curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PHP_PORT}/" 2>/dev/null | grep -qE '^[0-9]+$' && return 0
     done
     return 1
+}
+
+# Set-ва VG_* env vars според AUTH_MODE. Викнат еднократно от main преди loop.
+apply_auth_mode() {
+    case "$AUTH_MODE" in
+        none)
+            unset VG_AUTH VG_USER_ID VG_ROLE VG_TENANT_ID VG_STORE_ID
+            return
+            ;;
+        admin)
+            export VG_AUTH=1
+            export VG_USER_ID="${VG_USER_ID:-1}"
+            export VG_ROLE="${VG_ROLE:-admin}"
+            export VG_TENANT_ID="${VG_TENANT_ID:-1}"
+            export VG_STORE_ID="${VG_STORE_ID:-1}"
+            ;;
+        seller)
+            export VG_AUTH=1
+            export VG_USER_ID="${VG_USER_ID:-2}"
+            export VG_ROLE="${VG_ROLE:-seller}"
+            export VG_TENANT_ID="${VG_TENANT_ID:-1}"
+            export VG_STORE_ID="${VG_STORE_ID:-1}"
+            ;;
+    esac
+    echo "auth fixture: VG_AUTH=1 user_id=${VG_USER_ID} role=${VG_ROLE} tenant=${VG_TENANT_ID} store=${VG_STORE_ID}"
 }
 
 # Връща URL за рендериране на даден файл
@@ -320,6 +390,8 @@ if [ -z "${PHP_DOC_ROOT:-}" ]; then
             ;;
     esac
 fi
+
+apply_auth_mode
 
 START_TS=$(date +%s)
 

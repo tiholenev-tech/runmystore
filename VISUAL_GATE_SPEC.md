@@ -1,7 +1,7 @@
-# VISUAL_GATE_SPEC v1.0 — auto-retry visual validation за design rewrites
+# VISUAL_GATE_SPEC v1.1 — auto-retry visual validation за design rewrites
 
-Дата: 09.05.2026
-Статус: SPEC pending implementation
+Дата: 09.05.2026 (v1.0); 09.05.2026 (v1.1 — auth fixture)
+Статус: v1.0 implemented; v1.1 auth fixture implemented
 Контекст: chat.php P11 disaster (09.05) — всички 21 anti-regression правила pass-наха но визуалното беше счупено. Anti-regression защитава логиката, не визуалното съответствие. За products.php (~14617 реда) рискът е катастрофален без visual gate.
 
 ESCALATING TOLERANCE LOOP
@@ -86,3 +86,85 @@ OPEN QUESTIONS
 4. CC dependency на Apache running — какво ако crash?
 
 END v1.0
+
+═══════════════════════════════════════════════════════════════════════
+## 13. AUTH FIXTURE (v1.1 — added 2026-05-09)
+═══════════════════════════════════════════════════════════════════════
+
+ПРОБЛЕМ
+chat.php, life-board.php, products.php (и други login-protected файлове)
+правят:
+    if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+В headless render това резултира в 302 → login.php; visual gate сравнява
+mockup срещу login страницата и винаги fail-ва. Auth fixture-ът решава това.
+
+КОМПОНЕНТИ
+- design-kit/auth-fixture.php   — set-ва $_SESSION в текущия PHP request
+- design-kit/visual-gate-router.php — router script на php -S; require-ва
+  fixture-а ПРЕДИ да require-не target-ния .php файл
+- design-kit/visual-gate.sh      — нов флаг `--auth=admin|seller|none`
+- design-kit/visual-gate-test.sh — 4-case acceptance wrapper
+
+USAGE
+    visual-gate.sh --auth=admin <mockup> <rewrite.php> <session_dir>
+    visual-gate.sh --auth=seller <mockup> <rewrite.php> <session_dir>
+    visual-gate.sh <mockup> <rewrite.html> <session_dir>   # без auth (default)
+
+PRESET FIXTURES
+- admin:  user_id=1, role=admin,  tenant_id=1, store_id=1, ui_mode=detailed
+- seller: user_id=2, role=seller, tenant_id=1, store_id=1, ui_mode=detailed
+Override чрез env vars пред командата:
+    VG_USER_ID, VG_ROLE, VG_TENANT_ID, VG_STORE_ID, VG_USER_NAME
+
+SESSION KEYS НАСТРОЙВАНИ
+auth-fixture.php записва BOTH `role` и `user_role` (chat.php / life-board.php /
+products.php четат `role`; spec-ът с user_role е удовлетворен паралелно).
+Други keys: user_id, tenant_id, store_id, user_name, name, ui_mode='detailed',
+logged_in=true, csrf_token (32 hex), login_time.
+
+SAFETY МОДЕЛ — защо това НЕ компромет-ва production sessions
+1. auth-fixture.php refuses да run-не ако PHP_SAPI != 'cli-server'.
+   Apache vhost-ове ползват SAPI 'apache2handler' → fixture exit-ва веднага.
+2. fixture refuses ако env var VG_AUTH != '1' → import без env е no-op.
+3. visual-gate-router.php също refuses извън cli-server.
+4. php -S процес-ът има own PID, own session.save_path под /tmp/sess_*
+   на process-а. Production Apache pool не вижда тези session файлове.
+5. Visual gate стартира port 8765 на 127.0.0.1 → не expose-нат outside loopback.
+6. Cleanup trap kill-ва PHP_PID на script exit; временни session файлове
+   се почистват от OS при /tmp tmpwatch.
+7. Production webroot (/var/www/runmystore) НЕ се пипа — visual-gate авто-
+   detect-ва PHP_DOC_ROOT от parent-а на rewrite файла. Когато rewrite е в
+   /home/tihol/rms-visual-gate/, doc root е същата директория, не webroot-ът.
+
+ACCEPTANCE TESTS (visual-gate-test.sh)
+- TEST A: --auth=admin  + life-board.php → fixture: past auth
+- TEST B: --auth=admin  + chat.php       → fixture: past auth
+- TEST C: (no --auth)   + chat.php       → fixture: auth-wall (302 → login)
+- TEST D: --auth=seller + life-board.php → fixture: past auth
+
+Wrapper-ът докладва "fixture status" чрез out-of-band HTTP probe (отделен
+php -S процес на port 8766). Тя дава clean signal независимо от end-to-end
+visual gate verdict-а — auth fixture-ът се валидира сам по себе си.
+
+ИЗВЕСТНО ОГРАНИЧЕНИЕ — DB fixtures не са в обхвата на v1.1
+След като fixture-ът bypass-ва auth, target-ните файлове правят DB::run
+queries срещу tenants / stores / sales таблиците. Без test tenant + store
+rows (tenant_id=1, store_id=1) PHP fatal-ва на:
+    effectivePlan(): Argument #1 ($tenant) must be of type array, false given
+Това означава: visual-gate.sh PASS @ iter5 е недостижимо за .php файлове
+докато няма test DB или DB stub layer. Този problem е orthogonal на auth
+и трябва да се адресира в отделен SPEC (предложение: v1.2 — DB fixtures).
+
+CHANGES TO visual-gate.sh
+1. Нов CLI флаг `--auth=admin|seller|none` (parsed-out от positional args)
+2. Нова функция `apply_auth_mode()` — set-ва VG_* env vars според режим
+3. `ensure_php_server()` — когато AUTH_MODE != none, добавя
+   visual-gate-router.php като router script към php -S командата
+
+ROLLBACK / DISABLE
+За временно изключване на fixture-а:
+- Просто не подавайте --auth (default е none → backwards compatible)
+- Или изтрийте design-kit/visual-gate-router.php → auth=admin/seller ще
+  fatal-нат с „router missing" преди да започнат render
+
+END v1.1

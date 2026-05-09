@@ -50,3 +50,6 @@ files (*.zip
 
 tools/stress/__pycache__/
 tools/stress/data/
+
+# Visual gate test-run artefacts (chromium screenshots, DOM dumps)
+visual-gate-test-runs/
