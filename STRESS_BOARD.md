@@ -142,6 +142,10 @@
 
 ### Последни STRESS commits (last 20)
 
+- 2a20429 S131.STRESS.N5: tools/stress/ci/ — GitHub Actions workflow placeholder
+- 7ae7d85 S131.STRESS.N4: STRESS_BOARD.md — auto-generated ГРАФА 7
+- 53e5234 S131.STRESS.N3: tools/stress/sync_board_progress.py — auto STRESS_BOARD.md ГРАФА 7
+- 94ccf99 S131.STRESS.N1: tools/stress/sync_registries.py — auto STRESS_SCENARIOS.md
 - e44293b S131.STRESS.M4: alerts/README.md — setup + integration patches
 - 55f2994 S131.STRESS.M3: alerts/test_telegram.py — dry-run smoke test
 - 852e005 S131.STRESS.M2: alerts/cron_hooks.py — wrapper helpers за integration
@@ -158,10 +162,6 @@
 - 1a16b0c S128.STRESS.D: sanity_checker.py + balance_validator.py (Etap 4)
 - 2bc6b42 S128.STRESS.C: 12 scenario JSON files (S001-S012) + crontab.example
 - 5470205 S128.STRESS.C: test_new_features.py
-- 0ec48fb S128.STRESS.C: code_analyzer.sh + morning_report_writer.py
-- 41ef5a2 S128.STRESS.C: morning_summary.py
-- 9a63efa S128.STRESS.C: nightly_robot.py
-- b3e83c8 S128.STRESS.B: admin/stress-board.php + admin/health.php (Etap 2)
 
 <!-- STRESS-BOARD-AUTO:graph7:end -->
 
