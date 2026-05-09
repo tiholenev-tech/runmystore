@@ -102,6 +102,96 @@ def validate_movements(history: list) -> list:
     return inconsistencies
 
 
+def aggregate_balance(conn, tenant_id: int, since: datetime, product_id: int | None = None,
+                      store_id: int | None = None) -> list:
+    """
+    X-Y+Z aggregate math (S130 expansion):
+      closing = opening + deliveries_in - sales_out + refunds_in
+                + transfers_in - transfers_out - write_offs - adjustments_out
+                + adjustments_in
+    Връща list of {product_id, store_id, computed_closing, actual_closing, delta}.
+
+    NB: opening взема quantity_after от първия stock_movement преди `since` (или 0).
+    """
+    where_p = ""
+    where_s = ""
+    params: list = [tenant_id, since]
+    if product_id:
+        where_p = " AND product_id = %s"
+        params.append(product_id)
+    if store_id:
+        where_s = " AND store_id = %s"
+        params.append(store_id)
+
+    rows = []
+    with conn.cursor() as cur:
+        # Опит за aggregation през stock_movements (canonical източник)
+        cur.execute("SHOW TABLES LIKE 'stock_movements'")
+        if not cur.fetchone():
+            return []
+
+        # opening = quantity_after от последен movement преди since per (product,store).
+        # Ако такъв няма → assume 0.
+        cur.execute(
+            f"""
+            SELECT product_id, store_id, type,
+                   SUM(quantity) AS total_qty,
+                   COUNT(*) AS n
+            FROM stock_movements
+            WHERE tenant_id = %s AND created_at >= %s {where_p} {where_s}
+            GROUP BY product_id, store_id, type
+            """,
+            params,
+        )
+        agg: dict = {}
+        for r in cur.fetchall():
+            key = (int(r["product_id"]), int(r["store_id"]))
+            agg.setdefault(key, {"in": 0, "out": 0, "adjust": 0, "n": 0})
+            kind = r["type"]
+            if kind == "in":
+                agg[key]["in"] += int(r["total_qty"])
+            elif kind == "out":
+                agg[key]["out"] += int(r["total_qty"])
+            else:
+                agg[key]["adjust"] += int(r["total_qty"])
+            agg[key]["n"] += int(r["n"])
+
+        for (pid, sid), v in agg.items():
+            # opening
+            cur.execute(
+                """
+                SELECT quantity_after FROM stock_movements
+                WHERE tenant_id = %s AND product_id = %s AND store_id = %s AND created_at < %s
+                ORDER BY created_at DESC LIMIT 1
+                """,
+                (tenant_id, pid, sid, since),
+            )
+            op_row = cur.fetchone()
+            opening = int(op_row["quantity_after"]) if (op_row and op_row.get("quantity_after") is not None) else 0
+            computed = opening + v["in"] - v["out"] + v["adjust"]
+            # actual closing = current inventory.quantity
+            cur.execute(
+                "SELECT quantity FROM inventory WHERE product_id = %s AND store_id = %s LIMIT 1",
+                (pid, sid),
+            )
+            act_row = cur.fetchone()
+            actual = int(act_row["quantity"]) if (act_row and act_row.get("quantity") is not None) else 0
+            delta = actual - computed
+            rows.append({
+                "product_id": pid,
+                "store_id": sid,
+                "opening": opening,
+                "in": v["in"],
+                "out": v["out"],
+                "adjust": v["adjust"],
+                "computed_closing": computed,
+                "actual_closing": actual,
+                "delta": delta,
+                "movements_count": v["n"],
+            })
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tenant", type=int, default=None)
@@ -109,6 +199,8 @@ def main():
     ap.add_argument("--store", type=int, default=None)
     ap.add_argument("--since", type=str, default=None,
                     help="ISO date — default = 7 дни назад")
+    ap.add_argument("--mode", choices=["movements", "aggregate", "both"], default="both",
+                    help="movements = per-event; aggregate = X-Y+Z math; both = и двете")
     args = ap.parse_args()
 
     cfg = load_db_config()
@@ -126,35 +218,52 @@ def main():
     else:
         since = datetime.now() - timedelta(days=7)
 
-    history = fetch_history(conn, tenant_id, args.product, args.store, since)
-    print(f"[INFO] Loaded {len(history)} stock_movements records since {since}")
+    inconsistencies = []
+    aggregate_rows = []
+    aggregate_drifted = []
 
-    if not history:
-        print("[OK] Няма stock_movements за дадените filters.")
-        return 0
+    if args.mode in ("movements", "both"):
+        history = fetch_history(conn, tenant_id, args.product, args.store, since)
+        print(f"[MOVEMENTS] Loaded {len(history)} stock_movements records since {since}")
+        if history:
+            inconsistencies = validate_movements(history)
+            print(f"[MOVEMENTS] {len(inconsistencies)} inconsistencies открити.")
+            for i in inconsistencies[:20]:
+                print(
+                    f"  ⚠️ p={i['product_id']} s={i['store_id']} "
+                    f"{i['event_at']} {i['type']}{i['qty']:+d} "
+                    f"expected_after={i['expected_after']} actual={i['actual_after']} Δ={i['delta']} "
+                    f"ref={i['reference_type']}#{i['reference_id']}"
+                )
+            if len(inconsistencies) > 20:
+                print(f"  ... и още {len(inconsistencies) - 20}")
 
-    inconsistencies = validate_movements(history)
-
-    print(f"[VALIDATE] {len(inconsistencies)} inconsistencies открити.")
-    for i in inconsistencies[:20]:
-        print(
-            f"  ⚠️ p={i['product_id']} s={i['store_id']} "
-            f"{i['event_at']} {i['type']}{i['qty']:+d} "
-            f"expected_after={i['expected_after']} actual={i['actual_after']} Δ={i['delta']} "
-            f"ref={i['reference_type']}#{i['reference_id']}"
-        )
-    if len(inconsistencies) > 20:
-        print(f"  ... и още {len(inconsistencies) - 20}")
+    if args.mode in ("aggregate", "both"):
+        aggregate_rows = aggregate_balance(conn, tenant_id, since, args.product, args.store)
+        aggregate_drifted = [r for r in aggregate_rows if r["delta"] != 0]
+        print(f"[AGGREGATE] X-Y+Z math: {len(aggregate_rows)} (product,store) pairs, "
+              f"{len(aggregate_drifted)} drifted.")
+        for r in aggregate_drifted[:20]:
+            print(
+                f"  ⚠️ p={r['product_id']} s={r['store_id']} "
+                f"opening={r['opening']} +in={r['in']} -out={r['out']} ±adj={r['adjust']} "
+                f"→ computed={r['computed_closing']} actual={r['actual_closing']} Δ={r['delta']}"
+            )
+        if len(aggregate_drifted) > 20:
+            print(f"  ... и още {len(aggregate_drifted) - 20}")
 
     out = dry_run_log("balance_validator", {
         "action": "report", "tenant_id": tenant_id,
         "since": since.isoformat(),
-        "history_count": len(history),
-        "inconsistencies_total": len(inconsistencies),
-        "inconsistencies_sample": inconsistencies[:50],
+        "mode": args.mode,
+        "movements_inconsistencies_total": len(inconsistencies),
+        "movements_inconsistencies_sample": inconsistencies[:50],
+        "aggregate_pairs_total": len(aggregate_rows),
+        "aggregate_drifted_total": len(aggregate_drifted),
+        "aggregate_drifted_sample": aggregate_drifted[:50],
     })
     print(f"[LOG] {out}")
-    return 0 if not inconsistencies else 1
+    return 0 if not (inconsistencies or aggregate_drifted) else 1
 
 
 if __name__ == "__main__":
