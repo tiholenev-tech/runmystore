@@ -106,9 +106,12 @@ def main():
     password = gen_password()
 
     payload = dict(TENANT_DEFAULTS)
+    # Schema може да използва или `password_hash` (старо), или `password` (S133).
+    # И в двата случая записваме placeholder; реално bcrypt hash става post-apply.
     if "password_hash" in cols:
-        # bcrypt-style placeholder. Реално hash става след apply през PHP helper.
         payload["password_hash"] = "PENDING_BCRYPT"
+    if "password" in cols:
+        payload["password"] = "PENDING_BCRYPT"
     if "status" in cols:
         payload["status"] = "active"
     if "created_at" in cols:
