@@ -3272,3 +3272,42 @@ COPY END
 
 - **#34 — Iron Law gate (proposed, 08.05.2026)**
   Pre-commit hook трябва 6 layers: design compliance + PHP syntax + backend integrity + HTTP smoke + mockup conformance (structural diff) + DB schema canonical. Implementation TODO: design-kit/iron-law.sh.
+
+### RWQ-94 — DOCUMENTS_LOGIC.md поведенческа спецификация (P0 PRE-BETA)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** RWQ-88..93, миграция `2026_05_documents.up.sql`, sale.php redesign
+
+**Контекст:** DB схема (commit 861d86d) дефинира структура, но не behavior. Нужен е документ описващ trigger flows, state machines, race condition защити, fact verifier rules, edge cases, PDF generation, audit requirements и integration points.
+
+**Решение:** `DOCUMENTS_LOGIC.md` v1.0 (~22KB, 12 секции):
+
+1. **Закони** (7 sacred rules — ЗДДС compliance, snapshots, transactional integrity)
+2. **16 типа референция** (table с trigger / issuer / recipient / UI layer)
+3. **Trigger flows** (retail продажба, wholesale, returns, доставки, proforma conversion, AI команди)
+4. **State machines** (документ status + payment_status)
+5. **Race condition защити** (SELECT FOR UPDATE на серия, range exhaustion, concurrent locking)
+6. **Fact verifier правила** (FV-001..007 — ЕИК checksum, math integrity, parent ref)
+7. **Edge cases** (8 ситуации — partner двойна роля, частично връщане, серия exhausted, ENI миграция и т.н.)
+8. **PDF generation** (path convention, templates, mandatory fields per type, hooks)
+9. **Audit requirements** (per събитие + retention periods)
+10. **Integration points** (5 модула — sale.php, deliveries.php, partners.php, AI brain, stress testing)
+11. **Post-beta extensions** (recurring invoices, КЕП, СУПТО, OSS, audit file)
+12. **Open questions** (7 — за обсъждане с Тихол)
+
+**Implementation order:**
+1. Apply миграция в sandbox + smoke test
+2. ETL скрипт за `suppliers/customers` → `partners` миграция
+3. PDF templates (16 типа) + storage perms
+4. AI brain intents update
+5. sale.php P11 redesign с B2B mode
+6. partners.php нов модул
+7. documents.php нов модул
+8. Stress сценарии
+
+**Приоритет:** P0 PRE-BETA — без spec implementation сесиите ще drift-нат
+**Естимация:** 0 (документ е готов; следващи implementation сесии имат spec ground truth)
+
+**Open questions от секция 12 чакат твое решение.**
+
+---
