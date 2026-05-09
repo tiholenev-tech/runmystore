@@ -1,0 +1,25 @@
+{
+  "id": "S062",
+  "name": "Black Friday spike — 5x normal volume",
+  "category": "online sale flow / load",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "ecwid_simulator",
+  "precondition": "STRESS Lab tenant активен; products каталог поне 50 артикула.",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --mode blackfriday --date YYYY-11-29",
+    "Пусни ecwid_to_runmystore_sync.py --apply --date YYYY-11-29",
+    "Сравни брой поръчки vs обикновен ден от същия tenant",
+    "Провери дали load_test (Phase O1) p95 latency остава приемлив"
+  ],
+  "expected_result": [
+    "Брой поръчки = 5x normal range (т.е. 100-200 за този ден)",
+    "Sales за деня записани без timeout / lock errors",
+    "inventory_events count ≈ 5x normal",
+    "sales_pulse за този ден отразява пика"
+  ],
+  "smoke_sql": "SELECT DATE(created_at) AS d, COUNT(*) AS orders FROM sales WHERE created_at >= NOW() - INTERVAL 14 DAY AND notes LIKE '%order_type%' GROUP BY DATE(created_at) ORDER BY orders DESC LIMIT 1",
+  "expects_at_least": 0,
+  "fail_means": "Spike не се регистрира или DB прави lock контейн — load handling е слаб.",
+  "added_date": "2026-05-09"
+}

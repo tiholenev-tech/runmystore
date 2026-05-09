@@ -1,0 +1,25 @@
+{
+  "id": "S068",
+  "name": "B2B online wholesale — голяма поръчка с volume discount",
+  "category": "online sale flow / B2B",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "ecwid_simulator",
+  "precondition": "STRESS Lab tenant с B2B поръчки (≈7% от order_type weights).",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 100",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Намери sales с notes LIKE '%order_type=B2B%'",
+    "Провери че subtotal е значително по-висок от средния (волюм)"
+  ],
+  "expected_result": [
+    "B2B поръчка има line_items с qty > 5 на ред (по-вероятно)",
+    "subtotal на B2B значително > среден REGULAR",
+    "discount > 0 често (volume discount)",
+    "channel='ecwid' и notes съдържа order_type=B2B"
+  ],
+  "smoke_sql": "SELECT AVG(total) AS avg_total, COUNT(*) AS n FROM sales WHERE notes LIKE '%order_type=B2B%' AND created_at >= NOW() - INTERVAL 7 DAY",
+  "expects_at_least": 0,
+  "fail_means": "B2B поръчките не се различават по обем или discount не се прилага.",
+  "added_date": "2026-05-09"
+}

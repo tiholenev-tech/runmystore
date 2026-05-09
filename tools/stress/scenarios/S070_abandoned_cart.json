@@ -1,0 +1,25 @@
+{
+  "id": "S070",
+  "name": "Abandoned cart — клиент не довършва поръчка",
+  "category": "online sale flow / cart",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "ecwid_simulator",
+  "precondition": "STRESS Lab tenant; ecwid_simulator с ABANDONED order_type (≈10% от weights). По дефиниция CANCELLED → SKIP в sync, така че abandoned е специален случай в spool.",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 100",
+    "Прочети spool директно: data/ecwid_orders/orders_*.json",
+    "Намери поръчки с _meta.synthetic=true и type=ABANDONED",
+    "Провери че sync скриптът ги пропуска (status=CANCELLED)"
+  ],
+  "expected_result": [
+    "Spool съдържа поръчки с type='ABANDONED'",
+    "sales таблицата НЕ съдържа записи за тях (synced abandoned/cancelled пропускат insert)",
+    "Бъдещо: marketing follow-up campaign tracker",
+    "inventory_events ZERO за abandoned"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE notes LIKE '%order_type=ABANDONED%'",
+  "expects_at_least": 0,
+  "fail_means": "Abandoned поръчка влиза в sales — фалшива продажба създадена.",
+  "added_date": "2026-05-09"
+}

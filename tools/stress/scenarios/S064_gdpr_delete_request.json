@@ -1,0 +1,25 @@
+{
+  "id": "S064",
+  "name": "GDPR delete request — поръчка с маркиран customer.gdpr_consent=false",
+  "category": "online sale flow / compliance",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "ecwid_simulator / gdpr workflow",
+  "precondition": "STRESS Lab tenant с поне 1 онлайн поръчка чийто customer email съдържа домейн от EMAIL_DOMAINS.",
+  "action_steps": [
+    "Намери fake клиент c gdpr_consent=false (записан в notes/customer полета)",
+    "Симулирай GDPR delete request (UPDATE customer_email = 'redacted@deleted.local')",
+    "Провери че sales записа остава с anonymized данни",
+    "Провери че inventory_events не са изтрити (audit trail запазен)"
+  ],
+  "expected_result": [
+    "customer_email в sales = 'redacted@deleted.local'",
+    "customer_name = 'redacted'",
+    "sales.id и sales.total остават непокътнати",
+    "inventory_events свързани с тази продажба ОСТАВАТ (audit)"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE customer_email LIKE '%@deleted.local%' OR customer_email = 'redacted@deleted.local'",
+  "expects_at_least": 0,
+  "fail_means": "GDPR редакция изтрива и audit trail или не успява да anonymize-не email-а.",
+  "added_date": "2026-05-09"
+}
