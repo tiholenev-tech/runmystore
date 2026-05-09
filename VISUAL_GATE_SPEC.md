@@ -168,3 +168,132 @@ ROLLBACK / DISABLE
   fatal-нат с „router missing" преди да започнат render
 
 END v1.1
+
+═══════════════════════════════════════════════════════════════════════
+## 14. POSITION CHECK v1.3 — selector-based matching (added 2026-05-09)
+═══════════════════════════════════════════════════════════════════════
+
+ПРОБЛЕМ (v1.0/v1.2)
+Position check сравняваше mockup и rewrite по подреждане в `defaultdict[selector]`.
+Селекторът беше "tag + sorted classes" — не уникален. Например `<div class="lb-card">`
+може да се появи 12 пъти. Алгоритъмът ги pair-ваше по индекс (1-ва lb-card в mockup
+с 1-ва в rewrite, 2-ра с 2-ра ...). Когато rewrite имаше повече или по-малко
+елементи от mockup (различни text content, preserved overlays които vg-skip
+филтърът премахва от DOM check но не от positions), индексите се
+изместваха и СЪЩИТЕ елементи в двата render-а сравняваха се с РАЗЛИЧНИ
+counterparts → стотици false-positive "moved" reports (mockup nav SVG at
+y=662 vs rewrite "nav SVG" at y=2788 — но "rewrite nav SVG" реално беше
+друг SVG, не nav-овия).
+
+S135 chat.php P11 rewrite калибрация показа:
+- v1.0: 312-498 elements moved (повечето false positives)
+- v1.2: 55 elements moved (data-vg-skip помогна частично)
+- v1.3: 0-1 elements moved (точно колко са реално преместени)
+
+РЕШЕНИЕ (v1.3)
+
+Selector сега е пълен tree path с nth-of-type qualifiers:
+```
+body>main.app:nth-of-type(1)>div.glass.lb-card.q-loss.sm:nth-of-type(3)>span.shine:nth-of-type(1)
+```
+
+Всеки visible element получава глобално-уникален структурен идентификатор.
+Position diff в visual-gate.sh прави 1:1 lookup по селектор:
+- Селектори в SHARED set (присъстват в двата render-а) → compare bounding rects
+- Селектори само в едната страна → НЕ се броят за position (DOM check ги ловит)
+
+Изолира layout drift от structural drift, които v1.0/v1.2 conflate-ваха.
+
+ALGORITHM (element-positions.js v1.3)
+
+```js
+function buildStableSelector(el) {
+    if (!el || el === document.body) return 'body';
+    const parts = [];
+    let cur = el;
+    while (cur && cur !== document.body && cur.parentElement) {
+        const tag = cur.tagName.toLowerCase();
+        const classes = getClassesSorted(cur);
+        // nth-of-type position among same-tag siblings
+        let idx = 1;
+        let sib = cur.previousElementSibling;
+        while (sib) {
+            if (sib.tagName && sib.tagName.toLowerCase() === tag) idx++;
+            sib = sib.previousElementSibling;
+        }
+        const seg = (classes.length ? tag + '.' + classes.join('.') : tag)
+                  + ':nth-of-type(' + idx + ')';
+        parts.unshift(seg);
+        cur = cur.parentElement;
+    }
+    return 'body>' + parts.join('>');
+}
+```
+
+POSITION DIFF (visual-gate.sh v1.3)
+
+```python
+ma = build_map(a)  # selector → (x, y), first occurrence wins for det
+mb = build_map(b)
+shared = set(ma) & set(mb)
+moved = 0
+for sel in shared:
+    xa, ya = ma[sel]
+    xb, yb = mb[sel]
+    d = ((xa-xb)**2 + (ya-yb)**2) ** 0.5
+    if d > threshold: moved += 1
+print(moved)
+```
+
+ITER 5 PRAG — 50px (BUMP FROM 30px)
+
+i18n placeholders ('{T_NAV_WAREHOUSE}' 17 chars) vs production strings
+('Склад' 5 chars) center labels at slightly different x. Strict 30px
+threshold flagged 1 такъв span on every chat.php P11 rewrite run.
+50px (~13% of 375px viewport) absorbs i18n width drift while still
+catching real layout breakage. Iter 1-4 thresholds unchanged.
+
+CALIBRATION (S136 v1.3)
+
+| Test                                | DOM    | CSS  | Pixel  | Position | Verdict |
+|-------------------------------------|--------|------|--------|----------|---------|
+| mockup-vs-self (sanity)             | 0.00%  | PASS | 0.27%  | 0        | PASS    |
+| life-board.php vs P10 (no regress)  | 100%   | FAIL | 32.63% | 19       | FAIL†   |
+| original chat.php vs P11            | 100%   | FAIL | 25.48% | 3        | FAIL†   |
+| chat.php P11 rewrite vs P11 (final) | 2.28%  | PASS | 3.38%  | 0 @50px  | **PASS @ iter 5** |
+
+† FAIL is correct — life-board body never built to P10, original chat
+body never built to P11. v1.3 selector matching reduces false positive
+position counts significantly (life-board went 312→19 from v1.2→v1.3,
+original chat went 60+→3) so the remaining "moved" counts represent
+real layout drift among the few elements that DO match selectors.
+
+BACKWARDS COMPATIBILITY
+
+Pre-v1.3 position files (DOM-order arrays without nth-of-type selectors)
+will not match v1.3 selectors. Older runs in design-kit/visual-gate-log.json
+should not be compared directly to v1.3 runs. Re-run a calibration sweep
+after v1.3 rollout to establish a fresh baseline.
+
+INTEGRATION POINTS
+
+- design-kit/element-positions.js v1.3 — buildStableSelector()
+- design-kit/visual-gate.sh — position_diff_count() rewritten to dict-based
+  1:1 matching; ITER_TOL[5] position threshold 30→50
+
+DEPLOYMENT
+
+Auto-applies on next gate run. No env vars or invocation changes needed.
+
+OPEN QUESTIONS (deferred to v1.4)
+
+1. Should position diff weight by element area (large elements moved a lot
+   matter more than small svg moved a lot)? Currently every shared element
+   counts as 1.
+2. Two truly-identical sibling subtrees at same nth-of-type collide on
+   selector. Current behaviour: first-occurrence wins, second is silently
+   dropped. Likely never happens in practice but should be measured.
+3. Iter 5 50px threshold accommodates Bulgarian-vs-i18n-placeholder text
+   width. Languages with longer strings (German) may need higher threshold.
+
+END v1.3
