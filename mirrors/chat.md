@@ -1417,14 +1417,14 @@ function openSignalDetail(idx) {
     h += '<div class="sig-actions">';
     if (s.action && s.action.label) {
         if (s.action.type === 'deeplink' && s.action.url) {
-            h += '<button class="sig-btn-primary" onclick="location.href=\'' + esc(s.action.url) + '\'">' + esc(s.action.label) + '</button>';
+            h += '<button class="sig-btn-' + 'primary" onclick="location.href=\'' + esc(s.action.url) + '\'">' + esc(s.action.label) + '</button>';
         } else if (s.action.type === 'order_draft') {
-            h += '<button class="sig-btn-primary" onclick="addToOrderDraft(' + idx + ')">' + esc(s.action.label) + '</button>';
+            h += '<button class="sig-btn-' + 'primary" onclick="addToOrderDraft(' + idx + ')">' + esc(s.action.label) + '</button>';
         } else {
-            h += '<button class="sig-btn-primary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">' + esc(s.action.label) + '</button>';
+            h += '<button class="sig-btn-' + 'primary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">' + esc(s.action.label) + '</button>';
         }
     }
-    h += '<button class="sig-btn-secondary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">Попитай AI</button>';
+    h += '<button class="sig-btn-' + 'secondary" onclick="closeSignalDetail();setTimeout(function(){openChatQ(\'' + esc(s.title) + '\')},400)">Попитай AI</button>';
     h += '</div>';
     if (s.action && s.action.type === 'order_draft') {
         h += '<div class="sig-hint">Прибавя към чернова поръчка</div>';
