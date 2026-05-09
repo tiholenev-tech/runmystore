@@ -38,6 +38,39 @@ from _db import (
     resolve_stress_tenant,
 )
 
+# Phase M2 integration — Telegram alerts (best-effort, never raises)
+try:
+    from alerts.telegram_bot import send_alert as _tg_send
+except Exception:
+    _tg_send = None
+
+
+def _alert_balance(failures_count: int, period_h: int, tenant_id: int,
+                   sample: list) -> None:
+    """Telegram алерт при balance mismatch. >50 failures = critical."""
+    if _tg_send is None:
+        return
+    severity = "warning"
+    if failures_count > 50:
+        severity = "critical"
+    elif failures_count == 0:
+        return  # тихо: nothing to alert
+    sample_short = ", ".join(
+        f"prod={f.get('product_id')}@store={f.get('store_id')}"
+        f"(Δ={f.get('delta')})" for f in sample[:3]
+    )
+    try:
+        _tg_send(severity,
+                 f"sanity_checker: {failures_count} balance failures",
+                 topic="balance",
+                 context={
+                     "tenant_id": tenant_id,
+                     "period_h": period_h,
+                     "sample": sample_short or "n/a",
+                 })
+    except Exception:
+        pass  # никога не спирай cron-а заради alert
+
 
 def heartbeat(cron_name: str, status: str, message: str = "", duration_ms: int = 0) -> None:
     token = os.getenv("CRON_HEALTH_TOKEN")
@@ -260,6 +293,7 @@ def main():
         status = "CRIT"
     heartbeat("sanity_checker", status,
               f"failures={len(failures)} period={args.hours}h", duration_ms)
+    _alert_balance(len(failures), args.hours, tenant_id, failures)
     return 0 if not failures else 1
 
 

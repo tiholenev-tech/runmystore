@@ -1,0 +1,23 @@
+{
+  "id": "S059",
+  "name": "Barcode pickup от снимка",
+  "category": "OCR / photo",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "OCR + barcode detector",
+  "precondition": "Снимка с visible баркод",
+  "action_steps": [
+    "Upload снимка",
+    "OCR + barcode parser"
+  ],
+  "expected_result": [
+    "Barcode прочетен (EAN-13)",
+    "Lookup в products → ако exists → match; ако не → нов draft",
+    "Confidence стойност логната"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ocr_runner": true,
+  "expected_outcome": "skip until OCR + barcode ready",
+  "added_date": "2026-05-09"
+}

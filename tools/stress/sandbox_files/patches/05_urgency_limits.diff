@@ -1,0 +1,64 @@
+--- BUGFIX 5: Urgency лимити конфигурируеми (STRESS_BUILD_PLAN ред 58) ---
+
+Цел: Текущи лимити (Критични 2, важни 3, инфо 3) са hardcoded. Когато има
+критичен сигнал — всички инфо се крият. Решение: конфигурируеми чрез
+tenant_settings.
+
+================================================================
+-- Migration: sql/s128_urgency_limits.sql
+
+INSERT IGNORE INTO tenant_settings (tenant_id, key_name, value, created_at)
+SELECT id, 'insight_limits',
+       '{"critical":2,"warning":3,"info":3}',
+       NOW()
+FROM tenants;
+
+-- За STRESS Lab — по-високи лимити (за да виждаме всичко в тестовете):
+UPDATE tenant_settings
+SET value = '{"critical":10,"warning":15,"info":20}'
+WHERE tenant_id = (SELECT id FROM tenants WHERE email = 'stress@runmystore.ai')
+  AND key_name = 'insight_limits';
+
+================================================================
+
+Application code change (chat.php или където pills се filter-ват):
+
+@@ -XXX,5 +XXX,15 @@
+-    // Hardcoded лимити — критичен/важен крие info
+-    $critical_limit = 2;
+-    $warning_limit = 3;
+-    $info_limit = 3;
++    // S128 — конфигурируеми лимити per tenant
++    $defaults = ['critical' => 2, 'warning' => 3, 'info' => 3];
++    $stmt = $pdo->prepare(
++        "SELECT value FROM tenant_settings WHERE tenant_id = ? AND key_name = 'insight_limits' LIMIT 1"
++    );
++    $stmt->execute([$tenant_id]);
++    $row = $stmt->fetchColumn();
++    $cfg = $row ? json_decode($row, true) : $defaults;
++    $critical_limit = (int) ($cfg['critical'] ?? $defaults['critical']);
++    $warning_limit  = (int) ($cfg['warning']  ?? $defaults['warning']);
++    $info_limit     = (int) ($cfg['info']     ?? $defaults['info']);
+
+@@ -XXX,3 +XXX,7 @@
+-    // Ако има critical → крий info
+-    if (count($critical) > 0) $info = [];
++    // S128 — Премахваме implicit hide; всеки лимит се прилага независимо.
++    // Ако стрес тест-овете покажат че твърде много info-та претоварват UI,
++    // адмиtra може да намали info_limit в tenant_settings.
++    $critical = array_slice($critical, 0, $critical_limit);
++    $warning  = array_slice($warning,  0, $warning_limit);
++    $info     = array_slice($info,     0, $info_limit);
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. Login като ENI → виж дали лимитите са същите (default 2/3/3).
+  2. Login като STRESS Lab → виж дали се показват повече pills (10/15/20).
+  3. Промени tenant_settings.insight_limits → reload страницата →
+     лимитите се прилагат без рестарт.
+
+ROLLBACK:
+  DELETE FROM tenant_settings WHERE key_name = 'insight_limits';
+  git revert <commit-hash>
+
+Test scenario: tools/stress/scenarios/S005_ai_brain_pills.json

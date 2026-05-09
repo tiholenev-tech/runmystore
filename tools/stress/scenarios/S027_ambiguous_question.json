@@ -1,0 +1,22 @@
+{
+  "id": "S027",
+  "name": "Ambiguous query — „колко имам?“ без артикул",
+  "category": "AI brain / hallucination",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "chat.php disambiguation",
+  "precondition": "STRESS Lab tenant с многообразен инвентар",
+  "action_steps": [
+    "Питай: „Колко имам?“"
+  ],
+  "expected_result": [
+    "AI отговаря с обобщение или иска уточнение",
+    "НЕ халюцинира конкретно число",
+    "Може да предложи топ 3 категории"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_real_ai_call": true,
+  "expected_outcome": "skip until AI runner готов",
+  "added_date": "2026-05-09"
+}

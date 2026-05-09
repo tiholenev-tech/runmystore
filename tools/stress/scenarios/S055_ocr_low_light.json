@@ -1,0 +1,23 @@
+{
+  "id": "S055",
+  "name": "OCR low light — снимка слабо осветена",
+  "category": "OCR / photo",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "products.php photo OCR pipeline",
+  "precondition": "Test image fixture с low_light",
+  "action_steps": [
+    "Upload фото на ценоразпис",
+    "Чакай OCR резултат"
+  ],
+  "expected_result": [
+    "Confidence < 0.6 → user prompted да повтори със светлина",
+    "Не се записва грешен текст в полета",
+    "Снимката се запази за audit"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ocr_runner": true,
+  "expected_outcome": "skip until OCR pipeline готов",
+  "added_date": "2026-05-09"
+}

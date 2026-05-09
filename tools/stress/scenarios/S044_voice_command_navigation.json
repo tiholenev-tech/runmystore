@@ -1,0 +1,23 @@
+{
+  "id": "S044",
+  "name": "Voice command — „отвори продажби“",
+  "category": "voice",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "voice navigation layer",
+  "precondition": "Voice navigation активен",
+  "action_steps": [
+    "Кажи „отвори продажби“",
+    "Кажи „назад“"
+  ],
+  "expected_result": [
+    "Browser navigatира към sale.php",
+    "Back action работи",
+    "Без false positive triggering от ambient speech"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until voice nav implemented",
+  "added_date": "2026-05-09"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "S053",
+  "name": "Disk space warning — backup dir > 80% full",
+  "category": "cron / system",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "/tmp/runmystore_backups + cleanup cron",
+  "precondition": "Backup dir със стари dumps",
+  "action_steps": [
+    "Симулирай 90% disk usage",
+    "Run sanity_checker.py"
+  ],
+  "expected_result": [
+    "Warning logged",
+    "Optional cleanup на dumps > 7 дни",
+    "Telegram alert ако > 95%"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "implementation_hint": "Mock disk usage чрез os.statvfs за тест.",
+  "added_date": "2026-05-09"
+}

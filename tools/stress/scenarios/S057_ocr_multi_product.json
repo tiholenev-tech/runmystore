@@ -1,0 +1,23 @@
+{
+  "id": "S057",
+  "name": "OCR multi-product — 5 артикула на 1 снимка",
+  "category": "OCR / photo",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "OCR multi-region detector",
+  "precondition": "Test fixture с 5 етикета",
+  "action_steps": [
+    "Upload снимка",
+    "Очаквай 5 detected regions"
+  ],
+  "expected_result": [
+    "OCR връща списък от 5 articles с прайсове",
+    "User избира кои да импортира",
+    "Запис в bulk_import_drafts"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ocr_runner": true,
+  "expected_outcome": "skip until multi-region OCR готов",
+  "added_date": "2026-05-09"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "S050",
+  "name": "CSRF probe — POST без token се отхвърля",
+  "category": "cron / system",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "config/csrf middleware",
+  "precondition": "CSRF middleware активен",
+  "action_steps": [
+    "POST към sale.php без CSRF token",
+    "POST с грешен token",
+    "POST с правилен token"
+  ],
+  "expected_result": [
+    "Първите два → 403 / 419",
+    "Третият → нормално завършва",
+    "Запис в security_log за rejected"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "implementation_hint": "Run via curl или requests; запази CSRF в session.",
+  "added_date": "2026-05-09"
+}

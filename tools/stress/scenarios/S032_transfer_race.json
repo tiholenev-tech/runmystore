@@ -1,0 +1,23 @@
+{
+  "id": "S032",
+  "name": "Transfer race — две паралелни transfer от един магазин",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "transfers.php (когато построен)",
+  "precondition": "Артикул X в магазин A с quantity=1",
+  "action_steps": [
+    "Worker 1: transfer 1 бр. от A → B",
+    "Worker 2: едновременно transfer 1 бр. от A → C"
+  ],
+  "expected_result": [
+    "Само единият transfer успява",
+    "Другият получава „недостатъчна стока“",
+    "inventory остава consistent: A=0, B или C=1"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_concurrent_runner": true,
+  "expected_outcome": "skip until transfers.php built",
+  "added_date": "2026-05-09"
+}

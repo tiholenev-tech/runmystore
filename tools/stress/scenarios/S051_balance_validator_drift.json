@@ -1,0 +1,22 @@
+{
+  "id": "S051",
+  "name": "Balance validator — X-Y+Z math трябва да е zero",
+  "category": "cron / system",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "tools/stress/cron/balance_validator.py",
+  "precondition": "Историята seed-ната за 30+ дни",
+  "action_steps": [
+    "Run balance_validator --tenant <stress>",
+    "Чете отчета"
+  ],
+  "expected_result": [
+    "За всеки product: opening + deliveries - sales - returns + transfers_in - transfers_out - adjustments = closing",
+    "Drift = 0 (или < 0.001 поради rounding)",
+    "Drift > 1 единица → червен ред в отчета"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "fail_means": "Сметката не балансира — има тиха липса или дублиране.",
+  "added_date": "2026-05-09"
+}

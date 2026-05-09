@@ -1,0 +1,25 @@
+{
+  "id": "S018",
+  "name": "Scanner burst — 10 баркода за 5 секунди",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php BLE scanner",
+  "precondition": "BLE scanner свързан, 10 артикула с валидни баркодове",
+  "action_steps": [
+    "Open sale.php",
+    "Скенирай 10 баркода последователно с интервал ~500ms"
+  ],
+  "expected_result": [
+    "Всички 10 артикула добавени в количка",
+    "Без duplicate detection грешка",
+    "Без race в product lookup",
+    "UI rendering < 200ms per artikul"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ble": true,
+  "implementation_hint": "Cron може да симулира с rapid POST към sale-search.php с различни баркодове.",
+  "expected_outcome": "skip until BLE harness готов",
+  "added_date": "2026-05-09"
+}

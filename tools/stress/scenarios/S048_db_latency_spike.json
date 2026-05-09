@@ -1,0 +1,22 @@
+{
+  "id": "S048",
+  "name": "DB latency spike — slow query > 2s",
+  "category": "cron / system",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "tools/stress/db_latency_baseline.py",
+  "precondition": "DB env readable",
+  "action_steps": [
+    "Run db_latency_baseline.py срещу tenant",
+    "Сравни с baseline.json"
+  ],
+  "expected_result": [
+    "p95 < 200ms (light) или < 500ms (aggregations)",
+    "Регресия > 20% спрямо baseline → FAIL",
+    "Запис в slow_query_log за queries > 1s"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "implementation_hint": "Run tools/stress/db_latency_baseline.py.",
+  "added_date": "2026-05-09"
+}

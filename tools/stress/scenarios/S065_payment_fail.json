@@ -1,0 +1,25 @@
+{
+  "id": "S065",
+  "name": "Payment fail — неуспешно плащане online",
+  "category": "online sale flow / payment",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "ecwid_simulator / sales",
+  "precondition": "STRESS Lab tenant активен; ecwid_simulator-ът е генерирал поне няколко PAYMENT_FAIL поръчки (5% от status weights).",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 100",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Намери записи със sales.status = 'payment_failed'",
+    "Увери се че inventory_events НЕ е създаден за тях"
+  ],
+  "expected_result": [
+    "Около 5% от sales имат status='payment_failed'",
+    "ZERO inventory_events с ref_id = sale.id за тези поръчки",
+    "Fail записът включва диагностични notes (order_type)",
+    "sales.total не е 0 (запис има стойност, само не е платено)"
+  ],
+  "smoke_sql": "SELECT s.id, s.status, COUNT(ie.id) AS evts FROM sales s LEFT JOIN inventory_events ie ON ie.ref_id = s.id AND ie.type = 'online_sale' WHERE s.status = 'payment_failed' AND s.created_at >= NOW() - INTERVAL 24 HOUR GROUP BY s.id LIMIT 5",
+  "expects_at_least": 0,
+  "fail_means": "Неуспешно плащане НЕ трябва да декрементира склад. Ако evts > 0 → склад грешен.",
+  "added_date": "2026-05-09"
+}

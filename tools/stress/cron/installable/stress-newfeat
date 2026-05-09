@@ -1,0 +1,15 @@
+# /etc/cron.d/stress-newfeat — STRESS система cron (03:00 — нови commits)
+#
+# ИНСТАЛАЦИЯ:
+#   sudo cp tools/stress/cron/installable/stress-newfeat /etc/cron.d/stress-newfeat
+#   sudo chown root:root /etc/cron.d/stress-newfeat
+#   sudo chmod 644 /etc/cron.d/stress-newfeat
+#   sudo systemctl restart cron
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+BASH_ENV=/etc/runmystore/cron.env
+
+# 03:00 — тества файлове с promени от последните 24h
+0 3 * * * www-data cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/test_new_features.py --apply >> /var/log/runmystore/test_new_features.log 2>&1

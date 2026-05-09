@@ -1,0 +1,24 @@
+{
+  "id": "S016",
+  "name": "Mixed payment — част на ПОС, част в брой",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php / payments",
+  "precondition": "Продажба с total >= 50 лв, активни 2 payment метода",
+  "action_steps": [
+    "Завърши продажба",
+    "На Payment screen избери „Mixed“",
+    "30 лв ПОС + остатъка в брой",
+    "Завърши"
+  ],
+  "expected_result": [
+    "Записи в payments (или sale_payments) с 2 реда сумирани = sales.total",
+    "Sales.status = 'completed'",
+    "Печат / mini overlay показва двете суми"
+  ],
+  "smoke_sql": "SELECT sale_id, COUNT(*) AS payment_methods, SUM(amount) AS paid_total FROM sale_payments WHERE created_at >= NOW() - INTERVAL 24 HOUR GROUP BY sale_id HAVING payment_methods >= 2 LIMIT 5",
+  "expects_at_least": 0,
+  "fail_means": "Mixed payment не записва втория payment ред — счетоводството не баланс.",
+  "added_date": "2026-05-09"
+}

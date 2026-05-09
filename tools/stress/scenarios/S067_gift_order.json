@@ -1,0 +1,25 @@
+{
+  "id": "S067",
+  "name": "Gift order — поръчка за подарък (различен получател)",
+  "category": "online sale flow / fulfillment",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "ecwid_simulator",
+  "precondition": "STRESS Lab tenant с GIFT поръчки (≈8% от order_type weights).",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 100",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Намери записи с notes съдържащо order_type=GIFT",
+    "Провери че sales.total включва корекция за gift wrap (или 0)"
+  ],
+  "expected_result": [
+    "Поне една sales запис има notes LIKE '%order_type=GIFT%'",
+    "inventory_events нормални (декремент)",
+    "sales.discount/shipping може да бъде различен от REGULAR",
+    "customer_email != recipient (placeholder за бъдещо `gift_recipient_email`)"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE notes LIKE '%order_type=GIFT%' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Gift workflow не маркира коректно поръчките или няма метаданни за получател.",
+  "added_date": "2026-05-09"
+}

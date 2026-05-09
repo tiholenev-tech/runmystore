@@ -1,0 +1,27 @@
+{
+  "id": "S071",
+  "name": "10 concurrent sales — load_test срещу sale.php",
+  "category": "performance / load",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php / load_test.py",
+  "precondition": "STRESS Lab tenant активен; sale.php достъпен; baseline записан в last_baseline.json (по избор).",
+  "action_steps": [
+    "python3 tools/stress/perf/load_test.py --apply --concurrent 10 --requests 100",
+    "Запиши output JSON",
+    "Сравни p95/p99 с baseline (ако има)",
+    "Намери regression flag-ове"
+  ],
+  "expected_result": [
+    "p50 < 200ms (sale.php endpoint)",
+    "p95 < 500ms",
+    "p99 < 1000ms",
+    "errors_rate_pct < 1%",
+    "rps > 5/sec при 10 concurrent",
+    "5xx_count = 0"
+  ],
+  "smoke_sql": "SELECT NULL",
+  "expects_at_least": 0,
+  "fail_means": "Concurrent load счупва sale.php или latency over baseline >20%. Trigger за perf оптимизация.",
+  "added_date": "2026-05-09"
+}

@@ -1,0 +1,55 @@
+--- BUGFIX 4: shouldShowInsight() test_mode флаг (STRESS_BUILD_PLAN ред 57) ---
+
+Цел: shouldShowInsight() cooldown логика крие веднъж видени сигнали. По време
+на стрес тестове това пречи — сценарий S005 fail-ва защото pill-ите не се
+показват пак.
+
+Решение: добавяме `$test_mode` параметър, който подминава cooldown за STRESS
+Lab tenant.
+
+================================================================
+diff --git a/compute-insights.php b/compute-insights.php
+@@ -XXX,7 +XXX,7 @@
+-function shouldShowInsight(int $tenant_id, string $topic_id, int $store_id): bool {
+-    // Cooldown: ако insight е видян в последните 24h → крий
++function shouldShowInsight(int $tenant_id, string $topic_id, int $store_id, bool $test_mode = false): bool {
++    // Cooldown: ако insight е видян в последните 24h → крий (освен в test_mode)
++    if ($test_mode) return true;
+     $stmt = $pdo->prepare("
+         SELECT last_seen_at FROM insight_seen
+         WHERE tenant_id = ? AND topic_id = ? AND store_id = ?
+================================================================
+
+И нова helper функция в config/helpers.php:
+
+@@ +XX,XX +XX,XX @@
++/**
++ * is_stress_lab_tenant — потвърждава дали dadeniya tenant_id е STRESS Lab.
++ * Използва се за подминаване на cooldown в стрес сценарии.
++ */
++function is_stress_lab_tenant(int $tenant_id): bool {
++    $pdo = DB::get();
++    $stmt = $pdo->prepare("SELECT email FROM tenants WHERE id = ? LIMIT 1");
++    $stmt->execute([$tenant_id]);
++    $email = strtolower((string) $stmt->fetchColumn());
++    return $email === 'stress@runmystore.ai';
++}
+================================================================
+
+И в local-board.php / chat.php извикваме:
+
+-    if (!shouldShowInsight($tenant_id, $topic_id, $store_id)) continue;
++    $test_mode = is_stress_lab_tenant($tenant_id);
++    if (!shouldShowInsight($tenant_id, $topic_id, $store_id, $test_mode)) continue;
+
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. Login като STRESS Lab tenant → отваряй chat.php → провери pills.
+  2. Затвори, отвори отново — pills трябва да се покажат пак (cooldown bypass).
+  3. Login като ENI tenant_id=7 → cooldown трябва да работи нормално.
+
+ROLLBACK:
+  git revert <commit-hash>
+
+Test scenario: tools/stress/scenarios/S005_ai_brain_pills.json

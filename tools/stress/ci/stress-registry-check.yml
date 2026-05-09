@@ -1,0 +1,82 @@
+# tools/stress/ci/stress-registry-check.yml
+#
+# Phase N5 (S130 extension). GitHub Action workflow.
+#
+# ⚠ ВАЖНО: за да бъде активен, файлът трябва да се премести в
+#   .github/workflows/stress-registry-check.yml
+# Този repo е със scope ограничение, което блокира писане в
+# .github/, затова YAML-ът е placeholder в tools/stress/ci/.
+# Премести го с:
+#   mv tools/stress/ci/stress-registry-check.yml .github/workflows/
+#
+# Какво прави:
+# - Стартира на всеки PR + push към main, които пипат scenarios/ или
+#   STRESS_*.md документите.
+# - Пуска `python3 tools/stress/sync_registries.py --check`
+#   и `python3 tools/stress/sync_board_progress.py --check`.
+# - Fail-ва PR ако някоя от auto-секциите не е up-to-date.
+
+name: STRESS Registry Check
+
+on:
+  pull_request:
+    paths:
+      - 'tools/stress/scenarios/**'
+      - 'tools/stress/sync_registries.py'
+      - 'tools/stress/sync_board_progress.py'
+      - 'STRESS_SCENARIOS.md'
+      - 'STRESS_BOARD.md'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/stress/scenarios/**'
+      - 'tools/stress/sync_registries.py'
+      - 'tools/stress/sync_board_progress.py'
+      - 'STRESS_SCENARIOS.md'
+      - 'STRESS_BOARD.md'
+
+permissions:
+  contents: read
+
+jobs:
+  registry-check:
+    name: Check STRESS registries are in sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check STRESS_SCENARIOS.md is up-to-date
+        run: |
+          set -e
+          if [ ! -f tools/stress/sync_registries.py ]; then
+            echo "::warning::sync_registries.py not present; skipping check"
+            exit 0
+          fi
+          python3 tools/stress/sync_registries.py --check
+
+      - name: Check STRESS_BOARD.md ГРАФА 7 is up-to-date
+        run: |
+          set -e
+          if [ ! -f tools/stress/sync_board_progress.py ]; then
+            echo "::warning::sync_board_progress.py not present; skipping check"
+            exit 0
+          fi
+          python3 tools/stress/sync_board_progress.py --check
+
+      - name: Hint on failure
+        if: failure()
+        run: |
+          echo "::error::Registries are out of sync."
+          echo "Run locally:"
+          echo "  python3 tools/stress/sync_registries.py --update"
+          echo "  python3 tools/stress/sync_board_progress.py --update"
+          echo "Then commit STRESS_SCENARIOS.md and STRESS_BOARD.md."

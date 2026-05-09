@@ -1,7 +1,7 @@
 # 🧪 tools/stress/ — STRESS система
 
-**Версия:** 1.0 (S128)
-**Дата:** 2026-05-08
+**Версия:** 1.1 (S130 expansion)
+**Дата:** 2026-05-09
 **Цел:** Полу-автоматична стрес тест система за runmystore.ai. 5 етапа +
 6 known бъга. Виж `STRESS_BUILD_PLAN.md` за пълен контекст.
 
@@ -234,6 +234,36 @@ sudo -u www-data python3 tools/stress/setup_stress_tenant.py --apply
 - `STRESS_SCENARIOS_LOG.md` — история на пробегите
 - `MORNING_REPORT_TEMPLATE.md` — какво пише code_analyzer.sh
 - `END_OF_DAY_PROTOCOL.md` — EOD стъпки
+
+---
+
+## 🆕 S130 EXPANSION (2026-05-09)
+
+Добавено в s128-stress-full branch:
+
+```
+tools/stress/
+├── sandbox_db_setup.sh                    ← G1: mysqldump main → sandbox
+├── SANDBOX_GUIDE.md                       ← G4: пълен sandbox workflow
+├── BUGFIX_VERIFICATION_REPORT.md          ← H4: status на 6-те патча
+├── sandbox_files/patches/0[1-6]_*.diff    ← H1: versioned patches
+├── sql/s130_03_ai_insights_unique_*.sql   ← H1: bugfix 3 migration (sandbox only)
+├── sql/s130_05_urgency_limits_*.sql       ← H1: bugfix 5 migration (sandbox only)
+├── regression_tests/                      ← H2: test_0[1-6]_*.py + runner.py
+├── scenarios/S013-S060.json               ← I1: 48 нови сценария (60 общо)
+├── cron/action_simulators.py              ← J1: real DB-write симулатори
+├── cron/installable/stress-{nightly,newfeat,morning,sanity}  ← J5: 4 cron файла
+└── data/sandbox_runs/                     ← логове от bootstrap + регресии
+```
+
+Виж `STRESS_HANDOFF_20260509.md` (root) за пълен overview, install commands и
+production rollout препоръки.
+
+**Pre-flight checklist преди `nightly_robot.py --apply`:**
+1. Sandbox DB създаден per `SANDBOX_GUIDE.md`
+2. STRESS Lab tenant + 6 seeds applied
+3. `regression_tests/runner.py` връща 6/6 pass или advisory
+4. `admin/health.php` heartbeats връщат 200
 
 ---
 

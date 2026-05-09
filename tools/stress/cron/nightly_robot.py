@@ -48,6 +48,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _db import (
     assert_stress_tenant,
     connect,
@@ -56,6 +57,36 @@ from _db import (
     resolve_stress_tenant,
     seed_rng,
 )
+from action_simulators import SIMULATORS
+
+# Phase M2 integration — Telegram alerts (best-effort, never raises)
+try:
+    from alerts.telegram_bot import send_alert as _tg_send
+except Exception:
+    _tg_send = None
+
+
+def _alert_run_outcome(run_id: int | None, pass_n: int, fail_n: int,
+                       skip_n: int, duration_ms: int) -> None:
+    """Telegram алерт за нощен робот. fail>0 = warning, fail>5 = critical."""
+    if _tg_send is None:
+        return
+    if fail_n == 0:
+        return  # quiet success
+    severity = "critical" if fail_n > 5 else "warning"
+    try:
+        _tg_send(severity,
+                 f"nightly_robot: {fail_n} scenario failures",
+                 topic="nightly_robot",
+                 context={
+                     "run_id": run_id,
+                     "pass": pass_n,
+                     "fail": fail_n,
+                     "skip": skip_n,
+                     "duration_ms": duration_ms,
+                 })
+    except Exception:
+        pass
 
 ACTION_TARGETS = {
     "lifeboard_views":      (200, 300),
@@ -266,14 +297,37 @@ def main():
         except Exception as e:
             print(f"[WARN] log insert fail: {e}", file=sys.stderr)
 
-    # NOTE: Реалните action simulators (fake продажби, voice searches и т.н.)
-    # са TODO. Те трябва да викнат същите PHP endpoints (sale.php POST,
-    # search.php?q= и т.н.) или директно DB writes. За сега nightly_robot
-    # изпълнява само scenario smoke checks; action_count в plan е target
-    # за бъдещата имплементация.
+    # ─── Real action simulators (S130) ─────────────────────────────
+    # Изпълняваме симулаторите от action_simulators.py — direct DB writes
+    # върху STRESS Lab tenant (НЕ HTTP). Всеки симулатор е self-contained
+    # и обработва грешки локално.
+    action_results = {}
+    actions_succeeded = 0
+    actions_failed = 0
+    for action_name, fn in SIMULATORS.items():
+        target = int(plan.get(action_name, 0))
+        if target <= 0:
+            continue
+        try:
+            r = fn(conn, tenant_id, target)
+            action_results[action_name] = r
+            actions_succeeded += int(r.get("succeeded", 0))
+            actions_failed += int(r.get("failed", 0))
+            print(f"[ACTION] {action_name:20s} attempted={r.get('attempted',0):4d} "
+                  f"ok={r.get('succeeded',0):4d} fail={r.get('failed',0):4d} "
+                  f"skip={r.get('skipped',0)}")
+        except Exception as e:
+            print(f"[WARN] simulator {action_name} crashed: {e}", file=sys.stderr)
+            action_results[action_name] = {"action": action_name, "error": str(e)[:200]}
 
     duration_ms = int((time.perf_counter() - t0) * 1000)
-    summary = {"plan": plan, "scenarios": scenario_results}
+    summary = {
+        "plan": plan,
+        "scenarios": scenario_results,
+        "actions": action_results,
+        "actions_succeeded": actions_succeeded,
+        "actions_failed": actions_failed,
+    }
     with conn.cursor() as cur:
         cur.execute(
             "UPDATE stress_runs SET ended_at = NOW(), duration_ms = %s, "
@@ -295,6 +349,7 @@ def main():
     heartbeat("nightly_robot", status,
               f"run={run_id} pass={pass_n} fail={fail_n} skip={skip_n}",
               duration_ms)
+    _alert_run_outcome(run_id, pass_n, fail_n, skip_n, duration_ms)
     return 0 if fail_n == 0 else 1
 
 
@@ -305,5 +360,13 @@ if __name__ == "__main__":
         raise
     except Exception as e:
         heartbeat("nightly_robot", "FAIL", f"unhandled: {type(e).__name__}: {str(e)[:200]}")
+        if _tg_send is not None:
+            try:
+                _tg_send("critical",
+                         f"nightly_robot CRASH: {type(e).__name__}",
+                         topic="nightly_robot",
+                         context={"error": str(e)[:300]})
+            except Exception:
+                pass
         raise
     sys.exit(rc or 0)

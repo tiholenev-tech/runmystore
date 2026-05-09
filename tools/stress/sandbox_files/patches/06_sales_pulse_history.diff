@@ -1,0 +1,71 @@
+--- BUGFIX 6: sales_pulse.py истинска дата + махане на GREATEST ---
+
+Цел: Старият sales_pulse.py:
+  1. Пускаше всички продажби с `DATE_ADD(DATE(NOW()), INTERVAL X HOUR)` →
+     всички продажби се падат на HH:00:00 на ДНЕС → няма история.
+  2. Използваше `UPDATE inventory SET quantity = GREATEST(quantity - X, 0)` →
+     стоката никога не пада в минус → няма „свърши" сигнали.
+  3. Пуска върху ENI tenant_id=7 — нарушение на STRESS_COMPASS Закон.
+
+Текущо състояние (S128, 2026-05-08):
+  tools/diagnostic/cron/sales_pulse.py:7-14 — ВЕЧЕ е v2 wrapper around
+  tools/seed/sales_populate.py което:
+    - peak hours 11-13 + 17-19 (60% share)
+    - per-second timestamps within business hours
+    - basket size + return rate + payment + discount distributions
+    - atomic "skip when stock=0" (no over-sell, no negative inventory)
+
+  ОСТАВА проблем: TENANT_ID = 7 (ENI) hardcoded. Това НАРУШАВА
+  STRESS_COMPASS — стрес симулациите ТРЯБВА да са върху STRESS Lab
+  tenant.
+
+  Този patch ПОПРАВЯ tenant_id-то и заменя cron-а с nightly_robot.py
+  (Етап 3 от STRESS_BUILD_PLAN).
+
+================================================================
+diff --git a/tools/diagnostic/cron/sales_pulse.py b/tools/diagnostic/cron/sales_pulse.py
+@@ -26,4 +26,16 @@
+ sys.path.insert(0, '/var/www/runmystore')
+ from tools.seed.sales_populate import main as populate_main
+
+-TENANT_ID = 7
++# S128 — DEPRECATED. sales_pulse.py пускаше върху ENI (tenant_id=7) което
++# нарушава STRESS_COMPASS §"ENI tenant_id=7 — РЕАЛЕН магазин — БЕЗ fake seed".
++#
++# Заменя се от nightly_robot.py (Етап 3 от STRESS_BUILD_PLAN.md), който
++# пуска върху STRESS Lab tenant (stress@runmystore.ai).
++#
++# Ако искаш да продължиш да използваш sales_pulse.py temporary до Етап 3 —
++# зареди STRESS Lab tenant_id чрез _db.resolve_stress_tenant():
++
++sys.path.insert(0, '/var/www/runmystore/tools/stress')
++from _db import resolve_stress_tenant, connect, load_db_config
++
++_conn = connect(load_db_config(), autocommit=True)
++TENANT_ID = resolve_stress_tenant(_conn) or 0
++if TENANT_ID == 0 or TENANT_ID == 7:
++    raise SystemExit(
++        "[REFUSE] sales_pulse.py не работи без STRESS Lab tenant. "
++        "Изпълни tools/stress/setup_stress_tenant.py първо."
++    )
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. python3 tools/diagnostic/cron/sales_pulse.py --dry-run → провери че
+     tenant_id != 7.
+  2. mysql -e "SELECT COUNT(*) FROM sales WHERE tenant_id = 7
+     AND created_at > NOW() - INTERVAL 1 HOUR" → 0 нови записа.
+  3. След 1 нощ — sales за STRESS Lab tenant трябва да са разпределени
+     през деня (не всички в HH:00:00).
+  4. inventory.quantity може да падне до 0 (атомично skip), не отрицателно.
+
+DEPRECATION план:
+  След Etap 3 (nightly_robot.py production), Тихол изтрива sales_pulse.py
+  от crontab. Файлът остава в repo за git история, но не се извиква.
+
+ROLLBACK:
+  git revert <commit-hash>
+
+Test scenario:
+  tools/stress/scenarios/S001_full_sale_flow.json
+  tools/stress/scenarios/S009_inventory_decrement.json
