@@ -57,6 +57,35 @@ from _db import (
     seed_rng,
 )
 
+# Phase M2 integration — Telegram alerts (best-effort, never raises)
+try:
+    from alerts.telegram_bot import send_alert as _tg_send
+except Exception:
+    _tg_send = None
+
+
+def _alert_run_outcome(run_id: int | None, pass_n: int, fail_n: int,
+                       skip_n: int, duration_ms: int) -> None:
+    """Telegram алерт за нощен робот. fail>0 = warning, fail>5 = critical."""
+    if _tg_send is None:
+        return
+    if fail_n == 0:
+        return  # quiet success
+    severity = "critical" if fail_n > 5 else "warning"
+    try:
+        _tg_send(severity,
+                 f"nightly_robot: {fail_n} scenario failures",
+                 topic="nightly_robot",
+                 context={
+                     "run_id": run_id,
+                     "pass": pass_n,
+                     "fail": fail_n,
+                     "skip": skip_n,
+                     "duration_ms": duration_ms,
+                 })
+    except Exception:
+        pass
+
 ACTION_TARGETS = {
     "lifeboard_views":      (200, 300),
     "sales":                (150, 400),
@@ -295,6 +324,7 @@ def main():
     heartbeat("nightly_robot", status,
               f"run={run_id} pass={pass_n} fail={fail_n} skip={skip_n}",
               duration_ms)
+    _alert_run_outcome(run_id, pass_n, fail_n, skip_n, duration_ms)
     return 0 if fail_n == 0 else 1
 
 
@@ -305,5 +335,13 @@ if __name__ == "__main__":
         raise
     except Exception as e:
         heartbeat("nightly_robot", "FAIL", f"unhandled: {type(e).__name__}: {str(e)[:200]}")
+        if _tg_send is not None:
+            try:
+                _tg_send("critical",
+                         f"nightly_robot CRASH: {type(e).__name__}",
+                         topic="nightly_robot",
+                         context={"error": str(e)[:300]})
+            except Exception:
+                pass
         raise
     sys.exit(rc or 0)

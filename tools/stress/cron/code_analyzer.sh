@@ -69,10 +69,19 @@ if [[ -d "${REPO_ROOT}/.git" ]]; then
     fi
 fi
 
-# ─── (d) Telegram alert при P0 escalation ───
+# ─── (d) Telegram alert при P0 escalation (Phase M2) ───
+# Делегира на tools/stress/alerts/telegram_bot.py за централно rate limiting,
+# severity levels и state. Fallback към inline curl ако скриптът липсва.
 if grep -qE "P0 ESCALATION|3-та нощ подред|🚨" "$OUTPUT_MD" 2>/dev/null; then
-    if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
-        head_line=$(grep -m1 "🚨" "$OUTPUT_MD" || echo "P0 escalation")
+    head_line=$(grep -m1 "🚨" "$OUTPUT_MD" || echo "P0 escalation")
+    TG_BOT_PY="${TOOLS_STRESS}/alerts/telegram_bot.py"
+    if [[ -x "$TG_BOT_PY" || -f "$TG_BOT_PY" ]]; then
+        "$PYTHON" "$TG_BOT_PY" \
+            --severity critical \
+            --topic morning_report_p0 \
+            --message "P0 escalation: ${head_line}" \
+            >>"$LOG_FILE" 2>&1 || true
+    elif [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
         curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=🚨 STRESS P0: ${head_line}" \
