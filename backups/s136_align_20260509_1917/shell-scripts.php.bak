@@ -48,30 +48,15 @@
     };
 
     // ─── LOGOUT DROPDOWN ───
-    // S136.ALIGN: id="logoutBtn" was removed from header partial (mockup
-    // doesn't have it), use class selector instead. Dropdown was nested
-    // inside the button (invalid HTML); now it's a sibling element with
-    // `hidden` attribute by default — toggle via attribute removal so the
-    // visual gate's display:none/hidden filter still treats it as off-screen.
     window.rmsToggleLogout = function (e) {
         if (e && e.stopPropagation) e.stopPropagation();
         var dd = document.getElementById('logoutDrop');
-        if (!dd) return;
-        if (dd.hasAttribute('hidden')) {
-            dd.removeAttribute('hidden');
-            dd.classList.add('show');
-        } else {
-            dd.setAttribute('hidden', '');
-            dd.classList.remove('show');
-        }
+        if (dd) dd.classList.toggle('show');
     };
     document.addEventListener('click', function (e) {
-        var btn = document.querySelector('[data-rms-action="logout"]');
+        var btn = document.getElementById('logoutBtn');
         var dd = document.getElementById('logoutDrop');
-        if (btn && dd && !btn.contains(e.target) && e.target !== dd) {
-            dd.setAttribute('hidden', '');
-            dd.classList.remove('show');
-        }
+        if (btn && dd && !btn.contains(e.target)) dd.classList.remove('show');
     });
 
     // ─── PRINTER (hook to existing logic if loaded) ───
@@ -91,10 +76,8 @@
     };
 
     // ─── HEADER PRINT-STATUS sync (reads window.rmsPrinterStatus if set) ───
-    // S136.ALIGN: id="printStatusBtn" removed from header (mockup doesn't have
-    // it). Use the [data-rms-action="print"] class selector that the partial still emits.
     document.addEventListener('DOMContentLoaded', function () {
-        var btn = document.querySelector('[data-rms-action="print"]');
+        var btn = document.getElementById('printStatusBtn');
         if (!btn) return;
         var s = window.rmsPrinterStatus;
         if (s === 'paired') btn.classList.add('paired');

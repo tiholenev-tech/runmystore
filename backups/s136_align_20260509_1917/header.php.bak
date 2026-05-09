@@ -1,48 +1,33 @@
 <?php
 /**
- * partials/header.php — Unified RunMyStore header
- * S82.SHELL · S136.PARTIALS_STANDARD · S136.ALIGN
- *
- * Brand + plan badge + spacer + printer + settings + logout + theme.
- *
- * S136.ALIGN — markup matches mockups/P11_detailed_mode.html and
- * mockups/P10_lesny_mode.html element-for-element so the visual gate's
- * DOM/Position checks don't false-flag against either mockup. Removed:
- *   - id="rmsHeader" on <header>
- *   - id="printStatusBtn" + extra class="rms-print" on print button
- *   - id="logoutBtn" on logout button
- *   - nested <a class="rms-logout-dd"> inside logout button (was rendering
- *     a child <a> inside a <button>, which is invalid HTML anyway and
- *     bumped element count vs mockup)
- * Kept (because mockup has them):
- *   - id="themeToggle", id="themeIconSun", id="themeIconMoon"
- * JS that previously selected #logoutBtn / #printStatusBtn now uses
- * `.rms-logout-tap` / `.rms-print-tap` class selectors (see partials/shell-scripts.php).
- *
- * S136 — optional back-arrow shown left of brand when user came from
- * simple-mode life-board. life-board.php sets $_SESSION['mode']='simple';
- * detailed pages don't unset it; logout clears via session_destroy.
- *
+ * partials/header.php — Unified RunMyStore header (S82.SHELL + S136.PARTIALS_STANDARD)
+ * Brand + plan badge + theme toggle + spacer + printer + settings + logout.
+ * S136: optional back-arrow shown left of brand when $_SESSION['mode']==='simple'
+ * (i.e. user navigated to a "detailed" page from the simple-mode life-board and
+ * we want a one-tap return path). life-board.php sets the mode; detailed pages
+ * don't unset it — only logout / explicit toggle clears it.
  * Requires: partials/shell-init.php loaded first.
  */
 if (!defined('RMS_SHELL_INIT')) {
     require __DIR__ . '/shell-init.php';
 }
+// Back arrow visible only when (1) user came from simple mode AND (2) we're
+// NOT currently on the simple-mode home itself (would point to ourselves).
 $rms_show_back = (($_SESSION['mode'] ?? '') === 'simple')
               && !in_array($rms_current_module ?? '', ['life-board','simple','index'], true);
 ?>
-<header class="rms-header">
+<header class="rms-header" id="rmsHeader">
     <?php if ($rms_show_back): ?>
-    <a href="life-board.php" class="rms-back-btn" title="Назад към лесния режим" aria-label="Назад">
+    <a href="life-board.php" class="rms-back-btn" id="rmsBackBtn" title="Назад към лесния режим" aria-label="Назад">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </a>
     <?php endif; ?>
     <a href="chat.php" class="rms-brand" title="Начало">RUNMYSTORE.AI</a>
-    <span class="rms-plan-badge" data-plan="<?= htmlspecialchars($rms_plan) ?>"><?= htmlspecialchars($rms_plan_label) ?></span>
+    <span class="rms-plan-badge <?= htmlspecialchars($rms_plan) ?>"><?= htmlspecialchars($rms_plan_label) ?></span>
 
     <div class="rms-header-spacer"></div>
 
-    <button class="rms-icon-btn" type="button" data-rms-action="print" title="Bluetooth принтер" aria-label="Bluetooth принтер" onclick="rmsOpenPrinter()">
+    <button class="rms-icon-btn rms-print" id="printStatusBtn" type="button" title="Bluetooth принтер" aria-label="Bluetooth принтер" onclick="rmsOpenPrinter()">
         <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
     </button>
 
@@ -50,8 +35,9 @@ $rms_show_back = (($_SESSION['mode'] ?? '') === 'simple')
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </a>
 
-    <button class="rms-icon-btn" type="button" data-rms-action="logout" onclick="rmsToggleLogout(event)" title="Изход" aria-label="Изход">
+    <button class="rms-icon-btn" id="logoutBtn" type="button" onclick="rmsToggleLogout(event)" title="Изход" aria-label="Изход">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <a href="logout.php" class="rms-logout-dd" id="logoutDrop">Изход →</a>
     </button>
 
     <button class="rms-icon-btn" id="themeToggle" type="button" onclick="rmsToggleTheme()" title="Светла/тъмна тема" aria-label="Светла/тъмна тема">
@@ -59,6 +45,3 @@ $rms_show_back = (($_SESSION['mode'] ?? '') === 'simple')
         <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
 </header>
-<!-- Logout dropdown — sibling of header so it's not nested inside a <button>
-     (was previously inside the button — invalid HTML + extra DOM node vs mockup) -->
-<a href="logout.php" class="rms-logout-dd" id="logoutDrop" hidden>Изход →</a>

@@ -35,7 +35,16 @@ if (!defined('RMS_SHELL_INIT')) {
         }
     }
 
-    // Detect active module from running script for nav highlighting
-    $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
-    $rms_current_module = strtolower(pathinfo($script, PATHINFO_FILENAME));
+    // Detect active module from running script for nav highlighting.
+    // S136.ALIGN: VG_MODULE env var overrides — visual-gate.sh copies the
+    // target into a temp file like __visual_gate_rewrite_instr.php whose
+    // basename doesn't match any nav-set; without override the active-tab
+    // detection fails and the gate sees no .active class on bottom-nav.
+    $vg_module = getenv('VG_MODULE');
+    if ($vg_module !== false && $vg_module !== '') {
+        $rms_current_module = strtolower($vg_module);
+    } else {
+        $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
+        $rms_current_module = strtolower(pathinfo($script, PATHINFO_FILENAME));
+    }
 }

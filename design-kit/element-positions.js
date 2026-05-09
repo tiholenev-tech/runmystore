@@ -49,11 +49,25 @@
         return true;
     }
 
+    // S136.ALIGN: walk up the tree looking for an ancestor opting out of the
+    // gate (data-vg-skip / hidden attribute). dom-extract.py already filters
+    // these subtrees; element-positions.js needs the same filter so position
+    // diff doesn't false-flag overlays / hidden modals that are present in
+    // the rewrite but absent from the mockup.
+    function isGateSkipped(el) {
+        for (let cur = el; cur && cur !== document.body; cur = cur.parentElement) {
+            if (cur.hasAttribute('data-vg-skip')) return true;
+            if (cur.hasAttribute('hidden')) return true;
+        }
+        return false;
+    }
+
     function collect() {
         const out = [];
         const all = document.querySelectorAll('body, body *');
         for (const el of all) {
             if (el.id === SENTINEL_ID) continue;
+            if (isGateSkipped(el)) continue;
             let rect, style;
             try {
                 rect = el.getBoundingClientRect();

@@ -97,9 +97,20 @@ def normalize_attr_value(value):
 
 
 def build_selector(tag: Tag) -> str:
-    """tag + sorted classes (e.g. div.glass.q-default)."""
+    """tag + sorted classes (e.g. div.glass.q-default).
+
+    S136.ALIGN: body element is treated as classless. Production pages get
+    JS-added body class markers (has-rms-shell, mode-detailed, overlay-open)
+    that mockups don't carry; counting them caused every body-direct-child
+    (header, nav, main, aurora, ...) to false-mismatch via parent_selector.
+    Body classes represent functional state, not structural identity, so
+    they are excluded from selector building. The body element's own
+    selector becomes just "body".
+    """
     if tag is None or not isinstance(tag, Tag):
         return ""
+    if tag.name == "body":
+        return "body"
     classes = tag.get("class") or []
     if classes:
         return tag.name + "." + ".".join(sorted(classes))
@@ -160,6 +171,12 @@ def extract(html_path: Path):
             continue
 
         classes_raw = tag.get("class") or []
+        # S136.ALIGN: body classes are functional state markers (has-rms-shell,
+        # mode-detailed, overlay-open) added by JS at runtime. Mockups don't
+        # carry them. Strip body's classes so the body sig matches across the
+        # gate's mockup-vs-rendered comparison.
+        if tag.name == "body":
+            classes_raw = []
         classes_sorted = sorted(classes_raw)
 
         attrs = {}

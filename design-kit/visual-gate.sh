@@ -405,6 +405,20 @@ fi
 
 apply_auth_mode
 
+# S136.ALIGN: derive VG_MODULE from rewrite filename so the included partials
+# (shell-init.php) can resolve $rms_current_module correctly even though
+# the rewrite is rendered through an instrumented temp file. Without this,
+# bottom-nav active-tab detection misfires (no .active class), causing
+# DOM diff false positives.
+if [ -z "${VG_MODULE:-}" ]; then
+    case "$REWRITE" in
+        *.php)
+            VG_MODULE_DERIVED=$(basename "$REWRITE" .php)
+            export VG_MODULE="$VG_MODULE_DERIVED"
+            ;;
+    esac
+fi
+
 START_TS=$(date +%s)
 
 # Render mockup само веднъж (не се променя между iters)
