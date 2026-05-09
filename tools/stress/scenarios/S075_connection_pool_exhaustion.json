@@ -1,0 +1,27 @@
+{
+  "id": "S075",
+  "name": "Connection pool exhaustion — 50 concurrent заявки",
+  "category": "performance / db / capacity",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "load_test.py / MySQL max_connections / PHP-FPM pool",
+  "precondition": "STRESS Lab tenant активен; достъп до SHOW VARIABLES LIKE 'max_connections'.",
+  "action_steps": [
+    "Провери MySQL: SHOW VARIABLES LIKE 'max_connections' (типично 151)",
+    "Провери PHP-FPM: pm.max_children в pool config",
+    "python3 tools/stress/perf/load_test.py --apply --concurrent 50 --requests 200",
+    "По време на бурста: SHOW PROCESSLIST в втори терминал",
+    "След бурста: погледни /var/log/mysql/error.log и /var/log/php-fpm.log за 'Too many connections'"
+  ],
+  "expected_result": [
+    "MySQL не върне 'Too many connections' за нито една заявка",
+    "PHP-FPM не върне 502 заради children pool exhaustion",
+    "p99 latency < 3s дори при 50 concurrent",
+    "errors_rate_pct < 5% при peak",
+    "След бурста: connections се освобождават в < 30s"
+  ],
+  "smoke_sql": "SHOW STATUS LIKE 'Threads_connected'",
+  "expects_at_least": 1,
+  "fail_means": "Pool exhaustion -> client получава timeout / 502; нощният робот ще отбележи fail. Капацитет планиране нужно.",
+  "added_date": "2026-05-09"
+}

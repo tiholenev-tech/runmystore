@@ -1,0 +1,25 @@
+{
+  "id": "S066",
+  "name": "Partial fulfillment — част от поръчката недостъпна",
+  "category": "online sale flow / inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "ecwid_simulator / sale_items",
+  "precondition": "STRESS Lab tenant с PARTIALLY_FULFILLED поръчка (≈3% от status weights).",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 200",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Намери sales с status='partial'",
+    "Сравни sale_items.quantity с inventory_events.delta_quantity (трябва да съвпадат на половината редове)"
+  ],
+  "expected_result": [
+    "sales.status = 'partial'",
+    "Поне един sale_item НЕ е decrement-нал inventory (back-order)",
+    "Сума на inventory_events.delta_quantity (negatives) < сума на sale_items.quantity",
+    "Notes полето съдържа order_type"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE status = 'partial' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Partial поръчка декрементира склад за всички артикули — back-order логика липсва.",
+  "added_date": "2026-05-09"
+}

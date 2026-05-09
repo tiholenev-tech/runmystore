@@ -1,0 +1,25 @@
+{
+  "id": "S061",
+  "name": "Online night order — поръчка между 22:00 и 02:00",
+  "category": "online sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "ecwid_simulator / sales",
+  "precondition": "STRESS Lab tenant активен; ecwid_simulator-ът е пуснат поне веднъж за денонощието и spool съдържа поръчки.",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply",
+    "Изчакай нощни часове (22:00-02:00 CEST)",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Провери `sales` за записи с channel='ecwid' и hour(created_at) IN (22,23,0,1)"
+  ],
+  "expected_result": [
+    "Около 50% от Ecwid поръчките падат в night-time window",
+    "Всички записи имат channel='ecwid' (или notes съдържа 'order_type')",
+    "inventory_events с type='online_sale' за PAID поръчките",
+    "sales.total = sales.subtotal - discount + shipping (точно)"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE created_at >= NOW() - INTERVAL 24 HOUR AND HOUR(created_at) IN (22,23,0,1) AND notes LIKE '%order_type%'",
+  "expects_at_least": 0,
+  "fail_means": "Night-time concentration пада под 30% или channel='ecwid' липсва — distribution в simulator се е счупил.",
+  "added_date": "2026-05-09"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "S069",
+  "name": "Cross-store pickup — поръчка за вземане от друг магазин",
+  "category": "online sale flow / fulfillment",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "ecwid_simulator / stores",
+  "precondition": "STRESS Lab tenant с поне 2 магазина и PICKUP поръчки (≈15% от order_type weights).",
+  "action_steps": [
+    "Пусни ecwid_simulator.py --apply --orders 100",
+    "Пусни ecwid_to_runmystore_sync.py --apply",
+    "Намери sales със status='awaiting_pickup' (Ecwid AWAITING_PICKUP)",
+    "Провери че fulfillment_store_id е попълнен (или null с notes за бъдещ assignment)"
+  ],
+  "expected_result": [
+    "Поне 1 sales запис със status='awaiting_pickup'",
+    "notes LIKE '%order_type=PICKUP%'",
+    "Inventory НЕ е декрементирал за awaiting (reserved логика — TODO)",
+    "Customer email/phone валидни за нотификация"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE status='awaiting_pickup' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Pickup workflow не разграничава AWAITING_PICKUP от COMPLETED — клиентът ще види грешен статус.",
+  "added_date": "2026-05-09"
+}

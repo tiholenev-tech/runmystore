@@ -124,16 +124,48 @@
 ---
 
 ## 🔄 ГРАФА 7 — ПРОГРЕС ПО ЕТАПИТЕ
+<!-- STRESS-BOARD-AUTO:graph7:start (do not edit between these markers) -->
 
-| Етап | Какво | Статус | Цел |
-|---|---|---|---|
-| 1 | Подготовка на свят (STRESS Lab tenant + 7 магазина + 90 дни история) | ⬜ | Юни 2026 |
-| 2 | /admin/stress-board.php — admin отчет | ⬜ | След beta (16-22 май) |
-| 3 | Нощен робот (cron 02:00 пълна симулация) | ⬜ | След модулите |
-| 4 | Авто-ловец на бъгове (sanity checks) | ⬜ | След Етап 3 |
-| 5 | Онлайн магазин симулатор (Ecwid orders) | ⬜ | След Ecwid интеграция |
+**Авто-генерирано** от `tools/stress/sync_board_progress.py`. Не редактирай ръчно.
 
----
+| # | Етап | Статус | Evidence (файлове) | Цел |
+|---|---|---|---|---|
+| 1 | Подготовка на свят (STRESS Lab tenant + 7 магазина + 90 дни история) | ✅ готов | `tools/stress/setup_stress_tenant.py`, `tools/stress/seed_history_90days.py`, `tools/stress/seed_stores.py` | Юни 2026 |
+| 2 | /admin/stress-board.php — admin отчет | ✅ готов | `admin/stress-board.php`, `admin/health.php` | След beta (16-22 май) |
+| 3 | Нощен робот (cron 02:00 пълна симулация) | ✅ готов | `tools/stress/cron/nightly_robot.py`, `tools/stress/cron/action_simulators.py` | След модулите |
+| 4 | Авто-ловец на бъгове (sanity checks) | ✅ готов | `tools/stress/cron/sanity_checker.py`, `tools/stress/cron/balance_validator.py` | След Етап 3 |
+| 5 | Онлайн магазин симулатор (Ecwid orders) | ✅ готов | `tools/stress/ecwid_simulator/ecwid_simulator.py`, `tools/stress/ecwid_simulator/ecwid_to_runmystore_sync.py` | След Ecwid интеграция |
+
+### Handoff документи
+
+- `STRESS_HANDOFF_20260508.md`
+- `STRESS_HANDOFF_20260509_extension.md`
+
+### Последни STRESS commits (last 20)
+
+- 35474c9 S131.STRESS.P2: beta_acceptance/README.md + BETA_ACCEPTANCE_REPORT.md
+- 188dacd S131.STRESS.P1: beta_acceptance/checklist.py — 30 automated checks
+- 16dcabc S131.STRESS.O5: perf/README.md + STRESS_BOARD.md refresh
+- 15ee9d9 S131.STRESS.O4: scenarios S071-S075 — 5 perf сценария
+- 048ffd7 S131.STRESS.O3: perf/index_advisor.py — CREATE INDEX suggestions
+- d643347 S131.STRESS.O2: perf/db_query_profiler.py — slow_query_log analyzer
+- 4160ed6 S131.STRESS.O1: perf/load_test.py — concurrent users vs sale.php
+- 2a20429 S131.STRESS.N5: tools/stress/ci/ — GitHub Actions workflow placeholder
+- 7ae7d85 S131.STRESS.N4: STRESS_BOARD.md — auto-generated ГРАФА 7
+- 53e5234 S131.STRESS.N3: tools/stress/sync_board_progress.py — auto STRESS_BOARD.md ГРАФА 7
+- 94ccf99 S131.STRESS.N1: tools/stress/sync_registries.py — auto STRESS_SCENARIOS.md
+- e44293b S131.STRESS.M4: alerts/README.md — setup + integration patches
+- 55f2994 S131.STRESS.M3: alerts/test_telegram.py — dry-run smoke test
+- 852e005 S131.STRESS.M2: alerts/cron_hooks.py — wrapper helpers за integration
+- 6dbe522 S131.STRESS.M1: alerts/telegram_bot.py — central Telegram alerter
+- f80332f S131.STRESS.L5: ecwid_simulator/README.md — usage + distribution
+- c5b3888 S131.STRESS.L4: scenarios S061-S070 — 10 online sale flow сценария
+- 259849e S131.STRESS.L3: ecwid_to_runmystore_sync.py — spool to sales/inventory_events
+- 7ca888e S131.STRESS.L2: ecwid_simulator.py — fake online order generator
+- 6d21ccc S131.STRESS.L1: ecwid_simulator/__init__.py — package marker
+
+<!-- STRESS-BOARD-AUTO:graph7:end -->
+
 
 ## 📝 ИНСТРУКЦИЯ ЗА ВСЕКИ ЧАТ ПРИ СТАРТ
 
