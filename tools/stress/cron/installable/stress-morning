@@ -1,0 +1,18 @@
+# /etc/cron.d/stress-morning — STRESS система cron (06:00 + 06:30)
+#
+# ИНСТАЛАЦИЯ:
+#   sudo cp tools/stress/cron/installable/stress-morning /etc/cron.d/stress-morning
+#   sudo chown root:root /etc/cron.d/stress-morning
+#   sudo chmod 644 /etc/cron.d/stress-morning
+#   sudo systemctl restart cron
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+BASH_ENV=/etc/runmystore/cron.env
+
+# 06:00 — събира raw статистики от nightly_robot run
+0  6 * * * www-data cd /var/www/runmystore && /usr/bin/python3 tools/stress/cron/morning_summary.py >> /var/log/runmystore/morning_summary.log 2>&1
+
+# 06:30 — Claude Code анализ → MORNING_REPORT.md (+ Telegram при P0)
+30 6 * * * www-data cd /var/www/runmystore && /bin/bash tools/stress/cron/code_analyzer.sh >> /var/log/runmystore/code_analyzer.log 2>&1
