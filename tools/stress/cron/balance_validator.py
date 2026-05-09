@@ -167,18 +167,29 @@ def aggregate_balance(conn, tenant_id: int, since: datetime, product_id: int | N
                 agg[key]["adjust"] += int(r["total_qty"])
             agg[key]["n"] += int(r["n"])
 
+        # S133.STRESS.J3 — column existence check (същия pattern както в fetch_history)
+        cur.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_schema = DATABASE() AND table_name = 'stock_movements' "
+            "AND column_name = 'quantity_after'"
+        )
+        has_quantity_after_agg = bool(cur.fetchone())
+
         for (pid, sid), v in agg.items():
-            # opening
-            cur.execute(
-                """
-                SELECT quantity_after FROM stock_movements
-                WHERE tenant_id = %s AND product_id = %s AND store_id = %s AND created_at < %s
-                ORDER BY created_at DESC LIMIT 1
-                """,
-                (tenant_id, pid, sid, since),
-            )
-            op_row = cur.fetchone()
-            opening = int(op_row["quantity_after"]) if (op_row and op_row.get("quantity_after") is not None) else 0
+            # opening — нуждае се от quantity_after snapshot. Ако колоната липсва,
+            # opening = 0 (assume започваме от чисто).
+            opening = 0
+            if has_quantity_after_agg:
+                cur.execute(
+                    """
+                    SELECT quantity_after FROM stock_movements
+                    WHERE tenant_id = %s AND product_id = %s AND store_id = %s AND created_at < %s
+                    ORDER BY created_at DESC LIMIT 1
+                    """,
+                    (tenant_id, pid, sid, since),
+                )
+                op_row = cur.fetchone()
+                opening = int(op_row["quantity_after"]) if (op_row and op_row.get("quantity_after") is not None) else 0
             computed = opening + v["in"] - v["out"] + v["adjust"]
             # actual closing = current inventory.quantity
             cur.execute(
