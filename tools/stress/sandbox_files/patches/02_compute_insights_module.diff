@@ -1,0 +1,36 @@
+--- BUGFIX 2: compute-insights.php module hardcode (STRESS_BUILD_PLAN ред 55) ---
+
+Цел: Insights routirани на 'home' module вместо hardcoded 'products', за да
+стигнат до life-board.php. Бъг 2 от STRESS_BUILD_PLAN.
+
+Текущо състояние (S128, 2026-05-08):
+  compute-insights.php:236 ВЕЧЕ е поправено (S91 fix):
+      $module = $i['module'] ?? 'home';
+  Default-ът е 'home'. valid_modules whitelist е активен.
+
+  Каuserите в кодa (line 1398, 1449, 1489, 1539, 1595, 1640) explicit-но
+  слагат 'module' => 'home'.
+
+  Този patch е ARCHIVAL — описва intent.
+
+================================================================
+diff --git a/compute-insights.php b/compute-insights.php
+@@ -235,3 +235,4 @@
+-    $module = $i['module'] ?? 'products';   // BUG 2: hardcoded → не стига life-board
++    // S91.INSIGHTS_HEALTH — default 'home' за да попадат insights в life-board.
++    // valid_modules whitelist предотвратява typos.
++    $valid_modules = ['home','products','warehouse','stats','sale'];
++    $module = $i['module'] ?? 'home';
++    if (!in_array($module, $valid_modules, true)) $module = 'home';
+================================================================
+
+ВЕРИФИКАЦИЯ след apply:
+  1. Open admin/insights-health.php — viz hidden_pct.
+  2. Очаквано: hidden_pct < 1% (всичко в module='home').
+  3. life-board.php pills трябва да се появят.
+  4. Сценарий S005 минава.
+
+ROLLBACK:
+  git revert <commit-hash>
+
+Test scenario: tools/stress/scenarios/S005_ai_brain_pills.json
