@@ -18,6 +18,12 @@ require_once __DIR__ . '/config/helpers.php';
 
 if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
+// S136.PARTIALS_STANDARD — life-board IS the simple-mode home page. Setting
+// the flag on every load lets partials/header.php render a back-arrow on any
+// detailed-mode page the user navigates to from here. Cleared only by logout
+// (session_destroy) or an explicit "switch to extended mode" toggle (TBD).
+$_SESSION['mode'] = 'simple';
+
 $tenant_id = (int)$_SESSION['tenant_id'];
 $user_id   = (int)$_SESSION['user_id'];
 $store_id  = (int)($_SESSION['store_id'] ?? 0);

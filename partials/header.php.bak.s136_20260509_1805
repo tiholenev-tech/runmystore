@@ -1,27 +1,14 @@
 <?php
 /**
- * partials/header.php — Unified RunMyStore header (S82.SHELL + S136.PARTIALS_STANDARD)
+ * partials/header.php — Unified RunMyStore header (S82.SHELL)
  * Brand + plan badge + theme toggle + spacer + printer + settings + logout.
- * S136: optional back-arrow shown left of brand when $_SESSION['mode']==='simple'
- * (i.e. user navigated to a "detailed" page from the simple-mode life-board and
- * we want a one-tap return path). life-board.php sets the mode; detailed pages
- * don't unset it — only logout / explicit toggle clears it.
  * Requires: partials/shell-init.php loaded first.
  */
 if (!defined('RMS_SHELL_INIT')) {
     require __DIR__ . '/shell-init.php';
 }
-// Back arrow visible only when (1) user came from simple mode AND (2) we're
-// NOT currently on the simple-mode home itself (would point to ourselves).
-$rms_show_back = (($_SESSION['mode'] ?? '') === 'simple')
-              && !in_array($rms_current_module ?? '', ['life-board','simple','index'], true);
 ?>
 <header class="rms-header" id="rmsHeader">
-    <?php if ($rms_show_back): ?>
-    <a href="life-board.php" class="rms-back-btn" id="rmsBackBtn" title="Назад към лесния режим" aria-label="Назад">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <?php endif; ?>
     <a href="chat.php" class="rms-brand" title="Начало">RUNMYSTORE.AI</a>
     <span class="rms-plan-badge <?= htmlspecialchars($rms_plan) ?>"><?= htmlspecialchars($rms_plan_label) ?></span>
 
