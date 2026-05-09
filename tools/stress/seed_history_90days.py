@@ -446,12 +446,13 @@ def main():
                     )
                     inserted_delivery_items += 1
 
-                    # Inventory increment (или INSERT ако пада за първи път).
+                    # Inventory increment (или INSERT ако (product, store) pair липсва).
+                    # tenant_id е NOT NULL — задължително го подаваме.
                     cur.execute(
-                        "INSERT INTO inventory (product_id, store_id, quantity) "
-                        "VALUES (%s, %s, %s) "
+                        "INSERT INTO inventory (tenant_id, product_id, store_id, quantity) "
+                        "VALUES (%s, %s, %s, %s) "
                         "ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)",
-                        (di["product_id"], d["store_id"], di["qty"]),
+                        (d["tenant_id"], di["product_id"], d["store_id"], di["qty"]),
                     )
 
                     # stock_movements: type='delivery', positive qty, reference→delivery.
