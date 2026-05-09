@@ -1107,6 +1107,201 @@ Detailed handoff: `SESSION_HANDOFF_FOR_NEXT_SHEF.md` (committed 16d6535).
 
 ### REWORK QUEUE updates
 
+### RWQ-88 — EIK lookup за доставчици и B2B клиенти (P1, post-beta)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** RWQ-89 partners, suppliers модул, sale.php B2B (фактура), customers модул
+**Сесия:** TBD post-beta (след RWQ-89)
+
+**Проблем:** При въвеждане на нов доставчик или издаване на фактура на нов B2B клиент, продавачът ръчно въвежда име, адрес, ДДС номер — бавно и податливо на грешки.
+
+**Решение:** Поле „ЕИК / Булстат" в `partners.php` форма (нов партньор) и `sale.php` B2B mode (фактура). При въвеждане на 9-13 цифрен ЕИК → автоматично fetch от публичен Български търговски регистър API. Auto-fill: legal_name, vat_number, address, representative.
+
+**DB схема:** Таблица `eik_cache` (виж миграция `2026_05_documents.up.sql`).
+
+**Източници на данни:**
+- registryagency.bg публичен API (безплатен, rate-limited)
+- ApiBG за higher rate limits (платен)
+
+**TODO преди implementation:**
+- Избор на API източник (избягвай scraper подход заради ToS)
+- Tenant setting: enable/disable EIK lookup
+- Caching с TTL 30 дни в `eik_cache.expires_at`
+- Fallback: ако API не отговори → ръчно въвеждане
+- GDPR: само публични данни, без BG residency на лични имена
+
+**Приоритет:** P1 (важно за UX, не блокер за beta)
+**Естимация:** 1 ден CC сесия (back-end + UI integration в 2 модула)
+
+---
+
+### RWQ-89 — Единна база `partners` (доставчик / клиент / B2B / институция) (P1, post-beta)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** RWQ-88 EIK lookup, suppliers, customers, sale.php B2B, deliveries.php, orders.php, returns
+**Сесия:** TBD post-beta (предхожда RWQ-88, защото EIK auto-fill пише именно тук)
+
+**Проблем:** Един и същ контрагент в реалния retail често е и доставчик, и клиент (приятелски магазин обменя стока в двете посоки). Сегашната отделна `suppliers` + `customers` логика дублира записи и губи историята.
+
+**Решение:** Единна таблица `partners` с роли (`is_supplier`, `is_customer`, `is_b2b`, `is_institution`, `is_natural_person`). Старите foreign keys мигрират към `partner_id`.
+
+**DB схема:** Таблици `partners` + `partner_aliases` (виж миграция `2026_05_documents.up.sql`).
+
+**Migration plan:**
+1. Apply `2026_05_documents.up.sql` (празни таблици)
+2. INSERT всички съществуващи `suppliers` → `partners` с `is_supplier=1`
+3. INSERT всички съществуващи `customers` → `partners` с `is_customer=1`
+4. Detect duplicates по EIK или legal_name → merge с двата флага
+5. ALTER `deliveries`, `orders`, `sales` (B2B), `returns` → добавяне `partner_id` (вече направено в миграцията за sales)
+6. UPDATE FK-овете да сочат към новата таблица
+7. Запазват се старите `suppliers_id` / `customers_id` колони за 90 дни (rollback safety)
+
+**UI:**
+- Нов модул `partners.php` (или sub-tab в settings)
+- `suppliers.php` става view върху `partners WHERE is_supplier=1`
+- `customers.php` става view върху `partners WHERE is_customer=1`
+
+**Приоритет:** P1 (foundation за RWQ-88 + по-чиста архитектура)
+**Естимация:** 2-3 дни CC сесия (schema + ETL migration + 3 модула UI updates + back-compat layer)
+
+---
+
+### RWQ-90 — Документни серии и 10-разрядна номерация по ЗДДС (P0 PRE-BETA)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** sale.php B2B, RWQ-92 documents модул, ЗДДС/ППЗДДС чл. 78, Наредба Н-18
+**Сесия:** S132+ (преди beta — ENI ще издава фактури от ден 1)
+
+**Законов контекст (ППЗДДС чл. 78, ал. 2-4 + Н-18):**
+- 10-разряден последователен номер задължителен
+- Без дублиране, без пропуски
+- Една серия за фактури + кредитни/дебитни известия + протоколи (споделят номерация по ЗДДС)
+- Multi-обект разрешен с различни НЕприпокриващи се диапазони (НАП писмо 20-00-79/25.03.2015)
+- При ДДС регистрация — не се рестартва, продължава предишният номер
+
+**Решение:** Таблица `document_series` (10 категории) + `document_series_changes` audit (виж миграция `2026_05_documents.up.sql`).
+
+**Функционалност (от StoreHouse PRO + InvoicePro + Фактурник research):**
+1. Multi-серии per tenant per store per категория
+2. Активна серия per обект (`is_active=1` flag)
+3. Префикс + начален_номер + краен_номер + current_number
+4. 10-разряден auto-pad (BIGINT в DB, render `%010d`)
+5. DB UNIQUE constraint на (tenant_id, doc_type, full_number)
+6. Audit trail на manual changes (`document_series_changes`)
+7. Lock след първо издаване (`is_locked=1`) — start_number не може backwards
+8. Emergency split flag за хартиени бонове (`is_emergency=1`)
+9. Switch активна серия UI — owner маркира друга `is_active=1`
+
+**Race condition защита:** SELECT ... FOR UPDATE на `document_series.current_number` + INSERT в `documents` в една transaction.
+
+**ENI миграция:** Тихол въвежда последния номер от хартиен кочан → системата създава първа серия с `start = last_paper + 1`.
+
+**Приоритет:** P0 PRE-BETA — без това ENI не може да издава B2B фактури от ден 1.
+**Естимация:** 1 CC сесия (миграцията вече готова в `2026_05_documents.up.sql`; остава UI + sale.php integration + race condition tests).
+
+---
+
+### RWQ-91 — Progressive Disclosure UX за 16-те типа документи (P0 PRE-BETA)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** sale.php B2B mode, RWQ-92 documents модул, SIMPLE_MODE_BIBLE Закон №1 (Пешо никога не пише)
+
+**Проблем:** 16 типа документи в DB; ако всички са видими в меню → когнитивен overload за Пешо.
+
+**Решение — 4 нива видимост:**
+
+| Ниво | Кой вижда | Кои документи | Кога |
+|---|---|---|---|
+| 0 — AUTO | Никой не „избира" | cash_receipt, storno_receipt, goods_note, storage_note | Триггер от продажба/анулиране/доставка/приемане |
+| 1 — 1 ВЪПРОС | Пешо | invoice, warranty, credit_note (връщане), 4-ти бутон „НЕ" | Bottom sheet след „Плати"; default focus = НЕ |
+| 2 — AUTO-DETECT | Пешо (без избор) | invoice (при сканиран ЕИК) / proforma (глас) / credit_note (връщане на B2B бон) | Автоматичен switch базиран на context |
+| 3 — AI КОМАНДА | Всеки | Всички 16 типа | Чрез AI чат natural language: „издай дебитно известие към фактура X" |
+| 4 — DETAILED MODULE | Митко / Owner | Всички 16 + manual issue на rare (protocol_117, shipping_note) | DETAILED mode сайдбар, скрит от Пешо |
+
+**Триггери за AUTO-DETECT (Layer 2):**
+- Сканиран ЕИК / въведен в search → mode switch към „B2B" → дефолт = invoice
+- Скениран касов бон при връщане → ако partner_id присъства (B2B) → credit_note; иначе → storno_receipt
+- Получена доставка в `deliveries.php` → автоматично се пише goods_note
+- Глас „проформа" / „оферта" в AI чат → стартира съответния flow
+- Поискана гаранция → ако `products.has_warranty=1` → warranty се печата заедно с касов бон
+
+**Скрити от SIMPLE mode menu (само Layer 3 AI достъп):**
+- debit_note, protocol_117, cash_order_in/out, transfer_protocol, shipping_note, storage_note, offer, order_confirmation
+
+**Приоритет:** P0 PRE-BETA (UX блокер за Пешо)
+**Естимация:** 0.5 ден CC сесия (UI logic в sale.php + AI intent recognition update)
+
+---
+
+### RWQ-92 — Централен модул `documents.php` + DB unification (P0 PRE-BETA)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** sale.php B2B, deliveries.php, partners.php, RWQ-90 серии, RWQ-91 UX
+
+**Принцип:** Документите се **раждат** в контекстен модул (sale.php / deliveries.php), но **живеят централно** в `documents.php` + детайл на партньора.
+
+**DB схема:** Таблици `documents` + `document_items` (виж миграция `2026_05_documents.up.sql`). Един `doc_type` ENUM с всички 16 типа. Един parent_doc_id за йерархии (credit_note → invoice).
+
+**`documents.php` UI features:**
+- Списък с филтри: тип, дата, партньор, статус, серия, store
+- Search по партньор / номер / amount
+- Audit log view per документ (промени, печат, изпращане, анулиране)
+- Manual issue на rare типове (protocol_117, shipping_note, debit_note) — само за owner/manager
+- PDF preview + download
+- Свързани документи (ако фактура има 2 кредитни известия — показва ги all)
+- Export към CSV / XML за счетоводство
+
+**Свързани views:**
+- `partners.php` детайл → list of all documents for that partner
+- `sale.php` детайл на продажба → list of свързаните documents
+- `deliveries.php` детайл → goods_note + optional invoice от доставчика
+- AI chat → search + issue commands
+
+**Приоритет:** P0 PRE-BETA — без него документите нямат central recording (audit gap)
+**Естимация:** 1.5 ден CC сесия (нов модул, list view + detail + filters + PDF generation hooks)
+
+---
+
+### RWQ-93 — sale.php redesign с B2B mode + documents integration (P0 PRE-BETA)
+
+**Дата заявка:** 09.05.2026 (Тихол)
+**Свързан с:** RWQ-90 серии, RWQ-91 UX, RWQ-92 documents модул, P11 mockup
+
+**Контекст:** Първоначално P11 redesign беше „само визуално"; разговор 09.05 разшири scope с B2B mode + documents.
+
+**Какво се добавя над P11 mockup-а:**
+
+1. **Mode toggle в header** „На дребно / На едро" с color change (per userMemories „Wholesale = color change")
+2. **B2B mode features:**
+   - Задължителен partner search (ЕИК / име) преди checkout
+   - Auto-fetch от `eik_cache` или регистър при нов ЕИК
+   - Активна фактурна серия се показва в header
+   - „Плати" → INSERT в `documents` (doc_type='invoice') + INSERT в `sales` с partner_id + primary_document_id
+3. **Bottom sheet след „Плати" (Layer 1 от RWQ-91):**
+   - 4 бутона: ФАКТУРА / ГАРАНЦИЯ / ВРЪЩАНЕ / НЕ
+   - Default focus = НЕ
+   - В retail mode първият бутон е ФАКТУРА (rare)
+   - В wholesale mode фактурата вече е генерирана автоматично; първият бутон е ПРОФОРМА вместо ФАКТУРА
+4. **Returns flow:**
+   - Скениран касов бон/фактура → AI auto-detects type
+   - Retail return → storno_receipt; B2B return → credit_note
+5. **AI команди в чата по време на продажба:**
+   - „издай проформа" → INSERT proforma + print
+   - „превключи на едро" → mode change без загуба на кошницата
+6. **Save endpoint atomically:**
+   - BEGIN TRANSACTION
+   - SELECT ... FOR UPDATE на `document_series.current_number`
+   - INSERT в `documents` + `document_items`
+   - INSERT в `sales` + `sale_items`
+   - UPDATE `document_series.current_number` + 1
+   - COMMIT
+   - При fail → ROLLBACK всичко
+
+**Приоритет:** P0 PRE-BETA — sale.php е критичен модул за beta
+**Естимация:** 12-14h CC сесия (P11 visual rewrite + B2B integration + race condition tests + AI intent hooks)
+
+---
+
 - 🆕 **#80-#82 added** (back-log от 04.05 EOD — declared но не вмъкнати в таблицата)
 - 🆕 **#83-#91 added** (9 нови entries от 06.05 strategic docs)
 
