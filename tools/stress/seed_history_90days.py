@@ -83,6 +83,13 @@ INTENTIONAL_ERROR_RATE = 0.075   # 7.5% — между 5-10%
 RETURN_RATE_RANGE      = (0.08, 0.10)
 LOST_DEMAND_TOTAL      = (50, 100)
 
+# S133.STRESS.J5 — delivery seeding so 90-day inventory stays positive and
+# stock_movements has a healthy mix of 'sale' / 'delivery' types for the
+# balance validator. Deliveries land at 07:00 each day, before sales (10:00+).
+DELIVERY_PROBABILITY_PER_DAY = 0.20   # 20% chance per (store, day) of a delivery
+DELIVERY_ITEMS_RANGE         = (5, 10)
+DELIVERY_QTY_RANGE           = (50, 150)
+
 
 def seasonal_multiplier(date: datetime, category: str) -> float:
     m = date.month
@@ -111,6 +118,32 @@ def fetch_stores(conn, tenant_id: int) -> list:
     with conn.cursor() as cur:
         cur.execute("SELECT id, name FROM stores WHERE tenant_id = %s", (tenant_id,))
         return list(cur.fetchall())
+
+
+def fetch_suppliers(conn, tenant_id: int) -> list:
+    """list[{id, name}] за planning на deliveries (S133.STRESS.J5)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, name FROM suppliers WHERE tenant_id = %s", (tenant_id,))
+        return list(cur.fetchall())
+
+
+def fetch_inventory_state(conn, tenant_id: int) -> dict:
+    """(product_id, store_id) -> текуща quantity за STRESS Lab.
+
+    Използва се в plan-фазата за да предотврати генерирането на продажби
+    които биха пробили inventory < 0 invariant-а (S133.STRESS.J4 / P0.7).
+    """
+    state = {}
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT i.product_id, i.store_id, i.quantity "
+            "FROM inventory i JOIN products p ON p.id = i.product_id "
+            "WHERE p.tenant_id = %s",
+            (tenant_id,),
+        )
+        for row in cur.fetchall():
+            state[(int(row["product_id"]), int(row["store_id"]))] = float(row["quantity"])
+    return state
 
 
 def fetch_products_sample(conn, tenant_id: int, limit: int = 1000) -> list:
@@ -193,6 +226,11 @@ def main():
 
     sales_cols = discover_columns(conn, "sales")
     sale_items_cols = discover_columns(conn, "sale_items")
+    # S133.STRESS.J4 — за emission на stock_movements при всяко sale_item.
+    sm_cols = discover_columns(conn, "stock_movements")
+    # S133.STRESS.J5 — за emission на deliveries + delivery_items.
+    del_cols = discover_columns(conn, "deliveries")
+    del_items_cols = discover_columns(conn, "delivery_items")
 
     users = fetch_users(conn, tenant_id)
     if not users:
@@ -203,6 +241,15 @@ def main():
     products = fetch_products_sample(conn, tenant_id)
     if not products:
         sys.exit("[REFUSE] products е празна. Изпълни seed_products_realistic.py първо.")
+
+    # S133.STRESS.J4 — load actual inventory state. Plan-loop-ът проверява срещу
+    # този dict и пропуска артикули които биха пробили quantity >= 0 invariant.
+    inv_state = fetch_inventory_state(conn, tenant_id)
+    if not inv_state:
+        print("[WARN] inventory е празен — всички продажби ще бъдат пропуснати.")
+
+    # S133.STRESS.J5 — suppliers за planning на deliveries.
+    suppliers = fetch_suppliers(conn, tenant_id)
 
     days = plan_days(args.days)
 
@@ -219,12 +266,55 @@ def main():
         "expected_returns_total": 0,
         "expected_lost_demand": random.randint(*LOST_DEMAND_TOTAL),
         "intentional_errors": 0,
+        # S133.STRESS.J5
+        "deliveries_planned": 0,
+        "delivery_items_planned": 0,
     }
 
     planned_sales = []
+    planned_deliveries = []   # S133.STRESS.J5
     for day in days:
         dow = day.weekday()
         day_mult = DAY_OF_WEEK_MULT[dow]
+
+        # S133.STRESS.J5 — generate deliveries FIRST (07:00) so inv_state is
+        # bumped before the day's sales are planned. Otherwise long-tail products
+        # would always fail the floor check after a few days.
+        if suppliers:
+            for store in stores:
+                if random.random() >= DELIVERY_PROBABILITY_PER_DAY:
+                    continue
+                sup = random.choice(suppliers)
+                n_items = random.randint(*DELIVERY_ITEMS_RANGE)
+                del_items = []
+                for _ in range(n_items):
+                    p = random.choice(products)
+                    qty = random.randint(*DELIVERY_QTY_RANGE)
+                    cost = float(p.get("cost_price") or 1.0)
+                    del_items.append({
+                        "product_id": int(p["id"]),
+                        "qty": qty,
+                        "cost_price": cost,
+                    })
+                    inv_key = (int(p["id"]), int(store["id"]))
+                    inv_state[inv_key] = inv_state.get(inv_key, 0) + qty
+                if not del_items:
+                    continue
+                del_total = round(sum(i["qty"] * i["cost_price"] for i in del_items), 2)
+                del_ts = day.replace(hour=7, minute=random.randint(0, 59), second=random.randint(0, 59))
+                del_user = pick_user(users)
+                planned_deliveries.append({
+                    "tenant_id": tenant_id,
+                    "store_id": int(store["id"]),
+                    "supplier_id": int(sup["id"]),
+                    "user_id": int(del_user["id"]) if del_user else None,
+                    "ts": del_ts,
+                    "items": del_items,
+                    "total": del_total,
+                })
+                plan_summary["deliveries_planned"] += 1
+                plan_summary["delivery_items_planned"] += len(del_items)
+
         for store in stores:
             base = base_daily_sales_for_store(store["name"])
             count = max(0, int(base * day_mult * random.uniform(0.85, 1.15)))
@@ -247,6 +337,14 @@ def main():
                     seas_mult = seasonal_multiplier(ts, p.get("category", ""))
                     if random.random() > seas_mult / 1.25:
                         continue
+                    # S133.STRESS.J4 / P0.7 — inventory floor check.
+                    # Без този guard seed-ът създаваше ~112 негативни inventory
+                    # rows за 90-day window и фалшиво fail-ваше test_01_sale_race.
+                    inv_key = (int(p["id"]), int(store["id"]))
+                    avail = inv_state.get(inv_key, 0)
+                    if avail < qty:
+                        continue
+                    inv_state[inv_key] = avail - qty
                     price = float(p.get("retail_price") or 0)
                     items.append({
                         "product_id": int(p["id"]),
@@ -279,6 +377,7 @@ def main():
     print(f"  Returns expected:          {plan_summary['expected_returns_total']}")
     print(f"  Lost demand expected:      {plan_summary['expected_lost_demand']}")
     print(f"  Intentional errors:        {plan_summary['intentional_errors']}")
+    print(f"  Deliveries planned:        {plan_summary['deliveries_planned']} ({plan_summary['delivery_items_planned']} items)")
     for store, cnt in plan_summary["by_store"].items():
         print(f"  {store:30s} {cnt}")
 
@@ -297,8 +396,86 @@ def main():
     inserted_sales = 0
     inserted_items = 0
     inserted_movements = 0
+    inserted_deliveries = 0
+    inserted_delivery_items = 0
     try:
         with conn.cursor() as cur:
+            # S133.STRESS.J5 — apply deliveries first (chronologically предхождат
+            # sales-те за същия ден, при ts=07:00 vs sales 10:00+).
+            for d in planned_deliveries:
+                del_row = {
+                    "tenant_id":    d["tenant_id"],
+                    "store_id":     d["store_id"],
+                    "supplier_id":  d["supplier_id"],
+                    "user_id":      d["user_id"],
+                    "total":        d["total"],
+                    "status":       "committed",
+                    "delivered_at": d["ts"],
+                    "created_at":   d["ts"],
+                    "currency_code": "EUR",
+                }
+                del_filtered = {k: v for k, v in del_row.items() if k in del_cols and v is not None}
+                fields = ", ".join(del_filtered.keys())
+                placeholders = ", ".join(["%s"] * len(del_filtered))
+                cur.execute(
+                    f"INSERT INTO deliveries ({fields}) VALUES ({placeholders})",
+                    list(del_filtered.values()),
+                )
+                delivery_id = cur.lastrowid
+                inserted_deliveries += 1
+
+                for di in d["items"]:
+                    di_row = {
+                        "tenant_id":   d["tenant_id"],
+                        "store_id":    d["store_id"],
+                        "supplier_id": d["supplier_id"],
+                        "delivery_id": delivery_id,
+                        "product_id":  di["product_id"],
+                        "quantity":    di["qty"],
+                        "cost_price":  di["cost_price"],
+                        "total":       round(di["qty"] * di["cost_price"], 2),
+                        "currency_code": "EUR",
+                        "created_at":  d["ts"],
+                    }
+                    di_filtered = {k: v for k, v in di_row.items() if k in del_items_cols}
+                    fields = ", ".join(di_filtered.keys())
+                    placeholders = ", ".join(["%s"] * len(di_filtered))
+                    cur.execute(
+                        f"INSERT INTO delivery_items ({fields}) VALUES ({placeholders})",
+                        list(di_filtered.values()),
+                    )
+                    inserted_delivery_items += 1
+
+                    # Inventory increment (или INSERT ако пада за първи път).
+                    cur.execute(
+                        "INSERT INTO inventory (product_id, store_id, quantity) "
+                        "VALUES (%s, %s, %s) "
+                        "ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)",
+                        (di["product_id"], d["store_id"], di["qty"]),
+                    )
+
+                    # stock_movements: type='delivery', positive qty, reference→delivery.
+                    if sm_cols:
+                        sm_row = {
+                            "tenant_id": d["tenant_id"],
+                            "store_id":  d["store_id"],
+                            "product_id": di["product_id"],
+                            "user_id":   d["user_id"],
+                            "type":      "delivery",
+                            "quantity":  di["qty"],
+                            "price":     di["cost_price"],
+                            "reference_type": "delivery",
+                            "reference_id":   delivery_id,
+                            "created_at": d["ts"],
+                        }
+                        sm_filtered = {k: v for k, v in sm_row.items() if k in sm_cols and v is not None}
+                        fields = ", ".join(sm_filtered.keys())
+                        placeholders = ", ".join(["%s"] * len(sm_filtered))
+                        cur.execute(
+                            f"INSERT INTO stock_movements ({fields}) VALUES ({placeholders})",
+                            list(sm_filtered.values()),
+                        )
+
             for s in planned_sales:
                 sale_row = {
                     "tenant_id": s["tenant_id"],
@@ -341,13 +518,37 @@ def main():
                         list(item_row.values()),
                     )
                     inserted_items += 1
-                    # inventory decrement: НЕ използваме GREATEST — реалистично ground truth
+                    # inventory decrement: НЕ използваме GREATEST защото plan-фазата
+                    # вече провери че inv_state[(p, store)] >= qty (S133.STRESS.J4).
                     cur.execute(
                         "UPDATE inventory SET quantity = quantity - %s "
                         "WHERE product_id = %s AND store_id = %s",
                         (it["qty"], it["product_id"], s["store_id"]),
                     )
                     inserted_movements += cur.rowcount or 0
+                    # S133.STRESS.J4 / P0.5 — emit stock_movements row за всеки
+                    # sale_item. Използваме negative quantity (ledger convention)
+                    # с type='sale'; balance_validator handle-ва двата pattern-а.
+                    if sm_cols:
+                        sm_row = {
+                            "tenant_id": s["tenant_id"],
+                            "store_id": s["store_id"],
+                            "product_id": it["product_id"],
+                            "user_id": s["user_id"],
+                            "type": "sale",
+                            "quantity": -it["qty"],
+                            "price": it["unit_price"],
+                            "reference_type": "sale",
+                            "reference_id": sale_id,
+                            "created_at": s["ts"],
+                        }
+                        sm_filtered = {k: v for k, v in sm_row.items() if k in sm_cols}
+                        sm_fields = ", ".join(sm_filtered.keys())
+                        sm_placeholders = ", ".join(["%s"] * len(sm_filtered))
+                        cur.execute(
+                            f"INSERT INTO stock_movements ({sm_fields}) VALUES ({sm_placeholders})",
+                            list(sm_filtered.values()),
+                        )
 
         conn.commit()
     except Exception as e:
@@ -355,8 +556,8 @@ def main():
         sys.exit(f"[FAIL] INSERT провали (rollback изпълнен): {e}")
 
     print(f"[OK] sales={inserted_sales} items={inserted_items} inv_updates={inserted_movements}")
-    print( "     Returns + lost_demand + delivery_history — TODO в Етап 1.b "
-           "(самостоятелни скриптове, същата структура — НЕ изпълнявам тук за да не дубликирам данни).")
+    print(f"     deliveries={inserted_deliveries} delivery_items={inserted_delivery_items}")
+    print( "     Returns + lost_demand — TODO (самостоятелни скриптове).")
     dry_run_log("seed_history_90days", {
         "action": "applied", "tenant_id": tenant_id,
         "sales_inserted": inserted_sales, "items_inserted": inserted_items,
