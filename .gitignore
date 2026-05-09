@@ -47,3 +47,6 @@ logs/
 *.tar.gz
 *.zip
 files (*.zip
+
+tools/stress/__pycache__/
+tools/stress/data/
