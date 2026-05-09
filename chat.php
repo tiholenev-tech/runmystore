@@ -407,282 +407,1476 @@ $chat_messages = DB::run(
 $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 
 ?><!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#08090d">
-<title>Начало — RunMyStore.ai</title>
+<title>P11 · Подробен режим · RunMyStore.AI</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script>try{if(localStorage.getItem('rms_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(_){}</script>
-<link rel="stylesheet" href="/design-kit/tokens.css?v=<?= @filemtime(__DIR__.'/design-kit/tokens.css') ?: 1 ?>">
-<link rel="stylesheet" href="/design-kit/components-base.css?v=<?= @filemtime(__DIR__.'/design-kit/components-base.css') ?: 1 ?>">
-<link rel="stylesheet" href="/design-kit/components.css?v=<?= @filemtime(__DIR__.'/design-kit/components.css') ?: 1 ?>">
-<link rel="stylesheet" href="/design-kit/light-theme.css?v=<?= @filemtime(__DIR__.'/design-kit/light-theme.css') ?: 1 ?>">
-<link rel="stylesheet" href="/design-kit/header-palette.css?v=<?= @filemtime(__DIR__.'/design-kit/header-palette.css') ?: 1 ?>">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<style>
+/* P10 — life-board.php (lesny mode) — преструктурирана версия
+   Промени спрямо production:
+   1. 4 ops buttons → ГОРЕ (преди Life Board) с info бутончета
+   2. AI Studio row → под ops
+   3. AI Help card → НОВА (q-magic, с примерни въпроси + видео placeholder)
+   4. AI Brain pill → ПРЕМАХНАТА (дублира chat input bar)
+   5. Life Board header + cards → отдолу (collapsed by default) */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms; --dur: 250ms;
+  --press: 0.97;
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card: var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark), calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm: var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed: inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 310);
+  --success: oklch(0.68 0.18 155); --warning: oklch(0.72 0.18 70); --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply; --aurora-opacity: 0.32;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%); --surface-2: hsl(220, 25%, 8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px, hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%); --accent-3: hsl(var(--hue3), 70%, 55%);
+  --magic: hsl(280, 70%, 65%);
+  --success: hsl(145, 70%, 55%); --warning: hsl(38, 90%, 60%); --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.aurora-blob { position: absolute; border-radius: var(--radius-icon); filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(var(--hue1),80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(280,80%,55%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+/* ═══ CANONICAL HEADER ═══ */
+.rms-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="light"] .rms-header,
+:root:not([data-theme]) .rms-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .rms-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); }
+.rms-brand {
+  position: relative; font-size: 15px; font-weight: 900; letter-spacing: 0.10em;
+  background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 55%), hsl(var(--hue2) 80% 60%), hsl(var(--hue1) 80% 60%));
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: rmsBrandShimmer 4s linear infinite;
+  filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+}
+.rms-plan-badge {
+  position: relative; padding: 5px 12px; border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text); border: 1px solid var(--border-color); overflow: hidden;
+}
+[data-theme="light"] .rms-plan-badge,
+:root:not([data-theme]) .rms-plan-badge { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .rms-plan-badge { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); }
+.rms-plan-badge::before {
+  content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px;
+  background: conic-gradient(from 0deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 60%), hsl(var(--hue1) 80% 60%));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: conicSpin 3s linear infinite; opacity: 0.6; pointer-events: none;
+}
+.rms-header-spacer { flex: 1; }
+.rms-icon-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-icon);
+  border: 1px solid var(--border-color); display: grid; place-items: center;
+  background: var(--surface);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.rms-icon-btn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2; }
+.rms-icon-btn:active { transform: scale(var(--press)); }
+[data-theme="light"] .rms-icon-btn,
+:root:not([data-theme]) .rms-icon-btn { box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .rms-icon-btn:active,
+:root:not([data-theme]) .rms-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .rms-icon-btn { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); box-shadow: 0 4px 12px hsl(var(--hue2) 50% 4%); }
+
+/* ═══ MODE TOGGLE ROW (Подробен →) ═══ */
+.lb-mode-row {
+  display: flex; justify-content: flex-end;
+  padding: 8px 12px 0;
+  position: relative; z-index: 5;
+}
+.lb-mode-toggle {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-mode-toggle,
+:root:not([data-theme]) .lb-mode-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .lb-mode-toggle { background: hsl(220 25% 8% / 0.6); }
+.lb-mode-toggle svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ═══ APP ═══ */
+.app { position: relative; z-index: 5; max-width: 480px; margin: 0 auto; padding: 8px 12px calc(168px + env(safe-area-inset-bottom, 0)); }
+
+/* ═══ GLASS BASE ═══ */
+.glass { position: relative; border-radius: var(--radius); border: var(--border) solid var(--border-color); isolation: isolate; }
+.glass.sm { border-radius: var(--radius-sm); }
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+[data-theme="light"] .glass, :root:not([data-theme]) .glass { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="light"] .glass .shine, [data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine, :root:not([data-theme]) .glass .glow { display: none; }
+[data-theme="dark"] .glass {
+  background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%), linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%), linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px); box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .glass .shine { pointer-events: none; border-radius: 0; border-top-right-radius: inherit; border-bottom-left-radius: inherit; border: 1px solid transparent; width: 75%; aspect-ratio: 1; display: block; position: absolute; right: calc(var(--border) * -1); top: calc(var(--border) * -1); z-index: 1; background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box; mask: linear-gradient(transparent), linear-gradient(black); mask-clip: padding-box, border-box; mask-composite: subtract; }
+[data-theme="dark"] .glass .shine.shine-bottom { right: auto; top: auto; left: calc(var(--border) * -1); bottom: calc(var(--border) * -1); }
+[data-theme="dark"] .glass .glow { pointer-events: none; border-top-right-radius: calc(var(--radius) * 2.5); border-bottom-left-radius: calc(var(--radius) * 2.5); border: calc(var(--radius) * 1.25) solid transparent; inset: calc(var(--radius) * -2); width: 75%; aspect-ratio: 1; display: block; position: absolute; left: auto; bottom: auto; background: conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%); filter: blur(12px) saturate(1.25); mix-blend-mode: plus-lighter; z-index: 3; opacity: 0.6; }
+[data-theme="dark"] .glass .glow.glow-bottom { inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2); }
+/* hue overrides (production: q1=loss/red, q2=cause/violet, q3=gain/green, q4=cause/teal, q5=order/amber, q6=gray; qd=default, qw=weather) */
+[data-theme="dark"] .glass.q1 .shine, [data-theme="dark"] .glass.q1 .glow { --hue: 0; }
+[data-theme="dark"] .glass.q1 .shine-bottom, [data-theme="dark"] .glass.q1 .glow-bottom { --hue: 15; }
+[data-theme="dark"] .glass.q2 .shine, [data-theme="dark"] .glass.q2 .glow { --hue: 280; }
+[data-theme="dark"] .glass.q2 .shine-bottom, [data-theme="dark"] .glass.q2 .glow-bottom { --hue: 305; }
+[data-theme="dark"] .glass.q3 .shine, [data-theme="dark"] .glass.q3 .glow { --hue: 145; }
+[data-theme="dark"] .glass.q3 .shine-bottom, [data-theme="dark"] .glass.q3 .glow-bottom { --hue: 165; }
+[data-theme="dark"] .glass.q4 .shine, [data-theme="dark"] .glass.q4 .glow { --hue: 180; }
+[data-theme="dark"] .glass.q4 .shine-bottom, [data-theme="dark"] .glass.q4 .glow-bottom { --hue: 195; }
+[data-theme="dark"] .glass.q5 .shine, [data-theme="dark"] .glass.q5 .glow { --hue: 38; }
+[data-theme="dark"] .glass.q5 .shine-bottom, [data-theme="dark"] .glass.q5 .glow-bottom { --hue: 28; }
+[data-theme="dark"] .glass.qhelp .shine, [data-theme="dark"] .glass.qhelp .glow { --hue: 280; }
+[data-theme="dark"] .glass.qhelp .shine-bottom, [data-theme="dark"] .glass.qhelp .glow-bottom { --hue: 310; }
+
+/* ═══ TOP ROW (Днес + Времето) ═══ */
+.top-row {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+}
+.cell { padding: 12px 14px; }
+.cell > * { position: relative; z-index: 5; }
+.cell-header-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.cell-label { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.cell-numrow { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+.cell-num { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.cell-cur { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.cell-pct { font-family: var(--font-mono); font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: var(--radius-pill); margin-left: auto; }
+.cell-pct.pos { background: oklch(0.92 0.08 145 / 0.5); color: hsl(145 60% 35%); }
+[data-theme="dark"] .cell-pct.pos { background: hsl(145 50% 12%); color: hsl(145 70% 65%); }
+.cell-pct.neg { background: oklch(0.92 0.08 25 / 0.5); color: hsl(0 60% 45%); }
+[data-theme="dark"] .cell-pct.neg { background: hsl(0 50% 12%); color: hsl(0 80% 70%); }
+.cell-meta { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 4px; line-height: 1.2; }
+.weather-cell-top { display: flex; align-items: baseline; gap: 6px; }
+.weather-cell-icon svg { width: 22px; height: 22px; stroke: hsl(38 80% 50%); fill: hsl(38 80% 60%); stroke-width: 1.5; }
+[data-theme="dark"] .weather-cell-icon svg { stroke: hsl(38 90% 60%); fill: hsl(38 80% 50%); }
+.weather-cell-temp { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.weather-cell-cond { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 3px; }
+
+/* ═══ OPS GRID — 4 buttons (преместен ГОРЕ) ═══ */
+.ops-section {
+  margin-bottom: 12px;
+  animation: fadeInUp 0.7s var(--ease-spring) both;
+}
+.ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.op-btn {
+  position: relative;
+  padding: 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.op-btn > * { position: relative; z-index: 5; }
+.op-btn:active { transform: scale(0.98); }
+.op-icon {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .op-icon, :root:not([data-theme]) .op-icon { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .op-icon { background: hsl(220 25% 4%); }
+.op-icon svg { width: 22px; height: 22px; fill: none; stroke-width: 2; }
+.op-btn.q3 .op-icon svg { stroke: hsl(145 60% 45%); }
+[data-theme="dark"] .op-btn.q3 .op-icon svg { stroke: hsl(145 70% 65%); }
+.op-btn.q5 .op-icon svg { stroke: hsl(38 80% 50%); }
+[data-theme="dark"] .op-btn.q5 .op-icon svg { stroke: hsl(38 90% 65%); }
+.op-btn.q2 .op-icon svg { stroke: hsl(280 60% 50%); }
+[data-theme="dark"] .op-btn.q2 .op-icon svg { stroke: hsl(280 70% 70%); }
+.op-btn.qd .op-icon svg { stroke: var(--accent); }
+[data-theme="dark"] .op-btn.qd .op-icon svg { stroke: hsl(var(--hue1) 80% 70%); }
+.op-label { font-size: 14px; font-weight: 800; letter-spacing: -0.005em; }
+
+/* INFO бутонче в горния десен ъгъл на op-btn */
+.op-info-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 22px; height: 22px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  z-index: 6;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .op-info-btn, :root:not([data-theme]) .op-info-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .op-info-btn:active, :root:not([data-theme]) .op-info-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .op-info-btn { background: hsl(220 25% 8%); }
+.op-info-btn svg { width: 11px; height: 11px; stroke: var(--text-muted); fill: none; stroke-width: 2.5; }
+
+/* ═══ AI STUDIO ROW (под ops) ═══ */
+.studio-row { margin-bottom: 12px; animation: fadeInUp 0.8s var(--ease-spring) both; }
+.studio-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  position: relative;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.studio-btn > * { position: relative; z-index: 5; }
+.studio-btn:active { transform: scale(0.99); }
+.studio-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5);
+  position: relative; overflow: hidden;
+}
+.studio-icon::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 4s linear infinite; }
+.studio-icon svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; position: relative; z-index: 1; }
+.studio-text { flex: 1; min-width: 0; }
+.studio-label { display: block; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.studio-sub { display: block; font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+.studio-badge {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  color: white;
+  background: linear-gradient(135deg, hsl(0 75% 55%), hsl(15 75% 55%));
+  box-shadow: 0 2px 8px hsl(0 70% 45% / 0.4);
+  flex-shrink: 0;
+}
+
+
+/* ═══ WEATHER FORECAST CARD ═══ */
+.wfc { padding: 14px; margin-bottom: 14px; animation: fadeInUp 0.85s var(--ease-spring) both; }
+.wfc > * { position: relative; z-index: 5; }
+.wfc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.wfc-head-ic {
+  width: 36px; height: 36px; border-radius: var(--radius-icon);
+  display: grid; place-items: center; flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(195 75% 60%), hsl(38 85% 60%));
+  box-shadow: 0 4px 12px hsl(195 70% 50% / 0.45);
+  position: relative; overflow: hidden;
+}
+.wfc-head-ic::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 5s linear infinite; }
+.wfc-head-ic svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; position: relative; z-index: 1; }
+.wfc-head-text { flex: 1; min-width: 0; }
+.wfc-title {
+  font-size: 14px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text), hsl(195 70% 50%));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.wfc-sub { font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+
+/* Range tabs (3д / 7д / 14д) — segmented */
+.wfc-tabs {
+  display: flex; gap: 3px; padding: 3px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .wfc-tabs, :root:not([data-theme]) .wfc-tabs { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .wfc-tabs { background: hsl(220 25% 4%); }
+.wfc-tab {
+  flex: 1; height: 28px;
+  border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.04em; color: var(--text-muted);
+  transition: color var(--dur) var(--ease);
+}
+[data-range="3"] .wfc-tab[data-tab="3"],
+[data-range="7"] .wfc-tab[data-tab="7"],
+[data-range="14"] .wfc-tab[data-tab="14"] {
+  color: white;
+  background: linear-gradient(135deg, hsl(195 70% 50%), hsl(38 80% 55%));
+  box-shadow: 0 3px 10px hsl(195 70% 45% / 0.4);
+}
+
+/* Days strip — horizontal scroll */
+.wfc-days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.wfc-days::-webkit-scrollbar { display: none; }
+
+.wfc-day {
+  flex: 0 0 auto;
+  width: 64px;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  border: 1px solid var(--border-color);
+  scroll-snap-align: start;
+}
+[data-theme="light"] .wfc-day, :root:not([data-theme]) .wfc-day { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .wfc-day { background: hsl(220 25% 6% / 0.6); }
+.wfc-day.today { border: 1px solid hsl(195 70% 50% / 0.4); }
+[data-theme="light"] .wfc-day.today, :root:not([data-theme]) .wfc-day.today { background: oklch(0.92 0.06 195); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .wfc-day.today { background: hsl(195 50% 12% / 0.5); border: 1px solid hsl(195 70% 40% / 0.5); }
+
+[data-range="3"] .wfc-day:nth-child(n+4),
+[data-range="7"] .wfc-day:nth-child(n+8) { display: none; }
+
+.wfc-day-name { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.wfc-day-ic { width: 28px; height: 28px; display: grid; place-items: center; }
+.wfc-day-ic svg { width: 22px; height: 22px; fill: none; stroke-width: 1.8; }
+.wfc-day.sunny .wfc-day-ic svg { stroke: hsl(38 85% 50%); fill: hsl(38 85% 60%); }
+[data-theme="dark"] .wfc-day.sunny .wfc-day-ic svg { stroke: hsl(38 90% 65%); fill: hsl(38 80% 55%); }
+.wfc-day.partly .wfc-day-ic svg { stroke: hsl(220 30% 50%); fill: hsl(220 30% 70%); }
+[data-theme="dark"] .wfc-day.partly .wfc-day-ic svg { stroke: hsl(220 20% 75%); fill: hsl(220 20% 55%); }
+.wfc-day.cloudy .wfc-day-ic svg { stroke: hsl(220 15% 50%); fill: hsl(220 15% 70%); }
+[data-theme="dark"] .wfc-day.cloudy .wfc-day-ic svg { stroke: hsl(220 10% 70%); fill: hsl(220 10% 50%); }
+.wfc-day.rain .wfc-day-ic svg { stroke: hsl(210 75% 50%); fill: none; }
+[data-theme="dark"] .wfc-day.rain .wfc-day-ic svg { stroke: hsl(210 80% 70%); }
+.wfc-day.storm .wfc-day-ic svg { stroke: hsl(280 60% 50%); fill: none; }
+[data-theme="dark"] .wfc-day.storm .wfc-day-ic svg { stroke: hsl(280 70% 70%); }
+
+.wfc-day-temp { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.wfc-day-temp small { font-size: 10px; font-weight: 600; color: var(--text-muted); margin-left: 1px; }
+.wfc-day-rain { font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: hsl(210 70% 50%); display: flex; align-items: center; gap: 2px; }
+[data-theme="dark"] .wfc-day-rain { color: hsl(210 80% 70%); }
+.wfc-day-rain.dry { color: var(--text-faint); }
+.wfc-day-rain svg { width: 8px; height: 8px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* AI recs section */
+.wfc-recs-divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0 10px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--magic);
+}
+[data-theme="dark"] .wfc-recs-divider { color: hsl(280 70% 75%); }
+.wfc-recs-divider::before, .wfc-recs-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.3;
+}
+
+.wfc-rec {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .wfc-rec, :root:not([data-theme]) .wfc-rec { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .wfc-rec { background: hsl(220 25% 6% / 0.6); }
+.wfc-rec-ic {
+  width: 30px; height: 30px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.wfc-rec-ic svg { width: 14px; height: 14px; fill: none; stroke-width: 2; }
+.wfc-rec.window .wfc-rec-ic { background: hsl(330 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .wfc-rec.window .wfc-rec-ic { background: hsl(330 50% 12%); }
+.wfc-rec.window .wfc-rec-ic svg { stroke: hsl(330 70% 50%); }
+[data-theme="dark"] .wfc-rec.window .wfc-rec-ic svg { stroke: hsl(330 70% 70%); }
+.wfc-rec.order .wfc-rec-ic { background: hsl(38 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .wfc-rec.order .wfc-rec-ic { background: hsl(38 50% 12%); }
+.wfc-rec.order .wfc-rec-ic svg { stroke: hsl(38 80% 50%); }
+[data-theme="dark"] .wfc-rec.order .wfc-rec-ic svg { stroke: hsl(38 90% 65%); }
+.wfc-rec.transfer .wfc-rec-ic { background: hsl(195 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .wfc-rec.transfer .wfc-rec-ic { background: hsl(195 50% 12%); }
+.wfc-rec.transfer .wfc-rec-ic svg { stroke: hsl(195 70% 50%); }
+[data-theme="dark"] .wfc-rec.transfer .wfc-rec-ic svg { stroke: hsl(195 70% 70%); }
+.wfc-rec-text { flex: 1; min-width: 0; }
+.wfc-rec-label {
+  display: block;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.wfc-rec-body { font-size: 12px; font-weight: 600; line-height: 1.35; }
+.wfc-rec-body b { font-weight: 800; }
+
+/* Source pill */
+.wfc-source {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 8.5px; font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+[data-theme="light"] .wfc-source, :root:not([data-theme]) .wfc-source { background: var(--surface); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .wfc-source { background: hsl(220 25% 4%); }
+
+/* ═══ AI HELP CARD (нова, q-magic / qhelp) ═══ */
+.help-card {
+  padding: 14px;
+  margin-bottom: 14px;
+  animation: fadeInUp 0.9s var(--ease-spring) both;
+}
+.help-card > * { position: relative; z-index: 5; }
+.help-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.help-head-ic {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5);
+  position: relative; overflow: hidden;
+}
+.help-head-ic::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.4) 85%, transparent 100%); animation: conicSpin 3s linear infinite; }
+.help-head-ic svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; position: relative; z-index: 1; }
+.help-head-text { flex: 1; min-width: 0; }
+.help-title {
+  font-size: 15px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text), var(--magic));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.help-sub { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px; line-height: 1.3; }
+
+.help-body {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.help-body b { color: var(--text); font-weight: 800; }
+
+/* Quick-action chips (примерни въпроси) */
+.help-chips-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.help-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.help-chip {
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px; font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .help-chip, :root:not([data-theme]) .help-chip { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .help-chip:active, :root:not([data-theme]) .help-chip:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .help-chip { background: hsl(220 25% 8%); }
+.help-chip-q {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 900;
+  color: var(--magic); flex-shrink: 0;
+}
+[data-theme="dark"] .help-chip-q { color: hsl(280 70% 70%); }
+
+/* Видео placeholder */
+.help-video-ph {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-color);
+  margin-bottom: 8px;
+}
+[data-theme="light"] .help-video-ph, :root:not([data-theme]) .help-video-ph { background: var(--surface); box-shadow: var(--shadow-pressed); border: 1px dashed oklch(0.62 0.22 285 / 0.3); }
+[data-theme="dark"] .help-video-ph { background: hsl(220 25% 4%); border: 1px dashed hsl(280 60% 35% / 0.4); }
+.help-video-ic {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 2px 6px hsl(280 70% 50% / 0.4);
+}
+.help-video-ic svg { width: 12px; height: 12px; stroke: white; fill: white; stroke-width: 0; }
+.help-video-text { flex: 1; min-width: 0; }
+.help-video-title { font-size: 11.5px; font-weight: 700; }
+.help-video-sub { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; color: var(--text-muted); margin-top: 1px; }
+
+.help-link-row {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+  color: var(--magic);
+  letter-spacing: 0.04em;
+}
+[data-theme="dark"] .help-link-row { color: hsl(280 70% 75%); }
+.help-link-row svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ═══ LIFE BOARD HEADER + COLLAPSED CARDS (под Help card) ═══ */
+.lb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 6px 4px 10px;
+  position: relative; z-index: 5;
+}
+.lb-title { display: flex; align-items: center; gap: 8px; }
+.lb-title-orb {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-icon);
+  background: conic-gradient(from 0deg, hsl(var(--hue1) 80% 60%), hsl(280 80% 60%), hsl(var(--hue3) 70% 60%), hsl(var(--hue1) 80% 60%));
+  box-shadow: 0 0 12px hsl(var(--hue1) 80% 50% / 0.4);
+  position: relative;
+  animation: orbSpin 5s linear infinite;
+}
+.lb-title-orb::after { content: ''; position: absolute; inset: 4px; border-radius: var(--radius-icon); background: var(--bg-main); }
+[data-theme="dark"] .lb-title-orb::after { background: #08090d; }
+.lb-title-text { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+.lb-count { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-muted); }
+
+.lb-card {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: box-shadow var(--dur) var(--ease);
+}
+.lb-card > * { position: relative; z-index: 5; }
+.lb-collapsed { display: flex; align-items: center; gap: 10px; }
+.lb-emoji-orb {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.lb-emoji-orb svg { width: 14px; height: 14px; fill: none; stroke-width: 2; }
+.lb-card.q1 .lb-emoji-orb { background: hsl(0 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-card.q1 .lb-emoji-orb { background: hsl(0 50% 12%); }
+.lb-card.q1 .lb-emoji-orb svg { stroke: hsl(0 70% 50%); }
+[data-theme="dark"] .lb-card.q1 .lb-emoji-orb svg { stroke: hsl(0 80% 70%); }
+.lb-card.q2 .lb-emoji-orb { background: hsl(280 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-card.q2 .lb-emoji-orb { background: hsl(280 50% 12%); }
+.lb-card.q2 .lb-emoji-orb svg { stroke: hsl(280 70% 50%); }
+[data-theme="dark"] .lb-card.q2 .lb-emoji-orb svg { stroke: hsl(280 70% 70%); }
+.lb-card.q3 .lb-emoji-orb { background: hsl(145 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-card.q3 .lb-emoji-orb { background: hsl(145 50% 12%); }
+.lb-card.q3 .lb-emoji-orb svg { stroke: hsl(145 60% 45%); }
+[data-theme="dark"] .lb-card.q3 .lb-emoji-orb svg { stroke: hsl(145 70% 65%); }
+.lb-card.q5 .lb-emoji-orb { background: hsl(38 50% 92%); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-card.q5 .lb-emoji-orb { background: hsl(38 50% 12%); }
+.lb-card.q5 .lb-emoji-orb svg { stroke: hsl(38 80% 50%); }
+[data-theme="dark"] .lb-card.q5 .lb-emoji-orb svg { stroke: hsl(38 90% 65%); }
+
+.lb-collapsed-content { flex: 1; min-width: 0; }
+.lb-fq-tag-mini { display: block; font-family: var(--font-mono); font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.lb-collapsed-title { display: block; font-size: 12px; font-weight: 700; margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-expand-btn {
+  width: 24px; height: 24px; border-radius: var(--radius-icon);
+  display: grid; place-items: center; flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-expand-btn, :root:not([data-theme]) .lb-expand-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .lb-expand-btn { background: hsl(220 25% 8%); }
+.lb-expand-btn svg { width: 11px; height: 11px; stroke: var(--text-muted); fill: none; stroke-width: 2.5; }
+
+.see-more-mini {
+  text-align: center; margin: 8px 0 4px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--accent);
+}
+[data-theme="dark"] .see-more-mini { color: hsl(var(--hue1) 80% 70%); }
+
+
+/* ═══ EXPAND/COLLAPSE ANIMATION (production parity) ═══ */
+.lb-card.expanded::before {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  background: conic-gradient(from 0deg, var(--accent), transparent 60%, var(--accent));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: conicSpin 4s linear infinite;
+  opacity: 0.55; pointer-events: none; z-index: 1;
+}
+.lb-card.q1.expanded::before { background: conic-gradient(from 0deg, hsl(0 70% 55%), transparent 60%, hsl(0 70% 55%)); }
+.lb-card.q2.expanded::before { background: conic-gradient(from 0deg, hsl(280 70% 55%), transparent 60%, hsl(280 70% 55%)); }
+.lb-card.q3.expanded::before { background: conic-gradient(from 0deg, hsl(145 60% 50%), transparent 60%, hsl(145 60% 50%)); }
+.lb-card.q5.expanded::before { background: conic-gradient(from 0deg, hsl(38 80% 55%), transparent 60%, hsl(38 80% 55%)); }
+
+.lb-expanded {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.35s ease, padding-top 0.35s ease;
+  position: relative; z-index: 5;
+}
+.lb-card.expanded .lb-expanded { max-height: 600px; padding-top: 12px; }
+
+.lb-card .lb-expand-btn { transition: transform 0.3s ease, box-shadow var(--dur) var(--ease); }
+.lb-card.expanded .lb-expand-btn { transform: rotate(180deg); }
+[data-theme="light"] .lb-card.expanded .lb-expand-btn,
+:root:not([data-theme]) .lb-card.expanded .lb-expand-btn { box-shadow: var(--shadow-pressed); }
+.lb-card.expanded .lb-expand-btn svg { stroke: var(--accent); }
+
+.lb-body {
+  font-size: 12px; line-height: 1.5;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-body, :root:not([data-theme]) .lb-body { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .lb-body { background: hsl(220 25% 4% / 0.6); }
+
+.lb-actions { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.lb-action {
+  flex: 1; min-width: 0;
+  height: 36px; padding: 0 12px;
+  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 11.5px; font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  transition: box-shadow var(--dur) var(--ease);
+}
+[data-theme="light"] .lb-action, :root:not([data-theme]) .lb-action { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .lb-action:active, :root:not([data-theme]) .lb-action:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-action { background: hsl(220 25% 8%); }
+.lb-action.primary {
+  color: white; border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+}
+[data-theme="light"] .lb-action.primary, :root:not([data-theme]) .lb-action.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4); }
+
+.lb-feedback {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted);
+}
+.lb-fb-label { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.lb-fb-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-fb-btn, :root:not([data-theme]) .lb-fb-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .lb-fb-btn:active, :root:not([data-theme]) .lb-fb-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .lb-fb-btn { background: hsl(220 25% 8%); }
+.lb-fb-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.lb-fb-btn.up { color: hsl(145 60% 45%); }
+[data-theme="dark"] .lb-fb-btn.up { color: hsl(145 70% 65%); }
+.lb-fb-btn.down { color: hsl(0 70% 50%); }
+[data-theme="dark"] .lb-fb-btn.down { color: hsl(0 80% 70%); }
+.lb-fb-btn.hmm { color: hsl(38 80% 50%); }
+[data-theme="dark"] .lb-fb-btn.hmm { color: hsl(38 90% 65%); }
+
+/* ═══ INFO POPOVER OVERLAY ═══ */
+.info-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+.info-overlay.active { display: flex; }
+[data-theme="light"] .info-overlay, :root:not([data-theme]) .info-overlay { background: rgba(163,177,198,0.5); }
+
+.info-card {
+  width: 100%; max-width: 380px;
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  position: relative;
+  border: 1px solid var(--border-color);
+  animation: popUp 0.3s var(--ease-spring) both;
+}
+[data-theme="light"] .info-card, :root:not([data-theme]) .info-card { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .info-card { background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .9), hsl(var(--hue1) 50% 6% / .9)); backdrop-filter: blur(20px); box-shadow: 0 24px 48px hsl(220 50% 4% / 0.6); }
+
+.info-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.info-card-ic {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .info-card-ic, :root:not([data-theme]) .info-card-ic { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .info-card-ic { background: hsl(220 25% 4%); }
+.info-card-ic svg { width: 22px; height: 22px; fill: none; stroke-width: 2; }
+.info-card-title { flex: 1; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.info-card-close {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+[data-theme="light"] .info-card-close, :root:not([data-theme]) .info-card-close { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .info-card-close { background: hsl(220 25% 8%); }
+.info-card-close svg { width: 14px; height: 14px; stroke: var(--text); fill: none; stroke-width: 2.5; }
+
+.info-card-body { font-size: 13px; font-weight: 600; color: var(--text-muted); line-height: 1.45; margin-bottom: 14px; }
+.info-card-body b { color: var(--text); font-weight: 800; }
+
+.info-card-voice {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+}
+[data-theme="light"] .info-card-voice, :root:not([data-theme]) .info-card-voice { background: var(--surface); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .info-card-voice { background: hsl(220 25% 4%); border: 1px solid hsl(280 50% 25% / 0.4); }
+.info-card-voice-label { font-family: var(--font-mono); font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--magic); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+[data-theme="dark"] .info-card-voice-label { color: hsl(280 70% 70%); }
+.info-card-voice-label svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2; }
+.info-card-voice-text { font-size: 12px; font-weight: 700; color: var(--text); font-style: italic; line-height: 1.4; }
+.info-card-voice-text::before { content: '"'; opacity: 0.5; }
+.info-card-voice-text::after { content: '"'; opacity: 0.5; }
+
+.info-card-cta {
+  width: 100%;
+  height: 46px; padding: 0 14px;
+  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 13px; font-weight: 800;
+  color: white; border: none;
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px hsl(var(--hue1) 80% 50% / 0.4);
+}
+[data-theme="dark"] .info-card-cta { background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%)); }
+.info-card-cta::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(255,255,255,0.35) 85%, transparent 100%); animation: conicSpin 3s linear infinite; }
+.info-card-cta > * { position: relative; z-index: 1; }
+.info-card-cta svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2.5; }
+
+/* ═══ CHAT INPUT BAR (sticky) ═══ */
+.chat-input-bar {
+  position: fixed; left: 12px; right: 12px;
+  bottom: calc(64px + 24px + env(safe-area-inset-bottom, 0));
+  z-index: 49;
+  height: 50px; padding: 0 8px 0 16px;
+  border-radius: var(--radius-pill);
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-color);
+  max-width: 456px; margin: 0 auto;
+}
+[data-theme="light"] .chat-input-bar, :root:not([data-theme]) .chat-input-bar { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .chat-input-bar { background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .85), hsl(var(--hue2) 50% 8% / .8)); backdrop-filter: blur(16px); box-shadow: 0 8px 24px hsl(220 50% 4% / 0.5); }
+
+.chat-input-icon { width: 18px; height: 18px; flex-shrink: 0; display: grid; place-items: center; }
+.chat-input-icon svg { width: 14px; height: 14px; stroke: var(--magic); fill: none; stroke-width: 2; }
+.chat-input-text { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-mic, .chat-send {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.chat-mic { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%)); box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5); }
+.chat-mic svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; }
+.chat-send { background: transparent; }
+.chat-send svg { width: 18px; height: 18px; stroke: var(--magic); fill: none; stroke-width: 2; }
+
+
+
+/* ═══ FILTER PILLS ═══ */
+.fp-row { display: flex; gap: 6px; overflow-x: auto; padding: 0 4px 8px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; position: relative; z-index: 5; }
+.fp-row::-webkit-scrolllbar { display: none; }
+.fp-pill {
+  flex: 0 0 auto;
+  height: 32px; padding: 0 14px;
+  border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.04em; color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  transition: box-shadow var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+[data-theme="light"] .fp-pill, :root:not([data-theme]) .fp-pill { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .fp-pill { background: hsl(220 25% 8%); }
+.fp-pill svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.fp-pill.active {
+  color: white; border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+}
+.fp-count {
+  font-size: 9px; padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.fp-pill:not(.active) .fp-count { background: var(--accent); color: white; border: none; }
+
+/* ═══ BOTTOM NAV ═══ */
+.rms-bottom-nav {
+  position: fixed; left: 12px; right: 12px; bottom: 12px;
+  z-index: 50; height: 64px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  max-width: 456px; margin: 0 auto;
+}
+[data-theme="light"] .rms-bottom-nav, :root:not([data-theme]) .rms-bottom-nav { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .rms-bottom-nav {
+  background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%), linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%), linear-gradient(hsl(220 25% 4.8% / .9));
+  backdrop-filter: blur(12px); box-shadow: var(--shadow-card);
+}
+.rms-nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; color: var(--text-muted);
+  font-size: 10px; font-weight: 700;
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+.rms-nav-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform var(--dur) var(--ease-spring); }
+.rms-nav-tab:active svg { transform: scale(0.85); }
+.rms-nav-tab.active { color: var(--accent); }
+.rms-nav-tab.active::before { content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 32px; height: 4px; background: var(--accent); border-radius: var(--radius-pill); }
+[data-theme="dark"] .rms-nav-tab.active::before { box-shadow: 0 0 12px var(--accent); }
+
+/* anims */
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-25px) scale(1.1); } 66% { transform: translate(-25px,35px) scale(0.95); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popUp { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes rmsBrandShimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
 </head>
 <body class="has-rms-shell mode-detailed">
 
-<div class="app card-stagger" id="app">
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- HEADER — design-kit v1.1 partial            -->
-    <!-- ═══════════════════════════════════════════ -->
-    <?php include __DIR__ . '/design-kit/partial-header.html'; ?>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S83.PRE_ENTRY.FIX — toggle to Лесен mode   -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="cb-mode-row">
-        <a href="/life-board.php" class="cb-mode-toggle" title="Лесен режим">
-            Лесен <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        </a>
-    </div>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — DASHBOARD GLASS CARD (qd)      -->
-    <!-- ═══════════════════════════════════════════ -->
-    <?php
-        $cmp_today = (int)cmpPct($d0['rev'], $d0p['rev']);
-        $cmp_class = $cmp_today > 0 ? '' : ($cmp_today < 0 ? 'neg' : 'zero');
-        $cmp_sign  = $cmp_today > 0 ? '+' : '';
-    ?>
-    <div class="glass sm s82-dash qd">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="s82-dash-top">
-            <span class="s82-dash-period-label"><span id="revLabel">ДНЕС</span> · <?= htmlspecialchars($store_name) ?></span>
-            <?php if (count($all_stores) > 1): ?>
-            <span class="s82-dash-store">
-                <select onchange="location.href='?store='+this.value" aria-label="Магазин">
-                    <?php foreach ($all_stores as $st): ?>
-                    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </span>
-            <?php endif; ?>
-        </div>
-        <div class="s82-dash-numrow">
-            <span class="s82-dash-num count-up" id="revNum" data-count="0">0</span>
-            <span class="s82-dash-cur"><?= $cs ?></span>
-            <span class="s82-dash-pct <?= $cmp_class ?>" id="revPct"><?= $cmp_sign . $cmp_today ?>%</span>
-            <span class="s82-dash-cur" id="revVs" style="margin-left:4px"></span>
-        </div>
-        <div class="s82-dash-meta">
-            <span id="revMeta">0 продажби</span>
-            <span id="revCmp" style="display:inline"></span>
-        </div>
-        <?php if ($role === 'owner' && $confidence_pct < 100): ?>
-        <div class="conf-warn" id="confWarn" style="display:none">
-            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-            Данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>)
-        </div>
-        <?php endif; ?>
-        <div class="s82-dash-pills">
-            <button type="button" class="s82-dash-pill rev-pill active" onclick="setPeriod('today',this)">Днес</button>
-            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('7d',this)">7 дни</button>
-            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('30d',this)">30 дни</button>
-            <button type="button" class="s82-dash-pill rev-pill" onclick="setPeriod('365d',this)">365 дни</button>
-            <?php if ($role === 'owner'): ?>
-            <span class="s82-dash-divider"></span>
-            <button type="button" class="s82-dash-pill rev-pill active" id="modeRev" onclick="setMode('rev')">Оборот</button>
-            <button type="button" class="s82-dash-pill rev-pill" id="modeProfit" onclick="setMode('profit')">Печалба</button>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S87.HEALTH.RESTORE — STORE HEALTH BAR (AI Точност) -->
-    <!-- DESIGN_SYSTEM § D.5 + BIBLE §25                 -->
-    <!-- ═══════════════════════════════════════════ -->
-    <?php $h_color = $health >= 80 ? '#4ade80' : ($health >= 50 ? '#fbbf24' : '#f87171'); ?>
-    <div class="glass sm health">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <span class="health-lbl">Точност</span>
-        <div class="health-track">
-            <div class="health-fill" style="width:<?= (int)$health ?>%"></div>
-        </div>
-        <span class="health-pct" style="color:<?= $h_color ?>"><?= (int)$health ?>%</span>
-        <span class="health-link" onclick="openChatQ('Как да подобря AI точността?')">Преброй &rarr;</span>
-        <span class="health-info" onclick="document.querySelector('.health-tooltip').classList.toggle('open')" aria-label="Какво е AI точност?">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        </span>
-    </div>
-    <div class="health-tooltip">
-        <b>Какво е AI Точност?</b><br>
-        Колко добре AI познава магазина ти. Расте когато:<br>
-        &bull; Въведеш <b>доставни цени</b> на артикулите<br>
-        &bull; <b>Преброиш</b> стоката по рафтовете<br>
-        &bull; Получиш <b>доставка</b> с фактура<br><br>
-        По-висока точност = по-умни съвети от AI.
-    </div>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — WEATHER GLASS CARD (qw)        -->
-    <!-- ═══════════════════════════════════════════ -->
-    <?php if ($weather_today): ?>
-    <div class="glass sm s82-weather qw">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="s82-weather-top">
-            <div class="s82-weather-left">
-                <div class="s82-weather-icon"><svg viewBox="0 0 24 24"><?= wmoSvg((int)$weather_today['weather_code']) ?></svg></div>
-                <span class="s82-weather-cond"><?= wmoText((int)$weather_today['weather_code']) ?></span>
-            </div>
-            <span class="s82-weather-temp"><?= round($weather_today['temp_max']) ?>°</span>
-        </div>
-        <div class="s82-weather-meta"><?= round($weather_today['temp_min']) ?>° / <?= round($weather_today['temp_max']) ?>° · Дъжд <?= (int)$weather_today['precipitation_prob'] ?>%</div>
-        <?php if ($weather_suggestion): ?>
-        <div class="s82-weather-sug"><?= htmlspecialchars($weather_suggestion) ?></div>
-        <?php endif; ?>
-        <?php if (count($weather_week) >= 7): ?>
-        <div class="s82-weather-week">
-            <?php foreach (array_slice($weather_week, 1, 7) as $wd):
-                $dname = $bg_days_full[(int)date('w', strtotime($wd['forecast_date']))];
-                $rain = (int)$wd['precipitation_prob'];
-                $rain_cls = $rain > 50 ? 'wet' : 'dry';
-            ?>
-            <div class="s82-weather-day">
-                <div class="s82-weather-day-name"><?= $dname ?></div>
-                <div class="s82-weather-day-temp"><?= round($wd['temp_max']) ?>°</div>
-                <div class="s82-weather-day-rain <?= $rain_cls ?>"><?= $rain ?>%</div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.STUDIO.NAV — AI Studio entry (KEEP)    -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="ai-studio-row">
-      <a href="/ai-studio.php" class="glass sm ai-studio-btn" aria-label="AI Studio">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <span class="as-icon">
-          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </span>
-        <span class="as-text">
-          <span class="as-label">AI Studio</span>
-          <?php if ($ai_studio_count > 0): ?>
-          <span class="as-sub">· <?= $ai_studio_count ?> чакат</span>
-          <?php else: ?>
-          <span class="as-sub">· каталог &amp; снимки</span>
-          <?php endif; ?>
-        </span>
-        <?php if ($ai_studio_count > 0): ?>
-        <span class="ai-studio-badge"><?= $ai_studio_count > 99 ? '99+' : $ai_studio_count ?></span>
-        <?php endif; ?>
-      </a>
-    </div>
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- S82.VISUAL — LIFE BOARD (6 fundamental q)  -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="lb-header">
-        <div class="lb-title">
-            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span class="lb-title-text">Life Board</span>
-        </div>
-        <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
-    </div>
-
-    <?php if (!empty($briefing)):
-        $fq_meta = [
-            'loss'       => ['q'=>'q1', 'emoji'=>'🔴', 'name'=>'Какво губиш'],
-            'loss_cause' => ['q'=>'q2', 'emoji'=>'🟣', 'name'=>'От какво губиш'],
-            'gain'       => ['q'=>'q3', 'emoji'=>'🟢', 'name'=>'Какво печелиш'],
-            'gain_cause' => ['q'=>'q4', 'emoji'=>'💎', 'name'=>'От какво печелиш'],
-            'order'      => ['q'=>'q5', 'emoji'=>'🟡', 'name'=>'Поръчай'],
-            'anti_order' => ['q'=>'q6', 'emoji'=>'⚪', 'name'=>'НЕ поръчвай'],
-        ];
-        $topic_to_idx = [];
-        foreach ($all_insights_for_js as $idx => $v) {
-            $topic_to_idx[$v['topicId']] = $idx;
-        }
-        foreach ($briefing as $ins):
-            $fq = $ins['fundamental_question'];
-            $meta = $fq_meta[$fq] ?? ['q'=>'q3','emoji'=>'•','name'=>''];
-            $action = insightAction($ins);
-            $idx_in_all = $topic_to_idx[$ins['topic_id']] ?? 0;
-            $title_js = htmlspecialchars(addslashes($ins['title']), ENT_QUOTES);
-    ?>
-    <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'], ENT_QUOTES) ?>">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="lb-top">
-            <span class="lb-fq-tag"><span class="lb-fq-emoji"><?= $meta['emoji'] ?></span> <?= $meta['name'] ?></span>
-            <button type="button" class="lb-dismiss" aria-label="Скрий" onclick="lbDismissCard(event,this)">×</button>
-        </div>
-        <div class="lb-card-title"><?= htmlspecialchars($ins['title']) ?></div>
-        <?php if (!empty($ins['detail_text'])): ?>
-        <div class="lb-body"><?= htmlspecialchars($ins['detail_text']) ?></div>
-        <?php endif; ?>
-        <div class="lb-actions">
-            <button type="button" class="lb-action" onclick="openChatQ('<?= $title_js ?>')">Защо?</button>
-            <button type="button" class="lb-action" onclick="openSignalDetail(<?= $idx_in_all ?>)">Покажи</button>
-            <?php if ($action['type'] === 'deeplink' && $action['url']): ?>
-            <a class="lb-action primary" href="<?= htmlspecialchars($action['url']) ?>"><?= htmlspecialchars($action['label']) ?> →</a>
-            <?php elseif ($action['type'] === 'order_draft'): ?>
-            <button type="button" class="lb-action primary" onclick="addToOrderDraft(<?= $idx_in_all ?>)"><?= htmlspecialchars($action['label']) ?> →</button>
-            <?php else: ?>
-            <button type="button" class="lb-action primary" onclick="openChatQ('<?= $title_js ?>')"><?= htmlspecialchars($action['label']) ?> →</button>
-            <?php endif; ?>
-        </div>
-        <div class="lb-feedback">
-            <span class="lb-fb-label">Полезно?</span>
-            <button type="button" class="lb-fb-btn" data-fb="up" onclick="lbSelectFeedback(event,this)" aria-label="Полезно">👍</button>
-            <button type="button" class="lb-fb-btn" data-fb="down" onclick="lbSelectFeedback(event,this)" aria-label="Безполезно">👎</button>
-            <button type="button" class="lb-fb-btn" data-fb="hmm" onclick="lbSelectFeedback(event,this)" aria-label="Неясно">🤔</button>
-        </div>
-    </div>
-    <?php endforeach; ?>
-    <?php if ($remaining > 0): ?>
-    <div class="lb-see-more"><button type="button" onclick="openSignalBrowser()">Виж още <?= $remaining ?> теми →</button></div>
-    <?php endif; ?>
-
-    <?php elseif (!empty($ghost_pills)): ?>
-    <div class="glass sm lb-silent q3">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="lb-silent-icon">✨</div>
-        <div class="lb-silent-text"><?= htmlspecialchars($greeting) ?></div>
-        <div class="lb-silent-sub">AI има съвет за теб — включи PRO за пълен brief.</div>
-        <div style="margin-top:10px"><button type="button" class="lb-action primary" onclick="showToast('Включи PRO за AI съвети')" style="padding:8px 18px">Включи PRO</button></div>
-    </div>
-
-    <?php else: ?>
-    <div class="glass sm lb-silent q3">
-        <span class="shine"></span><span class="shine shine-bottom"></span>
-        <span class="glow"></span><span class="glow glow-bottom"></span>
-        <div class="lb-silent-icon">🌿</div>
-        <div class="lb-silent-text">Всичко върви добре днес</div>
-        <div class="lb-silent-sub"><?= htmlspecialchars($greeting) ?> Няма нищо спешно — попитай каквото искаш.</div>
-    </div>
-    <?php endif; ?>
-
-    <div style="height:20px"></div>
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- INPUT BAR — moved to partials/chat-input-bar.php       -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+<?php include __DIR__ . "/partials/header.php"; ?>
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- BOTTOM NAV — design-kit v1.1 partial                  -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<?php include __DIR__ . '/design-kit/partial-bottom-nav.html'; ?>
+<div class="lb-mode-row">
+  <a class="lb-mode-toggle">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>{T_SIMPLE_MODE}</span>
+  </a>
+</div>
 
+<main class="app">
+
+  <!-- ═══ TOP ROW (Днес + Времето) ═══ -->
+  <div class="top-row">
+    <div class="glass sm cell qd">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="cell-header-row">
+        <div class="cell-label">{T_TODAY} · ENI</div>
+      </div>
+      <div class="cell-numrow">
+        <span class="cell-num">847</span>
+        <span class="cell-cur">€</span>
+        <span class="cell-pct pos">+12%</span>
+      </div>
+      <div class="cell-meta">12 продажби · 318 печалба</div>
+    </div>
+    <div class="glass sm cell qd">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="weather-cell-top">
+        <span class="weather-cell-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        </span>
+        <span class="weather-cell-temp">22°</span>
+      </div>
+      <div class="weather-cell-cond">{T_SUNNY}</div>
+      <div class="cell-meta">14°/22° · {T_RAIN} 5%</div>
+    </div>
+  </div>
+
+    <!-- ═══ AI STUDIO ROW ═══ -->
+  <div class="studio-row">
+    <a class="glass sm studio-btn">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <span class="studio-icon">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </span>
+      <span class="studio-text">
+        <span class="studio-label">AI Studio</span>
+        <span class="studio-sub">385 {T_WAITING}</span>
+      </span>
+      <span class="studio-badge">99+</span>
+    </a>
+  </div>
+
+  
+  <!-- ═══ WEATHER FORECAST CARD ═══ -->
+  <div class="glass sm wfc q4" data-range="3">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="wfc-head">
+      <div class="wfc-head-ic">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </div>
+      <div class="wfc-head-text">
+        <div class="wfc-title">{T_WEATHER_FORECAST}</div>
+        <div class="wfc-sub">{T_AI_RECS_FOR_WEEK}</div>
+      </div>
+    </div>
+
+    <!-- Range tabs -->
+    <div class="wfc-tabs">
+      <button class="wfc-tab" data-tab="3" onclick="wfcSetRange('3')">{T_3_DAYS}</button>
+      <button class="wfc-tab" data-tab="7" onclick="wfcSetRange('7')">{T_7_DAYS}</button>
+      <button class="wfc-tab" data-tab="14" onclick="wfcSetRange('14')">{T_14_DAYS}</button>
+    </div>
+
+    <!-- Days strip (14 days, hidden via [data-range] selector) -->
+    <div class="wfc-days">
+      <!-- Today -->
+      <div class="wfc-day today sunny">
+        <div class="wfc-day-name">{T_TODAY_SHORT}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+        <div class="wfc-day-temp">22°<small>/14</small></div>
+        <div class="wfc-day-rain dry">5%</div>
+      </div>
+      <!-- Tomorrow -->
+      <div class="wfc-day partly">
+        <div class="wfc-day-name">{T_DAY_FRI}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4 4 4 0 00-2-3.46"/><circle cx="6" cy="6" r="2"/></svg></div>
+        <div class="wfc-day-temp">24°<small>/15</small></div>
+        <div class="wfc-day-rain dry">15%</div>
+      </div>
+      <!-- Sat -->
+      <div class="wfc-day rain">
+        <div class="wfc-day-name">{T_DAY_SAT}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg></div>
+        <div class="wfc-day-temp">19°<small>/13</small></div>
+        <div class="wfc-day-rain">75%</div>
+      </div>
+      <!-- Sun -->
+      <div class="wfc-day rain">
+        <div class="wfc-day-name">{T_DAY_SUN}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div>
+        <div class="wfc-day-temp">17°<small>/12</small></div>
+        <div class="wfc-day-rain">82%</div>
+      </div>
+      <!-- Mon -->
+      <div class="wfc-day cloudy">
+        <div class="wfc-day-name">{T_DAY_MON}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
+        <div class="wfc-day-temp">21°<small>/14</small></div>
+        <div class="wfc-day-rain dry">25%</div>
+      </div>
+      <!-- Tue -->
+      <div class="wfc-day partly">
+        <div class="wfc-day-name">{T_DAY_TUE}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div>
+        <div class="wfc-day-temp">25°<small>/16</small></div>
+        <div class="wfc-day-rain dry">10%</div>
+      </div>
+      <!-- Wed -->
+      <div class="wfc-day sunny">
+        <div class="wfc-day-name">{T_DAY_WED}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
+        <div class="wfc-day-temp">28°<small>/17</small></div>
+        <div class="wfc-day-rain dry">0%</div>
+      </div>
+      <!-- Thu (day 8 — appears at 14d) -->
+      <div class="wfc-day sunny">
+        <div class="wfc-day-name">{T_DAY_THU}</div>
+        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
+        <div class="wfc-day-temp">29°<small>/18</small></div>
+        <div class="wfc-day-rain dry">0%</div>
+      </div>
+      <div class="wfc-day partly"><div class="wfc-day-name">9.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">26°<small>/16</small></div><div class="wfc-day-rain dry">15%</div></div>
+      <div class="wfc-day rain"><div class="wfc-day-name">10.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div><div class="wfc-day-temp">22°<small>/15</small></div><div class="wfc-day-rain">65%</div></div>
+      <div class="wfc-day storm"><div class="wfc-day-name">11.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M19 16.9A5 5 0 0018 7h-1.26a8 8 0 10-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg></div><div class="wfc-day-temp">20°<small>/14</small></div><div class="wfc-day-rain">88%</div></div>
+      <div class="wfc-day cloudy"><div class="wfc-day-name">12.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div><div class="wfc-day-temp">23°<small>/15</small></div><div class="wfc-day-rain dry">30%</div></div>
+      <div class="wfc-day partly"><div class="wfc-day-name">13.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">25°<small>/16</small></div><div class="wfc-day-rain dry">20%</div></div>
+      <div class="wfc-day sunny"><div class="wfc-day-name">14.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div><div class="wfc-day-temp">27°<small>/17</small></div><div class="wfc-day-rain dry">5%</div></div>
+    </div>
+
+    <!-- AI recs divider -->
+    <div class="wfc-recs-divider"><span>{T_AI_RECS}</span></div>
+
+    <!-- 3 AI recommendations based on weather -->
+    <div class="wfc-rec window">
+      <span class="wfc-rec-ic">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      </span>
+      <div class="wfc-rec-text">
+        <span class="wfc-rec-label">{T_REC_WINDOW}</span>
+        <div class="wfc-rec-body">Топла седмица идва — изложи <b>летни рокли</b> и <b>сламени шапки</b>. В събота дъжд → добави <b>чадъри</b> на витрината.</div>
+      </div>
+    </div>
+
+    <div class="wfc-rec order">
+      <span class="wfc-rec-ic">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+      </span>
+      <div class="wfc-rec-text">
+        <span class="wfc-rec-label">{T_REC_ORDER}</span>
+        <div class="wfc-rec-body">Прохладни вечери (12-15°) — <b>поръчай 12 пуловера</b> от Tommy Jeans. Средата на седмицата 28° → <b>по-малко якета</b>.</div>
+      </div>
+    </div>
+
+    <div class="wfc-rec transfer">
+      <span class="wfc-rec-ic">
+        <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+      </span>
+      <div class="wfc-rec-text">
+        <span class="wfc-rec-label">{T_REC_TRANSFER}</span>
+        <div class="wfc-rec-body">София топъл уикенд → <b>прехвърли 8 банки от Магазин 2</b> (Пловдив, по-хладно). Заявка готова за tap.</div>
+      </div>
+    </div>
+
+    <div class="wfc-source">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12.01" y2="8"/><line x1="11" y1="12" x2="12" y2="16"/></svg>
+      <span>OPEN-METEO · {T_UPDATED_TIME} 18:32</span>
+    </div>
+  </div>
+
+<!-- ═══ AI HELP CARD (новa секция, qhelp) ═══ -->
+  <div class="glass sm help-card qhelp">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+
+    <div class="help-head">
+      <div class="help-head-ic">
+        <svg viewBox="0 0 24 24"><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
+      </div>
+      <div class="help-head-text">
+        <div class="help-title">{T_AI_HELPS_YOU}</div>
+        <div class="help-sub">{T_AI_HELPS_SUB}</div>
+      </div>
+    </div>
+
+    <div class="help-body">
+      {T_AI_HELP_BODY_1} <b>{T_AI_HELP_BODY_2}</b>. {T_AI_HELP_BODY_3}
+    </div>
+
+    <div class="help-chips-label">{T_TRY_ASKING}</div>
+    <div class="help-chips">
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Какво ми тежи на склада</span></button>
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Кои са топ продавачи</span></button>
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Колко да поръчам от Nike</span></button>
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Защо приходите паднаха</span></button>
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Покажи ми Adidas 42</span></button>
+      <button class="help-chip"><span class="help-chip-q">?</span><span>Какво продаваме днес</span></button>
+    </div>
+
+    <div class="help-video-ph">
+      <span class="help-video-ic">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </span>
+      <div class="help-video-text">
+        <div class="help-video-title">{T_VIDEO_LESSON}</div>
+        <div class="help-video-sub">{T_COMING_SOON}</div>
+      </div>
+    </div>
+
+    <a class="help-link-row">
+      <span>{T_VIEW_ALL_CAPABILITIES}</span>
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+
+  <!-- ═══ LIFE BOARD HEADER + FILTER PILLS + 12 CARDS ═══ -->
+  <div class="lb-header">
+    <div class="lb-title">
+      <div class="lb-title-orb"></div>
+      <span class="lb-title-text">Life Board</span>
+    </div>
+    <span class="lb-count">12 {T_THINGS} · 18:32</span>
+  </div>
+
+  <!-- Filter pills (модули) -->
+  <div class="fp-row">
+    <button class="fp-pill active">{T_FP_ALL} <span class="fp-count">12</span></button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      {T_FP_FINANCE} <span class="fp-count">3</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/></svg>
+      {T_FP_SALES} <span class="fp-count">2</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      {T_FP_INVENTORY} <span class="fp-count">2</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      {T_FP_ORDERS} <span class="fp-count">2</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
+      {T_FP_DELIVERIES} <span class="fp-count">1</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+      {T_FP_TRANSFERS} <span class="fp-count">1</span>
+    </button>
+    <button class="fp-pill">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      {T_FP_CUSTOMERS} <span class="fp-count">1</span>
+    </button>
+  </div>
+
+  <!-- Card 1 — q1 ФИНАНСИ Cash flow -->
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ФИНАНСИ · {T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">Cash flow негативен — −820 € последни 7 дни</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 2 — q3 ПРОДАЖБИ EXPANDED -->
+  <div class="glass sm lb-card q3 expanded">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ПРОДАЖБИ · {T_Q_GAIN}</span>
+        <span class="lb-collapsed-title">Passionata +35% топ печалба тази седмица</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Passionata Bikini Line — 12 броя за 7 дни. Печалба <b>185€</b> (+35% спрямо м.с.). Запасите 8 броя — мисли за зареждане.</div>
+      <div class="lb-actions">
+        <button class="lb-action">{T_WHY}</button>
+        <button class="lb-action">{T_SHOW}</button>
+        <button class="lb-action primary">{T_REORDER} →</button>
+      </div>
+      <div class="lb-feedback">
+        <span class="lb-fb-label">{T_USEFUL}?</span>
+        <button class="lb-fb-btn up"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
+        <button class="lb-fb-btn down"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
+        <button class="lb-fb-btn hmm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3 — q5 ПОРЪЧКИ -->
+  <div class="glass sm lb-card q5">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ПОРЪЧКИ · {T_Q_ORDER}</span>
+        <span class="lb-collapsed-title">Tommy Jeans 32 — под минимум, поръчай 12 бр</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 4 — q1 СКЛАД zombie -->
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">СКЛАД · {T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">Nike Air Max 42 — 60 дни, 180 € замразени</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 5 — q2 ДОСТАВКИ забавяне -->
+  <div class="glass sm lb-card q2">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ДОСТАВКИ · {T_Q_LOSS_CAUSE}</span>
+        <span class="lb-collapsed-title">Иватекс забавя — 4 дни средно повече</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 6 — q1 ФИНАНСИ марж -->
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ФИНАНСИ · {T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">Бельо под себестойност — 12 артикула, −68 €</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 7 — q3 КЛИЕНТИ retention -->
+  <div class="glass sm lb-card q3">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">КЛИЕНТИ · {T_Q_GAIN}</span>
+        <span class="lb-collapsed-title">8 нови повторни клиенти този месец</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 8 — q5 ПРОДАЖБИ peak hour -->
+  <div class="glass sm lb-card q5">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ПРОДАЖБИ · {T_Q_GAIN_CAUSE}</span>
+        <span class="lb-collapsed-title">Петък 15:00 — пик. Сложи 2-ри продавач</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 9 — q5 ПОРЪЧКИ Nike -->
+  <div class="glass sm lb-card q5">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ПОРЪЧКИ · {T_Q_ORDER}</span>
+        <span class="lb-collapsed-title">Nike размери 38, 39, 40 свършват тази седмица</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 10 — q4 СКЛАД точност -->
+  <div class="glass sm lb-card q3">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">СКЛАД · {T_Q_GAIN_CAUSE}</span>
+        <span class="lb-collapsed-title">Точност 94% — почти готово за AI Marketing</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 11 — q4 ТРАНСФЕРИ -->
+  <div class="glass sm lb-card q3">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ТРАНСФЕРИ · {T_Q_GAIN_CAUSE}</span>
+        <span class="lb-collapsed-title">Магазин 3 има 8 дамски летни рокли излишни</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 12 — q1 ФИНАНСИ ДДС -->
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg></span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">ФИНАНСИ · {T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">ДДС период — остават 6 дни до 25-ти</span>
+      </div>
+      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed">
+      <span class="lb-emoji-orb">
+        <svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">Nike Air Max 42 — 60 дни без продажба</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 2 — q3 gain (EXPANDED demo) -->
+  <div class="glass sm lb-card q3 expanded">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+      <span class="lb-emoji-orb">
+        <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q_GAIN}</span>
+        <span class="lb-collapsed-title">Passionata +35% топ печалба тази седмица</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body">Passionata Bikini Line — продадени 12 броя за 7 дни. Печалба <b>185€</b> (+35% спрямо предишна седмица). Запасите още 8 броя — мисли за зареждане преди да свършат.</div>
+      <div class="lb-actions">
+        <button class="lb-action">{T_WHY}</button>
+        <button class="lb-action">{T_SHOW}</button>
+        <button class="lb-action primary">{T_REORDER} →</button>
+      </div>
+      <div class="lb-feedback">
+        <span class="lb-fb-label">{T_USEFUL}?</span>
+        <button class="lb-fb-btn up" aria-label="{T_YES}"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
+        <button class="lb-fb-btn down" aria-label="{T_NO}"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
+        <button class="lb-fb-btn hmm" aria-label="{T_UNCLEAR}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3 — q5 order -->
+  <div class="glass sm lb-card q5">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed">
+      <span class="lb-emoji-orb">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q_ORDER}</span>
+        <span class="lb-collapsed-title">Tommy Jeans 32 — под минимум, поръчай</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 4 — q1 loss -->
+  <div class="glass sm lb-card q1">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed">
+      <span class="lb-emoji-orb">
+        <svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q_LOSS}</span>
+        <span class="lb-collapsed-title">Бельо под себестойност — 12 артикула</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Card 5 — q2 cause -->
+  <div class="glass sm lb-card q2">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="lb-collapsed">
+      <span class="lb-emoji-orb">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </span>
+      <div class="lb-collapsed-content">
+        <span class="lb-fq-tag-mini">{T_Q_LOSS_CAUSE}</span>
+        <span class="lb-collapsed-title">Иватекс забавя — 4 дни средно повече</span>
+      </div>
+      <button class="lb-expand-btn" aria-label="{T_EXPAND}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </div>
+
+  <div class="see-more-mini">{T_VIEW_ALL} 12 →</div>
+
+</main>
+
+<!-- ═══ INFO POPOVER OVERLAY ═══ -->
+<div class="info-overlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()">
+  <div class="info-card">
+    <div class="info-card-head">
+      <div class="info-card-ic" id="infoIc"></div>
+      <div class="info-card-title" id="infoTitle"></div>
+      <button class="info-card-close" onclick="closeInfo()" aria-label="{T_CLOSE}">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="info-card-body" id="infoBody"></div>
+    <div class="info-card-voice">
+      <div class="info-card-voice-label">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg>
+        <span>{T_VOICE_EXAMPLE}</span>
+      </div>
+      <div class="info-card-voice-text" id="infoVoice"></div>
+    </div>
+    <button class="info-card-cta" id="infoCta">
+      <span id="infoCtaLabel"></span>
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Chat input bar -->
+<div class="chat-input-bar">
+  <span class="chat-input-icon">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="3" y2="12"/><line x1="6" y1="9" x2="6" y2="15"/><line x1="9" y1="6" x2="9" y2="18"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="15" y1="11" x2="15" y2="13"/></svg>
+  </span>
+  <span class="chat-input-text">{T_SAY_OR_TYPE}</span>
+  <button class="chat-mic" aria-label="{T_VOICE}">
+    <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+  </button>
+  <button class="chat-send" aria-label="{T_SEND}">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<!-- preserved overlays -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh CHAT OVERLAY (WhatsApp стил, blur отдолу)         -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="ov-bg" id="chatBg" onclick="closeChat()"></div>
-<div class="ov-panel" id="chatPanel">
+<div class="ov-bg" id="chatBg" data-vg-skip="overlay" onclick="closeChat()"></div>
+<div class="ov-panel" id="chatPanel" data-vg-skip="overlay">
     <div class="ov-handle"></div>
     <div class="ov-header">
         <button class="ov-back" onclick="closeChat()" title="Назад">
@@ -763,8 +1957,8 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh SIGNAL DETAIL OVERLAY                             -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="ov-bg" id="sigBg" onclick="closeSignalDetail()"></div>
-<div class="ov-panel" id="sigPanel">
+<div class="ov-bg" id="sigBg" data-vg-skip="overlay" onclick="closeSignalDetail()"></div>
+<div class="ov-panel" id="sigPanel" data-vg-skip="overlay">
     <div class="ov-handle"></div>
     <div class="ov-header">
         <button class="ov-back" onclick="closeSignalDetail()" title="Назад">
@@ -787,8 +1981,8 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh SIGNAL BROWSER OVERLAY                            -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="ov-bg" id="brBg" onclick="closeSignalBrowser()"></div>
-<div class="ov-panel" id="brPanel">
+<div class="ov-bg" id="brBg" data-vg-skip="overlay" onclick="closeSignalBrowser()"></div>
+<div class="ov-panel" id="brPanel" data-vg-skip="overlay">
     <div class="ov-handle"></div>
     <div class="ov-header">
         <button class="ov-back" onclick="closeSignalBrowser()" title="Назад">
@@ -812,7 +2006,79 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 
 <div class="toast" id="toast"></div>
 
+<?php include __DIR__ . "/partials/bottom-nav.php"; ?>
+
 <script>
+// Info popover content per button
+const INFO_DATA = {
+  sell: {
+    title: 'Продай',
+    iconSvg: '<svg viewBox="0 0 24 24" style="stroke:hsl(145 60% 45%);"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/></svg>',
+    body: 'Регистрирай <b>нова продажба</b>. Скенирай или избери продукти, въведи количества и цена, прие̇ми плащане. AI може да попълни всичко по глас.',
+    voice: 'Продай 2 черни тениски Nike размер L',
+    cta: 'Отвори продажба'
+  },
+  inventory: {
+    title: 'Стоката',
+    iconSvg: '<svg viewBox="0 0 24 24" style="stroke:hsl(255 70% 60%);"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>',
+    body: 'Управлявай <b>артикулите</b> в магазина. Добавяй нови, редактирай цени, преглеждай наличности, печатай етикети. Може с глас или ръчно.',
+    voice: 'Покажи Nike размер 42',
+    cta: 'Отвори стоката'
+  },
+  delivery: {
+    title: 'Доставка',
+    iconSvg: '<svg viewBox="0 0 24 24" style="stroke:hsl(38 80% 50%);"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+    body: 'Получавай <b>нова стока</b>. Скенирай за бърз вход или снимай фактурата (AI чете 30 артикула за 30 секунди). Сравнява с поръчката.',
+    voice: 'Снимай фактура от Иватекс',
+    cta: 'Нова доставка'
+  },
+  order: {
+    title: 'Поръчка',
+    iconSvg: '<svg viewBox="0 0 24 24" style="stroke:hsl(280 60% 50%);"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+    body: 'Управлявай <b>поръчки към доставчици</b>. AI препоръчва какво да поръчаш базирано на продажбите и минимумите. Изпращай по email или WhatsApp.',
+    voice: 'Какво да поръчам от Nike',
+    cta: 'Нова поръчка'
+  }
+};
+
+function openInfo(key) {
+  const d = INFO_DATA[key];
+  if (!d) return;
+  document.getElementById('infoIc').innerHTML = d.iconSvg;
+  document.getElementById('infoTitle').textContent = d.title;
+  document.getElementById('infoBody').innerHTML = d.body;
+  document.getElementById('infoVoice').textContent = d.voice;
+  document.getElementById('infoCtaLabel').textContent = d.cta;
+  document.getElementById('infoOverlay').classList.add('active');
+}
+function closeInfo() {
+  document.getElementById('infoOverlay').classList.remove('active');
+}
+
+function wfcSetRange(r) {
+  var card = document.querySelector('.wfc');
+  if (card) card.setAttribute('data-range', r);
+}
+
+function lbToggleCard(e, row) {
+  if (e.target.closest('.lb-action') || e.target.closest('.lb-fb-btn')) return;
+  row.parentElement.classList.toggle('expanded');
+}
+
+function syncThemeIcons() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeIconSun').style.display  = (t === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (t === 'dark') ? 'none'  : 'block';
+}
+window.rmsToggleTheme = function () {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var nxt = (cur === 'light') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  try { localStorage.setItem('rms_theme', nxt); } catch (_) {}
+  syncThemeIcons();
+};
+syncThemeIcons();
+
 // ═══════════════════════════════════════════════════════
 // THEME TOGGLE — default DARK, user can switch to LIGHT
 // Persisted in localStorage['rms_theme']
@@ -836,8 +2102,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 function toggleTheme(){
     var cur=document.documentElement.getAttribute('data-theme')||'dark';
     var nxt=(cur==='light')?'dark':'light';
-    if(nxt==='light'){document.documentElement.setAttribute('data-theme','light')}
-    else{document.documentElement.removeAttribute('data-theme')}
+    document.documentElement.setAttribute('data-theme', nxt);
     try{localStorage.setItem('rms_theme',nxt)}catch(_){}
     var sun=document.getElementById('themeIconSun');
     var moon=document.getElementById('themeIconMoon');
@@ -1455,7 +2720,7 @@ window.addEventListener('load', () => {
     window.addEventListener('load', function(){
         // Auto-tag .lb-card from index 4+ as scroll-reveal (below the fold on phone)
         var cards = document.querySelectorAll('.lb-card');
-        for (var i = 4; i < cards.length; i++) cards[i].classList.add('scroll-reveal');
+        /* S136.ALIGN: scroll-reveal disabled */
         document.querySelectorAll('.scroll-reveal').forEach(function(el){
             obs.observe(el);
         });
