@@ -64,5 +64,50 @@
     "displaced_elements_count": 498,
     "timestamp": "2026-05-09T15:22:02Z",
     "duration_seconds": 40
+  },
+  {
+    "session": "s136_phaseB_lifeboard_20260509_155349",
+    "file": "life-board.php",
+    "mockup": "mockups/P10_lesny_mode.html",
+    "iter_pass": 0,
+    "dom_diff_pct": 100.0,
+    "pixel_diff_pct": 32.58,
+    "missing_classes": [
+      "chat-input-bar",
+      "chat-input-icon",
+      "chat-input-text",
+      "chat-mic",
+      "chat-send",
+      "cloudy",
+      "down",
+      "dry",
+      "expanded",
+      "help-body",
+      "help-card",
+      "help-chip",
+      "help-chip-q",
+      "help-chips",
+      "help-chips-label",
+      "help-head",
+      "help-head-ic",
+      "help-head-text",
+      "help-link-row",
+      "help-sub"
+    ],
+    "displaced_elements_count": 312,
+    "timestamp": "2026-05-09T15:54:40Z",
+    "duration_seconds": 50
+  },
+  {
+    "session": "s136_phaseB_sanity_20260509_155550",
+    "file": "mockups/P10_lesny_mode.html",
+    "mockup": "mockups/P10_lesny_mode.html",
+    "iter_pass": 1,
+    "dom_diff_pct": 0.0,
+    "pixel_diff_pct": 0.27,
+    "missing_classes": [],
+    "displaced_elements_count": 0,
+    "timestamp": "2026-05-09T15:56:07Z",
+    "duration_seconds": 16
   }
 ]

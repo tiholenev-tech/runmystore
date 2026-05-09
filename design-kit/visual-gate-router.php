@@ -23,6 +23,40 @@ if (getenv('VG_AUTH') === '1') {
     require __DIR__ . '/auth-fixture.php';
 }
 
+// S136 PHASE A — VG_DB_NAME override. When set, force DB class to point at
+// the sandbox schema instead of the production DB_NAME from db.env. Loaded
+// here so the override is in place before the target script's first DB call.
+//
+// Mechanism: require_once config/database.php (declares DB class, no PDO yet
+// because PDO is lazy in DB::get()), then poke private static DB::$config via
+// reflection. Subsequent DB::get() in target code uses the overridden config.
+if (getenv('VG_DB_NAME')) {
+    $config_php = dirname(__DIR__) . '/config/database.php';
+    if (is_file($config_php)) {
+        require_once $config_php;
+        if (class_exists('DB')) {
+            $env = @parse_ini_file('/etc/runmystore/db.env');
+            if ($env && isset($env['DB_HOST'], $env['DB_USER'], $env['DB_PASS'])) {
+                try {
+                    $r = new ReflectionClass('DB');
+                    $p = $r->getProperty('config');
+                    $p->setAccessible(true);
+                    $p->setValue(null, [
+                        'host'    => $env['DB_HOST'],
+                        'dbname'  => getenv('VG_DB_NAME'),
+                        'user'    => $env['DB_USER'],
+                        'pass'    => $env['DB_PASS'],
+                        'charset' => 'utf8mb4',
+                    ]);
+                    error_log('visual-gate-router: DB::$config overridden to dbname=' . getenv('VG_DB_NAME'));
+                } catch (Throwable $e) {
+                    error_log('visual-gate-router: VG_DB_NAME override failed: ' . $e->getMessage());
+                }
+            }
+        }
+    }
+}
+
 $uri  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 $path = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $uri;
 

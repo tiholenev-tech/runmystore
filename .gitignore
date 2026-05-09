@@ -28,6 +28,10 @@ mobile/android/app/src/main/assets/capacitor.plugins.json
 .env
 .env.*
 !.env.example
+# S136: visual-gate.env contains only fixture IDs (tenant 999, sandbox DB
+# name) — no secrets. Tracked deliberately so the gate machinery is
+# self-contained on each branch.
+!design-kit/visual-gate.env
 config/*.local.php
 secrets/
 .claude/settings.local.json

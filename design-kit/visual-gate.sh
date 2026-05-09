@@ -51,6 +51,18 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${SCRIPT_DIR}/visual-gate-log.json"
 
+# S136 PHASE A — source persistent VG_* defaults (e.g. fixtures DB targeting).
+# `set -a` auto-exports any vars defined in the file so php -S inherits them.
+# Already-set env vars from the parent shell take precedence (set -a is idempotent
+# but `.` honors prior exports). File is optional for backwards compatibility.
+ENV_FILE="${SCRIPT_DIR}/visual-gate.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+    set +a
+fi
+
 # Snap chromium wrapper не работи в non-systemd-user сесии
 # (cgroup mismatch). Ползвай direct binary path.
 CHROMIUM_BIN="/snap/chromium/current/usr/lib/chromium-browser/chrome"
