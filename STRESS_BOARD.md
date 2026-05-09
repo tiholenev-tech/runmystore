@@ -139,9 +139,17 @@
 ### Handoff документи
 
 - `STRESS_HANDOFF_20260508.md`
+- `STRESS_HANDOFF_20260509_extension.md`
 
 ### Последни STRESS commits (last 20)
 
+- 35474c9 S131.STRESS.P2: beta_acceptance/README.md + BETA_ACCEPTANCE_REPORT.md
+- 188dacd S131.STRESS.P1: beta_acceptance/checklist.py — 30 automated checks
+- 16dcabc S131.STRESS.O5: perf/README.md + STRESS_BOARD.md refresh
+- 15ee9d9 S131.STRESS.O4: scenarios S071-S075 — 5 perf сценария
+- 048ffd7 S131.STRESS.O3: perf/index_advisor.py — CREATE INDEX suggestions
+- d643347 S131.STRESS.O2: perf/db_query_profiler.py — slow_query_log analyzer
+- 4160ed6 S131.STRESS.O1: perf/load_test.py — concurrent users vs sale.php
 - 2a20429 S131.STRESS.N5: tools/stress/ci/ — GitHub Actions workflow placeholder
 - 7ae7d85 S131.STRESS.N4: STRESS_BOARD.md — auto-generated ГРАФА 7
 - 53e5234 S131.STRESS.N3: tools/stress/sync_board_progress.py — auto STRESS_BOARD.md ГРАФА 7
@@ -155,13 +163,6 @@
 - 259849e S131.STRESS.L3: ecwid_to_runmystore_sync.py — spool to sales/inventory_events
 - 7ca888e S131.STRESS.L2: ecwid_simulator.py — fake online order generator
 - 6d21ccc S131.STRESS.L1: ecwid_simulator/__init__.py — package marker
-- 771d199 S128.STRESS.F: STRESS_HANDOFF_20260508.md (final handoff)
-- 8987a44 S128.STRESS.F: tools/stress/README.md
-- 8ce0a07 S128.STRESS.C.fix: scenarios JSON — затваряne на „..“ за валиден JSON
-- 860b5bf S128.STRESS.A.fix: seed_stores.py — затварящи „..“ кавички за валиден Python синтаксис
-- 1a16b0c S128.STRESS.D: sanity_checker.py + balance_validator.py (Etap 4)
-- 2bc6b42 S128.STRESS.C: 12 scenario JSON files (S001-S012) + crontab.example
-- 5470205 S128.STRESS.C: test_new_features.py
 
 <!-- STRESS-BOARD-AUTO:graph7:end -->
 
