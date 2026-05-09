@@ -1,0 +1,24 @@
+{
+  "id": "S019",
+  "name": "B2B wholesale — продажба на едро с DDS",
+  "category": "sale flow",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "sale.php wholesale flow",
+  "precondition": "Клиент с type='b2b' в DB, 5+ артикула в количка",
+  "action_steps": [
+    "Open sale.php → избери B2B клиент",
+    "Добави 5 артикула × 10 бройки",
+    "Прилагай wholesale цена (обикновено -15-20%)",
+    "Завърши"
+  ],
+  "expected_result": [
+    "sales.customer_type = 'b2b'",
+    "Цените отразяват wholesale tier",
+    "DDS се изчислява отделно (ДДС включено / отделно)",
+    "Запис в b2b_invoices ако таблицата съществува"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales s JOIN customers c ON c.id = s.customer_id WHERE c.type = 'b2b' AND s.created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

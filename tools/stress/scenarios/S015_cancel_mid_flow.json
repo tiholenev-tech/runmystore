@@ -1,0 +1,23 @@
+{
+  "id": "S015",
+  "name": "Cancel mid-flow — потребител започва продажба и затваря",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php",
+  "precondition": "STRESS Lab tenant активен",
+  "action_steps": [
+    "Open sale.php",
+    "Сканирай 2 артикула",
+    "Натисни „Отказ“ или browser back"
+  ],
+  "expected_result": [
+    "Никакъв ред не е записан в sales",
+    "inventory.quantity не е променен",
+    "Localstorage cart се изчиства"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS orphan FROM sale_items si LEFT JOIN sales s ON s.id = si.sale_id WHERE s.id IS NULL AND si.created_at >= NOW() - INTERVAL 1 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Открити orphan sale_items без parent — недовършена продажба пише в DB.",
+  "added_date": "2026-05-09"
+}

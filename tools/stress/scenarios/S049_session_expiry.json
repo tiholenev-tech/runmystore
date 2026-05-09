@@ -1,0 +1,22 @@
+{
+  "id": "S049",
+  "name": "Session expiry — продажба след 30 мин idle",
+  "category": "cron / system",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "auth + sale.php session middleware",
+  "precondition": "User logged in; session_lifetime = 30 min",
+  "action_steps": [
+    "Login → idle 31 мин → опит за продажба"
+  ],
+  "expected_result": [
+    "Sale POST returns 401 / redirect login",
+    "Frontend графично прехвърля към login без data loss (cart preserved в localStorage)",
+    "След re-login cart се възстановява"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_browser": true,
+  "expected_outcome": "skip until session test runner готов",
+  "added_date": "2026-05-09"
+}

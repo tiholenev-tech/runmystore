@@ -1,0 +1,21 @@
+{
+  "id": "S046",
+  "name": "Voice log audit — всеки запис в voice_log",
+  "category": "voice",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "voice_log таблица",
+  "precondition": "Voice features активни",
+  "action_steps": [
+    "Симулирай 10 voice заявки (search, price, quantity)",
+    "Чети voice_log"
+  ],
+  "expected_result": [
+    "10 реда в voice_log",
+    "Всеки с raw_transcript, parsed_value, confidence, stt_provider",
+    "Без записани passwords / личните думи"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM voice_log WHERE created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

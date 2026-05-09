@@ -1,0 +1,24 @@
+{
+  "id": "S041",
+  "name": "Whisper fallback — Web Speech API недостъпен",
+  "category": "voice",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "voice fallback layer",
+  "precondition": "Browser без Web Speech API (или API blocked)",
+  "action_steps": [
+    "Натисни мик",
+    "Web Speech API throws",
+    "App fallback на Whisper API endpoint"
+  ],
+  "expected_result": [
+    "Whisper резултат идентичен или по-добър от Web Speech",
+    "Latency < 2s",
+    "Запис в voice_log с stt_provider='whisper'"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until Whisper endpoint готов",
+  "added_date": "2026-05-09"
+}

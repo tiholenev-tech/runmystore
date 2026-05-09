@@ -1,0 +1,22 @@
+{
+  "id": "S030",
+  "name": "Test mode — cooldown bypass за STRESS Lab",
+  "category": "AI brain",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "config/helpers.php shouldShowInsight + is_stress_lab_tenant",
+  "linked_bug": "Bugfix 4 (should_show_insight_test_flag)",
+  "precondition": "Bugfix 4 приложена; STRESS Lab tenant активен",
+  "action_steps": [
+    "Виж pill в chat.php (insight_seen е записан)",
+    "Затвори, отвори chat.php отново"
+  ],
+  "expected_result": [
+    "Pill се показва пак (cooldown bypass за STRESS Lab)",
+    "За non-stress tenants — нормален cooldown работи",
+    "is_stress_lab_tenant() returns true само за email='stress@runmystore.ai'"
+  ],
+  "smoke_sql": "SELECT email FROM tenants WHERE email = 'stress@runmystore.ai'",
+  "expects_at_least": 1,
+  "added_date": "2026-05-09"
+}

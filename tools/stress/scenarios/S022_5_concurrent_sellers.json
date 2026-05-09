@@ -1,0 +1,26 @@
+{
+  "id": "S022",
+  "name": "Pet продавачи — 5 продажби в 1 секунда (peak hour)",
+  "category": "sale flow / concurrency",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "sale.php + DB locking",
+  "linked_bug": "BUILD_PLAN Принцип 7 — пиков час петима в една и съща секунда",
+  "precondition": "5 различни артикула с inventory >= 5",
+  "action_steps": [
+    "5 паралелни sessions едновременно правят продажба",
+    "Всеки на различен артикул",
+    "Commit в рамките на 1s"
+  ],
+  "expected_result": [
+    "Всичките 5 продажби успешни",
+    "inventory намалено за всеки артикул",
+    "Без deadlock грешки в SHOW ENGINE INNODB STATUS",
+    "p95 latency < 500ms"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE created_at >= NOW() - INTERVAL 5 MINUTE GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') HAVING n >= 3 LIMIT 1",
+  "expects_at_least": 0,
+  "needs_concurrent_runner": true,
+  "implementation_hint": "tools/stress/concurrent_pos.py с 5 worker thread-а.",
+  "added_date": "2026-05-09"
+}

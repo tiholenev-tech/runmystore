@@ -1,0 +1,23 @@
+{
+  "id": "S052",
+  "name": "Health endpoint — GET /admin/health.php",
+  "category": "cron / system",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "admin/health.php",
+  "precondition": "Web server up",
+  "action_steps": [
+    "GET /admin/health.php",
+    "Чете JSON response"
+  ],
+  "expected_result": [
+    "HTTP 200",
+    "JSON has keys: db_ok, cron_heartbeats[], last_run_at",
+    "db_ok = true ако MySQL responsive",
+    "cron_heartbeats съдържа всичките 4 cron-а"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "implementation_hint": "curl https://runmystore.ai/admin/health.php → jq .",
+  "added_date": "2026-05-09"
+}

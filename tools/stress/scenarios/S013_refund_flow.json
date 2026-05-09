@@ -1,0 +1,25 @@
+{
+  "id": "S013",
+  "name": "Refund flow — пълно връщане на продажба",
+  "category": "sale flow",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "sale.php / refunds",
+  "precondition": "STRESS Lab tenant с поне 1 завършена продажба в последните 24h",
+  "action_steps": [
+    "Намери последна продажба",
+    "Натисни „Връщане“",
+    "Избери всички редове",
+    "Завърши refund"
+  ],
+  "expected_result": [
+    "sales.status = 'refunded' (или нов ред в refunds)",
+    "inventory.quantity увеличено за всички върнати артикули",
+    "Записи в stock_movements / inventory_events с type='refund'",
+    "sales_pulse статистики отразяват refund"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE status IN ('refunded','partially_refunded') AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Refund не пише обратно стоката — inventory остава грешен.",
+  "added_date": "2026-05-09"
+}

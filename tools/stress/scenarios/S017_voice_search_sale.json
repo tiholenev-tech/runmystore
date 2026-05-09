@@ -1,0 +1,26 @@
+{
+  "id": "S017",
+  "name": "Voice search в sale — „купи Дафи 36“",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php voice search",
+  "precondition": "STRESS Lab tenant с поне 1 артикул „Дафи“ в склада",
+  "action_steps": [
+    "Open sale.php → tap mic",
+    "Кажи: „Дафи 36 размер“",
+    "Изчакай резултати"
+  ],
+  "expected_result": [
+    "STT парсва правилно (BG dialect)",
+    "Search query се изпраща с query='Дафи 36'",
+    "Резултати показват артикули с supplier='Дафи' и size='36'",
+    "Запис в search_log с source='voice'"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM search_log WHERE source = 'voice' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "needs_browser": true,
+  "implementation_hint": "Cron skip — изисква Web Speech API. Pure DB част верифицира search_log.source.",
+  "expected_outcome": "skip until Playwright runner готов",
+  "added_date": "2026-05-09"
+}

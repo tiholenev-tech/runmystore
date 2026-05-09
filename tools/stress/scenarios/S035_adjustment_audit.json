@@ -1,0 +1,23 @@
+{
+  "id": "S035",
+  "name": "Adjustment audit — manual корекция оставя следа",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "inventory.php manual adjust",
+  "precondition": "Owner role; артикул X с quantity=10",
+  "action_steps": [
+    "Open inventory.php артикул X",
+    "Натисни „Корекция“ → въведи 8 (намалявам 2)",
+    "Запиши"
+  ],
+  "expected_result": [
+    "inventory.quantity = 8",
+    "Запис в stock_movements с movement_type='manual_adjustment', user_id, reason",
+    "Audit log retains immutable след запис"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM stock_movements WHERE movement_type IN ('manual_adjustment','adjustment') AND created_at >= NOW() - INTERVAL 30 DAY",
+  "expects_at_least": 0,
+  "fail_means": "Manual adjust без audit ред — никой не знае кой е променил.",
+  "added_date": "2026-05-09"
+}

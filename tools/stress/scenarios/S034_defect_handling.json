@@ -1,0 +1,23 @@
+{
+  "id": "S034",
+  "name": "Defect handling — артикул дефектен → write-off",
+  "category": "inventory",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "inventory.php / write-offs",
+  "precondition": "Артикул X с inventory.quantity = 5",
+  "action_steps": [
+    "Open inventory.php артикул X",
+    "Натисни „Брак“ → въведи 1 бр + причина",
+    "Завърши"
+  ],
+  "expected_result": [
+    "inventory.quantity = 4",
+    "Запис в write_offs / inventory_events с reason='defect'",
+    "Финансово: cost_value намалено",
+    "AI insight може да създаде сигнал ако дефекти > threshold"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM stock_movements WHERE movement_type = 'write_off' AND created_at >= NOW() - INTERVAL 30 DAY",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

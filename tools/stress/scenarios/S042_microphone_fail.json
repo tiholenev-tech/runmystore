@@ -1,0 +1,23 @@
+{
+  "id": "S042",
+  "name": "Microphone fail — permission denied",
+  "category": "voice",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "voice permission handler",
+  "precondition": "Browser отказва microphone permission",
+  "action_steps": [
+    "Натисни мик",
+    "Browser показва deny dialog → user отказва"
+  ],
+  "expected_result": [
+    "App показва toast „Микрофонът не е разрешен“",
+    "Action button → „Настройки на браузъра“",
+    "App не crash-ва"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until Playwright runner готов",
+  "added_date": "2026-05-09"
+}

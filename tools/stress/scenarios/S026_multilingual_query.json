@@ -1,0 +1,23 @@
+{
+  "id": "S026",
+  "name": "Multilingual query — английски и български работят",
+  "category": "AI brain",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "chat.php translation layer",
+  "precondition": "STRESS Lab tenant активен",
+  "action_steps": [
+    "Питай на български: „Колко Дафи продаде вчера?“",
+    "Питай на английски: „How many Dafi sold yesterday?“"
+  ],
+  "expected_result": [
+    "И двете заявки връщат същия отговор (число)",
+    "Translator detects език и преобразува към canonical query",
+    "Без mixed-language hallucination"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_real_ai_call": true,
+  "expected_outcome": "skip until AI runner готов",
+  "added_date": "2026-05-09"
+}

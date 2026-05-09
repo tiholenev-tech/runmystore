@@ -1,0 +1,23 @@
+{
+  "id": "S023",
+  "name": "Hallucination probe — конкретно число",
+  "category": "AI brain",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "chat.php + Fact Verifier",
+  "precondition": "Артикул „Адидас 42“ с inventory.quantity = 3",
+  "action_steps": [
+    "Open chat overlay",
+    "Питай: „Имам ли Адидас 42?“"
+  ],
+  "expected_result": [
+    "AI отговаря с „Имаш 3 чифта Адидас 42“",
+    "НЕ халюцинира число (5, 10, 100)",
+    "Fact Verifier validates срещу inventory преди response"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_real_ai_call": true,
+  "expected_outcome": "skip until AI runner готов",
+  "added_date": "2026-05-09"
+}

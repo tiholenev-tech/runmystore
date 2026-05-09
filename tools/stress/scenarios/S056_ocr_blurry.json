@@ -1,0 +1,22 @@
+{
+  "id": "S056",
+  "name": "OCR blurry image — motion blur",
+  "category": "OCR / photo",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "OCR + sharpness check",
+  "precondition": "Test fixture blurred",
+  "action_steps": [
+    "Upload blurry photo"
+  ],
+  "expected_result": [
+    "Sharpness check < threshold → reject преди OCR",
+    "User prompted да направи нова снимка",
+    "Не се записва нищо в DB"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ocr_runner": true,
+  "expected_outcome": "skip until OCR pipeline готов",
+  "added_date": "2026-05-09"
+}

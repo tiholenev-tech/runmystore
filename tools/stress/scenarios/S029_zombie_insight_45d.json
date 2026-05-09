@@ -1,0 +1,22 @@
+{
+  "id": "S029",
+  "name": "Зомби сигнал — артикул не продаден 45+ дни",
+  "category": "AI brain",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "compute-insights.php zombie detector",
+  "precondition": "Артикул с last_sale_at > NOW() - INTERVAL 45 DAY и inventory.quantity > 0",
+  "action_steps": [
+    "compute-insights пуска",
+    "Чете ai_insights за topic_id = 'zombie_inventory'"
+  ],
+  "expected_result": [
+    "Pill „Имаш N зомби артикула, общо X лв капитал залежал“",
+    "Action button: „Виж артикулите“ → списък",
+    "Urgency = 'warning' или 'info'"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS zombies FROM ai_insights WHERE topic_id LIKE '%zombie%' AND status = 'live' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "fail_means": "Zombie detector не работи — Тихол не вижда залежала стока.",
+  "added_date": "2026-05-09"
+}

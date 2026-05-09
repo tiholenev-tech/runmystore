@@ -1,0 +1,23 @@
+{
+  "id": "S014",
+  "name": "Partial refund — само 1 от 3 артикула върнати",
+  "category": "sale flow",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "sale.php / refunds",
+  "precondition": "Продажба с 3+ артикула в последните 24h",
+  "action_steps": [
+    "Open продажба",
+    "Refund → избери 1 артикул и количество < купеното",
+    "Завърши"
+  ],
+  "expected_result": [
+    "Refund запис с partial=true",
+    "Останалите редове остават valid в sales",
+    "inventory.quantity нараства само за върнатия",
+    "sales.total_paid - refund.amount = реално платеното"
+  ],
+  "smoke_sql": "SELECT COUNT(*) AS n FROM sales WHERE status = 'partially_refunded' AND created_at >= NOW() - INTERVAL 24 HOUR",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

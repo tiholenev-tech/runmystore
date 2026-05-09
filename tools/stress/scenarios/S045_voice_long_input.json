@@ -1,0 +1,22 @@
+{
+  "id": "S045",
+  "name": "Long input — 30s monologue с няколко полета",
+  "category": "voice",
+  "priority": "P2",
+  "status": "active",
+  "linked_module": "voice multi-field parser",
+  "precondition": "Wizard на първи стъпка",
+  "action_steps": [
+    "Кажи: „име адидас 42 цена сто и двайсет бройка десет минимум две“"
+  ],
+  "expected_result": [
+    "Multi-field parser попълва: name='адидас 42', price=120, qty=10, min=2",
+    "Confidence per field изчислен",
+    "Висока confidence → auto-fill; ниска → ask за уточнение"
+  ],
+  "needs_browser": true,
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "expected_outcome": "skip until multi-field parser готов",
+  "added_date": "2026-05-09"
+}

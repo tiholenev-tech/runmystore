@@ -1,0 +1,22 @@
+{
+  "id": "S025",
+  "name": "Confidence routing — low confidence → не се показва",
+  "category": "AI brain",
+  "priority": "P1",
+  "status": "active",
+  "linked_module": "compute-insights.php confidence layer",
+  "precondition": "Симулирани insights с разни confidence scores",
+  "action_steps": [
+    "compute-insights пуска върху limited история",
+    "Пишат се insights с confidence < 0.5",
+    "Чете chat.php pills"
+  ],
+  "expected_result": [
+    "Pills с confidence < 0.5 не се показват в UI",
+    "Pills с confidence >= 0.5 се появяват",
+    "Записани в DB с status='draft' или 'low_confidence'"
+  ],
+  "smoke_sql": "SELECT urgency, COUNT(*) AS n FROM ai_insights WHERE confidence >= 0.5 AND status = 'live' AND created_at >= NOW() - INTERVAL 24 HOUR GROUP BY urgency",
+  "expects_at_least": 0,
+  "added_date": "2026-05-09"
+}

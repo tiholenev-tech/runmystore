@@ -1,0 +1,22 @@
+{
+  "id": "S060",
+  "name": "Handwritten label — ръкописен етикет",
+  "category": "OCR / photo",
+  "priority": "P3",
+  "status": "active",
+  "linked_module": "OCR handwriting model",
+  "precondition": "Fixture с handwritten ценоразпис",
+  "action_steps": [
+    "Upload снимка"
+  ],
+  "expected_result": [
+    "App detects handwriting → switch към specialized model",
+    "Confidence по-нисък — ask за manual review",
+    "Не auto-imports"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 1,
+  "needs_ocr_runner": true,
+  "expected_outcome": "skip — handwriting not in v1 scope",
+  "added_date": "2026-05-09"
+}

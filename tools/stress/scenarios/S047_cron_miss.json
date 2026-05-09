@@ -1,0 +1,23 @@
+{
+  "id": "S047",
+  "name": "Cron miss detection — heartbeat липсва > 90 мин",
+  "category": "cron / system",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "admin/health.php heartbeat watcher",
+  "precondition": "Cron инсталиран и работи; heartbeat записан в health.json или DB",
+  "action_steps": [
+    "Стопирай един cron (напр. nightly_robot)",
+    "Изчакай 90+ минути",
+    "Open admin/health.php"
+  ],
+  "expected_result": [
+    "UI badge „missed“ за nightly_robot",
+    "Optional Telegram alert (ако token configured)",
+    "Запис в alerts таблицата"
+  ],
+  "smoke_sql": "SELECT cron_name, MAX(created_at) AS last_seen FROM cron_heartbeats GROUP BY cron_name HAVING last_seen < NOW() - INTERVAL 90 MINUTE",
+  "expects_at_least": 0,
+  "fail_means": "Cron спрял без алерт — Тихол не знае.",
+  "added_date": "2026-05-09"
+}
