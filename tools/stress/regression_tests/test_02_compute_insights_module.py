@@ -19,10 +19,13 @@ def run():
                 "evidence": "STRESS Lab tenant not found"}
     assert_stress_tenant(tenant_id, conn)
 
+    # ai_insights schema няма колона `status` — "live" се изразява чрез
+    # expires_at: insight е активен ако expires_at е NULL или в бъдещето.
     with conn.cursor() as cur:
         cur.execute("""
             SELECT module, COUNT(*) AS n FROM ai_insights
-            WHERE tenant_id = %s AND status = 'live'
+            WHERE tenant_id = %s
+              AND (expires_at IS NULL OR expires_at > NOW())
               AND created_at >= NOW() - INTERVAL 7 DAY
             GROUP BY module
         """, (tenant_id,))
@@ -31,12 +34,13 @@ def run():
 
     home = distribution.get("home", 0)
     products = distribution.get("products", 0)
-    total = sum(distribution.values()) or 1
-    home_pct = home / total * 100
+    total = sum(distribution.values())
 
     if total == 0:
         return {"fix_id": "02_compute_insights_module", "status": "skip",
-                "evidence": "No live ai_insights to evaluate"}
+                "evidence": "No live ai_insights in last 7 days — cannot evaluate routing"}
+
+    home_pct = home / total * 100
     if home_pct < 50:
         return {"fix_id": "02_compute_insights_module", "status": "fail",
                 "evidence": f"home pct={home_pct:.1f}% (< 50% — module routing broken)",
