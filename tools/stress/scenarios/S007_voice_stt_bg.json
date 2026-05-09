@@ -1,0 +1,22 @@
+{
+  "id": "S007",
+  "name": "Voice STT — българска цена",
+  "category": "voice",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "products.php voice wizard",
+  "precondition": "STRESS Lab tenant, products.php wizard отворен на цена поле",
+  "action_steps": [
+    "Натисни микрофон",
+    "Кажи: „трийсет и пет лева и петдесет“"
+  ],
+  "expected_result": [
+    "Web Speech API парсва (не Whisper)",
+    "Полето се попълва с 35.50",
+    "НЕ показва грешен parse"
+  ],
+  "needs_browser": true,
+  "implementation_hint": "Изисква headless browser с Web Speech API mock. За cron-овете → skip.",
+  "expected_outcome": "skip until Playwright runner готов",
+  "added_date": "2026-05-08"
+}

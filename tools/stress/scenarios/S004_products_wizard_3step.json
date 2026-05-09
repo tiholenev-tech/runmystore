@@ -1,0 +1,26 @@
+{
+  "id": "S004",
+  "name": "products.php wizard 3-стъпков (with variations)",
+  "category": "UI / data entry",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "products.php",
+  "precondition": "STRESS Lab tenant",
+  "action_steps": [
+    "Open products.php",
+    "Натисни „+ Добави артикул“",
+    "Избери „Вариации“",
+    "Стъпка 1: име, цена, размери (S, M, L, XL)",
+    "Стъпка 2: бройки per размер (matrix UI)",
+    "Стъпка 3: optional полета",
+    "Запази"
+  ],
+  "expected_result": [
+    "Главен артикул в products",
+    "4 child артикула (по 1 за размер) в products",
+    "inventory.quantity per child"
+  ],
+  "smoke_sql": "SELECT parent_id, COUNT(*) AS variations FROM products WHERE parent_id IS NOT NULL AND created_at >= NOW() - INTERVAL 24 HOUR GROUP BY parent_id LIMIT 5",
+  "expects_at_least": 0,
+  "added_date": "2026-05-08"
+}

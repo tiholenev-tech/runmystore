@@ -1,0 +1,25 @@
+{
+  "id": "S010",
+  "name": "Доставка увеличава quantity",
+  "category": "inventory / deliveries",
+  "priority": "P0",
+  "status": "pending",
+  "pending_reason": "deliveries.php модулът не е готов",
+  "linked_module": "deliveries.php (когато готов)",
+  "precondition": "Артикул X с inventory.quantity = 5, deliveries.php модулът работи",
+  "action_steps": [
+    "Open deliveries.php",
+    "Регистрирай нова доставка",
+    "Добави 20 бройки от артикул X",
+    "Запази"
+  ],
+  "expected_result": [
+    "inventory.quantity = 25 (5 + 20)",
+    "Запис в delivery_items",
+    "Запис в stock_movements / inventory_events"
+  ],
+  "smoke_sql": "SELECT 1",
+  "expects_at_least": 0,
+  "expected_outcome": "skip until deliveries.php готов",
+  "added_date": "2026-05-08"
+}

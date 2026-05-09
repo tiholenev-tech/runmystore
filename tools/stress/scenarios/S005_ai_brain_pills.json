@@ -1,0 +1,25 @@
+{
+  "id": "S005",
+  "name": "AI Brain — pill render с реални числа",
+  "category": "AI brain",
+  "priority": "P0",
+  "status": "active",
+  "linked_module": "chat.php + compute-insights.php",
+  "linked_bug": "BUILD_PLAN ред 55 — compute-insights.php р.235 hardcoded module='products' но life-board.php извиква 'home'",
+  "precondition": "STRESS Lab tenant с history (продажби, артикули), compute-insights.php пуснат в последен час",
+  "action_steps": [
+    "Отваряй chat.php",
+    "Чакай pills да се заредят (realtime + cached)",
+    "Чети първите 5 pills"
+  ],
+  "expected_result": [
+    "Pills съдържат конкретни числа (не „X“ placeholder)",
+    "Числата съответстват на реални SQL query резултати",
+    "Pills имат правилни цветове по urgency",
+    "Pills отварят AI overlay при tap"
+  ],
+  "smoke_sql": "SELECT id, fundamental_question, action_type, module FROM ai_insights WHERE status = 'live' AND module = 'home' AND created_at >= NOW() - INTERVAL 4 HOUR LIMIT 5",
+  "expects_at_least": 1,
+  "fail_means": "Insights не се routи до module='home' — Бъг 2 не е поправен",
+  "added_date": "2026-05-08"
+}
