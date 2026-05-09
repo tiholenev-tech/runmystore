@@ -116,7 +116,11 @@ def fetch_stores(conn, tenant_id: int) -> list:
 def fetch_products_sample(conn, tenant_id: int, limit: int = 1000) -> list:
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, code, name, retail_price, cost_price, category "
+            # `category` беше string column в стара schema; текущата има category_id (FK).
+            # Seed_products_realistic не пълни category_id, затова JOIN-ът би върнал NULL
+            # за всички редове. По-просто: drop category — seasonal_multiplier получава "" и
+            # връща 1.0 (без сезонен boost). Stress volume/distribution остават валидни.
+            "SELECT id, code, name, retail_price, cost_price "
             "FROM products WHERE tenant_id = %s ORDER BY id LIMIT %s",
             (tenant_id, limit),
         )

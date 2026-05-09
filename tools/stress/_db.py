@@ -61,6 +61,10 @@ def load_db_config(env_path: str = DB_ENV) -> dict:
     if missing:
         raise ValueError(f"missing keys in {env_path}: {missing}")
     cfg.setdefault("DB_HOST", "127.0.0.1")
+    # Env override lets sandbox runs redirect to runmystore_stress_sandbox without
+    # editing /etc/runmystore/db.env. Required by SANDBOX_GUIDE seed cycle.
+    if os.getenv("DB_NAME"):
+        cfg["DB_NAME"] = os.getenv("DB_NAME")
     return cfg
 
 
