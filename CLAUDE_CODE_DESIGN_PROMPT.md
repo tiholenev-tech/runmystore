@@ -1,8 +1,9 @@
 # 🎨 CLAUDE_CODE_DESIGN_PROMPT.md — Wrapper за Code Code дизайн сесии
 
-**Версия:** v2.0
+**Версия:** v3.0
 **Дата:** 09.05.2026
 **Статус:** АКТИВЕН — задължителен за всяка design rewrite
+**Промени v3.0:** integration с design-kit/visual-gate.sh (4-check escalating loop срещу chat.php P11 disaster)
 
 ---
 
@@ -92,7 +93,7 @@ BRANCH: s<NN>-<scope>-<descriptor>
 
 NEW BEHAVIOR (ако промптът изрично иска — иначе SKIP)
 
-EXIT CRITERIA:
+EXIT CRITERIA (v3.0 с visual-gate):
 - PRE-INVENTORY committed
 - Rewrite 1:1 по mockup
 - POST-INVENTORY committed
@@ -100,7 +101,29 @@ EXIT CRITERIA:
 - SMOKE_<file>.md generated
 - design-kit/check-compliance.sh PASS
 - php -l PASS
+- **design-kit/visual-gate.sh PASS** (escalating loop iter 1-5; ALL 4 checks pass на финалния iter)
+- Ако visual-gate exit 2 (iter 5 fail) → AUTO-ROLLBACK fired, handoff с failure analysis вместо commit
 - Commit на branch (НЕ main)
+
+VISUAL GATE INVOCATION (след rewrite, преди commit):
+
+```bash
+./design-kit/visual-gate.sh \
+    mockups/<MOCKUP>.html \
+    <REWRITE_FILE> \
+    backups/<session>_<TS>/visual_gate \
+    backups/<session>_<TS>/<REWRITE_FILE>.bak
+
+# exit 0 → all checks PASS на някой iter, продължи към commit
+# exit 1 → bad args / missing deps, fix преди да продължиш
+# exit 2 → ALL 5 iters FAIL, auto-rollback fired, generate VISUAL_GATE_FAIL.md, handoff
+```
+
+4-те checks на visual-gate (виж VISUAL_GATE_SPEC.md):
+1. DOM diff (rendered output) ≤ iter threshold (1-3%)
+2. CSS coverage — липсващи class < 2 от mockup
+3. Pixel diff (chromium 375x812 + ImageMagick fuzz 10%) ≤ iter threshold (3-5%)
+4. Element positions — 0 elements moved > threshold (20-30px)
 
 ---
 
@@ -127,7 +150,10 @@ EXIT CRITERIA:
 6. Mockup противоречи на DESIGN_SYSTEM
 7. PHP syntax error след rewrite — rollback, не "почисти"
 8. Backup липсва — направи го преди да продължиш
+9. **visual-gate.sh exit 2 (iter 5 fail) → AUTO-ROLLBACK fired, не commit-вай нищо.** Generate VISUAL_GATE_FAIL.md (вече е създадено от orchestrator-а), commit само ROLLBACK marker, и handoff към Тихол.
+10. **chromium / ImageMagick / php missing → visual-gate exit 1.** Не пробвай workaround — питай Тихол за инсталация.
+11. **visual-gate показва pixel diff > 50% или DOM diff > 50% дори с пълен render** → не е tolerance issue, а fundamental mismatch. STOP, преразгледай mockup choice или revert.
 
 ---
 
-END v2.0
+END v3.0
