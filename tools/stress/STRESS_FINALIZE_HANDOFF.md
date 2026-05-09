@@ -25,6 +25,14 @@
 ## Commits on this branch
 
 ```
+462b549 S133.STRESS.J3a: balance_validator — aggregate mode quantity_after fix
+bc3be30 S133.STRESS.J4a: seed_history — tenant_id in delivery inventory INSERT
+1b5d507 S133.STRESS.J4+J5: seed_history — inventory floor + stock_movements + deliveries
+88ef962 S133.STRESS.J3: balance_validator — graceful degrade on missing quantity_after
+1f880e6 S133.STRESS.J2: test_02 — drop non-existent status column + fix skip logic
+50524a9 S133.STRESS.J1: s130_03 migration — fully idempotent
+a215d8f S133.STRESS.I:  STRESS_FINALIZE_HANDOFF.md
+69f6e47 S133.STRESS.G:  CRON_INSTALL_GUIDE.md
 b8862c6 S133.STRESS.B0b: seed_history_90days.py — drop products.category from SELECT
 d9023a6 S133.STRESS.B0a: seed_users.py — handle password column too
 8b40b09 S133.STRESS.B0:  schema-mismatch fixes in seed scripts
@@ -33,7 +41,7 @@ d9023a6 S133.STRESS.B0a: seed_users.py — handle password column too
 
 (Plus the two pre-existing `mirrors: auto-sync ...` commits.)
 
-The CRON_INSTALL_GUIDE and this handoff are committed under separate G and I commits (see `git log` after the final push).
+**J-phase (post-beta P0 cleanup)** added six commits closing all 5 P0s from the original sanity report. See `tools/stress/data/J_PHASE_REPORT.md` for details — regression went from 3 pass / 1 advisory / 2 fail → 4 pass / 1 skip / 1 advisory / 0 fail.
 
 ## What's READY for production
 
@@ -57,19 +65,26 @@ The CRON_INSTALL_GUIDE and this handoff are committed under separate G and I com
 
 ## Known issues (P0)
 
-Detailed in `tools/stress/data/SANITY_CHECK_REPORT.md`. Quick recap:
+Detailed in `tools/stress/data/SANITY_CHECK_REPORT.md` (snapshot pre-J) and
+`tools/stress/data/J_PHASE_REPORT.md` (post-J updates). Final status:
 
 | # | Issue | Fixed this session |
 |---|---|---|
-| 1 | `_db.py` DB_NAME override | ✅ |
-| 2 | `setup_stress_tenant` password column | ✅ |
-| 3 | `seed_users` role + password | ✅ |
-| 4 | `seed_history` products.category | ✅ |
-| 5 | `s130_03` migration idempotency | ❌ |
-| 6 | `seed_history` doesn't write stock_movements / deliveries / transfers | ❌ |
-| 7 | `balance_validator` `quantity_after` crash | ❌ |
-| 8 | `seed_history` allows negative inventory (112 rows) | ❌ |
-| 9 | `test_02` queries non-existent `status` column | ❌ |
+| 1 | `_db.py` DB_NAME override | ✅ A0 |
+| 2 | `setup_stress_tenant` password column | ✅ B0 |
+| 3 | `seed_users` role + password | ✅ B0/B0a |
+| 4 | `seed_history` products.category | ✅ B0b |
+| 5 | `s130_03` migration idempotency | ✅ J1 |
+| 6 | `seed_history` doesn't write stock_movements / deliveries / transfers | ✅ J4+J5 (sales + deliveries; returns/lost_demand still TODO) |
+| 7 | `balance_validator` `quantity_after` crash | ✅ J3 + J3a (movements + aggregate) |
+| 8 | `seed_history` allows negative inventory (112 rows) | ✅ J4 (inventory floor enforced in plan) |
+| 9 | `test_02` queries non-existent `status` column | ✅ J2 |
+
+**All 9 known issues closed in this session.** New follow-ups surfaced post-J:
+- F1: `seed_products_realistic.py` should also emit initial stock_movements (closes balance_validator drift gap)
+- F2: returns + lost_demand still TODO in seed_history (carry-over from original brief)
+- F3: `test_new_features.py` git log parsing fragility (audit finding)
+- F4: Telegram alerts activation (deferred per brief)
 
 ## Sandbox state at handoff
 
