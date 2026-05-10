@@ -173,6 +173,55 @@ a { text-decoration: none; }
 [data-theme="dark"] .lb-mode-toggle { background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px); }
 .lb-mode-toggle svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
 
+/* ═══ rms-subbar (лесен mode: shop chip + breadcrumb + mode toggle + amber sale pill) ═══ */
+.rms-subbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px 0;
+  position: relative; z-index: 5;
+}
+.rms-shop-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.04em; color: var(--text);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .rms-shop-chip,
+:root:not([data-theme]) .rms-shop-chip { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .rms-shop-chip { background: hsl(220 25% 8% / 0.6); }
+.rms-shop-chip svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+.rms-breadcrumb {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rms-subbar-spacer { flex: 1; }
+.rms-mode-toggle {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .rms-mode-toggle,
+:root:not([data-theme]) .rms-mode-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .rms-mode-toggle { background: hsl(220 25% 8% / 0.6); }
+.rms-mode-toggle svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+.rms-sale-pill {
+  display: inline-flex; align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font); font-size: 11px; font-weight: 800;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: white;
+  background: linear-gradient(135deg, hsl(38 80% 55%), hsl(28 75% 50%));
+  box-shadow: 0 4px 12px hsl(38 80% 50% / 0.4);
+  transition: transform var(--dur) var(--ease);
+}
+.rms-sale-pill:active { transform: scale(var(--press)); }
+
 /* MODE PILL (двупозиционна — Лесен / Разширен) */
 .mode-pill-row{display:flex;justify-content:center;margin:0 0 14px}
 .mode-pill{display:inline-flex;align-items:center;padding:4px;border-radius:var(--radius-pill);gap:2px}
@@ -831,14 +880,26 @@ a { text-decoration: none; }
   </button>
 </header>
 
+<!-- ═══ rms-subbar (лесен mode) — shop chip + ДОСТАВКИ breadcrumb + Разширен toggle + amber Продажба pill ═══ -->
+<div class="rms-subbar">
+  <a class="rms-shop-chip">
+    <svg viewBox="0 0 24 24"><path d="M3 9h18M3 9v11a1 1 0 001 1h16a1 1 0 001-1V9M3 9l3-6h12l3 6"/></svg>
+    <span>ENI</span>
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+  </a>
+  <span class="rms-breadcrumb">ДОСТАВКИ</span>
+  <div class="rms-subbar-spacer"></div>
+  <a class="rms-mode-toggle">
+    <span>Разширен</span>
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+  <a class="rms-sale-pill">
+    <span>Продажба</span>
+  </a>
+</div>
+
 <main class="app">
 
-  <div class="mode-pill-row">
-    <div class="mode-pill">
-      <a class="mode-pill-opt active" href="#">Лесен</a>
-      <a class="mode-pill-opt" href="#">Разширен</a>
-    </div>
-  </div>
 
   <!-- ─── TOP ROW: Доставки днес + Закъснели ─── -->
   <div class="top-row">

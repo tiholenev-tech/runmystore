@@ -1049,6 +1049,25 @@ a { text-decoration: none; }
 [data-theme="dark"] .var-row-print { background: hsl(220 25% 8%); }
 .var-row-print svg { width: 13px; height: 13px; stroke: var(--accent); fill: none; stroke-width: 2; }
 
+/* ═══ MODE TOGGLE ROW (rms-subbar — Лесен ←) ═══ */
+.lb-mode-row {
+  display: flex; justify-content: flex-end;
+  padding: 8px 12px 0;
+  position: relative; z-index: 5;
+}
+.lb-mode-toggle {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lb-mode-toggle,
+:root:not([data-theme]) .lb-mode-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .lb-mode-toggle { background: hsl(220 25% 8% / 0.6); }
+.lb-mode-toggle svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+
 /* ═══ BOTTOM NAV ═══ */
 .rms-bottom-nav {
   position: fixed; left: 12px; right: 12px; bottom: 12px;
@@ -1056,7 +1075,8 @@ a { text-decoration: none; }
   display: grid; grid-template-columns: repeat(4, 1fr);
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
-  margin-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  max-width: 456px; margin: 0 auto;
 }
 [data-theme="light"] .rms-bottom-nav,
 :root:not([data-theme]) .rms-bottom-nav {
@@ -1131,6 +1151,14 @@ a { text-decoration: none; }
     <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
   </button>
 </header>
+
+<!-- Mode toggle row (rms-subbar — Лесен ←) -->
+<div class="lb-mode-row">
+  <a class="lb-mode-toggle">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>{T_SIMPLE_MODE}</span>
+  </a>
+</div>
 
 <main class="app">
 
