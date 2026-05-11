@@ -1577,9 +1577,6 @@ a { text-decoration: none; }
 
 </main>
 
-<!-- ═══ AI INPUT BAR (sticky, отваря 75vh chat overlay) ═══ -->
-<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
-
 <!-- ═══ INFO POPOVER OVERLAY ═══ -->
 <div class="info-overlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()">
   <div class="info-card">
@@ -1606,15 +1603,15 @@ a { text-decoration: none; }
 </div>
 
 <!-- Chat input bar -->
-<div class="chat-input-bar">
+<div class="chat-input-bar" onclick="rmsOpenChat(event)" role="button" tabindex="0" style="cursor:pointer">
   <span class="chat-input-icon">
     <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="3" y2="12"/><line x1="6" y1="9" x2="6" y2="15"/><line x1="9" y1="6" x2="9" y2="18"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="15" y1="11" x2="15" y2="13"/></svg>
   </span>
   <span class="chat-input-text">Кажи или напиши...</span>
-  <button class="chat-mic" aria-label="Глас">
+  <button class="chat-mic" aria-label="Глас" onclick="event.stopPropagation();rmsOpenChat(event)">
     <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
   </button>
-  <button class="chat-send" aria-label="Изпрати">
+  <button class="chat-send" aria-label="Изпрати" onclick="event.stopPropagation();rmsOpenChat(event)">
     <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
   </button>
 </div>
@@ -1693,19 +1690,19 @@ syncThemeIcons();
 </script>
 <!-- Bottom nav — circular orb icons (като AI Studio) -->
 <nav class="rms-bottom-nav">
-  <a class="rms-nav-tab active" aria-label="AI">
+  <a href="chat-v2.php" class="rms-nav-tab active" aria-label="AI">
     <span class="nav-orb">
       <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
     </span>
     <span>AI</span>
   </a>
-  <a class="rms-nav-tab" aria-label="Склад">
+  <a href="warehouse.php" class="rms-nav-tab" aria-label="Склад">
     <span class="nav-orb">
       <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
     </span>
     <span>Склад</span>
   </a>
-  <a class="rms-nav-tab" aria-label="Статистики">
+  <a href="stats.php" class="rms-nav-tab" aria-label="Справки">
     <span class="nav-orb">
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline class="nav-stats-line" points="3 17 8 12 12 14 16 8 21 4"/>
@@ -1716,9 +1713,9 @@ syncThemeIcons();
         <circle class="nav-stats-dot" cx="21" cy="4" r="1.8" fill="white"/>
       </svg>
     </span>
-    <span>Статистики</span>
+    <span>Справки</span>
   </a>
-  <a class="rms-nav-tab" aria-label="Продажби">
+  <a href="sale.php" class="rms-nav-tab" aria-label="Продажба">
     <span class="nav-orb">
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M5 8 L19 8 L18 21 L6 21 Z"/>
@@ -1726,7 +1723,7 @@ syncThemeIcons();
         <path class="nav-bolt" d="M13 12 L10 16 L13 16 L11 19" stroke-width="2.2"/>
       </svg>
     </span>
-    <span>Продажби</span>
+    <span>Продажба</span>
   </a>
 </nav>
 
