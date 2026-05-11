@@ -1577,6 +1577,9 @@ a { text-decoration: none; }
 
 </main>
 
+<!-- ═══ AI INPUT BAR (sticky, отваря 75vh chat overlay) ═══ -->
+<?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
+
 <!-- ═══ INFO POPOVER OVERLAY ═══ -->
 <div class="info-overlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()">
   <div class="info-card">
@@ -1727,5 +1730,14 @@ syncThemeIcons();
   </a>
 </nav>
 
+<script>
+// S140 REBUILD: input bar fallback — chat overlay все още е в chat.php.
+// При клик пренасочваме към chat.php (което има 75vh overlay).
+// Следваща стъпка: преместваме целия overlay тук, тогава тази функция ще
+// отваря локалния панел вместо да навигира.
+if (typeof window.rmsOpenChat !== 'function') {
+    window.rmsOpenChat = function(e){ if(e) e.preventDefault(); location.href = 'chat.php'; };
+}
+</script>
 </body>
 </html>
