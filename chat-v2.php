@@ -1656,6 +1656,7 @@ a { text-decoration: none; }
         <span class="lb-fb-label">Полезно?</span>
         <button class="lb-fb-btn up" onclick="v2lbFb(event,this,'up')" aria-label="Полезно"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
         <button class="lb-fb-btn down" onclick="v2lbFb(event,this,'down')" aria-label="Неполезно"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
+        <button class="lb-fb-btn hmm" onclick="v2lbFb(event,this,'hmm')" aria-label="Неясно" style="color:hsl(38 80% 50%)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
       </div>
     </div>
   </div>
