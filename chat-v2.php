@@ -1616,16 +1616,37 @@ a { text-decoration: none; }
       $fq = $ins['fundamental_question'] ?? 'gain';
       $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
       $card_title_js = htmlspecialchars(addslashes($ins['title'] ?? ''), ENT_QUOTES);
+      $card_body = $ins['detail_text'] ?? '';
+      $action_lbl = '';
+      if ($fq === 'order' || $fq === 'gain_cause') $action_lbl = 'Поръчай';
+      elseif ($fq === 'loss' || $fq === 'loss_cause') $action_lbl = 'Виж';
+      elseif ($fq === 'gain') $action_lbl = 'Покажи';
+      else $action_lbl = 'Виж';
   ?>
-  <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>" onclick="v2openCardQ('<?= $card_title_js ?>')" style="cursor:pointer">
+  <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
+    <div class="lb-collapsed" onclick="v2lbToggleCard(event, this)" style="cursor:pointer">
       <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><?= $meta['svg'] ?></svg></span>
       <div class="lb-collapsed-content">
         <span class="lb-fq-tag-mini"><?= htmlspecialchars($meta['name']) ?></span>
         <span class="lb-collapsed-title"><?= htmlspecialchars($ins['title'] ?? '') ?></span>
       </div>
-      <button class="lb-expand-btn" aria-label="Разшири" onclick="event.stopPropagation();v2openCardQ('<?= $card_title_js ?>')"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <?php if ($card_body): ?>
+      <div class="lb-body"><?= htmlspecialchars($card_body) ?></div>
+      <?php endif; ?>
+      <div class="lb-actions">
+        <button class="lb-action" onclick="v2openCardQ('<?= $card_title_js ?>')">Защо</button>
+        <button class="lb-action" onclick="v2openCardQ('Покажи ми: <?= $card_title_js ?>')">Покажи</button>
+        <button class="lb-action primary" onclick="v2openCardQ('<?= $action_lbl ?>: <?= $card_title_js ?>')"><?= htmlspecialchars($action_lbl) ?> →</button>
+      </div>
+      <div class="lb-feedback">
+        <span class="lb-fb-label">Полезно?</span>
+        <button class="lb-fb-btn up" onclick="v2lbFb(event,this,'up')" aria-label="Полезно"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
+        <button class="lb-fb-btn down" onclick="v2lbFb(event,this,'down')" aria-label="Неполезно"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
+      </div>
     </div>
   </div>
   <?php endforeach; endif; ?>
@@ -1854,9 +1875,30 @@ function v2setMode(mode) {
 // Life Board card click → отваря AI чат с въпрос за този сигнал
 function v2openCardQ(title) {
     if (!title) { location.href = 'chat.php'; return; }
-    // Подаваме въпроса като query param + sessionStorage (двойна гаранция)
     try { sessionStorage.setItem('rms_prefill_q', title); } catch(_) {}
     location.href = 'chat.php?q=' + encodeURIComponent(title);
+}
+
+// Life Board card toggle (expand/collapse вътрешен info панел)
+function v2lbToggleCard(e, el) {
+    if (e) e.stopPropagation();
+    const card = el.closest('.lb-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+    // Завърти chevron на бутона
+    const btn = el.querySelector('.lb-expand-btn svg');
+    if (btn) btn.style.transform = card.classList.contains('expanded') ? 'rotate(180deg)' : '';
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+
+// Life Board feedback (👍 / 👎) — визуален избор; backend следваща стъпка
+function v2lbFb(e, btn, kind) {
+    if (e) e.stopPropagation();
+    const card = btn.closest('.lb-card');
+    if (!card) return;
+    card.querySelectorAll('.lb-fb-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if (navigator.vibrate) navigator.vibrate(8);
 }
 </script>
 </body>
