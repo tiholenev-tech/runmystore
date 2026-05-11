@@ -602,8 +602,7 @@ a { text-decoration: none; }
   background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
-  animation: rmsBrandShimmer 4s linear infinite;
-}
+  }
 .rms-plan-badge {
   position: relative; padding: 5px 12px; border-radius: var(--radius-pill);
   font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
@@ -1344,6 +1343,7 @@ a { text-decoration: none; }
     font-weight: 900 !important;
     background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 55%), hsl(var(--hue2) 80% 60%), hsl(var(--hue1) 80% 60%)) !important;
     background-size: 200% auto !important;
+    animation: rmsBrandShimmer 4s linear infinite !important;
     -webkit-background-clip: text !important; background-clip: text !important;
     -webkit-text-fill-color: transparent !important; color: transparent !important;
 }
