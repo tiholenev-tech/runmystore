@@ -1938,6 +1938,16 @@ function v2openCardQ(title) {
     location.href = 'chat.php?q=' + encodeURIComponent(title);
 }
 
+// Global haptic feedback на всички тап елементи
+document.addEventListener('DOMContentLoaded', function(){
+    const tappables = '.rms-icon-btn, .rms-store-toggle, .lb-mode-toggle, .op-btn, .op-info-btn, .lb-action, .lb-fb-btn, .lb-expand-btn, .help-chip, .s82-dash-pill, .wfc-tab, .fp-pill, .studio-btn, .see-more-mini, .chat-mic, .chat-send, .lb-collapsed, .rms-nav-tab';
+    document.querySelectorAll(tappables).forEach(el => {
+        el.addEventListener('click', () => {
+            if (navigator.vibrate) navigator.vibrate(6);
+        }, { passive: true });
+    });
+});
+
 // Life Board card toggle (expand/collapse вътрешен info панел)
 function v2lbToggleCard(e, el) {
     if (e) e.stopPropagation();

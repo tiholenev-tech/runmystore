@@ -1031,6 +1031,13 @@ a { text-decoration: none; }
 /* ═════════════════════════════════════════════════════════════
    S140 OVERRIDES — subbar + body вдлъбнат прозорец + s82-dash
    ═════════════════════════════════════════════════════════════ */
+
+/* Header override (същия като в chat-v2.php — компактни иконки) */
+.rms-header .rms-icon-btn { width: 22px; height: 22px; }
+.rms-header .rms-icon-btn svg { width: 9px; height: 9px; }
+.rms-header .rms-header-icons { gap: 3px; }
+.rms-brand .brand-1 { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(225 80% 60%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rms-brand .brand-2 { background: linear-gradient(135deg, hsl(225 80% 60%), hsl(195 80% 55%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .rms-subbar {
   position: sticky; top: 56px; z-index: 49;
   display: flex; align-items: center; gap: 8px;
@@ -1156,19 +1163,19 @@ a { text-decoration: none; }
 </div>
 
 <header class="rms-header">
-  <a class="rms-brand">RUNMYSTORE.AI</a>
+  <a class="rms-brand"><span class="brand-1">RunMyStore</span><span class="brand-2">.ai</span></a>
   <span class="rms-plan-badge">PRO</span>
   <div class="rms-header-spacer"></div>
-  <button class="rms-icon-btn" aria-label="<?= htmlspecialchars($T['T_PRINTER'] ?? '') ?>">
+  <button class="rms-icon-btn" aria-label="Принтер">
     <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   </button>
-  <a class="rms-icon-btn" aria-label="<?= htmlspecialchars($T['T_SETTINGS'] ?? '') ?>">
+  <a class="rms-icon-btn" aria-label="Настройки">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
   </a>
-  <button class="rms-icon-btn" aria-label="<?= htmlspecialchars($T['T_LOGOUT'] ?? '') ?>">
+  <button class="rms-icon-btn" aria-label="Изход">
     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
   </button>
-  <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="<?= htmlspecialchars($T['T_THEME'] ?? '') ?>">
+  <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема">
     <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
   </button>
@@ -1702,6 +1709,13 @@ document.addEventListener('DOMContentLoaded', function(){
         inp.style.cursor = 'pointer';
         inp.onclick = function(e){ rmsOpenChat(e); };
     }
+    // Global haptic feedback на всички тап елементи (като chat-v2.php)
+    const tappables = '.rms-icon-btn, .rms-store-toggle, .lb-mode-toggle, .op-btn, .op-info-btn, .lb-action, .lb-fb-btn, .lb-expand-btn, .help-chip, .s82-dash-pill, .wfc-tab, .fp-pill, .studio-btn, .see-more-mini, .chat-mic, .chat-send, .lb-collapsed';
+    document.querySelectorAll(tappables).forEach(el => {
+        el.addEventListener('click', () => {
+            if (navigator.vibrate) navigator.vibrate(6);
+        }, { passive: true });
+    });
 });
 </script>
 </body>
