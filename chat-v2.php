@@ -70,7 +70,7 @@ $cmp_sign  = $cmp_today > 0 ? '+' : '';
 // ══════════════════════════════════════════════
 // WEATHER (днешен + 14-дневна прогноза)
 // ══════════════════════════════════════════════
-$weather_today = null; $weather_week = [];
+$weather_today = null; $weather_week = []; $weather_suggestion = '';
 try {
     $weather_today = DB::run(
         'SELECT temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date=CURDATE() LIMIT 1',
@@ -78,7 +78,41 @@ try {
     $weather_week = DB::run(
         'SELECT forecast_date, temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 13 DAY) ORDER BY forecast_date',
         [$store_id])->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) { /* weather недостъпен — fallback е празно */ }
+    if ($weather_today) {
+        $tmax = (float)$weather_today['temp_max'];
+        $rain = (int)$weather_today['precipitation_prob'];
+        $btype = mb_strtolower($tenant['business_type'] ?? '');
+        $fashion_kw = ['дрех','рокл','блуз','обувк','панталон','яке','палт','бельо','чорап','спорт','мод','fashion','cloth','shoe','sport','wear','бански','шал','ръкавиц','чант','аксесоар','бижут'];
+        $is_fashion = false;
+        foreach ($fashion_kw as $kw) {
+            if (mb_strpos($btype, $kw) !== false) { $is_fashion = true; break; }
+        }
+        if ($is_fashion) {
+            if ($tmax > 30)      $weather_suggestion = 'Витрина: летни артикули отпред — рокли, сандали, шапки. Пуснати ли са зимните на намаление?';
+            elseif ($tmax > 25)  $weather_suggestion = 'Витрина: леки рокли и сандали. Ако имаш пролетни остатъци — време за намаление';
+            elseif ($tmax > 20)  $weather_suggestion = 'Витрина: тениски, къси панталони. Преходен период — миксирай сезони';
+            elseif ($tmax > 15)  $weather_suggestion = 'Витрина: леки якета, дънки. Зимните трябва да са на намаление или прибрани';
+            elseif ($tmax > 10)  $weather_suggestion = 'Витрина: якета и преходни обувки. Летните на разпродажба ако са останали';
+            elseif ($tmax > 5)   $weather_suggestion = 'Витрина: палта, пуловери, зимни обувки. Есенните — намали или прибери';
+            else                 $weather_suggestion = 'Витрина: пуховки, ботуши, шалове. Пълна зима — сезонните артикули отпред';
+            if ($rain > 60) $weather_suggestion .= '. Дъжд — сложи чадъри или дъждобрани на витрината';
+        } else {
+            if ($rain > 75)      $weather_suggestion = 'Силен дъжд — очаквай 25-35% по-малко хора, но по-голяма кошница';
+            elseif ($rain > 50)  $weather_suggestion = 'Вероятен дъжд — възможно 15-25% по-малко хора';
+            elseif ($tmax > 33)  $weather_suggestion = 'Много горещо — хората избягват разходки, по-слаб трафик';
+            elseif ($tmax > 25)  $weather_suggestion = 'Хубаво време — добър ден за разходки и пазаруване';
+            elseif ($tmax > 15)  $weather_suggestion = 'Приятно време — нормален трафик';
+            elseif ($tmax > 5)   $weather_suggestion = 'Хладно — хората пазаруват по-целенасочено';
+            else                 $weather_suggestion = 'Студено — по-малко разходки, но сериозни купувачи';
+            if ($rain > 60) $weather_suggestion .= '. Дъждовен ден — обмисли промоция за онлайн';
+        }
+        if (count($weather_week) >= 7) {
+            $diff = round((float)$weather_week[6]['temp_max'] - (float)$weather_week[0]['temp_max']);
+            if ($diff >= 5)       $weather_suggestion .= '. Затопляне идва (+' . $diff . '°C за 7 дни)';
+            elseif ($diff <= -5)  $weather_suggestion .= '. Застудяване идва (' . $diff . '°C за 7 дни)';
+        }
+    }
+} catch (Throwable $e) { /* weather недостъпен */ }
 
 // Open-Meteo weather code → класове и SVG (по P11 стил: sunny/partly/cloudy/rain/snow)
 function v2weatherClass($code) {
@@ -1415,43 +1449,25 @@ a { text-decoration: none; }
       <?php endforeach; endif; ?>
     </div>
 
+    <?php if (!empty($weather_suggestion)): ?>
     <!-- AI recs divider -->
-    <div class="wfc-recs-divider"><span>AI ПРЕПОРЪКИ</span></div>
+    <div class="wfc-recs-divider"><span>AI ПРЕПОРЪКА</span></div>
 
-    <!-- 3 AI recommendations based on weather -->
+    <!-- 1 динамична препоръка на база $weather_suggestion (от business_type + температура + дъжд) -->
     <div class="wfc-rec window">
       <span class="wfc-rec-ic">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
       </span>
       <div class="wfc-rec-text">
-        <span class="wfc-rec-label">ВИТРИНА</span>
-        <div class="wfc-rec-body">Топла седмица идва — изложи <b>летни рокли</b> и <b>сламени шапки</b>. В събота дъжд → добави <b>чадъри</b> на витрината.</div>
+        <span class="wfc-rec-label">ПРЕПОРЪКА</span>
+        <div class="wfc-rec-body"><?= htmlspecialchars($weather_suggestion) ?></div>
       </div>
     </div>
-
-    <div class="wfc-rec order">
-      <span class="wfc-rec-ic">
-        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
-      </span>
-      <div class="wfc-rec-text">
-        <span class="wfc-rec-label">ПОРЪЧКА</span>
-        <div class="wfc-rec-body">Прохладни вечери (12-15°) — <b>поръчай 12 пуловера</b> от Tommy Jeans. Средата на седмицата 28° → <b>по-малко якета</b>.</div>
-      </div>
-    </div>
-
-    <div class="wfc-rec transfer">
-      <span class="wfc-rec-ic">
-        <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-      </span>
-      <div class="wfc-rec-text">
-        <span class="wfc-rec-label">ПРЕХВЪРЛЯНЕ</span>
-        <div class="wfc-rec-body">София топъл уикенд → <b>прехвърли 8 банки от Магазин 2</b> (Пловдив, по-хладно). Заявка готова за tap.</div>
-      </div>
-    </div>
+    <?php endif; ?>
 
     <div class="wfc-source">
       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12.01" y2="8"/><line x1="11" y1="12" x2="12" y2="16"/></svg>
-      <span>OPEN-METEO · обновено 18:32</span>
+      <span>OPEN-METEO · <?= date('H:i') ?></span>
     </div>
   </div>
 
