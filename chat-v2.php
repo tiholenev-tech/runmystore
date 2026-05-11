@@ -1657,7 +1657,26 @@ a { text-decoration: none; }
       $fq = $ins['fundamental_question'] ?? 'gain';
       $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
       $card_title_js = htmlspecialchars(addslashes($ins['title'] ?? ''), ENT_QUOTES);
-      $card_body = $ins['detail_text'] ?? '';
+      $card_body = trim((string)($ins['detail_text'] ?? ''));
+      // Fallback body — ако detail_text е празен, конструираме от value/count/category
+      if ($card_body === '') {
+          $parts = [];
+          $val = (float)($ins['value_numeric'] ?? 0);
+          $cnt = (int)($ins['product_count'] ?? 0);
+          $catRaw = trim((string)($ins['category'] ?? ''));
+          if ($cnt > 0)         $parts[] = $cnt . ' артикула засегнати';
+          if (abs($val) > 0.01) $parts[] = 'стойност <b>' . number_format($val, 2, '.', ' ') . ' ' . $cs . '</b>';
+          if ($catRaw !== '')   $parts[] = 'категория: ' . htmlspecialchars($catRaw);
+          if (empty($parts)) {
+              // Минимум: подскажи че подробности са във „Защо" / „Покажи"
+              $card_body = 'Натисни „Защо" за подробно обяснение или „Покажи" за артикулите.';
+              $card_body_html = htmlspecialchars($card_body);
+          } else {
+              $card_body_html = ucfirst(implode(' · ', $parts)) . '.';
+          }
+      } else {
+          $card_body_html = htmlspecialchars($card_body);
+      }
       $action_lbl = '';
       if ($fq === 'order' || $fq === 'gain_cause') $action_lbl = 'Поръчай';
       elseif ($fq === 'loss' || $fq === 'loss_cause') $action_lbl = 'Виж';
@@ -1675,9 +1694,7 @@ a { text-decoration: none; }
       <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
     <div class="lb-expanded">
-      <?php if ($card_body): ?>
-      <div class="lb-body"><?= htmlspecialchars($card_body) ?></div>
-      <?php endif; ?>
+      <div class="lb-body"><?= $card_body_html ?></div>
       <div class="lb-actions">
         <button class="lb-action" onclick="v2openCardQ('<?= $card_title_js ?>')">Защо</button>
         <button class="lb-action" onclick="v2openCardQ('Покажи ми: <?= $card_title_js ?>')">Покажи</button>
