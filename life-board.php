@@ -602,6 +602,7 @@ a { text-decoration: none; }
   background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+  animation: rmsBrandShimmer 4s linear infinite;
 }
 .rms-plan-badge {
   position: relative; padding: 5px 12px; border-radius: var(--radius-pill);
@@ -1328,7 +1329,7 @@ a { text-decoration: none; }
 .rms-header .rms-icon-btn { width: 22px; height: 22px; padding: 0; }
 .rms-header .rms-icon-btn svg { width: 11px; height: 11px; }
 .rms-header .rms-header-icons { gap: 4px; }
-/* P10 brand override — да съответства на P11 (chat-v2.php) brand стил */
+/* P10 brand override — да съответства на P11 (chat.php) brand стил */
 .rms-brand {
     font-size: 17px !important;
     font-weight: 700 !important;
@@ -1338,7 +1339,6 @@ a { text-decoration: none; }
     gap: 0 !important;
     background: none !important;
     -webkit-text-fill-color: initial !important;
-    animation: none !important;
 }
 .rms-brand .brand-1 {
     font-weight: 900 !important;

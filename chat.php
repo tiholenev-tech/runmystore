@@ -600,6 +600,7 @@ a { text-decoration: none; }
   position: relative; font-size: 17px; letter-spacing: -0.01em;
   display: inline-flex; align-items: baseline; gap: 0;
   filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+  animation: rmsBrandShimmer 4s linear infinite;
 }
 .rms-brand .brand-1 {
   font-weight: 900;
