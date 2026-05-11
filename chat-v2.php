@@ -1419,10 +1419,9 @@ a { text-decoration: none; }
     </div>
     <div class="s82-dash-meta" id="revMeta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
     <?php if ($role === 'owner' && $confidence_pct < 100): ?>
-    <div class="conf-warn" id="confWarn" style="display:none">
-      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-      Приблизителна печалба — данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>).
-      <a href="inventory.php" style="color:inherit; text-decoration:underline; margin-left:6px;">Инвентаризация →</a>
+    <div class="conf-warn" id="confWarn" style="display:none; align-items:center; gap:8px; padding:8px 10px; margin-top:8px; border-radius:10px; background:rgba(251,191,36,0.10); border:1px solid rgba(251,191,36,0.25); font-size:11px; line-height:1.4;">
+      <svg viewBox="0 0 24 24" style="width:14px; height:14px; flex-shrink:0; fill:none; stroke:hsl(38 80% 50%); stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span>Приблизителна печалба — данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>). <a href="inventory.php" style="color:inherit; text-decoration:underline;">Инвентаризация →</a></span>
     </div>
     <?php endif; ?>
     <div class="s82-dash-pills">
@@ -1854,11 +1853,10 @@ function v2setMode(mode) {
 
 // Life Board card click → отваря AI чат с въпрос за този сигнал
 function v2openCardQ(title) {
-    if (!title) { rmsOpenChat(); return; }
-    // Запазваме въпроса в sessionStorage; chat.php overlay може да го предзареди
+    if (!title) { location.href = 'chat.php'; return; }
+    // Подаваме въпроса като query param + sessionStorage (двойна гаранция)
     try { sessionStorage.setItem('rms_prefill_q', title); } catch(_) {}
-    if (typeof window.rmsOpenChat === 'function') rmsOpenChat();
-    else location.href = 'chat.php';
+    location.href = 'chat.php?q=' + encodeURIComponent(title);
 }
 </script>
 </body>
