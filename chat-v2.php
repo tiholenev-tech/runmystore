@@ -1,12 +1,71 @@
 <?php
 /**
- * chat-v2.php — P11 1:1 visual base + минимална auth защита
- * S140 REBUILD: започваме от P11 макета, ще вкараме PHP данни блок по блок
+ * chat-v2.php — P11 1:1 visual base + жива PHP логика (incremental)
+ * S140 REBUILD: започваме от P11 макета, вкарваме PHP данни блок по блок.
  * НЕ заменя chat.php — съществува паралелно за безопасно тестване.
+ *
+ * Готови блокове:
+ *   ✅ Auth + tenant + store + revenue periods
+ *   ⏳ s82-dash калкулатор (този commit)
+ *   ⏳ Weather (TBD)
+ *   ⏳ AI Studio row (TBD)
+ *   ⏳ Life Board cards (TBD)
  */
 session_start();
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/helpers.php';
+
 if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
-// Данни ще се добавят постепенно (s82-dash → weather → AI Studio → life-board).
+
+$tenant_id = (int)$_SESSION['tenant_id'];
+$user_id   = (int)$_SESSION['user_id'];
+$store_id  = (int)($_SESSION['store_id'] ?? 0);
+$role      = $_SESSION['role'] ?? 'seller';
+
+// Store switch via GET (без redirect — за да тестваме лесно)
+if (!empty($_GET['store'])) {
+    $chk = DB::run('SELECT id FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
+        [(int)$_GET['store'], $tenant_id])->fetch();
+    if ($chk) { $_SESSION['store_id'] = (int)$_GET['store']; $store_id = (int)$_GET['store']; }
+    header('Location: chat-v2.php'); exit;
+}
+if (!$store_id) {
+    $first = DB::run('SELECT id FROM stores WHERE tenant_id=? ORDER BY id LIMIT 1', [$tenant_id])->fetch();
+    if ($first) { $store_id = (int)$first['id']; $_SESSION['store_id'] = $store_id; }
+}
+
+// Tenant + store
+$tenant = DB::run('SELECT * FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
+$cs = htmlspecialchars($tenant['currency'] ?? '€');
+$store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1', [$store_id, $tenant_id])->fetch();
+$store_name = $store['name'] ?? 'Магазин';
+$all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name', [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+// Revenue periods (днес / вчера) — нужни за s82-dash
+function v2periodData($tid, $sid, $r, $from, $to = null) {
+    $to = $to ?? date('Y-m-d');
+    $rev = (float)DB::run(
+        'SELECT COALESCE(SUM(total),0) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
+    $cnt = (int)DB::run(
+        'SELECT COUNT(*) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
+    $profit = 0;
+    if ($r === 'owner' && $cnt > 0) {
+        $profit = (float)DB::run(
+            'SELECT COALESCE(SUM(si.quantity*(si.unit_price - COALESCE(si.cost_price,0))),0) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)>=? AND DATE(s.created_at)<=? AND s.status!="canceled"',
+            [$tid, $sid, $from, $to])->fetchColumn();
+    }
+    return ['rev' => $rev, 'profit' => $profit, 'cnt' => $cnt];
+}
+function v2cmpPct($a, $b) { return $b > 0 ? round(($a - $b) / $b * 100) : ($a > 0 ? 100 : 0); }
+
+$today = date('Y-m-d');
+$d0  = v2periodData($tenant_id, $store_id, $role, $today, $today);
+$d0p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
+
+$cmp_today = (int)v2cmpPct($d0['rev'], $d0p['rev']);
+$cmp_sign  = $cmp_today > 0 ? '+' : '';
 ?>
 <!DOCTYPE html>
 <html lang="bg" data-theme="light">
@@ -1188,14 +1247,14 @@ a { text-decoration: none; }
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
     <div class="s82-dash-top">
-      <span class="s82-dash-period-label">ДНЕС · ENI</span>
+      <span class="s82-dash-period-label">ДНЕС · <?= htmlspecialchars($store_name) ?></span>
     </div>
     <div class="s82-dash-numrow">
-      <span class="s82-dash-num">847</span>
-      <span class="s82-dash-cur">€</span>
-      <span class="s82-dash-pct">+12%</span>
+      <span class="s82-dash-num"><?= number_format($d0['rev'], 0, '.', ' ') ?></span>
+      <span class="s82-dash-cur"><?= $cs ?></span>
+      <span class="s82-dash-pct"><?= $cmp_sign . $cmp_today ?>%</span>
     </div>
-    <div class="s82-dash-meta">12 продажби · vs 11 вчера</div>
+    <div class="s82-dash-meta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
     <div class="s82-dash-pills">
       <button type="button" class="s82-dash-pill active">Днес</button>
       <button type="button" class="s82-dash-pill">7 дни</button>
