@@ -41,6 +41,11 @@ $store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1', [
 $store_name = $store['name'] ?? 'Магазин';
 $all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name', [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
 
+// Confidence (% артикули с попълнена себестойност) — нужно за приблизителна печалба warning
+$total_products = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1', [$tenant_id])->fetchColumn();
+$with_cost      = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0', [$tenant_id])->fetchColumn();
+$confidence_pct = $total_products > 0 ? round($with_cost / $total_products * 100) : 0;
+
 // Revenue periods (днес / вчера) — нужни за s82-dash
 function v2periodData($tid, $sid, $r, $from, $to = null) {
     $to = $to ?? date('Y-m-d');
@@ -1413,6 +1418,13 @@ a { text-decoration: none; }
       <span class="s82-dash-pct<?= $cmp_today < 0 ? ' neg' : ($cmp_today == 0 ? ' zero' : '') ?>" id="revPct"><?= $cmp_sign . $cmp_today ?>%</span>
     </div>
     <div class="s82-dash-meta" id="revMeta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
+    <?php if ($role === 'owner' && $confidence_pct < 100): ?>
+    <div class="conf-warn" id="confWarn" style="display:none">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      Приблизителна печалба — данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>).
+      <a href="inventory.php" style="color:inherit; text-decoration:underline; margin-left:6px;">Инвентаризация →</a>
+    </div>
+    <?php endif; ?>
     <div class="s82-dash-pills">
       <button type="button" class="s82-dash-pill rev-pill active" data-period="today"  onclick="v2setPeriod('today',this)">Днес</button>
       <button type="button" class="s82-dash-pill rev-pill"        data-period="7d"     onclick="v2setPeriod('7d',this)">7 дни</button>
@@ -1604,16 +1616,17 @@ a { text-decoration: none; }
   <?php else: foreach ($briefing as $ins):
       $fq = $ins['fundamental_question'] ?? 'gain';
       $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
+      $card_title_js = htmlspecialchars(addslashes($ins['title'] ?? ''), ENT_QUOTES);
   ?>
-  <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>">
+  <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>" onclick="v2openCardQ('<?= $card_title_js ?>')" style="cursor:pointer">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard && lbToggleCard(event,this)">
+    <div class="lb-collapsed">
       <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><?= $meta['svg'] ?></svg></span>
       <div class="lb-collapsed-content">
         <span class="lb-fq-tag-mini"><?= htmlspecialchars($meta['name']) ?></span>
         <span class="lb-collapsed-title"><?= htmlspecialchars($ins['title'] ?? '') ?></span>
       </div>
-      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="lb-expand-btn" aria-label="Разшири" onclick="event.stopPropagation();v2openCardQ('<?= $card_title_js ?>')"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
     </div>
   </div>
   <?php endforeach; endif; ?>
@@ -1805,6 +1818,7 @@ function v2updateDash() {
     const pctEl = document.getElementById('revPct');
     const lblEl = document.getElementById('revLabel');
     const metaEl = document.getElementById('revMeta');
+    const cw = document.getElementById('confWarn');
     if (num)   num.textContent = v2fmt(val);
     if (pctEl) {
         pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
@@ -1816,6 +1830,8 @@ function v2updateDash() {
         if (V2_IS_OWN && d.cnt > 0 && v2curMode === 'rev') txt += ' · ' + d.margin + '% марж';
         metaEl.textContent = txt;
     }
+    // Confidence warning се показва САМО при режим Печалба (когато confidence < 100%)
+    if (cw) cw.style.display = (v2curMode === 'profit') ? 'flex' : 'none';
 }
 
 function v2setPeriod(period, el) {
@@ -1834,6 +1850,15 @@ function v2setMode(mode) {
     if (mp) mp.classList.toggle('active', mode === 'profit');
     v2updateDash();
     if (navigator.vibrate) navigator.vibrate(6);
+}
+
+// Life Board card click → отваря AI чат с въпрос за този сигнал
+function v2openCardQ(title) {
+    if (!title) { rmsOpenChat(); return; }
+    // Запазваме въпроса в sessionStorage; chat.php overlay може да го предзареди
+    try { sessionStorage.setItem('rms_prefill_q', title); } catch(_) {}
+    if (typeof window.rmsOpenChat === 'function') rmsOpenChat();
+    else location.href = 'chat.php';
 }
 </script>
 </body>
