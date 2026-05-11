@@ -1476,12 +1476,12 @@ a { text-decoration: none; }
 
     <div class="help-chips-label">Пробвай:</div>
     <div class="help-chips">
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Какво ми тежи на склада</span></button>
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Кои са топ продавачи</span></button>
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Колко да поръчам от Nike</span></button>
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Защо приходите паднаха</span></button>
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Покажи ми Adidas 42</span></button>
-      <button class="help-chip"><span class="help-chip-q">?</span><span>Какво продаваме днес</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Какво ми тежи на склада</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Кои са топ продавачите</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Какво да поръчам</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Защо приходите паднаха</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Покажи ми артикул</span></button>
+      <button class="help-chip" onclick="rmsOpenChat(event)"><span class="help-chip-q">?</span><span>Какво продаваме днес</span></button>
     </div>
 
     <div class="help-video-ph">
@@ -1509,38 +1509,35 @@ a { text-decoration: none; }
     <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
   </div>
 
-  <!-- Filter pills (модули) -->
+  <!-- Filter pills (модули) — динамични по реалните insights категории -->
+  <?php if (!empty($insights)):
+      $v2_cat_meta = [
+          'finance'    => ['name' => 'Финанси',      'svg' => '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
+          'sale'       => ['name' => 'Продажби',     'svg' => '<circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/>'],
+          'warehouse'  => ['name' => 'Склад',        'svg' => '<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
+          'orders'     => ['name' => 'Поръчки',      'svg' => '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>'],
+          'deliveries' => ['name' => 'Доставки',     'svg' => '<rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>'],
+          'transfers'  => ['name' => 'Прехвърляния', 'svg' => '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>'],
+          'customers'  => ['name' => 'Клиенти',      'svg' => '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'],
+      ];
+      $v2_cat_counts = [];
+      foreach ($insights as $ins) {
+          $c = $ins['category'] ?? '';
+          if ($c && isset($v2_cat_meta[$c])) {
+              $v2_cat_counts[$c] = ($v2_cat_counts[$c] ?? 0) + 1;
+          }
+      }
+  ?>
   <div class="fp-row">
-    <button class="fp-pill active">Всички <span class="fp-count">12</span></button>
+    <button class="fp-pill active">Всички <span class="fp-count"><?= count($insights) ?></span></button>
+    <?php foreach ($v2_cat_meta as $cat => $meta): if (empty($v2_cat_counts[$cat])) continue; ?>
     <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-      Финанси <span class="fp-count">3</span>
+      <svg viewBox="0 0 24 24"><?= $meta['svg'] ?></svg>
+      <?= htmlspecialchars($meta['name']) ?> <span class="fp-count"><?= $v2_cat_counts[$cat] ?></span>
     </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/></svg>
-      Продажби <span class="fp-count">2</span>
-    </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-      Склад <span class="fp-count">2</span>
-    </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Поръчки <span class="fp-count">2</span>
-    </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
-      Доставки <span class="fp-count">1</span>
-    </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-      Прехвърляния <span class="fp-count">1</span>
-    </button>
-    <button class="fp-pill">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      Клиенти <span class="fp-count">1</span>
-    </button>
+    <?php endforeach; ?>
   </div>
+  <?php endif; ?>
 
   <!-- ═══ LIFE BOARD CARDS — динамичен loop от $briefing ═══ -->
   <?php if (empty($briefing)): ?>
