@@ -35,16 +35,47 @@ $all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY na
 
 // Днешен оборот (за top cell)
 $today = date('Y-m-d');
-$rev_today = (float)DB::run(
-    'SELECT COALESCE(SUM(total),0) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)=? AND status!="canceled"',
-    [$tenant_id, $store_id, $today])->fetchColumn();
-$cnt_today = (int)DB::run(
-    'SELECT COUNT(*) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)=? AND status!="canceled"',
-    [$tenant_id, $store_id, $today])->fetchColumn();
-$rev_yesterday = (float)DB::run(
-    'SELECT COALESCE(SUM(total),0) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)=? AND status!="canceled"',
-    [$tenant_id, $store_id, date('Y-m-d', strtotime('-1 day'))])->fetchColumn();
-$cmp_pct = $rev_yesterday > 0 ? round(($rev_today - $rev_yesterday) / $rev_yesterday * 100) : ($rev_today > 0 ? 100 : 0);
+
+function v2periodData($tid, $sid, $r, $from, $to = null) {
+    $to = $to ?? date('Y-m-d');
+    $rev = (float)DB::run(
+        'SELECT COALESCE(SUM(total),0) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
+    $cnt = (int)DB::run(
+        'SELECT COUNT(*) FROM sales WHERE tenant_id=? AND store_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? AND status!="canceled"',
+        [$tid, $sid, $from, $to])->fetchColumn();
+    $profit = 0;
+    if ($r === 'owner' && $cnt > 0) {
+        $profit = (float)DB::run(
+            'SELECT COALESCE(SUM(si.quantity*(si.unit_price - COALESCE(si.cost_price,0))),0) FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.tenant_id=? AND s.store_id=? AND DATE(s.created_at)>=? AND DATE(s.created_at)<=? AND s.status!="canceled"',
+            [$tid, $sid, $from, $to])->fetchColumn();
+    }
+    return ['rev' => $rev, 'profit' => $profit, 'cnt' => $cnt];
+}
+function v2cmpPct($a, $b) { return $b > 0 ? round(($a - $b) / $b * 100) : ($a > 0 ? 100 : 0); }
+function v2mgn($p) { return $p['rev'] > 0 ? round($p['profit'] / $p['rev'] * 100) : 0; }
+
+$d0   = v2periodData($tenant_id, $store_id, $role, $today, $today);
+$d0p  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
+$d7   = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-6 days')), $today);
+$d7p  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-13 days')), date('Y-m-d', strtotime('-7 days')));
+$d30  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-29 days')), $today);
+$d30p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-59 days')), date('Y-m-d', strtotime('-30 days')));
+$d365  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-364 days')), $today);
+$d365p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-729 days')), date('Y-m-d', strtotime('-365 days')));
+
+$rev_today = $d0['rev'];
+$cnt_today = $d0['cnt'];
+$rev_yesterday = $d0p['rev'];
+$cmp_pct = (int)v2cmpPct($d0['rev'], $d0p['rev']);
+$cmp_sign = $cmp_pct > 0 ? '+' : '';
+
+$v2_periods_json = json_encode([
+    'today' => ['rev'=>round($d0['rev']),'profit'=>round($d0['profit']),'cnt'=>$d0['cnt'],'margin'=>v2mgn($d0),'cmp_rev'=>v2cmpPct($d0['rev'],$d0p['rev']),'cmp_prof'=>v2cmpPct($d0['profit'],$d0p['profit']),'cntp'=>$d0p['cnt']],
+    '7d'    => ['rev'=>round($d7['rev']),'profit'=>round($d7['profit']),'cnt'=>$d7['cnt'],'margin'=>v2mgn($d7),'cmp_rev'=>v2cmpPct($d7['rev'],$d7p['rev']),'cmp_prof'=>v2cmpPct($d7['profit'],$d7p['profit']),'cntp'=>$d7p['cnt']],
+    '30d'   => ['rev'=>round($d30['rev']),'profit'=>round($d30['profit']),'cnt'=>$d30['cnt'],'margin'=>v2mgn($d30),'cmp_rev'=>v2cmpPct($d30['rev'],$d30p['rev']),'cmp_prof'=>v2cmpPct($d30['profit'],$d30p['profit']),'cntp'=>$d30p['cnt']],
+    '365d'  => ['rev'=>round($d365['rev']),'profit'=>round($d365['profit']),'cnt'=>$d365['cnt'],'margin'=>v2mgn($d365),'cmp_rev'=>v2cmpPct($d365['rev'],$d365p['rev']),'cmp_prof'=>v2cmpPct($d365['profit'],$d365p['profit']),'cntp'=>$d365p['cnt']],
+], JSON_UNESCAPED_UNICODE);
 
 // AI Studio pending
 $ai_studio_count = 0;
@@ -966,8 +997,43 @@ a { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 /* ═════════════════════════════════════════════════════════════
-   S140 OVERRIDES — body вдлъбнат „обяснителен прозорец"
+   S140 OVERRIDES — subbar + body вдлъбнат прозорец + s82-dash
    ═════════════════════════════════════════════════════════════ */
+.rms-subbar {
+  position: sticky; top: 56px; z-index: 49;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; max-width: 480px; margin: 0 auto;
+}
+[data-theme="light"] .rms-subbar, :root:not([data-theme]) .rms-subbar { background: var(--bg-main); }
+[data-theme="dark"] .rms-subbar {
+  background: hsl(220 25% 4.8% / 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.rms-store-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--text); cursor: pointer; border: none; outline: none; font-family: inherit;
+}
+[data-theme="light"] .rms-store-toggle, :root:not([data-theme]) .rms-store-toggle {
+  background: var(--surface); box-shadow: var(--shadow-card-sm);
+}
+[data-theme="dark"] .rms-store-toggle {
+  background: hsl(220 25% 8% / 0.7);
+  border: 1px solid hsl(var(--hue2) 12% 18%);
+}
+.rms-store-toggle svg { width: 13px; height: 13px; fill: none; stroke: var(--accent, hsl(var(--hue1) 70% 50%)); stroke-width: 2; flex-shrink: 0; }
+[data-theme="dark"] .rms-store-toggle svg { stroke: hsl(var(--hue1) 80% 75%); }
+.subbar-where {
+  flex: 1; text-align: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+
+/* Скрий старата lb-mode-row (използваме subbar сега) */
+.lb-mode-row { display: none !important; }
+
+/* Body вдлъбнат „обяснителен прозорец" */
 .lb-card .lb-body {
     padding: 14px 16px !important;
     border-radius: 14px !important;
@@ -988,6 +1054,47 @@ a { text-decoration: none; }
     box-shadow: inset 0 2px 6px hsl(220 30% 1% / 0.6) !important;
     color: rgba(255,255,255,0.75) !important;
 }
+
+/* s82-dash калкулатор (копиран от chat-v2.php) */
+.s82-dash {
+  padding: 16px 18px 14px;
+  margin-bottom: 12px;
+}
+.s82-dash-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.s82-dash-period-label {
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+.s82-dash-numrow { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.s82-dash-num { font-size: 38px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+.s82-dash-cur { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text-muted); }
+.s82-dash-pct {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 800;
+  padding: 3px 9px; border-radius: var(--radius-pill);
+  background: oklch(0.92 0.08 145 / 0.5); color: hsl(145 60% 35%);
+}
+[data-theme="dark"] .s82-dash-pct { background: hsl(145 50% 12%); color: hsl(145 70% 65%); }
+.s82-dash-pct.neg { background: oklch(0.92 0.08 25 / 0.5); color: hsl(0 60% 45%); }
+[data-theme="dark"] .s82-dash-pct.neg { background: hsl(0 50% 12%); color: hsl(0 80% 70%); }
+.s82-dash-pct.zero { background: rgba(148,163,184,0.18); color: var(--text-muted); }
+.s82-dash-meta { font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+.s82-dash-pills { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.s82-dash-pill {
+  height: 26px; padding: 0 11px; border-radius: var(--radius-pill);
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  border: none; cursor: pointer; transition: all .15s;
+}
+[data-theme="light"] .s82-dash-pill, :root:not([data-theme]) .s82-dash-pill {
+  background: var(--surface-2); box-shadow: var(--shadow-pressed);
+}
+[data-theme="dark"] .s82-dash-pill { background: hsl(220 25% 8% / 0.5); }
+.s82-dash-pill.active {
+  color: white;
+  background: linear-gradient(135deg, hsl(var(--hue1) 60% 55%), hsl(var(--hue2) 60% 60%));
+  box-shadow: 0 2px 8px hsl(var(--hue1) 70% 50% / 0.3);
+}
+.s82-dash-divider { width: 1px; height: 18px; background: var(--text-faint); opacity: 0.3; margin: 0 4px; }
 </style>
 </head>
 <body>
@@ -1015,45 +1122,51 @@ a { text-decoration: none; }
   </button>
 </header>
 
-<!-- Mode toggle row (Подробен →) -->
-<div class="lb-mode-row">
-  <a class="lb-mode-toggle">
-    <span><?= htmlspecialchars($T['T_DETAILED_MODE'] ?? '') ?></span>
+<!-- Sub-header bar: store toggle + where + mode toggle (sticky) -->
+<div class="rms-subbar">
+  <?php if (count($all_stores) > 1): ?>
+  <select class="rms-store-toggle" aria-label="Смени обект" onchange="location.href='?store='+this.value" style="-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>&quot;);background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px;padding-right:28px;">
+    <?php foreach ($all_stores as $st): ?>
+    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+    <?php endforeach; ?>
+  </select>
+  <?php else: ?>
+  <button class="rms-store-toggle" aria-label="Обект" style="cursor:default" disabled>
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
+  </button>
+  <?php endif; ?>
+  <span class="subbar-where">Начало</span>
+  <a class="lb-mode-toggle" href="chat.php" title="Разширен режим">
+    <span><?= htmlspecialchars($T['T_DETAILED_MODE']) ?></span>
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
 </div>
 
 <main class="app">
 
-  <!-- ═══ TOP ROW (Днес + Времето) ═══ -->
-  <div class="top-row">
-    <div class="glass sm cell qd">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <div class="cell-header-row">
-        <div class="cell-label"><?= htmlspecialchars($T['T_TODAY']) ?> · <?= htmlspecialchars($store_name) ?></div>
-      </div>
-      <div class="cell-numrow">
-        <span class="cell-num"><?= number_format($rev_today, 0, '.', ' ') ?></span>
-        <span class="cell-cur"><?= $cs ?></span>
-        <span class="cell-pct <?= $cmp_pct > 0 ? 'pos' : ($cmp_pct < 0 ? 'neg' : '') ?>"><?= ($cmp_pct >= 0 ? '+' : '') . $cmp_pct ?>%</span>
-      </div>
-      <div class="cell-meta"><?= (int)$cnt_today ?> продажби · vs вчера</div>
+  <!-- ═══ S82-DASH калкулатор — пълноширок (като в chat-v2.php) ═══ -->
+  <div class="glass sm s82-dash qd">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="s82-dash-top">
+      <span class="s82-dash-period-label"><span id="revLabel"><?= htmlspecialchars($T['T_TODAY']) ?></span> · <?= htmlspecialchars($store_name) ?></span>
     </div>
-    <div class="glass sm cell qd">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <?php if ($weather_today): ?>
-      <div class="weather-cell-top">
-        <span class="weather-cell-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
-        </span>
-        <span class="weather-cell-temp"><?= (int)round($weather_today['temp_max']) ?>°</span>
-      </div>
-      <div class="weather-cell-cond"><?= (int)$weather_today['weather_code'] <= 3 ? htmlspecialchars($T['T_SUNNY']) : 'Облачно' ?></div>
-      <div class="cell-meta"><?= (int)round($weather_today['temp_min']) ?>°/<?= (int)round($weather_today['temp_max']) ?>° · <?= htmlspecialchars($T['T_RAIN']) ?> <?= (int)$weather_today['precipitation_prob'] ?>%</div>
-      <?php else: ?>
-      <div class="weather-cell-cond" style="margin-top:8px;opacity:.5">Времето няма данни</div>
+    <div class="s82-dash-numrow">
+      <span class="s82-dash-num" id="revNum"><?= number_format($d0['rev'], 0, '.', ' ') ?></span>
+      <span class="s82-dash-cur"><?= $cs ?></span>
+      <span class="s82-dash-pct<?= $cmp_pct < 0 ? ' neg' : ($cmp_pct == 0 ? ' zero' : '') ?>" id="revPct"><?= $cmp_sign . $cmp_pct ?>%</span>
+    </div>
+    <div class="s82-dash-meta" id="revMeta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
+    <div class="s82-dash-pills">
+      <button type="button" class="s82-dash-pill rev-pill active" data-period="today"  onclick="v2setPeriod('today',this)">Днес</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="7d"     onclick="v2setPeriod('7d',this)">7 дни</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="30d"    onclick="v2setPeriod('30d',this)">30 дни</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="365d"   onclick="v2setPeriod('365d',this)">365 дни</button>
+      <?php if ($role === 'owner'): ?>
+      <span class="s82-dash-divider"></span>
+      <button type="button" class="s82-dash-pill rev-pill active" id="modeRev"    onclick="v2setMode('rev')">Оборот</button>
+      <button type="button" class="s82-dash-pill rev-pill"        id="modeProfit" onclick="v2setMode('profit')">Печалба</button>
       <?php endif; ?>
     </div>
   </div>
@@ -1153,9 +1266,8 @@ a { text-decoration: none; }
 
     <!-- Range tabs -->
     <div class="wfc-tabs">
-      <button class="wfc-tab" data-tab="3" onclick="wfcSetRange('3')">{T_3_DAYS}</button>
-      <button class="wfc-tab" data-tab="7" onclick="wfcSetRange('7')">{T_7_DAYS}</button>
-      <button class="wfc-tab" data-tab="14" onclick="wfcSetRange('14')">{T_14_DAYS}</button>
+      <button class="wfc-tab active" data-tab="7" onclick="wfcSetRange('7')">7 дни</button>
+      <button class="wfc-tab" data-tab="14" onclick="wfcSetRange('14')">14 дни</button>
     </div>
 
     <!-- Days strip (14 days, hidden via [data-range] selector) -->
@@ -1397,15 +1509,15 @@ a { text-decoration: none; }
 </div>
 
 <!-- Chat input bar -->
-<div class="chat-input-bar">
+<div class="chat-input-bar" onclick="rmsOpenChat(event)" role="button" tabindex="0" style="cursor:pointer">
   <span class="chat-input-icon">
     <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="3" y2="12"/><line x1="6" y1="9" x2="6" y2="15"/><line x1="9" y1="6" x2="9" y2="18"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="15" y1="11" x2="15" y2="13"/></svg>
   </span>
-  <span class="chat-input-text"><?= htmlspecialchars($T['T_SAY_OR_TYPE'] ?? '') ?></span>
-  <button class="chat-mic" aria-label="<?= htmlspecialchars($T['T_VOICE'] ?? '') ?>">
+  <span class="chat-input-text"><?= htmlspecialchars($T['T_SAY_OR_TYPE']) ?></span>
+  <button class="chat-mic" aria-label="<?= htmlspecialchars($T['T_VOICE']) ?>" onclick="event.stopPropagation();rmsOpenChat(event)">
     <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
   </button>
-  <button class="chat-send" aria-label="<?= htmlspecialchars($T['T_SEND'] ?? '') ?>">
+  <button class="chat-send" aria-label="<?= htmlspecialchars($T['T_SEND']) ?>" onclick="event.stopPropagation();rmsOpenChat(event)">
     <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
   </button>
 </div>
@@ -1510,6 +1622,53 @@ function lbV2OpenQ(title) {
 if (typeof window.rmsOpenChat !== 'function') {
     window.rmsOpenChat = function(e){ if(e) e.preventDefault(); location.href = 'chat.php'; };
 }
+
+// ─────────────────────────────────────────────────────────
+// S140 — S82-DASH pills handlers (Днес/7д/30д/365д + Оборот/Печалба)
+// ─────────────────────────────────────────────────────────
+const V2_PERIODS = <?= $v2_periods_json ?>;
+const V2_CS      = <?= json_encode($cs) ?>;
+const V2_IS_OWN  = <?= $role === 'owner' ? 'true' : 'false' ?>;
+const V2_LABELS  = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
+const V2_VS      = { today: 'вчера', '7d': 'предишните 7 дни', '30d': 'предишните 30 дни', '365d': 'предишната година' };
+let v2curPeriod = 'today';
+let v2curMode   = 'rev';
+function v2fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function v2updateDash() {
+    const d = V2_PERIODS[v2curPeriod]; if (!d) return;
+    const val = v2curMode === 'rev' ? d.rev : d.profit;
+    const pct = v2curMode === 'rev' ? d.cmp_rev : d.cmp_prof;
+    const num = document.getElementById('revNum');
+    const pctEl = document.getElementById('revPct');
+    const lblEl = document.getElementById('revLabel');
+    const metaEl = document.getElementById('revMeta');
+    if (num)   num.textContent = v2fmt(val);
+    if (pctEl) {
+        pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
+        pctEl.className = 's82-dash-pct ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
+    }
+    if (lblEl) lblEl.textContent = V2_LABELS[v2curPeriod];
+    if (metaEl) {
+        let txt = d.cnt + ' продажби · vs ' + d.cntp + ' ' + V2_VS[v2curPeriod];
+        if (V2_IS_OWN && d.cnt > 0 && v2curMode === 'rev') txt += ' · ' + d.margin + '% марж';
+        metaEl.textContent = txt;
+    }
+}
+function v2setPeriod(period, el) {
+    v2curPeriod = period;
+    document.querySelectorAll('.rev-pill[data-period]').forEach(p => p.classList.toggle('active', p === el));
+    v2updateDash();
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+function v2setMode(mode) {
+    v2curMode = mode;
+    const mr = document.getElementById('modeRev'), mp = document.getElementById('modeProfit');
+    if (mr) mr.classList.toggle('active', mode === 'rev');
+    if (mp) mp.classList.toggle('active', mode === 'profit');
+    v2updateDash();
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+
 // Make P10 .chat-input-bar clickable
 document.addEventListener('DOMContentLoaded', function(){
     const inp = document.querySelector('.chat-input-bar');
