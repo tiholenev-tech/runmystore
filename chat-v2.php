@@ -1369,6 +1369,37 @@ a { text-decoration: none; }
   .nav-stats-line, .nav-stats-dot, .nav-bolt { animation: none !important; }
 }
 
+/* ═════════════════════════════════════════════════════════════
+   S140 OVERRIDES — корекции спрямо стария макет (chat.php)
+   ═════════════════════════════════════════════════════════════ */
+
+/* Life Board card body — вдлъбнат "обяснителен прозорец" (като в стария макет) */
+.lb-card .lb-body {
+    padding: 14px 16px !important;
+    border-radius: 14px !important;
+    margin: 4px 0 14px !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    border: none !important;
+}
+[data-theme="light"] .lb-card .lb-body,
+:root:not([data-theme]) .lb-card .lb-body {
+    background: #d8dee8 !important;
+    box-shadow: inset 3px 3px 6px rgba(163,177,198,0.55),
+                inset -3px -3px 6px rgba(255,255,255,0.85) !important;
+    color: #475569 !important;
+}
+[data-theme="dark"] .lb-card .lb-body {
+    background: hsl(220 25% 3% / 0.65) !important;
+    box-shadow: inset 0 2px 6px hsl(220 30% 1% / 0.6) !important;
+    color: rgba(255,255,255,0.75) !important;
+}
+.lb-card .lb-body b {
+    color: #1e1e2f;
+    font-weight: 700;
+}
+[data-theme="dark"] .lb-card .lb-body b { color: #f1f5f9; }
+
 </style>
 </head>
 <body>
