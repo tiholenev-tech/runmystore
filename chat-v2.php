@@ -1571,7 +1571,9 @@ a { text-decoration: none; }
   </div>
   <?php endforeach; endif; ?>
 
-  <div class="see-more-mini">Виж всичко 12 →</div>
+  <?php if (!empty($briefing) && $remaining > 0): ?>
+  <div class="see-more-mini">Виж всичко <?= count($insights) ?> →</div>
+  <?php endif; ?>
 
 </main>
 
