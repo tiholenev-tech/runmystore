@@ -436,6 +436,10 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
     <!-- Заменяме ги със стандартния subbar според LAYOUT_SHELL_LAW v1.1 §1B.   -->
     <style>
         .rms-header-row2 { display: none !important; }
+        /* S140: header иконки малко по-компактни (печат/⚙/⤴/☀ не излизат от екрана) */
+        .rms-header .rms-icon-btn { width: 22px; height: 22px; }
+        .rms-header .rms-icon-btn svg { width: 9px; height: 9px; }
+        .rms-header .rms-header-icons { gap: 3px; }
         /* Subbar (Тип А + разширен, по P11 еталона) */
         .rms-subbar {
             position: sticky; top: 56px; z-index: 49;
