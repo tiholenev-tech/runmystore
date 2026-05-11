@@ -1498,6 +1498,16 @@ window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => openChat(), 300);
         }
     } catch(e) {}
+    // S140: Ако е дошъл с ?q=... от chat-v2.php card click → отвори чата и попитай
+    try {
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q');
+        if (q) {
+            setTimeout(() => openChatQ(q), 350);
+            // Изчисти URL-а да не се повтаря при refresh
+            history.replaceState({}, '', 'chat.php');
+        }
+    } catch(e) {}
 });
 
 document.querySelectorAll(['.sig-card','.sig-more','.nav-tab','.header-icon-btn','.store-sel','.health-link','.health-info','.top-pill','.rev-pill'].join(',')).forEach(el => {
