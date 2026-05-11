@@ -103,6 +103,20 @@ function v2bgDay($iso) {
     $names = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
     return $names[(int)date('w', strtotime($iso))];
 }
+
+// ══════════════════════════════════════════════
+// AI STUDIO — pending count (липсваща снимка ИЛИ описание)
+// ══════════════════════════════════════════════
+$ai_studio_count = 0;
+try {
+    $ai_studio_count = (int)DB::run(
+        "SELECT COUNT(*) FROM products
+         WHERE tenant_id = ? AND is_active = 1 AND parent_id IS NULL
+         AND ((image_url IS NULL OR image_url = '' OR image_url LIKE 'data:%')
+              OR (description IS NULL OR description = ''))",
+        [$tenant_id]
+    )->fetchColumn();
+} catch (Throwable $e) { $ai_studio_count = 0; }
 ?>
 <!DOCTYPE html>
 <html lang="bg" data-theme="light">
@@ -1265,13 +1279,20 @@ a { text-decoration: none; }
 
 <!-- Sub-header bar: store toggle + where + mode toggle (sticky) -->
 <div class="rms-subbar">
-  <button class="rms-store-toggle" aria-label="Смени обект">
+  <?php if (count($all_stores) > 1): ?>
+  <select class="rms-store-toggle" aria-label="Смени обект" onchange="location.href='?store='+this.value" style="-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>&quot;);background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px;padding-right:28px;">
+    <?php foreach ($all_stores as $st): ?>
+    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+    <?php endforeach; ?>
+  </select>
+  <?php else: ?>
+  <button class="rms-store-toggle" aria-label="Обект" style="cursor:default" disabled>
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="store-name">ENI</span>
-    <svg class="store-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
   </button>
+  <?php endif; ?>
   <span class="subbar-where">Начало</span>
-  <a class="lb-mode-toggle">
+  <a class="lb-mode-toggle" href="/life-board.php" title="Лесен режим">
     <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Лесен</span>
   </a>
@@ -1305,7 +1326,7 @@ a { text-decoration: none; }
 
     <!-- ═══ AI STUDIO ROW ═══ -->
   <div class="studio-row">
-    <a class="glass sm studio-btn">
+    <a class="glass sm studio-btn" href="ai-studio.php">
       <span class="shine"></span><span class="shine shine-bottom"></span>
       <span class="glow"></span><span class="glow glow-bottom"></span>
       <span class="studio-icon">
@@ -1313,9 +1334,11 @@ a { text-decoration: none; }
       </span>
       <span class="studio-text">
         <span class="studio-label">AI Studio</span>
-        <span class="studio-sub">385 чакащи</span>
+        <span class="studio-sub"><?= $ai_studio_count > 0 ? $ai_studio_count . ' чакащи' : 'всичко готово' ?></span>
       </span>
-      <span class="studio-badge">99+</span>
+      <?php if ($ai_studio_count > 0): ?>
+      <span class="studio-badge"><?= $ai_studio_count > 99 ? '99+' : $ai_studio_count ?></span>
+      <?php endif; ?>
     </a>
   </div>
 
