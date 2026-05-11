@@ -1036,8 +1036,28 @@ a { text-decoration: none; }
 .rms-header .rms-icon-btn { width: 22px; height: 22px; }
 .rms-header .rms-icon-btn svg { width: 9px; height: 9px; }
 .rms-header .rms-header-icons { gap: 3px; }
-.rms-brand .brand-1 { background: linear-gradient(135deg, hsl(280 70% 55%), hsl(225 80% 60%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.rms-brand .brand-2 { background: linear-gradient(135deg, hsl(225 80% 60%), hsl(195 80% 55%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* P10 brand override — да съответства на P11 (chat-v2.php) brand стил */
+.rms-brand {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    display: inline-flex !important;
+    align-items: baseline !important;
+    gap: 0 !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    animation: none !important;
+}
+.rms-brand .brand-1 {
+    background: linear-gradient(135deg, hsl(280 70% 55%), hsl(225 80% 60%));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+}
+.rms-brand .brand-2 {
+    background: linear-gradient(135deg, hsl(225 80% 60%), hsl(195 80% 55%));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+}
 .rms-subbar {
   position: sticky; top: 56px; z-index: 49;
   display: flex; align-items: center; gap: 8px;
