@@ -1033,9 +1033,9 @@ a { text-decoration: none; }
    ═════════════════════════════════════════════════════════════ */
 
 /* Header override (същия като в chat-v2.php — компактни иконки) */
-.rms-header .rms-icon-btn { width: 22px; height: 22px; }
-.rms-header .rms-icon-btn svg { width: 9px; height: 9px; }
-.rms-header .rms-header-icons { gap: 3px; }
+.rms-header .rms-icon-btn { width: 22px; height: 22px; padding: 0; }
+.rms-header .rms-icon-btn svg { width: 11px; height: 11px; }
+.rms-header .rms-header-icons { gap: 4px; }
 /* P10 brand override — да съответства на P11 (chat-v2.php) brand стил */
 .rms-brand {
     font-size: 17px !important;

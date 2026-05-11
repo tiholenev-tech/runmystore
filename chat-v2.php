@@ -1373,6 +1373,12 @@ a { text-decoration: none; }
    S140 OVERRIDES — корекции спрямо стария макет (chat.php)
    ═════════════════════════════════════════════════════════════ */
 
+/* Header override — компактни 22x22 иконки (като в P10 / life-board-v2) */
+.rms-header .rms-icon-btn { width: 22px; height: 22px; padding: 0; }
+.rms-header .rms-icon-btn svg { width: 11px; height: 11px; }
+.rms-header .rms-header-icons { gap: 4px; }
+.rms-header-spacer { flex: 1; }
+
 /* Life Board card body — вдлъбнат "обяснителен прозорец" (като в стария макет) */
 .lb-card .lb-body {
     padding: 14px 16px !important;
