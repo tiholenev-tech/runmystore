@@ -200,6 +200,20 @@ try {
     }
 } catch (Throwable $e) { $insights = []; }
 
+// UI category mapping (1:1 copy from production chat.php — insightUICategory)
+function v2insightUICat(array $ins): string {
+    $m = $ins['module'] ?? 'home';
+    $cat = $ins['category'] ?? '';
+    if (in_array($cat, ['profit','price','price_change','cash','tax'])) return 'finance';
+    if (in_array($cat, ['wh','xfer','data_quality'])) return 'warehouse';
+    if (in_array($cat, ['promo','fashion','shoes','acc','lingerie','sport','size','new'])) return 'products';
+    if ($cat === 'expense') return 'expenses';
+    if ($m === 'warehouse') return 'warehouse';
+    if ($m === 'products') return 'products';
+    if ($m === 'stats') return 'finance';
+    return 'sales';
+}
+
 // Top 1 insight per fundamental_question (6 категории)
 $by_fq = [];
 foreach ($insights as $ins) {
@@ -1570,23 +1584,19 @@ a { text-decoration: none; }
     <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
   </div>
 
-  <!-- Filter pills (модули) — динамични по реалните insights категории -->
+  <!-- Filter pills (модули) — динамични по реалните 5 UI категории (production logic) -->
   <?php if (!empty($insights)):
       $v2_cat_meta = [
-          'finance'    => ['name' => 'Финанси',      'svg' => '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
-          'sale'       => ['name' => 'Продажби',     'svg' => '<circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/>'],
-          'warehouse'  => ['name' => 'Склад',        'svg' => '<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
-          'orders'     => ['name' => 'Поръчки',      'svg' => '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>'],
-          'deliveries' => ['name' => 'Доставки',     'svg' => '<rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>'],
-          'transfers'  => ['name' => 'Прехвърляния', 'svg' => '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>'],
-          'customers'  => ['name' => 'Клиенти',      'svg' => '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'],
+          'sales'     => ['name' => 'Продажби', 'svg' => '<circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/>'],
+          'warehouse' => ['name' => 'Склад',    'svg' => '<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
+          'products'  => ['name' => 'Продукти', 'svg' => '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>'],
+          'finance'   => ['name' => 'Финанси',  'svg' => '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
+          'expenses'  => ['name' => 'Разходи',  'svg' => '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>'],
       ];
-      $v2_cat_counts = [];
+      $v2_cat_counts = ['sales'=>0, 'warehouse'=>0, 'products'=>0, 'finance'=>0, 'expenses'=>0];
       foreach ($insights as $ins) {
-          $c = $ins['category'] ?? '';
-          if ($c && isset($v2_cat_meta[$c])) {
-              $v2_cat_counts[$c] = ($v2_cat_counts[$c] ?? 0) + 1;
-          }
+          $uiCat = v2insightUICat($ins);
+          if (isset($v2_cat_counts[$uiCat])) $v2_cat_counts[$uiCat]++;
       }
   ?>
   <div class="fp-row">
@@ -1652,7 +1662,7 @@ a { text-decoration: none; }
   <?php endforeach; endif; ?>
 
   <?php if (!empty($briefing) && $remaining > 0): ?>
-  <div class="see-more-mini">Виж всичко <?= count($insights) ?> →</div>
+  <div class="see-more-mini" onclick="v2openCardQ('Покажи ми всички AI препоръки за днес')" style="cursor:pointer">Виж всичко <?= count($insights) ?> →</div>
   <?php endif; ?>
 
 </main>
