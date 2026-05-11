@@ -428,16 +428,72 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <div class="app card-stagger" id="app">
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- HEADER — design-kit v1.1 partial            -->
+    <!-- HEADER — design-kit v1.1 partial (Тип А)    -->
     <!-- ═══════════════════════════════════════════ -->
     <?php include __DIR__ . '/design-kit/partial-header.html'; ?>
 
+    <!-- S140 REDESIGN — скрий legacy hue sliders (row2 от partial-header.html). -->
+    <!-- Заменяме ги със стандартния subbar според LAYOUT_SHELL_LAW v1.1 §1B.   -->
+    <style>
+        .rms-header-row2 { display: none !important; }
+        /* Subbar (Тип А + разширен, по P11 еталона) */
+        .rms-subbar {
+            position: sticky; top: 56px; z-index: 49;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px;
+            background: var(--bg-main, #fff);
+            border-bottom: 1px solid rgba(99,102,241,0.10);
+        }
+        [data-theme="dark"] .rms-subbar { background: hsl(220 25% 6%); border-bottom-color: rgba(255,255,255,0.06); }
+        .rms-store-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 10px; border-radius: 999px;
+            background: transparent; border: 1px solid rgba(99,102,241,0.20);
+            color: var(--text-primary, #1e1e2f); font: 600 12px/1 Montserrat, sans-serif;
+            cursor: pointer;
+        }
+        [data-theme="dark"] .rms-store-toggle { color: #e8e9f0; border-color: rgba(255,255,255,0.12); }
+        .rms-store-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .rms-store-toggle .store-chev { width: 12px; height: 12px; opacity: .7; }
+        .subbar-where { font: 700 11px/1 Montserrat, sans-serif; letter-spacing: .08em; color: var(--text-secondary, #64748b); text-transform: uppercase; }
+        .lb-mode-toggle {
+            margin-left: auto;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 999px;
+            color: var(--text-primary, #1e1e2f); text-decoration: none;
+            font: 600 12px/1 Montserrat, sans-serif;
+            border: 1px solid rgba(99,102,241,0.20);
+        }
+        [data-theme="dark"] .lb-mode-toggle { color: #e8e9f0; border-color: rgba(255,255,255,0.12); }
+        .lb-mode-toggle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+    </style>
+
     <!-- ═══════════════════════════════════════════ -->
-    <!-- S83.PRE_ENTRY.FIX — toggle to Лесен mode   -->
+    <!-- SUBBAR (Тип А + разширен, P11 еталон)       -->
+    <!-- LAYOUT_SHELL_LAW v1.1 §1B                   -->
     <!-- ═══════════════════════════════════════════ -->
-    <div class="cb-mode-row">
-        <a href="/life-board.php" class="cb-mode-toggle" title="Лесен режим">
-            Лесен <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    <div class="rms-subbar">
+        <?php if (count($all_stores) > 1): ?>
+        <button class="rms-store-toggle" type="button" aria-label="Смени обект" onclick="document.getElementById('rmsStoreSel').click()">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
+            <svg class="store-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <select id="rmsStoreSel" style="display:none" onchange="location.href='?store='+this.value">
+            <?php foreach ($all_stores as $st): ?>
+            <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <?php else: ?>
+        <span class="rms-store-toggle" aria-label="Обект">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
+        </span>
+        <?php endif; ?>
+        <span class="subbar-where">AI ЧАТ</span>
+        <a class="lb-mode-toggle" href="/life-board.php" title="Лесен режим">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            <span>Лесен</span>
         </a>
     </div>
 
@@ -674,9 +730,70 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 <?php include __DIR__ . '/partials/chat-input-bar.php'; ?>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- BOTTOM NAV — design-kit v1.1 partial                  -->
+<!-- BOTTOM NAV — orb стил по P11 еталона (S140 redesign)   -->
+<!-- LAYOUT_SHELL_LAW v1.1 §2 — 4 таба, само 1 .active     -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<?php include __DIR__ . '/design-kit/partial-bottom-nav.html'; ?>
+<style>
+.rms-bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 48;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    background: var(--bg-main, #fff);
+    border-top: 1px solid rgba(99,102,241,0.10);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .rms-bottom-nav { background: hsl(220 25% 5%); border-top-color: rgba(255,255,255,0.06); box-shadow: 0 -4px 16px rgba(0,0,0,0.4); }
+.rms-nav-tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 4px 0; text-decoration: none;
+    color: var(--text-muted, #94a3b8);
+    font: 700 10px/1 Montserrat, sans-serif; letter-spacing: .04em;
+}
+.rms-nav-tab .nav-orb {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.10);
+    transition: all .2s ease;
+}
+.rms-nav-tab .nav-orb svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rms-nav-tab.active { color: hsl(238 78% 60%); }
+.rms-nav-tab.active .nav-orb {
+    background: radial-gradient(circle at 30% 30%, hsl(238 78% 70%), hsl(238 78% 50%));
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    animation: orbSpin 5s linear infinite;
+}
+.rms-nav-tab.active .nav-orb svg { stroke: #fff; }
+@keyframes orbSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rms-nav-tab.active .nav-orb { animation: none; } }
+</style>
+<nav class="rms-bottom-nav" id="rmsBottomNav">
+    <a href="chat.php" class="rms-nav-tab active" aria-label="AI">
+        <span class="nav-orb">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </span>
+        <span>AI</span>
+    </a>
+    <a href="warehouse.php" class="rms-nav-tab" aria-label="Склад">
+        <span class="nav-orb">
+            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+        </span>
+        <span>Склад</span>
+    </a>
+    <a href="stats.php" class="rms-nav-tab" aria-label="Справки">
+        <span class="nav-orb">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        <span>Справки</span>
+    </a>
+    <a href="sale.php" class="rms-nav-tab" aria-label="Продажба">
+        <span class="nav-orb">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </span>
+        <span>Продажба</span>
+    </a>
+</nav>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 75vh CHAT OVERLAY (WhatsApp стил, blur отдолу)         -->
