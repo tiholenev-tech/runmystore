@@ -66,6 +66,43 @@ $d0p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 da
 
 $cmp_today = (int)v2cmpPct($d0['rev'], $d0p['rev']);
 $cmp_sign  = $cmp_today > 0 ? '+' : '';
+
+// ══════════════════════════════════════════════
+// WEATHER (днешен + 14-дневна прогноза)
+// ══════════════════════════════════════════════
+$weather_today = null; $weather_week = [];
+try {
+    $weather_today = DB::run(
+        'SELECT temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date=CURDATE() LIMIT 1',
+        [$store_id])->fetch(PDO::FETCH_ASSOC);
+    $weather_week = DB::run(
+        'SELECT forecast_date, temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 13 DAY) ORDER BY forecast_date',
+        [$store_id])->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { /* weather недостъпен — fallback е празно */ }
+
+// Open-Meteo weather code → класове и SVG (по P11 стил: sunny/partly/cloudy/rain/snow)
+function v2weatherClass($code) {
+    $c = (int)$code;
+    if ($c === 0)                        return 'sunny';
+    if ($c === 1 || $c === 2)            return 'partly';
+    if ($c === 3 || $c === 45 || $c === 48) return 'cloudy';
+    if ($c >= 71 && $c <= 77)            return 'snow';
+    if ($c >= 51)                        return 'rain';
+    return 'partly';
+}
+function v2weatherSvg($code) {
+    $cls = v2weatherClass($code);
+    if ($cls === 'sunny')  return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    if ($cls === 'partly') return '<svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4 4 4 0 00-2-3.46"/><circle cx="6" cy="6" r="2"/></svg>';
+    if ($cls === 'cloudy') return '<svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>';
+    if ($cls === 'snow')   return '<svg viewBox="0 0 24 24"><path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>';
+    /* rain */            return '<svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>';
+}
+function v2bgDay($iso) {
+    if ($iso === date('Y-m-d')) return 'Днес';
+    $names = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
+    return $names[(int)date('w', strtotime($iso))];
+}
 ?>
 <!DOCTYPE html>
 <html lang="bg" data-theme="light">
@@ -1304,70 +1341,21 @@ a { text-decoration: none; }
       <button class="wfc-tab" data-tab="14" onclick="wfcSetRange('14')">14 дни</button>
     </div>
 
-    <!-- Days strip (14 days, hidden via [data-range] selector) -->
+    <!-- Days strip — динамично от $weather_week (14 дни max) -->
     <div class="wfc-days" data-range="7">
-      <!-- Today -->
-      <div class="wfc-day today sunny">
-        <div class="wfc-day-name">Днес</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
-        <div class="wfc-day-temp">22°<small>/14</small></div>
-        <div class="wfc-day-rain dry">5%</div>
+      <?php if (empty($weather_week)): ?>
+      <div class="wfc-day" style="opacity:.5">
+        <div class="wfc-day-name">—</div>
+        <div class="wfc-day-temp">Няма данни</div>
       </div>
-      <!-- Tomorrow -->
-      <div class="wfc-day partly">
-        <div class="wfc-day-name">Пет</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4 4 4 0 00-2-3.46"/><circle cx="6" cy="6" r="2"/></svg></div>
-        <div class="wfc-day-temp">24°<small>/15</small></div>
-        <div class="wfc-day-rain dry">15%</div>
+      <?php else: foreach ($weather_week as $i => $w): ?>
+      <div class="wfc-day <?= $i === 0 ? 'today ' : '' ?><?= v2weatherClass($w['weather_code']) ?>">
+        <div class="wfc-day-name"><?= htmlspecialchars(v2bgDay($w['forecast_date'])) ?></div>
+        <div class="wfc-day-ic"><?= v2weatherSvg($w['weather_code']) ?></div>
+        <div class="wfc-day-temp"><?= (int)round($w['temp_max']) ?>°<small>/<?= (int)round($w['temp_min']) ?></small></div>
+        <div class="wfc-day-rain <?= (int)$w['precipitation_prob'] < 30 ? 'dry' : '' ?>"><?= (int)$w['precipitation_prob'] ?>%</div>
       </div>
-      <!-- Sat -->
-      <div class="wfc-day rain">
-        <div class="wfc-day-name">Съб</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg></div>
-        <div class="wfc-day-temp">19°<small>/13</small></div>
-        <div class="wfc-day-rain">75%</div>
-      </div>
-      <!-- Sun -->
-      <div class="wfc-day rain">
-        <div class="wfc-day-name">Нед</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div>
-        <div class="wfc-day-temp">17°<small>/12</small></div>
-        <div class="wfc-day-rain">82%</div>
-      </div>
-      <!-- Mon -->
-      <div class="wfc-day cloudy">
-        <div class="wfc-day-name">Пон</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
-        <div class="wfc-day-temp">21°<small>/14</small></div>
-        <div class="wfc-day-rain dry">25%</div>
-      </div>
-      <!-- Tue -->
-      <div class="wfc-day partly">
-        <div class="wfc-day-name">Вт</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div>
-        <div class="wfc-day-temp">25°<small>/16</small></div>
-        <div class="wfc-day-rain dry">10%</div>
-      </div>
-      <!-- Wed -->
-      <div class="wfc-day sunny">
-        <div class="wfc-day-name">Ср</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
-        <div class="wfc-day-temp">28°<small>/17</small></div>
-        <div class="wfc-day-rain dry">0%</div>
-      </div>
-      <!-- Thu (day 8 — appears at 14d) -->
-      <div class="wfc-day sunny">
-        <div class="wfc-day-name">Чет</div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
-        <div class="wfc-day-temp">29°<small>/18</small></div>
-        <div class="wfc-day-rain dry">0%</div>
-      </div>
-      <div class="wfc-day partly"><div class="wfc-day-name">9.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">26°<small>/16</small></div><div class="wfc-day-rain dry">15%</div></div>
-      <div class="wfc-day rain"><div class="wfc-day-name">10.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div><div class="wfc-day-temp">22°<small>/15</small></div><div class="wfc-day-rain">65%</div></div>
-      <div class="wfc-day storm"><div class="wfc-day-name">11.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M19 16.9A5 5 0 0018 7h-1.26a8 8 0 10-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg></div><div class="wfc-day-temp">20°<small>/14</small></div><div class="wfc-day-rain">88%</div></div>
-      <div class="wfc-day cloudy"><div class="wfc-day-name">12.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div><div class="wfc-day-temp">23°<small>/15</small></div><div class="wfc-day-rain dry">30%</div></div>
-      <div class="wfc-day partly"><div class="wfc-day-name">13.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">25°<small>/16</small></div><div class="wfc-day-rain dry">20%</div></div>
-      <div class="wfc-day sunny"><div class="wfc-day-name">14.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div><div class="wfc-day-temp">27°<small>/17</small></div><div class="wfc-day-rain dry">5%</div></div>
+      <?php endforeach; endif; ?>
     </div>
 
     <!-- AI recs divider -->
