@@ -606,8 +606,7 @@ a { text-decoration: none; }
   background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 55%), hsl(var(--hue2) 80% 60%), hsl(var(--hue1) 80% 60%));
   background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-  animation: rmsBrandShimmer 4s linear infinite;
-}
+  }
 .rms-brand .brand-2 { font-weight: 400; font-size: 14px; color: var(--text-muted); margin-left: 1px; opacity: 0.85; }
 .rms-plan-badge {
   position: relative; padding: 5px 12px; border-radius: var(--radius-pill);
