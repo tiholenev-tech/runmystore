@@ -61,11 +61,43 @@ function v2periodData($tid, $sid, $r, $from, $to = null) {
 function v2cmpPct($a, $b) { return $b > 0 ? round(($a - $b) / $b * 100) : ($a > 0 ? 100 : 0); }
 
 $today = date('Y-m-d');
-$d0  = v2periodData($tenant_id, $store_id, $role, $today, $today);
-$d0p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
+$d0   = v2periodData($tenant_id, $store_id, $role, $today, $today);
+$d0p  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-1 day')), date('Y-m-d', strtotime('-1 day')));
+$d7   = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-6 days')), $today);
+$d7p  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-13 days')), date('Y-m-d', strtotime('-7 days')));
+$d30  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-29 days')), $today);
+$d30p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-59 days')), date('Y-m-d', strtotime('-30 days')));
+$d365  = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-364 days')), $today);
+$d365p = v2periodData($tenant_id, $store_id, $role, date('Y-m-d', strtotime('-729 days')), date('Y-m-d', strtotime('-365 days')));
+
+function v2mgn($p) { return $p['rev'] > 0 ? round($p['profit'] / $p['rev'] * 100) : 0; }
 
 $cmp_today = (int)v2cmpPct($d0['rev'], $d0p['rev']);
 $cmp_sign  = $cmp_today > 0 ? '+' : '';
+
+// JSON за JS — за pills превключване
+$v2_periods_json = json_encode([
+    'today' => [
+        'rev' => round($d0['rev']), 'profit' => round($d0['profit']), 'cnt' => $d0['cnt'], 'margin' => v2mgn($d0),
+        'cmp_rev' => v2cmpPct($d0['rev'], $d0p['rev']), 'cmp_prof' => v2cmpPct($d0['profit'], $d0p['profit']),
+        'cntp' => $d0p['cnt'],
+    ],
+    '7d' => [
+        'rev' => round($d7['rev']), 'profit' => round($d7['profit']), 'cnt' => $d7['cnt'], 'margin' => v2mgn($d7),
+        'cmp_rev' => v2cmpPct($d7['rev'], $d7p['rev']), 'cmp_prof' => v2cmpPct($d7['profit'], $d7p['profit']),
+        'cntp' => $d7p['cnt'],
+    ],
+    '30d' => [
+        'rev' => round($d30['rev']), 'profit' => round($d30['profit']), 'cnt' => $d30['cnt'], 'margin' => v2mgn($d30),
+        'cmp_rev' => v2cmpPct($d30['rev'], $d30p['rev']), 'cmp_prof' => v2cmpPct($d30['profit'], $d30p['profit']),
+        'cntp' => $d30p['cnt'],
+    ],
+    '365d' => [
+        'rev' => round($d365['rev']), 'profit' => round($d365['profit']), 'cnt' => $d365['cnt'], 'margin' => v2mgn($d365),
+        'cmp_rev' => v2cmpPct($d365['rev'], $d365p['rev']), 'cmp_prof' => v2cmpPct($d365['profit'], $d365p['profit']),
+        'cntp' => $d365p['cnt'],
+    ],
+], JSON_UNESCAPED_UNICODE);
 
 // ══════════════════════════════════════════════
 // WEATHER (днешен + 14-дневна прогноза)
@@ -1373,22 +1405,24 @@ a { text-decoration: none; }
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
     <div class="s82-dash-top">
-      <span class="s82-dash-period-label">ДНЕС · <?= htmlspecialchars($store_name) ?></span>
+      <span class="s82-dash-period-label"><span id="revLabel">ДНЕС</span> · <?= htmlspecialchars($store_name) ?></span>
     </div>
     <div class="s82-dash-numrow">
-      <span class="s82-dash-num"><?= number_format($d0['rev'], 0, '.', ' ') ?></span>
+      <span class="s82-dash-num" id="revNum"><?= number_format($d0['rev'], 0, '.', ' ') ?></span>
       <span class="s82-dash-cur"><?= $cs ?></span>
-      <span class="s82-dash-pct"><?= $cmp_sign . $cmp_today ?>%</span>
+      <span class="s82-dash-pct<?= $cmp_today < 0 ? ' neg' : ($cmp_today == 0 ? ' zero' : '') ?>" id="revPct"><?= $cmp_sign . $cmp_today ?>%</span>
     </div>
-    <div class="s82-dash-meta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
+    <div class="s82-dash-meta" id="revMeta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
     <div class="s82-dash-pills">
-      <button type="button" class="s82-dash-pill active">Днес</button>
-      <button type="button" class="s82-dash-pill">7 дни</button>
-      <button type="button" class="s82-dash-pill">30 дни</button>
-      <button type="button" class="s82-dash-pill">365 дни</button>
+      <button type="button" class="s82-dash-pill rev-pill active" data-period="today"  onclick="v2setPeriod('today',this)">Днес</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="7d"     onclick="v2setPeriod('7d',this)">7 дни</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="30d"    onclick="v2setPeriod('30d',this)">30 дни</button>
+      <button type="button" class="s82-dash-pill rev-pill"        data-period="365d"   onclick="v2setPeriod('365d',this)">365 дни</button>
+      <?php if ($role === 'owner'): ?>
       <span class="s82-dash-divider"></span>
-      <button type="button" class="s82-dash-pill active">Оборот</button>
-      <button type="button" class="s82-dash-pill">Печалба</button>
+      <button type="button" class="s82-dash-pill rev-pill active" id="modeRev"    onclick="v2setMode('rev')">Оборот</button>
+      <button type="button" class="s82-dash-pill rev-pill"        id="modeProfit" onclick="v2setMode('profit')">Печалба</button>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -1747,6 +1781,59 @@ syncThemeIcons();
 // отваря локалния панел вместо да навигира.
 if (typeof window.rmsOpenChat !== 'function') {
     window.rmsOpenChat = function(e){ if(e) e.preventDefault(); location.href = 'chat.php'; };
+}
+
+// ─────────────────────────────────────────────────────────
+// S82-DASH pills: превключване на период + Оборот/Печалба
+// ─────────────────────────────────────────────────────────
+const V2_PERIODS = <?= $v2_periods_json ?>;
+const V2_CS      = <?= json_encode($cs) ?>;
+const V2_IS_OWN  = <?= $role === 'owner' ? 'true' : 'false' ?>;
+const V2_LABELS  = { today: 'ДНЕС', '7d': '7 ДНИ', '30d': '30 ДНИ', '365d': '365 ДНИ' };
+const V2_VS      = { today: 'вчера', '7d': 'предишните 7 дни', '30d': 'предишните 30 дни', '365d': 'предишната година' };
+let v2curPeriod = 'today';
+let v2curMode   = 'rev';
+
+function v2fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+function v2updateDash() {
+    const d = V2_PERIODS[v2curPeriod];
+    if (!d) return;
+    const val = v2curMode === 'rev' ? d.rev : d.profit;
+    const pct = v2curMode === 'rev' ? d.cmp_rev : d.cmp_prof;
+    const num = document.getElementById('revNum');
+    const pctEl = document.getElementById('revPct');
+    const lblEl = document.getElementById('revLabel');
+    const metaEl = document.getElementById('revMeta');
+    if (num)   num.textContent = v2fmt(val);
+    if (pctEl) {
+        pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
+        pctEl.className = 's82-dash-pct ' + (pct > 0 ? '' : (pct < 0 ? 'neg' : 'zero'));
+    }
+    if (lblEl) lblEl.textContent = V2_LABELS[v2curPeriod];
+    if (metaEl) {
+        let txt = d.cnt + ' продажби · vs ' + d.cntp + ' ' + V2_VS[v2curPeriod];
+        if (V2_IS_OWN && d.cnt > 0 && v2curMode === 'rev') txt += ' · ' + d.margin + '% марж';
+        metaEl.textContent = txt;
+    }
+}
+
+function v2setPeriod(period, el) {
+    v2curPeriod = period;
+    document.querySelectorAll('.rev-pill[data-period]').forEach(p => {
+        p.classList.toggle('active', p === el);
+    });
+    v2updateDash();
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+
+function v2setMode(mode) {
+    v2curMode = mode;
+    const mr = document.getElementById('modeRev'), mp = document.getElementById('modeProfit');
+    if (mr) mr.classList.toggle('active', mode === 'rev');
+    if (mp) mp.classList.toggle('active', mode === 'profit');
+    v2updateDash();
+    if (navigator.vibrate) navigator.vibrate(6);
 }
 </script>
 </body>
