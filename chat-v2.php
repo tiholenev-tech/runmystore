@@ -1969,6 +1969,374 @@ a { text-decoration: none; }
 
 </main>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- S140.OVERLAY: 75vh AI CHAT OVERLAY (ported from chat.php)             -->
+<!-- HTML/CSS/JS изолирани в .chat-overlay-* namespace — не пипат основния -->
+<!-- layout. JS секцията долу свързва rmsOpenChat()/v2openCardQ().         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ─── S140.OVERLAY: namespace .chat-overlay-* (ported from design-kit/components.css) ─── */
+.chat-overlay-bg{
+    position:fixed;inset:0;
+    background:rgba(5,8,20,.55);
+    backdrop-filter:blur(16px) saturate(.85);
+    -webkit-backdrop-filter:blur(16px) saturate(.85);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity .3s var(--ease, cubic-bezier(0.5,1,0.89,1))
+}
+.chat-overlay-bg.open{opacity:1;pointer-events:auto}
+.chat-overlay-panel{
+    position:fixed;bottom:-80vh;left:0;right:0;
+    max-width:480px;margin:0 auto;
+    height:75vh;z-index:210;
+    display:flex;flex-direction:column;
+    transition:bottom .35s var(--ease, cubic-bezier(0.5,1,0.89,1));
+    border-radius:24px 24px 0 0;
+    overflow:hidden;
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .9),hsl(var(--hue1) 50% 8% / .7) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .9),hsl(var(--hue2) 50% 8% / .7) 33%),
+        linear-gradient(hsl(220deg 30% 6% / .96));
+    border:1px solid hsl(var(--hue1) 30% 25% / .5);
+    border-bottom:none;
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    box-shadow:
+        0 -20px 60px rgba(0,0,0,.6),
+        0 -8px 40px hsl(var(--hue1) 60% 45% / .15),
+        inset 0 1px 0 hsl(var(--hue1) 60% 50% / .2)
+}
+.chat-overlay-panel.open{bottom:0}
+.chat-overlay-panel::before{
+    content:'';position:absolute;
+    top:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,hsl(var(--hue1) 70% 65% / .7),transparent);
+    z-index:5;pointer-events:none
+}
+.chat-overlay-handle{
+    position:absolute;top:6px;left:50%;
+    transform:translateX(-50%);
+    width:38px;height:4px;border-radius:var(--radius-pill);
+    background:rgba(255,255,255,.18);
+    z-index:6;pointer-events:none
+}
+.chat-overlay-header{
+    display:flex;align-items:center;gap:10px;
+    padding:18px 14px 10px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    flex-shrink:0;position:relative;z-index:5
+}
+.chat-overlay-back{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:var(--text-muted);flex-shrink:0
+}
+.chat-overlay-back svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.chat-overlay-title-wrap{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.chat-overlay-avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 50% / .45);
+    flex-shrink:0
+}
+.chat-overlay-avatar svg{width:14px;height:14px;fill:white}
+.chat-overlay-title{font-size:14px;font-weight:800;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-overlay-sub{font-size:9px;color:var(--text-muted);font-weight:600}
+.chat-overlay-close{
+    width:32px;height:32px;border-radius:50%;
+    background:rgba(239,68,68,.08);
+    border:1px solid rgba(239,68,68,.2);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:#fca5a5;flex-shrink:0
+}
+.chat-overlay-close svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round}
+.chat-overlay-messages{
+    flex:1;overflow-y:auto;padding:12px 12px 8px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    display:flex;flex-direction:column;gap:8px
+}
+.chat-overlay-messages::-webkit-scrollbar{display:none}
+.chat-overlay-empty{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:11px}
+.chat-overlay-empty-t{font-size:14px;font-weight:800;color:hsl(var(--hue1) 60% 80%);margin-bottom:6px}
+.chat-overlay-msg-group{display:flex;flex-direction:column;gap:4px}
+.chat-overlay-msg-meta{font-size:9px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:4px;padding:0 2px}
+.chat-overlay-msg-meta.right{justify-content:flex-end}
+.chat-overlay-msg-meta svg{width:10px;height:10px;fill:none;stroke:hsl(var(--hue1) 60% 70%);stroke-width:2}
+.chat-overlay-msg-ai{
+    max-width:82%;padding:10px 13px;
+    font-size:13px;line-height:1.5;word-break:break-word;
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 15% / .85),hsl(var(--hue1) 30% 10% / .7));
+    border:1px solid hsl(var(--hue1) 35% 25% / .4);
+    color:#e2e8f0;
+    border-radius:4px 16px 16px 16px;
+    white-space:pre-wrap;
+    box-shadow:
+        0 2px 12px rgba(0,0,0,.25),
+        0 0 16px hsl(var(--hue1) 60% 40% / .08),
+        inset 0 1px 0 hsl(var(--hue1) 60% 50% / .15);
+    align-self:flex-start;position:relative
+}
+.chat-overlay-msg-user{
+    max-width:75%;padding:10px 13px;
+    font-size:13px;line-height:1.5;word-break:break-word;
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 28%),hsl(var(--hue2) 60% 22%));
+    border:1px solid hsl(var(--hue1) 55% 40% / .5);
+    color:white;
+    border-radius:16px 16px 4px 16px;
+    align-self:flex-end;
+    box-shadow:
+        0 2px 12px rgba(0,0,0,.35),
+        0 0 14px hsl(var(--hue1) 60% 45% / .25),
+        inset 0 1px 0 rgba(255,255,255,.1);
+    position:relative
+}
+.chat-overlay-typing{
+    display:none;padding:10px 14px;
+    background:linear-gradient(135deg,hsl(var(--hue1) 30% 15% / .85),hsl(var(--hue1) 30% 10% / .7));
+    border:1px solid hsl(var(--hue1) 35% 25% / .4);
+    border-radius:4px 16px 16px 16px;
+    width:fit-content;align-self:flex-start
+}
+.chat-overlay-typing.on{display:block}
+.chat-overlay-typing-dots{display:flex;gap:4px;align-items:center}
+.chat-overlay-typing-dot{width:5px;height:5px;border-radius:50%;background:hsl(var(--hue1) 60% 70%);animation:chatOverlayTdot 1.2s infinite}
+.chat-overlay-typing-dot:nth-child(2){animation-delay:.2s}
+.chat-overlay-typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes chatOverlayTdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.chat-overlay-rec-bar{
+    display:none;align-items:center;gap:8px;
+    padding:8px 14px;
+    background:linear-gradient(90deg,rgba(239,68,68,.08),rgba(239,68,68,.03));
+    border-top:1px solid rgba(239,68,68,.15);
+    flex-shrink:0
+}
+.chat-overlay-rec-bar.on{display:flex}
+.chat-overlay-rec-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:#ef4444;
+    animation:chatOverlayRecpulse 1s infinite;
+    box-shadow:0 0 10px rgba(239,68,68,.7)
+}
+@keyframes chatOverlayRecpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.25)}}
+.chat-overlay-rec-label{font-size:10px;font-weight:900;color:#fca5a5;text-transform:uppercase;letter-spacing:.08em}
+.chat-overlay-rec-transcript{font-size:12px;color:#e2e8f0;flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-overlay-input-area{padding:8px 10px calc(12px + env(safe-area-inset-bottom));flex-shrink:0}
+.chat-overlay-input-inner{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:var(--radius-pill);
+    background:linear-gradient(135deg,hsl(var(--hue1) 35% 15% / .85),hsl(var(--hue2) 35% 12% / .7));
+    border:1px solid hsl(var(--hue1) 30% 25% / .6);
+    box-shadow:0 4px 16px rgba(0,0,0,.3),0 0 12px hsl(var(--hue1) 60% 45% / .15)
+}
+.chat-overlay-waves{display:flex;gap:2px;align-items:flex-end;height:14px;flex-shrink:0}
+.chat-overlay-wave-bar{width:3px;border-radius:var(--radius-pill);animation:chatOverlayWavebar 1.2s ease-in-out infinite}
+.chat-overlay-wave-bar:nth-child(1){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:0s}
+.chat-overlay-wave-bar:nth-child(2){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.15s}
+.chat-overlay-wave-bar:nth-child(3){height:14px;background:hsl(var(--hue1) 70% 60%);animation-delay:.3s}
+.chat-overlay-wave-bar:nth-child(4){height:9px;background:hsl(var(--hue1) 65% 55%);animation-delay:.45s}
+.chat-overlay-wave-bar:nth-child(5){height:5px;background:hsl(var(--hue1) 60% 50%);animation-delay:.6s}
+@keyframes chatOverlayWavebar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+.chat-overlay-ta{
+    flex:1;background:transparent;border:none;
+    color:#f1f5f9;font-size:13px;padding:6px 4px;
+    font-family:inherit;outline:none;resize:none;
+    max-height:80px;line-height:1.4;font-weight:500
+}
+.chat-overlay-ta::placeholder{color:var(--text-muted);font-weight:600}
+.chat-overlay-mic{
+    width:34px;height:34px;border-radius:50%;
+    flex-shrink:0;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    background:linear-gradient(135deg,hsl(var(--hue1) 65% 50%),hsl(var(--hue2) 70% 45%));
+    box-shadow:0 0 14px hsl(var(--hue1) 60% 45% / .45),inset 0 1px 0 rgba(255,255,255,.18);
+    transition:all .2s
+}
+.chat-overlay-mic.rec{
+    background:linear-gradient(135deg,#ef4444,#dc2626);
+    box-shadow:0 0 20px rgba(239,68,68,.55)
+}
+.chat-overlay-mic svg{width:16px;height:16px;color:white;stroke:white;fill:none;stroke-width:2;stroke-linecap:round}
+.chat-overlay-voice-ring{
+    position:absolute;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.3);
+    opacity:0;pointer-events:none
+}
+.chat-overlay-mic.rec .chat-overlay-voice-ring{border-color:rgba(255,255,255,.5)}
+.chat-overlay-vr1{width:22px;height:22px;animation:chatOverlayVrpulse 2s 0s ease-in-out infinite}
+.chat-overlay-vr2{width:32px;height:32px;animation:chatOverlayVrpulse 2s .3s ease-in-out infinite}
+.chat-overlay-vr3{width:44px;height:44px;animation:chatOverlayVrpulse 2s .6s ease-in-out infinite}
+@keyframes chatOverlayVrpulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+.chat-overlay-send{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#10b981,#059669);
+    border:none;color:white;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;transition:opacity .2s;
+    box-shadow:0 0 12px rgba(16,185,129,.35)
+}
+.chat-overlay-send:disabled{opacity:.2;box-shadow:none}
+.chat-overlay-send svg{width:14px;height:14px;fill:white}
+.chat-overlay-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chat-overlay-action-btn{
+    padding:6px 12px;border-radius:var(--radius-pill);
+    background:linear-gradient(135deg,hsl(var(--hue1) 55% 35%),hsl(var(--hue2) 60% 28%));
+    border:1px solid hsl(var(--hue1) 55% 45% / .5);
+    color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit
+}
+/* ─── Light theme overrides ─── */
+html[data-theme="light"] .chat-overlay-bg{
+    background:rgba(240,243,250,.55);
+    backdrop-filter:blur(16px) saturate(.95);
+    -webkit-backdrop-filter:blur(16px) saturate(.95);
+}
+html[data-theme="light"] .chat-overlay-panel{
+    background:
+        linear-gradient(235deg,hsl(var(--hue1) 70% 93% / .9),hsl(var(--hue1) 70% 96% / .7) 33%),
+        linear-gradient(45deg,hsl(var(--hue2) 70% 93% / .9),hsl(var(--hue2) 70% 96% / .7) 33%),
+        linear-gradient(hsl(215deg 40% 99% / .96));
+    border:1px solid hsl(var(--hue2),25%,80%);
+    border-bottom:none;
+    box-shadow:
+        0 -20px 60px hsl(var(--hue2) 40% 60% / .18),
+        0 -8px 40px hsl(var(--hue1) 60% 55% / .12),
+        inset 0 1px 0 hsl(var(--hue1) 60% 70% / .3);
+}
+html[data-theme="light"] .chat-overlay-panel::before{
+    background:linear-gradient(90deg,transparent,hsl(var(--hue1) 70% 60% / .6),transparent);
+}
+html[data-theme="light"] .chat-overlay-handle{background:rgba(15,23,42,.18)}
+html[data-theme="light"] .chat-overlay-header{border-bottom-color:rgba(15,23,42,.06)}
+html[data-theme="light"] .chat-overlay-back{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:var(--text-muted);
+}
+html[data-theme="light"] .chat-overlay-close{
+    background:rgba(15,23,42,.04);
+    border-color:rgba(15,23,42,.10);
+    color:#dc2626;
+}
+html[data-theme="light"] .chat-overlay-title{color:#0f172a}
+html[data-theme="light"] .chat-overlay-sub{color:var(--text-muted)}
+html[data-theme="light"] .chat-overlay-empty{color:var(--text-muted)}
+html[data-theme="light"] .chat-overlay-empty-t{color:hsl(var(--hue1) 55% 45%)}
+html[data-theme="light"] .chat-overlay-msg-ai{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 96%),hsl(var(--hue1) 60% 93%));
+    border:1px solid hsl(var(--hue1) 50% 80%);
+    color:#1e293b;
+    box-shadow:
+        0 2px 12px hsl(var(--hue2) 40% 60% / .10),
+        0 0 16px hsl(var(--hue1) 60% 70% / .10),
+        inset 0 1px 0 hsl(var(--hue1) 60% 95%);
+}
+html[data-theme="light"] .chat-overlay-msg-user{
+    background:linear-gradient(135deg,hsl(var(--hue1) 70% 58%),hsl(var(--hue2) 70% 52%));
+    border:1px solid hsl(var(--hue1) 70% 55%);
+    color:#fff;
+    box-shadow:
+        0 2px 12px hsl(var(--hue1) 60% 50% / .28),
+        0 0 14px hsl(var(--hue1) 60% 55% / .22),
+        inset 0 1px 0 rgba(255,255,255,.18);
+}
+html[data-theme="light"] .chat-overlay-msg-meta{color:var(--text-muted)}
+html[data-theme="light"] .chat-overlay-msg-meta svg{stroke:hsl(var(--hue1) 60% 50%)}
+html[data-theme="light"] .chat-overlay-typing{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 96%),hsl(var(--hue1) 60% 93%));
+    border:1px solid hsl(var(--hue1) 50% 80%);
+}
+html[data-theme="light"] .chat-overlay-typing-dot{background:hsl(var(--hue1) 60% 55%)}
+html[data-theme="light"] .chat-overlay-rec-bar{
+    background:linear-gradient(90deg,rgba(239,68,68,.10),rgba(239,68,68,.04));
+    border-top-color:rgba(239,68,68,.20);
+}
+html[data-theme="light"] .chat-overlay-rec-label{color:#dc2626}
+html[data-theme="light"] .chat-overlay-rec-transcript{color:#1e293b}
+html[data-theme="light"] .chat-overlay-input-inner{
+    background:linear-gradient(135deg,hsl(var(--hue1) 60% 95% / .95),hsl(var(--hue2) 60% 95% / .90));
+    border:1px solid hsl(var(--hue1) 40% 75%);
+    box-shadow:
+        0 4px 16px hsl(var(--hue2) 30% 60% / .18),
+        0 0 12px hsl(var(--hue1) 60% 70% / .15);
+}
+html[data-theme="light"] .chat-overlay-ta{color:#0f172a}
+html[data-theme="light"] .chat-overlay-ta::placeholder{color:var(--text-muted)}
+@media (prefers-reduced-motion: reduce){
+    .chat-overlay-bg,.chat-overlay-panel,
+    .chat-overlay-typing-dot,.chat-overlay-rec-dot,
+    .chat-overlay-wave-bar,.chat-overlay-voice-ring{
+        animation:none !important;transition:none !important
+    }
+}
+</style>
+
+<div class="chat-overlay-bg" id="chatOverlayBg" onclick="closeChat()"></div>
+<div class="chat-overlay-panel" id="chatOverlayPanel">
+    <div class="chat-overlay-handle"></div>
+    <div class="chat-overlay-header">
+        <button class="chat-overlay-back" onclick="closeChat()" title="Назад" type="button">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="chat-overlay-title-wrap">
+            <div class="chat-overlay-avatar">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div style="min-width:0">
+                <div class="chat-overlay-title">AI Асистент</div>
+                <div class="chat-overlay-sub">Онлайн · отговаря бързо</div>
+            </div>
+        </div>
+        <button class="chat-overlay-close" onclick="closeChat()" title="Затвори" type="button">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="chat-overlay-messages" id="chatOverlayMessages">
+        <div class="chat-overlay-empty" id="chatOverlayEmpty">
+            <div class="chat-overlay-empty-t">Здравей!</div>
+            Попитай каквото искаш — говори или пиши.
+        </div>
+        <div class="chat-overlay-typing" id="chatOverlayTyping">
+            <div class="chat-overlay-typing-dots">
+                <div class="chat-overlay-typing-dot"></div>
+                <div class="chat-overlay-typing-dot"></div>
+                <div class="chat-overlay-typing-dot"></div>
+            </div>
+        </div>
+    </div>
+    <div class="chat-overlay-rec-bar" id="chatOverlayRecBar">
+        <div class="chat-overlay-rec-dot"></div>
+        <span class="chat-overlay-rec-label">ЗАПИСВА</span>
+        <span class="chat-overlay-rec-transcript" id="chatOverlayRecTranscript">Слушам...</span>
+    </div>
+    <div class="chat-overlay-input-area">
+        <div class="chat-overlay-input-inner">
+            <div class="chat-overlay-waves">
+                <div class="chat-overlay-wave-bar"></div>
+                <div class="chat-overlay-wave-bar"></div>
+                <div class="chat-overlay-wave-bar"></div>
+                <div class="chat-overlay-wave-bar"></div>
+                <div class="chat-overlay-wave-bar"></div>
+            </div>
+            <textarea class="chat-overlay-ta" id="chatOverlayInput" placeholder="Кажи или пиши..." rows="1"
+                oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px';document.getElementById('chatOverlaySend').disabled=!this.value.trim()"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <div class="chat-overlay-mic" id="chatOverlayMic" onclick="toggleVoice()">
+                <div class="chat-overlay-voice-ring chat-overlay-vr1"></div>
+                <div class="chat-overlay-voice-ring chat-overlay-vr2"></div>
+                <div class="chat-overlay-voice-ring chat-overlay-vr3"></div>
+                <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            </div>
+            <button class="chat-overlay-send" id="chatOverlaySend" onclick="sendMsg()" disabled type="button">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+<!-- ═══ END S140.OVERLAY ═══ -->
+
 <!-- ═══ INFO POPOVER OVERLAY ═══ -->
 <div class="info-overlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()">
   <div class="info-card">
@@ -2120,13 +2488,12 @@ syncThemeIcons();
 </nav>
 
 <script>
-// S140 REBUILD: input bar fallback — chat overlay все още е в chat.php.
-// При клик пренасочваме към chat.php (което има 75vh overlay).
-// Следваща стъпка: преместваме целия overlay тук, тогава тази функция ще
-// отваря локалния панел вместо да навигира.
-if (typeof window.rmsOpenChat !== 'function') {
-    window.rmsOpenChat = function(e){ if(e) e.preventDefault(); location.href = 'chat.php'; };
-}
+// ═══ S140.OVERLAY: input bar отваря локалния 75vh overlay (не навигира) ═══
+window.rmsOpenChat = function(e){
+    if (e) { e.preventDefault(); if (e.stopPropagation) e.stopPropagation(); }
+    if (typeof window.openChat === 'function') openChat();
+    else location.href = 'chat.php';
+};
 
 // ─────────────────────────────────────────────────────────
 // S82-DASH pills: превключване на период + Оборот/Печалба
@@ -2184,8 +2551,13 @@ function v2setMode(mode) {
     if (navigator.vibrate) navigator.vibrate(6);
 }
 
-// Life Board card click → отваря AI чат с въпрос за този сигнал
+// Life Board card click → отваря AI чат с въпрос за този сигнал (локален overlay)
 function v2openCardQ(title) {
+    if (typeof window.openChatQ === 'function') {
+        if (!title) { openChat(); return; }
+        openChatQ(title);
+        return;
+    }
     if (!title) { location.href = 'chat.php'; return; }
     try { sessionStorage.setItem('rms_prefill_q', title); } catch(_) {}
     location.href = 'chat.php?q=' + encodeURIComponent(title);
@@ -2222,6 +2594,196 @@ function v2lbFb(e, btn, kind) {
     btn.classList.add('selected');
     if (navigator.vibrate) navigator.vibrate(8);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// S140.OVERLAY: 75vh AI chat overlay (ported from chat.php)
+// Функции: openChat / closeChat / openChatQ / sendMsg / addUserBubble /
+//          addAIBubble / toggleVoice / stopVoice
+// AJAX: chat-send.php (POST JSON {message} → {reply, actions?, error?})
+// ═══════════════════════════════════════════════════════════════════
+(function(){
+    let _voiceRec = null, _isRecording = false, _voiceText = '';
+    let _isOpen = false;
+
+    function _q(id){ return document.getElementById(id); }
+    function _esc(s){
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+    function _vib(n){ if (navigator.vibrate) navigator.vibrate(n || 6); }
+    function _scrollBottom(){
+        const el = _q('chatOverlayMessages');
+        if (el) el.scrollTop = el.scrollHeight;
+    }
+
+    window.openChat = function openChat(){
+        if (_isOpen) return;
+        _isOpen = true;
+        const bg = _q('chatOverlayBg'), panel = _q('chatOverlayPanel');
+        if (bg) bg.classList.add('open');
+        if (panel) panel.classList.add('open');
+        document.body.classList.add('overlay-open');
+        try { history.pushState({ ov: 'chat' }, ''); } catch(_) {}
+        setTimeout(_scrollBottom, 50);
+        const inp = _q('chatOverlayInput');
+        if (inp) setTimeout(function(){ try { inp.focus(); } catch(_) {} }, 350);
+        _vib();
+    };
+
+    window.closeChat = function closeChat(skipHistory){
+        if (!_isOpen) return;
+        _isOpen = false;
+        const bg = _q('chatOverlayBg'), panel = _q('chatOverlayPanel');
+        if (bg) bg.classList.remove('open');
+        if (panel) panel.classList.remove('open');
+        window.stopVoice();
+        document.body.classList.remove('overlay-open');
+        try {
+            if (!skipHistory && history.state && history.state.ov === 'chat') history.back();
+        } catch(_) {}
+    };
+
+    window.openChatQ = function openChatQ(question){
+        openChat();
+        setTimeout(function(){
+            const inp = _q('chatOverlayInput');
+            const sendBtn = _q('chatOverlaySend');
+            if (inp) inp.value = question;
+            if (sendBtn) sendBtn.disabled = false;
+            window.sendMsg();
+        }, 400);
+    };
+
+    window.sendMsg = async function sendMsg(){
+        const inp = _q('chatOverlayInput');
+        const sendBtn = _q('chatOverlaySend');
+        if (!inp || !sendBtn) return;
+        const txt = inp.value.trim();
+        if (!txt) return;
+        window.addUserBubble(txt);
+        inp.value = '';
+        inp.style.height = '';
+        sendBtn.disabled = true;
+        const typing = _q('chatOverlayTyping');
+        if (typing) typing.classList.add('on');
+        _scrollBottom();
+        try {
+            const r = await fetch('chat-send.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: txt })
+            });
+            const raw = await r.text();
+            let d;
+            try { d = JSON.parse(raw); } catch(e) {
+                if (typing) typing.classList.remove('on');
+                window.addAIBubble('Грешка: ' + raw.substring(0, 200));
+                return;
+            }
+            if (typing) typing.classList.remove('on');
+            window.addAIBubble(d.reply || d.error || 'Грешка при обработка.', d.actions || null);
+        } catch (e) {
+            if (typing) typing.classList.remove('on');
+            window.addAIBubble('Грешка при свързване. Опитай пак.');
+        }
+    };
+
+    window.addUserBubble = function addUserBubble(txt){
+        const msgs = _q('chatOverlayMessages'), typing = _q('chatOverlayTyping');
+        if (!msgs) return;
+        const emp = _q('chatOverlayEmpty');
+        if (emp) emp.style.display = 'none';
+        const g = document.createElement('div');
+        g.className = 'chat-overlay-msg-group';
+        const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+        g.innerHTML = '<div class="chat-overlay-msg-meta right">' + t + '</div>'
+                    + '<div class="chat-overlay-msg-user">' + _esc(txt) + '</div>';
+        if (typing) msgs.insertBefore(g, typing);
+        else msgs.appendChild(g);
+        _scrollBottom();
+    };
+
+    window.addAIBubble = function addAIBubble(txt, actions){
+        const msgs = _q('chatOverlayMessages'), typing = _q('chatOverlayTyping');
+        if (!msgs) return;
+        const emp = _q('chatOverlayEmpty');
+        if (emp) emp.style.display = 'none';
+        const g = document.createElement('div');
+        g.className = 'chat-overlay-msg-group';
+        const t = new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+        let h = '<div class="chat-overlay-msg-meta">'
+              + '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+              + 'AI · ' + t + '</div>'
+              + '<div class="chat-overlay-msg-ai">' + _esc(txt) + '</div>';
+        if (actions && actions.length) {
+            h += '<div class="chat-overlay-actions">';
+            actions.forEach(function(a) {
+                h += '<button type="button" class="chat-overlay-action-btn" onclick="window.open(\'' + _esc(a.url || '#') + '\',\'_blank\')">' + _esc(a.label) + ' →</button>';
+            });
+            h += '</div>';
+        }
+        g.innerHTML = h;
+        if (typing) msgs.insertBefore(g, typing);
+        else msgs.appendChild(g);
+        _scrollBottom();
+    };
+
+    window.toggleVoice = function toggleVoice(){
+        if (_isRecording) { window.stopVoice(); return; }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            try { alert('Браузърът не поддържа гласов вход'); } catch(_) {}
+            return;
+        }
+        _isRecording = true;
+        _voiceText = '';
+        const mic = _q('chatOverlayMic'), rec = _q('chatOverlayRecBar'), tr = _q('chatOverlayRecTranscript');
+        if (mic) mic.classList.add('rec');
+        if (rec) rec.classList.add('on');
+        if (tr) tr.innerText = 'Слушам...';
+        _voiceRec = new SR();
+        _voiceRec.lang = 'bg-BG';
+        _voiceRec.continuous = false;
+        _voiceRec.interimResults = true;
+        _voiceRec.onresult = function(e){
+            let fin = '', interim = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                if (e.results[i].isFinal) fin += e.results[i][0].transcript;
+                else interim += e.results[i][0].transcript;
+            }
+            if (fin) _voiceText = fin;
+            if (tr) tr.innerText = _voiceText || interim || 'Слушам...';
+        };
+        _voiceRec.onend = function(){
+            _isRecording = false;
+            if (mic) mic.classList.remove('rec');
+            if (rec) rec.classList.remove('on');
+            if (_voiceText) {
+                const inp = _q('chatOverlayInput'), sendBtn = _q('chatOverlaySend');
+                if (inp) inp.value = _voiceText;
+                if (sendBtn) sendBtn.disabled = false;
+                window.sendMsg();
+            }
+        };
+        _voiceRec.onerror = function(e){ window.stopVoice(); };
+        try { _voiceRec.start(); } catch(e) { window.stopVoice(); }
+    };
+
+    window.stopVoice = function stopVoice(){
+        _isRecording = false;
+        _voiceText = '';
+        const mic = _q('chatOverlayMic'), rec = _q('chatOverlayRecBar');
+        if (mic) mic.classList.remove('rec');
+        if (rec) rec.classList.remove('on');
+        if (_voiceRec) { try { _voiceRec.stop(); } catch(e) {} _voiceRec = null; }
+    };
+
+    window.addEventListener('popstate', function(){
+        if (_isOpen) window.closeChat(true);
+    });
+})();
 </script>
 </body>
 </html>
