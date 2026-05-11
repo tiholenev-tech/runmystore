@@ -145,6 +145,265 @@ foreach ($narrative_order as $fq) {
     if (isset($by_fq[$fq])) { $briefing[] = $by_fq[$fq]; }
 }
 
+
+// ════ v2generateBody() + helpers (от chat-v2.php — body generator) ════
+function v2TopicPrefix(string $topic_id): string {
+    $p = preg_replace('/(_\d+)+$/', '', $topic_id);
+    return $p ?? $topic_id;
+}
+function v2Plural(int $n, string $s, string $p): string { return $n === 1 ? $s : $p; }
+function v2Money(float $v): string {
+    if ($v >= 1000) return number_format($v, 0, '.', ' ') . ' EUR';
+    return number_format($v, 2, '.', ' ') . ' EUR';
+}
+function v2Pct(float $v): string {
+    return rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.') . '%';
+}
+function v2Num(float $v): string {
+    return rtrim(rtrim(number_format($v, 2, '.', ''), '0'), '.');
+}
+function v2BodyByTopic(string $prefix, array $ins, ?array $data): string {
+    $items = (is_array($data) && !empty($data['items']) && is_array($data['items'])) ? $data['items'] : [];
+    $top = $items[0] ?? null;
+    $pc = isset($ins['product_count']) ? (int)$ins['product_count'] : count($items);
+    switch ($prefix) {
+        case 'zero_stock_with_sales': {
+            $lost = (float)($data['lost_per_day'] ?? ($ins['value_numeric'] ?? 0));
+            $n = $top['name'] ?? '—'; $s = isset($top['sold_30d']) ? (int)$top['sold_30d'] : 0;
+            return sprintf('%d %s са на 0 наличност, а се продаваха. Топ: „%s" (%d бр/30д). Без поръчка губим ~%s/ден от пропуснати продажби. Подготвена е батч поръчка — натисни „Поръчай".',
+                $pc, v2Plural($pc,'артикул','артикула'), $n, $s, v2Money($lost));
+        }
+        case 'below_min_urgent': {
+            $n = $top['name'] ?? '—'; $q = isset($top['qty']) ? (int)$top['qty'] : 0; $m = isset($top['min']) ? (int)$top['min'] : 0;
+            return sprintf('%d %s са под зададения минимум. Най-критично: „%s" — %d бр срещу мин %d. Без поръчка ще паднат на нула и ще загубим следващите купувачи.',
+                $pc, v2Plural($pc,'артикул','артикула'), $n, $q, $m);
+        }
+        case 'running_out_today': {
+            $n = $top['name'] ?? '—'; $q = isset($top['qty']) ? (int)$top['qty'] : 0; $a = isset($top['avg_daily']) ? (float)$top['avg_daily'] : 0.0;
+            return sprintf('%d %s имат запас ≤ дневните си продажби — днес ще свършат. Пример: „%s" — %d бр при %s бр/ден темп. Спешна поръчка или загубваме утрешните клиенти.',
+                $pc, v2Plural($pc,'артикул','артикула'), $n, $q, v2Num($a));
+        }
+        case 'selling_at_loss': {
+            $n = $top['name'] ?? '—'; $c = isset($top['cost']) ? (float)$top['cost'] : 0.0;
+            $r = isset($top['retail']) ? (float)$top['retail'] : 0.0; $lpu = isset($top['loss_per_unit']) ? (float)$top['loss_per_unit'] : 0.0;
+            return sprintf('%d %s имат retail < cost. Топ: „%s" — губим %s/брой (cost %s / retail %s). Всяка продажба = чиста загуба. Покачи цените или маркирай артикулите неактивни.',
+                $pc, v2Plural($pc,'артикул','артикула'), $n, v2Money($lpu), v2Money($c), v2Money($r));
+        }
+        case 'no_cost_price': {
+            $w = (int)($data['with_sales'] ?? 0); $n = $top['name'] ?? '—'; $s = isset($top['sold_30d']) ? (int)$top['sold_30d'] : 0;
+            return sprintf('%d %s без записана доставна цена. От тях %d вече се продават — не знаем дали печелим или губим. Топ загадка: „%s" (%d бр/30д). Импортирай costs от последна доставка или въведи ръчно.',
+                $pc, v2Plural($pc,'артикул','артикула'), $w, $n, $s);
+        }
+        case 'margin_below_15': {
+            $n = $top['name'] ?? '—'; $m = isset($top['margin_pct']) ? (float)$top['margin_pct'] : 0.0;
+            return sprintf('%d %s имат марж под 15%% — тънка червена линия. Най-нисък: „%s" — %s. Под този праг един дисконт или връщане яде печалбата. Прегледай качване на retail или смяна на доставчик.',
+                $pc, v2Plural($pc,'артикул','артикула'), $n, v2Pct($m));
+        }
+        case 'seller_discount_killer': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $a = isset($top['avg_disc']) ? (float)$top['avg_disc'] : 0.0;
+            $i = isset($top['items']) ? (int)$top['items'] : 0;
+            $lm = isset($top['lost_money']) ? (float)$top['lost_money'] : 0.0;
+            return sprintf('%d %s дават средно >20%% отстъпка. Топ: %s — %s ср., %d продажби за 30д, ~%s неполучени. Прегледай разрешените лимити в техния профил.',
+                $cnt, v2Plural($cnt,'продавач','продавачи'), $n, v2Pct($a), $i, v2Money($lm));
+        }
+        case 'delivery_anomaly':
+            return sprintf('%s. Pattern-ът се повтаря — не е инцидент. Прегледай с тях писмено или обмисли смяна на доставчик.', $ins['title'] ?? 'Доставчик системно недодава');
+        case 'top_profit_30d': {
+            $total = (float)($data['total_profit'] ?? ($ins['value_numeric'] ?? 0));
+            $cnt = count($items); $n = $top['name'] ?? '—'; $p = isset($top['profit']) ? (float)$top['profit'] : 0.0;
+            $share = $total > 0 ? round(($p / $total) * 100) : 0;
+            return sprintf('Топ-%d артикула донесоха %s печалба за 30 дни. Шампион: „%s" (%s, ~%d%% от групата). Внимавай да не свършат — без тях ще усетим спад.',
+                $cnt, v2Money($total), $n, v2Money($p), $share);
+        }
+        case 'profit_growth': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $now = isset($top['profit_now']) ? (float)$top['profit_now'] : 0.0;
+            $prev = isset($top['profit_prev']) ? (float)$top['profit_prev'] : 0.0;
+            $g = isset($top['growth_pct']) ? (float)$top['growth_pct'] : 0.0;
+            return sprintf('%d %s удвояват или растат значимо печалбата си спрямо предходния период. Топ: „%s" — от %s на %s (+%s). Прицели се в зареждане и витрина за тях.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $n, v2Money($prev), v2Money($now), v2Pct($g));
+        }
+        case 'volume_discount':
+            return sprintf('%s. Спрямо средната ти цена от последните 90 дни. Зареди повече или преразгледай retail — има място за по-висок марж.', $ins['title'] ?? 'Доставчик ни дава по-добра цена');
+        case 'stockout_risk_reduced': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $st = isset($top['in_stock']) ? (int)$top['in_stock'] : 0;
+            $s = isset($top['sold_30d']) ? (int)$top['sold_30d'] : 0;
+            return sprintf('%d %s, които бяха на нула, вече са попълнени. Топ: „%s" — %d бр в наличност, %d бр/30д темп. Възобнови витрина и проактивни препоръки.',
+                $cnt, v2Plural($cnt,'бестселър','бестселъра'), $n, $st, $s);
+        }
+        case 'highest_margin': {
+            $margins = array_map(fn($it) => (float)($it['margin_pct'] ?? 0), $items);
+            $minM = $margins ? min($margins) : 0; $maxM = $margins ? max($margins) : 0;
+            $cnt = count($items); $n = $top['name'] ?? '—'; $tm = isset($top['margin_pct']) ? (float)$top['margin_pct'] : 0.0;
+            return sprintf('Топ-%d артикула с марж между %s и %s. Шампион: „%s" (%s). Това е „златен резерв" — една продажба тук компенсира 3 с нисък марж. Сложи ги на видно място.',
+                $cnt, v2Pct($minM), v2Pct($maxM), $n, v2Pct($tm));
+        }
+        case 'trending_up': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $a7 = isset($top['avg_7d']) ? (float)$top['avg_7d'] : 0.0;
+            $a30 = isset($top['avg_30d']) ? (float)$top['avg_30d'] : 0.0;
+            $g = isset($top['growth_pct']) ? (float)$top['growth_pct'] : 0.0;
+            return sprintf('%d %s продават значимо повече през последните 7 дни спрямо 30-дневната си средна. Топ: „%s" — от %s на %s бр/ден (+%s). Зареди преди да свършат.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $n, v2Num($a30), v2Num($a7), v2Pct($g));
+        }
+        case 'loyal_customers': {
+            $total = (float)($data['total'] ?? ($ins['value_numeric'] ?? 0));
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $p = isset($top['purchases']) ? (int)$top['purchases'] : 0;
+            $tt = isset($top['total']) ? (float)$top['total'] : 0.0;
+            return sprintf('%d %s направиха ≥3 покупки за 60 дни — общо %s. Топ: %s (%d покупки, %s). Помисли за лоялна оферта или SMS — те издържат магазина.',
+                $cnt, v2Plural($cnt,'клиент','клиенти'), v2Money($total), $n, $p, v2Money($tt));
+        }
+        case 'basket_driver': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $bc = isset($top['basket_count']) ? (int)$top['basket_count'] : 0;
+            return sprintf('%d %s често пътуват в комплект — присъстват в множество multi-item покупки. Топ: „%s" — в %d различни сметки за 30д. Сложи ги до касата или предложи комплект-оферта.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $n, $bc);
+        }
+        case 'size_leader': {
+            $cnt = count($items); $pn = $top['parent_name'] ?? '—'; $v = $top['variation'] ?? '—';
+            $q = isset($top['qty_sold']) ? (int)$top['qty_sold'] : 0;
+            return sprintf('За %d %s има 1 размер/цвят, който продава ≥3 пъти повече от останалите. Пример: „%s" — вариация „%s" с %d бр продадени. Зареди именно тази вариация, не „по равно".',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $pn, $v, $q);
+        }
+        case 'new_supplier_first':
+            return sprintf('%s. Прегледай качество, lead time и pricing — има още малко база за оценка. След 3-та доставка системата ще даде reliability score.', $ins['title'] ?? 'Първа доставка от нов доставчик');
+        case 'bestseller_low_stock': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $q = isset($top['qty']) ? (int)$top['qty'] : 0; $s = isset($top['sold_30d']) ? (int)$top['sold_30d'] : 0;
+            return sprintf('%d %s с наличност близо или под минимум, но с реални продажби ≥5/30д. Топ: „%s" — %d бр налични, %d бр/30д темп. Батч поръчка е подготвена — натисни и изпрати.',
+                $cnt, v2Plural($cnt,'бестселър','бестселъра'), $n, $q, $s);
+        }
+        case 'lost_demand_match': {
+            $ta = (int)($data['total_asks'] ?? ($ins['value_numeric'] ?? 0));
+            $cnt = count($items); $tq = $top['query'] ?? '—'; $n = $top['name'] ?? '—'; $t = isset($top['times']) ? (int)$top['times'] : 0;
+            return sprintf('Клиенти питаха за %d %s общо %d пъти за 14 дни — нямахме ги в наличност. Топ заявка: „%s" (%d пъти, мач: „%s"). Поръчай или предложи аналог.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $ta, $tq, $t, $n);
+        }
+        case 'order_stale':
+            return sprintf('%s. Обади се за статус — може да е изгубена или забавена. Без действие рискуваме line-out на бестселърите.', $ins['title'] ?? 'Поръчка без доставка');
+        case 'zombie_45d': {
+            $tf = (float)($data['total_frozen'] ?? ($ins['value_numeric'] ?? 0));
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $q = isset($top['qty']) ? (int)$top['qty'] : 0; $d = isset($top['days_stale']) ? (int)$top['days_stale'] : 0;
+            return sprintf('%d %s не са продавани повече от 45 дни. Замразен капитал: %s. Топ „мъртвец": „%s" — %d бр × %d дни. Промо -20%% освобождава касата и връща оборот.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), v2Money($tf), $n, $q, $d);
+        }
+        case 'declining_trend': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $a7 = isset($top['avg_7d']) ? (float)$top['avg_7d'] : 0.0;
+            $a30 = isset($top['avg_30d']) ? (float)$top['avg_30d'] : 0.0;
+            $d = isset($top['down_pct']) ? (float)$top['down_pct'] : 0.0;
+            return sprintf('%d %s продават значимо по-малко през последните 7 дни спрямо 30-дневната средна. Топ спад: „%s" — от %s на %s бр/ден (-%s). НЕ зареждай — може да е сезонен край.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $n, v2Num($a30), v2Num($a7), v2Pct($d));
+        }
+        case 'high_return_rate': {
+            $cnt = count($items); $n = $top['name'] ?? '—';
+            $s = isset($top['sold']) ? (int)$top['sold'] : 0;
+            $r = isset($top['returned']) ? (int)$top['returned'] : 0;
+            $rt = isset($top['rate']) ? (float)$top['rate'] : 0.0;
+            return sprintf('%d %s имат >15%% връщания за 30д. Топ: „%s" — %d/%d връщания (%s). Преди да поръчаш още — провери защо (размер, качество, описание). Възможна е грешка в каталога.',
+                $cnt, v2Plural($cnt,'артикул','артикула'), $n, $r, $s, v2Pct($rt));
+        }
+        case 'payment_due':
+            return sprintf('%s. Без плащане доставчикът може да забави следващи доставки или да добави такса. Прехвърли сега и маркирай платена.', $ins['title'] ?? 'Плащане към доставчик наближава');
+    }
+    return '';
+}
+function v2BodyByCategory(string $cat, array $ins, ?array $data): string {
+    $title = $ins['title'] ?? '';
+    switch ($cat) {
+        case 'tax':                          return sprintf('%s. Подготви документите със счетоводителя или ползвай експорт от Финанси. Просрочване води до глоби.', $title);
+        case 'acc':                          return sprintf('%s. Прегледай преди затварянето на текущия отчетен период.', $title);
+        case 'cash':                         return sprintf('%s. Прецени трансфер между сметки или ускоряване на събиране от длъжници.', $title);
+        case 'biz': case 'biz_health': case 'biz_revenue':
+            return sprintf('%s. Сравни с предходния период за context — ако трендът е стабилен 2+ седмици, заслужава активно действие.', $title);
+        case 'inventory': case 'wh': case 'stock':
+            return sprintf('%s. Прегледай реалните наличности на тези артикули.', $title);
+        case 'xfer':                         return sprintf('%s. Предложение за трансфер между магазини — батч prepare-нат, остане потвърждение от приемащия.', $title);
+        case 'pricing': case 'price': case 'price_change':
+            return sprintf('%s. Прегледай ценова матрица — конкурентни цени, маржове, и cost база.', $title);
+        case 'sup': case 'supplier':         return sprintf('%s. Профил на доставчика: lead time, надеждност и pricing. Сравни с алтернативи.', $title);
+        case 'delivery': case 'delivery_anomaly_pattern': case 'payment_due_reminder':
+        case 'new_supplier_first_delivery': case 'volume_discount_detected':
+        case 'stockout_risk_reduction': case 'order_stale_no_delivery':
+            return sprintf('%s. Виж детайли по поръчката/доставката за следваща стъпка.', $title);
+        case 'ops': case 'order':            return sprintf('%s. Системата държи списъка готов за preview и редакция.', $title);
+        case 'customer': case 'cust': case 'loyalty_repeat': case 'loyalty_churn':
+        case 'loyalty_program': case 'loyalty_basket': case 'feedback':
+            return sprintf('%s. SMS или специална оферта може да върне ангажираността.', $title);
+        case 'new': case 'new_product':      return sprintf('%s. За нови артикули първите 14 дни са сигнал за adoption — без продажби ⇒ преразгледай цена/витрина/описание.', $title);
+        case 'fashion': case 'shoes': case 'lingerie': case 'sport':
+        case 'acc': case 'size': case 'product_mix':
+            return sprintf('%s. Балансирай наличности по размер/цвят според реалния sales mix.', $title);
+        case 'ss': case 'aw': case 'hol':
+        case 'season_calendar': case 'season_holiday': case 'season_transition':
+            return sprintf('%s. Сезонният прозорец е къс — подготвена витрина и зареждане 2-3 седмици преди пика.', $title);
+        case 'weather_temp': case 'weather_rain': case 'weather_event':
+        case 'weather_season_shift': case 'time':
+            return sprintf('%s. Време-зависим сигнал — реагирай витрина/staff plan в рамките на 24-48ч.', $title);
+        case 'promo':                        return sprintf('%s. Сравни с baseline (4 предходни седмици) преди да удължиш или повториш.', $title);
+        case 'display_front': case 'display_zone': case 'display_visual':
+        case 'floor': case 'basket': case 'pos':
+            return sprintf('%s. Малка пренареждаща смяна на витрина или зона може да отключи 10-15%% повече продажби.', $title);
+        case 'quality': case 'ret': case 'return_reason': case 'return_cost':
+        case 'return_prevention': case 'return_supplier':
+            return sprintf('%s. Връщанията носят и скрит cost (logistics, restock, photo). Идентифицирай причина → действие.', $title);
+        case 'staff': case 'staff_cost': case 'staff_performance':
+        case 'staff_schedule': case 'staff_training': case 'labor':
+            return sprintf('%s. Прегледай профила/смяната, обсъди с екипа на 1:1.', $title);
+        case 'expense_rent': case 'expense_fixed': case 'expense_per_sale': case 'expense_compare':
+            return sprintf('%s. Health rule: разходите трябва да растат по-бавно от оборота. Иначе маржът се топи.', $title);
+        case 'ws':                           return sprintf('%s. Wholesale има по-нисък марж — поддържай дисциплина с просрочия и кредитни лимити.', $title);
+        case 'cross_store':                  return sprintf('%s. Трансфер между магазини е по-евтин от нова поръчка и решава проблема веднага.', $title);
+        case 'data_quality':                 return sprintf('%s. Без чисти данни AI препоръките губят сила — върни се за 5 мин днес.', $title);
+        case 'onboard':                      return sprintf('%s. Следвай suggested стъпките — всеки скок ускорява value time.', $title);
+        case 'trend': case 'demand':         return sprintf('%s. 7-дневен прозорец срещу 30-дневна средна — реагирай само ако трендът се потвърди 2+ дни.', $title);
+        case 'anomaly':                      return sprintf('%s. Аномалия в логовете — отвори транзакцията/записа за детайли. Може да е грешка, може да е fraud.', $title);
+    }
+    return '';
+}
+function v2BodyByFQ(string $fq, array $ins): string {
+    $title = $ins['title'] ?? '';
+    $pc = isset($ins['product_count']) ? (int)$ins['product_count'] : 0;
+    $sfx = $pc > 0 ? sprintf(' Засегнати ~%d %s.', $pc, v2Plural($pc,'позиция','позиции')) : '';
+    switch ($fq) {
+        case 'loss':       return sprintf('%s.%s Това е активна загуба — реагирай в рамките на дни, не седмици.', $title, $sfx);
+        case 'loss_cause': return sprintf('%s.%s Това обяснява откъде идва загубата — поправяме корена, не симптома.', $title, $sfx);
+        case 'gain':       return sprintf('%s.%s Това е реален принос — защити го с наличност и видимост.', $title, $sfx);
+        case 'gain_cause': return sprintf('%s.%s Това обяснява защо печелиш — копирай pattern-а върху съседните артикули.', $title, $sfx);
+        case 'order':      return sprintf('%s.%s Подготвена е препоръка за поръчка — прегледай преди финален send.', $title, $sfx);
+        case 'anti_order': return sprintf('%s.%s НЕ зареждай повече — освободи капитал с промо или маркирай неактивни.', $title, $sfx);
+    }
+    return '';
+}
+/**
+ * v2generateBody — главна функция. Винаги връща непразен полезен body string ≤500 ch.
+ * Routing: topic_id prefix → category → fundamental_question fallback → title+count.
+ * Виж docs/SIGNALS_CATALOG_v1.md за пълния каталог и body templates.
+ */
+function v2generateBody(array $ins): string {
+    $tid = (string)($ins['topic_id'] ?? '');
+    $cat = (string)($ins['category'] ?? '');
+    $fq  = (string)($ins['fundamental_question'] ?? '');
+    $raw = $ins['data_json'] ?? null;
+    $data = null;
+    if (is_array($raw)) $data = $raw;
+    elseif (is_string($raw) && $raw !== '') { $tmp = json_decode($raw, true); if (is_array($tmp)) $data = $tmp; }
+    $body = v2BodyByTopic(v2TopicPrefix($tid), $ins, $data);
+    if ($body === '') $body = v2BodyByCategory($cat, $ins, $data);
+    if ($body === '') $body = v2BodyByFQ($fq, $ins);
+    if ($body === '') {
+        $body = $ins['title'] ?? '';
+        $pc = isset($ins['product_count']) ? (int)$ins['product_count'] : 0;
+        if ($pc > 0) $body .= ' · засегнати ' . $pc . ' ' . v2Plural($pc,'артикул','артикула') . '.';
+    }
+    if (mb_strlen($body) > 500) $body = mb_substr($body, 0, 497) . '...';
+    return $body;
+}
+
 $v2_fq_meta = [
     'loss'       => ['q'=>'q1', 'name'=>'КАКВО ГУБЯ',     'svg'=>'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
     'loss_cause' => ['q'=>'q2', 'name'=>'ОТ КАКВО ГУБЯ',  'svg'=>'<path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/>'],
@@ -1483,23 +1742,9 @@ a { text-decoration: none; }
       $fq = $ins['fundamental_question'] ?? 'gain';
       $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
       $card_title_js = htmlspecialchars(addslashes($ins['title'] ?? ''), ENT_QUOTES);
-      $card_body = trim((string)($ins['detail_text'] ?? ''));
-      if ($card_body === '') {
-          $parts = [];
-          $val = (float)($ins['value_numeric'] ?? 0);
-          $cnt = (int)($ins['product_count'] ?? 0);
-          $catRaw = trim((string)($ins['category'] ?? ''));
-          if ($cnt > 0)         $parts[] = $cnt . ' артикула засегнати';
-          if (abs($val) > 0.01) $parts[] = 'стойност <b>' . number_format($val, 2, '.', ' ') . ' ' . $cs . '</b>';
-          if ($catRaw !== '')   $parts[] = 'категория: ' . htmlspecialchars($catRaw);
-          if (empty($parts)) {
-              $card_body_html = 'Натисни „Защо" за подробно обяснение или „Покажи" за артикулите.';
-          } else {
-              $card_body_html = ucfirst(implode(' · ', $parts)) . '.';
-          }
-      } else {
-          $card_body_html = htmlspecialchars($card_body);
-      }
+      // S140.SIGNALS: реален body генератор (Code-ът: 17 topics + 67 categories + FQ fallback)
+      $card_body = v2generateBody($ins);
+      $card_body_html = htmlspecialchars($card_body);
   ?>
   <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
