@@ -288,9 +288,10 @@ git reset --hard pre-swap-S140 && git push origin main --force
 1. **Прочети двата документа за products:**
    - `docs/PRODUCTS_DESIGN_LOGIC.md`
    - (втория документ който Тих ще предостави)
-2. **Backup tag:** `git tag pre-products-redesign-S141`
-3. **Inventory check:** `grep -nE "^function|fetch\('|window\.[a-z]" products.php | wc -l` (трябва да си запознат с количеството функции)
-4. **Apply Universal UI Laws (§2)** — header/subbar/bottom-nav трябва да са консистентни с chat.php и life-board.php
+2. **SCAN `docs/COMPETITOR_INSIGHTS_TRADEMASTER.md`** — виж кои features от Trade Master са свързани с products.php (#4 алтернативна мярка, #5 гаранционен срок) и дали трябва да се включат в schema от S141.
+3. **Backup tag:** `git tag pre-products-redesign-S141`
+4. **Inventory check:** `grep -nE "^function|fetch\('|window\.[a-z]" products.php | wc -l` (трябва да си запознат с количеството функции)
+5. **Apply Universal UI Laws (§2)** — header/subbar/bottom-nav трябва да са консистентни с chat.php и life-board.php
 
 ### 4.3 Module-specific elements
 

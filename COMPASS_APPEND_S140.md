@@ -113,3 +113,23 @@ Beta-та може да тръгне с минимум: products + sale + life-b
 ---
 
 **COMPASS append от S140 closed. Жив документ.**
+
+---
+
+## ADDENDUM: Competitor insights (Trade Master)
+
+Анализиран User Manual на **Trade Master** (БГ-СОФТ, 15+ години в БГ retail).
+Извлечени **5 priority-1 features** + **6 priority-2** + детайлен schema за DB extensions.
+
+**Файл:** `docs/COMPETITOR_INSIGHTS_TRADEMASTER.md`
+
+**Кога да го отвориш:** ВИНАГИ когато започваш нов модул редизайн или нова имплементация — scan за features свързани с модула. Особено за: `customers.php` (нов), `products.php` (S141 wizard), `sale.php` (S87E bugs), `deliveries.php` (нов), `expenses.php` (нов), `warranty.php` (нов).
+
+**Top 5 features за Beta extension:**
+1. Кредитен лимит + отложено плащане (customers + sale)
+2. Ценова група per партньор (customers + sale + products)
+3. Лица за контакт + рожден ден reminder (customers + AI brain)
+4. Алтернативна мярка / кашон (products + sale + deliveries) — **критично за wholesale tenants**
+5. Гаранционен срок per артикул (products + sale + new warranty.php)
+
+DB schema extensions готови (виж файла §"TABLE SCHEMA EXTENSIONS NEEDED").
