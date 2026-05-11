@@ -117,6 +117,40 @@ try {
         [$tenant_id]
     )->fetchColumn();
 } catch (Throwable $e) { $ai_studio_count = 0; }
+
+// ══════════════════════════════════════════════
+// AI INSIGHTS — Life Board cards (top insight per fundamental_question)
+// ══════════════════════════════════════════════
+$insights = [];
+$plan = function_exists('effectivePlan') ? effectivePlan($tenant) : 'pro';
+try {
+    if (function_exists('getInsightsForModule') && function_exists('planAtLeast') && planAtLeast($plan, 'pro')) {
+        $insights = getInsightsForModule($tenant_id, $store_id, $user_id, 'home', $plan, $role);
+    }
+} catch (Throwable $e) { $insights = []; }
+
+// Top 1 insight per fundamental_question (6 категории)
+$by_fq = [];
+foreach ($insights as $ins) {
+    $fq = $ins['fundamental_question'] ?? '';
+    if ($fq && !isset($by_fq[$fq])) { $by_fq[$fq] = $ins; }
+}
+$narrative_order = ['loss', 'loss_cause', 'gain', 'gain_cause', 'order', 'anti_order'];
+$briefing = [];
+foreach ($narrative_order as $fq) {
+    if (isset($by_fq[$fq])) { $briefing[] = $by_fq[$fq]; }
+}
+$remaining = max(0, count($insights) - count($briefing));
+
+// Meta за всяка fundamental_question (q-клас + име + SVG icon)
+$v2_fq_meta = [
+    'loss'       => ['q'=>'q1', 'name'=>'ФИНАНСИ · КАКВО ГУБЯ',     'svg'=>'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
+    'loss_cause' => ['q'=>'q2', 'name'=>'ПРИЧИНА · ОТ КАКВО ГУБЯ',  'svg'=>'<path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/>'],
+    'gain'       => ['q'=>'q3', 'name'=>'ПРОДАЖБИ · КАКВО ПЕЧЕЛЯ',  'svg'=>'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'],
+    'gain_cause' => ['q'=>'q4', 'name'=>'ПРИЧИНА · ОТ КАКВО ПЕЧЕЛЯ', 'svg'=>'<polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/>'],
+    'order'      => ['q'=>'q5', 'name'=>'ПОРЪЧКИ · ПОРЪЧАЙ',         'svg'=>'<circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/>'],
+    'anti_order' => ['q'=>'q6', 'name'=>'СКЛАД · НЕ ПОРЪЧВАЙ',        'svg'=>'<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="bg" data-theme="light">
@@ -1472,7 +1506,7 @@ a { text-decoration: none; }
       <div class="lb-title-orb"></div>
       <span class="lb-title-text">Life Board</span>
     </div>
-    <span class="lb-count">12 неща · 18:32</span>
+    <span class="lb-count"><?= count($briefing) ?> теми · <?= date('H:i') ?></span>
   </div>
 
   <!-- Filter pills (модули) -->
@@ -1508,269 +1542,34 @@ a { text-decoration: none; }
     </button>
   </div>
 
-  <!-- Card 1 — q1 ФИНАНСИ Cash flow -->
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ФИНАНСИ · КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Cash flow негативен — −820 € последни 7 дни</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 2 — q3 ПРОДАЖБИ EXPANDED -->
-  <div class="glass sm lb-card q3 expanded">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ПРОДАЖБИ · КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">Passionata +35% топ печалба тази седмица</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-    <div class="lb-expanded">
-      <div class="lb-body">Passionata Bikini Line — 12 броя за 7 дни. Печалба <b>185€</b> (+35% спрямо м.с.). Запасите 8 броя — мисли за зареждане.</div>
-      <div class="lb-actions">
-        <button class="lb-action">Защо</button>
-        <button class="lb-action">Покажи</button>
-        <button class="lb-action primary">Поръчай →</button>
-      </div>
-      <div class="lb-feedback">
-        <span class="lb-fb-label">Полезно?</span>
-        <button class="lb-fb-btn up"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
-        <button class="lb-fb-btn down"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
-        <button class="lb-fb-btn hmm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 3 — q5 ПОРЪЧКИ -->
-  <div class="glass sm lb-card q5">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ПОРЪЧКИ · ПОРЪЧАЙ</span>
-        <span class="lb-collapsed-title">Tommy Jeans 32 — под минимум, поръчай 12 бр</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 4 — q1 СКЛАД zombie -->
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">СКЛАД · КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Nike Air Max 42 — 60 дни, 180 € замразени</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 5 — q2 ДОСТАВКИ забавяне -->
-  <div class="glass sm lb-card q2">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ДОСТАВКИ · ОТ КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Иватекс забавя — 4 дни средно повече</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 6 — q1 ФИНАНСИ марж -->
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ФИНАНСИ · КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Бельо под себестойност — 12 артикула, −68 €</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 7 — q3 КЛИЕНТИ retention -->
+  <!-- ═══ LIFE BOARD CARDS — динамичен loop от $briefing ═══ -->
+  <?php if (empty($briefing)): ?>
   <div class="glass sm lb-card q3">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">КЛИЕНТИ · КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">8 нови повторни клиенти този месец</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 8 — q5 ПРОДАЖБИ peak hour -->
-  <div class="glass sm lb-card q5">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ПРОДАЖБИ · ОТ КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">Петък 15:00 — пик. Сложи 2-ри продавач</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 9 — q5 ПОРЪЧКИ Nike -->
-  <div class="glass sm lb-card q5">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ПОРЪЧКИ · ПОРЪЧАЙ</span>
-        <span class="lb-collapsed-title">Nike размери 38, 39, 40 свършват тази седмица</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 10 — q4 СКЛАД точност -->
-  <div class="glass sm lb-card q3">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
+    <div class="lb-collapsed">
       <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
       <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">СКЛАД · ОТ КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">Точност 94% — почти готово за AI Marketing</span>
+        <span class="lb-fq-tag-mini">ВСИЧКО Е НАРЕД</span>
+        <span class="lb-collapsed-title">Няма нищо спешно — попитай AI каквото искаш</span>
       </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
   </div>
-
-  <!-- Card 11 — q4 ТРАНСФЕРИ -->
-  <div class="glass sm lb-card q3">
+  <?php else: foreach ($briefing as $ins):
+      $fq = $ins['fundamental_question'] ?? 'gain';
+      $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
+  ?>
+  <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+    <div class="lb-collapsed" onclick="lbToggleCard && lbToggleCard(event,this)">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><?= $meta['svg'] ?></svg></span>
       <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ТРАНСФЕРИ · ОТ КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">Магазин 3 има 8 дамски летни рокли излишни</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 12 — q1 ФИНАНСИ ДДС -->
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg></span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ФИНАНСИ · КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">ДДС период — остават 6 дни до 25-ти</span>
-      </div>
-      <button class="lb-expand-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Nike Air Max 42 — 60 дни без продажба</span>
+        <span class="lb-fq-tag-mini"><?= htmlspecialchars($meta['name']) ?></span>
+        <span class="lb-collapsed-title"><?= htmlspecialchars($ins['title'] ?? '') ?></span>
       </div>
       <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
   </div>
-
-  <!-- Card 2 — q3 gain (EXPANDED demo) -->
-  <div class="glass sm lb-card q3 expanded">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed" onclick="lbToggleCard(event,this)">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">КАКВО ПЕЧЕЛЯ</span>
-        <span class="lb-collapsed-title">Passionata +35% топ печалба тази седмица</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-    <div class="lb-expanded">
-      <div class="lb-body">Passionata Bikini Line — продадени 12 броя за 7 дни. Печалба <b>185€</b> (+35% спрямо предишна седмица). Запасите още 8 броя — мисли за зареждане преди да свършат.</div>
-      <div class="lb-actions">
-        <button class="lb-action">Защо</button>
-        <button class="lb-action">Покажи</button>
-        <button class="lb-action primary">Поръчай →</button>
-      </div>
-      <div class="lb-feedback">
-        <span class="lb-fb-label">Полезно?</span>
-        <button class="lb-fb-btn up" aria-label="Да"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
-        <button class="lb-fb-btn down" aria-label="Не"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
-        <button class="lb-fb-btn hmm" aria-label="Неясно"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 3 — q5 order -->
-  <div class="glass sm lb-card q5">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ПОРЪЧАЙ</span>
-        <span class="lb-collapsed-title">Tommy Jeans 32 — под минимум, поръчай</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 4 — q1 loss -->
-  <div class="glass sm lb-card q1">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Бельо под себестойност — 12 артикула</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
-
-  <!-- Card 5 — q2 cause -->
-  <div class="glass sm lb-card q2">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ОТ КАКВО ГУБЯ</span>
-        <span class="lb-collapsed-title">Иватекс забавя — 4 дни средно повече</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-    </div>
-  </div>
+  <?php endforeach; endif; ?>
 
   <div class="see-more-mini">Виж всичко 12 →</div>
 
