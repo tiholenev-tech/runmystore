@@ -445,16 +445,26 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
             border-bottom: 1px solid rgba(99,102,241,0.10);
         }
         [data-theme="dark"] .rms-subbar { background: hsl(220 25% 6%); border-bottom-color: rgba(255,255,255,0.06); }
-        .rms-store-toggle {
+        /* Native select стилизиран като pill — работи на всички браузъри */
+        .rms-store-pill {
+            position: relative;
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 6px 10px; border-radius: 999px;
-            background: transparent; border: 1px solid rgba(99,102,241,0.20);
-            color: var(--text-primary, #1e1e2f); font: 600 12px/1 Montserrat, sans-serif;
+            padding: 6px 28px 6px 10px;
+            border-radius: 999px;
+            background: transparent;
+            border: 1px solid rgba(99,102,241,0.20);
+            color: var(--text-primary, #1e1e2f);
+            font: 600 12px/1 Montserrat, sans-serif;
             cursor: pointer;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 12px 12px;
         }
-        [data-theme="dark"] .rms-store-toggle { color: #e8e9f0; border-color: rgba(255,255,255,0.12); }
-        .rms-store-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
-        .rms-store-toggle .store-chev { width: 12px; height: 12px; opacity: .7; }
+        [data-theme="dark"] .rms-store-pill { color: #e8e9f0; border-color: rgba(255,255,255,0.12); }
+        .rms-store-pill:focus { outline: 2px solid hsl(238 78% 60% / .35); outline-offset: 1px; }
+        .rms-store-pill[disabled] { background-image: none; padding-right: 10px; cursor: default; opacity: .85; }
         .subbar-where { font: 700 11px/1 Montserrat, sans-serif; letter-spacing: .08em; color: var(--text-secondary, #64748b); text-transform: uppercase; }
         .lb-mode-toggle {
             margin-left: auto;
@@ -474,20 +484,14 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
     <!-- ═══════════════════════════════════════════ -->
     <div class="rms-subbar">
         <?php if (count($all_stores) > 1): ?>
-        <button class="rms-store-toggle" type="button" aria-label="Смени обект" onclick="document.getElementById('rmsStoreSel').click()">
-            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
-            <svg class="store-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <select id="rmsStoreSel" style="display:none" onchange="location.href='?store='+this.value">
+        <select class="rms-store-pill" aria-label="Смени обект" onchange="location.href='?store='+this.value">
             <?php foreach ($all_stores as $st): ?>
             <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
             <?php endforeach; ?>
         </select>
         <?php else: ?>
-        <span class="rms-store-toggle" aria-label="Обект">
-            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span class="store-name"><?= htmlspecialchars($store_name) ?></span>
+        <span class="rms-store-pill" aria-label="Обект" tabindex="-1" role="text" style="cursor:default; background-image:none; padding-right:10px;">
+            <?= htmlspecialchars($store_name) ?>
         </span>
         <?php endif; ?>
         <span class="subbar-where">AI ЧАТ</span>
@@ -510,15 +514,7 @@ $bg_days_full = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="s82-dash-top">
             <span class="s82-dash-period-label"><span id="revLabel">ДНЕС</span> · <?= htmlspecialchars($store_name) ?></span>
-            <?php if (count($all_stores) > 1): ?>
-            <span class="s82-dash-store">
-                <select onchange="location.href='?store='+this.value" aria-label="Магазин">
-                    <?php foreach ($all_stores as $st): ?>
-                    <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </span>
-            <?php endif; ?>
+            <!-- S140: магазин dropdown премахнат — вече е в subbar (LAYOUT_SHELL_LAW v1.1 §1B) -->
         </div>
         <div class="s82-dash-numrow">
             <span class="s82-dash-num count-up" id="revNum" data-count="0">0</span>
