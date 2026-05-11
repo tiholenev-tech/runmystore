@@ -1341,14 +1341,20 @@ a { text-decoration: none; }
     animation: none !important;
 }
 .rms-brand .brand-1 {
-    background: linear-gradient(135deg, hsl(280 70% 55%), hsl(225 80% 60%));
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent; color: transparent;
+    font-weight: 900 !important;
+    background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 55%), hsl(var(--hue2) 80% 60%), hsl(var(--hue1) 80% 60%)) !important;
+    background-size: 200% auto !important;
+    -webkit-background-clip: text !important; background-clip: text !important;
+    -webkit-text-fill-color: transparent !important; color: transparent !important;
 }
 .rms-brand .brand-2 {
-    background: linear-gradient(135deg, hsl(225 80% 60%), hsl(195 80% 55%));
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent; color: transparent;
+    font-weight: 400 !important;
+    font-size: 14px !important;
+    color: var(--text-muted) !important;
+    margin-left: 1px !important;
+    opacity: 0.85 !important;
+    background: none !important;
+    -webkit-text-fill-color: var(--text-muted) !important;
 }
 .rms-subbar {
   position: sticky; top: 56px; z-index: 49;
@@ -1703,7 +1709,7 @@ a { text-decoration: none; }
     </div>
 
     <div class="help-body">
-      {T_AI_HELP_BODY_1} <b>{T_AI_HELP_BODY_2}</b>. {T_AI_HELP_BODY_3}
+      Виж какви знам неща, попитай ме <b>каквото и да е</b> за магазина. Аз отговарям мигновено.
     </div>
 
     <div class="help-chips-label"><?= htmlspecialchars($T['T_TRY_ASKING'] ?? '') ?></div>
