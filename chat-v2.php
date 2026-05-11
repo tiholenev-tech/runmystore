@@ -1681,13 +1681,13 @@ a { text-decoration: none; }
   <a class="rms-brand"><span class="brand-1">RunMyStore</span><span class="brand-2">.ai</span></a>
   <span class="rms-plan-badge">PRO</span>
   <div class="rms-header-spacer"></div>
-  <button class="rms-icon-btn" aria-label="Принтер">
+  <a class="rms-icon-btn" aria-label="Принтер" href="printer-setup.php">
     <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-  </button>
-  <a class="rms-icon-btn" aria-label="Настройки">
+  </a>
+  <a class="rms-icon-btn" aria-label="Настройки" href="settings.php">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
   </a>
-  <button class="rms-icon-btn" aria-label="Изход">
+  <button class="rms-icon-btn" aria-label="Изход" onclick="if(confirm('Изход?'))location.href='logout.php'">
     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
   </button>
   <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема">
