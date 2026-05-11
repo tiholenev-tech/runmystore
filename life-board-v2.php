@@ -86,13 +86,45 @@ try {
         [$tenant_id])->fetchColumn();
 } catch (Throwable $e) { $ai_studio_count = 0; }
 
-// Weather today
-$weather_today = null;
+// Weather today + week
+$weather_today = null; $weather_week = [];
 try {
     $weather_today = DB::run(
         'SELECT temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date=CURDATE() LIMIT 1',
         [$store_id])->fetch(PDO::FETCH_ASSOC);
+    $weather_week = DB::run(
+        'SELECT forecast_date, temp_max, temp_min, precipitation_prob, weather_code FROM weather_forecast WHERE store_id=? AND forecast_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 13 DAY) ORDER BY forecast_date',
+        [$store_id])->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {}
+
+// Weather helpers (същите като в chat-v2.php)
+function v2weatherClass($code) {
+    $c = (int)$code;
+    if ($c === 0)                        return 'sunny';
+    if ($c === 1 || $c === 2)            return 'partly';
+    if ($c === 3 || $c === 45 || $c === 48) return 'cloudy';
+    if ($c >= 71 && $c <= 77)            return 'snow';
+    if ($c >= 51)                        return 'rain';
+    return 'partly';
+}
+function v2weatherSvg($code) {
+    $cls = v2weatherClass($code);
+    if ($cls === 'sunny')  return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    if ($cls === 'partly') return '<svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4 4 4 0 00-2-3.46"/><circle cx="6" cy="6" r="2"/></svg>';
+    if ($cls === 'cloudy') return '<svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>';
+    if ($cls === 'snow')   return '<svg viewBox="0 0 24 24"><path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>';
+    return '<svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>';
+}
+function v2bgDay($iso) {
+    if ($iso === date('Y-m-d')) return 'Днес';
+    $names = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
+    return $names[(int)date('w', strtotime($iso))];
+}
+
+// Confidence (% артикули с попълнена себестойност) — за приблизителна печалба warning
+$total_products = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1', [$tenant_id])->fetchColumn();
+$with_cost      = (int)DB::run('SELECT COUNT(*) FROM products WHERE tenant_id=? AND is_active=1 AND cost_price>0', [$tenant_id])->fetchColumn();
+$confidence_pct = $total_products > 0 ? round($with_cost / $total_products * 100) : 0;
 
 // AI Insights (top 1 per fundamental_question)
 $insights = [];
@@ -1095,6 +1127,26 @@ a { text-decoration: none; }
   box-shadow: 0 2px 8px hsl(var(--hue1) 70% 50% / 0.3);
 }
 .s82-dash-divider { width: 1px; height: 18px; background: var(--text-faint); opacity: 0.3; margin: 0 4px; }
+
+/* Chat input bar анимации (като в chat-v2.php) */
+@keyframes chatMicRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes chatSendDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+.chat-mic { position: relative; }
+.chat-mic::before, .chat-mic::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid hsl(280 70% 55%);
+  pointer-events: none;
+  animation: chatMicRing 2s ease-out infinite;
+}
+.chat-mic::after { animation-delay: 1s; }
+.chat-send svg { animation: chatSendDrift 1.8s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -1158,6 +1210,12 @@ a { text-decoration: none; }
       <span class="s82-dash-pct<?= $cmp_pct < 0 ? ' neg' : ($cmp_pct == 0 ? ' zero' : '') ?>" id="revPct"><?= $cmp_sign . $cmp_pct ?>%</span>
     </div>
     <div class="s82-dash-meta" id="revMeta"><?= (int)$d0['cnt'] ?> продажби · vs <?= (int)$d0p['cnt'] ?> вчера</div>
+    <?php if ($role === 'owner' && $confidence_pct < 100): ?>
+    <div class="conf-warn" id="confWarn" style="display:none; align-items:center; gap:8px; padding:8px 10px; margin-top:8px; border-radius:10px; background:rgba(251,191,36,0.10); border:1px solid rgba(251,191,36,0.25); font-size:11px; line-height:1.4;">
+      <svg viewBox="0 0 24 24" style="width:14px; height:14px; flex-shrink:0; fill:none; stroke:hsl(38 80% 50%); stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span>Приблизителна печалба — данни за <?= $confidence_pct ?>% от артикулите (<?= $with_cost ?>/<?= $total_products ?>). <a href="inventory.php" style="color:inherit; text-decoration:underline;">Инвентаризация →</a></span>
+    </div>
+    <?php endif; ?>
     <div class="s82-dash-pills">
       <button type="button" class="s82-dash-pill rev-pill active" data-period="today"  onclick="v2setPeriod('today',this)">Днес</button>
       <button type="button" class="s82-dash-pill rev-pill"        data-period="7d"     onclick="v2setPeriod('7d',this)">7 дни</button>
@@ -1250,7 +1308,7 @@ a { text-decoration: none; }
 
   
   <!-- ═══ WEATHER FORECAST CARD ═══ -->
-  <div class="glass sm wfc q4" data-range="3">
+  <div class="glass sm wfc q4" data-range="7">
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
 
@@ -1271,69 +1329,21 @@ a { text-decoration: none; }
     </div>
 
     <!-- Days strip (14 days, hidden via [data-range] selector) -->
-    <div class="wfc-days">
-      <!-- Today -->
-      <div class="wfc-day today sunny">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_TODAY_SHORT'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
-        <div class="wfc-day-temp">22°<small>/14</small></div>
-        <div class="wfc-day-rain dry">5%</div>
+    <!-- Days strip — динамично от $weather_week -->
+    <div class="wfc-days" data-range="7">
+      <?php if (empty($weather_week)): ?>
+      <div class="wfc-day" style="opacity:.5">
+        <div class="wfc-day-name">—</div>
+        <div class="wfc-day-temp">Няма данни</div>
       </div>
-      <!-- Tomorrow -->
-      <div class="wfc-day partly">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_FRI'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4 4 4 0 00-2-3.46"/><circle cx="6" cy="6" r="2"/></svg></div>
-        <div class="wfc-day-temp">24°<small>/15</small></div>
-        <div class="wfc-day-rain dry">15%</div>
+      <?php else: foreach ($weather_week as $i => $w): ?>
+      <div class="wfc-day <?= $i === 0 ? 'today ' : '' ?><?= v2weatherClass($w['weather_code']) ?>">
+        <div class="wfc-day-name"><?= htmlspecialchars(v2bgDay($w['forecast_date'])) ?></div>
+        <div class="wfc-day-ic"><?= v2weatherSvg($w['weather_code']) ?></div>
+        <div class="wfc-day-temp"><?= (int)round($w['temp_max']) ?>°<small>/<?= (int)round($w['temp_min']) ?></small></div>
+        <div class="wfc-day-rain <?= (int)$w['precipitation_prob'] < 30 ? 'dry' : '' ?>"><?= (int)$w['precipitation_prob'] ?>%</div>
       </div>
-      <!-- Sat -->
-      <div class="wfc-day rain">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_SAT'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg></div>
-        <div class="wfc-day-temp">19°<small>/13</small></div>
-        <div class="wfc-day-rain">75%</div>
-      </div>
-      <!-- Sun -->
-      <div class="wfc-day rain">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_SUN'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div>
-        <div class="wfc-day-temp">17°<small>/12</small></div>
-        <div class="wfc-day-rain">82%</div>
-      </div>
-      <!-- Mon -->
-      <div class="wfc-day cloudy">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_MON'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div>
-        <div class="wfc-day-temp">21°<small>/14</small></div>
-        <div class="wfc-day-rain dry">25%</div>
-      </div>
-      <!-- Tue -->
-      <div class="wfc-day partly">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_TUE'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div>
-        <div class="wfc-day-temp">25°<small>/16</small></div>
-        <div class="wfc-day-rain dry">10%</div>
-      </div>
-      <!-- Wed -->
-      <div class="wfc-day sunny">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_WED'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
-        <div class="wfc-day-temp">28°<small>/17</small></div>
-        <div class="wfc-day-rain dry">0%</div>
-      </div>
-      <!-- Thu (day 8 — appears at 14d) -->
-      <div class="wfc-day sunny">
-        <div class="wfc-day-name"><?= htmlspecialchars($T['T_DAY_THU'] ?? '') ?></div>
-        <div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
-        <div class="wfc-day-temp">29°<small>/18</small></div>
-        <div class="wfc-day-rain dry">0%</div>
-      </div>
-      <div class="wfc-day partly"><div class="wfc-day-name">9.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">26°<small>/16</small></div><div class="wfc-day-rain dry">15%</div></div>
-      <div class="wfc-day rain"><div class="wfc-day-name">10.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M20 16.2A4.5 4.5 0 0017.5 8h-1.8A7 7 0 104 14.9"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="16" y1="19" x2="16" y2="21"/></svg></div><div class="wfc-day-temp">22°<small>/15</small></div><div class="wfc-day-rain">65%</div></div>
-      <div class="wfc-day storm"><div class="wfc-day-name">11.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M19 16.9A5 5 0 0018 7h-1.26a8 8 0 10-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg></div><div class="wfc-day-temp">20°<small>/14</small></div><div class="wfc-day-rain">88%</div></div>
-      <div class="wfc-day cloudy"><div class="wfc-day-name">12.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg></div><div class="wfc-day-temp">23°<small>/15</small></div><div class="wfc-day-rain dry">30%</div></div>
-      <div class="wfc-day partly"><div class="wfc-day-name">13.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><path d="M22 14a4 4 0 00-7.5-2 5.5 5.5 0 00-10 1A4 4 0 005 21h13a4 4 0 004-4z"/><circle cx="6" cy="6" r="2"/></svg></div><div class="wfc-day-temp">25°<small>/16</small></div><div class="wfc-day-rain dry">20%</div></div>
-      <div class="wfc-day sunny"><div class="wfc-day-name">14.V</div><div class="wfc-day-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div><div class="wfc-day-temp">27°<small>/17</small></div><div class="wfc-day-rain dry">5%</div></div>
+      <?php endforeach; endif; ?>
     </div>
 
     <!-- AI recs divider -->
@@ -1447,6 +1457,22 @@ a { text-decoration: none; }
       $meta = $v2_fq_meta[$fq] ?? $v2_fq_meta['gain'];
       $card_title_js = htmlspecialchars(addslashes($ins['title'] ?? ''), ENT_QUOTES);
       $card_body = trim((string)($ins['detail_text'] ?? ''));
+      if ($card_body === '') {
+          $parts = [];
+          $val = (float)($ins['value_numeric'] ?? 0);
+          $cnt = (int)($ins['product_count'] ?? 0);
+          $catRaw = trim((string)($ins['category'] ?? ''));
+          if ($cnt > 0)         $parts[] = $cnt . ' артикула засегнати';
+          if (abs($val) > 0.01) $parts[] = 'стойност <b>' . number_format($val, 2, '.', ' ') . ' ' . $cs . '</b>';
+          if ($catRaw !== '')   $parts[] = 'категория: ' . htmlspecialchars($catRaw);
+          if (empty($parts)) {
+              $card_body_html = 'Натисни „Защо" за подробно обяснение или „Покажи" за артикулите.';
+          } else {
+              $card_body_html = ucfirst(implode(' · ', $parts)) . '.';
+          }
+      } else {
+          $card_body_html = htmlspecialchars($card_body);
+      }
   ?>
   <div class="glass sm lb-card <?= $meta['q'] ?>" data-topic="<?= htmlspecialchars($ins['topic_id'] ?? '', ENT_QUOTES) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span><span class="glow"></span><span class="glow glow-bottom"></span>
@@ -1459,9 +1485,7 @@ a { text-decoration: none; }
       <button class="lb-expand-btn" aria-label="<?= htmlspecialchars($T['T_EXPAND']) ?>"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
     </div>
     <div class="lb-expanded">
-      <?php if ($card_body !== ''): ?>
-      <div class="lb-body"><?= htmlspecialchars($card_body) ?></div>
-      <?php endif; ?>
+      <div class="lb-body"><?= $card_body_html ?></div>
       <div class="lb-actions">
         <button class="lb-action" onclick="lbV2OpenQ('<?= $card_title_js ?>')"><?= htmlspecialchars($T['T_WHY']) ?></button>
         <button class="lb-action" onclick="lbV2OpenQ('Покажи ми: <?= $card_title_js ?>')"><?= htmlspecialchars($T['T_SHOW']) ?></button>
@@ -1642,6 +1666,7 @@ function v2updateDash() {
     const pctEl = document.getElementById('revPct');
     const lblEl = document.getElementById('revLabel');
     const metaEl = document.getElementById('revMeta');
+    const cw = document.getElementById('confWarn');
     if (num)   num.textContent = v2fmt(val);
     if (pctEl) {
         pctEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
@@ -1653,6 +1678,7 @@ function v2updateDash() {
         if (V2_IS_OWN && d.cnt > 0 && v2curMode === 'rev') txt += ' · ' + d.margin + '% марж';
         metaEl.textContent = txt;
     }
+    if (cw) cw.style.display = (v2curMode === 'profit') ? 'flex' : 'none';
 }
 function v2setPeriod(period, el) {
     v2curPeriod = period;
