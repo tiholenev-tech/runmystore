@@ -151,13 +151,71 @@ S141.<FEATURE> — <кратко описание>
 
 ## ИЗВЪН-SCOPE НА CLAUDE (какво НЕ мога)
 
-- ❌ Директен SSH на droplet-а
-- ❌ MySQL production queries (без Тих proxy)
+- ❌ Директен SSH на droplet-а (network policy блокира 164.90.217.120)
+- ❌ MySQL production queries (не съм в allowed domains list-а)
 - ❌ Restart Apache / php-fpm
 - ❌ Виж logs в реално време
 - ❌ Тествам в реален browser
 
-**Заобикаляме:** Тих paste-ва debug команди, връща output.
+**Network policy ми позволява САМО:** anthropic.com, github.com, npmjs, pypi, и още малко similar. **Droplet IP-то НЕ Е в списъка.**
+
+**Заобикаляме чрез файлове в repo-то:**
+
+### SQL операции — pattern (препоръчван за DB migrations)
+
+Вместо да paste-ва дълги SQL блокове в mysql conзолата, Тих paste-ва ЕДИН ред:
+
+```bash
+# Аз пиша migrations/S141_xxx.sql в repo-то и push-вам
+# Тих после:
+cd /var/www/runmystore && git pull origin main
+mysql --defaults-extra-file=/etc/runmystore/db.env runmystore < migrations/S141_xxx.sql
+```
+
+**Структура за migrations:**
+```
+/var/www/runmystore/migrations/
+├── S95_products_variants.sql
+├── S141_trademaster_features.sql   ← пример
+└── ...
+```
+
+**Best practices в migration файла:**
+```sql
+-- migrations/S141_xxx.sql
+-- Описание: какво прави, защо
+-- Дата: 2026-MM-DD
+-- Reversible: YES/NO
+
+START TRANSACTION;
+
+-- Backup table преди ALTER (ако е голяма промяна)
+CREATE TABLE IF NOT EXISTS _backup_products_S141 AS SELECT * FROM products;
+
+ALTER TABLE products ADD COLUMN ...;
+-- (НИКОГА ADD COLUMN IF NOT EXISTS — MySQL не поддържа)
+
+-- Verify
+SELECT COUNT(*) FROM products WHERE ...;
+
+COMMIT;
+```
+
+### Debug / sanity check команди
+
+Аз давам готови команди, Тих paste-ва, връща output:
+
+```bash
+# Дай ми output на:
+mysql --defaults-extra-file=/etc/runmystore/db.env runmystore -e "SELECT COUNT(*) FROM products WHERE tenant_id=7"
+
+# Или (за multi-line)
+cat << 'EOF' | mysql --defaults-extra-file=/etc/runmystore/db.env runmystore
+SELECT id, name FROM products
+WHERE tenant_id = 7
+LIMIT 5;
+EOF
+```
 
 ---
 
