@@ -902,6 +902,28 @@ a { text-decoration: none; }
   box-shadow: 0 3px 8px oklch(60% 0.15 var(--hue1) / 0.25);
 }
 
+
+/* Quick Action row — Добави + Като предния + AI поръчка */
+.qa-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.qa-btn { grid-column: 1 / span 3; display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.qa-row > .qa-btn-sm:nth-of-type(2) { grid-column: 1 / span 1; grid-row: 2; }
+.qa-row > .qa-btn-sm:nth-of-type(3) { grid-column: 2 / span 2; grid-row: 2; }
+.qa-row { grid-template-rows: auto auto; }
+.qa-btn-sm { display: flex; align-items: center; gap: 8px; padding: 11px 12px; }
+.qa-ic { width: 40px; height: 40px; padding: 8px; border-radius: 12px;
+  background: linear-gradient(135deg, oklch(60% 0.18 var(--hue1)), oklch(55% 0.20 var(--hue2)));
+  color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px oklch(55% 0.18 var(--hue1) / 0.35); }
+.qa-ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.qa-ic-sm { width: 28px; height: 28px; padding: 6px; border-radius: 8px;
+  background: linear-gradient(135deg, oklch(70% 0.18 38), oklch(60% 0.20 28));
+  color: #fff; flex-shrink: 0; }
+.qa-row > .qa-btn-sm:nth-of-type(3) .qa-ic-sm { background: linear-gradient(135deg, oklch(70% 0.18 280), oklch(60% 0.22 310)); }
+.qa-ic-sm svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
+.qa-text { display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: left; }
+.qa-title { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
+.qa-sub { font-size: 10px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.04em; }
+.qa-title-sm { font-size: 11px; font-weight: 700; color: var(--text); letter-spacing: -0.005em; flex: 1; text-align: left; }
+
 /* Top row variants */
 .top-row-3 { grid-template-columns: repeat(3, 1fr); margin-bottom: 10px; }
 .trend-up { color: oklch(65% 0.18 145); font-weight: 700; }
@@ -1110,6 +1132,33 @@ a { text-decoration: none; }
       <button class="period-btn">Миналата</button>
       <button class="period-btn">30 дни</button>
       <button class="period-btn">90 дни</button>
+    </div>
+
+    <!-- Quick actions: Добави + Като предния + AI поръчка -->
+    <div class="qa-row">
+      <button class="glass sm qa-btn qa-primary qd" onclick="openAddProduct()">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <span class="qa-ic">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <div class="qa-text">
+          <div class="qa-title">Добави артикул</div>
+          <div class="qa-sub">СНИМАЙ · КАЖИ · СКЕНИРАЙ</div>
+        </div>
+      </button>
+      <button class="glass sm qa-btn-sm q4" onclick="openLikePrevious()">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <span class="qa-ic-sm"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>
+        <span class="qa-title-sm">Като предния</span>
+      </button>
+      <button class="glass sm qa-btn-sm qm" onclick="openAIOrder()">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <span class="qa-ic-sm"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6L12 2z"/></svg></span>
+        <span class="qa-title-sm">AI поръчка</span>
+      </button>
     </div>
 
     <!-- Quick stats row 3-cards -->
