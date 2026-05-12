@@ -43,8 +43,9 @@ STEP 2 — ЗАДЪЛЖИТЕЛНО ПРОЧЕТИ ТЕЗИ 7 ДОКУМЕНТА
 3. COMPASS_APPEND_S141.md                        (S141 EOD статус)
 4. daily_logs/DAILY_LOG_2026-05-12.md            (какво стана на S141)
 5. PRODUCTS_MASTER.md                            (2185 реда — products цялостна спецификация)
-6. docs/S140_FINALIZATION.md                     (Universal UI Laws § 2 + Header Тип А/Б)
-7. CLAUDE_AUTO_BOOT.md                           (workflow patterns)
+6. docs/DETAILED_MODE_SPEC.md                    (НОВ — detailed mode 4 таба + 6 графики + PHP queries)
+7. docs/S140_FINALIZATION.md                     (Universal UI Laws § 2 + Header Тип А/Б)
+8. CLAUDE_AUTO_BOOT.md                           (workflow patterns)
 
 ИЗПЪЛНИ pull → 7 view команди → НЕ КАЗВАЙ НИЩО НА ТИХ ДОКАТО НЕ ПРОЧЕТЕШ ВСИЧКИ 7.
 
