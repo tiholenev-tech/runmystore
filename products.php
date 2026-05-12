@@ -21,6 +21,9 @@ $user_id    = $_SESSION['user_id'];
 $tenant_id  = $_SESSION['tenant_id'];
 $store_id   = $_SESSION['store_id'] ?? null;
 $user_role  = $_SESSION['role'] ?? 'seller';
+// S141: URL override за testing — ?mode=simple показва P15, ?mode=detailed показва стария scrHome
+$mode_override = isset($_GET['mode']) ? $_GET['mode'] : null;
+$is_simple_view = ($mode_override === 'simple') || (!$mode_override && $user_role === 'seller');
 $user_name  = $_SESSION['name'] ?? '';
 
 $is_owner   = ($user_role === 'owner');
@@ -5125,7 +5128,7 @@ a { text-decoration: none; }
 <script src="js/capacitor-printer.js?v=<?= @filemtime(__DIR__.'/js/capacitor-printer.js') ?>"></script>
 <link rel="stylesheet" href="css/aibrain-modals.css">
 </head>
-<body class="has-rms-shell mode-<?= ($user_role === 'seller') ? 'simple' : 'detailed' ?>">
+<body class="has-rms-shell mode-<?= $is_simple_view ? 'simple' : 'detailed' ?>">
 
 <div class="toast-c" id="toasts"></div>
 
@@ -5163,7 +5166,7 @@ a { text-decoration: none; }
     <section id="scrHome" class="screen-section active">
 <!-- ═══ S79 A1.7 — SCRHOME START ═══ -->
 <!-- ═══ S141 SIMPLE MODE (P15) — START ═══ -->
-<?php if ($user_role === 'seller'): ?>
+<?php if ($is_simple_view): ?>
 <div class="aurora" aria-hidden="true">
   <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
 </div>
@@ -5174,7 +5177,7 @@ a { text-decoration: none; }
     <svg class="store-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
   </button>
   <span class="subbar-where">СТОКАТА МИ</span>
-  <a class="lb-mode-toggle" href="?mode=detailed" onclick="event.preventDefault();alert('Toggle mode — требва PHP user.preferred_mode update; засега UI only');">
+  <a class="lb-mode-toggle" href="?mode=detailed">
     <span>Разширен</span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -5415,6 +5418,7 @@ a { text-decoration: none; }
         <div class="title-main">Артикули</div>
         <div class="title-sub" id="hTitleCount">·</div>
         <button class="store-switch" onclick="if(typeof openStoreSwitcher==='function')openStoreSwitcher()" style="margin-left:auto">Магазин 1<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <a href="?mode=simple" style="margin-left:8px;padding:7px 12px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8b5cf6,#6366f1);text-decoration:none;display:inline-flex;align-items:center;gap:4px">Лесен<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg></a>
     </div>
 
     <div class="search-wrap">
