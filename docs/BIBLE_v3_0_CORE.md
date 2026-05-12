@@ -41,7 +41,7 @@
 # ЧАСТ 1 — ЗАКОНИ, КОНЦЕПЦИЯ, ГЛОБАЛНОСТ
 # ══════════════════════════════════════
 
-# 1. ПЕТТЕ ЗАКОНА — НЕПРОМЕНИМИ
+# 1. ШЕСТТЕ ЗАКОНА — НЕПРОМЕНИМИ
 
 ## ⚡ ЗАКОН №1 — ПЕШО НЕ ПИШЕ НИЩО
 
@@ -352,6 +352,130 @@ class ConversationState {
 ВСЕКИ нов UI текст минава проверка: **"Работи ли ако `lang='de'`?"**
 
 Ако отговорът е "не, защото е на български" → **спри и пренапиши през `$lang` system**.
+
+---
+
+## ⚡ ЗАКОН №6 — SIMPLE = СИГНАЛИ · DETAILED = ДАННИ
+
+**Универсален pattern за всеки модул.** Прилага се навсякъде — Products, Sale, Доставки, Инвентаризация, Трансфери, Промоции, Marketing, Reports, Settings.
+
+### Принципът
+
+| | Detailed Mode (Митко) | Simple Mode (Пешо) |
+|---|---|---|
+| **Какво вижда** | Пълни KPI, графики, таблици, filter chips, search, manual control | AI сигнали — алерти, тенденции, победи, действия |
+| **Поведение** | Pull — сам търси, филтрира, експлорира | Push — AI казва кое е важно днес |
+| **UI** | Tab bar, period toggles, sort options | Сигнали като карти + 1-tap actions |
+| **Brain mode** | Анализ — "защо?" | Реакция — "какво да направя?" |
+| **Audit trail** | Пълни данни винаги достъпни | Tap сигнал → разкрива източника |
+
+### Зашо
+
+1. **DRY arquitectura** — една PHP заявка, два renderer-а (signal card vs chart). Нула дублирана логика.
+2. **Decision fatigue protection** — 5 магазина × 2000 артикула × 9000 продажби = 250 KPI числа на месец. AI обобщава до 10-30 actionable сигнала.
+3. **Onboarding path** — новак започва от Simple (lett); научава бизнеса; гravитира към Detailed когато иска контрол.
+4. **DUAL-AUDIENCE ROI** — инвестицията в AI brain се използва от ОБА persona-та, не само за external public.
+
+### Какво НЕ става сигнал
+
+Структурни insights които не са action-oriented остават **САМО в Detailed**:
+- Pareto 80/20 (теоретично разпределение)
+- Sezonalnost heatmap (pattern visualization)
+- ABC класификация (стратегически вид)
+- Margin distribution histogram
+- Любая deep analytical visualisation
+
+Тези тапва Митко в Графики таб. Пешо никога не ги вижда.
+
+### Какво ВИНАГИ става сигнал
+
+Action-oriented insights, които изискват решение:
+- Свърши N42 → "Поръчай"
+- Застоял 90 дни → "Намали цена" или "Прехвърли"
+- Multi-store асиmetрия → "Прехвърли от A в B"
+- Trend break (продажби -20% седмица) → "Виж защо"
+- Wins (рекорден ден, hit артикул) → "Празнувай"
+- Inventory anomaly → "Преброй"
+- Supplier issue → "Свържи се с друг"
+
+### 4 типа сигнали (с приоритет)
+
+| Тип | Цвят | Когда | Брой типично |
+|---|---|---|---|
+| 🔴 **Alert** | red | Action needed днес | 3-8 |
+| 🟡 **Trend** | amber | Tendency · следи | 5-15 |
+| 🟢 **Win** | green | Празнувай · продължавай | 2-5 |
+| 💎 **Discovery** | purple | AI находка · ново | 1-3 |
+
+**Total per ден: 10-30 сигнала.** Никога празно — с 5 магазина и хиляди транзакции винаги има какво да каже AI.
+
+### Симетрия (всеки сигнал ← пълни данни в Detailed)
+
+Tap на сигнал в Simple → отваря Detailed view на същите данни (audit trail = Закон №7). Двата режима свързани, не разделени силози.
+
+Пример:
+- Simple: "🔴 N42 свърши · 7 продажби тази седмица"
+- Tap → Detailed Артикули таб filtered на N42 → виждаш цялата история, доставки, multi-store breakdown
+
+### Confidence threshold (Закон №8)
+
+Само сигнали с `confidence ≥ 0.85` отиват в Simple feed (auto-show).
+Сигнали `0.5-0.85` отиват в Detailed Графики таб като "AI предполага".
+Сигнали `< 0.5` не се показват изобщо.
+
+### Imperative
+
+**Всеки нов модул задължително реализира двата режима паралелно.** Не може Detailed да съществува без Simple signal layer, и обратно.
+
+При планиране на модул — питай: "Кои са action-oriented сигналите?" преди да правиш wireframe на Detailed.
+
+### Изглед в различните модули
+
+**Products (Стоката ми)**
+- Detailed: 4 tab-а (Преглед/Графики/Управление/Артикули)
+- Simple: home view с feed на 6-те сигнала (q1-q6) от текущия Tab
+
+**Sale (Касова)**
+- Detailed: пълна история, графики per продавач, отчети
+- Simple: ⏳ "Не си отворил Z-отчет 2 дни" / 🔴 "Niски продажби вчера" / 🟢 "Рекорден час"
+
+**Доставки**
+- Detailed: списък доставки, supplier breakdown, lead time analysis
+- Simple: 🔴 "Доставка от Nike закъснява 3 дни" / 💎 "AI намери нов доставчик 12% по-евтин"
+
+**Инвентаризация**
+- Detailed: пълен ревизионен flow per обект, история, отклонения
+- Simple: ⏳ "34 артикула не са броени · започни сега"
+
+**Трансфери (Phase D)**
+- Detailed: ръчно избира артикул → from store → to store → quantity
+- Simple: AI feed: "🔄 Прехвърли 10 бр N42 от Бургас → Витоша [✓]"
+
+**Промоции (Phase D)**
+- Detailed: правила, applicable products, прогноза impact
+- Simple: 🟢 "Twoя 'Лято -20%' промо донесе 2 400€" / 💎 "AI предлага намаление на T-shirts H&M"
+
+**Marketing (Phase 1-5)**
+- Detailed: ad spend breakdown, ROAS per channel, audience builders
+- Simple: 🔴 "Meta реклама изхарчи 80% бюджет · 0.3x ROAS" / 💎 "Запознай нова audience: млади жени 25-34 Witošа"
+
+**Reports / Stats**
+- Detailed: периоди, custom queries, exports
+- Simple: → редиректва към Products Simple feed (no separate Reports view)
+
+**Settings**
+- Detailed: пълен config + audit log
+- Simple: НЕ съществува (settings са Митко-only по дефиниция)
+
+### Имплементационна последователност
+
+Всеки модул се прави в този ред:
+
+1. **DB queries** — една PHP функция връща структурирани данни
+2. **Detailed view** — renders pull (tabs, charts, tables)
+3. **Signal extractor** — една PHP функция взима същите данни → връща array of signals
+4. **Simple view** — renders push (signal feed cards)
+5. **Audit linking** — всеки signal в Simple има tap → отваря Detailed view
 
 ---
 
