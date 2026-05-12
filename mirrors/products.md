@@ -5343,6 +5343,62 @@ a { text-decoration: none; }
 
 /* ═══ END S141 BOTTOM NAV ═══ */
 
+
+/* ═══ S141 FIX — Bible §5.2 закон: Simple Mode БЕЗ bottom nav ═══ */
+body.mode-simple .rms-bottom-nav { display: none !important; }
+/* Chat input bar visible само в simple mode */
+body.mode-detailed .chat-input-bar { display: none !important; }
+
+/* Chat-mic ring animation (от life-board.php canonical) */
+@keyframes chatMicRing {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes chatSendDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+.chat-input-bar .chat-mic-btn { position: relative; }
+.chat-input-bar .chat-mic-btn::before,
+.chat-input-bar .chat-mic-btn::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid hsl(280 70% 55%);
+  pointer-events: none;
+  animation: chatMicRing 2s ease-out infinite;
+}
+.chat-input-bar .chat-mic-btn::after { animation-delay: 1s; }
+.chat-input-bar .chat-send-btn svg { animation: chatSendDrift 1.8s ease-in-out infinite; }
+
+/* op-btn (Добави артикул) — fix layout да изглежда както в P15 mockup */
+.op-btn {
+  width: 100%;
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 18px 18px 16px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+.op-btn .op-btn-ic {
+  width: 56px; height: 56px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 6px 18px hsl(280 70% 50% / 0.45);
+}
+.op-btn .op-btn-ic svg { width: 26px; height: 26px; fill: none; stroke: white; stroke-width: 2.4; }
+.op-btn .op-btn-body { flex: 1; min-width: 0; }
+.op-btn .op-btn-title { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; margin-bottom: 2px; }
+.op-btn .op-btn-sub { font-size: 11px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; }
+.op-btn .op-info-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.05);
+  display: grid; place-items: center;
+}
+.op-btn .op-info-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; opacity: 0.5; }
+
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js?v=<?= @filemtime(__DIR__.'/js/capacitor-printer.js') ?>"></script>
@@ -5435,7 +5491,7 @@ a { text-decoration: none; }
     </div>
   </div>
 
-  <button class="glass op-btn qd" onclick="openAddProduct()">
+  <div class="glass op-btn qd" onclick="openAddProduct()" role="button" tabindex="0" style="cursor:pointer">
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
     <button class="op-info-btn" onclick="event.preventDefault();event.stopPropagation();openInfo('receive')" aria-label="Инфо">
@@ -5450,7 +5506,7 @@ a { text-decoration: none; }
       <div class="op-btn-title">Добави артикул</div>
       <div class="op-btn-sub">СНИМАЙ · КАЖИ · СКЕНИРАЙ</div>
     </div>
-  </button>
+  </div>
 
   <div class="studio-row">
     <a class="glass sm studio-btn qm" href="#">
