@@ -2105,3 +2105,81 @@ Capacitor APK build via:
 ---
 
 **EOF**
+
+---
+
+# 16. РЕШЕНИЯ ОТ ТИХ (2026-05-12)
+
+## 16.1 Simple Mode home = P15 (canonical)
+
+Конфликт между Bible §7.2.1 (Hybrid layout с list) и P15 mockup (dashboard без list) → **P15 печели**. Bible §7.2.1 е стара спецификация преди P15 mockup-а. P15 е новата canonical визия за simple home на products.php.
+
+## 16.2 Глобален Инвентаризация nudge (НОВ ЗАКОН)
+
+**Закон:** На **всеки** модул (products, sale, deliveries, orders, life-board, chat) — миниатюрен persistent nudge "колко артикула не са инвентаризирани и от колко време".
+
+Pill горе под хедъра:
+```
+⏳ N артикула не са броени · D дни →
+```
+- Tap → отваря inventory.php zone walk
+- "По-късно" → скрива за 7 дни
+- В Simple Mode → миниатюрно/кратко
+- В Detailed Mode → с детайли (% точност + последна дата)
+
+## 16.3 "Здраве склада" → "Състояние на склада" (rebranded)
+
+Не процент абстрактен (82%). Конкретна структура и в двата режима:
+
+```
+🟢 СЪСТОЯНИЕ НА СКЛАДА
+├─ Снимки     78% (12 без)     →
+├─ Цени едро  91% (5 без)      →
+├─ Броено     34% (последно: 12 дни) →
+├─ Доставчик  100% ✓
+└─ Категория  88% (15 неточно) →
+```
+
+- **Simple Mode:** миниатюрно "⚠ 4 неща за нагласяне →"
+- **Detailed Mode:** full breakdown + графика 30 дни
+
+## 16.4 Detailed Mode = ИСТИНСКИ разширен (приети идеи)
+
+| # | Идея | Status |
+|---|---|---|
+| 1 | Sales sparklines в карти | ✅ Приет |
+| 2 | Heatmap turnover (calendar grid) | ✅ Приет |
+| 3 | Pareto 80/20 chart | ✅ Приет |
+| 4 | Stock level timeline per артикул | ✅ Приет |
+| 5 | Margin trend (90 дни) | ✅ Приет |
+| 6 | Revenue by supplier donut | ✅ Приет |
+| 7 | Seasonality auto-detect | ✅ Приет |
+| 8 | Multi-store comparison (5 ENI) | ✅ Приет |
+| 9 | ABC класификация pill | ✅ Приет |
+| 10 | Dead stock breakdown (30/60/90/180+) | ✅ Приет |
+| 11 | Sale forecast per артикул (PHP-computed) | ✅ Приет |
+| 12 | Variation performance grid (size × color × store) | ✅ Приет |
+| 13 | "Състояние склада" breakdown | ✅ Приет (виж §16.3) |
+| 14 | Глобален инвентаризация nudge | ✅ Приет (виж §16.2) |
+| 15 | ~~AI прогноза седмица (с примерни hallucinated числа)~~ | ❌ ОТХВЪРЛЕН (нарушава Закон №2 Bible) |
+| 15-fixed | AI прогноза qualitative (базирана на PHP queries) | ⚠ Приет ако: всички числа от SQL, AI само превежда текстово |
+| 16 | Compare периоди (toggle тази vs миналата седмица) | ✅ Приет |
+| 17 | Bulk actions footer (select N → action) | ✅ Приет |
+| 18 | Saved views (Митко филтри combo-та) | ✅ Приет |
+
+## 16.5 Sacred Закон №2 (потвърден)
+
+**PHP смята, AI говори — AI никога не генерира числа самостоятелно.**
+
+При всеки AI текст:
+- Числата идват от SQL заявка
+- AI само превежда qualitativно
+- Никога не "приблизи" / "вероятно ~" без backing PHP
+
+**Пример НЕ:**
+> "AI: Очаквам €1840 продажби тази седмица"  ❌ hallucination
+
+**Пример ДА:**
+> PHP: `$lastWeek = 1840; $trend = 'rising'`
+> AI render: "Миналата седмица: €1,840. Тренд: възходящ. Очаквам подобна или по-висока активност."  ✅
+
