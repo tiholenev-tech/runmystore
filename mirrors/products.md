@@ -5399,6 +5399,30 @@ body.mode-detailed .chat-input-bar { display: none !important; }
 }
 .op-btn .op-info-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; opacity: 0.5; }
 
+
+/* ═══ S141 PRIORITY OVERRIDES — from chat.php canonical ═══ */
+body.mode-simple { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+body.mode-simple .aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+body.mode-simple .aurora-blob { position: absolute; border-radius: var(--radius-icon); filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+body.mode-simple .glass { position: relative; border-radius: var(--radius); border: var(--border) solid var(--border-color); isolation: isolate; }
+body.mode-simple .glass.sm { border-radius: var(--radius-sm); }
+body.mode-simple .lb-card { padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: box-shadow var(--dur) var(--ease); }
+body.mode-simple .lb-collapsed { display: flex; align-items: center; gap: 10px; }
+body.mode-simple .lb-expanded { max-height: 0; overflow: hidden;
+  transition: max-height 0.35s ease, padding-top 0.35s ease;
+  position: relative; z-index: 5; }
+body.mode-simple .rms-header { position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-top: env(safe-area-inset-top, 0); }
+body.mode-simple .rms-subbar { position: sticky; top: 56px; z-index: 49;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; max-width: 480px; margin: 0 auto; }
+/* ═══ END S141 PRIORITY ═══ */
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js?v=<?= @filemtime(__DIR__.'/js/capacitor-printer.js') ?>"></script>
