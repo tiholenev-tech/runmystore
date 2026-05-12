@@ -1580,3 +1580,528 @@ INSERT IGNORE INTO tenant_ai_credits (tenant_id) SELECT id FROM tenants;
 | Sale item price | `sale_items.unit_price` | price |
 | Sale total | `sales.total` | total_amount |
 
+
+---
+
+# 11. I18N KEYS — пълен списък за products
+
+**Phase D migration:** Add to `i18n_translations` table за `bg` и `en`. Bulgarian fallback за всички липсващи ключове.
+
+## 11.1 Wizard keys (bulk entry P13)
+
+```json
+{
+  "bulk.title": "Добави артикул",
+  "bulk.search.placeholder": "Намери артикул да копираме",
+  "bulk.search.input": "Търси име · баркод · код",
+  "bulk.search.filter.like_last": "Като последния",
+  "bulk.search.filter.all": "Всички",
+  "bulk.search.filter.recent": "Наскоро",
+  "bulk.voice.title": "Кажи на AI",
+  "bulk.voice.example": "\"Тениска 28лв · бял розов · S M L\"",
+  "bulk.mode.single": "Единичен",
+  "bulk.mode.var": "С вариации",
+  "bulk.section.minimum": "Минимум",
+  "bulk.section.variations": "Вариации",
+  "bulk.section.supplier_details": "Допълнителни",
+  "bulk.section.photos": "Снимки",
+  "bulk.section.ai_studio": "AI Studio",
+  "bulk.field.name": "Име",
+  "bulk.field.retail_price": "Цена",
+  "bulk.field.qty": "Количество",
+  "bulk.field.min_qty": "Минимално кол-во",
+  "bulk.field.code": "Артикулен номер",
+  "bulk.field.barcode": "Баркод",
+  "bulk.field.cost_price": "Доставна цена",
+  "bulk.field.wholesale_price": "Цена на едро",
+  "bulk.field.margin": "Марж (auto)",
+  "bulk.field.supplier": "Доставчик",
+  "bulk.field.category": "Категория",
+  "bulk.field.subcategory": "Подкатегория",
+  "bulk.field.material": "Материя / състав",
+  "bulk.field.origin": "Произход",
+  "bulk.field.unit": "Мерна единица",
+  "bulk.field.sizes": "Размери",
+  "bulk.field.colors": "Цветове",
+  "bulk.field.optional": "ПО ЖЕЛАНИЕ",
+  "bulk.hint.code_auto": "Празно → AI ще генерира уникален код автоматично.",
+  "bulk.hint.barcode_auto": "Празно → AI ще генерира EAN-13 при отпечатване.",
+  "bulk.hint.min_auto": "AI auto-set от количеството (qty/2.5).",
+  "bulk.matrix.label": "Брой по комбинация · мин.",
+  "bulk.matrix.fill_all": "Всички = 2",
+  "bulk.matrix.expand": "Цял екран",
+  "bulk.matrix.sku_summary": "{n_sizes} размера × {n_colors} цвята = {n_sku} SKU · Σ {total} бр.",
+  "bulk.photos.cta_title": "Заснеми всички наведнъж",
+  "bulk.photos.cta_sub": "AI ще разпознае цветовете и закачи всяка снимка автоматично",
+  "bulk.photos.camera": "Камера",
+  "bulk.photos.gallery": "Галерия",
+  "bulk.photos.is_main": "Главна",
+  "bulk.photos.swap": "Размени",
+  "bulk.ai.credits": "<b>{used} / {total}</b> безплатни магии",
+  "bulk.ai.after": "след това · <b>€{price}/магия</b>",
+  "bulk.ai.open_studio": "Отвори AI Studio",
+  "bulk.ai.studio_sub": "снимка · фон · описание · магия",
+  "bulk.ai.remove_bg": "Премахни фон",
+  "bulk.ai.seo_desc": "SEO описание",
+  "bulk.ai.result_title": "AI завърши обработката",
+  "bulk.ai.result_before": "Преди",
+  "bulk.ai.result_after": "След",
+  "bulk.ai.result_accept": "Приеми",
+  "bulk.ai.result_retry": "Опитай пак",
+  "bulk.ai.result_reject": "Отхвърли",
+  "bulk.save.section": "Запази",
+  "bulk.save.print": "Печат",
+  "bulk.save.csv": "CSV експорт",
+  "bulk.bottom.undo": "Отмени стъпка",
+  "bulk.bottom.print_all": "Печат всички",
+  "bulk.bottom.csv_all": "CSV сесия",
+  "bulk.bottom.next": "Следващ",
+  "bulk.next.like_prev": "Като предния",
+  "bulk.next.like_prev_sub": "Наследява име · цена · доставчик · категория",
+  "bulk.next.empty": "Празно",
+  "bulk.next.empty_sub": "Нов артикул от 0 (различен доставчик/тип)",
+  "bulk.groups.size_title": "Други размерни групи",
+  "bulk.groups.unit_title": "Други мерни единици",
+  "bulk.groups.tap_to_use": "тапни група за активиране",
+  "bulk.groups.tap_to_pick": "тапни за избор"
+}
+```
+
+## 11.2 Home / List view keys (P15 + P2 + P3)
+
+Тези ще се финализират при S141 implementation. Placeholder ключове видяни в P15/P2/P3 мокапи:
+
+```
+T_TAG_LATE, T_TAG_TODAY, T_TAG_RESOLVED, T_TAG_PENDING, T_TAG_CAUSE
+T_VIEW, T_REMIND, T_RECEIVE_NOW, T_USEFUL, T_VIEW_ALL, T_GOT_IT
+T_RECEIVE_HOW, T_RECEIVE_HOW_SUB
+T_OPT_OCR, T_OPT_VOICE, T_OPT_SCAN, T_OPT_IMPORT, T_OPT_OCR_SUB, T_OPT_VOICE_SUB, T_OPT_SCAN_SUB, T_OPT_IMPORT_SUB, T_SEC
+T_SORT_NAME, T_SORT_PRICE_ASC, T_SORT_PRICE_DESC, T_SORT_STOCK_ASC, T_SORT_STOCK_DESC, T_SORT_NEWEST
+T_VAR, T_LOAD_MORE, T_VARIATIONS, T_TOTAL_STOCK, T_ALL_VARIATIONS, T_PRINT_ALL, T_EXPORT
+T_COLOR_BLACK, T_COLOR_WHITE, T_COLOR_RED, T_COLOR_BLUE (и т.н. цветове)
+T_Q2_TAG, T_Q3_TAG, T_Q4_NAME, T_Q5_NAME, T_Q6_NAME
+T_PRODUCTS, T_WHY, T_SHOW, T_ORDER, T_MARGIN_PROBLEMS, T_FIX
+T_TOP_SELLERS, T_REORDER, T_MONTH
+T_REASONS_GROWING, T_TELL_ME_MORE
+T_PRODUCTS_TO_ORDER, T_CREATE_ORDER
+T_FROZEN, T_DISCOUNT
+T_SEE_ALL_PRODUCTS, T_ALL_SUPPLIERS
+```
+
+## 11.3 i18n rule (sacred)
+
+```php
+// loadTranslations() loaded once per request
+$T = loadTranslations($tenant['language']);
+
+// Use везде:
+echo t('bulk.field.name', $tenant);
+echo t('bulk.matrix.sku_summary', $tenant, ['n_sizes' => 3, 'n_colors' => 2, 'n_sku' => 6, 'total' => 14]);
+```
+
+**Никога:**
+- `echo "Име";`  ❌
+- `<label>Цена</label>` ❌
+
+**Винаги:**
+- `echo t('bulk.field.name', $tenant);` ✅
+- `<label><?= t('bulk.field.retail_price', $tenant) ?></label>` ✅
+
+---
+
+# 12. ЕТИКЕТ ПЕЧАТ
+
+**Архитектура:** Dual printer bridge — BLE GATT + Bluetooth Classic SPP.
+**Sacred file:** `js/capacitor-printer.js` (2097 реда). История от S82 до S98 — не пипай без backup tag.
+
+## 12.1 Поддържани принтери
+
+| Принтер | Транспорт | Протокол | Service / Char |
+|---|---|---|---|
+| **DTM-5811** | BLE GATT | TSPL | `18f0` service / `2af1` char |
+| **D520BT** | Bluetooth Classic SPP / RFCOMM | TSPL | SDP 1101 |
+
+Plugin-и (Capacitor):
+- `@capacitor-community/bluetooth-le` (за DTM BLE)
+- `@e-is/capacitor-bluetooth-serial` (за D520 SPP)
+
+## 12.2 API (window.RmsPrinter)
+
+| Функция | Описание |
+|---|---|
+| `pair()` | DTM BLE pairing flow (legacy alias, backwards-compatible) |
+| `pairD520()` | D520BT Classic SPP pairing flow (нов в S96) |
+| `print(opts)` | Route by active printer type. `opts.type='DTM'\|'D520'` overrides |
+| `printAll(labels)` | Bulk print N labels |
+
+## 12.3 Print флоу
+
+```
+products.php P13 wizard save → toast + print modal
+  → Pesho tap [🖨 ПЕЧАТАЙ ЕТИКЕТ]
+       ↓
+window.RmsPrinter.print({ items: [{ name, code, barcode, retail_price, ... }] })
+       ↓
+  ├─ Active printer = DTM-5811 → BLE GATT path
+  │     ↓
+  │     discoverDtmEndpoint(ble, deviceId, deviceName)  [ред 227]
+  │     ↓
+  │     writeChunked_DTM(ble, deviceId, tsplBytes)  [ред 1511]
+  │
+  └─ Active printer = D520BT → Bluetooth Classic SPP path
+        ↓
+        writeSPP_D520(address, tsplBytes)  [ред 1524]
+```
+
+## 12.4 TSPL команден шаблон (50×30mm етикет)
+
+Етикетът съдържа:
+- Име продукт (1-2 реда)
+- Артикулен номер
+- Баркод (EAN-13 или Code128)
+- Цена (€ + лв до 08.08.2026)
+
+Формат: 50×30mm, TSPL ASCII-only (BG cyrillic превърнат в latin transliteration ИЛИ ASCII fallback при D520).
+
+## 12.5 D520BT SPP caveat (от capacitor-printer.js docs)
+
+`@e-is` plugin's `write()` encodes JS string с `getBytes(UTF_8)` от Java side. ASCII (0x00-0x7F) минава. **0x80-0xFF стават 2-byte UTF-8 sequences** (corrupting the wire).
+
+**Phase 3 (current):** ASCII-only TSPL → БГ → latin transliteration.
+**Phase 4 (future):** Frame-wrapping → изисква fork на plugin за ISO-8859-1 mapping ИЛИ base64.
+
+## 12.6 S95 history (do NOT revisit)
+
+5 BLE подхода failed за D520BT:
+- Phomemo D-family BLE
+- LuckPrinter SDK
+- Exact replay (BLE)
+- writeWithoutResponse
+- Frame wrapping over GATT
+
+**Result:** D520BT advertises BLE service `ff00` но print engine е hardwired към RFCOMM SDP 1101 (потвърдено с Wireshark btsnoop, 0 btatt packets during print). Всички BLE опити изтрити в S96.D520.2.
+
+**Sacred lesson:** Не опитвай BLE за D520BT. Винаги Classic SPP.
+
+## 12.7 Browser fallback (NO Capacitor)
+
+products.php ред 5527, 8747, 12643:
+
+```javascript
+// Generic browser fallback (window.print() + JsBarcode)
+html += '<script>setTimeout(function(){window.print();},400);</script>';
+```
+
+Pattern:
+1. Build HTML с label info
+2. Render barcode (JsBarcode lib, EAN13 format)
+3. `setTimeout(window.print, 400ms)` — wait за barcode rendering
+4. Browser print dialog
+
+**Toast ако не е mobile app:** "Печатът работи само в мобилното приложение (DTM-5811 BLE)" (products.php ред 8696).
+
+## 12.8 Print modal (P13 bottom bar Печат)
+
+UI tabs:
+- **€ + лв (default)** — двойно обозначаване до 08.08.2026
+- **Само €** — без лв ред
+- **Без цена** — само име/код/баркод
+
+Toggle: "Печат без баркод" (за артикули без барод yет).
+
+Per-SKU qty steppers — Pesho избира колко етикета на всяка вариация.
+
+CTA: "Печатай всички N етикета" (green primary).
+
+---
+
+# 13. РАБОТЕН РЕД (PREBETA tasks → реалистичен sequence)
+
+**Източник:** PREBETA_MASTER_v2.md задачи 1.1.1 - 1.1.7
+
+## 13.1 PREBETA задачи за products.php
+
+| # | Задача | Mockup | Target в products.php | Стратегия |
+|---|---|---|---|---|
+| 1.1.1 | Лесен режим simple view | **P15** | scrHome (4321-4635) for mode-simple | LOCAL REPLACE (не INJECT-ONLY) |
+| 1.1.2 | Разширен dashboard | **P2** | scrHome for mode-detailed | LOCAL REPLACE (но HANDOFF маркира P2 като legacy — pending Тих) |
+| 1.1.3 | Разширен списък | **P3** | scrProducts (4650-4694) | LOCAL REPLACE |
+| 1.1.4 | Wizard (добави артикул) | **P13** + voice-first | Wizard зона (~7800-12900) | MAJOR REWRITE (Phase C от HANDOFF) |
+| 1.1.5 | Matrix (вариации) | **P12** overlay | НОВ overlay | NEW component |
+| 1.1.6 | Етикети: печат работи от двата режима | (capacitor-printer.js) | Print modal в bottom bar | TEST only (логиката работи) |
+| 1.1.7 | Тест: light + dark + Z Flip6 373px | — | Цял модул | Visual regression |
+
+## 13.2 Препоръчителен реален sequence
+
+Логика: започваме от entry point (P15) → wizard (P13 = главната работа) → matrix → list → detailed home → printing → test.
+
+| Стъпка | Задача | Размер | Риск | Backup tag |
+|---|---|---|---|---|
+| 1 | **P15 → scrHome simple** | ~317 реда replace | Среден | `pre-S141-p15-home` |
+| 2 | **P13 → wizard rewrite** | ~5000 реда replace | Висок (~3 дни работа) | `pre-S141-p13-wizard` |
+| 3 | **P12 → matrix overlay** | ~500 реда нов код | Среден | `pre-S141-p12-matrix` |
+| 4 | **P3 → scrProducts list** | ~45 реда (current) → ~800 нови | Среден | `pre-S141-p3-list` |
+| 5 | **P2 → scrHome detailed** | ~317 реда replace | Среден | `pre-S141-p2-detailed` |
+| 6 | **Печат тест** | 0 реда (тест-only) | Нисък | — |
+| 7 | **Z Flip6 + light/dark test** | 0 реда (test-only) | Нисък | — |
+
+## 13.3 Стратегия per стъпка
+
+### Стъпка 1: P15 → scrHome simple (LOCAL REPLACE)
+
+**Защо НЕ INJECT-ONLY:** P15 е ~30% match с current scrHome съдържание. CSS overlay = маскиране, не replacement. P15 има нови блокове (СВЪРШИЛИ, ЗАСТОЯЛИ, AI поръчка, AI вижда signals) които текущ scrHome няма.
+
+**LOCAL REPLACE strategy:**
+1. Backup tag `pre-S141-p15-home`
+2. Read P15 mockup → identify CSS classes, HTML structure, embedded JS
+3. Replace ред 4321-4635 в products.php (sceHome content) с P15 1:1
+4. Wrap в `<?php if ($user_role === 'seller'): ?>` ... `<?php endif; ?>` (показва се само за seller)
+5. CSS overrides в нов "S141 OVERRIDES" блок
+6. Connect data binding: PHP queries за свършили, застояли, AI insights → frontend rendering
+7. Test on staging → backup tag check → push
+
+**Не пипай:** wizMic, ai-color-detect, wizard code, all functions от Section 2 sacred list.
+
+### Стъпка 2: P13 → wizard rewrite (MAJOR)
+
+Това е **Phase C от HANDOFF_FINAL_BETA**. Най-голямата работа в проекта.
+
+**Spec source:** `PRODUCTS_BULK_ENTRY_LOGIC.md` (35KB железна) + Section 5 от този документ.
+
+**Стратегия:** Read целия P13 mockup → migrate CSS classes → HTML structure → 5 accordion sections → integrate с existing voice/color sacred functions.
+
+**Verification gates (от HANDOFF):**
+- `php -l products.php` exit 0
+- `bash design-kit/check-compliance.sh products.php` exit 0
+- Visual diff vs P13 ≤ 1% pixel divergence (375px viewport)
+- Mode toggle работи
+- Save per section запазва confidence_score правилно
+- Matrix expand → P12 overlay
+- Photo AI detect → confidence threshold правилно
+- AI Studio link → modal
+- Bottom bar Undo работи
+- "Запази · следващ" dropdown показва "Като предния" + "Празно"
+
+### Стъпки 3-7: TBD при достигането им
+
+Всяка стъпка отделен план след завършване на предишната.
+
+## 13.4 Cycle на стъпка (от S140 proven workflow)
+
+```
+1. Аз: backup tag → push
+2. Аз: grep + view target секция в sandbox
+3. Аз: пиша промяната локално (Python скрипт за edits)
+4. Аз: git add + commit + push
+5. Аз: давам ти команда между ═══:
+
+   ═══════════════════════════════════════════
+   cd /var/www/runmystore && git pull origin main
+   ═══════════════════════════════════════════
+
+6. Ти: paste, refresh браузъра, feedback (ОК / screenshot / описание)
+7. Аз: fix → или следващ блок
+```
+
+При визуално счупване → emergency revert:
+```bash
+cd /var/www/runmystore && git reset --hard pre-S141-<step> && git push origin main --force
+```
+
+---
+
+# 14. ИЗВЕСТНИ BUGS И ОТВОРЕНИ ВЪПРОСИ
+
+## 14.1 От `docs/KNOWN_BUGS.md` (S140 EOD, 11.05.2026)
+
+### 🐛 BUG #1: Brand shimmer не работи в life-board.php
+- **Severity:** Cosmetic
+- **Status:** Unsolved
+- **Симптом:** `.rms-brand .brand-1` shimmer animation работи в chat.php (P11), не в life-board.php (P10). И двата имат identical CSS.
+- **Влияние върху products.php:** Косвено. Ако ползваме същия brand pattern в hедъра на products.php, проверявай дали анимацията тече.
+
+### 🐛 BUG #2: Feedback бутони (👍👎❓) не записват в DB
+- **Severity:** Medium
+- **Status:** Unsolved
+- **Симптом:** `lb-fb-btn` визуално работи (selected class toggle), но няма AJAX save → AI brain няма обратна връзка.
+- **Влияние върху products.php:** Косвено. AI insights в P15 (AI вижда секцията) ще имат feedback бутони → ще трябва същия endpoint `insights-feedback.php` + DB schema `ai_insight_feedback`.
+
+## 14.2 От `SESSION_48_HANDOFF.md` — products P0/P1 списък
+
+### P0 (blockers)
+- **sold_30d постоянен fix** — НЕ Е ЗАПОЧНАТО
+- **Бутон "Чакащи потвърждение"** — НЕ Е ТЕСТВАНО
+- **Етикет за произход — AI от снимка на фабричен етикет** — НЕ Е ЗАПОЧНАТО (wizard Section 4 extension)
+  - Wizard стъпка 1: 2 снимки (стока + фабричен етикет)
+  - Gemini Vision чете от етикет: composition + origin_country
+  - Auto-populates polя
+
+### P1 (open)
+- **Категории дедупликация** — НЕ
+- **Копирай/Деактивирай реални endpoints** — НЕ (placeholder функции в products.php 5052-5053)
+- **Voice input redesign 🎤** до всяко поле — done за wizard, но търсене още има старо UI
+- **Page transition performance** 3-4 сек — НЕ optimized
+- **Supplier address/city в UI** — DB колоните вече има, UI липсва
+
+## 14.3 От `EOD_HANDOFF_S95.md` — products module state
+
+**P0 BLOCKERS ЗА BETA** (продуктови):
+- (тук ще се обнови след scan на S95 docs за detailed list — за следваща версия на този документ)
+
+## 14.4 Открит конфликт (изисква Тих решение)
+
+**P2 mockup status:**
+- HANDOFF_FINAL_BETA.md (08.05) маркира P2 като **"стар home (legacy reference)"**
+- PREBETA_MASTER_v2.md (11.05) изисква P2 като **detailed home target** (задача 1.1.2)
+
+**Решение pending:** P2 е canonical за detailed home или само reference?
+
+## 14.5 Voice — "едно и петдесет" → 1.50 fail
+
+От PROMPT_TOMORROW_S99_VOICE DoD list:
+- "едно и петдесет" → `1.50` ✅ → **днес fail-ва**
+
+Тих работи цял ден да нагласи voice. S99 е планираният fix цикъл. До тогава, edge case "и петдесет" може да върне грешно число.
+
+---
+
+# 15. ФАЙЛ ТОПОЛОГИЯ
+
+**Кои файлове участват в products модула.** Reference за бъдещ Claude — къде да гледа.
+
+## 15.1 Главен файл
+
+```
+/var/www/runmystore/products.php  (14,074 реда — PHP + HTML + CSS + JS в един)
+```
+
+## 15.2 Sacred dependencies (не пипай)
+
+```
+/var/www/runmystore/services/voice-tier2.php       (333 реда — Whisper Tier 2 Groq client)
+/var/www/runmystore/ai-color-detect.php            (296 реда — Gemini Vision color detect)
+/var/www/runmystore/tools/voice-lab.php            (629 реда — voice testing tool, admin)
+/var/www/runmystore/voice-tier2-test.php           (voice test endpoint)
+/var/www/runmystore/js/capacitor-printer.js        (2097 реда — DTM + D520 BT bridge)
+```
+
+## 15.3 AI Studio integration
+
+```
+/var/www/runmystore/ai-studio.php                  (AI Studio standalone — opens from P13 Section 5)
+/var/www/runmystore/ai-studio-backend.php          (AI Studio backend)
+/var/www/runmystore/ai-image-credits.php           (credits quota helper)
+/var/www/runmystore/cron/ai-studio-queue-worker.php  (bulk magic worker, P8c queue)
+```
+
+## 15.4 Helpers / config
+
+```
+/var/www/runmystore/config/database.php            (DB::run() singleton)
+/etc/runmystore/db.env                              (DB creds, chmod 600)
+/etc/runmystore/api.env                             (GEMINI_API_KEY, GROQ_API_KEY, chmod 600)
+/var/www/runmystore/services/duplicate-check.php   (product duplicate detection)
+/var/www/runmystore/services/ocr-router.php        (delivery invoice OCR)
+/var/www/runmystore/products_fetch.php             (paginated products fetcher)
+/var/www/runmystore/product-save.php               (legacy save endpoint)
+/var/www/runmystore/biz-coefficients.php           (auto-pricing helper)
+/var/www/runmystore/biz-compositions.php           (composition templates)
+```
+
+## 15.5 Mockups (canonical visual references)
+
+```
+/var/www/runmystore/mockups/P15_products_simple.html     (1332 реда — simple home for seller)
+/var/www/runmystore/mockups/P3_list_v2.html              (1921 реда — list view universal)
+/var/www/runmystore/mockups/P2_home_v2.html              (1729 реда — detailed home [legacy?])
+/var/www/runmystore/mockups/P13_bulk_entry.html          (1107 реда — wizard accordion)
+/var/www/runmystore/mockups/P12_matrix.html              (467 реда — variations overlay)
+
+/var/www/runmystore/mockups/ai_studio_FINAL_v5.html      (AI Studio per-product modal)
+/var/www/runmystore/mockups/ai-studio-main-v2.html       (AI Studio standalone)
+/var/www/runmystore/mockups/ai-studio-categories.html    (P8c queue overlay)
+/var/www/runmystore/mockups/P8b_advanced_clothes.html    (category-specific AI Studio)
+/var/www/runmystore/mockups/P8b_advanced_acc.html
+/var/www/runmystore/mockups/P8b_advanced_jewelry.html
+/var/www/runmystore/mockups/P8b_advanced_lingerie.html
+/var/www/runmystore/mockups/P8b_advanced_other.html
+```
+
+## 15.6 Documentation sources
+
+```
+/var/www/runmystore/HANDOFF_FINAL_BETA.md             (08.05 — основен handoff)
+/var/www/runmystore/PRODUCTS_BULK_ENTRY_LOGIC.md      (35KB железна wizard spec)
+/var/www/runmystore/docs/PRODUCTS_DESIGN_LOGIC.md     (57KB design logic v1)
+/var/www/runmystore/docs/PROMPT_TOMORROW_S99_VOICE.md (voice S99 plan)
+/var/www/runmystore/AI_STUDIO_LOGIC_DELTA.md          (AI Studio v1.1 changes)
+/var/www/runmystore/SIMPLE_MODE_BIBLE.md              (simple mode философия)
+/var/www/runmystore/INVENTORY_HIDDEN_v3.md            (confidence_score logic)
+/var/www/runmystore/PREBETA_MASTER_v2.md              (PK only — задачи)
+/var/www/runmystore/docs/S140_FINALIZATION.md         (Universal UI Laws §2)
+/var/www/runmystore/docs/KNOWN_BUGS.md                (нерешени bugs)
+/var/www/runmystore/CLAUDE_AUTO_BOOT.md               (boot скрипт)
+/var/www/runmystore/COMPASS_APPEND_S140.md            (last EOD)
+```
+
+## 15.7 DB schema files
+
+```
+/var/www/runmystore/db/migrations/2026_05_p13_bulk_entry.sql   (Phase B — TBD)
+/var/www/runmystore/migrations/*.sql                            (legacy migrations)
+```
+
+## 15.8 Design system (sacred — locked)
+
+```
+/var/www/runmystore/design-kit/                                 (13 locked files)
+/var/www/runmystore/design-kit/check-compliance.sh              (gate — exit 0 required)
+/var/www/runmystore/design-kit/PROMPT.md                        (design prompt)
+/var/www/runmystore/design-kit/theme-toggle.js                  (light/dark)
+/var/www/runmystore/DESIGN_SYSTEM_v4.0_BICHROMATIC.md            (Bible)
+```
+
+## 15.9 Test tenant
+
+```
+ENI (tenant_id = 7)
+5 магазина:
+  - ENI · Витоша 25
+  - ENI · Студентски град
+  - ENI · Младост
+  - ENI · Овча купел
+  - ENI · Люлин
+```
+
+## 15.10 Mobile testing
+
+```
+Samsung Z Flip6 (cover display ~373px, main display ~860×2376)
+Capacitor APK build via:
+  cd /var/www/runmystore/capacitor && npx cap sync android && npx cap build android
+```
+
+---
+
+# 🏁 КРАЙ НА PRODUCTS_MASTER.md v1.0
+
+**Total size:** ~85KB | **Total sections:** 15
+**Sources merged:** 11 файла + products.php inspection
+**Created:** 2026-05-12 (шеф-чат Opus 4.7)
+
+## История на промените
+
+| Версия | Дата | Промени |
+|---|---|---|
+| v1.0 | 2026-05-12 | Първоначално създаване — обединение на HANDOFF_FINAL_BETA + PRODUCTS_BULK_ENTRY_LOGIC + voice/color sacred + PREBETA tasks. ЧАСТИ 1-4 в 4 commits. |
+
+## Бъдещи промени (when needed)
+
+- Section 11.2 — финализация на home/list i18n keys при S141 implementation
+- Section 14.3 — обнови от EOD_HANDOFF_S95 след scan
+- Section 14.4 — Тих решение за P2 status (legacy или canonical detailed home)
+- Section 13.3 — детайлни планове за стъпки 3-7 при достигането им
+
+---
+
+**EOF**
