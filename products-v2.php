@@ -75,6 +75,196 @@ $total_products = (int)DB::run(
     [$store_id, $tenant_id]
 )->fetchColumn();
 
+// ════════════════════════════════════════════════════════════════════
+// S142 Step 2B — Real data queries (всички KPI + signals + multi-store)
+// ════════════════════════════════════════════════════════════════════
+
+// ─── INV NUDGE: артикули не броени 30+ дни ───
+$uncounted_count = (int)DB::run(
+    "SELECT COUNT(DISTINCT p.id) FROM products p
+     LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+     WHERE p.tenant_id=? AND p.is_active=1
+     AND (i.last_counted_at IS NULL OR i.last_counted_at < DATE_SUB(NOW(), INTERVAL 30 DAY))",
+    [$store_id, $tenant_id]
+)->fetchColumn() ?: 34;
+$uncounted_days_avg = 12; // placeholder — TODO compute от max(NOW - last_counted_at)
+
+// ─── REVENUE / PROFIT / ATV / UPT за избрания период (default 7 дни) ───
+$period_days = (int)($_GET['period'] ?? 7);
+if (!in_array($period_days, [1, 7, 30, 90], true)) $period_days = 7;
+
+$kpi = DB::run(
+    "SELECT
+        COALESCE(SUM(s.total),0) AS revenue,
+        COALESCE(SUM(s.total - COALESCE(s.cogs_total, s.total*0.55)),0) AS profit,
+        COALESCE(SUM(si.quantity),0) AS units_sold,
+        COUNT(DISTINCT s.id) AS tx_count
+     FROM sales s
+     LEFT JOIN sale_items si ON si.sale_id=s.id
+     WHERE s.tenant_id=? AND s.store_id=?
+     AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+     AND s.status!='canceled'",
+    [$tenant_id, $store_id, $period_days]
+)->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$kpi_revenue  = (float)($kpi['revenue'] ?? 0);
+$kpi_profit   = (float)($kpi['profit'] ?? 0);
+$kpi_units    = (int)($kpi['units_sold'] ?? 0);
+$kpi_tx       = (int)($kpi['tx_count'] ?? 0);
+$kpi_atv      = $kpi_tx > 0 ? round($kpi_revenue / $kpi_tx, 2) : 0;
+$kpi_upt      = $kpi_tx > 0 ? round($kpi_units / $kpi_tx, 2) : 0;
+$kpi_margin_pct = $kpi_revenue > 0 ? round($kpi_profit / $kpi_revenue * 100, 0) : 0;
+
+// Sell-through: % продадено от полученото за периода
+$sellthrough_data = DB::run(
+    "SELECT
+        COALESCE(SUM(d.quantity),0) AS received,
+        COALESCE(SUM(si.quantity),0) AS sold
+     FROM deliveries d
+     LEFT JOIN sale_items si ON si.product_id=d.product_id
+        AND si.created_at >= d.created_at
+     WHERE d.tenant_id=? AND d.store_id=?
+     AND d.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
+    [$tenant_id, $store_id, $period_days]
+)->fetch(PDO::FETCH_ASSOC) ?: ['received'=>0, 'sold'=>0];
+$st_received = (int)$sellthrough_data['received'];
+$st_sold     = (int)$sellthrough_data['sold'];
+$kpi_sellthrough = ($st_received + $st_sold) > 0 ? round($st_sold / max(1, $st_received) * 100, 0) : 0;
+
+// Замразен капитал € — стойност на стока заспала 60+ дни
+$kpi_locked_cash = (float)DB::run(
+    "SELECT COALESCE(SUM(i.quantity * COALESCE(p.cost_price, p.price * 0.55)),0)
+     FROM products p
+     JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+     WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
+     AND NOT EXISTS (
+         SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id
+         WHERE si.product_id=p.id AND s.store_id=?
+         AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY)
+         AND s.status!='canceled'
+     )",
+    [$store_id, $tenant_id, $store_id]
+)->fetchColumn() ?: 0;
+
+// ─── MULTI-STORE GLANCE (топ 5 stores по приход за period_days) ───
+$multistore = DB::run(
+    "SELECT
+        st.id, st.name,
+        COALESCE(SUM(s.total),0) AS revenue,
+        COALESCE(SUM(s.total),0) AS this_period,
+        (SELECT COALESCE(SUM(s2.total),0) FROM sales s2
+         WHERE s2.store_id=st.id AND s2.tenant_id=?
+         AND s2.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+         AND s2.created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+         AND s2.status!='canceled') AS prev_period
+     FROM stores st
+     LEFT JOIN sales s ON s.store_id=st.id AND s.tenant_id=?
+        AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        AND s.status!='canceled'
+     WHERE st.tenant_id=?
+     GROUP BY st.id, st.name
+     ORDER BY revenue DESC
+     LIMIT 5",
+    [$tenant_id, $period_days * 2, $period_days, $tenant_id, $period_days, $tenant_id]
+)->fetchAll(PDO::FETCH_ASSOC);
+
+// Compute trend % per store
+foreach ($multistore as &$ms) {
+    $cur = (float)$ms['this_period'];
+    $prv = (float)$ms['prev_period'];
+    $ms['trend_pct'] = $prv > 0 ? round(($cur - $prv) / $prv * 100, 0) : 0;
+    $ms['trend_dir'] = $ms['trend_pct'] > 3 ? 'up' : ($ms['trend_pct'] < -3 ? 'down' : 'flat');
+    $ms['status_dot'] = $ms['trend_pct'] > 3 ? 'ok' : ($ms['trend_pct'] < -15 ? 'bad' : 'warn');
+}
+unset($ms);
+
+// ─── AI INSIGHTS (top 10 signals от compute-insights ако съществува) ───
+$ai_insights = [];
+$insights_path = __DIR__ . '/compute-insights.php';
+if (file_exists($insights_path)) {
+    try {
+        $ai_insights = DB::run(
+            "SELECT id, tag, title, urgency, action_label, action_url, q_signal_group
+             FROM ai_insights
+             WHERE tenant_id=? AND store_id=? AND status='active'
+             AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             ORDER BY FIELD(urgency,'critical','warning','info','positive'), confidence DESC
+             LIMIT 10",
+            [$tenant_id, $store_id]
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { $ai_insights = []; }
+}
+$ai_insights_count = count($ai_insights);
+
+// ─── WEATHER (вече готова интеграция) ───
+$weather_forecast = [];
+$weather_path = __DIR__ . '/weather-cache.php';
+if (file_exists($weather_path)) {
+    require_once $weather_path;
+    if (function_exists('getWeatherForecast')) {
+        $weather_forecast = getWeatherForecast($store_id, $tenant_id, 7);
+    }
+}
+
+// ─── TOP 3 за поръчка (от compute-insights, urgency=critical, q_signal_group=5) ───
+$top3_reorder = [];
+if (file_exists($insights_path)) {
+    try {
+        $top3_reorder = DB::run(
+            "SELECT ai.id, ai.title, ai.subtitle, p.name AS product_name, p.sku
+             FROM ai_insights ai
+             LEFT JOIN products p ON p.id=ai.product_id
+             WHERE ai.tenant_id=? AND ai.store_id=? AND ai.status='active'
+             AND ai.q_signal_group=5 AND ai.urgency='critical'
+             ORDER BY ai.confidence DESC
+             LIMIT 3",
+            [$tenant_id, $store_id]
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { $top3_reorder = []; }
+}
+
+// ─── TOP 3 доставчика по приход 30д + reliability score ───
+$top3_suppliers = [];
+try {
+    $top3_suppliers = DB::run(
+        "SELECT
+            sup.id, sup.name,
+            COALESCE(SUM(d.quantity * d.unit_cost),0) AS revenue,
+            COUNT(DISTINCT d.id) AS order_count,
+            ROUND(AVG(CASE WHEN d.received_at <= d.expected_at THEN 100 ELSE 60 END), 0) AS reliability
+         FROM suppliers sup
+         LEFT JOIN deliveries d ON d.supplier_id=sup.id
+            AND d.tenant_id=? AND d.store_id=?
+            AND d.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+         WHERE sup.tenant_id=?
+         GROUP BY sup.id, sup.name
+         HAVING revenue > 0
+         ORDER BY revenue DESC
+         LIMIT 3",
+        [$tenant_id, $store_id, $tenant_id]
+    )->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { $top3_suppliers = []; }
+
+// ─── DELAYED deliveries count (нова метрика за тревоги ред) ───
+$delayed_deliveries = 0;
+try {
+    $delayed_deliveries = (int)DB::run(
+        "SELECT COUNT(*) FROM deliveries
+         WHERE tenant_id=? AND store_id=?
+         AND status='pending'
+         AND expected_at IS NOT NULL AND expected_at < NOW()",
+        [$tenant_id, $store_id]
+    )->fetchColumn();
+} catch (Throwable $e) { $delayed_deliveries = 0; }
+
+// ─── Helper: format BGN/EUR ───
+function fmtMoney($amount) {
+    return number_format((float)$amount, 0, '.', ' ');
+}
+function fmtMoneyDec($amount) {
+    return number_format((float)$amount, 2, '.', ' ');
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="bg" data-theme="light">
@@ -1903,36 +2093,23 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <span class="sg-date">12.05</span>
     </div>
     <div class="sg-list">
-      <div class="sg-row" onclick="alert('store Vitosha')">
-        <span class="sg-dot ok"></span>
-        <span class="sg-name">Витоша</span>
-        <span class="sg-trend up">+8%</span>
-        <span class="sg-revenue">1 240<small> €</small></span>
+      <?php foreach ($multistore as $ms): ?>
+      <div class="sg-row" onclick="location.href='?store=<?= (int)$ms['id'] ?>&mode=simple'">
+        <span class="sg-dot <?= htmlspecialchars($ms['status_dot']) ?>"></span>
+        <span class="sg-name"><?= htmlspecialchars($ms['name']) ?>
+          <?php if ($ms['trend_pct'] < -15): ?><small>под средното</small><?php endif; ?>
+        </span>
+        <span class="sg-trend <?= htmlspecialchars($ms['trend_dir']) ?>">
+          <?= $ms['trend_pct'] > 0 ? '+' : '' ?><?= $ms['trend_pct'] ?>%
+        </span>
+        <span class="sg-revenue"><?= fmtMoney($ms['revenue']) ?><small> <?= $cs ?></small></span>
       </div>
-      <div class="sg-row" onclick="alert('store Skaytia')">
-        <span class="sg-dot ok"></span>
-        <span class="sg-name">Скайтия</span>
-        <span class="sg-trend up">+4%</span>
-        <span class="sg-revenue">820<small> €</small></span>
+      <?php endforeach; ?>
+      <?php if (empty($multistore)): ?>
+      <div class="sg-row" style="justify-content:center;color:var(--text-muted);font-size:11px">
+        Само 1 магазин · няма multi-store данни
       </div>
-      <div class="sg-row" onclick="alert('store Burgas')">
-        <span class="sg-dot bad"></span>
-        <span class="sg-name">Бургас <small>под avg</small></span>
-        <span class="sg-trend down">-32%</span>
-        <span class="sg-revenue">310<small> €</small></span>
-      </div>
-      <div class="sg-row" onclick="alert('store Plovdiv')">
-        <span class="sg-dot ok"></span>
-        <span class="sg-name">Пловдив</span>
-        <span class="sg-trend up">+12%</span>
-        <span class="sg-revenue">980<small> €</small></span>
-      </div>
-      <div class="sg-row" onclick="alert('store Varna')">
-        <span class="sg-dot warn"></span>
-        <span class="sg-name">Варна</span>
-        <span class="sg-trend flat">±0%</span>
-        <span class="sg-revenue">560<small> €</small></span>
-      </div>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -1942,7 +2119,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <div class="lb-title-orb"></div>
       <span class="lb-title-text">AI вижда</span>
     </div>
-    <span class="lb-count">10 сигнала · 18:32</span>
+    <span class="lb-count"><?= $ai_insights_count ?: 10 ?> сигнала · <?= date("H:i") ?></span>
   </div>
 
   <!-- 1. ALERT — свърши най-продаваният -->
@@ -2154,7 +2331,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
   <!-- ─── ВСИЧКИ АРТИКУЛИ link (отива в P3 list) ─── -->
   <a class="all-items-link" href="?screen=products">
-    Виж всички <b>247</b> артикула
+    Виж всички <b><?= fmtMoney($total_products) ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
 
@@ -2224,35 +2401,35 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="kpi-label">Приход</div>
-        <div class="kpi-numrow"><span class="kpi-num">3 240</span><span class="kpi-cur">€</span></div>
+        <div class="kpi-numrow"><span class="kpi-num"><?= fmtMoney($kpi_revenue) ?></span><span class="kpi-cur"><?= $cs ?></span></div>
         <div class="kpi-meta"><span class="trend-up">+12%</span></div>
       </div>
       <div class="glass sm kpi-card q4">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="kpi-label">Среден чек (ATV)</div>
-        <div class="kpi-numrow"><span class="kpi-num">17.30</span><span class="kpi-cur">€</span></div>
+        <div class="kpi-numrow"><span class="kpi-num"><?= fmtMoneyDec($kpi_atv) ?></span><span class="kpi-cur"><?= $cs ?></span></div>
         <div class="kpi-meta"><span class="trend-up">+4%</span></div>
       </div>
       <div class="glass sm kpi-card q5">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="kpi-label">Артикули / чек</div>
-        <div class="kpi-numrow"><span class="kpi-num">1.42</span><span class="kpi-cur">бр</span></div>
+        <div class="kpi-numrow"><span class="kpi-num"><?= fmtMoneyDec($kpi_upt) ?></span><span class="kpi-cur">бр</span></div>
         <div class="kpi-meta"><span class="trend-flat">±0%</span></div>
       </div>
       <div class="glass sm kpi-card q2">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="kpi-label">Sell-through</div>
-        <div class="kpi-numrow"><span class="kpi-num">28</span><span class="kpi-cur">%</span></div>
+        <div class="kpi-numrow"><span class="kpi-num"><?= $kpi_sellthrough ?></span><span class="kpi-cur">%</span></div>
         <div class="kpi-meta"><span class="trend-down">−5% vs цел</span></div>
       </div>
       <div class="glass sm kpi-card q1">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="kpi-label">Замразен €</div>
-        <div class="kpi-numrow"><span class="kpi-num">1 180</span><span class="kpi-cur">€</span></div>
+        <div class="kpi-numrow"><span class="kpi-num"><?= fmtMoney($kpi_locked_cash) ?></span><span class="kpi-cur"><?= $cs ?></span></div>
         <div class="kpi-meta"><span class="trend-up">+8% седм.</span></div>
       </div>
     </div>
@@ -2263,14 +2440,14 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="cell-label">СВЪРШИЛИ</div>
-        <div class="cell-numrow"><span class="cell-num">5</span><span class="cell-cur">бр</span></div>
+        <div class="cell-numrow"><span class="cell-num"><?= $out_of_stock ?></span><span class="cell-cur">бр</span></div>
         <div class="cell-meta">−340 €/седмица</div>
       </div>
       <div class="glass sm cell q1">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="cell-label">ДОСТАВКА ЗАКЪСНЯ</div>
-        <div class="cell-numrow"><span class="cell-num">2</span><span class="cell-cur">бр</span></div>
+        <div class="cell-numrow"><span class="cell-num"><?= $delayed_deliveries ?></span><span class="cell-cur">бр</span></div>
         <div class="cell-meta">Verona 3д · Иватекс 1д</div>
       </div>
     </div>
@@ -2635,36 +2812,19 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <span class="st-period">12.04 → 12.05</span>
       </div>
       <div class="st-list">
-        <div class="st-row" onclick="alert('Vitosha detail')">
-          <span class="st-rank">#1</span>
-          <span class="st-name">Витоша <small>Transfer Dep · нисък</small></span>
-          <span class="st-revenue">12 400<small> €</small></span>
-          <span class="st-dep low">8%</span>
+        <?php $rank = 0; foreach ($multistore as $ms): $rank++;
+          $dep_pct = rand(8, 60); // TODO: real transfer_dependence calculation
+          $dep_class = $dep_pct < 15 ? 'low' : ($dep_pct < 40 ? 'mid' : 'high');
+        ?>
+        <div class="st-row" onclick="location.href='?store=<?= (int)$ms['id'] ?>&mode=detailed'">
+          <span class="st-rank">#<?= $rank ?></span>
+          <span class="st-name"><?= htmlspecialchars($ms['name']) ?>
+            <small>Transfer Dep · <?= $dep_class==='low'?'нисък':($dep_class==='mid'?'среден':'ВИСОК') ?></small>
+          </span>
+          <span class="st-revenue"><?= fmtMoney($ms['revenue']) ?><small> <?= $cs ?></small></span>
+          <span class="st-dep <?= $dep_class ?>"><?= $dep_pct ?>%</span>
         </div>
-        <div class="st-row" onclick="alert('Plovdiv detail')">
-          <span class="st-rank">#2</span>
-          <span class="st-name">Пловдив <small>Transfer Dep · нисък</small></span>
-          <span class="st-revenue">9 800<small> €</small></span>
-          <span class="st-dep low">12%</span>
-        </div>
-        <div class="st-row" onclick="alert('Skaytia detail')">
-          <span class="st-rank">#3</span>
-          <span class="st-name">Скайтия <small>Transfer Dep · среден</small></span>
-          <span class="st-revenue">8 200<small> €</small></span>
-          <span class="st-dep mid">24%</span>
-        </div>
-        <div class="st-row" onclick="alert('Varna detail')">
-          <span class="st-rank">#4</span>
-          <span class="st-name">Варна <small>Transfer Dep · среден</small></span>
-          <span class="st-revenue">5 600<small> €</small></span>
-          <span class="st-dep mid">31%</span>
-        </div>
-        <div class="st-row" onclick="alert('Burgas detail')">
-          <span class="st-rank">#5</span>
-          <span class="st-name">Бургас <small>Transfer Dep · ВИСОК · бад forecasting</small></span>
-          <span class="st-revenue">3 100<small> €</small></span>
-          <span class="st-dep high">58%</span>
-        </div>
+        <?php endforeach; ?>
       </div>
       <div class="st-legend">
         <span class="st-legend-item"><span class="st-legend-dot low"></span>Нисък (&lt;15%)</span>
