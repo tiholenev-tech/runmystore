@@ -5123,6 +5123,226 @@ a { text-decoration: none; }
 
 
 
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* S141 BOTTOM NAV — from chat.php canonical */
+/* Source: chat.php ред 1349-1559 (canonical lesen режим)             */
+/* ═══════════════════════════════════════════════════════════════════ */
+.rms-bottom-nav {
+  position: fixed; left: 12px; right: 12px; bottom: 12px;
+  z-index: 50; height: 64px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  max-width: 456px; margin: 0 auto;
+}
+[data-theme="light"] .rms-bottom-nav, :root:not([data-theme]) .rms-bottom-nav { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .rms-bottom-nav {
+  background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%), linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%), linear-gradient(hsl(220 25% 4.8% / .9));
+  backdrop-filter: blur(12px); box-shadow: var(--shadow-card);
+}
+.rms-nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; color: var(--text-muted);
+  font-size: 10px; font-weight: 700;
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+.rms-nav-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform var(--dur) var(--ease-spring); }
+.rms-nav-tab:active svg { transform: scale(0.85); }
+.rms-nav-tab.active { color: var(--accent); }
+.rms-nav-tab.active::before { content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 32px; height: 4px; background: var(--accent); border-radius: var(--radius-pill); }
+[data-theme="dark"] .rms-nav-tab.active::before { box-shadow: 0 0 12px var(--accent); }
+
+/* anims */
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes auroraDrift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-25px) scale(1.1); } 66% { transform: translate(-25px,35px) scale(0.95); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popUp { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes rmsBrandShimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ═══ S82-DASH (production prozor за печалба) ═══ */
+.s82-dash { padding: 14px 16px 12px; margin-bottom: 12px; position: relative; isolation: isolate; }
+.s82-dash > * { position: relative; z-index: 5; }
+.s82-dash-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 6px; }
+.s82-dash-period-label { font-family: var(--font-mono); font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.s82-dash-numrow { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.s82-dash-num { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-theme="dark"] .s82-dash-num { color: hsl(var(--hue1) 70% 82%); text-shadow: 0 0 14px hsl(var(--hue1) 70% 50% / 0.35); }
+.s82-dash-cur { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+.s82-dash-pct { font-size: 13px; font-weight: 800; color: hsl(145 65% 40%); }
+[data-theme="dark"] .s82-dash-pct { color: #4ade80; text-shadow: 0 0 10px hsl(140 80% 50% / 0.45); }
+.s82-dash-pct.neg { color: hsl(0 70% 50%); }
+.s82-dash-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; line-height: 1.5; }
+.s82-dash-pills { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.s82-dash-pill {
+  font-family: var(--font-mono); font-size: 10px; padding: 6px 11px; min-height: 26px;
+  border-radius: var(--radius-pill); cursor: pointer;
+  letter-spacing: 0.04em; font-weight: 700;
+  color: var(--text-muted); border: none;
+  transition: box-shadow var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+[data-theme="light"] .s82-dash-pill, :root:not([data-theme]) .s82-dash-pill {
+  background: var(--surface); box-shadow: var(--shadow-card-sm);
+}
+[data-theme="dark"] .s82-dash-pill { background: rgba(255,255,255,0.025); border: 1px solid transparent; }
+.s82-dash-pill.active {
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.35);
+}
+[data-theme="dark"] .s82-dash-pill.active {
+  background: hsl(var(--hue1) 70% 50% / 0.18);
+  border-color: hsl(var(--hue1) 70% 55% / 0.35);
+  color: hsl(var(--hue1) 75% 82%);
+}
+.s82-dash-divider { width: 1px; height: 16px; background: var(--text-faint); margin: 0 6px; align-self: center; opacity: 0.3; }
+
+/* ═══ SUBBAR (Store + Where + Mode toggle, sticky под header) ═══ */
+.rms-subbar {
+  position: sticky; top: 56px; z-index: 49;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; max-width: 480px; margin: 0 auto;
+}
+[data-theme="light"] .rms-subbar, :root:not([data-theme]) .rms-subbar { background: var(--bg-main); }
+[data-theme="dark"] .rms-subbar {
+  background: hsl(220 25% 4.8% / 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.rms-store-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--text); cursor: pointer; border: none; outline: none; font-family: inherit;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+[data-theme="light"] .rms-store-toggle, :root:not([data-theme]) .rms-store-toggle {
+  background: var(--surface); box-shadow: var(--shadow-card-sm);
+}
+[data-theme="dark"] .rms-store-toggle {
+  background: hsl(220 25% 8% / 0.7); backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--hue2) 12% 18%);
+}
+.rms-store-toggle svg { width: 13px; height: 13px; fill: none; stroke: var(--accent); stroke-width: 2; flex-shrink: 0; }
+[data-theme="dark"] .rms-store-toggle svg { stroke: hsl(var(--hue1) 80% 75%); }
+.rms-store-toggle .store-chev { width: 10px; height: 10px; stroke: var(--text-muted); }
+.rms-store-toggle:active { transform: scale(var(--press)); }
+.subbar-where {
+  flex: 1; text-align: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+
+/* AI: rotating orbits + diamond ping */
+.rms-nav-tab[aria-label="AI"] svg .nav-orbit-1 { transform-origin: 12px 12px; animation: navOrbitSpin 8s linear infinite; }
+.rms-nav-tab[aria-label="AI"] svg .nav-orbit-2 { transform-origin: 12px 12px; animation: navOrbitSpin 8s linear infinite reverse; }
+.rms-nav-tab[aria-label="AI"] svg .nav-diamond { transform-origin: 12px 12px; animation: navBagPulse 2.5s ease-in-out infinite; }
+
+/* Склад: floating boxes */
+.rms-nav-tab[aria-label="Склад"] svg { animation: navBoxFloat 3s ease-in-out infinite; }
+
+/* Статистики: drawing line + pulsing dots */
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-line {
+  stroke-dasharray: 60;
+  animation: navStatsDraw 2.5s ease-out infinite alternate;
+}
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-dot {
+  transform-origin: center; transform-box: fill-box;
+  animation: navStatsDot 1.6s ease-in-out infinite;
+}
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-dot:nth-child(2) { animation-delay: 0.2s; }
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-dot:nth-child(3) { animation-delay: 0.4s; }
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-dot:nth-child(4) { animation-delay: 0.6s; }
+.rms-nav-tab[aria-label="Статистики"] svg .nav-stats-dot:nth-child(5) { animation-delay: 0.8s; }
+
+/* Продажби: bag pulse + bolt flash */
+.rms-nav-tab[aria-label="Продажби"] svg { transform-origin: center; animation: navBagPulse 2.4s ease-in-out infinite; }
+.rms-nav-tab[aria-label="Продажби"] svg .nav-bolt { animation: navBoltFlash 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rms-nav-tab svg, .rms-nav-tab svg * { animation: none !important; }
+}
+
+/* ═══ BOTTOM NAV — circular orbs (като AI Studio) ═══ */
+@keyframes navOrbBreath {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 12px var(--orb-shadow, hsl(280 70% 50% / 0.4)); }
+  50% { transform: scale(1.04); box-shadow: 0 6px 18px var(--orb-shadow, hsl(280 70% 50% / 0.55)); }
+}
+@keyframes navOrbShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes navOrbActiveSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes chatMicRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes chatSendDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
+/* Override на rms-nav-tab — premestva svg vutrre v orb */
+.rms-bottom-nav .rms-nav-tab { gap: 4px; padding: 6px 0; }
+.rms-bottom-nav .rms-nav-tab .nav-orb {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  position: relative;
+  background-size: 200% 200%;
+  animation: navOrbBreath 3.2s ease-in-out infinite, navOrbShimmer 6s linear infinite;
+  flex-shrink: 0;
+}
+.rms-bottom-nav .rms-nav-tab .nav-orb svg {
+  width: 17px; height: 17px;
+  stroke: white; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  position: relative; z-index: 2;
+}
+.rms-bottom-nav .rms-nav-tab span:not(.nav-orb) {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* Active state: orb с conic glow ring */
+.rms-bottom-nav .rms-nav-tab.active span:not(.nav-orb) {
+  color: var(--text);
+  font-weight: 800;
+}
+.rms-bottom-nav .rms-nav-tab.active .nav-orb::before {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 70%, currentColor 90%, transparent 100%);
+  animation: navOrbActiveSpin 3s linear infinite;
+  opacity: 0.6; pointer-events: none;
+  z-index: 1;
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 70%);
+  mask: radial-gradient(circle, transparent 60%, #000 70%);
+}
+
+/* Per-tab gradient + цвят */
+.rms-bottom-nav .rms-nav-tab[aria-label="AI"] .nav-orb {
+  background-image: linear-gradient(135deg, hsl(265 75% 55%), hsl(295 70% 55%), hsl(320 65% 55%), hsl(265 75% 55%));
+  --orb-shadow: hsl(280 70% 50% / 0.45);
+}
+.rms-bottom-nav .rms-nav-tab[aria-label="AI"] { color: hsl(280 65% 55%); }
+[data-theme="dark"] .rms-bottom-nav .rms-nav-tab[aria-label="AI"] { color: hsl(280 75% 75%); }
+
+.rms-bottom-nav .rms-nav-tab[aria-label="Склад"] .nav-orb {
+  background-image: linear-gradient(135deg, hsl(195 75% 50%), hsl(180 75% 50%), hsl(210 75% 55%), hsl(195 75% 50%));
+  --orb-shadow: hsl(195 70% 50% / 0.45);
+}
+
+/* ═══ END S141 BOTTOM NAV ═══ */
+
 </style>
 <?php require __DIR__ . '/includes/capacitor-head.php'; ?>
 <script src="js/capacitor-printer.js?v=<?= @filemtime(__DIR__.'/js/capacitor-printer.js') ?>"></script>
