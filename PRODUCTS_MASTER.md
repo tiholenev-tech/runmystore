@@ -1084,3 +1084,499 @@ Estimate (от PROMPT_TOMORROW_S99_VOICE):
 | `_wizPriceParse` JS function | `4222a66` |
 | `_bgPrice` JS function | `4222a66` |
 
+
+---
+
+# 7. COLOR DETECTION (Gemini Vision)
+
+**Sacred file:** `ai-color-detect.php` (296 реда). НЕ пипай.
+**Source code:** S82.AI_STUDIO + S82.COLOR.4 (multi-image).
+
+## 7.1 Endpoint specification
+
+`POST /ai-color-detect.php` (multipart form)
+
+### Single image mode (default)
+
+**Request:**
+- Field: `image` (file, jpg/png/webp, max 10 MB)
+- Auth: `$_SESSION['tenant_id']` required
+
+**Response:**
+```json
+{
+  "ok": true,
+  "colors": [
+    {"name": "черен", "hex": "#0a0a0a", "confidence": 0.95},
+    {"name": "бял", "hex": "#fafafa", "confidence": 0.7}
+  ],
+  "plan": "PRO",
+  "used": 3,
+  "remaining": 7
+}
+```
+
+Max 4 цвята, сортирани по доминиране, БГ имена.
+
+### Multi-image mode (`?multi=1`)
+
+**Request:**
+- Field: `image_0`, `image_1`, ..., `image_N` (up to 30 files)
+- Field: `count` (int, expected count)
+- Auth: same
+
+**Response:**
+```json
+{
+  "ok": true,
+  "results": [
+    {"idx": 0, "color_bg": "черен", "hex": "#0a0a0a", "confidence": 0.92},
+    {"idx": 1, "color_bg": "бял", "hex": "#fafafa", "confidence": 0.81},
+    {"idx": 2, "color_bg": "розов", "hex": "#ec4899", "confidence": 0.68}
+  ],
+  "plan": "PRO",
+  "used": 4,
+  "remaining": 6
+}
+```
+
+`idx` отговаря на оригиналния ред на снимките (0-индексирано). Multi mode prompt expressly forces AI да върне цвят дори при low confidence (никога празно).
+
+## 7.2 Gemini Vision prompt (sacred)
+
+### Single image prompt
+```
+Намери обекта, който е ТОЧНО в средата на снимката (центъра на кадъра). 
+Този централен обект е продуктът, който трябва да анализираш.
+Игнорирай ВСИЧКО останало: фона, ръцете на модела, сенките, други предмети 
+по краищата/ъглите, повърхността под обекта.
+Върни МАКСИМУМ 4 основни цвята САМО на този централен обект, сортирани по доминиране.
+Отговори САМО с валиден JSON, БЕЗ markdown:
+[{"name":"черен","hex":"#0a0a0a","confidence":0.95}, {"name":"бял","hex":"#fafafa","confidence":0.7}]
+```
+
+### Multi-image prompt
+```
+Анализирай N снимки на артикули в реда на подаване.
+За ВСЯКА снимка намери обекта, който е ТОЧНО в средата на кадъра (центъра) — това е продуктът.
+Игнорирай фона, ръцете, сенките и всички предмети в краищата/ъглите.
+Върни ЕДИН доминиращ цвят САМО на този централен обект.
+Дори при ниска увереност (confidence<0.7) ВСЕ ПАК давай предположение — НЕ оставяй цвят празен.
+Отговори САМО с валиден JSON, БЕЗ markdown:
+{"results":[{"idx":0,"color_bg":"черен","hex":"#0a0a0a","confidence":0.92}, ...]}
+idx трябва да съответства на реда на снимките (0-индексирано).
+```
+
+## 7.3 API config
+
+| Setting | Value |
+|---|---|
+| Model | `gemini-2.5-flash` (default, configurable via `GEMINI_MODEL` env) |
+| Temperature | 0.2 (deterministic) |
+| maxOutputTokens single | 512 |
+| maxOutputTokens multi | 4096 (S82.COLOR.7 fix: 1024 не стигаше за 3+ снимки) |
+| responseMimeType | `application/json` |
+| Timeout | 30s single / 45s multi |
+| Connect timeout | 5s |
+| API endpoint | `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}` |
+
+Credentials: `GEMINI_API_KEY` (primary) с fallback `GEMINI_API_KEY_2` (rotation) в `/etc/runmystore/api.env` (chmod 600).
+
+## 7.4 Plan limits & quota
+
+Аналогично на bg removal:
+
+| Plan | Daily limit |
+|---|---|
+| FREE | 0 |
+| START | 3 |
+| PRO | 10 |
+| BUSINESS | (TBD) |
+
+Quota check: `rms_image_check_quota($tenant_id)` (от `ai-image-credits.php`).
+Usage record: `rms_image_record_usage($tenant_id, $user_id, 'color_detect')`.
+
+429 response при exceeded: `{ok: false, reason: ..., plan, used, limit}`.
+
+## 7.5 Error handling
+
+| HTTP | Condition | Reason |
+|---|---|---|
+| 200 | Success | — |
+| 400 | Bad request | "Липсва или невалидна снимка." / "Няма валидни снимки." |
+| 401 | Not logged in | "Не сте влезли." |
+| 405 | Wrong method | "POST only." |
+| 413 | File too big | "Снимката е по-голяма от 10 MB." |
+| 415 | Wrong mime | "Поддържат се само JPG, PNG, WebP." |
+| 429 | Quota exceeded | dynamic от `rms_image_check_quota` |
+| 502 | AI failed | "AI услугата не отговаря." / "AI грешка ({http})." / "Празен отговор от AI." / "AI върна неразпознаваем формат." / "AI не разпозна цветове." |
+| 503 | Config missing | "AI Studio: липсва конфигурация. Свържи се с поддръжка." (`setup_required: true`) |
+
+## 7.6 Confidence routing (Wizard Section 4)
+
+| Confidence | UX |
+|---|---|
+| ≥ 0.85 | Auto-attach photo to color. Pill "AI 94%" green. |
+| 0.60 – 0.85 | Show photo, require tap-to-confirm. Pill "AI 72%" amber. |
+| < 0.60 | Block. "Размени" button highlighted. Manual override. |
+
+## 7.7 Sacred response normalization
+
+Server-side в endpoint-а (НЕ пипай):
+- Hex normalize: `preg_replace('/[^#0-9a-fA-F]/', '', ...)` → ensure `#` prefix → fallback `#888888` ако invalid
+- Confidence clamp: `max(0, min(1, $conf))`
+- Name fallback: `'неуточнен'` ако празно име
+- JSON fence strip: `^\`\`\`(?:json)?\s*` и `\s*\`\`\`$`
+
+---
+
+# 8. AI STUDIO INTEGRATION
+
+**Източник:** `AI_STUDIO_LOGIC_DELTA.md` (21KB)
+**Canonical mockup:** `ai_studio_FINAL_v5.html` + P8 семейство
+
+## 8.1 Архитектура (v1.1 — current)
+
+```
+products.php (P13 wizard Section 5)
+  └─ tap "Отвори AI Studio"
+       ↓
+ai-studio.php (standalone modal с product context)
+  ├─ ai-studio-main-v2.html (canonical layout)
+  ├─ ai_studio_FINAL_v5.html (per-product modal)
+  ├─ ai-studio-categories.html (queue overlay = P8c)
+  ├─ P8b advanced views:
+  │    ├─ ai-studio-advanced-clothes.html
+  │    ├─ ai-studio-advanced-acc.html (accessories)
+  │    ├─ ai-studio-advanced-jewelry.html
+  │    ├─ ai-studio-advanced-lingerie.html
+  │    └─ ai-studio-advanced-other.html
+  └─ P8b studio modal
+```
+
+**Не е отделен модул в products.php** — AI Studio е external integration през API/iframe modal.
+
+## 8.2 Credits система
+
+```html
+<div class="ai-credits-strip">
+  <span class="ai-cred-gem">[gem SVG]</span>
+  <span class="ai-cred-text"><b>17 / 30</b> безплатни магии</span>
+  <span class="ai-cred-after">след това · <b>€0.05/магия</b></span>
+</div>
+```
+
+DB table: `tenant_ai_credits`
+- `free_credits_used` INT — used this cycle
+- `free_credits_total` INT — default 30
+- `paid_credits_balance` INT — paid top-ups
+- `last_reset_at` DATETIME — last reset
+
+PRO plan = 30 free magic credits/month. След като свърши → €0.05/magic от paid balance.
+
+## 8.3 P8c Queue overlay (от AI_STUDIO_LOGIC_DELTA §3)
+
+### Trigger
+Когато Митко натиска "Bulk магия" в AI Studio main view → otvarya queue overlay.
+
+### Структура
+
+- Header: "AI Magic Queue · N артикула"
+- List: products с photo thumb + name + chosen action (Премахни фон / На модел / Описание)
+- Per-item: status pill (Pending / Processing / Done / Failed)
+- Footer: "Стартирай всички N магии" CTA + estimated cost (`N × €0.05 = €Х.ХХ`)
+
+### DB query (PHP)
+
+```php
+SELECT p.id, p.name, p.image_url, q.action_type, q.status, q.error_msg
+FROM ai_studio_queue q
+JOIN products p ON p.id = q.product_id
+WHERE q.tenant_id = ? AND q.status IN ('pending', 'processing')
+ORDER BY q.created_at ASC
+```
+
+### Bulk action API
+
+`POST /api/ai-studio-queue-start.php` { action_type, product_ids[] } → enqueues N items → cron worker процесва.
+
+## 8.4 Bulk magic правило (v1.1 NEW)
+
+**v1.0 (стара логика):** Bulk магия НЕ разрешена.
+**v1.1 (нова):** Bulk магия РАЗРЕШЕНА само за:
+- Премахни фон (всички photos на варианти)
+- SEO описание (всички products в категория)
+- Color override (manual, не AI)
+
+НЕ разрешена за:
+- "На модел" (твърде variable, изисква per-product approval)
+- Custom prompts (require human review)
+
+### Икономика
+
+Bulk магия = 30% от monthly magic budget. Останалите 70% са per-item interactive (preview/accept/reject). Митко може да изключи bulk в settings ако предпочита 100% manual.
+
+## 8.5 P8b Advanced — категория-специфични prompts
+
+Different prompt templates per product category:
+
+| Категория | Prompt focus |
+|---|---|
+| Облекло (clothes) | Model wear, fabric texture, full-body shots |
+| Аксесоари (acc) | Close-up, single object, no model |
+| Бижута (jewelry) | Macro detail, light reflection, white/black background |
+| Бельо (lingerie) | Soft lighting, mannequin OR model, modest framing |
+| Друго (other) | Generic product photography |
+
+Mockup-и в `mockups/P8b_advanced_*.html` дефинират категория-специфичните бутони и опции.
+
+## 8.6 Visual changes (v1.1)
+
+| v1.0 | v1.1 |
+|---|---|
+| Emoji в UI (🪄✨🎨) | SVG only (icons) |
+| "Gemini" / "fal.ai" labels | "AI" винаги |
+| Inline buttons | Bottom sheet за advanced |
+
+---
+
+# 9. INVENTORY & CONFIDENCE_SCORE
+
+**Източник:** `INVENTORY_HIDDEN_v3.md` (релевантни секции за products.php)
+
+## 9.1 Философия — "The warehouse builds itself"
+
+Pesho не прави inventory на day 1. Отваря касата и продава. Със всяко действие — продажба, доставка, AI въпрос — системата се учи. Точността расте организично, без усилие, без натиск.
+
+## 9.2 Confidence score model
+
+Всеки продукт има невидим `confidence_score` (0-100). Pesho НИКОГА не вижда числото. AI го ползва да знае колко да доверява на данните.
+
+### Изчисление
+
+| Event | Confidence |
+|---|---|
+| Created during sale (just name + price) | +20 |
+| + barcode или артикулен номер | +10 |
+| + cost price (от delivery/invoice) | +20 |
+| + категория и доставчик | +10 |
+| + delivery (quantity от invoice) | +20 |
+| + physical confirmation (counted) | +20 |
+| **Maximum** | **100** |
+
+### Levels
+
+| Level | Score | Какво AI знае |
+|---|---|---|
+| 🔴 Minimal | 0-30 | Name, retail price |
+| 🟡 Partial | 31-60 | + barcode, category, supplier |
+| 🟠 Good | 61-80 | + cost price, deliveries |
+| 🟢 Full | 81-100 | Всичко |
+
+### Wizard contribution (P13)
+
+| Section saved | +confidence |
+|---|---|
+| Section 1 (Минимум) | +30 |
+| Section 2 (Вариации) | +20 |
+| Section 3 (Допълнителни — cost + supplier + cat) | +25 |
+| Section 4 (Снимки) | +15 |
+| Section 5 (AI Studio enhanced) | +10 |
+| **Max from wizard** | **100** |
+
+## 9.3 Sacred rule
+
+**Confidence е НИКОГА не се показва на Pesho/Митко като число.** Само consequences:
+- Ranges в статистики ("180-340€ profit" вместо "240€")
+- AI въпроси по пътя ("Колко имаш на склад?")
+- Suggestion strength ("сигурен съм" vs "вероятно")
+
+## 9.4 Hidden Inventory paths
+
+При onboarding AI пита: "Ще transfer-неш ли stock от файл/програма, или предпочиташ да започнем и системата учи докато работиш?"
+
+### Path A: Transfer (CSV/Excel/програма)
+→ Import → confidence 60-90% → Zone Walk за physical confirmation
+
+### Path B: Lazy Way (Hidden Inventory)
+→ Pesho продава от second 1 → системата учи от sales + deliveries + zone walks
+→ AI: "Перфектно. Първо, дай ми да науча layout-а на магазина."
+
+## 9.5 Zone setup (mandatory за hidden inventory)
+
+3 типа зони:
+- 🟢 **CUSTOMER ZONE** — display, видими за клиента (хангерс, центрова витрина)
+- 🟡 **SHELF ZONE** — зад caundara, reserve в магазина (рафт зад касата)
+- 🔴 **STORAGE ZONE** — back room, отделна стая, кутии
+
+AI пита: "Имаш ли отделна storage room?" → 2 или 3 зони.
+
+## 9.6 Self-correcting sales loop
+
+При продажба:
+1. Pesho скенира/казва име → AI намира product (или предлага creation at 20%)
+2. AI знае стока = калкулирана (deliveries - sales)
+3. Ако негативна (продал си преди да заскадиш) → AI: "Май имах грешка в склада. Колко имаш сега?"
+4. Pesho отговаря → confidence +20% за този артикул
+
+## 9.7 Mass confidence boost от deliveries
+
+**One photo of invoice = 20 products from 30% to 80% in 30 seconds.**
+
+При delivery OCR (Phase B):
+1. Pesho снима фактурата
+2. AI OCR → 20 lines (name, qty, cost_price, supplier)
+3. Match срещу existing products (fuzzy):
+   - Matched: fills cost_price + qty → confidence +40%
+   - New: creates with 80% confidence (name + price + cost + qty)
+4. Pesho confirms с 1 tap
+
+## 9.8 Store Health Score (Митко вижда)
+
+Replacement за "confidence" числото. Показва се на главна (P2 "Здраве на склада 82%"):
+
+```php
+function storeHealth($tenant_id, $store_id) {
+    // 40% accuracy: % confirmed в 30 дни
+    $total = COUNT(products WHERE tenant_id=?);
+    $confirmed = COUNT(WHERE last_counted_at >= NOW() - 30 days);
+    $accuracy = ($confirmed / $total) * 100;
+    
+    // 30% freshness: avg days since last zone walk
+    $avg_days = AVG(DATEDIFF(NOW(), zones.last_walked_at));
+    $freshness = max(0, 100 - ($avg_days * 3));
+    
+    // 30% AI confidence: average
+    $avg_conf = AVG(products.confidence_score);
+    
+    return round(($accuracy * 0.4) + ($freshness * 0.3) + ($avg_conf * 0.3));
+}
+```
+
+---
+
+# 10. DB SCHEMA — products + bulk_sessions + миграции
+
+**Migration file (Phase B):** `/var/www/runmystore/db/migrations/2026_05_p13_bulk_entry.sql`
+
+## 10.1 `products` — нови колони (от HANDOFF Phase B + BULK §12)
+
+```sql
+ALTER TABLE products ADD COLUMN confidence_score TINYINT UNSIGNED DEFAULT 0 
+  COMMENT 'Hidden Inventory: 0-100. Не се показва на Митко.';
+ALTER TABLE products ADD COLUMN has_variations TINYINT(1) DEFAULT 0;
+ALTER TABLE products ADD COLUMN last_counted_at DATETIME DEFAULT NULL;
+ALTER TABLE products ADD COLUMN counted_via ENUM('manual','barcode','rfid','ai') DEFAULT NULL;
+ALTER TABLE products ADD COLUMN first_sold_at DATETIME DEFAULT NULL;
+ALTER TABLE products ADD COLUMN first_delivered_at DATETIME DEFAULT NULL;
+ALTER TABLE products ADD COLUMN zone_id INT DEFAULT NULL;
+ALTER TABLE products ADD COLUMN subcategory_id INT DEFAULT NULL;
+ALTER TABLE products ADD COLUMN wholesale_price DECIMAL(10,2) DEFAULT NULL;
+ALTER TABLE products ADD COLUMN cost_price DECIMAL(10,2) DEFAULT NULL;
+ALTER TABLE products ADD COLUMN margin_pct DECIMAL(5,2) DEFAULT NULL 
+  COMMENT 'Cached: ((retail-cost)/cost)*100';
+ALTER TABLE products ADD COLUMN material VARCHAR(255) DEFAULT NULL;
+ALTER TABLE products ADD COLUMN origin_country VARCHAR(100) DEFAULT NULL;
+ALTER TABLE products ADD COLUMN unit VARCHAR(50) DEFAULT 'Брой';
+```
+
+**MySQL 8 НЕ поддържа `IF NOT EXISTS` на ADD COLUMN.** Pattern за idempotent миграция:
+
+```sql
+SET @col_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS 
+  WHERE TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'products' 
+    AND COLUMN_NAME = 'confidence_score'
+);
+SET @sql = IF(@col_exists = 0, 
+  'ALTER TABLE products ADD COLUMN confidence_score TINYINT UNSIGNED DEFAULT 0', 
+  'SELECT 1');
+PREPARE stmt FROM @sql; 
+EXECUTE stmt; 
+DEALLOCATE PREPARE stmt;
+```
+
+## 10.2 `subcategories` (нова таблица)
+
+```sql
+CREATE TABLE IF NOT EXISTS subcategories (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  tenant_id INT NOT NULL,
+  category_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_tenant_cat (tenant_id, category_id),
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+```
+
+## 10.3 `bulk_sessions` (нова таблица)
+
+```sql
+CREATE TABLE IF NOT EXISTS bulk_sessions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  tenant_id INT NOT NULL,
+  user_id INT NOT NULL,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ended_at DATETIME DEFAULT NULL,
+  template_product_id INT DEFAULT NULL,
+  total_saved INT DEFAULT 0,
+  total_sku INT DEFAULT 0,
+  INDEX idx_tenant_user (tenant_id, user_id),
+  INDEX idx_active (ended_at)
+);
+```
+
+## 10.4 `bulk_session_items` (нова таблица)
+
+```sql
+CREATE TABLE IF NOT EXISTS bulk_session_items (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  session_id INT NOT NULL,
+  product_id INT NOT NULL,
+  saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  position INT NOT NULL,
+  INDEX idx_session (session_id),
+  FOREIGN KEY (session_id) REFERENCES bulk_sessions(id) ON DELETE CASCADE
+);
+```
+
+## 10.5 `product_images` — AI confidence cache
+
+```sql
+ALTER TABLE product_images ADD COLUMN ai_confidence DECIMAL(3,2) DEFAULT NULL;
+ALTER TABLE product_images ADD COLUMN ai_detected_color VARCHAR(50) DEFAULT NULL;
+ALTER TABLE product_images ADD COLUMN color_override TINYINT(1) DEFAULT 0 
+  COMMENT 'Митко override AI detection';
+```
+
+## 10.6 `tenant_ai_credits` (нова таблица)
+
+```sql
+CREATE TABLE IF NOT EXISTS tenant_ai_credits (
+  tenant_id INT PRIMARY KEY,
+  free_credits_used INT DEFAULT 0,
+  free_credits_total INT DEFAULT 30,
+  paid_credits_balance INT DEFAULT 0,
+  last_reset_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+INSERT IGNORE INTO tenant_ai_credits (tenant_id) SELECT id FROM tenants;
+```
+
+## 10.7 Canonical field names — REFERENCE TABLE
+
+(вече в Section 2.4, повтаряно за визуална референция)
+
+| Field | Canonical | DO NOT use |
+|---|---|---|
+| Product code | `products.code` | sku |
+| Retail price | `products.retail_price` | sell_price, price |
+| Image URL | `products.image_url` | image |
+| Cost price | `products.cost_price` | buy_price |
+| Stock qty | `inventory.quantity` | qty |
+| Min stock | `inventory.min_quantity` | min_stock |
+| Sale status | `sales.status='canceled'` | cancelled (двойно L = бъг) |
+| Sale item price | `sale_items.unit_price` | price |
+| Sale total | `sales.total` | total_amount |
+
