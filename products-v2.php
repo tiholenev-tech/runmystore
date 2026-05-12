@@ -3102,6 +3102,133 @@ function rmsToggleTheme(){
   if(moon) moon.style.display = theme==='light' ? 'none' : '';
 })();
 function openCamera(){ alert('Камера TODO'); }
+
+// ════════════════════════════════════════════════════════════════════
+// S142 Step 2D — Complete JS handlers (S88 sacred functions reused 1:1)
+// ════════════════════════════════════════════════════════════════════
+
+// ─── Voice search mic (1:1 от products.php ред 5310, sacred) ───
+var _searchMicRec = null;
+var _searchMicSilenceTO = null;
+
+function searchInlineMic(btn, inputId){
+    if (_searchMicRec) { try { _searchMicRec.stop(); } catch(e){} return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Гласовото търсене не се поддържа'); return; }
+    const inp = document.getElementById(inputId || 'hSearchInp');
+    if (!inp || !btn) return;
+    const lang = (window.CFG && CFG.lang) || 'bg';
+    const langMap = {bg:'bg-BG',ro:'ro-RO',el:'el-GR',en:'en-US',de:'de-DE'};
+    btn.classList.add('recording');
+    inp.value = '';
+    inp.dispatchEvent(new Event('input', {bubbles:true}));
+    const rec = new SR();
+    rec.lang = langMap[lang] || 'bg-BG';
+    rec.continuous = true; rec.interimResults = true;
+    const armSilence = () => {
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicSilenceTO = setTimeout(() => { try { rec.stop(); } catch(e){} }, 2000);
+    };
+    rec.onresult = function(e){
+        let final = '', interim = '';
+        for (let i = 0; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+        }
+        const text = (final + ' ' + interim).replace(/\s+/g,' ').trim();
+        inp.value = text;
+        inp.dispatchEvent(new Event('input', {bubbles:true}));
+        armSilence();
+    };
+    rec.onerror = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+    };
+    rec.onend = function(){
+        btn.classList.remove('recording');
+        clearTimeout(_searchMicSilenceTO);
+        _searchMicRec = null;
+    };
+    try {
+        _searchMicRec = rec;
+        rec.start();
+        armSilence();
+        if (navigator.vibrate) navigator.vibrate(8);
+    } catch (e) {
+        btn.classList.remove('recording');
+        _searchMicRec = null;
+    }
+}
+
+// ─── lb-card expand/collapse ───
+function lbToggleCard(e, row) {
+    if (e && e.target && e.target.closest && e.target.closest('.lb-feedback, .lb-action')) return;
+    const card = row.classList.contains('lb-card') ? row : row.closest('.lb-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+}
+
+// ─── Weather card 7d/14d toggle ───
+function wfcSetRange(range) {
+    document.querySelectorAll('.wfc').forEach(card => {
+        card.querySelectorAll('.wfc-tab').forEach(t => t.classList.toggle('active', t.textContent.trim() === range + ' дни'));
+        const daysWrap = card.querySelector('.wfc-days');
+        if (daysWrap) daysWrap.setAttribute('data-range', range);
+    });
+}
+
+// ─── Tab switching (Detailed) ───
+function rmsSwitchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('[data-tab-pane]').forEach(p => p.classList.toggle('active', p.dataset.tabPane === name));
+    try { localStorage.setItem('rms_v2_tab', name); } catch(_) {}
+}
+
+// ─── Sparkline winners/losers toggle ───
+function sparkToggle(which) {
+    document.querySelectorAll('.spark-toggle').forEach(b => {
+        b.classList.remove('active');
+        if (b.classList.contains(which)) b.classList.add('active');
+    });
+    // TODO: AJAX fetch losers list when which==='losers'
+    console.log('Sparkline switched to:', which);
+}
+
+// ─── Period toggle (Днес/7д/30д/90д) — URL reload ───
+function rmsSetPeriod(days) {
+    const u = new URL(location.href);
+    u.searchParams.set('period', days);
+    location.href = u.toString();
+}
+
+// ─── Action wrappers (проксират към production функции в products.php) ───
+function openAddProduct() {
+    // S142 placeholder — Step 4 ще извика wizard inline
+    location.href = 'products.php?action=add&from=v2';
+}
+function openLikePrevious() {
+    location.href = 'products.php?action=like_previous&from=v2';
+}
+function openAIOrder() {
+    location.href = 'products.php?screen=studio&from=v2';
+}
+function openInfo(topic) {
+    alert('Info: ' + topic);
+}
+function lbViewAll() {
+    location.href = 'products.php?screen=insights&from=v2';
+}
+
+// ─── Init: ресторо tab от localStorage ───
+(function(){
+    try {
+        const lastTab = localStorage.getItem('rms_v2_tab');
+        if (lastTab && document.querySelector('[data-tab-pane="' + lastTab + '"]')) {
+            rmsSwitchTab(lastTab);
+        }
+    } catch(_) {}
+})();
 </script>
 
 </body>
