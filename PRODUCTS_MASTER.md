@@ -507,3 +507,580 @@ products.php (14,074 реда)
 - Section 6: Voice integration детайлно
 
 **Total размер досега:** ~25KB | **commit:** `S141: PRODUCTS_MASTER.md ЧАСТ 1 (sections 1-4 — цел + sacred + structure + мокапи)`
+
+---
+
+# 5. WIZARD ЖЕЛЕЗНА СПЕЦИФИКАЦИЯ (P13 → products.php)
+
+**Източник:** `PRODUCTS_BULK_ENTRY_LOGIC.md` (856 реда, кондензирано тук).
+**Canonical visual:** `mockups/P13_bulk_entry.html` (1:1 implementation).
+**Замества:** legacy wizard P4-P9.
+
+## 5.1 Закони (read first, never forget)
+
+| # | Закон |
+|---|---|
+| 1 | **P13 mockup е canonical.** Всеки CSS class, SVG, spacing, animation, color → 1:1 в production. Ако трябва отстъпление → STOP и питай Тих. |
+| 2 | **0 emoji в UI** (Bible §14). SVG only. |
+| 3 | **Никога "Gemini" в UI** — винаги "AI". |
+| 4 | **PHP смята, AI вокализира** — confidence, margin, SKU summary, totals в PHP. |
+| 5 | **Митко НЕ вижда `confidence_score` число** (Hidden Inventory §5). Само consequences. |
+| 6 | **Пешо не пише** — voice бутон на всяко поле. |
+| 7 | **Sacred Neon Glass** в dark — 4 spans + oklch + `mix-blend-mode: plus-lighter`. |
+| 8 | **i18n всичко** — `t('key')` calls. Никога hardcoded. |
+| 9 | **Bulgarian dual pricing** до 08.08.2026 (€ + лв at 1.95583). |
+
+## 5.2 Page structure (top → bottom)
+
+```
+products.php → [+ Добави артикул] btn → wizard view (full-screen)
+  ├─ Header (sticky 56px) — Title gradient + scan + close
+  ├─ Search pill ("Намери артикул да копираме") — collapsed by default
+  ├─ Voice command bar — gradient hint card + spinning mic
+  ├─ Mode toggle: [Единичен] [С вариации]
+  ├─ Section 1: МИНИМУМ (open by default, status="filled")
+  ├─ Section 2: ВАРИАЦИИ (hidden if mode=single)
+  ├─ Section 3: ДОПЪЛНИТЕЛНИ (closed)
+  ├─ Section 4: СНИМКИ (closed)
+  ├─ Section 5: AI STUDIO (closed, magic style)
+  └─ Bottom bar (fixed): [Undo] [Печат] [CSV] [Запази · следващ ▼]
+       └─ Dropdown: "Като предния" / "Празно"
+
+Overlays (z 90-91):
+  - AI Studio result sheet (преди/след) — slide up
+  - Size groups bottom sheet (други размерни групи)
+  - Unit groups bottom sheet (други мерни единици)
+  - P12 matrix fullscreen overlay (натиска "Цял екран" в матрица)
+```
+
+## 5.3 CSS class names (MANDATORY — не преименувай)
+
+Всички класове са от `P13_bulk_entry.html`. Списък на топ-нивовите:
+
+**Header:** `.bm-header` `.bm-title` `.icon-btn` `.icon-btn.scan-btn`
+**Search:** `.find-pill` `.find-panel.show` `.find-input-wrap` `.find-filters` `.find-filter.active` `.find-results` `.find-result`
+**Voice bar:** `.voice-bar` `.voice-bar-mic`
+**Mode toggle:** `.mode-toggle` (data-mode attr) `.mode-tab.active`
+**Accordion:** `.acc-section[data-status="filled|active|empty"]` `.acc-section.magic` `.acc-section.open` `.acc-head` `.acc-chevron`
+**Fields:** `.field` `.field-label` `.field-label .req` `.field-label .opt-pill` `.field-label .ditto` `.field-hint`
+**Inputs:** `.input-row` `.input-shell` `.input-text` `.fbtn` `.fbtn.cpy` `.fbtn.add` `.fbtn.voice` `.fbtn.scan`
+**Prices:** `.price-input-shell` `.price-input` `.price-cur` `.price-bgn`
+**Quantity stepper:** `.qty-row` `.qty-stepper` `.qty-stepper.warn` `.qty-step` `.qty-input`
+**Margin:** `.margin-row` `.margin-badge` (green, +%)
+**Chips:** `.chip-sz` `.chip-sz.active` `.chip-add` `.chip-col` `.chip-col-dot` `.chip-col.active`
+**Extra rows:** `.extra-row` `.groups-btn`
+**Matrix inline:** `.matrix-head-row` `.matrix-action.expand` `.mx-grid` `.mx-corner` `.mx-head` `.mx-rowh` `.mx-cell` `.mx-cell.has-qty` `.mx-input-qty` `.mx-min-row` `.mx-input-min`
+**SKU summary:** `.sku-summary` `.sku-ic` `.sku-text b`
+**Save row:** `.save-row` `.save-section-btn` (green gradient + conic shimmer) `.save-aux-btn`
+**Photo (Sec 4):** `.photo-bulk-cta` `.photo-bulk-icon` `.photo-bulk-title` `.photo-bulk-sub` `.photo-bulk-actions` `.photo-action-btn.primary` `.photo-result-list` `.photo-result-row` `.photo-result-color` `.photo-result-thumb` `.photo-result-conf` `.photo-result-conf.low` `.photo-result-action.star.is-main`
+**AI Studio (Sec 5):** `.ai-credits-strip` `.ai-link-row` `.ai-link-thumb` `.ai-quick-row` `.ai-quick-btn`
+**AI Result overlay:** `.ai-result-ov` `.ai-result-ov.show` `.ai-result-sheet` `.ai-result-grid` `.ai-result-thumb-label.after` `.ai-result-actions` `.ai-result-btn.primary` `.ai-result-btn.danger`
+**Bottom bar:** `.bottom-bar` `.bb-icon-btn` `.bb-icon-btn.undo` `.btn-next` `.btn-next-chev` `.next-menu.show` `.next-menu-item`
+**Bottom sheets:** `.gs-ov` `.gs-ov.show` `.gs-sheet` `.gs-handle` `.gs-group` `.gs-group-pin` `.gs-val`
+**Aurora:** `.aurora` `.aurora-blob`
+
+## 5.4 Mode toggle behavior
+
+**State:** `data-mode` атрибут на `.mode-toggle` (`"single"` | `"var"`)
+
+```javascript
+function setMode(m) {
+  document.querySelector('.mode-toggle').setAttribute('data-mode', m);
+  document.querySelectorAll('.mode-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === m));
+  document.getElementById('varSection').style.display = (m === 'single') ? 'none' : '';
+  document.getElementById('singleQtyField').style.display = (m === 'single') ? '' : 'none';
+  document.getElementById('singleMinField').style.display = (m === 'single') ? '' : 'none';
+}
+```
+
+**Server side (PHP):**
+- `single` → `products.has_variations=0`, `inventory.quantity=$singleQty`, `inventory.min_quantity=$singleMin`
+- `var` → `products.has_variations=1`, qty/min разпределени по `inventory` rows за всеки SKU
+
+## 5.5 Section 1: МИНИМУМ
+
+### Полета (in order)
+
+| # | Поле | DB | Required? | Voice parser | Special |
+|---|---|---|---|---|---|
+| 1 | Име | `products.name` | ✅ | Web Speech BG → Whisper fallback | On blur: `strlen >= 2` |
+| 2 | Цена | `products.retail_price` | ✅ | **`_wizPriceParse` (commit `4222a66` — SACRED)** | EUR + лв auto-conversion; recompute margin |
+| 3 | Количество | `inventory.quantity` | ✅ (single mode) | Whisper (number-only) | Hidden on `mode=var` |
+| 4 | Мин. кол-во | `inventory.min_quantity` | ✅ (single mode) | Whisper (number-only) | Auto-fill: `Math.round(qty/2.5) min 1`; amber stepper; hidden on `mode=var` |
+| 5 | Артикулен номер | `products.code` | ❌ ("ПО ЖЕЛАНИЕ") | Web Speech | Празно → AI auto-generate `tenant_prefix-YYMMDD-NNNNN` |
+| 6 | Баркод | `products.barcode` | ❌ ("ПО ЖЕЛАНИЕ") | Web Speech + scan btn (Capacitor) | Празно → AI auto-generate EAN-13 на печат |
+
+### Save endpoint: `POST /api/products-bulk-save.php`
+
+Request:
+```json
+{
+  "section": "minimum",
+  "tenant_id": 7,
+  "session_id": null,
+  "mode": "single",
+  "data": {
+    "name": "Дамска тениска Tommy Jeans",
+    "retail_price": 28.00,
+    "single_qty": 5,
+    "single_min": 2,
+    "code": null,
+    "barcode": null
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "product_id": 12345,
+  "confidence_score": 30,
+  "session_id": 567,
+  "next_section_hint": "supplier"
+}
+```
+
+### Confidence formula (Hidden Inventory §5)
+
+| Section saved | +score |
+|---|---|
+| Section 1 | +30 |
+| Section 2 | +20 |
+| Section 3 | +25 |
+| Section 4 | +15 |
+| Section 5 | +10 |
+| **Total max** | **100** |
+
+## 5.6 Section 2: ВАРИАЦИИ (skip if single)
+
+### Размери (default 6 chips)
+XS · S · M · L · XL · XXL — toggle active.
+
+`.extra-row`:
+- `[+ добави размер]` — inline modal за custom (3XL, 44, W34)
+- `[+ други групи →]` — opens `#sizeGroupsSheet` bottom sheet с **6 групи:**
+  - EU дамски обувки (35-41)
+  - EU мъжки обувки (39-46)
+  - EU дамски облекло (34-48)
+  - Дънки W (W26-W36)
+  - Детски (86-128)
+  - US/UK (XS-3XL)
+
+Active размери → matrix rows.
+
+### Цветове (default 5 chips with swatches)
+Черен · Бял · Розов · Червен · Син
+
+`[+ добави]` → color picker modal (color input + name + voice).
+
+Active цветове → matrix columns + photo result rows в Section 4.
+
+### Matrix (inline grid в P13 Section 2)
+
+- Rows = active sizes
+- Columns = active colors
+- Всяка клетка:
+  - `qty` input (number, default empty)
+  - `min` input (small amber, optional)
+  - `.has-qty` клас когато qty > 0
+- `[Цял екран]` → opens **P12 matrix overlay** (recommend at ≥4×4 cells)
+
+### SKU summary (auto-computed в PHP)
+
+```
+{N_SIZES} размера × {N_COLORS} цвята = {N_SKU} SKU · Σ {TOTAL_QTY} бр.
+```
+
+Example: `3 размера × 2 цвята = 6 SKU · Σ 14 бр.`
+
+### Save endpoint
+
+```json
+{
+  "section": "variations",
+  "product_id": 12345,
+  "data": {
+    "sizes": ["S", "M", "L"],
+    "colors": [
+      {"name": "Бял", "hex": "#ffffff"},
+      {"name": "Розов", "hex": "#ec4899"}
+    ],
+    "matrix": [
+      {"size": "S", "color": "Бял", "qty": 2, "min": 1},
+      {"size": "S", "color": "Розов", "qty": 3, "min": 1},
+      {"size": "M", "color": "Бял", "qty": 3, "min": 1},
+      {"size": "M", "color": "Розов", "qty": 4, "min": 2},
+      {"size": "L", "color": "Бял", "qty": 1, "min": 1},
+      {"size": "L", "color": "Розов", "qty": 1, "min": 1}
+    ]
+  }
+}
+```
+
+PHP създава `inventory` row за всеки combination (6 SKU = 6 rows).
+
+## 5.7 Section 3: ДОПЪЛНИТЕЛНИ
+
+| # | Поле | DB | Voice | Special |
+|---|---|---|---|---|
+| 1 | Доставна цена | `products.cost_price` | `_wizPriceParse` | EUR + лв; recompute margin |
+| 2 | Цена на едро | `products.wholesale_price` (optional) | `_wizPriceParse` | EUR + лв |
+| 3 | **Марж % (auto)** | `products.margin_pct` (cached) | — | Read-only badge. Formula: `((retail-cost)/cost)*100`. Color: green >50%, amber 20-50%, red <20% |
+| 4 | Доставчик | `products.supplier_id` FK | Web Speech | "+ нов доставчик" inline modal |
+| 5 | Категория | `products.category_id` FK | Web Speech | "+ нова категория" inline modal; on change → reload subcategory |
+| 6 | Подкатегория | `products.subcategory_id` FK | Web Speech | Disabled до category select |
+| 7 | Материя/състав | `products.material` (optional) | Web Speech | Plain text |
+| 8 | Произход | `products.origin_country` | Web Speech | Default 4 options + "+ нова" |
+| 9 | Мерна единица | `products.unit` | Web Speech | Default 4: Брой, Чифт, Кг, Метър. `[+ други групи]` → bottom sheet с 5 groups |
+
+### Save endpoint
+
+```json
+{
+  "section": "supplier_details",
+  "product_id": 12345,
+  "data": {
+    "cost_price": 12.00,
+    "wholesale_price": 20.00,
+    "supplier_id": 4,
+    "category_id": 12,
+    "subcategory_id": 47,
+    "material": "100% памук",
+    "origin_country": "Турция",
+    "unit": "Брой"
+  }
+}
+```
+
+## 5.8 Section 4: СНИМКИ (AI photo recognition)
+
+**Source of truth:** colors selected в Section 2.
+
+### При variations mode
+
+1. Натиска **"Заснеми всички наведнъж"** или **"Галерия"**
+2. Camera/file picker → multi-file upload (3-10 photos)
+3. Files → upload to **`/api/photo-ai-detect.php`**
+4. Server runs **Gemini Vision API** да детектне dominant color per photo
+5. Match each photo to color от Section 2 (ΔE distance, threshold < 25)
+6. Returns JSON:
+```json
+{
+  "results": [
+    {"file_idx": 0, "matched_color": "Бял", "confidence": 0.94, "image_url": "/uploads/p12345_w.jpg"},
+    {"file_idx": 1, "matched_color": "Розов", "confidence": 0.72, "image_url": "/uploads/p12345_p.jpg"},
+    {"file_idx": 2, "matched_color": null, "confidence": 0.18, "image_url": "/uploads/p12345_unkn.jpg", "suggested": ["Розов", "Червен"]}
+  ]
+}
+```
+7. Frontend renders `.photo-result-row` per match
+8. **Override UX:** "размени" бутон → modal с list на всички цветове → tap да премести photo
+9. **★ Главна** radio per row — само 1 active за артикула
+
+### При single mode
+
+- 1 large photo card (no AI detection — single product, single photo)
+- Camera + Gallery buttons
+- 4 photo tips (легнало, без други, светлина, рязкост)
+
+### Confidence routing (sacred)
+
+| Confidence | Action |
+|---|---|
+| ≥ 0.85 | Auto-attach. Pill "AI 94%" green |
+| 0.60 – 0.85 | Require tap-to-confirm. Pill "AI 72%" amber |
+| < 0.60 | Block. "Размени" button highlighted |
+
+### Save endpoint
+
+```json
+{
+  "section": "photos",
+  "product_id": 12345,
+  "data": {
+    "photos": [
+      {"color_name": "Бял", "image_url": "/uploads/p12345_w.jpg", "is_main": true, "ai_confidence": 0.94},
+      {"color_name": "Розов", "image_url": "/uploads/p12345_p.jpg", "is_main": false, "ai_confidence": 0.72}
+    ]
+  }
+}
+```
+
+PHP създава `product_images` rows (1 main, others secondary, indexed by color).
+
+## 5.9 Section 5: AI Studio integration
+
+### Credits strip (top)
+
+```html
+<div class="ai-credits-strip">
+  <span class="ai-cred-gem">[gem SVG]</span>
+  <span class="ai-cred-text"><b>17 / 30</b> безплатни магии</span>
+  <span class="ai-cred-after">след това · <b>€0.05/магия</b></span>
+</div>
+```
+
+Source: `SELECT free_credits_used, free_credits_total FROM tenant_ai_credits WHERE tenant_id=?`
+
+### AI Studio link (`.ai-link-row`)
+
+Tap → opens `ai_studio_FINAL_v5.html` modal с product context.
+
+### Quick actions (2 buttons)
+
+1. **Премахни фон** → opens `.ai-result-ov` overlay с преди/след preview
+2. **SEO описание** → AJAX → fills `products.description_seo` → toast "AI генерира описание"
+
+### AI Result overlay (`.ai-result-ov`)
+
+- Slide up (translateY 100% → 0)
+- Header: "AI завърши обработката · 2.4 сек."
+- 2 thumbnails grid: Преди / След (с green "След" label)
+- 3 buttons: **Отхвърли** (red) / **Опитай пак** / **Приеми** (green primary)
+- Приеми → save processed image, close
+- Отхвърли → discard, close
+- Опитай пак → re-run с different params
+
+## 5.10 Bottom bar
+
+### Бутони
+
+| # | Бутон | Поведение |
+|---|---|---|
+| 1 | **Undo** (red icon) | Maintains client-side action stack (last N=20). Tap → pop last, revert UI, `POST /api/products-bulk-undo.php` ако server-side. |
+| 2 | **Печат** | Print modal. Lists всички SKUs (current + bulk session). Tabs: € + лв (default) / Само € / Без цена. Toggle "Печат без баркод". Per-SKU qty steppers. "Печатай всички N етикета" CTA. |
+| 3 | **CSV** | Downloads current product OR пълна bulk session като CSV. Header: name, code, barcode, retail, cost, supplier, category, sizes, colors, qty. Rows: 1/SKU. |
+| 4 | **Запази · следващ** | Saves всички unsaved sections atomically. Chevron tap → `.next-menu` (slide up): **"Като предния"** (template inheritance + ditto markers) / **"Празно"** (clears form) |
+
+### Bulk session state
+
+- 1-ви артикул save → creates `bulk_sessions` row, sets `template_product_id`
+- 2-ри+ artikul → reads template, applies inheritance
+- "Като предния" → uses latest saved като template
+- "Празно" → clears `template_product_id`
+- Session ends on close OR 30 min idle
+- All bulk session items linked via `bulk_session_items.session_id`
+
+## 5.11 Search "Намери и копирай"
+
+### Collapsed
+`.find-pill` с "Намери артикул да копираме" + voice icon → tap expand.
+
+### Expanded (`.find-panel.show`)
+- Search input + close + voice
+- Filter chips (scrollable):
+  - **"Като последния"** (default active, ↻ icon) — copies last saved
+  - "Всички" — no filter
+  - "Tommy Jeans", "Бельо", "Тениски", "Наскоро" — auto от recent
+- Results (max-height 280px): thumb + name + meta (supplier · price · sizes · SKU count) + arrow
+
+### Tap result
+`GET /api/products-search-copy.php?id=12345&action=copy` → frontend collapse panel + populate fields с ditto markers + toast "Копирано от: {product_name}".
+
+
+---
+
+# 6. VOICE INTEGRATION (sacred)
+
+**Източници:**
+- `services/voice-tier2.php` (333 реда) — sacred file
+- `docs/PROMPT_TOMORROW_S99_VOICE.md` — voice spec за бъдеща работа
+- `products.php` ред 12895-12931 — `wizMic` router
+- Locked commits: `4222a66` + `1b80106`
+
+## 6.1 Architecture (current state, May 2026)
+
+**Hybrid voice stack** — Whisper Tier 2 (primary) → Web Speech (fallback) → toast error.
+
+```
+User taps wiz-mic on input
+  ↓
+wizMic(field) — router (products.php:12900)
+  ↓
+  ├─ Numeric/price field? → _wizMicWhisper(field, lang)  [PRIMARY]
+  │      ↓
+  │      services/voice-tier2.php
+  │      ↓
+  │      Groq Whisper API (audio → transcript + confidence)
+  │      ↓
+  │      normalizeWithSynonyms() [voice-tier2.php:204] — БГ числа
+  │      ↓
+  │      _bgPrice / _wizPriceParse [SACRED commits]
+  │      ↓
+  │      Apply to input
+  │
+  └─ Text field? → _wizMicWebSpeech(field, lang)
+         ↓
+         Web Speech API (browser, bg-BG)
+         ↓
+         continuous=true, interimResults=true
+         ↓
+         _wizMicInterim(field, text) — live transcript display
+         ↓
+         _wizMicApply(field, final) — apply on .onresult final
+```
+
+## 6.2 Whisper Tier 2 (Groq)
+
+### Credentials
+
+Файл: `/etc/runmystore/api.env` (chmod 600)
+Ключ: `GROQ_API_KEY`
+Loader: `getGroqApiKey()` (voice-tier2.php:23, static cached per request)
+
+### Why Whisper за числа
+
+Web Speech bg-BG = max ~80% точност за числа (testing с 4 patch цикли, capped). Whisper Tier 2 на Groq = 95%+ за БГ числа, с context-aware prompt hints.
+
+### Confidence model
+
+Whisper segments връщат `avg_logprob` (винаги ≤ 0). Конвертирано в [0..1]:
+
+```php
+function whisperLogprobToConfidence(float $avg_logprob): float {
+    $p = exp($avg_logprob);
+    return max(0.0, min(1.0, $p));
+}
+```
+
+Empirically (voice-tier2.php:43-44):
+- `-0.10` → `0.90` confidence
+- `-0.30` → `0.74`
+- `-0.70` → `0.50`
+- `-1.50` → `0.22`
+
+### Confidence routing (Закон №1A)
+
+| Confidence | Action | UI |
+|---|---|---|
+| ≥ 0.85 | Auto-apply | Green toast "Записано" |
+| 0.70 – 0.85 | Apply with warning | Yellow toast |
+| < 0.70 | Block, request re-record | "Не разпознах ясно, повтори" |
+
+## 6.3 `normalizeWithSynonyms` — БГ синоним нормализация
+
+Файл: `services/voice-tier2.php:204`
+Signature: `function normalizeWithSynonyms(string $transcript, int $tenant_id, string $lang = 'bg'): string`
+
+Това е критичната функция която прави "edno i petdeset" / "едно и петдесет" → разпознаваеми числа. Тих работи цял ден да я нагласи. **НЕ пипай.**
+
+## 6.4 `_wizPriceParse` / `_bgPrice` (sacred JS)
+
+Локация: products.php (около ред 12930+, точният ред варира).
+Commits: **`4222a66`** + **`1b80106`** (LOCKED — никога не revert).
+
+DoD targets (от PROMPT_TOMORROW_S99_VOICE):
+
+| Voice вход | Очакван изход |
+|---|---|
+| "пет лева" | `5.00` ✅ |
+| "едно и петдесет" | `1.50` ✅ (днес fail-ва — за S99 работа) |
+| "двайсе и пет" | `25.00` ✅ |
+| "сто двайсе и пет лева и петдесет стотинки" | `125.50` ✅ |
+| "и двайсе" (incomplete) | Toast "Кажи цялата цена" + low confidence ✅ |
+| "пет" в Брой | `5` ✅ |
+| "петнайсе" в Брой | `15` ✅ |
+
+## 6.5 Locale-aware prompt context (за S99 future work)
+
+Файл: `config/voice-locales.json` (тепърва се добавя)
+
+```json
+{
+  "bg": {
+    "lang": "bg",
+    "currency_words": ["лева", "лв", "стотинки", "стот"],
+    "number_hints": "Числа на български: едно, две, три, петнайсе, двайсе, трийсе, петдесет, сто, сто двайсе и пет лева и петдесет стотинки.",
+    "field_hints": {
+      "retail_price": "Цена в лева. Например: пет лева, двайсе и пет, сто лева.",
+      "quantity": "Брой. Цяло число от 1 до 999.",
+      "barcode": "Баркод 8 или 13 цифри."
+    },
+    "parser": "_bgPrice"
+  },
+  "ro": { "lang": "ro", "currency_words": ["lei", "leu", "bani"], "parser": "_roPrice" },
+  "el": { "lang": "el", "currency_words": ["ευρώ", "λεπτά"], "parser": "_elPrice" },
+  "sr": { "lang": "sr", "...": "..." },
+  "hr": { "lang": "hr", "...": "..." },
+  "mk": { "lang": "mk", "...": "..." }
+}
+```
+
+Settings page edit: `tenants.voice_locale` ENUM. Default `bg`.
+
+## 6.6 Voice Activity Detection (VAD) — за S99
+
+Future improvement (не текущо):
+- Auto-stop при тишина > 1.5 sec
+- RMS audio level threshold detect
+- Без fixed timeout (5s беше грешка)
+
+Flow:
+```
+Tap mic → recording старт → user говори → пауза 1.5s → auto-stop → POST към Whisper
+```
+
+## 6.7 Pre-record buffer (200ms) — за S99
+
+Future improvement: stream винаги active в background докато wizard отворен. Buffer rolling 200ms. При tap mic → буферът се приключва към recording → захваща началото на първата дума.
+
+Решава проблема "едно/една/едно" се губи в Web Speech bg-BG.
+
+## 6.8 Sequential queue — за S99
+
+Само 1 активен Whisper request в момента. Tap по време на pending request → cancel предишния, старти нов.
+
+Решава race condition: "пет" в Цена → tap Брой → "пет" се появява в Брой instead.
+
+## 6.9 Fallback chain (sacred order)
+
+```
+1. Whisper Tier 2 (primary за числа, цени, баркодове)
+2. Web Speech bg-BG (fallback за текст; fallback ако Whisper fail/timeout)
+3. Numpad UI (numeric fallback ако и двете fail)
+4. Toast "Въведи ръчно"
+```
+
+## 6.10 Voice command intents (бъдеща работа — S99+)
+
+| Command | Effect |
+|---|---|
+| "Нов артикул" | Focus Section 1 Име |
+| "Тениска двадесет и осем лева" | Fill Име + retail_price |
+| "Размер S M L" | Toggle active size chips |
+| "Бял розов червен" | Toggle color chips |
+| "Снимай всички" | Trigger camera bulk upload |
+| "Магия фон" | Trigger Премахни фон |
+| "Запази минимум" | Tap save в Section 1 |
+| "Като предния" | Tap "Като предния" в Next menu |
+| "Назад" | Undo |
+| "Затвори" | Close wizard |
+
+### Trigger words (БГ + non-BG fallback)
+
+- "запиши" / "запази" / "save"
+- "следващ" / "next"
+- "назад" / "back" / "undo"
+- "магия" / "magic"
+
+## 6.11 Cost budget
+
+Groq Whisper ~$0.0001/sec audio.
+
+Estimate (от PROMPT_TOMORROW_S99_VOICE):
+- 100 tenants × 50 артикула/седмица × 5 numeric fields × 3s = **$7.50/седмица = $30/месец** total
+
+Приемливо.
+
+## 6.12 Voice integration LOCKED files (DO NOT MODIFY)
+
+| Файл | Commits |
+|---|---|
+| `services/voice-tier2.php` | sacred (333 реда) |
+| `ai-color-detect.php` | sacred (296 реда) |
+| `products.php:12900-12931` | `4222a66`, `1b80106` |
+| `_wizPriceParse` JS function | `4222a66` |
+| `_bgPrice` JS function | `4222a66` |
+
