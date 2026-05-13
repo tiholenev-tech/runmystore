@@ -22,6 +22,169 @@ $tenant_id  = (int)$_SESSION['tenant_id'];
 $store_id   = (int)($_SESSION['store_id'] ?? 0);
 $user_role  = $_SESSION['role'] ?? 'seller';
 
+// ════════════════════════════════════════════════════════════════════
+// S143 AJAX ENDPOINTS — search + filter_options + product_detail
+// Връща JSON и exit-ва. ВАЖНО: винаги try-catch (в случай на missing колони).
+// ════════════════════════════════════════════════════════════════════
+if (!empty($_GET['ajax'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $ajax_action = $_GET['ajax'];
+    $sid_ajax = (int)($_GET['store_id'] ?? $store_id);
+
+    try {
+        // ─── SEARCH: products + categories autocomplete ───
+        if ($ajax_action === 'search') {
+            $q = trim($_GET['q'] ?? '');
+            $mix = isset($_GET['mix']) ? (int)$_GET['mix'] : 0;
+            if (strlen($q) < 1) { echo json_encode($mix ? ['products'=>[],'categories'=>[],'total_products'=>0] : []); exit; }
+            $like = "%{$q}%";
+            $rows = DB::run("
+                SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.supplier_id,
+                       s.name AS supplier_name, c.name AS category_name,
+                       COALESCE(SUM(i.quantity), 0) AS total_stock
+                FROM products p
+                LEFT JOIN suppliers s ON s.id = p.supplier_id
+                LEFT JOIN categories c ON c.id = p.category_id
+                LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+                WHERE p.tenant_id = ? AND p.is_active = 1
+                  AND p.parent_id IS NULL
+                  AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
+                GROUP BY p.id
+                ORDER BY (p.name LIKE ?) DESC, p.name ASC
+                LIMIT 30
+            ", [$sid_ajax, $tenant_id, $like, $like, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
+            if ($mix) {
+                $cats = DB::run("
+                    SELECT c.id, c.name, COUNT(DISTINCT p.id) AS product_count
+                    FROM categories c
+                    LEFT JOIN products p ON p.category_id = c.id AND p.is_active = 1 AND p.tenant_id = ?
+                    WHERE c.tenant_id = ? AND c.name LIKE ?
+                    GROUP BY c.id
+                    ORDER BY (c.name LIKE ?) DESC, c.name ASC
+                    LIMIT 5
+                ", [$tenant_id, $tenant_id, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
+                $total = DB::run("
+                    SELECT COUNT(DISTINCT p.id) FROM products p
+                    WHERE p.tenant_id = ? AND p.is_active = 1 AND p.parent_id IS NULL
+                      AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
+                ", [$tenant_id, $like, $like, $like])->fetchColumn();
+                echo json_encode([
+                    'products' => array_slice($rows, 0, 8),
+                    'categories' => $cats,
+                    'total_products' => (int)$total
+                ]);
+                exit;
+            }
+            echo json_encode($rows); exit;
+        }
+
+        // ─── FILTER OPTIONS: уникални стойности за filter drawer ───
+        if ($ajax_action === 'filter_options') {
+            $sizes = []; $colors = []; $brands = []; $materials = []; $compositions = [];
+            $cats = []; $sups = []; $countries = [];
+            try { $sizes = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $colors = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $brands = DB::run("SELECT DISTINCT brand FROM products WHERE tenant_id=? AND brand IS NOT NULL AND brand!='' ORDER BY brand", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $materials = DB::run("SELECT DISTINCT material FROM products WHERE tenant_id=? AND material IS NOT NULL AND material!='' ORDER BY material", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $compositions = DB::run("SELECT DISTINCT composition FROM products WHERE tenant_id=? AND composition IS NOT NULL AND composition!='' ORDER BY composition LIMIT 50", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $cats = DB::run("SELECT id, name FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC); } catch (Throwable $e) {}
+            try { $sups = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC); } catch (Throwable $e) {}
+            try { $countries = DB::run("SELECT DISTINCT origin_country FROM products WHERE tenant_id=? AND origin_country IS NOT NULL AND origin_country!='' ORDER BY origin_country", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            echo json_encode([
+                'categories' => $cats, 'suppliers' => $sups,
+                'sizes' => $sizes, 'colors' => $colors, 'brands' => $brands,
+                'materials' => $materials, 'compositions' => $compositions, 'countries' => $countries
+            ]); exit;
+        }
+
+        // ─── ADVANCED SEARCH: ползва всички филтри ───
+        if ($ajax_action === 'advanced_search') {
+            $f = $_GET;
+            $where = ["p.tenant_id = ?", "p.is_active = 1", "p.parent_id IS NULL"];
+            $params = [$tenant_id];
+            if (!empty($f['q'])) {
+                $like = "%{$f['q']}%";
+                $where[] = "(p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)";
+                $params[] = $like; $params[] = $like; $params[] = $like;
+            }
+            if (!empty($f['cat'])) { $where[] = "p.category_id = ?"; $params[] = (int)$f['cat']; }
+            if (!empty($f['sup'])) { $where[] = "p.supplier_id = ?"; $params[] = (int)$f['sup']; }
+            if (!empty($f['size'])) {
+                // Размерът може да е на parent или на variation (child) — търсим в двете
+                $where[] = "(p.size = ? OR EXISTS (SELECT 1 FROM products pv WHERE pv.parent_id=p.id AND pv.size=?))";
+                $params[] = $f['size']; $params[] = $f['size'];
+            }
+            if (!empty($f['color'])) {
+                $where[] = "(p.color = ? OR EXISTS (SELECT 1 FROM products pv WHERE pv.parent_id=p.id AND pv.color=?))";
+                $params[] = $f['color']; $params[] = $f['color'];
+            }
+            if (!empty($f['brand'])) { $where[] = "p.brand = ?"; $params[] = $f['brand']; }
+            if (!empty($f['material'])) { $where[] = "p.material = ?"; $params[] = $f['material']; }
+            if (!empty($f['composition'])) { $where[] = "p.composition LIKE ?"; $params[] = "%{$f['composition']}%"; }
+            if (!empty($f['country'])) { $where[] = "p.origin_country = ?"; $params[] = $f['country']; }
+            if (!empty($f['gender'])) { $where[] = "p.gender = ?"; $params[] = $f['gender']; }
+            if (!empty($f['season'])) { $where[] = "p.season = ?"; $params[] = $f['season']; }
+            if (isset($f['domestic']) && $f['domestic'] !== '') { $where[] = "p.is_domestic = ?"; $params[] = (int)$f['domestic']; }
+            if (isset($f['has_image']) && $f['has_image'] !== '') {
+                $where[] = $f['has_image'] == '1' ? "p.image_url IS NOT NULL AND p.image_url != ''" : "(p.image_url IS NULL OR p.image_url = '')";
+            }
+            if (!empty($f['price_min'])) { $where[] = "p.retail_price >= ?"; $params[] = (float)$f['price_min']; }
+            if (!empty($f['price_max'])) { $where[] = "p.retail_price <= ?"; $params[] = (float)$f['price_max']; }
+            if (!empty($f['discount'])) { $where[] = "p.discount_pct > 0"; }
+
+            // Stock filter — изисква JOIN с inventory
+            $stock_join = "LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = " . (int)$sid_ajax;
+            $having = "";
+            if (!empty($f['stock'])) {
+                if ($f['stock'] === 'out') $having = "HAVING total_stock <= 0";
+                elseif ($f['stock'] === 'in') $having = "HAVING total_stock > 0";
+                elseif ($f['stock'] === 'low') $having = "HAVING total_stock > 0 AND total_stock <= COALESCE(MAX(p.min_quantity), 0)";
+                elseif ($f['stock'] === 'stale60') {
+                    $where[] = "NOT EXISTS (SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=? AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY) AND s.status!='canceled')";
+                    $params[] = $sid_ajax;
+                }
+            }
+
+            // Counted filter
+            if (!empty($f['counted'])) {
+                if ($f['counted'] === 'counted') {
+                    $where[] = "EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                    $params[] = $sid_ajax;
+                } elseif ($f['counted'] === 'uncounted') {
+                    $where[] = "NOT EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                    $params[] = $sid_ajax;
+                }
+            }
+
+            $where_sql = implode(" AND ", $where);
+            $sql = "
+                SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.size, p.color, p.brand,
+                       s.name AS supplier_name, c.name AS category_name,
+                       COALESCE(SUM(i.quantity), 0) AS total_stock
+                FROM products p
+                LEFT JOIN suppliers s ON s.id = p.supplier_id
+                LEFT JOIN categories c ON c.id = p.category_id
+                $stock_join
+                WHERE $where_sql
+                GROUP BY p.id
+                $having
+                ORDER BY p.name ASC
+                LIMIT 100
+            ";
+            $rows = DB::run($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['products' => $rows, 'total' => count($rows)]);
+            exit;
+        }
+
+        // Unknown action
+        echo json_encode(['error' => 'unknown_ajax_action', 'action' => $ajax_action]);
+        exit;
+    } catch (Throwable $e) {
+        echo json_encode(['error' => 'server_error', 'msg' => $e->getMessage()]);
+        exit;
+    }
+}
+
 // Mode override (?mode=simple|detailed)
 $mode_override = $_GET['mode'] ?? null;
 $is_simple_view = ($mode_override === 'simple') || (!$mode_override && $user_role === 'seller');
@@ -1924,6 +2087,200 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 .inv-nudge-arrow { width: 14px !important; height: 14px !important; flex-shrink: 0; }
 .sg-row svg, .st-row svg, .t3-row svg { max-width: 16px; max-height: 16px; }
 
+/* ════════════════════════════════════════════════════════════════════
+ * S143 — SEARCH DROPDOWN + FILTER DRAWER (rich filters)
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Search dropdown под input */
+.search-dd {
+  margin: 0 12px 8px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(0,0,0,0.06);
+  max-height: 60vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: none;
+}
+[data-theme="dark"] .search-dd {
+  background: hsl(220 25% 8%);
+  border-color: rgba(99,102,241,0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.search-dd.open { display: block; animation: fadeInUp 0.2s var(--ease); }
+.search-dd-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; position: sticky; top: 0;
+  background: var(--surface); z-index: 1;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+[data-theme="dark"] .search-dd-header { background: hsl(220 25% 8%); border-bottom-color: rgba(99,102,241,0.12); }
+.search-dd-count { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.search-dd-close {
+  width: 24px; height: 24px; border-radius: 8px;
+  background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none;
+}
+.search-dd-close svg { width: 10px; height: 10px; stroke: var(--accent); stroke-width: 3; fill: none; }
+.search-dd-section-label { padding: 6px 14px 2px; font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+.search-dd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  transition: background 0.12s;
+}
+.search-dd-item:hover, .search-dd-item:active { background: rgba(99,102,241,0.06); }
+.search-dd-thumb {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: rgba(99,102,241,0.08);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; overflow: hidden;
+}
+.search-dd-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.search-dd-thumb svg { width: 14px; height: 14px; stroke: rgba(99,102,241,0.3); fill: none; stroke-width: 1.5; }
+.search-dd-info { flex: 1; min-width: 0; }
+.search-dd-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.search-dd-meta { font-size: 9px; color: var(--text-muted); }
+.search-dd-price-col { text-align: right; flex-shrink: 0; }
+.search-dd-price { font-size: 11px; font-weight: 700; color: var(--accent); }
+.search-dd-stock { font-size: 9px; }
+.search-dd-stock.ok { color: #16a34a; }
+.search-dd-stock.out { color: #dc2626; }
+.search-dd-cat-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(20,184,166,0.12);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.search-dd-cat-icon svg { width: 14px; height: 14px; stroke: #14b8a6; fill: none; stroke-width: 2; }
+.search-dd-arrow { color: var(--text-muted); font-size: 14px; }
+.search-dd-viewall {
+  padding: 11px 14px; text-align: center;
+  background: rgba(99,102,241,0.08); cursor: pointer;
+  border-top: 1px solid rgba(99,102,241,0.12);
+  font-size: 12px; font-weight: 700; color: var(--accent);
+}
+.search-dd-empty { padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted); }
+
+/* Filter drawer overlay + slide-up panel */
+.f-drawer-ov {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.f-drawer-ov.open { opacity: 1; pointer-events: all; }
+.f-drawer {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  padding: 0 16px 40px;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32,0,0.67,0);
+  max-height: 92vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.25);
+}
+[data-theme="dark"] .f-drawer { background: #080818; border-top: 1px solid rgba(99,102,241,0.3); box-shadow: 0 -20px 60px rgba(99,102,241,0.2); }
+.f-drawer.open { transform: translateY(0); }
+.f-drawer-handle { width: 36px; height: 4px; background: rgba(99,102,241,0.3); border-radius: 2px; margin: 14px auto 10px; }
+.f-drawer-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-top: 4px; }
+.f-drawer-hdr h3 { font-size: 16px; font-weight: 800; margin: 0; color: var(--text); }
+.f-drawer-close {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: rgba(99,102,241,0.1); color: var(--accent);
+  font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; border: none;
+}
+
+/* Filter sections */
+.f-section { margin-bottom: 14px; }
+.f-section-lbl { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.f-section-lbl .f-count { color: var(--text-muted); font-weight: 500; margin-left: 4px; }
+.f-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.f-chip {
+  padding: 7px 13px; border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .f-chip { border-color: rgba(255,255,255,0.1); }
+.f-chip:active { transform: scale(0.97); }
+.f-chip.sel {
+  background: rgba(99,102,241,0.15);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Color swatches (вместо текстови чипове за цвят) */
+.f-color-swatch {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.1);
+  cursor: pointer; position: relative;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .f-color-swatch { border-color: rgba(255,255,255,0.15); }
+.f-color-swatch:active { transform: scale(0.92); }
+.f-color-swatch.sel { border-width: 3px; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
+.f-color-swatch::after {
+  content: attr(data-name);
+  position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; color: var(--text-muted); white-space: nowrap; pointer-events: none;
+}
+
+/* Price range */
+.f-price-row { display: flex; gap: 8px; align-items: center; }
+.f-price-inp {
+  flex: 1; padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+[data-theme="dark"] .f-price-inp { background: hsl(220 25% 8%); border-color: rgba(255,255,255,0.1); }
+.f-price-inp:focus { outline: none; border-color: var(--accent); }
+.f-price-sep { color: var(--text-muted); font-size: 13px; }
+
+/* Apply / Clear buttons */
+.f-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; position: sticky; bottom: 0; padding: 12px 0 4px; background: var(--surface); }
+[data-theme="dark"] .f-actions { background: #080818; }
+.f-btn {
+  padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .f-btn { background: hsl(220 25% 8%); border-color: rgba(255,255,255,0.1); }
+.f-btn:active { transform: scale(0.97); }
+.f-btn.primary {
+  background: linear-gradient(135deg, hsl(255 70% 55%), hsl(280 70% 60%));
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+}
+.f-btn.primary:active { box-shadow: 0 2px 8px rgba(99,102,241,0.2); }
+
+/* Filter badge на бутончето "Филтри" — показва брой активни */
+.s-btn .dot {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff; font-size: 9px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+}
+.s-btn { position: relative; }
+
 </style>
 </head><body>
 
@@ -2039,15 +2396,16 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." autocomplete="off">
-    <button class="s-btn" type="button" aria-label="Филтри">
+    <input type="text" id="hSearchInp" placeholder="Търси по име, код или баркод..." autocomplete="off" oninput="onLiveSearch(this.value,'hSearchInp','hSearchDD')">
+    <button class="s-btn" type="button" aria-label="Филтри" onclick="openFilterDrawer()">
       <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-      <span class="dot" style="display:none">0</span>
+      <span class="dot" id="hFilterDot" style="display:none">0</span>
     </button>
     <button class="s-btn mic" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)">
       <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
     </button>
   </div>
+  <div id="hSearchDD" class="search-dd"></div>
 
   <a class="all-items-link" href="products.php?screen=products">
     Виж всички <b><?= number_format($total_products, 0, "", " ") ?></b> артикула
@@ -2360,15 +2718,16 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   <!-- ─── ТЪРСАЧКА с микрофон + филтър (S142 inject) ─── -->
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="dSearchInp" placeholder="Търси по име, код или баркод..." autocomplete="off">
-    <button class="s-btn" type="button" aria-label="Филтри">
+    <input type="text" id="dSearchInp" placeholder="Търси по име, код или баркод..." autocomplete="off" oninput="onLiveSearch(this.value,'dSearchInp','dSearchDD')">
+    <button class="s-btn" type="button" aria-label="Филтри" onclick="openFilterDrawer()">
       <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-      <span class="dot" style="display:none">0</span>
+      <span class="dot" id="dFilterDot" style="display:none">0</span>
     </button>
     <button class="s-btn mic" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this,'dSearchInp')">
       <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
     </button>
   </div>
+  <div id="dSearchDD" class="search-dd"></div>
 
   <!-- ─── ВСИЧКИ АРТИКУЛИ link (отива в P3 list) ─── -->
   <a class="all-items-link" href="products.php?screen=products">
@@ -3271,6 +3630,314 @@ function lbViewAll() {
     location.href = 'products-v2.php?mode=detailed&tab=items&filter=signals';
 }
 
+// ════════════════════════════════════════════════════════════════════
+// S143 — RICH SEARCH + FILTERS
+// Падащ списък при писане + filter drawer с 16 групи филтри
+// ════════════════════════════════════════════════════════════════════
+
+// ─── HELPERS (copy 1:1 от products.php) ───
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmtPriceJS(v){if(v==null)return'—';return parseFloat(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+async function apiJS(url){ try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); } catch(e) { console.error('api err', e); return null; } }
+
+// ─── SEARCH AUTOCOMPLETE ───
+var _searchTO = null;
+async function onLiveSearch(q, inputId, ddId) {
+    q = (q||'').trim();
+    const dd = document.getElementById(ddId);
+    if (!dd) return;
+    if (q.length < 1) {
+        clearTimeout(_searchTO);
+        dd.classList.remove('open');
+        dd.innerHTML = '';
+        return;
+    }
+    clearTimeout(_searchTO);
+    _searchTO = setTimeout(async () => {
+        const d = await apiJS('products-v2.php?ajax=search&mix=1&q=' + encodeURIComponent(q));
+        if (!d) { dd.classList.remove('open'); return; }
+        if (d.error) {
+            dd.innerHTML = '<div class="search-dd-empty">Грешка: ' + esc(d.msg || d.error) + '</div>';
+            dd.classList.add('open');
+            return;
+        }
+        const products = d.products || [];
+        const categories = d.categories || [];
+        const total = d.total_products || products.length;
+
+        if (!products.length && !categories.length) {
+            dd.innerHTML = '<div class="search-dd-empty">Нищо за "' + esc(q) + '"</div>';
+            dd.classList.add('open');
+            return;
+        }
+
+        let html = '';
+        // Header
+        html += '<div class="search-dd-header">';
+        html += '<span class="search-dd-count">' + (products.length + categories.length) + ' резултата</span>';
+        html += '<button class="search-dd-close" onclick="clearSearch(\'' + inputId + '\',\'' + ddId + '\')"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+        html += '</div>';
+
+        // Categories
+        if (categories.length) {
+            html += '<div class="search-dd-section-label">Категории</div>';
+            categories.forEach(c => {
+                html += '<div class="search-dd-item" onclick="pickSearchCat(' + c.id + ')">';
+                html += '<div class="search-dd-cat-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
+                html += '<div class="search-dd-info"><div class="search-dd-name">' + esc(c.name) + '</div><div class="search-dd-meta">' + (c.product_count || 0) + ' артикула</div></div>';
+                html += '<span class="search-dd-arrow">›</span></div>';
+            });
+        }
+
+        // Products
+        if (products.length) {
+            html += '<div class="search-dd-section-label">Артикули</div>';
+            products.forEach(p => {
+                const stock = parseInt(p.total_stock || 0);
+                const sc = stock > 0 ? 'ok' : 'out';
+                const thumb = p.image_url
+                    ? '<img src="' + esc(p.image_url) + '">'
+                    : '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+                html += '<div class="search-dd-item" onclick="pickSearchProd(' + p.id + ')">';
+                html += '<div class="search-dd-thumb">' + thumb + '</div>';
+                html += '<div class="search-dd-info"><div class="search-dd-name">' + esc(p.name) + '</div><div class="search-dd-meta">' + esc(p.code || '') + (p.supplier_name ? ' · ' + esc(p.supplier_name) : '') + '</div></div>';
+                html += '<div class="search-dd-price-col"><div class="search-dd-price">' + fmtPriceJS(p.retail_price) + '</div><div class="search-dd-stock ' + sc + '">' + stock + ' бр</div></div>';
+                html += '</div>';
+            });
+        }
+
+        // View all
+        if (total > products.length) {
+            html += '<div class="search-dd-viewall" onclick="viewAllResults(\'' + q.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">Виж всички ' + total + ' артикула →</div>';
+        }
+
+        dd.innerHTML = html;
+        dd.classList.add('open');
+    }, 150);
+}
+
+function clearSearch(inputId, ddId) {
+    const inp = document.getElementById(inputId);
+    const dd = document.getElementById(ddId);
+    if (inp) inp.value = '';
+    if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+}
+
+function pickSearchProd(id) {
+    // Засега — redirect към production detail. След редизайн (Стъпка 4) — inline drawer.
+    location.href = 'products.php?detail=' + id;
+}
+
+function pickSearchCat(id) {
+    location.href = 'products.php?screen=products&cat=' + id;
+}
+
+function viewAllResults(q) {
+    location.href = 'products.php?screen=products&q=' + encodeURIComponent(q);
+}
+
+// Click outside за затваряне на dropdown
+document.addEventListener('click', function(e) {
+    ['hSearchDD','dSearchDD'].forEach(ddId => {
+        const dd = document.getElementById(ddId);
+        if (!dd || !dd.classList.contains('open')) return;
+        const inputId = ddId === 'hSearchDD' ? 'hSearchInp' : 'dSearchInp';
+        const inp = document.getElementById(inputId);
+        if (dd.contains(e.target) || (inp && inp.contains(e.target))) return;
+        dd.classList.remove('open');
+    });
+});
+
+// ─── FILTER DRAWER ───
+var _filterOptionsLoaded = false;
+var _filterState = {}; // {cat:'5', sup:'2', size:'M', color:'red', ...}
+var _filterOptions = null;
+
+async function openFilterDrawer() {
+    document.getElementById('fDrawerOv').classList.add('open');
+    document.getElementById('fDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (!_filterOptionsLoaded) {
+        await loadFilterOptions();
+    }
+}
+
+function closeFilterDrawer() {
+    document.getElementById('fDrawerOv').classList.remove('open');
+    document.getElementById('fDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+async function loadFilterOptions() {
+    const body = document.getElementById('fDrawerBody');
+    const d = await apiJS('products-v2.php?ajax=filter_options');
+    if (!d || d.error) {
+        body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#dc2626;">Грешка при зареждане на филтрите</div>';
+        return;
+    }
+    _filterOptions = d;
+    _filterOptionsLoaded = true;
+    renderFilterDrawer();
+}
+
+function renderFilterDrawer() {
+    const o = _filterOptions;
+    const s = _filterState;
+    let html = '';
+
+    // 1. Категория
+    if (o.categories && o.categories.length) {
+        html += filterSection('Категория', 'cat', o.categories.map(c => ({val: c.id, lbl: c.name})), s.cat);
+    }
+    // 2. Доставчик
+    if (o.suppliers && o.suppliers.length) {
+        html += filterSection('Доставчик', 'sup', o.suppliers.map(s2 => ({val: s2.id, lbl: s2.name})), s.sup);
+    }
+    // 3. Размер
+    if (o.sizes && o.sizes.length) {
+        html += filterSection('Размер', 'size', o.sizes.map(v => ({val: v, lbl: v})), s.size);
+    }
+    // 4. Цвят (със swatches ако имената са цветове, иначе чипове)
+    if (o.colors && o.colors.length) {
+        html += filterColorSection(o.colors, s.color);
+    }
+    // 5. Материя (нова колона)
+    if (o.materials && o.materials.length) {
+        html += filterSection('Материя', 'material', o.materials.map(v => ({val: v, lbl: v})), s.material);
+    }
+    // 6. Състав
+    if (o.compositions && o.compositions.length) {
+        html += filterSection('Състав', 'composition', o.compositions.map(v => ({val: v, lbl: v})), s.composition);
+    }
+    // 7. Марка (НОВА — днес добавена)
+    if (o.brands && o.brands.length) {
+        html += filterSection('Марка', 'brand', o.brands.map(v => ({val: v, lbl: v})), s.brand);
+    } else {
+        html += '<div class="f-section"><div class="f-section-lbl">Марка <span class="f-count">(няма данни още)</span></div><div style="font-size:11px;color:var(--text-muted);">Попълва се при добавяне на артикул (предстои утре).</div></div>';
+    }
+    // 8. Пол (НОВО — днес добавено)
+    const genders = [{val:'male',lbl:'Мъжко'},{val:'female',lbl:'Женско'},{val:'kids',lbl:'Детско'},{val:'unisex',lbl:'Унисекс'}];
+    html += filterSection('Пол', 'gender', genders, s.gender);
+    // 9. Сезон (НОВО — днес добавено)
+    const seasons = [{val:'summer',lbl:'Лято'},{val:'winter',lbl:'Зима'},{val:'transitional',lbl:'Преходен'},{val:'all_year',lbl:'Целогодишно'}];
+    html += filterSection('Сезон', 'season', seasons, s.season);
+    // 10. Държава на произход
+    if (o.countries && o.countries.length) {
+        html += filterSection('Държава', 'country', o.countries.map(v => ({val: v, lbl: v})), s.country);
+    }
+    // 11. БГ / Внос
+    html += filterSection('Произход', 'domestic', [{val:'1',lbl:'БГ производство'},{val:'0',lbl:'Внос'}], s.domestic);
+    // 12. Наличност
+    html += filterSection('Наличност', 'stock', [{val:'in',lbl:'В наличност'},{val:'out',lbl:'Свършил'},{val:'low',lbl:'Под минимум'},{val:'stale60',lbl:'Застоял 60+ дни'}], s.stock);
+    // 13. Преброен / Непреброен (НОВО — днес добавено)
+    html += filterSection('Преброяване', 'counted', [{val:'counted',lbl:'Преброен ≤30д'},{val:'uncounted',lbl:'Непреброен'}], s.counted);
+    // 14. Снимка
+    html += filterSection('Снимка', 'has_image', [{val:'1',lbl:'Има снимка'},{val:'0',lbl:'Без снимка'}], s.has_image);
+    // 15. Промоция
+    html += filterSection('Отстъпка', 'discount', [{val:'1',lbl:'На промоция'}], s.discount);
+    // 16. Цена от-до
+    html += `<div class="f-section">
+        <div class="f-section-lbl">Цена (€)</div>
+        <div class="f-price-row">
+            <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
+            <span class="f-price-sep">—</span>
+            <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
+        </div>
+    </div>`;
+
+    document.getElementById('fDrawerBody').innerHTML = html;
+}
+
+function filterSection(label, key, options, selectedVal) {
+    let html = `<div class="f-section"><div class="f-section-lbl">${esc(label)}</div><div class="f-chips">`;
+    options.forEach(o => {
+        const sel = String(selectedVal) === String(o.val) ? ' sel' : '';
+        html += `<button class="f-chip${sel}" data-key="${esc(key)}" data-val="${esc(String(o.val))}" onclick="toggleFChip(this)">${esc(o.lbl)}</button>`;
+    });
+    html += '</div></div>';
+    return html;
+}
+
+function filterColorSection(colors, selectedVal) {
+    // Известни БГ имена → CSS цветове
+    const colorMap = {
+        'черен':'#000','бял':'#fff','червен':'#ef4444','син':'#3b82f6','зелен':'#22c55e',
+        'жълт':'#eab308','оранжев':'#f97316','розов':'#ec4899','лилав':'#a855f7',
+        'кафяв':'#92400e','сив':'#9ca3af','бежов':'#d4a574','златен':'#fbbf24','сребрист':'#cbd5e1',
+        'тюркоаз':'#06b6d4','маслинен':'#65a30d','бордо':'#7f1d1d','тъмносин':'#1e3a8a','шарен':'transparent',
+        'black':'#000','white':'#fff','red':'#ef4444','blue':'#3b82f6','green':'#22c55e',
+        'yellow':'#eab308','orange':'#f97316','pink':'#ec4899','purple':'#a855f7','brown':'#92400e',
+        'gray':'#9ca3af','grey':'#9ca3af','beige':'#d4a574'
+    };
+
+    let html = '<div class="f-section"><div class="f-section-lbl">Цвят</div><div class="f-chips" style="gap:14px; padding-bottom:18px;">';
+    colors.forEach(c => {
+        const lc = (c||'').toLowerCase().trim();
+        const hex = colorMap[lc] || '#cbd5e1';
+        const sel = String(selectedVal) === String(c) ? ' sel' : '';
+        const border = (lc === 'бял' || lc === 'white') ? '; border-color:#d1d5db;' : '';
+        html += `<button class="f-color-swatch${sel}" data-key="color" data-val="${esc(c)}" data-name="${esc(c)}" style="background:${hex}${border}" onclick="toggleFChip(this)" aria-label="${esc(c)}"></button>`;
+    });
+    html += '</div></div>';
+    return html;
+}
+
+function toggleFChip(el) {
+    // Single-select per group — натискане на друг чип в същата група го избира, останалите се деактивират
+    const key = el.dataset.key;
+    const val = el.dataset.val;
+    if (el.classList.contains('sel')) {
+        el.classList.remove('sel');
+        delete _filterState[key];
+    } else {
+        // Деактивирай всички други в същата група
+        document.querySelectorAll('[data-key="' + key + '"]').forEach(c => c.classList.remove('sel'));
+        el.classList.add('sel');
+        _filterState[key] = val;
+    }
+}
+
+function applyFilters() {
+    // Прочети price range
+    const pmin = document.getElementById('fPriceMin');
+    const pmax = document.getElementById('fPriceMax');
+    if (pmin && pmin.value) _filterState.price_min = pmin.value; else delete _filterState.price_min;
+    if (pmax && pmax.value) _filterState.price_max = pmax.value; else delete _filterState.price_max;
+
+    closeFilterDrawer();
+    updateFilterBadge();
+
+    // Build query string
+    const qs = new URLSearchParams();
+    Object.keys(_filterState).forEach(k => { if (_filterState[k]) qs.set(k, _filterState[k]); });
+
+    // Засега redirect към production products.php P3 list с филтрите
+    // След редизайн на Артикули таб (Стъпка отделна) — ще filter-ва inline списък
+    if (qs.toString()) {
+        location.href = 'products.php?screen=products&' + qs.toString();
+    }
+}
+
+function clearFilters() {
+    _filterState = {};
+    const pmin = document.getElementById('fPriceMin');
+    const pmax = document.getElementById('fPriceMax');
+    if (pmin) pmin.value = '';
+    if (pmax) pmax.value = '';
+    document.querySelectorAll('.f-chip.sel, .f-color-swatch.sel').forEach(c => c.classList.remove('sel'));
+    updateFilterBadge();
+}
+
+function updateFilterBadge() {
+    const count = Object.keys(_filterState).filter(k => _filterState[k]).length;
+    ['hFilterDot','dFilterDot'].forEach(id => {
+        const dot = document.getElementById(id);
+        if (!dot) return;
+        if (count > 0) { dot.textContent = count; dot.style.display = 'flex'; }
+        else { dot.style.display = 'none'; }
+    });
+}
+
 // ─── Init: ресторо tab от localStorage ───
 (function(){
     try {
@@ -3281,6 +3948,30 @@ function lbViewAll() {
     } catch(_) {}
 })();
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     S143 — FILTER DRAWER (богати филтри: 16 групи)
+     Зарежда опциите от AJAX (filter_options) при първо отваряне.
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="f-drawer-ov" id="fDrawerOv" onclick="closeFilterDrawer()"></div>
+<div class="f-drawer" id="fDrawer">
+  <div class="f-drawer-handle"></div>
+  <div class="f-drawer-hdr">
+    <h3>Филтри</h3>
+    <button class="f-drawer-close" onclick="closeFilterDrawer()" aria-label="Затвори">✕</button>
+  </div>
+
+  <div id="fDrawerBody">
+    <div style="text-align:center; padding:40px 0; color:var(--text-muted); font-size:13px;">
+      Зареждам филтрите...
+    </div>
+  </div>
+
+  <div class="f-actions">
+    <button class="f-btn" onclick="clearFilters()">Изчисти всички</button>
+    <button class="f-btn primary" onclick="applyFilters()">Приложи</button>
+  </div>
+</div>
 
 </body>
 </html>
