@@ -1906,6 +1906,24 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 .health-wos-val { font-family: var(--font-mono); font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
 .health-wos-val small { font-size: 10px; font-weight: 700; color: var(--text-muted); }
 
+
+/* ═══ S142 hotfix-2: SVG sizing constraints (against giant icons) ═══ */
+.sg-head-ic { width: 20px !important; height: 20px !important; flex-shrink: 0; display: inline-grid !important; place-items: center !important; }
+.sg-head-ic svg { width: 16px !important; height: 16px !important; stroke: currentColor; fill: none; stroke-width: 2; }
+.cash-tile-head svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
+.wfc-head-ic { width: 22px !important; height: 22px !important; flex-shrink: 0; display: inline-grid !important; place-items: center !important; }
+.wfc-head-ic svg { width: 18px !important; height: 18px !important; flex-shrink: 0; }
+.t3-head svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
+.st-head svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
+.lb-emoji-orb svg { width: 16px !important; height: 16px !important; }
+.kp-pill svg { width: 12px !important; height: 12px !important; }
+.s-btn svg { width: 14px !important; height: 14px !important; }
+.all-items-link svg { width: 11px !important; height: 11px !important; }
+.qa-ic svg { width: 100% !important; height: 100% !important; max-width: 24px; max-height: 24px; }
+.inv-nudge-ic svg { width: 20px !important; height: 20px !important; }
+.inv-nudge-arrow { width: 14px !important; height: 14px !important; flex-shrink: 0; }
+.sg-row svg, .st-row svg, .t3-row svg { max-width: 16px; max-height: 16px; }
+
 </style>
 </head><body>
 
@@ -1913,13 +1931,18 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
 </div>
 
-<!-- ═══ HEADER (Тип Б — вътрешен модул, с камера) ═══ -->
+<!-- ═══ HEADER (Тип Б — вътрешен модул) ═══ -->
 <header class="rms-header">
-  <a class="rms-brand" href="chat.php" title="Начало">
+  <?php if ($is_simple_view): ?>
+  <button class="rms-icon-btn" aria-label="Назад" onclick="location.href='life-board.php'" title="Назад към началната">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <?php endif; ?>
+  <a class="rms-brand" href="life-board.php" title="Начало">
     <span class="brand-1">RunMyStore</span><span class="brand-2">.ai</span>
   </a>
-  <span class="rms-plan-badge">PRO</span>
   <div class="rms-header-spacer"></div>
+  <?php if (!$is_simple_view): ?>
   <button class="rms-icon-btn" aria-label="Камера" onclick="openCamera()" title="Сканирай баркод">
     <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
   </button>
@@ -1932,6 +1955,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   <button class="rms-icon-btn" aria-label="Изход" onclick="if(confirm('Изход?'))location.href='logout.php'">
     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
   </button>
+  <?php endif; ?>
   <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема">
     <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -2025,7 +2049,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
     </button>
   </div>
 
-  <a class="all-items-link" href="?screen=products">
+  <a class="all-items-link" href="products.php?screen=products">
     Виж всички <b><?= number_format($total_products, 0, "", " ") ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -2347,7 +2371,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   </div>
 
   <!-- ─── ВСИЧКИ АРТИКУЛИ link (отива в P3 list) ─── -->
-  <a class="all-items-link" href="?screen=products">
+  <a class="all-items-link" href="products.php?screen=products">
     Виж всички <b><?= fmtMoney($total_products) ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -2453,7 +2477,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
     <!-- ═══ Тревоги row (Свършили + Доставка закъсня — нова метрика) ═══ -->
     <div class="top-row">
-      <div class="glass sm cell qd">
+      <div class="glass sm cell qd" style="cursor:pointer" onclick="location.href='products.php?screen=products&filter=out_of_stock'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <div class="cell-label">СВЪРШИЛИ</div>
@@ -3221,20 +3245,30 @@ function rmsSetPeriod(days) {
 
 // ─── Action wrappers (проксират към production функции в products.php) ───
 function openAddProduct() {
-    // S142 placeholder — Step 4 ще извика wizard inline
-    location.href = 'products.php?action=add&from=v2';
+    // Отваря wizard за добавяне на артикул
+    if (typeof window.openAddProductWizardS88 === 'function') {
+        window.openAddProductWizardS88();
+    } else {
+        location.href = 'products.php?action=add&from=v2';
+    }
 }
 function openLikePrevious() {
-    location.href = 'products.php?action=like_previous&from=v2';
+    if (typeof window.openLikePreviousWizardS88 === 'function') {
+        window.openLikePreviousWizardS88();
+    } else {
+        location.href = 'products.php?action=like_previous&from=v2';
+    }
 }
 function openAIOrder() {
-    location.href = 'products.php?screen=studio&from=v2';
+    // AI Studio за поръчка
+    location.href = 'products.php?screen=studio';
 }
 function openInfo(topic) {
     alert('Info: ' + topic);
 }
 function lbViewAll() {
-    location.href = 'products.php?screen=insights&from=v2';
+    // AI feed full list — отваря Detailed Mode на Артикули таб (filter=insights)
+    location.href = 'products-v2.php?mode=detailed&tab=items&filter=signals';
 }
 
 // ─── Init: ресторо tab от localStorage ───
