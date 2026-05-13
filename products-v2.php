@@ -258,11 +258,11 @@ try {
 } catch (Throwable $e) { $delayed_deliveries = 0; }
 
 // ─── Helper: format BGN/EUR ───
-function fmtMoney($amount) {
-    return number_format((float)$amount, 0, '.', ' ');
+if (!function_exists('fmtMoney')) {
+    function fmtMoney($amount) { return number_format((float)$amount, 0, '.', ' '); }
 }
-function fmtMoneyDec($amount) {
-    return number_format((float)$amount, 2, '.', ' ');
+if (!function_exists('fmtMoneyDec')) {
+    function fmtMoneyDec($amount) { return number_format((float)$amount, 2, '.', ' '); }
 }
 
 ?>
