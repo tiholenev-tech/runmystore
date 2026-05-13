@@ -602,3 +602,46 @@ git push origin main
 ---
 
 **End of v2.1.**
+---
+
+# S142 PROGRESS LOG (12-13.05.2026)
+
+**Total commits S142:** 10
+
+**Шеф-чат:** Opus 4.7, ~5 часа сесия
+
+**Файлове създадени:**
+
+| Файл | Размер | Статус |
+|---|---|---|
+| `mockups/P15_simple_FINAL.html` | 82 KB · 1653 реда | ✅ Approved canonical |
+| `mockups/P2_v2_detailed_FINAL.html` | 147 KB · 2703 реда | ✅ Approved canonical |
+| `SESSION_S142_FULL_HANDOFF.md` | 67 KB · 1746 реда | ✅ Пълен контекст за S143 |
+| `S142_BUG_REPORT.md` | 9 KB · 224 реда | ✅ 6 bugs за S143 |
+| `COMPASS_APPEND_S142.md` | ~5 KB | ✅ EOD статус |
+
+**Файлове обновени:**
+
+| Файл | Промяна |
+|---|---|
+| `docs/BIBLE_v3_0_CORE.md` | +126 реда — Закон 6 + "ПЕТТЕ" → "ШЕСТТЕ" |
+| `docs/DETAILED_MODE_SPEC.md` | +71 реда — §0 Philosophy |
+| `products-v2.php` | 1380 → 3251 реда (+1694 / -647) — Step 2A+B+C+D + 3 hotfix-а |
+
+**Sacred zone — НЕ пипано:**
+
+- `products.php` (14,074 реда) — production, непокътнат
+- `services/voice-tier2.php` — sacred
+- `services/ai-color-detect.php` — sacred
+- `js/capacitor-printer.js` — sacred
+- 8 mic input полета във wizard — sacred
+
+**Главно постижение:** Закон №6 в Bible — universal pattern "SIMPLE = СИГНАЛИ · DETAILED = ДАННИ" за ВСИЧКИ модули (Sale, Доставки, Трансфери, Промоции, Marketing, Reports, Settings).
+
+**Следваща сесия започва с:** Step 3 = fix 6 documented bugs в `S142_BUG_REPORT.md`. Pre-flight: чети `SESSION_S142_FULL_HANDOFF.md` (1746 реда — пълен контекст).
+
+**Backup safety net:** `pre-step2-S142` tag → 30-секунден revert.
+
+---
+
+**End of S142 progress log. v2.2.**
