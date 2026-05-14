@@ -79,21 +79,72 @@ if (!empty($_GET['ajax'])) {
         }
 
         // ─── FILTER OPTIONS: уникални стойности за filter drawer ───
+        // Когато се подаде supplier_id → филтрира категории + опции по доставчика
+        // (правило от Тих 13.05.2026: категориите са глобални без доставчик, по доставчик със доставчик)
         if ($ajax_action === 'filter_options') {
+            $sup_filter = !empty($_GET['supplier_id']) ? (int)$_GET['supplier_id'] : 0;
+            $cat_filter = !empty($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
+
             $sizes = []; $colors = []; $brands = []; $materials = []; $compositions = [];
-            $cats = []; $sups = []; $countries = [];
-            try { $sizes = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
-            try { $colors = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
-            try { $brands = DB::run("SELECT DISTINCT brand FROM products WHERE tenant_id=? AND brand IS NOT NULL AND brand!='' ORDER BY brand", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
-            try { $materials = DB::run("SELECT DISTINCT material FROM products WHERE tenant_id=? AND material IS NOT NULL AND material!='' ORDER BY material", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
-            try { $compositions = DB::run("SELECT DISTINCT composition FROM products WHERE tenant_id=? AND composition IS NOT NULL AND composition!='' ORDER BY composition LIMIT 50", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
-            try { $cats = DB::run("SELECT id, name FROM categories WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC); } catch (Throwable $e) {}
+            $cats = []; $subcats = []; $sups = []; $countries = [];
+
+            // ─── Доставчици: ВИНАГИ всички ───
             try { $sups = DB::run("SELECT id, name FROM suppliers WHERE tenant_id=? ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC); } catch (Throwable $e) {}
-            try { $countries = DB::run("SELECT DISTINCT origin_country FROM products WHERE tenant_id=? AND origin_country IS NOT NULL AND origin_country!='' ORDER BY origin_country", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+
+            // ─── Категории: ако supplier_id → само тези с продукти от доставчика; иначе глобално всички ───
+            try {
+                if ($sup_filter) {
+                    $cats = DB::run("
+                        SELECT DISTINCT c.id, c.name, c.parent_id
+                        FROM categories c
+                        JOIN products p ON p.category_id = c.id
+                        WHERE c.tenant_id = ? AND p.tenant_id = ? AND p.supplier_id = ? AND p.is_active = 1
+                          AND c.parent_id IS NULL
+                        ORDER BY c.name
+                    ", [$tenant_id, $tenant_id, $sup_filter])->fetchAll(PDO::FETCH_ASSOC);
+                } else {
+                    $cats = DB::run("SELECT id, name, parent_id FROM categories WHERE tenant_id=? AND parent_id IS NULL ORDER BY name", [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+                }
+            } catch (Throwable $e) {}
+
+            // ─── Подкатегории: само ако избрана главна категория ───
+            try {
+                if ($cat_filter) {
+                    if ($sup_filter) {
+                        $subcats = DB::run("
+                            SELECT DISTINCT c.id, c.name, c.parent_id
+                            FROM categories c
+                            JOIN products p ON p.category_id = c.id
+                            WHERE c.tenant_id = ? AND c.parent_id = ?
+                              AND p.tenant_id = ? AND p.supplier_id = ? AND p.is_active = 1
+                            ORDER BY c.name
+                        ", [$tenant_id, $cat_filter, $tenant_id, $sup_filter])->fetchAll(PDO::FETCH_ASSOC);
+                    } else {
+                        $subcats = DB::run("SELECT id, name, parent_id FROM categories WHERE tenant_id=? AND parent_id=? ORDER BY name", [$tenant_id, $cat_filter])->fetchAll(PDO::FETCH_ASSOC);
+                    }
+                }
+            } catch (Throwable $e) {}
+
+            // ─── Останалите опции: WHERE-clauseове споделени ───
+            $whereSup = $sup_filter ? " AND supplier_id={$sup_filter}" : "";
+            $whereCat = $cat_filter ? " AND (category_id={$cat_filter} OR category_id IN (SELECT id FROM categories WHERE parent_id={$cat_filter}))" : "";
+            $whereAdd = $whereSup . $whereCat;
+
+            try { $sizes = DB::run("SELECT DISTINCT size FROM products WHERE tenant_id=? AND size IS NOT NULL AND size!='' AND is_active=1{$whereAdd} ORDER BY size", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $colors = DB::run("SELECT DISTINCT color FROM products WHERE tenant_id=? AND color IS NOT NULL AND color!='' AND is_active=1{$whereAdd} ORDER BY color", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $brands = DB::run("SELECT DISTINCT brand FROM products WHERE tenant_id=? AND brand IS NOT NULL AND brand!='' AND is_active=1{$whereAdd} ORDER BY brand", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $materials = DB::run("SELECT DISTINCT material FROM products WHERE tenant_id=? AND material IS NOT NULL AND material!='' AND is_active=1{$whereAdd} ORDER BY material", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $compositions = DB::run("SELECT DISTINCT composition FROM products WHERE tenant_id=? AND composition IS NOT NULL AND composition!='' AND is_active=1{$whereAdd} ORDER BY composition LIMIT 50", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+            try { $countries = DB::run("SELECT DISTINCT origin_country FROM products WHERE tenant_id=? AND origin_country IS NOT NULL AND origin_country!='' AND is_active=1{$whereAdd} ORDER BY origin_country", [$tenant_id])->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) {}
+
             echo json_encode([
-                'categories' => $cats, 'suppliers' => $sups,
+                'categories' => $cats,
+                'subcategories' => $subcats,
+                'suppliers' => $sups,
                 'sizes' => $sizes, 'colors' => $colors, 'brands' => $brands,
-                'materials' => $materials, 'compositions' => $compositions, 'countries' => $countries
+                'materials' => $materials, 'compositions' => $compositions, 'countries' => $countries,
+                'supplier_filter' => $sup_filter,
+                'category_filter' => $cat_filter
             ]); exit;
         }
 
@@ -2281,6 +2332,116 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 }
 .s-btn { position: relative; }
 
+/* ════════════════════════════════════════════════════════════════════
+ * S143 v2 — STICKY SEARCH (input лепи горе при писане) + АКОРДЕОН
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Sticky search при активно писане */
+.search-wrap.is-active {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface);
+  padding-top: 8px;
+  padding-bottom: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  margin-top: 0 !important;
+  border-radius: 0 0 14px 14px;
+}
+[data-theme="dark"] .search-wrap.is-active {
+  background: hsl(220 25% 5%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+/* Акордеон секции в filter drawer */
+.f-section.acc {
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: rgba(99,102,241,0.04);
+  border: 1px solid rgba(99,102,241,0.08);
+  overflow: hidden;
+  transition: background 0.2s;
+}
+[data-theme="dark"] .f-section.acc {
+  background: rgba(99,102,241,0.06);
+  border-color: rgba(99,102,241,0.15);
+}
+.f-section.acc.open {
+  background: rgba(99,102,241,0.07);
+}
+
+.f-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.f-section-head:active { background: rgba(99,102,241,0.08); }
+.f-section-head-left {
+  display: flex; align-items: center; gap: 10px;
+}
+.f-section-head-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.f-section-head-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.f-section-head-selected {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  background: rgba(99,102,241,0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.f-section-arrow {
+  width: 14px; height: 14px;
+  transition: transform 0.25s var(--ease);
+  color: var(--text-muted);
+}
+.f-section.acc.open .f-section-arrow { transform: rotate(180deg); }
+
+.f-section-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.32s var(--ease), padding 0.32s var(--ease);
+  padding: 0 14px;
+}
+.f-section.acc.open .f-section-body {
+  max-height: 600px;
+  padding: 4px 14px 14px;
+}
+
+/* "Винаги отворен" вариант — за цена от-до */
+.f-section.always-open .f-section-body {
+  max-height: none;
+  padding: 4px 14px 14px;
+}
+.f-section.always-open .f-section-head { cursor: default; }
+.f-section.always-open .f-section-arrow { display: none; }
+
+/* Цветно колоче за подкатегория (показва се само при избрана главна) */
+.f-subcat-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0 8px;
+}
+
 </style>
 </head><body>
 
@@ -3645,7 +3806,30 @@ var _searchTO = null;
 async function onLiveSearch(q, inputId, ddId) {
     q = (q||'').trim();
     const dd = document.getElementById(ddId);
+    const inp = document.getElementById(inputId);
     if (!dd) return;
+
+    // ─── STICKY: при писане → search-wrap лепи най-горе на екрана ───
+    if (inp) {
+        const wrap = inp.closest('.search-wrap');
+        if (wrap) {
+            if (q.length > 0) {
+                if (!wrap.classList.contains('is-active')) {
+                    wrap.classList.add('is-active');
+                    // Scroll page нагоре така че search-wrap е на върха
+                    requestAnimationFrame(() => {
+                        const rect = wrap.getBoundingClientRect();
+                        if (rect.top > 0) {
+                            window.scrollBy({top: rect.top - 4, behavior: 'smooth'});
+                        }
+                    });
+                }
+            } else {
+                wrap.classList.remove('is-active');
+            }
+        }
+    }
+
     if (q.length < 1) {
         clearTimeout(_searchTO);
         dd.classList.remove('open');
@@ -3719,12 +3903,15 @@ async function onLiveSearch(q, inputId, ddId) {
 function clearSearch(inputId, ddId) {
     const inp = document.getElementById(inputId);
     const dd = document.getElementById(ddId);
-    if (inp) inp.value = '';
+    if (inp) {
+        inp.value = '';
+        const wrap = inp.closest('.search-wrap');
+        if (wrap) wrap.classList.remove('is-active');
+    }
     if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
 }
 
 function pickSearchProd(id) {
-    // Засега — redirect към production detail. След редизайн (Стъпка 4) — inline drawer.
     location.href = 'products.php?detail=' + id;
 }
 
@@ -3736,7 +3923,7 @@ function viewAllResults(q) {
     location.href = 'products.php?screen=products&q=' + encodeURIComponent(q);
 }
 
-// Click outside за затваряне на dropdown
+// Click outside за затваряне на dropdown + sticky reset
 document.addEventListener('click', function(e) {
     ['hSearchDD','dSearchDD'].forEach(ddId => {
         const dd = document.getElementById(ddId);
@@ -3750,8 +3937,9 @@ document.addEventListener('click', function(e) {
 
 // ─── FILTER DRAWER ───
 var _filterOptionsLoaded = false;
-var _filterState = {}; // {cat:'5', sup:'2', size:'M', color:'red', ...}
+var _filterState = {}; // {sup:'2', cat:'5', subcat:'13', size:'M', color:'red', ...}
 var _filterOptions = null;
+var _openSections = new Set(['sup']); // sup отворен по default
 
 async function openFilterDrawer() {
     document.getElementById('fDrawerOv').classList.add('open');
@@ -3768,9 +3956,16 @@ function closeFilterDrawer() {
     document.body.style.overflow = '';
 }
 
-async function loadFilterOptions() {
+async function loadFilterOptions(opts) {
+    opts = opts || {};
     const body = document.getElementById('fDrawerBody');
-    const d = await apiJS('products-v2.php?ajax=filter_options');
+    if (!body) return;
+    if (!opts.silent) body.style.opacity = '0.5';
+    let url = 'products-v2.php?ajax=filter_options';
+    if (_filterState.sup) url += '&supplier_id=' + _filterState.sup;
+    if (_filterState.cat) url += '&category_id=' + _filterState.cat;
+    const d = await apiJS(url);
+    body.style.opacity = '1';
     if (!d || d.error) {
         body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#dc2626;">Грешка при зареждане на филтрите</div>';
         return;
@@ -3785,81 +3980,134 @@ function renderFilterDrawer() {
     const s = _filterState;
     let html = '';
 
-    // 1. Категория
-    if (o.categories && o.categories.length) {
-        html += filterSection('Категория', 'cat', o.categories.map(c => ({val: c.id, lbl: c.name})), s.cat);
-    }
-    // 2. Доставчик
+    // Подреждане по искането на Тих: Доставчик → Категория → Подкатегория → Размер → Цвят → Състав → Материя → Марка → Пол → Сезон → Държава → Произход → Наличност → Преброяване → Снимка → Промоция → Цена
+    const sections = [];
+
+    // 1. Доставчик (винаги отворен по default)
     if (o.suppliers && o.suppliers.length) {
-        html += filterSection('Доставчик', 'sup', o.suppliers.map(s2 => ({val: s2.id, lbl: s2.name})), s.sup);
+        sections.push({key:'sup', label:'Доставчик', items: o.suppliers.map(x=>({val:x.id,lbl:x.name})), cascading:true});
     }
-    // 3. Размер
+
+    // 2. Категория (динамично — само тези от избран доставчик ако има)
+    if (o.categories && o.categories.length) {
+        const sublabel = s.sup ? '(на доставчика)' : '(всички доставчици)';
+        sections.push({key:'cat', label:'Категория', sublabel:sublabel, items: o.categories.map(x=>({val:x.id,lbl:x.name})), cascading:true});
+    }
+
+    // 3. Подкатегория (само ако главна категория е избрана)
+    if (s.cat && o.subcategories && o.subcategories.length) {
+        sections.push({key:'subcat', label:'Подкатегория', items: o.subcategories.map(x=>({val:x.id,lbl:x.name}))});
+    } else if (s.cat) {
+        // главна категория избрана, но няма подкатегории
+        sections.push({key:'subcat', label:'Подкатегория', empty:'(тази категория няма подкатегории)'});
+    }
+
+    // 4. Размер
     if (o.sizes && o.sizes.length) {
-        html += filterSection('Размер', 'size', o.sizes.map(v => ({val: v, lbl: v})), s.size);
+        sections.push({key:'size', label:'Размер', items: o.sizes.map(v=>({val:v,lbl:v}))});
     }
-    // 4. Цвят (със swatches ако имената са цветове, иначе чипове)
+    // 5. Цвят (color swatches)
     if (o.colors && o.colors.length) {
-        html += filterColorSection(o.colors, s.color);
-    }
-    // 5. Материя (нова колона)
-    if (o.materials && o.materials.length) {
-        html += filterSection('Материя', 'material', o.materials.map(v => ({val: v, lbl: v})), s.material);
+        sections.push({key:'color', label:'Цвят', items: o.colors.map(v=>({val:v,lbl:v})), special:'colors'});
     }
     // 6. Състав
     if (o.compositions && o.compositions.length) {
-        html += filterSection('Състав', 'composition', o.compositions.map(v => ({val: v, lbl: v})), s.composition);
+        sections.push({key:'composition', label:'Състав', items: o.compositions.map(v=>({val:v,lbl:v}))});
     }
-    // 7. Марка (НОВА — днес добавена)
+    // 7. Материя
+    if (o.materials && o.materials.length) {
+        sections.push({key:'material', label:'Материя', items: o.materials.map(v=>({val:v,lbl:v}))});
+    }
+    // 8. Марка
     if (o.brands && o.brands.length) {
-        html += filterSection('Марка', 'brand', o.brands.map(v => ({val: v, lbl: v})), s.brand);
+        sections.push({key:'brand', label:'Марка', items: o.brands.map(v=>({val:v,lbl:v}))});
     } else {
-        html += '<div class="f-section"><div class="f-section-lbl">Марка <span class="f-count">(няма данни още)</span></div><div style="font-size:11px;color:var(--text-muted);">Попълва се при добавяне на артикул (предстои утре).</div></div>';
+        sections.push({key:'brand', label:'Марка', empty:'(няма данни още — попълва се утре)'});
     }
-    // 8. Пол (НОВО — днес добавено)
-    const genders = [{val:'male',lbl:'Мъжко'},{val:'female',lbl:'Женско'},{val:'kids',lbl:'Детско'},{val:'unisex',lbl:'Унисекс'}];
-    html += filterSection('Пол', 'gender', genders, s.gender);
-    // 9. Сезон (НОВО — днес добавено)
-    const seasons = [{val:'summer',lbl:'Лято'},{val:'winter',lbl:'Зима'},{val:'transitional',lbl:'Преходен'},{val:'all_year',lbl:'Целогодишно'}];
-    html += filterSection('Сезон', 'season', seasons, s.season);
-    // 10. Държава на произход
+    // 9. Пол
+    sections.push({key:'gender', label:'Пол', items: [{val:'male',lbl:'Мъжко'},{val:'female',lbl:'Женско'},{val:'kids',lbl:'Детско'},{val:'unisex',lbl:'Унисекс'}]});
+    // 10. Сезон
+    sections.push({key:'season', label:'Сезон', items: [{val:'summer',lbl:'Лято'},{val:'winter',lbl:'Зима'},{val:'transitional',lbl:'Преходен'},{val:'all_year',lbl:'Целогодишно'}]});
+    // 11. Държава
     if (o.countries && o.countries.length) {
-        html += filterSection('Държава', 'country', o.countries.map(v => ({val: v, lbl: v})), s.country);
+        sections.push({key:'country', label:'Държава', items: o.countries.map(v=>({val:v,lbl:v}))});
     }
-    // 11. БГ / Внос
-    html += filterSection('Произход', 'domestic', [{val:'1',lbl:'БГ производство'},{val:'0',lbl:'Внос'}], s.domestic);
-    // 12. Наличност
-    html += filterSection('Наличност', 'stock', [{val:'in',lbl:'В наличност'},{val:'out',lbl:'Свършил'},{val:'low',lbl:'Под минимум'},{val:'stale60',lbl:'Застоял 60+ дни'}], s.stock);
-    // 13. Преброен / Непреброен (НОВО — днес добавено)
-    html += filterSection('Преброяване', 'counted', [{val:'counted',lbl:'Преброен ≤30д'},{val:'uncounted',lbl:'Непреброен'}], s.counted);
-    // 14. Снимка
-    html += filterSection('Снимка', 'has_image', [{val:'1',lbl:'Има снимка'},{val:'0',lbl:'Без снимка'}], s.has_image);
-    // 15. Промоция
-    html += filterSection('Отстъпка', 'discount', [{val:'1',lbl:'На промоция'}], s.discount);
-    // 16. Цена от-до
-    html += `<div class="f-section">
-        <div class="f-section-lbl">Цена (€)</div>
-        <div class="f-price-row">
-            <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
-            <span class="f-price-sep">—</span>
-            <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
+    // 12. Произход
+    sections.push({key:'domestic', label:'Произход', items:[{val:'1',lbl:'БГ производство'},{val:'0',lbl:'Внос'}]});
+    // 13. Наличност
+    sections.push({key:'stock', label:'Наличност', items:[{val:'in',lbl:'В наличност'},{val:'out',lbl:'Свършил'},{val:'low',lbl:'Под минимум'},{val:'stale60',lbl:'Застоял 60+ дни'}]});
+    // 14. Преброяване
+    sections.push({key:'counted', label:'Преброяване', items:[{val:'counted',lbl:'Преброен ≤30д'},{val:'uncounted',lbl:'Непреброен'}]});
+    // 15. Снимка
+    sections.push({key:'has_image', label:'Снимка', items:[{val:'1',lbl:'Има снимка'},{val:'0',lbl:'Без снимка'}]});
+    // 16. Промоция
+    sections.push({key:'discount', label:'Отстъпка', items:[{val:'1',lbl:'На промоция'}]});
+
+    // Render всички акордеон секции
+    sections.forEach(sec => {
+        html += renderAccordionSection(sec, s[sec.key]);
+    });
+
+    // 17. Цена от-до — винаги отворена, не акордеон
+    html += `<div class="f-section always-open">
+        <div class="f-section-head"><div class="f-section-head-left"><span class="f-section-head-title">Цена (€)</span></div></div>
+        <div class="f-section-body">
+            <div class="f-price-row">
+                <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
+                <span class="f-price-sep">—</span>
+                <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
+            </div>
         </div>
     </div>`;
 
     document.getElementById('fDrawerBody').innerHTML = html;
 }
 
-function filterSection(label, key, options, selectedVal) {
-    let html = `<div class="f-section"><div class="f-section-lbl">${esc(label)}</div><div class="f-chips">`;
-    options.forEach(o => {
-        const sel = String(selectedVal) === String(o.val) ? ' sel' : '';
-        html += `<button class="f-chip${sel}" data-key="${esc(key)}" data-val="${esc(String(o.val))}" onclick="toggleFChip(this)">${esc(o.lbl)}</button>`;
-    });
-    html += '</div></div>';
+function renderAccordionSection(sec, selectedVal) {
+    const isOpen = _openSections.has(sec.key);
+    const openClass = isOpen ? ' open' : '';
+
+    // Намери label на избраната стойност
+    let selectedLabel = '';
+    if (selectedVal && sec.items) {
+        const found = sec.items.find(x => String(x.val) === String(selectedVal));
+        if (found) selectedLabel = found.lbl;
+    }
+
+    // Заглавие
+    let html = `<div class="f-section acc${openClass}" id="fSec_${sec.key}">`;
+    html += `<button class="f-section-head" onclick="toggleAccordion('${sec.key}')">`;
+    html += `<div class="f-section-head-left">`;
+    html += `<span class="f-section-head-title">${esc(sec.label)}</span>`;
+    if (sec.sublabel) html += ` <span class="f-section-head-count">${esc(sec.sublabel)}</span>`;
+    if (sec.items && !selectedLabel) html += ` <span class="f-section-head-count">${sec.items.length}</span>`;
+    html += `</div>`;
+    if (selectedLabel) html += `<span class="f-section-head-selected">${esc(selectedLabel)}</span>`;
+    html += `<svg class="f-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+    html += `</button>`;
+
+    // Тяло
+    html += `<div class="f-section-body">`;
+    if (sec.empty) {
+        html += `<div class="f-subcat-hint">${esc(sec.empty)}</div>`;
+    } else if (sec.items) {
+        if (sec.special === 'colors') {
+            html += renderColorSwatches(sec.items, selectedVal);
+        } else {
+            html += '<div class="f-chips">';
+            sec.items.forEach(it => {
+                const sel = String(selectedVal) === String(it.val) ? ' sel' : '';
+                const cascading = sec.cascading ? ' data-cascading="1"' : '';
+                html += `<button class="f-chip${sel}" data-key="${esc(sec.key)}" data-val="${esc(String(it.val))}"${cascading} onclick="toggleFChip(this)">${esc(it.lbl)}</button>`;
+            });
+            html += '</div>';
+        }
+    }
+    html += `</div></div>`;
     return html;
 }
 
-function filterColorSection(colors, selectedVal) {
-    // Известни БГ имена → CSS цветове
+function renderColorSwatches(items, selectedVal) {
     const colorMap = {
         'черен':'#000','бял':'#fff','червен':'#ef4444','син':'#3b82f6','зелен':'#22c55e',
         'жълт':'#eab308','оранжев':'#f97316','розов':'#ec4899','лилав':'#a855f7',
@@ -3869,36 +4117,59 @@ function filterColorSection(colors, selectedVal) {
         'yellow':'#eab308','orange':'#f97316','pink':'#ec4899','purple':'#a855f7','brown':'#92400e',
         'gray':'#9ca3af','grey':'#9ca3af','beige':'#d4a574'
     };
-
-    let html = '<div class="f-section"><div class="f-section-lbl">Цвят</div><div class="f-chips" style="gap:14px; padding-bottom:18px;">';
-    colors.forEach(c => {
+    let html = '<div class="f-chips" style="gap:14px 18px; padding-bottom:24px;">';
+    items.forEach(it => {
+        const c = it.val;
         const lc = (c||'').toLowerCase().trim();
         const hex = colorMap[lc] || '#cbd5e1';
         const sel = String(selectedVal) === String(c) ? ' sel' : '';
         const border = (lc === 'бял' || lc === 'white') ? '; border-color:#d1d5db;' : '';
         html += `<button class="f-color-swatch${sel}" data-key="color" data-val="${esc(c)}" data-name="${esc(c)}" style="background:${hex}${border}" onclick="toggleFChip(this)" aria-label="${esc(c)}"></button>`;
     });
-    html += '</div></div>';
+    html += '</div>';
     return html;
 }
 
-function toggleFChip(el) {
-    // Single-select per group — натискане на друг чип в същата група го избира, останалите се деактивират
+function toggleAccordion(key) {
+    if (_openSections.has(key)) _openSections.delete(key);
+    else _openSections.add(key);
+    const sec = document.getElementById('fSec_' + key);
+    if (sec) sec.classList.toggle('open');
+}
+
+async function toggleFChip(el) {
     const key = el.dataset.key;
     const val = el.dataset.val;
+    const cascading = el.dataset.cascading === '1';
+
     if (el.classList.contains('sel')) {
         el.classList.remove('sel');
         delete _filterState[key];
+        // Cascade clear — ако махнеш доставчик → клийрни и категория/подкатегория
+        if (key === 'sup') { delete _filterState.cat; delete _filterState.subcat; }
+        if (key === 'cat') { delete _filterState.subcat; }
     } else {
-        // Деактивирай всички други в същата група
         document.querySelectorAll('[data-key="' + key + '"]').forEach(c => c.classList.remove('sel'));
         el.classList.add('sel');
         _filterState[key] = val;
+        if (key === 'sup') { delete _filterState.cat; delete _filterState.subcat; }
+        if (key === 'cat') { delete _filterState.subcat; }
+    }
+
+    // Cascading: ако се промени доставчик или категория → reload options
+    if (cascading) {
+        // Запази кои секции са отворени
+        if (key === 'sup' && _filterState.sup) {
+            _openSections.add('cat'); // Auto-отвори категория
+        }
+        if (key === 'cat' && _filterState.cat) {
+            _openSections.add('subcat'); // Auto-отвори подкатегория
+        }
+        await loadFilterOptions({silent: true});
     }
 }
 
 function applyFilters() {
-    // Прочети price range
     const pmin = document.getElementById('fPriceMin');
     const pmax = document.getElementById('fPriceMax');
     if (pmin && pmin.value) _filterState.price_min = pmin.value; else delete _filterState.price_min;
@@ -3907,12 +4178,9 @@ function applyFilters() {
     closeFilterDrawer();
     updateFilterBadge();
 
-    // Build query string
     const qs = new URLSearchParams();
     Object.keys(_filterState).forEach(k => { if (_filterState[k]) qs.set(k, _filterState[k]); });
 
-    // Засега redirect към production products.php P3 list с филтрите
-    // След редизайн на Артикули таб (Стъпка отделна) — ще filter-ва inline списък
     if (qs.toString()) {
         location.href = 'products.php?screen=products&' + qs.toString();
     }
@@ -3920,12 +4188,13 @@ function applyFilters() {
 
 function clearFilters() {
     _filterState = {};
+    _openSections = new Set(['sup']);
     const pmin = document.getElementById('fPriceMin');
     const pmax = document.getElementById('fPriceMax');
     if (pmin) pmin.value = '';
     if (pmax) pmax.value = '';
-    document.querySelectorAll('.f-chip.sel, .f-color-swatch.sel').forEach(c => c.classList.remove('sel'));
     updateFilterBadge();
+    loadFilterOptions({silent: true});
 }
 
 function updateFilterBadge() {
