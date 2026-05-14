@@ -253,9 +253,18 @@ if (!empty($_GET['ajax'])) {
     }
 }
 
-// Mode override (?mode=simple|detailed)
+// S144: SESSION-BASED active mode (запомня се откъде си влязъл)
+// Правило: chat/life-board → simple. ?mode=detailed → detailed. Иначе → запомненото.
 $mode_override = $_GET['mode'] ?? null;
-$is_simple_view = ($mode_override === 'simple') || (!$mode_override && $user_role === 'seller');
+if ($mode_override === 'simple' || $mode_override === 'detailed') {
+    $_SESSION['active_mode'] = $mode_override; // explicit override → запомни
+}
+// Първоначален default ако няма session: owner → detailed, seller → simple
+if (empty($_SESSION['active_mode'])) {
+    $_SESSION['active_mode'] = ($user_role === 'seller') ? 'simple' : 'detailed';
+}
+$active_mode = $_SESSION['active_mode'];
+$is_simple_view = ($active_mode === 'simple');
 
 // S144: Screen routing (home / list)
 $screen = $_GET['screen'] ?? 'home';
