@@ -2476,52 +2476,60 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 }
 .info-box-stats .pending b { color: hsl(35 90% 50%); }
 
-/* S144: 4-те бутона за 3 нива + общ списък */
+/* S144: 3-те нива като мини-glass cards (q-цветове от DESIGN_SYSTEM v3) */
 .info-box-levels {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
   margin-top: 2px;
+  margin-bottom: 8px;
 }
 .ibl {
-  display: flex; align-items: center; justify-content: center;
-  gap: 5px;
-  padding: 8px 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(99,102,241,0.15);
-  background: rgba(99,102,241,0.03);
-  font-size: 11px;
-  color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  padding: 10px 4px 8px;
   cursor: pointer;
-  transition: all 0.18s var(--ease);
   font-family: inherit;
   letter-spacing: 0.01em;
+  transition: transform 0.18s var(--ease);
+  /* q-цветовете автоматично оцветяват shine/glow през --hue1/--hue2 */
+  min-height: 56px;
 }
 .ibl:active { transform: scale(0.96); }
-.ibl:hover { background: rgba(99,102,241,0.07); }
-.ibl b { font-weight: 800; font-size: 13px; }
-.ibl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.ibl-lbl { font-weight: 600; }
-
-.ibl-full .ibl-dot { background: hsl(150 65% 50%); box-shadow: 0 0 6px hsl(150 65% 50% / 0.5); }
-.ibl-full { border-color: hsl(150 50% 40% / 0.35); }
-.ibl-full b { color: hsl(150 65% 45%); }
-
-.ibl-partial .ibl-dot { background: hsl(40 90% 55%); box-shadow: 0 0 6px hsl(40 90% 55% / 0.5); }
-.ibl-partial { border-color: hsl(40 75% 45% / 0.35); }
-.ibl-partial b { color: hsl(40 90% 50%); }
-
-.ibl-minimal .ibl-dot { background: hsl(0 75% 60%); box-shadow: 0 0 6px hsl(0 75% 60% / 0.5); }
-.ibl-minimal { border-color: hsl(0 60% 45% / 0.35); }
-.ibl-minimal b { color: hsl(0 75% 55%); }
-
-.ibl-all {
-  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08));
-  border-color: rgba(99,102,241,0.3);
-  color: var(--accent);
-  font-weight: 700;
+.ibl .ibl-num {
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
-.ibl-all svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.ibl .ibl-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+/* "Виж всички N артикула" — отделен link отдолу */
+.ibl-all-link {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: opacity 0.15s var(--ease);
+}
+.ibl-all-link:hover { opacity: 0.75; }
+.ibl-all-link b { font-weight: 900; font-variant-numeric: tabular-nums; }
+.ibl-all-link svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 .info-box-stats a {
   color: var(--accent);
   font-weight: 700;
@@ -2729,26 +2737,29 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
     </div>
     <div class="info-box-levels">
-      <button class="ibl ibl-full" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
-        <span class="ibl-dot"></span>
-        <b><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
+      <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">пълна</span>
       </button>
-      <button class="ibl ibl-partial" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
-        <span class="ibl-dot"></span>
-        <b><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
+      <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">частична</span>
       </button>
-      <button class="ibl ibl-minimal" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
-        <span class="ibl-dot"></span>
-        <b><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
+      <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">минимална</span>
       </button>
-      <button class="ibl ibl-all" onclick="event.stopPropagation();location.href='products.php?screen=products'">
-        <span class="ibl-lbl">Виж всички</span>
-        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
     </div>
+    <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+      <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 
   <div class="search-wrap">
@@ -3226,26 +3237,29 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
       </div>
       <div class="info-box-levels">
-        <button class="ibl ibl-full" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
-          <span class="ibl-dot"></span>
-          <b><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
+        <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="glow"></span><span class="glow glow-bottom"></span>
+          <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">пълна</span>
         </button>
-        <button class="ibl ibl-partial" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
-          <span class="ibl-dot"></span>
-          <b><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
+        <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="glow"></span><span class="glow glow-bottom"></span>
+          <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">частична</span>
         </button>
-        <button class="ibl ibl-minimal" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
-          <span class="ibl-dot"></span>
-          <b><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
+        <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="glow"></span><span class="glow glow-bottom"></span>
+          <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">минимална</span>
         </button>
-        <button class="ibl ibl-all" onclick="event.stopPropagation();location.href='products.php?screen=products'">
-          <span class="ibl-lbl">Виж всички</span>
-          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
       </div>
+      <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+        <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
 
     <!-- ═══ Тревоги row (Свършили + Доставка закъсня — нова метрика) ═══ -->
