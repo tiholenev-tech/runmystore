@@ -538,6 +538,37 @@ try {
     )->fetchColumn();
 } catch (Throwable $e) { $delayed_deliveries = 0; }
 
+// ════════════════════════════════════════════════════════════════════
+// S143 v4 — COMPLETENESS STATS (информативен бокс)
+// Артикули с пълна информация vs бързо добавени (минимална информация)
+// confidence_score >= 80 → пълна
+// confidence_score < 80 (или NULL) → чака допълване
+// ════════════════════════════════════════════════════════════════════
+$completeness = ['total' => 0, 'complete' => 0, 'incomplete' => 0, 'pct' => 0];
+try {
+    $row = DB::run(
+        "SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN COALESCE(p.confidence_score, 0) >= 80 THEN 1 ELSE 0 END) AS complete
+         FROM products p
+         LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
+         WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL
+         AND COALESCE(i.quantity, 0) > 0",
+        [$tenant_id]
+    )->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
+        $completeness['total'] = (int)$row['total'];
+        $completeness['complete'] = (int)$row['complete'];
+        $completeness['incomplete'] = $completeness['total'] - $completeness['complete'];
+        $completeness['pct'] = $completeness['total'] > 0
+            ? (int)round($completeness['complete'] * 100 / $completeness['total'])
+            : 0;
+    }
+} catch (Throwable $e) {
+    // Fallback ако confidence_score не съществува (графично, не за криза)
+    $completeness = ['total' => $total_products, 'complete' => 0, 'incomplete' => 0, 'pct' => 0];
+}
+
 // ─── Helper: format BGN/EUR ───
 if (!function_exists('fmtMoney')) {
     function fmtMoney($amount) { return number_format((float)$amount, 0, '.', ' '); }
@@ -2383,6 +2414,74 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 .s-btn { position: relative; }
 
 /* ════════════════════════════════════════════════════════════════════
+ * S143 v4 — INFORMATIVE COMPLETENESS BOX (горе на страницата)
+ * Дискретна подкана, не обвинителна. Малки цифри, мек progress bar.
+ * ════════════════════════════════════════════════════════════════════ */
+.info-box {
+  margin: 0 12px 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: 1px solid rgba(99,102,241,0.08);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+[data-theme="dark"] .info-box {
+  background: hsl(220 25% 6%);
+  border-color: rgba(99,102,241,0.15);
+}
+.info-box:active { transform: scale(0.99); background: rgba(99,102,241,0.04); }
+
+.info-box-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.info-box-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.info-box-title svg {
+  width: 14px; height: 14px; stroke: var(--accent);
+  fill: none; stroke-width: 2;
+}
+.info-box-pct {
+  font-size: 11px; font-weight: 700; color: var(--accent);
+}
+
+.info-box-bar {
+  height: 6px; border-radius: 3px;
+  background: rgba(99,102,241,0.1);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.info-box-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(160 70% 45%), hsl(190 70% 50%));
+  border-radius: 3px;
+  transition: width 0.6s var(--ease);
+}
+
+.info-box-stats {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-muted);
+}
+.info-box-stats b {
+  color: var(--text);
+  font-weight: 700;
+  margin-right: 3px;
+}
+.info-box-stats .pending {
+  color: hsl(35 90% 50%);
+}
+.info-box-stats .pending b { color: hsl(35 90% 50%); }
+.info-box-stats a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════
  * S143 v2 — STICKY SEARCH (input лепи горе при писане) + АКОРДЕОН
  * ════════════════════════════════════════════════════════════════════ */
 
@@ -2577,32 +2676,23 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
   
 
-  <!-- ─── TOP ROW: Доставки днес + Закъснели ─── -->
-  <div class="top-row">
-    <div class="glass sm cell qd">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <div class="cell-header-row">
-        <div class="cell-label">СВЪРШИЛИ</div>
+  <!-- ─── S143 v4: ИНФОРМАТИВЕН БОКС за completeness (дискретна подкана) ─── -->
+  <div class="info-box" onclick="location.href='products.php?screen=products&filter=incomplete'">
+    <div class="info-box-top">
+      <div class="info-box-title">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span><?= number_format($completeness['total'], 0, '.', ' ') ?> артикула в наличност</span>
       </div>
-      <div class="cell-numrow">
-        <span class="cell-num">5</span>
-        <span class="cell-cur">бр</span>
-      </div>
-      <div class="cell-meta">−340 €/седмица</div>
+      <span class="info-box-pct"><?= $completeness['pct'] ?>%</span>
     </div>
-
-    <div class="glass sm cell q1">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <div class="cell-header-row">
-        <div class="cell-label">ЗАСТОЯЛИ 60+ ДНИ</div>
-      </div>
-      <div class="cell-numrow">
-        <span class="cell-num">2</span>
-        <span class="cell-cur">бр</span>
-      </div>
-      <div class="cell-meta">1 180 € замразени</div>
+    <div class="info-box-bar">
+      <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
+    </div>
+    <div class="info-box-stats">
+      <span><b><?= number_format($completeness['complete'], 0, '.', ' ') ?></b>с пълна информация</span>
+      <?php if ($completeness['incomplete'] > 0): ?>
+      <span class="pending"><b><?= number_format($completeness['incomplete'], 0, '.', ' ') ?></b>чакат допълване →</span>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -2721,6 +2811,35 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         Само 1 магазин · няма multi-store данни
       </div>
       <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- ═══ S143 v4: ТРЕВОГИ (Свършили + Застояли) — преместени под info-box, над AI feed ═══ -->
+  <div class="top-row">
+    <div class="glass sm cell qd">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="cell-header-row">
+        <div class="cell-label">СВЪРШИЛИ</div>
+      </div>
+      <div class="cell-numrow">
+        <span class="cell-num"><?= $out_of_stock ?></span>
+        <span class="cell-cur">бр</span>
+      </div>
+      <div class="cell-meta">−340 €/седмица</div>
+    </div>
+
+    <div class="glass sm cell q1">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="cell-header-row">
+        <div class="cell-label">ЗАСТОЯЛИ 60+ ДНИ</div>
+      </div>
+      <div class="cell-numrow">
+        <span class="cell-num"><?= $stale_60d ?></span>
+        <span class="cell-cur">бр</span>
+      </div>
+      <div class="cell-meta"><?= fmtMoney($kpi_locked_cash ?? 1180) ?> € замразени</div>
     </div>
   </div>
 
@@ -3043,6 +3162,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <div class="kpi-label">Замразен €</div>
         <div class="kpi-numrow"><span class="kpi-num"><?= fmtMoney($kpi_locked_cash) ?></span><span class="kpi-cur"><?= $cs ?></span></div>
         <div class="kpi-meta"><span class="trend-up">+8% седм.</span></div>
+      </div>
+    </div>
+
+    <!-- ─── S143 v4: ИНФОРМАТИВЕН БОКС (също в Detailed Mode) ─── -->
+    <div class="info-box" onclick="location.href='products.php?screen=products&filter=incomplete'">
+      <div class="info-box-top">
+        <div class="info-box-title">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          <span><?= number_format($completeness['total'], 0, '.', ' ') ?> артикула в наличност</span>
+        </div>
+        <span class="info-box-pct"><?= $completeness['pct'] ?>%</span>
+      </div>
+      <div class="info-box-bar">
+        <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
+      </div>
+      <div class="info-box-stats">
+        <span><b><?= number_format($completeness['complete'], 0, '.', ' ') ?></b>с пълна информация</span>
+        <?php if ($completeness['incomplete'] > 0): ?>
+        <span class="pending"><b><?= number_format($completeness['incomplete'], 0, '.', ' ') ?></b>чакат допълване →</span>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -4031,7 +4170,9 @@ function renderFilterDrawer() {
     const s = _filterState;
     let html = '';
 
-    // Подреждане по искането на Тих: Доставчик → Категория → Подкатегория → Размер → Цвят → Състав → Материя → Марка → Пол → Сезон → Държава → Произход → Наличност → Преброяване → Снимка → Промоция → Цена
+    // Подреждане v4: Доставчик → Категория → Подкатегория → Цена → Брой →
+    // Под минимум → Размер → Цвят → Състав → Материя → Марка → Пол → Сезон →
+    // Държава → Произход → Наличност → Преброяване → Снимка → Промоция
     const sections = [];
 
     // 1. Доставчик (винаги отворен по default)
@@ -4049,67 +4190,93 @@ function renderFilterDrawer() {
     if (s.cat && o.subcategories && o.subcategories.length) {
         sections.push({key:'subcat', label:'Подкатегория', items: o.subcategories.map(x=>({val:x.id,lbl:x.name}))});
     } else if (s.cat) {
-        // главна категория избрана, но няма подкатегории
         sections.push({key:'subcat', label:'Подкатегория', empty:'(тази категория няма подкатегории)'});
     }
 
-    // 4. Размер
+    // 4. Цена от-до (нагоре — важен филтър)
+    sections.push({key:'_price_range', label:'Цена (€)', special:'price_range'});
+
+    // 5. Брой в наличност (НОВО)
+    sections.push({key:'qty', label:'Брой', items: [
+        {val:'0',lbl:'0'},
+        {val:'1-5',lbl:'1-5'},
+        {val:'6-20',lbl:'6-20'},
+        {val:'21-50',lbl:'21-50'},
+        {val:'50+',lbl:'50+'}
+    ]});
+
+    // 6. Под оптимално количество (НОВО)
+    sections.push({key:'below_min', label:'Под минимум', items: [
+        {val:'1',lbl:'Под минималното количество'}
+    ]});
+
+    // 7. Размер
     if (o.sizes && o.sizes.length) {
         sections.push({key:'size', label:'Размер', items: o.sizes.map(v=>({val:v,lbl:v}))});
     }
-    // 5. Цвят (color swatches)
+    // 8. Цвят (color swatches)
     if (o.colors && o.colors.length) {
         sections.push({key:'color', label:'Цвят', items: o.colors.map(v=>({val:v,lbl:v})), special:'colors'});
     }
-    // 6. Състав
+    // 9. Състав
     if (o.compositions && o.compositions.length) {
         sections.push({key:'composition', label:'Състав', items: o.compositions.map(v=>({val:v,lbl:v}))});
     }
-    // 7. Материя
+    // 10. Материя
     if (o.materials && o.materials.length) {
         sections.push({key:'material', label:'Материя', items: o.materials.map(v=>({val:v,lbl:v}))});
     }
-    // 8. Марка
+    // 11. Марка
     if (o.brands && o.brands.length) {
         sections.push({key:'brand', label:'Марка', items: o.brands.map(v=>({val:v,lbl:v}))});
     } else {
         sections.push({key:'brand', label:'Марка', empty:'(няма данни още — попълва се утре)'});
     }
-    // 9. Пол
+    // 12. Пол
     sections.push({key:'gender', label:'Пол', items: [{val:'male',lbl:'Мъжко'},{val:'female',lbl:'Женско'},{val:'kids',lbl:'Детско'},{val:'unisex',lbl:'Унисекс'}]});
-    // 10. Сезон
+    // 13. Сезон
     sections.push({key:'season', label:'Сезон', items: [{val:'summer',lbl:'Лято'},{val:'winter',lbl:'Зима'},{val:'transitional',lbl:'Преходен'},{val:'all_year',lbl:'Целогодишно'}]});
-    // 11. Държава
+    // 14. Държава
     if (o.countries && o.countries.length) {
         sections.push({key:'country', label:'Държава', items: o.countries.map(v=>({val:v,lbl:v}))});
     }
-    // 12. Произход
+    // 15. Произход
     sections.push({key:'domestic', label:'Произход', items:[{val:'1',lbl:'БГ производство'},{val:'0',lbl:'Внос'}]});
-    // 13. Наличност
+    // 16. Наличност
     sections.push({key:'stock', label:'Наличност', items:[{val:'in',lbl:'В наличност'},{val:'out',lbl:'Свършил'},{val:'low',lbl:'Под минимум'},{val:'stale60',lbl:'Застоял 60+ дни'}]});
-    // 14. Преброяване
+    // 17. Преброяване
     sections.push({key:'counted', label:'Преброяване', items:[{val:'counted',lbl:'Преброен ≤30д'},{val:'uncounted',lbl:'Непреброен'}]});
-    // 15. Снимка
+    // 18. Допълненост (НОВО — за filter "incomplete" артикули)
+    sections.push({key:'complete', label:'Информация', items:[{val:'complete',lbl:'Пълна'},{val:'incomplete',lbl:'Чака допълване'}]});
+    // 19. Снимка
     sections.push({key:'has_image', label:'Снимка', items:[{val:'1',lbl:'Има снимка'},{val:'0',lbl:'Без снимка'}]});
-    // 16. Промоция
+    // 20. Промоция
     sections.push({key:'discount', label:'Отстъпка', items:[{val:'1',lbl:'На промоция'}]});
 
     // Render всички акордеон секции
     sections.forEach(sec => {
-        html += renderAccordionSection(sec, s[sec.key]);
+        if (sec.special === 'price_range') {
+            // Цена секция (special acordion с input полета)
+            const isOpen = _openSections.has('price') || s.price_min || s.price_max;
+            const openClass = isOpen ? ' open' : '';
+            const selLbl = (s.price_min || s.price_max) ? `${s.price_min||''}—${s.price_max||''} €` : '';
+            html += `<div class="f-section acc${openClass}" id="fSec_price">`;
+            html += `<button class="f-section-head" onclick="toggleAccordion('price')">`;
+            html += `<div class="f-section-head-left"><span class="f-section-head-title">${esc(sec.label)}</span></div>`;
+            if (selLbl) html += `<span class="f-section-head-selected">${esc(selLbl)}</span>`;
+            html += `<svg class="f-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+            html += `</button>`;
+            html += `<div class="f-section-body">
+                <div class="f-price-row">
+                    <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
+                    <span class="f-price-sep">—</span>
+                    <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
+                </div>
+            </div></div>`;
+        } else {
+            html += renderAccordionSection(sec, s[sec.key]);
+        }
     });
-
-    // 17. Цена от-до — винаги отворена, не акордеон
-    html += `<div class="f-section always-open">
-        <div class="f-section-head"><div class="f-section-head-left"><span class="f-section-head-title">Цена (€)</span></div></div>
-        <div class="f-section-body">
-            <div class="f-price-row">
-                <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
-                <span class="f-price-sep">—</span>
-                <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
-            </div>
-        </div>
-    </div>`;
 
     document.getElementById('fDrawerBody').innerHTML = html;
 }
@@ -4159,23 +4326,59 @@ function renderAccordionSection(sec, selectedVal) {
 }
 
 function renderColorSwatches(items, selectedVal) {
+    // Известни цветове — lowercase keys, normalize-ваме input-а
     const colorMap = {
-        'черен':'#000','бял':'#fff','червен':'#ef4444','син':'#3b82f6','зелен':'#22c55e',
-        'жълт':'#eab308','оранжев':'#f97316','розов':'#ec4899','лилав':'#a855f7',
-        'кафяв':'#92400e','сив':'#9ca3af','бежов':'#d4a574','златен':'#fbbf24','сребрист':'#cbd5e1',
-        'тюркоаз':'#06b6d4','маслинен':'#65a30d','бордо':'#7f1d1d','тъмносин':'#1e3a8a','шарен':'transparent',
+        // БГ цветове
+        'черен':'#000','черно':'#000',
+        'бял':'#fff','бяло':'#fff','снежнобяло':'#fff','снежно бяло':'#fff',
+        'червен':'#ef4444','червено':'#ef4444','коралов':'#fb7185',
+        'син':'#3b82f6','синьо':'#3b82f6','тъмносин':'#1e3a8a','светлосин':'#7dd3fc','кралско синьо':'#1d4ed8','кралско синьо':'#1d4ed8','небесносин':'#7dd3fc','индиго':'#4338ca',
+        'зелен':'#22c55e','зелено':'#22c55e','маслинен':'#65a30d','маслинено зелен':'#65a30d','тъмнозелен':'#14532d','мента':'#5eead4','смарагдово зелено':'#10b981','смарагдов':'#10b981','неоново зелено':'#84cc16',
+        'жълт':'#eab308','жълто':'#eab308',
+        'оранжев':'#f97316','оранжево':'#f97316',
+        'розов':'#ec4899','розово':'#ec4899','пудра':'#fda4af','пудров':'#fda4af','бледо розово':'#fce7f3','цикламен':'#db2777','неоново розово':'#ec4899','корал':'#fb7185',
+        'лилав':'#a855f7','лилаво':'#a855f7','лила':'#a855f7','тъмнолилав':'#7c3aed','слива':'#7c3aed',
+        'кафяв':'#92400e','кафяво':'#92400e','тъмнокафяв':'#78350f','светлокафяв':'#a16207','коняк':'#92400e','tan':'#a16207','каки':'#82663d',
+        'сив':'#9ca3af','сиво':'#9ca3af','тъмносив':'#374151','светлосив':'#d1d5db','графит':'#374151','антрацит':'#374151','сив меланж':'#9ca3af','gunmetal':'#475569',
+        'бежов':'#d4a574','бежово':'#d4a574','шампанско':'#e6c997','айвъри':'#fffff0','слонова кост':'#fffff0','екрю':'#f5f5dc','светло бежово':'#e6d8c1',
+        'златен':'#fbbf24','златист':'#fbbf24','златно':'#fbbf24','розово злато':'#e7b8b8',
+        'сребрист':'#cbd5e1','сребърен':'#cbd5e1','сребърно':'#cbd5e1',
+        'тюркоаз':'#06b6d4','тюркоазен':'#06b6d4','тюркоазено':'#06b6d4','electric blue':'#0ea5e9','електриково синьо':'#0ea5e9',
+        'бордо':'#7f1d1d','бордов':'#7f1d1d','винено':'#7f1d1d','горчица':'#a16207','праскова':'#fed7aa',
+        'мед':'#b45309','медно':'#b45309',
+        'неонов':'#a3e635','шарен':'transparent','многоцветен':'#9333ea','пъстър':'#9333ea','цветен принт':'#9333ea',
+        // EN
         'black':'#000','white':'#fff','red':'#ef4444','blue':'#3b82f6','green':'#22c55e',
         'yellow':'#eab308','orange':'#f97316','pink':'#ec4899','purple':'#a855f7','brown':'#92400e',
-        'gray':'#9ca3af','grey':'#9ca3af','beige':'#d4a574'
+        'gray':'#9ca3af','grey':'#9ca3af','beige':'#d4a574','navy':'#1e3a8a','teal':'#14b8a6',
+        'olive':'#65a30d','maroon':'#7f1d1d','silver':'#cbd5e1','gold':'#fbbf24',
+        // Принтове (transparent)
+        'на райе':'transparent','на точки':'transparent','с принт':'transparent',
+        'животински принт':'transparent','каре':'transparent','тропически принт':'transparent',
+        'десен с принт':'transparent','с фигури':'transparent','с анимационни герои':'transparent',
+        'десен':'transparent','камуфлаж':'#4d5d3c','змийски принт':'transparent'
     };
     let html = '<div class="f-chips" style="gap:14px 18px; padding-bottom:24px;">';
     items.forEach(it => {
         const c = it.val;
-        const lc = (c||'').toLowerCase().trim();
-        const hex = colorMap[lc] || '#cbd5e1';
+        // Normalize: lowercase + trim + remove extra spaces
+        const lc = (c||'').toLowerCase().trim().replace(/\s+/g, ' ');
+        let hex = colorMap[lc];
+        // Try partial match if exact failed (e.g. "Бледо розово синьо" → "розово")
+        if (!hex) {
+            for (const key in colorMap) {
+                if (lc.includes(key) && key.length > 2) { hex = colorMap[key]; break; }
+            }
+        }
+        if (!hex) hex = '#cbd5e1'; // default
         const sel = String(selectedVal) === String(c) ? ' sel' : '';
-        const border = (lc === 'бял' || lc === 'white') ? '; border-color:#d1d5db;' : '';
-        html += `<button class="f-color-swatch${sel}" data-key="color" data-val="${esc(c)}" data-name="${esc(c)}" style="background:${hex}${border}" onclick="toggleFChip(this)" aria-label="${esc(c)}"></button>`;
+        const border = (lc === 'бял' || lc === 'бяло' || lc === 'white' || lc.includes('бяло')) ? '; border-color:#d1d5db;' : '';
+        // Multicolor pattern
+        const isMulti = lc.includes('многоцв') || lc.includes('шарен') || lc.includes('пъстър') || lc.includes('райе') || lc.includes('принт') || lc.includes('точки') || lc.includes('каре') || hex === 'transparent';
+        const style = isMulti
+            ? `background: linear-gradient(45deg, #ef4444 0%, #f59e0b 25%, #22c55e 50%, #3b82f6 75%, #a855f7 100%);${border}`
+            : `background:${hex}${border}`;
+        html += `<button class="f-color-swatch${sel}" data-key="color" data-val="${esc(c)}" data-name="${esc(c)}" style="${style}" onclick="toggleFChip(this)" aria-label="${esc(c)}"></button>`;
     });
     html += '</div>';
     return html;
