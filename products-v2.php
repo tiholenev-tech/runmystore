@@ -257,6 +257,29 @@ if (!empty($_GET['ajax'])) {
 $mode_override = $_GET['mode'] ?? null;
 $is_simple_view = ($mode_override === 'simple') || (!$mode_override && $user_role === 'seller');
 
+// S144: Screen routing (home / list)
+$screen = $_GET['screen'] ?? 'home';
+$confidence_filter = $_GET['confidence'] ?? null; // full | partial | minimal | null
+$is_list_view = ($screen === 'list');
+
+// S144: SQL WHERE за списък по confidence
+$confidence_sql = '';
+$list_title = 'Всички артикули';
+$list_lvl_class = 'all';
+if ($confidence_filter === 'full') {
+    $confidence_sql = " AND COALESCE(p.confidence_score, 0) >= 80";
+    $list_title = 'Пълна информация';
+    $list_lvl_class = 'full';
+} elseif ($confidence_filter === 'partial') {
+    $confidence_sql = " AND COALESCE(p.confidence_score, 0) BETWEEN 40 AND 79";
+    $list_title = 'Частична информация';
+    $list_lvl_class = 'partial';
+} elseif ($confidence_filter === 'minimal') {
+    $confidence_sql = " AND COALESCE(p.confidence_score, 0) < 40";
+    $list_title = 'Минимална информация';
+    $list_lvl_class = 'minimal';
+}
+
 // Store switch via GET
 if (isset($_GET['store'])) {
     $req = (int)$_GET['store'];
@@ -567,6 +590,42 @@ try {
     }
 } catch (Throwable $e) {
     $completeness = ['total' => $total_products, 'full' => 0, 'partial' => 0, 'minimal' => 0, 'pct' => 0];
+}
+
+// ════════════════════════════════════════════════════════════════════
+// S144 — LIST VIEW: артикули според confidence филтър
+// ════════════════════════════════════════════════════════════════════
+$list_products = [];
+$list_count = 0;
+if ($is_list_view) {
+    try {
+        $list_products = DB::run(
+            "SELECT
+                p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price,
+                p.image_url, p.confidence_score,
+                COALESCE(p.image_url, '') AS img,
+                COALESCE(SUM(i.quantity), 0) AS qty,
+                MAX(i.last_counted_at) AS last_counted,
+                s.name AS supplier_name,
+                c.name AS category_name
+             FROM products p
+             LEFT JOIN inventory i ON i.product_id = p.id{$SF_INV}
+             LEFT JOIN suppliers s ON s.id = p.supplier_id
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.tenant_id = ?
+               AND p.is_active = 1
+               AND p.parent_id IS NULL
+               {$confidence_sql}
+             GROUP BY p.id
+             ORDER BY p.confidence_score DESC, p.name ASC
+             LIMIT 100",
+            [$tenant_id]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        $list_count = count($list_products);
+    } catch (Throwable $e) {
+        $list_products = [];
+        $list_count = 0;
+    }
 }
 
 // ─── Helper: format BGN/EUR ───
@@ -2537,6 +2596,181 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 }
 
 /* ════════════════════════════════════════════════════════════════════
+ * S144 — LIST VIEW (screen=list) — списък на артикули с confidence filter
+ * ════════════════════════════════════════════════════════════════════ */
+.lv-page-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 4px 12px;
+  margin-bottom: 4px;
+}
+.lv-back-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .lv-back-btn, :root:not([data-theme]) .lv-back-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .lv-back-btn { background: hsl(220 25% 8%); }
+.lv-back-btn:active { transform: scale(0.96); box-shadow: var(--shadow-pressed); }
+.lv-back-btn svg { width: 14px; height: 14px; stroke: var(--text); fill: none; stroke-width: 2.5; }
+
+.lv-page-title {
+  flex: 1; min-width: 0;
+  font-size: 18px; font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.lv-lvl-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; margin-left: 6px;
+  border-radius: 999px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  vertical-align: middle;
+}
+.lv-lvl-badge.full { color: hsl(145 70% 45%); background: hsl(145 70% 50% / 0.12); border: 1px solid hsl(145 70% 50% / 0.25); }
+.lv-lvl-badge.partial { color: hsl(38 90% 50%); background: hsl(38 90% 55% / 0.12); border: 1px solid hsl(38 90% 55% / 0.25); }
+.lv-lvl-badge.minimal { color: hsl(0 75% 55%); background: hsl(0 85% 55% / 0.12); border: 1px solid hsl(0 85% 55% / 0.25); }
+.lv-lvl-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+
+.lv-page-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Confidence filter pills */
+.cf-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 4px 4px 12px;
+  margin: 0 -4px 4px;
+  scrollbar-width: none;
+}
+.cf-row::-webkit-scrollbar { display: none; }
+.cf-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
+  white-space: nowrap; flex-shrink: 0;
+  text-decoration: none;
+  transition: transform 0.18s var(--ease);
+}
+[data-theme="light"] .cf-pill, :root:not([data-theme]) .cf-pill { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .cf-pill { background: hsl(220 25% 8%); border: 1px solid var(--border-color); }
+.cf-pill:active { transform: scale(0.97); }
+.cf-pill .cf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cf-pill .cf-num { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 800; color: var(--text-muted); }
+
+.cf-pill.active.cf-full { color: white; background: linear-gradient(135deg, hsl(145 70% 45%), hsl(150 65% 40%)); box-shadow: 0 4px 14px hsl(145 70% 40% / 0.4); }
+.cf-pill.active.cf-partial { color: white; background: linear-gradient(135deg, hsl(38 90% 52%), hsl(28 90% 48%)); box-shadow: 0 4px 14px hsl(38 90% 45% / 0.4); }
+.cf-pill.active.cf-minimal { color: white; background: linear-gradient(135deg, hsl(0 75% 55%), hsl(355 80% 50%)); box-shadow: 0 4px 14px hsl(0 75% 45% / 0.4); }
+.cf-pill.active.cf-all { color: white; background: linear-gradient(135deg, hsl(var(--hue1) 80% 55%), hsl(var(--hue2) 80% 55%)); }
+.cf-pill.active .cf-num, .cf-pill.active .cf-dot { color: white; }
+.cf-pill.active.cf-full .cf-num, .cf-pill.active.cf-partial .cf-num, .cf-pill.active.cf-minimal .cf-num, .cf-pill.active.cf-all .cf-num { color: rgba(255,255,255,0.85); }
+.cf-pill.active .cf-dot { background: white; box-shadow: 0 0 8px white; }
+
+.cf-pill:not(.active).cf-full .cf-dot { background: hsl(145 70% 50%); box-shadow: 0 0 6px hsl(145 70% 50% / 0.5); }
+.cf-pill:not(.active).cf-partial .cf-dot { background: hsl(38 90% 55%); box-shadow: 0 0 6px hsl(38 90% 55% / 0.5); }
+.cf-pill:not(.active).cf-minimal .cf-dot { background: hsl(0 75% 55%); box-shadow: 0 0 6px hsl(0 75% 55% / 0.5); }
+.cf-pill:not(.active).cf-all .cf-dot { background: conic-gradient(from 0deg, hsl(145 70% 50%), hsl(38 90% 55%), hsl(0 75% 55%), hsl(145 70% 50%)); }
+
+/* Product list rows */
+.lv-list { margin-bottom: 20px; }
+.prod-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  position: relative;
+}
+.prod-row > * { position: relative; z-index: 5; }
+.prod-row:active { transform: scale(0.99); }
+.prod-photo {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+[data-theme="light"] .prod-photo, :root:not([data-theme]) .prod-photo { background: var(--surface); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .prod-photo { background: hsl(220 25% 4%); }
+.prod-photo svg { width: 24px; height: 24px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+.prod-info { flex: 1; min-width: 0; }
+.prod-nm { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.prod-nm-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.prod-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prod-conf-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  flex-shrink: 0;
+}
+.prod-conf-badge.full { color: hsl(145 70% 45%); background: hsl(145 70% 50% / 0.12); border: 1px solid hsl(145 70% 50% / 0.25); }
+.prod-conf-badge.partial { color: hsl(38 90% 50%); background: hsl(38 90% 55% / 0.12); border: 1px solid hsl(38 90% 55% / 0.25); }
+.prod-conf-badge.minimal { color: hsl(0 75% 55%); background: hsl(0 85% 55% / 0.12); border: 1px solid hsl(0 85% 55% / 0.25); }
+.prod-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.prod-price {
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.prod-stock {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.prod-stock.ok { color: hsl(145 60% 35%); background: hsl(145 70% 50% / 0.1); border: 1px solid hsl(145 70% 50% / 0.3); }
+.prod-stock.warn { color: hsl(38 80% 35%); background: hsl(38 90% 55% / 0.1); border: 1px solid hsl(38 90% 55% / 0.3); }
+.prod-stock.danger { color: hsl(0 75% 40%); background: hsl(0 85% 55% / 0.1); border: 1px solid hsl(0 85% 55% / 0.3); }
+[data-theme="dark"] .prod-stock.ok { color: hsl(145 70% 65%); }
+[data-theme="dark"] .prod-stock.warn { color: hsl(38 90% 70%); }
+[data-theme="dark"] .prod-stock.danger { color: hsl(0 80% 75%); }
+
+/* Empty state */
+.lv-empty {
+  padding: 40px 20px;
+  text-align: center;
+  border-radius: 22px;
+  border: 1px dashed var(--border-color);
+}
+[data-theme="light"] .lv-empty, :root:not([data-theme]) .lv-empty { background: rgba(0,0,0,0.02); border: 1px dashed rgba(163,177,198,0.5); }
+[data-theme="dark"] .lv-empty { background: hsl(220 25% 4% / 0.5); border: 1px dashed hsl(var(--hue2) 15% 22%); }
+.lv-empty-ic {
+  width: 56px; height: 56px; margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.lv-empty-ic svg { width: 26px; height: 26px; stroke: white; fill: none; stroke-width: 2; }
+.lv-empty-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.lv-empty-text { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+.lv-more-note {
+  text-align: center;
+  padding: 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ════════════════════════════════════════════════════════════════════
  * S143 v2 — STICKY SEARCH (input лепи горе при писане) + АКОРДЕОН
  * ════════════════════════════════════════════════════════════════════ */
 
@@ -2715,7 +2949,119 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
 <main class="app">
 
-<?php if ($is_simple_view): ?>
+<?php if ($is_list_view): ?>
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- LIST VIEW (S144) — списък с filter по confidence         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Page header със заглавие според филтъра -->
+  <div class="lv-page-hdr">
+    <button class="lv-back-btn" onclick="location.href='products-v2.php?mode=<?= $is_simple_view?'simple':'detailed' ?>'" aria-label="Назад">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="lv-page-title">
+      Артикули
+      <?php if ($confidence_filter): ?>
+        <span class="lv-lvl-badge <?= $list_lvl_class ?>">
+          <span class="lv-lvl-dot"></span>
+          <?php
+            $lvl_label = ['full'=>'Пълна', 'partial'=>'Частична', 'minimal'=>'Минимална'][$confidence_filter] ?? '';
+            echo htmlspecialchars($lvl_label);
+          ?>
+        </span>
+      <?php endif; ?>
+    </div>
+    <span class="lv-page-count">· <?= $list_count ?></span>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-wrap" style="margin-bottom:10px">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="lvSearchInp" placeholder="Търси по име, код или баркод..." autocomplete="off" oninput="onLiveSearch(this.value,'lvSearchInp','lvSearchDD')">
+    <button class="s-btn" type="button" aria-label="Филтри" onclick="openFilterDrawer()">
+      <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    </button>
+    <button class="s-btn mic" type="button" aria-label="Гласово търсене" onclick="searchInlineMic(this)">
+      <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    </button>
+  </div>
+  <div id="lvSearchDD" class="search-dd"></div>
+
+  <!-- ─── CONFIDENCE FILTER PILLS (4 бутона горе) ─── -->
+  <div class="cf-row">
+    <a class="cf-pill cf-all <?= !$confidence_filter ? 'active' : '' ?>" href="?screen=list">
+      <span class="cf-dot"></span>
+      <span>Всички</span>
+      <span class="cf-num"><?= $completeness['total'] ?></span>
+    </a>
+    <a class="cf-pill cf-full <?= $confidence_filter==='full' ? 'active' : '' ?>" href="?screen=list&confidence=full">
+      <span class="cf-dot"></span>
+      <span>Пълна</span>
+      <span class="cf-num"><?= $completeness['full'] ?></span>
+    </a>
+    <a class="cf-pill cf-partial <?= $confidence_filter==='partial' ? 'active' : '' ?>" href="?screen=list&confidence=partial">
+      <span class="cf-dot"></span>
+      <span>Частична</span>
+      <span class="cf-num"><?= $completeness['partial'] ?></span>
+    </a>
+    <a class="cf-pill cf-minimal <?= $confidence_filter==='minimal' ? 'active' : '' ?>" href="?screen=list&confidence=minimal">
+      <span class="cf-dot"></span>
+      <span>Минимална</span>
+      <span class="cf-num"><?= $completeness['minimal'] ?></span>
+    </a>
+  </div>
+
+  <!-- Product list -->
+  <div class="lv-list">
+    <?php if (empty($list_products)): ?>
+    <div class="lv-empty">
+      <div class="lv-empty-ic">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      </div>
+      <div class="lv-empty-title">Няма артикули в това ниво</div>
+      <div class="lv-empty-text">Опитай друг филтър или добави нови артикули.</div>
+    </div>
+    <?php else: foreach ($list_products as $p):
+      $score = (int)($p['confidence_score'] ?? 0);
+      $lvl = $score >= 80 ? 'full' : ($score >= 40 ? 'partial' : 'minimal');
+      $lvl_label = ['full'=>'Пълна', 'partial'=>$score.'%', 'minimal'=>'Минимална'][$lvl];
+      $qty = (int)$p['qty'];
+      $stock_cls = $qty <= 0 ? 'danger' : ($qty <= 3 ? 'warn' : 'ok');
+    ?>
+    <div class="glass sm prod-row" onclick="openProductDetail(<?= (int)$p['id'] ?>)">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <?php if (!empty($p['image_url'])): ?>
+        <img src="<?= htmlspecialchars($p['image_url']) ?>" style="width:100%;height:100%;object-fit:cover" alt="">
+        <?php else: ?>
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <?php endif; ?>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text"><?= htmlspecialchars($p['name']) ?></span>
+          <span class="prod-conf-badge <?= $lvl ?>"><?= $lvl_label ?></span>
+        </div>
+        <div class="prod-meta">
+          <?= htmlspecialchars(($p['code'] ?? '') ?: '—') ?>
+          <?= !empty($p['supplier_name']) ? ' · ' . htmlspecialchars($p['supplier_name']) : '' ?>
+          <?= !empty($p['category_name']) ? ' · ' . htmlspecialchars($p['category_name']) : '' ?>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price"><?= fmtMoneyDec($p['retail_price']) ?> €</span>
+        <span class="prod-stock <?= $stock_cls ?>"><?= $qty ?> бр</span>
+      </div>
+    </div>
+    <?php endforeach; endif; ?>
+  </div>
+
+  <?php if ($list_count >= 100): ?>
+  <div class="lv-more-note">Показани първите 100 · ползвай търсене за повече</div>
+  <?php endif; ?>
+
+<?php elseif ($is_simple_view): ?>
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SIMPLE MODE (P15) — главна за Пешо                       -->
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -2737,26 +3083,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
     </div>
     <div class="info-box-levels">
-      <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+      <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">пълна</span>
       </button>
-      <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+      <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">частична</span>
       </button>
-      <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+      <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">минимална</span>
       </button>
     </div>
-    <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+    <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list'">
       <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
       <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
@@ -2775,7 +3121,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   </div>
   <div id="hSearchDD" class="search-dd"></div>
 
-  <a class="all-items-link" href="products.php?screen=products">
+  <a class="all-items-link" href="products-v2.php?screen=list">
     Виж всички <b><?= number_format($total_products, 0, "", " ") ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -3120,7 +3466,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   <div id="dSearchDD" class="search-dd"></div>
 
   <!-- ─── ВСИЧКИ АРТИКУЛИ link (отива в P3 list) ─── -->
-  <a class="all-items-link" href="products.php?screen=products">
+  <a class="all-items-link" href="products-v2.php?screen=list">
     Виж всички <b><?= fmtMoney($total_products) ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -3237,26 +3583,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
       </div>
       <div class="info-box-levels">
-        <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+        <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">пълна</span>
         </button>
-        <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+        <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">частична</span>
         </button>
-        <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+        <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">минимална</span>
         </button>
       </div>
-      <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+      <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list'">
         <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
         <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </button>

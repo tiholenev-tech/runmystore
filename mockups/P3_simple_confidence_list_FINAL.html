@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>Артикули · Частична информация · RunMyStore.AI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   P3 SIMPLE LIST — Артикули с confidence filter
+   Дестинация на 4-те бутона от info-box (Simple Mode)
+   1:1 от DESIGN_SYSTEM v4 BICHROMATIC + P3_list_v2 + P15_simple_FINAL
+   ════════════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a, select { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms; --dur: 250ms; --dur-slow: 350ms;
+  --press: 0.97;
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --z-aurora: 0; --z-content: 5; --z-shine: 1; --z-glow: 3;
+}
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card:
+    var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),
+    calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm:
+    var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+    calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed:
+    inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),
+    inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 305);
+  --q1-loss: oklch(0.65 0.22 25);
+  --q3-gain: oklch(0.68 0.18 155);
+  --q5-order: oklch(0.72 0.18 70);
+  --success: oklch(0.68 0.18 155);
+  --warning: oklch(0.72 0.18 70);
+  --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply; --aurora-opacity: 0.32;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%); --surface-2: hsl(220, 25%, 8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card:
+    hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,
+    hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%); --accent-3: hsl(var(--hue3), 70%, 55%);
+  --magic: hsl(280, 70%, 65%);
+  --q1-loss: hsl(0, 85%, 60%);
+  --q3-gain: hsl(145, 70%, 55%);
+  --q5-order: hsl(38, 90%, 60%);
+  --success: hsl(145, 70%, 55%);
+  --warning: hsl(38, 90%, 60%);
+  --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+body {
+  padding-top: 0;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); /* за chat-input-bar */
+}
+
+@keyframes auroraDrift { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(30px,-20px) scale(1.05);} 66%{transform:translate(-20px,30px) scale(0.95);} }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes fadeInUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes rmsBrandShimmer { 0%{background-position:0% center;} 100%{background-position:200% center;} }
+@keyframes chatMicRing { 0%{box-shadow:0 0 0 0 hsl(var(--hue1) 80% 55% / 0.5);} 100%{box-shadow:0 0 0 12px hsl(var(--hue1) 80% 55% / 0);} }
+@keyframes chatSendDrift { 0%,100%{transform:translateX(0);} 50%{transform:translateX(2px);} }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: var(--z-aurora); }
+.aurora-blob {
+  position: absolute; border-radius: 50%; filter: blur(60px);
+  opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend);
+  animation: auroraDrift 20s ease-in-out infinite;
+}
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(var(--hue1),80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(var(--hue2),80%,60%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+/* ═══ HEADER (1:1 от P15_simple_FINAL) ═══ */
+.rms-header {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="light"] .rms-header, :root:not([data-theme]) .rms-header { background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15); }
+[data-theme="dark"] .rms-header { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+.rms-back-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-icon);
+  display: grid; place-items: center; flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+[data-theme="light"] .rms-back-btn, :root:not([data-theme]) .rms-back-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .rms-back-btn:active, :root:not([data-theme]) .rms-back-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .rms-back-btn { background: hsl(220 25% 8% / 0.7); }
+.rms-back-btn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2; }
+.rms-back-btn:active { transform: scale(var(--press)); }
+
+.rms-brand {
+  position: relative;
+  font-size: 15px; font-weight: 900; letter-spacing: 0.10em;
+  background: linear-gradient(90deg, hsl(var(--hue1) 80% 60%), hsl(var(--hue2) 80% 60%), hsl(var(--hue3) 70% 55%), hsl(var(--hue2) 80% 60%), hsl(var(--hue1) 80% 60%));
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: rmsBrandShimmer 4s linear infinite;
+  filter: drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4));
+}
+.rms-brand .brand-2 { font-weight: 700; opacity: 0.85; }
+.rms-header-spacer { flex: 1; }
+
+.rms-icon-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-icon);
+  border: 1px solid var(--border-color);
+  display: grid; place-items: center;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+[data-theme="light"] .rms-icon-btn, :root:not([data-theme]) .rms-icon-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .rms-icon-btn:active, :root:not([data-theme]) .rms-icon-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .rms-icon-btn { background: hsl(220 25% 8% / 0.7); }
+.rms-icon-btn svg { width: 18px; height: 18px; stroke: var(--text); fill: none; stroke-width: 2; }
+.rms-icon-btn:active { transform: scale(var(--press)); }
+
+.sale-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 16px; border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, hsl(38 88% 55%), hsl(28 90% 50%));
+  box-shadow: 0 4px 14px hsl(38 88% 50% / 0.35);
+}
+.sale-pill svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; }
+.sale-pill:active { transform: scale(var(--press)); }
+
+/* ═══ SUBBAR (ENI ▾ · СПИСЪК · Разширен →) ═══ */
+.rms-subbar {
+  position: sticky; top: 56px; z-index: 49;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+[data-theme="light"] .rms-subbar, :root:not([data-theme]) .rms-subbar { background: var(--bg-main); }
+[data-theme="dark"] .rms-subbar { background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+.rms-store-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .rms-store-toggle, :root:not([data-theme]) .rms-store-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .rms-store-toggle { background: hsl(220 25% 8%); }
+.rms-store-toggle svg { width: 13px; height: 13px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+.rms-store-toggle .store-name { font-family: var(--font-mono); font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; }
+.store-chev { width: 10px !important; height: 10px !important; }
+
+.subbar-where {
+  flex: 1; text-align: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lb-mode-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 11px;
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+[data-theme="light"] .lb-mode-toggle, :root:not([data-theme]) .lb-mode-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .lb-mode-toggle { background: hsl(220 25% 8%); }
+.lb-mode-toggle svg { width: 10px; height: 10px; stroke: var(--text-muted); fill: none; stroke-width: 2.5; }
+
+/* ═══ MAIN APP ═══ */
+.app {
+  position: relative; z-index: var(--z-content);
+  padding: 12px 12px 0;
+  max-width: 540px; margin: 0 auto;
+}
+
+/* ═══ PAGE HEADER (заглавие според filter + sort) ═══ */
+.page-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 4px 12px;
+  margin-bottom: 4px;
+  animation: fadeInUp 0.5s var(--ease-spring) both;
+}
+.page-title {
+  font-size: 18px; font-weight: 900; letter-spacing: -0.02em;
+  color: var(--text);
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.page-title .lvl-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; margin-left: 4px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  vertical-align: middle;
+}
+.page-title .lvl-badge.full {
+  background: hsl(145 70% 50% / 0.12); color: var(--q3-gain);
+  border: 1px solid hsl(145 70% 50% / 0.25);
+}
+.page-title .lvl-badge.partial {
+  background: hsl(38 90% 55% / 0.12); color: var(--q5-order);
+  border: 1px solid hsl(38 90% 55% / 0.25);
+}
+.page-title .lvl-badge.minimal {
+  background: hsl(0 85% 55% / 0.12); color: var(--q1-loss);
+  border: 1px solid hsl(0 85% 55% / 0.25);
+}
+.page-count {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.sort-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0; border: 1px solid var(--border-color);
+}
+[data-theme="light"] .sort-btn, :root:not([data-theme]) .sort-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .sort-btn:active, :root:not([data-theme]) .sort-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .sort-btn { background: hsl(220 25% 8%); }
+.sort-btn svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; }
+
+/* ═══ SEARCH BAR (1:1 от P15) ═══ */
+.search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px 4px 16px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  animation: fadeInUp 0.5s var(--ease-spring) 0.05s both;
+}
+[data-theme="light"] .search-wrap, :root:not([data-theme]) .search-wrap { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .search-wrap { background: hsl(220 25% 4%); }
+.search-wrap > svg {
+  width: 16px; height: 16px;
+  stroke: var(--text-muted); fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.search-wrap input {
+  flex: 1; min-width: 0;
+  height: 42px; padding: 0;
+  background: transparent; border: none; outline: none;
+  font-family: var(--font);
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+}
+.search-wrap input::placeholder { color: var(--text-muted); }
+
+.s-btn {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  position: relative;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+[data-theme="light"] .s-btn, :root:not([data-theme]) .s-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .s-btn:active, :root:not([data-theme]) .s-btn:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .s-btn { background: hsl(220 25% 8%); }
+.s-btn:active { transform: scale(var(--press)); }
+.s-btn svg { width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+.s-btn .dot {
+  position: absolute; top: 2px; right: 2px;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger); color: white;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  display: grid; place-items: center;
+}
+.s-btn.mic {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4) !important;
+}
+.s-btn.mic svg { stroke: white; }
+
+/* ═══ CONFIDENCE FILTER PILLS (новата секция — 4 бутона) ═══ */
+.cf-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 4px 4px 12px;
+  margin: 0 -4px;
+  scrollbar-width: none;
+  animation: fadeInUp 0.5s var(--ease-spring) 0.1s both;
+}
+.cf-row::-webkit-scrollbar { display: none; }
+
+.cf-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-color);
+  white-space: nowrap; flex-shrink: 0;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+[data-theme="light"] .cf-pill, :root:not([data-theme]) .cf-pill { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="light"] .cf-pill:active, :root:not([data-theme]) .cf-pill:active { box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .cf-pill { background: hsl(220 25% 8%); }
+.cf-pill:active { transform: scale(0.97); }
+
+.cf-pill .cf-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cf-pill .cf-num {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Активен pill — оцветен според confidence нивото */
+.cf-pill.active.cf-full {
+  color: white;
+  background: linear-gradient(135deg, hsl(145 70% 45%), hsl(150 65% 40%)) !important;
+  box-shadow: 0 4px 14px hsl(145 70% 40% / 0.4) !important;
+}
+.cf-pill.active.cf-full .cf-num { color: rgba(255,255,255,0.85); }
+.cf-pill.active.cf-full .cf-dot { background: white; box-shadow: 0 0 8px white; }
+
+.cf-pill.active.cf-partial {
+  color: white;
+  background: linear-gradient(135deg, hsl(38 90% 52%), hsl(28 90% 48%)) !important;
+  box-shadow: 0 4px 14px hsl(38 90% 45% / 0.4) !important;
+}
+.cf-pill.active.cf-partial .cf-num { color: rgba(255,255,255,0.85); }
+.cf-pill.active.cf-partial .cf-dot { background: white; box-shadow: 0 0 8px white; }
+
+.cf-pill.active.cf-minimal {
+  color: white;
+  background: linear-gradient(135deg, hsl(0 75% 55%), hsl(355 80% 50%)) !important;
+  box-shadow: 0 4px 14px hsl(0 75% 45% / 0.4) !important;
+}
+.cf-pill.active.cf-minimal .cf-num { color: rgba(255,255,255,0.85); }
+.cf-pill.active.cf-minimal .cf-dot { background: white; box-shadow: 0 0 8px white; }
+
+.cf-pill.active.cf-all {
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
+  box-shadow: 0 4px 14px hsl(var(--hue1) 80% 40% / 0.4) !important;
+}
+.cf-pill.active.cf-all .cf-num { color: rgba(255,255,255,0.85); }
+
+/* Неактивни — цветни точки */
+.cf-pill:not(.active).cf-full .cf-dot { background: var(--q3-gain); box-shadow: 0 0 6px hsl(145 70% 50% / 0.5); }
+.cf-pill:not(.active).cf-partial .cf-dot { background: var(--q5-order); box-shadow: 0 0 6px hsl(38 90% 55% / 0.5); }
+.cf-pill:not(.active).cf-minimal .cf-dot { background: var(--q1-loss); box-shadow: 0 0 6px hsl(0 75% 55% / 0.5); }
+.cf-pill:not(.active).cf-all .cf-dot {
+  background: conic-gradient(from 0deg, var(--q3-gain), var(--q5-order), var(--q1-loss), var(--q3-gain));
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* ═══ EXPLAIN BAR — кратко обяснение какво е "Частична" ═══ */
+.explain-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  animation: fadeInUp 0.5s var(--ease-spring) 0.15s both;
+}
+[data-theme="light"] .explain-bar, :root:not([data-theme]) .explain-bar { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .explain-bar { background: hsl(220 25% 6%); }
+.explain-ic {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: hsl(38 90% 55% / 0.15);
+  color: var(--q5-order);
+}
+.explain-ic svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+.explain-text {
+  flex: 1; min-width: 0;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.explain-text b { color: var(--text); font-weight: 800; }
+
+/* ═══ PRODUCT LIST (мини-glass карти) ═══ */
+.list-section {
+  margin-bottom: 8px;
+}
+.list-count-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 4px 4px 8px;
+}
+
+/* SACRED .glass + 4-span pattern */
+.glass {
+  position: relative;
+  border-radius: var(--radius-sm);
+  border: var(--border) solid var(--border-color);
+  isolation: isolate;
+}
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+
+[data-theme="light"] .glass, :root:not([data-theme]) .glass {
+  background: var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="light"] .glass .shine, [data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine, :root:not([data-theme]) .glass .glow { display: none; }
+
+[data-theme="dark"] .glass {
+  background:
+    linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+    linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+    linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .glass .shine {
+  pointer-events: none;
+  border-radius: 0;
+  border-top-right-radius: inherit;
+  border-bottom-left-radius: inherit;
+  border: 1px solid transparent;
+  width: 75%; aspect-ratio: 1;
+  display: block; position: absolute;
+  right: calc(var(--border) * -1); top: calc(var(--border) * -1);
+  z-index: var(--z-shine);
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch,
+    transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;
+  mask: linear-gradient(transparent), linear-gradient(black);
+  mask-clip: padding-box, border-box;
+  mask-composite: subtract;
+}
+[data-theme="dark"] .glass .shine.shine-bottom {
+  right: auto; top: auto;
+  left: calc(var(--border) * -1); bottom: calc(var(--border) * -1);
+}
+[data-theme="dark"] .glass .glow {
+  pointer-events: none;
+  border-top-right-radius: calc(var(--radius-sm) * 2.5);
+  border-bottom-left-radius: calc(var(--radius-sm) * 2.5);
+  border: calc(var(--radius-sm) * 1.25) solid transparent;
+  inset: calc(var(--radius-sm) * -2);
+  width: 75%; aspect-ratio: 1;
+  display: block; position: absolute;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch,
+    hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);
+  filter: blur(12px) saturate(1.25);
+  mix-blend-mode: plus-lighter;
+  z-index: var(--z-glow);
+  opacity: 0.6;
+}
+[data-theme="dark"] .glass .glow.glow-bottom {
+  inset: auto;
+  left: calc(var(--radius-sm) * -2); bottom: calc(var(--radius-sm) * -2);
+}
+[data-theme="dark"] .top-row .glow { display: none; }
+
+/* PRODUCT ROW */
+.prod-row {
+  position: relative;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 12px;
+  animation: fadeInUp 0.5s var(--ease-spring) both;
+}
+.prod-row:nth-of-type(1) { animation-delay: 0.20s; }
+.prod-row:nth-of-type(2) { animation-delay: 0.25s; }
+.prod-row:nth-of-type(3) { animation-delay: 0.30s; }
+.prod-row:nth-of-type(4) { animation-delay: 0.35s; }
+.prod-row:nth-of-type(5) { animation-delay: 0.40s; }
+.prod-row:nth-of-type(6) { animation-delay: 0.45s; }
+.prod-row > * { position: relative; z-index: 5; }
+.prod-row:active { transform: scale(0.99); }
+
+.prod-photo {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  position: relative;
+}
+[data-theme="light"] .prod-photo, :root:not([data-theme]) .prod-photo { background: var(--surface); box-shadow: var(--shadow-pressed); border: none; }
+[data-theme="dark"] .prod-photo { background: hsl(220 25% 4%); }
+.prod-photo svg.placeholder { width: 24px; height: 24px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+.prod-photo .photo-img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.prod-info {
+  flex: 1; min-width: 0;
+}
+.prod-nm {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.prod-nm-text {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+.prod-meta {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+/* CONFIDENCE BADGE (на всеки артикул) */
+.prod-conf-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  flex-shrink: 0;
+}
+.prod-conf-badge.full { color: var(--q3-gain); background: hsl(145 70% 50% / 0.12); border: 1px solid hsl(145 70% 50% / 0.25); }
+.prod-conf-badge.partial { color: var(--q5-order); background: hsl(38 90% 55% / 0.12); border: 1px solid hsl(38 90% 55% / 0.25); }
+.prod-conf-badge.minimal { color: var(--q1-loss); background: hsl(0 85% 55% / 0.12); border: 1px solid hsl(0 85% 55% / 0.25); }
+
+/* Какво липсва (нужно за пълна информация) */
+.prod-missing {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 2px;
+}
+.prod-missing-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 700;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+[data-theme="light"] .prod-missing-chip, :root:not([data-theme]) .prod-missing-chip { background: rgba(0,0,0,0.02); border: 1px dashed rgba(163,177,198,0.5); }
+[data-theme="dark"] .prod-missing-chip { background: hsl(220 25% 4%); border: 1px dashed hsl(var(--hue2) 15% 25%); }
+.prod-missing-chip svg { width: 8px; height: 8px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+.prod-right {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
+.prod-price {
+  font-family: var(--font);
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.prod-stock {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+}
+.prod-stock.ok { color: var(--success); background: hsl(145 70% 50% / 0.1); border: 1px solid hsl(145 70% 50% / 0.3); }
+.prod-stock.warn { color: var(--warning); background: hsl(38 90% 55% / 0.1); border: 1px solid hsl(38 90% 55% / 0.3); }
+.prod-stock.danger { color: var(--danger); background: hsl(0 85% 55% / 0.1); border: 1px solid hsl(0 85% 55% / 0.3); }
+
+/* ═══ EMPTY STATE (за "Пълна 0") ═══ */
+.empty-state {
+  padding: 32px 20px;
+  text-align: center;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-color);
+  margin: 12px 0;
+}
+[data-theme="light"] .empty-state, :root:not([data-theme]) .empty-state { background: rgba(0,0,0,0.02); border: 1px dashed rgba(163,177,198,0.5); }
+[data-theme="dark"] .empty-state { background: hsl(220 25% 4% / 0.5); border: 1px dashed hsl(var(--hue2) 15% 22%); }
+.empty-ic {
+  width: 52px; height: 52px; margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, hsl(145 70% 45%), hsl(150 65% 40%));
+  box-shadow: 0 4px 16px hsl(145 70% 40% / 0.3);
+}
+.empty-ic svg { width: 26px; height: 26px; stroke: white; fill: none; stroke-width: 2; }
+.empty-title {
+  font-size: 15px; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.empty-text {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-muted); line-height: 1.5;
+}
+
+/* ═══ LOAD MORE / FOOTER ═══ */
+.load-more {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px;
+  margin: 8px 0 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+[data-theme="light"] .load-more, :root:not([data-theme]) .load-more { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .load-more { background: hsl(220 25% 8%); }
+.load-more svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ═══ STICKY CHAT-INPUT-BAR (1:1 от P15) ═══ */
+.chat-input-bar {
+  position: fixed; bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px); max-width: 456px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  z-index: 40;
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .chat-input-bar, :root:not([data-theme]) .chat-input-bar {
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  border: none;
+}
+[data-theme="dark"] .chat-input-bar {
+  background: hsl(220 25% 4.8% / 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.chat-wave {
+  display: inline-flex; align-items: center; gap: 2px;
+}
+.chat-wave span {
+  display: block;
+  width: 3px; height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.chat-wave span:nth-child(1) { height: 8px; }
+.chat-wave span:nth-child(2) { height: 14px; }
+.chat-wave span:nth-child(3) { height: 10px; }
+.chat-placeholder {
+  flex: 1;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+}
+.chat-mic {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: grid; place-items: center;
+  box-shadow: 0 4px 12px hsl(var(--hue1) 80% 50% / 0.4);
+  animation: chatMicRing 2s ease-out infinite;
+}
+.chat-mic svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+.chat-send {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid var(--border-color);
+  animation: chatSendDrift 1.8s ease-in-out infinite;
+}
+[data-theme="light"] .chat-send, :root:not([data-theme]) .chat-send { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .chat-send { background: hsl(220 25% 8%); }
+.chat-send svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; }
+
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<!-- ═══ HEADER (P15 simple) ═══ -->
+<header class="rms-header">
+  <button class="rms-back-btn" onclick="history.back()" aria-label="Назад">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <a class="rms-brand" href="products-v2.php?mode=simple" aria-label="Начало">
+    <span class="brand-1">RunMyStore</span><span class="brand-2">.ai</span>
+  </a>
+  <div class="rms-header-spacer"></div>
+  <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема">
+    <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+  <a class="sale-pill" href="sale.php">
+    <svg viewBox="0 0 24 24"><path d="M2 6h21l-2 9H4L2 6z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+    <span>Продажба</span>
+  </a>
+</header>
+
+<!-- ═══ SUBBAR ═══ -->
+<div class="rms-subbar">
+  <button class="rms-store-toggle" aria-label="Смени обект">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="store-name">ENI</span>
+    <svg class="store-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <span class="subbar-where">СПИСЪК</span>
+  <a class="lb-mode-toggle" href="products-v2.php?mode=detailed">
+    <span>Разширен</span>
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</div>
+
+<main class="app">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-hdr">
+    <span class="page-title">Артикули <span class="lvl-badge partial">Частична</span></span>
+    <span class="page-count">· 305</span>
+    <button class="sort-btn" aria-label="Подреди">
+      <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- ═══ SEARCH BAR ═══ -->
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Търси в Частична информация..." autocomplete="off">
+    <button class="s-btn" type="button" aria-label="Филтри">
+      <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    </button>
+    <button class="s-btn mic" type="button" aria-label="Гласово търсене">
+      <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    </button>
+  </div>
+
+  <!-- ═══ CONFIDENCE FILTER PILLS (4-те бутона) ═══ -->
+  <div class="cf-row">
+    <button class="cf-pill cf-all">
+      <span class="cf-dot"></span>
+      <span>Всички</span>
+      <span class="cf-num">387</span>
+    </button>
+    <button class="cf-pill cf-full">
+      <span class="cf-dot"></span>
+      <span>Пълна</span>
+      <span class="cf-num">0</span>
+    </button>
+    <button class="cf-pill cf-partial active">
+      <span class="cf-dot"></span>
+      <span>Частична</span>
+      <span class="cf-num">305</span>
+    </button>
+    <button class="cf-pill cf-minimal">
+      <span class="cf-dot"></span>
+      <span>Минимална</span>
+      <span class="cf-num">82</span>
+    </button>
+  </div>
+
+  <!-- ═══ EXPLAIN BAR (какво значи "Частична") ═══ -->
+  <div class="explain-bar">
+    <span class="explain-ic">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </span>
+    <span class="explain-text">
+      Тези артикули имат <b>част от информацията</b> — името и цената са попълнени, но липсват доставчик, доставна цена или бройки. Натисни на артикул за да допълниш.
+    </span>
+  </div>
+
+  <!-- ═══ PRODUCT LIST ═══ -->
+  <div class="list-section">
+
+    <!-- Артикул 1 — Частична (има име+цена+доставчик, липсва cost+бройки) -->
+    <div class="glass prod-row" onclick="openProduct('p1')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Тениска черна L</span>
+          <span class="prod-conf-badge partial">65%</span>
+        </div>
+        <div class="prod-meta">Marina · Дрехи / Тениски</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            доставна цена
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            снимка
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">30,00 €</span>
+        <span class="prod-stock ok">12 бр</span>
+      </div>
+    </div>
+
+    <!-- Артикул 2 — Частична с висок confidence (липсва само 1 неща) -->
+    <div class="glass prod-row" onclick="openProduct('p2')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Nike Air Max 42</span>
+          <span class="prod-conf-badge partial">78%</span>
+        </div>
+        <div class="prod-meta">NIKE-AM-42 · Спорт Груп</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            физическо броене
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">189,00 €</span>
+        <span class="prod-stock ok">5 бр</span>
+      </div>
+    </div>
+
+    <!-- Артикул 3 -->
+    <div class="glass prod-row" onclick="openProduct('p3')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Дамски бикини комплект</span>
+          <span class="prod-conf-badge partial">52%</span>
+        </div>
+        <div class="prod-meta">Marina · Дамско бельо</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            баркод
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            доставна цена
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            снимка
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">35,00 €</span>
+        <span class="prod-stock warn">3 бр</span>
+      </div>
+    </div>
+
+    <!-- Артикул 4 -->
+    <div class="glass prod-row" onclick="openProduct('p4')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Червена рокля къса</span>
+          <span class="prod-conf-badge partial">70%</span>
+        </div>
+        <div class="prod-meta">Zara · Дамски дрехи / Рокли</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            доставна цена
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            физическо броене
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">65,00 €</span>
+        <span class="prod-stock ok">8 бр</span>
+      </div>
+    </div>
+
+    <!-- Артикул 5 -->
+    <div class="glass prod-row" onclick="openProduct('p5')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Чанта дамска кожена</span>
+          <span class="prod-conf-badge partial">58%</span>
+        </div>
+        <div class="prod-meta">Без доставчик · Аксесоари</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            доставчик
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            cost
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">85,00 €</span>
+        <span class="prod-stock ok">2 бр</span>
+      </div>
+    </div>
+
+    <!-- Артикул 6 -->
+    <div class="glass prod-row" onclick="openProduct('p6')">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="prod-photo">
+        <svg class="placeholder" viewBox="0 0 24 24"><path d="M2 17h3l2-3h7l3 3h5v-2l-3-2h-2l-3-3H9l-2 3H4l-2 2z"/></svg>
+      </div>
+      <div class="prod-info">
+        <div class="prod-nm">
+          <span class="prod-nm-text">Adidas Samba 41</span>
+          <span class="prod-conf-badge partial">62%</span>
+        </div>
+        <div class="prod-meta">ADS-SMB · Спорт Груп · Обувки</div>
+        <div class="prod-missing">
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            доставна цена
+          </span>
+          <span class="prod-missing-chip">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            физическо броене
+          </span>
+        </div>
+      </div>
+      <div class="prod-right">
+        <span class="prod-price">120,00 €</span>
+        <span class="prod-stock ok">7 бр</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load more -->
+  <button class="load-more">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    <span>Покажи още 299</span>
+  </button>
+
+</main>
+
+<!-- ═══ CHAT-INPUT-BAR (P15 sticky) ═══ -->
+<div class="chat-input-bar" role="button" tabindex="0" onclick="alert('chat.php')">
+  <span class="chat-wave"><span></span><span></span><span></span></span>
+  <span class="chat-placeholder">Кажи или напиши...</span>
+  <button class="chat-mic" type="button" onclick="event.stopPropagation();alert('voice')" aria-label="Гласово">
+    <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+  </button>
+  <button class="chat-send" type="button" aria-label="Прати">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<script>
+function rmsToggleTheme() {
+  var c = document.documentElement.getAttribute('data-theme');
+  var n = c === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  try { localStorage.setItem('rms_theme', n); } catch(e){}
+  document.getElementById('themeIconSun').style.display = (n === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (n === 'dark') ? 'none' : 'block';
+}
+(function(){
+  var s = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeIconSun').style.display = (s === 'dark') ? 'block' : 'none';
+  document.getElementById('themeIconMoon').style.display = (s === 'dark') ? 'none' : 'block';
+})();
+function openProduct(id) { alert('Артикул: ' + id + ' (overlay с детайли + Допълни данни)'); }
+</script>
+
+</body>
+</html>
