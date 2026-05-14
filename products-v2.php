@@ -576,12 +576,13 @@ try {
 // ════════════════════════════════════════════════════════════════════
 $completeness = ['total' => 0, 'full' => 0, 'partial' => 0, 'minimal' => 0, 'pct' => 0];
 try {
+    // S144 BUGFIX: COUNT(DISTINCT p.id) — артикул в N обекта се броеше N пъти
     $row = DB::run(
         "SELECT
-            COUNT(*) AS total,
-            SUM(CASE WHEN COALESCE(p.confidence_score, 0) >= 80 THEN 1 ELSE 0 END) AS full_cnt,
-            SUM(CASE WHEN COALESCE(p.confidence_score, 0) BETWEEN 40 AND 79 THEN 1 ELSE 0 END) AS partial_cnt,
-            SUM(CASE WHEN COALESCE(p.confidence_score, 0) < 40 THEN 1 ELSE 0 END) AS minimal_cnt
+            COUNT(DISTINCT p.id) AS total,
+            COUNT(DISTINCT CASE WHEN COALESCE(p.confidence_score, 0) >= 80 THEN p.id END) AS full_cnt,
+            COUNT(DISTINCT CASE WHEN COALESCE(p.confidence_score, 0) BETWEEN 40 AND 79 THEN p.id END) AS partial_cnt,
+            COUNT(DISTINCT CASE WHEN COALESCE(p.confidence_score, 0) < 40 THEN p.id END) AS minimal_cnt
          FROM products p
          LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
          WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL
@@ -2573,11 +2574,20 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   letter-spacing: -0.02em;
 }
 .ibl .ibl-lbl {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+.ibl .ibl-sub {
+  font-size: 9.5px;
+  font-weight: 500;
   color: var(--text-muted);
-  text-transform: lowercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-align: center;
+  margin-top: 1px;
 }
 
 /* "Виж всички N артикула" — отделен link отдолу */
@@ -3084,19 +3094,22 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
-        <span class="ibl-lbl">пълна</span>
+        <span class="ibl-lbl">Готови</span>
+        <span class="ibl-sub">AI знае всичко</span>
       </button>
       <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial&mode=<?= $active_mode ?>'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
-        <span class="ibl-lbl">частична</span>
+        <span class="ibl-lbl">Недовършени</span>
+        <span class="ibl-sub">липсват данни</span>
       </button>
       <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal&mode=<?= $active_mode ?>'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
-        <span class="ibl-lbl">минимална</span>
+        <span class="ibl-lbl">Празни</span>
+        <span class="ibl-sub">само име и цена</span>
       </button>
     </div>
     <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&mode=<?= $active_mode ?>'">
@@ -3584,19 +3597,22 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
-          <span class="ibl-lbl">пълна</span>
+          <span class="ibl-lbl">Готови</span>
+          <span class="ibl-sub">AI знае всичко</span>
         </button>
         <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial&mode=<?= $active_mode ?>'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
-          <span class="ibl-lbl">частична</span>
+          <span class="ibl-lbl">Недовършени</span>
+          <span class="ibl-sub">липсват данни</span>
         </button>
         <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal&mode=<?= $active_mode ?>'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
-          <span class="ibl-lbl">минимална</span>
+          <span class="ibl-lbl">Празни</span>
+          <span class="ibl-sub">само име и цена</span>
         </button>
       </div>
       <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&mode=<?= $active_mode ?>'">
