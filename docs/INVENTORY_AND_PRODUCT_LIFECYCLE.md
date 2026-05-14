@@ -4,14 +4,60 @@
 **Дата:** 14.05.2026 (S144)
 **Цел:** Един документ който обобщава: откъде се добавят артикули, как се пресмята колко знаем за всеки артикул, кога е "преброен", кога не е.
 
-**Тоя документ заменя по тези теми:**
-- `INVENTORY_HIDDEN_v3.md §2 (4 нива)` — старите 4 нива → новите 3 нива
-- `SIMPLE_MODE_BIBLE.md §8.4` — старата bracket таблица → новата формула
+## ⚠️ ВАЖНО — НИКОЙ ФАЙЛ НЕ Е ИЗТРИТ
 
-**Не променя:**
-- Всичко друго от `INVENTORY_HIDDEN_v3.md` (философия, zone walks, self-correcting, decay)
-- `INVENTORY_v4.md` (онбординг, броене flow, дефектна стока)
-- `SIMPLE_MODE_BIBLE.md §8.5` (NO draft / parking lot принцип)
+Този документ **обобщава** на едно място само две конкретни теми (формулата за точките + нивата). Всички останали стари документи **остават валидни** и трябва да се четат за останалите теми.
+
+### Кой документ за какво се чете
+
+| Тема | Файл | Секция |
+|---|---|---|
+| **Формула за точките + 3-те нива** | `docs/INVENTORY_AND_PRODUCT_LIFECYCLE.md` (този файл) | §3, §4 |
+| Философия "складът се изгражда сам" | `INVENTORY_HIDDEN_v3.md` | §1 |
+| Onboarding flow (zone setup, photos) | `INVENTORY_HIDDEN_v3.md` | §3 |
+| Day-1 selling without inventory | `INVENTORY_HIDDEN_v3.md` | §4 |
+| Statistics with ranges (диапазони) | `INVENTORY_HIDDEN_v3.md` | §5 |
+| Delivery → category count trigger | `INVENTORY_HIDDEN_v3.md` | §6 |
+| Zone Walk — "Лов на скрити пари" | `INVENTORY_HIDDEN_v3.md` | §7 + `01_corrections/DOC_11_INVENTORY_WAREHOUSE.md` §5 |
+| Data reconciliation (3-те условия) | `INVENTORY_HIDDEN_v3.md` | §8 |
+| Self-correcting sales loop | `INVENTORY_HIDDEN_v3.md` | §9 |
+| Store Health Score (3 компонента) | `INVENTORY_HIDDEN_v3.md` | §10 |
+| Decay + mini-revisions | `INVENTORY_HIDDEN_v3.md` | §11 |
+| "Hunting for lost money" (психология) | `INVENTORY_HIDDEN_v3.md` | §12 |
+| Variations (3 states) | `INVENTORY_HIDDEN_v3.md` | §13 |
+| Timeline 30 дни типичен магазин | `INVENTORY_HIDDEN_v3.md` | §14 |
+| Technical notes (DB schema, PHP функции) | `INVENTORY_HIDDEN_v3.md` | §15 |
+| Modules affected (кой модул засяга кое) | `INVENTORY_HIDDEN_v3.md` | §16 |
+| 10-те принципа | `INVENTORY_HIDDEN_v3.md` | §17 + `01_corrections/DOC_11_INVENTORY_WAREHOUSE.md` §4, §10 |
+| Какво НЕ може да се реши | `INVENTORY_HIDDEN_v3.md` | §18 |
+| Inventory v4 — бърз vs пълен режим | `INVENTORY_v4.md` | §2 |
+| Inventory v4 — броене flow | `INVENTORY_v4.md` | §4 |
+| Inventory v4 — проверки за качество | `INVENTORY_v4.md` | §5 |
+| Inventory v4 — дефектна стока | `INVENTORY_v4.md` | §8 |
+| Inventory v4 — кога е свършила инвентаризацията | `INVENTORY_v4.md` | §9 |
+| Warehouse.php hub (6 cards) | `01_corrections/DOC_11_INVENTORY_WAREHOUSE.md` | §2 |
+| Smart Resolver (deduplication) | `01_corrections/DOC_11_INVENTORY_WAREHOUSE.md` | §7 |
+| Ревизия (за счетоводител, PDF/Excel) | `01_corrections/DOC_11_INVENTORY_WAREHOUSE.md` | §9 |
+| Quick Add — единен entry point | `SIMPLE_MODE_BIBLE.md` | §8.1, §8.2, §8.3 |
+| NO draft / parking lot принцип | `SIMPLE_MODE_BIBLE.md` | §8.5 |
+| Variation handling при продажба | `SIMPLE_MODE_BIBLE.md` | §9 |
+| Wizard "Копирай предишния" | `SIMPLE_MODE_BIBLE.md` | §7.2.8, §7.2.8.5 |
+| Wizard стъпки (4-7 stepped) | `01_corrections/DOC_08_PRODUCTS.md` | §4 + `PRODUCTS_DESIGN_LOGIC.md` |
+| Voice add poetapno flow | `SIMPLE_MODE_BIBLE.md` | §7.2.5, §7.2.6 |
+| Sale unknown product flow | `SIMPLE_MODE_BIBLE.md` | §7.1.5 + `INVENTORY_v4.md` §6.6 |
+| Delivery — 3 типа фактури | `01_corrections/DOC_10_SALE_DELIVERIES_TRANSFERS.md` | §5 + `SIMPLE_MODE_BIBLE.md` §7.3 |
+| Категории — глобални vs по доставчик | `CORE_BUSINESS_RULES.md` | Правило #1 |
+| Wizard редизайн план (S144) | `TOMORROW_WIZARD_REDESIGN.md` | целия |
+| AI auto-fill стратегия + Deep Research | `MASTER_COMPASS.md` (S143 секция) + `docs/AI_AUTOFILL_RESEARCH_2026.md` | — |
+
+### Какво заменя този документ — точно
+
+| Стара секция | В кой файл | Защо е заменена |
+|---|---|---|
+| Таблицата с 4 нива (Минимално / Частично / Добро / Пълно) | `INVENTORY_HIDDEN_v3.md §2 Levels` | Минаваме на **3 нива** за да отговарят на 3-те секции в wizard акордеона |
+| Таблицата "Confidence стартова стойност по място" (20/50/60/80%) | `SIMPLE_MODE_BIBLE.md §8.4` | Имаше различни цифри от формулата → конфликт |
+
+**Всичко останало в тези два файла остава валидно.** Само тези две таблици са преместени тук.
 
 ---
 
@@ -40,21 +86,24 @@
 
 ## 3. ФОРМУЛАТА ЗА ТОЧКИТЕ — ОБНОВЕНА (заменя `INVENTORY_HIDDEN_v3.md §2`)
 
+> **ПРАВИЛО #49 (S143):** Преброяване ≠ Информация. Това са **две различни концепции**.
+> Confidence score (тази формула) измерва **колко знаем за артикула** (информация). Преброяването е **отделен axis** (показва се самостоятелно — "Не е броен · X дни").
+
 | Какво | Точки | Защо |
 |---|---|---|
 | Име + Цена | **20** | База. Без тях не може да съществува артикул. |
 | **Бройки (Пешо казал колко има)** | **+15** | Без бройки AI не може да каже "поръчай" или "застой". |
-| Снимка (включва AI auto-fill: gender, season, brand, description_short) | **+10** | Една снимка → AI попълва 4 полета безплатно. |
+| Снимка (включва AI auto-fill: gender, season, brand, description_short) | **+30** | Една снимка → AI попълва 4 полета безплатно. Огромна стойност. |
 | Доставчик + Категория | **+10** | За поръчки, филтри, supplier reliability. |
 | Доставна цена | **+20** | Без нея няма марж/печалба. Критично за бизнеса. |
 | Баркод/SKU | **+5** | За скан в sale.php. |
-| **Преброен физически (Пешо отишъл на рафта, броил)** | **+20** | Най-силният сигнал за достоверност. |
 | **Max** | **100** | |
 
 **Разлика "бройки" vs "преброен":**
-- **Бройки (+15)** = Пешо казва "12 броя" при добавяне. *Обявени*. Може да греши.
-- **Преброен (+20)** = Пешо отишъл на рафта, физически броил, потвърдил. *Проверени*.
-- И двете могат да дават точки. Артикул може да има бройки 15 (от добавяне) и +20 (от броене) → общо 35 от тази секция.
+- **Бройки (+15)** = Пешо казва "12 броя" при добавяне. *Обявени*. Влиза в confidence score.
+- **Преброен** = Пешо отишъл на рафта, физически броил. *Проверени*. **НЕ влиза в confidence score** — показва се отделно (`inventory.last_counted_at` визуализирано като "Не е броен · X дни" warning).
+
+**Защо +30 за снимка (увеличено от +10):** Снимката носи 9 полета наведнъж от AI auto-fill — стойността ѝ е огромна. Преди формулата беше неуравновесена (преброеният давaше +20, а снимка с 9 AI полета само +10). Сега снимката получава реалната си тежест.
 
 ---
 
@@ -93,15 +142,22 @@
 
 ---
 
-## 6. КОГА АРТИКУЛ Е "ПРЕБРОЕН" ИЛИ "НЕПРЕБРОЕН"
+## 6. КОГА АРТИКУЛ Е "ПРЕБРОЕН" ИЛИ "НЕПРЕБРОЕН" (отделно от confidence)
 
 `inventory.last_counted_at` (DATETIME, NULL ако никога не е броен) — добавена в S143 миграцията.
 
-- **Преброен ≤ 30 дни** → точките важат (+20 от формулата)
-- **Преброен 30-60 дни** → decay 5% на седмица → точките падат: +15, +10, +5, 0
-- **Никога преброен / > 60 дни** → 0 точки от тази секция → артикулът е "стар"
+**ВАЖНО:** Преброяването **НЕ влиза в confidence score** (правило #49). То е **отделен axis** който се визуализира самостоятелно в UI:
+
+- **Преброен ≤ 30 дни** → "✓ Броено · преди X дни" (ok) — зелено
+- **Преброен 30-60 дни** → "⊘ Не е броено · X дни" (warn) — амбър
+- **Никога преброен / > 60 дни** → "⚠ Никога не е броено" (danger) — червено
 
 **Защо per-store** (а не per-product): артикул може да е броен в София но не и в Бургас. Преброено е *в магазин*, не *в общо*.
+
+**Къде се вижда в UI:**
+- Detail drawer — под бройките (meta line)
+- Списък — chip "не е броено · 47 дни"
+- Zone walk модул — приоритизира артикули с най-стар last_counted_at
 
 ---
 
@@ -142,7 +198,7 @@
 
 ```sql
 -- Backfill confidence_score за артикули с score=0
--- Изчислява точките по формулата от §3
+-- Изчислява точките по формулата от §3 (правило #49: БЕЗ преброен)
 UPDATE products p
 SET confidence_score = (
     -- База: име + цена (винаги има за активни)
@@ -150,8 +206,8 @@ SET confidence_score = (
     -- + бройки (от inventory)
     + IFNULL((SELECT IF(SUM(i.quantity) > 0, 15, 0)
               FROM inventory i WHERE i.product_id = p.id), 0)
-    -- + снимка
-    + IF(p.image_url IS NOT NULL AND p.image_url != '', 10, 0)
+    -- + снимка (включва AI auto-fill — 9 полета наведнъж)
+    + IF(p.image_url IS NOT NULL AND p.image_url != '', 30, 0)
     -- + доставчик + категория (двете заедно)
     + IF(p.supplier_id IS NOT NULL AND p.category_id IS NOT NULL, 10, 0)
     -- + доставна цена
@@ -159,9 +215,7 @@ SET confidence_score = (
     -- + баркод или SKU
     + IF((p.barcode IS NOT NULL AND p.barcode != '')
          OR (p.code IS NOT NULL AND p.code != ''), 5, 0)
-    -- + преброен физически (≤ 30 дни)
-    + IFNULL((SELECT IF(MAX(i.last_counted_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY), 20, 0)
-              FROM inventory i WHERE i.product_id = p.id), 0)
+    -- Преброеността НЕ участва (правило #49)
 )
 WHERE p.tenant_id = 7
   AND p.is_active = 1
@@ -198,9 +252,9 @@ WHERE p.tenant_id = 7
 
 ## 12. РЕЗЮМЕ ЗА БЪДЕЩИ ШЕФ-ЧАТОВЕ
 
-Ако някой шеф-чат пита "как пресмятаме confidence?" или "колко нива има?" → **отговор: чети ТОЗИ файл.**
+Ако някой шеф-чат пита **"как пресмятаме confidence?"** или **"колко нива има?"** → отговор: §3 и §4 на ТОЗИ файл.
 
-Старите документи (`INVENTORY_HIDDEN_v3.md §2`, `SIMPLE_MODE_BIBLE.md §8.4`) са superseded по тези теми. Всичко друго в тях остава валидно.
+За всичко друго свързано с инвентаризация, добавяне на артикули, zone walks, store health, и т.н. → виж **картата с reference-и в началото** на този файл (секция "Кой документ за какво се чете"). Старите документи **остават валидни** и **не са изтрити**.
 
 ---
 
