@@ -38,6 +38,9 @@ if (!empty($_GET['ajax'])) {
             $mix = isset($_GET['mix']) ? (int)$_GET['mix'] : 0;
             if (strlen($q) < 1) { echo json_encode($mix ? ['products'=>[],'categories'=>[],'total_products'=>0] : []); exit; }
             $like = "%{$q}%";
+            $invJoin = $sid_ajax > 0
+                ? "LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = " . (int)$sid_ajax
+                : "LEFT JOIN inventory i ON i.product_id = p.id";
             $rows = DB::run("
                 SELECT p.id, p.name, p.code, p.retail_price, p.image_url, p.supplier_id,
                        s.name AS supplier_name, c.name AS category_name,
@@ -45,14 +48,14 @@ if (!empty($_GET['ajax'])) {
                 FROM products p
                 LEFT JOIN suppliers s ON s.id = p.supplier_id
                 LEFT JOIN categories c ON c.id = p.category_id
-                LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = ?
+                {$invJoin}
                 WHERE p.tenant_id = ? AND p.is_active = 1
                   AND p.parent_id IS NULL
                   AND (p.name LIKE ? OR p.code LIKE ? OR p.barcode LIKE ?)
                 GROUP BY p.id
                 ORDER BY (p.name LIKE ?) DESC, p.name ASC
                 LIMIT 30
-            ", [$sid_ajax, $tenant_id, $like, $like, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
+            ", [$tenant_id, $like, $like, $like, $q.'%'])->fetchAll(PDO::FETCH_ASSOC);
             if ($mix) {
                 $cats = DB::run("
                     SELECT c.id, c.name, COUNT(DISTINCT p.id) AS product_count
@@ -183,27 +186,41 @@ if (!empty($_GET['ajax'])) {
             if (!empty($f['price_max'])) { $where[] = "p.retail_price <= ?"; $params[] = (float)$f['price_max']; }
             if (!empty($f['discount'])) { $where[] = "p.discount_pct > 0"; }
 
-            // Stock filter — изисква JOIN с inventory
-            $stock_join = "LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = " . (int)$sid_ajax;
+            // Stock filter — изисква JOIN с inventory (store=0 → без store filter)
+            $stock_join = $sid_ajax > 0
+                ? "LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = " . (int)$sid_ajax
+                : "LEFT JOIN inventory i ON i.product_id = p.id";
             $having = "";
             if (!empty($f['stock'])) {
                 if ($f['stock'] === 'out') $having = "HAVING total_stock <= 0";
                 elseif ($f['stock'] === 'in') $having = "HAVING total_stock > 0";
                 elseif ($f['stock'] === 'low') $having = "HAVING total_stock > 0 AND total_stock <= COALESCE(MAX(p.min_quantity), 0)";
                 elseif ($f['stock'] === 'stale60') {
-                    $where[] = "NOT EXISTS (SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=? AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY) AND s.status!='canceled')";
-                    $params[] = $sid_ajax;
+                    if ($sid_ajax > 0) {
+                        $where[] = "NOT EXISTS (SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.store_id=? AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY) AND s.status!='canceled')";
+                        $params[] = $sid_ajax;
+                    } else {
+                        $where[] = "NOT EXISTS (SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE si.product_id=p.id AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY) AND s.status!='canceled')";
+                    }
                 }
             }
 
-            // Counted filter
+            // Counted filter (store=0 → проверява всички магазини)
             if (!empty($f['counted'])) {
                 if ($f['counted'] === 'counted') {
-                    $where[] = "EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
-                    $params[] = $sid_ajax;
+                    if ($sid_ajax > 0) {
+                        $where[] = "EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                        $params[] = $sid_ajax;
+                    } else {
+                        $where[] = "EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                    }
                 } elseif ($f['counted'] === 'uncounted') {
-                    $where[] = "NOT EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
-                    $params[] = $sid_ajax;
+                    if ($sid_ajax > 0) {
+                        $where[] = "NOT EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.store_id=? AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                        $params[] = $sid_ajax;
+                    } else {
+                        $where[] = "NOT EXISTS (SELECT 1 FROM inventory iv WHERE iv.product_id=p.id AND iv.last_counted_at IS NOT NULL AND iv.last_counted_at > DATE_SUB(NOW(), INTERVAL 30 DAY))";
+                    }
                 }
             }
 
@@ -241,52 +258,74 @@ $mode_override = $_GET['mode'] ?? null;
 $is_simple_view = ($mode_override === 'simple') || (!$mode_override && $user_role === 'seller');
 
 // Store switch via GET
-if (!empty($_GET['store'])) {
-    $chk = DB::run('SELECT id FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
-        [(int)$_GET['store'], $tenant_id])->fetch();
-    if ($chk) { $_SESSION['store_id'] = (int)$_GET['store']; $store_id = (int)$_GET['store']; }
+if (isset($_GET['store'])) {
+    $req = (int)$_GET['store'];
+    if ($req === 0) {
+        // "Всички магазини" режим
+        $_SESSION['store_id'] = 0;
+        $store_id = 0;
+    } else {
+        $chk = DB::run('SELECT id FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
+            [$req, $tenant_id])->fetch();
+        if ($chk) { $_SESSION['store_id'] = $req; $store_id = $req; }
+    }
     $redirect_to = $is_simple_view ? 'products-v2.php?mode=simple' : 'products-v2.php?mode=detailed';
     header('Location: ' . $redirect_to); exit;
 }
-if (!$store_id) {
-    $first = DB::run('SELECT id FROM stores WHERE tenant_id=? ORDER BY id LIMIT 1', [$tenant_id])->fetch();
-    if ($first) { $store_id = (int)$first['id']; $_SESSION['store_id'] = $store_id; }
+// Ако НЯМА store избран в сесията (null/unset) — default = ВСИЧКИ магазини (нула)
+// Това е по правилото на Тих 13.05.2026: общата картина е приоритет, не отделен магазин.
+if (!isset($_SESSION['store_id'])) {
+    $store_id = 0;
+    $_SESSION['store_id'] = 0;
 }
 
 // Tenant + store
 $tenant = DB::run('SELECT * FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
 $cs = htmlspecialchars($tenant['currency'] ?? '€');
-$store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1', [$store_id, $tenant_id])->fetch();
-$store_name = $store['name'] ?? 'Магазин';
+if ($store_id > 0) {
+    $store = DB::run('SELECT name FROM stores WHERE id=? AND tenant_id=? LIMIT 1', [$store_id, $tenant_id])->fetch();
+    $store_name = $store['name'] ?? 'Магазин';
+} else {
+    $store_name = 'Всички магазини';
+}
 $all_stores = DB::run('SELECT id, name FROM stores WHERE tenant_id=? ORDER BY name', [$tenant_id])->fetchAll(PDO::FETCH_ASSOC);
+
+// ════════════════════════════════════════════════════════════════════
+// S143 v3 — STORE FILTER HELPERS (за "Всички магазини" режим)
+// Когато $store_id === 0 → не филтрира по магазин (общата картина)
+// ════════════════════════════════════════════════════════════════════
+$SF_INV  = $store_id > 0 ? " AND i.store_id = " . (int)$store_id : "";     // за inventory JOIN
+$SF_INV2 = $store_id > 0 ? " AND iv.store_id = " . (int)$store_id : "";    // за inventory със alias iv
+$SF_SALE = $store_id > 0 ? " AND s.store_id = " . (int)$store_id : "";     // за sales s.
+$SF_DLV  = $store_id > 0 ? " AND d.store_id = " . (int)$store_id : "";     // за deliveries d.
 
 // Counters for simple home alarms (СВЪРШИЛИ + ЗАСТОЯЛИ 60+)
 $out_of_stock = (int)DB::run(
-    'SELECT COUNT(DISTINCT p.id) FROM products p
-     LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-     WHERE p.tenant_id=? AND p.is_active=1 AND COALESCE(i.quantity,0)<=0',
-    [$store_id, $tenant_id]
+    "SELECT COUNT(DISTINCT p.id) FROM products p
+     LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
+     WHERE p.tenant_id=? AND p.is_active=1 AND COALESCE(i.quantity,0)<=0",
+    [$tenant_id]
 )->fetchColumn();
 
 $stale_60d = (int)DB::run(
     "SELECT COUNT(DISTINCT p.id) FROM products p
-     LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+     LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
      WHERE p.tenant_id=? AND p.is_active=1 AND COALESCE(i.quantity,0)>0
      AND NOT EXISTS (
          SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id
-         WHERE si.product_id=p.id AND s.store_id=?
+         WHERE si.product_id=p.id{$SF_SALE}
          AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY)
          AND s.status!='canceled'
      )",
-    [$store_id, $tenant_id, $store_id]
+    [$tenant_id]
 )->fetchColumn();
 
 // Total products in this store
 $total_products = (int)DB::run(
-    'SELECT COUNT(DISTINCT p.id) FROM products p
-     LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
-     WHERE p.tenant_id=? AND p.is_active=1',
-    [$store_id, $tenant_id]
+    "SELECT COUNT(DISTINCT p.id) FROM products p
+     LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
+     WHERE p.tenant_id=? AND p.is_active=1",
+    [$tenant_id]
 )->fetchColumn();
 
 // ════════════════════════════════════════════════════════════════════
@@ -300,10 +339,10 @@ $uncounted_days_avg = 12;
 try {
     $uncounted_count = (int)DB::run(
         "SELECT COUNT(DISTINCT p.id) FROM products p
-         LEFT JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+         LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
          WHERE p.tenant_id=? AND p.is_active=1
          AND (i.last_counted_at IS NULL OR i.last_counted_at < DATE_SUB(NOW(), INTERVAL 30 DAY))",
-        [$store_id, $tenant_id]
+        [$tenant_id]
     )->fetchColumn() ?: 34;
 } catch (Throwable $e) { $uncounted_count = 34; }
 
@@ -321,10 +360,10 @@ try {
             COUNT(DISTINCT s.id) AS tx_count
          FROM sales s
          LEFT JOIN sale_items si ON si.sale_id=s.id
-         WHERE s.tenant_id=? AND s.store_id=?
+         WHERE s.tenant_id=?{$SF_SALE}
          AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
          AND s.status!='canceled'",
-        [$tenant_id, $store_id, $period_days]
+        [$tenant_id, $period_days]
     )->fetch(PDO::FETCH_ASSOC) ?: [];
     $kpi_revenue  = (float)($kpi['revenue'] ?? 0);
     $kpi_profit   = (float)($kpi['profit'] ?? 0);
@@ -347,9 +386,9 @@ try {
      FROM deliveries d
      LEFT JOIN sale_items si ON si.product_id=d.product_id
         AND si.created_at >= d.created_at
-     WHERE d.tenant_id=? AND d.store_id=?
+     WHERE d.tenant_id=?{$SF_DLV}
      AND d.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
-    [$tenant_id, $store_id, $period_days]
+    [$tenant_id, $period_days]
 )->fetch(PDO::FETCH_ASSOC) ?: ['received'=>0, 'sold'=>0];
 $st_received = (int)$sellthrough_data['received'];
 $st_sold     = (int)$sellthrough_data['sold'];
@@ -359,18 +398,19 @@ $kpi_sellthrough = ($st_received + $st_sold) > 0 ? round($st_sold / max(1, $st_r
 // Замразен капитал € — стойност на стока заспала 60+ дни
 $kpi_locked_cash = 1180;
 try {
+    $iJoin = $store_id > 0 ? " AND i.store_id={$store_id}" : "";
     $kpi_locked_cash = (float)DB::run(
         "SELECT COALESCE(SUM(i.quantity * COALESCE(p.cost_price, p.retail_price * 0.55)),0)
          FROM products p
-         JOIN inventory i ON i.product_id=p.id AND i.store_id=?
+         JOIN inventory i ON i.product_id=p.id{$iJoin}
          WHERE p.tenant_id=? AND p.is_active=1 AND i.quantity > 0
          AND NOT EXISTS (
              SELECT 1 FROM sale_items si JOIN sales s ON s.id=si.sale_id
-             WHERE si.product_id=p.id AND s.store_id=?
+             WHERE si.product_id=p.id{$SF_SALE}
              AND s.created_at > DATE_SUB(NOW(), INTERVAL 60 DAY)
              AND s.status!='canceled'
          )",
-        [$store_id, $tenant_id, $store_id]
+        [$tenant_id]
     )->fetchColumn() ?: 1180;
 } catch (Throwable $e) { $kpi_locked_cash = 1180; }
 
@@ -414,14 +454,15 @@ $ai_insights = [];
 $insights_path = __DIR__ . '/compute-insights.php';
 if (file_exists($insights_path)) {
     try {
+        $aiSF = $store_id > 0 ? " AND store_id={$store_id}" : "";
         $ai_insights = DB::run(
             "SELECT id, tag, title, urgency, action_label, action_url, q_signal_group
              FROM ai_insights
-             WHERE tenant_id=? AND store_id=? AND status='active'
+             WHERE tenant_id=?{$aiSF} AND status='active'
              AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
              ORDER BY FIELD(urgency,'critical','warning','info','positive'), confidence DESC
              LIMIT 10",
-            [$tenant_id, $store_id]
+            [$tenant_id]
         )->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) { $ai_insights = []; }
 }
@@ -433,7 +474,7 @@ $weather_path = __DIR__ . '/weather-cache.php';
 if (file_exists($weather_path)) {
     require_once $weather_path;
     if (function_exists('getWeatherForecast')) {
-        $weather_forecast = getWeatherForecast($store_id, $tenant_id, 7);
+        $weather_forecast = $store_id > 0 ? getWeatherForecast($store_id, $tenant_id, 7) : [];
     }
 }
 
@@ -441,15 +482,16 @@ if (file_exists($weather_path)) {
 $top3_reorder = [];
 if (file_exists($insights_path)) {
     try {
+        $aiSF2 = $store_id > 0 ? " AND ai.store_id={$store_id}" : "";
         $top3_reorder = DB::run(
             "SELECT ai.id, ai.title, ai.subtitle, p.name AS product_name, p.sku
              FROM ai_insights ai
              LEFT JOIN products p ON p.id=ai.product_id
-             WHERE ai.tenant_id=? AND ai.store_id=? AND ai.status='active'
+             WHERE ai.tenant_id=?{$aiSF2} AND ai.status='active'
              AND ai.q_signal_group=5 AND ai.urgency='critical'
              ORDER BY ai.confidence DESC
              LIMIT 3",
-            [$tenant_id, $store_id]
+            [$tenant_id]
         )->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) { $top3_reorder = []; }
 }
@@ -465,26 +507,27 @@ try {
             ROUND(AVG(CASE WHEN d.received_at <= d.expected_at THEN 100 ELSE 60 END), 0) AS reliability
          FROM suppliers sup
          LEFT JOIN deliveries d ON d.supplier_id=sup.id
-            AND d.tenant_id=? AND d.store_id=?
+            AND d.tenant_id=?{$SF_DLV}
             AND d.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
          WHERE sup.tenant_id=?
          GROUP BY sup.id, sup.name
          HAVING revenue > 0
          ORDER BY revenue DESC
          LIMIT 3",
-        [$tenant_id, $store_id, $tenant_id]
+        [$tenant_id, $tenant_id]
     )->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { $top3_suppliers = []; }
 
 // ─── DELAYED deliveries count (нова метрика за тревоги ред) ───
 $delayed_deliveries = 0;
 try {
+    $delSF = $store_id > 0 ? " AND store_id={$store_id}" : "";
     $delayed_deliveries = (int)DB::run(
         "SELECT COUNT(*) FROM deliveries
-         WHERE tenant_id=? AND store_id=?
+         WHERE tenant_id=?{$delSF}
          AND status='pending'
          AND expected_at IS NOT NULL AND expected_at < NOW()",
-        [$tenant_id, $store_id]
+        [$tenant_id]
     )->fetchColumn();
 } catch (Throwable $e) { $delayed_deliveries = 0; }
 
@@ -2482,8 +2525,9 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
 <!-- ═══ SUBBAR — store toggle + СКЛАД label + mode toggle ═══ -->
 <div class="rms-subbar">
-  <?php if (count($all_stores) > 1): ?>
+  <?php if (count($all_stores) > 1 || $store_id === 0): ?>
   <select class="rms-store-toggle" aria-label="Смени обект" onchange="location.href='?store='+this.value+'&mode='+(<?= $is_simple_view?'"simple"':'"detailed"' ?>)" style="-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>&quot;);background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px;padding-right:28px;">
+    <option value="0" <?= $store_id===0?'selected':'' ?>>🏢 Всички магазини</option>
     <?php foreach ($all_stores as $st): ?>
     <option value="<?= (int)$st['id'] ?>" <?= $st['id']==$store_id?'selected':'' ?>><?= htmlspecialchars($st['name']) ?></option>
     <?php endforeach; ?>
