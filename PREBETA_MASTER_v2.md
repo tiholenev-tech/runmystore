@@ -645,3 +645,42 @@ git push origin main
 ---
 
 **End of S142 progress log. v2.2.**
+
+## S143 ENDS — продуктов модул редизайн (14.05.2026)
+
+### СТАТУС: ⚠ Незавършено
+
+### Свършено:
+- products-v2.php v1-v4 (SWAP файл, не е production)
+- Богата търсачка с 16+ филтри
+- Sticky search + cascading filters
+- Обща картина (store_id=0)
+- Информативен бокс v1 (2 нива)
+- Deep Research за AI auto-fill ИКОНОМИКА — €0.15/мес/магазин, 94% марж
+
+### НЕЗАВЪРШЕНО:
+- Info-box v2 (3 нива: пълна/частична/минимална)
+- Решение за confidence_score изчисление
+- Премахване на inv-nudge button
+- Тестване на products-v2.php в production (още не активиран)
+
+### S143 файлове:
+- products-v2.php (4499 редa, SWAP, на main)
+- docs/AI_AUTOFILL_RESEARCH_2026.md (Deep Research 413 редa)
+- migrations/20260513_001_products_filters.up.sql (приложена)
+- CORE_BUSINESS_RULES.md (нов файл с бизнес правила)
+- TOMORROW_WIZARD_REDESIGN.md (план за S144)
+
+### S144 ПРИОРИТЕТИ:
+1. Info-box v2 (3 нива + AI обяснение)
+2. confidence_score логика (възможност 1/2/3)
+3. Wizard редизайн "Добави артикул"
+4. Снимка → стъпка 2 в wizard
+5. AI all-in-one prompt (категория + цвят + описание)
+6. Ниво 1 baрcode lookup + Ниво 2 perceptual hash
+
+### Beta blocker:
+- products-v2.php SWAP не е активиран още
+- Чака потвърждение от Тих след тестване
+- Кога активира: rename products.php → products-v1-old.php; mv products-v2.php → products.php
+
