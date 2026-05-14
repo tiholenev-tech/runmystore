@@ -2888,26 +2888,22 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 </div>
 
 <!-- ═══ HEADER (Тип Б — вътрешен модул) ═══ -->
-<!-- S144: ЕДИНЕН HEADER — еднакъв в Simple и Detailed (без back, без camera) -->
+<!-- S144: ОПРОСТЕН HEADER — еднакъв в Simple и Detailed (лого + тема + Продажба) -->
 <header class="rms-header">
   <a class="rms-brand" href="life-board.php" title="Начало">
     <span class="brand-1">RunMyStore</span><span class="brand-2">.ai</span>
   </a>
   <div class="rms-header-spacer"></div>
-  <a class="rms-icon-btn" aria-label="Принтер" href="printer-setup.php" title="Принтер">
-    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-  </a>
-  <a class="rms-icon-btn" aria-label="Настройки" href="settings.php" title="Настройки">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-  </a>
-  <button class="rms-icon-btn" aria-label="Изход" onclick="if(confirm('Изход?'))location.href='logout.php'" title="Изход">
-    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-  </button>
   <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема" title="Светла/тъмна">
     <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
   </button>
+  <a class="sale-pill" href="sale.php" title="Продажба">
+    <svg viewBox="0 0 24 24"><path d="M2 6h21l-2 9H4L2 6z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+    <span>Продажба</span>
+  </a>
 </header>
+
 
 
 <!-- ═══ SUBBAR — store toggle + СКЛАД label + mode toggle ═══ -->
