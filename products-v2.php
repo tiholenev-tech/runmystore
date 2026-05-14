@@ -278,6 +278,13 @@ if (!isset($_SESSION['store_id'])) {
     $store_id = 0;
     $_SESSION['store_id'] = 0;
 }
+// S143 migration: при първо отваряне след днешната промяна → force "Всички магазини"
+// (защото стари сесии вече имат store_id != 0 от предишната логика)
+if (empty($_SESSION['s143_store_default_applied'])) {
+    $store_id = 0;
+    $_SESSION['store_id'] = 0;
+    $_SESSION['s143_store_default_applied'] = 1;
+}
 
 // Tenant + store
 $tenant = DB::run('SELECT * FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
