@@ -12,6 +12,8 @@
  *   ⏳ Life Board cards (TBD)
  */
 session_start();
+// S144: chat = Simple home (set active_mode за всички производни страници)
+$_SESSION['active_mode'] = 'simple';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/helpers.php';
 
