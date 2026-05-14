@@ -259,7 +259,13 @@
 
 # 🏛 ЧАСТ 3 — HEADER & BOTTOM NAV (1:1 canonical)
 
-## 3.1 Header structure (от `partials/header.php` — НЕ ПИПАЙ)
+## 3.1 Header structure — ЗАВИСИ ОТ СТРАНИЦАТА (S144 правило)
+
+> **🔒 ЗАКОН (S144):** Header-ът има **3 различни форми** според страницата. Това правило е финално, не се обяснява повторно — четеш и прилагаш.
+
+### Форма А — chat.php (FULL header, 4 икони)
+
+ОТ `partials/header.php` — НЕ пипай.
 
 **7 елемента в ТОЧЕН ред:**
 
@@ -274,21 +280,41 @@
         [exit svg]
         <a href="logout.php" class="rms-logout-dd" id="logoutDrop">Изход →</a>
     </button>
-    <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()">
-        <svg id="themeIconSun" style="display:none">[sun]</svg>
-        <svg id="themeIconMoon">[moon]</svg>
-    </button>
+    <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()">[sun/moon]</button>
 </header>
 ```
 
-**Точен ред (никога не променяй):**
-1. `RUNMYSTORE.AI` brand (links to chat.php)
-2. `.rms-plan-badge` (PRO/FREE/START/BUSINESS)
-3. `.rms-header-spacer` (push-right)
-4. Print button (Bluetooth printer toggle)
-5. Settings link → settings.php
-6. Logout button (with dropdown `.rms-logout-dd`)
-7. Theme toggle (sun/moon icons, calls `rmsToggleTheme()`)
+**Ред (никога не променяй):** brand → plan-badge → spacer → Print → Settings → Logout → Theme
+
+### Форма Б — всички ОСТАНАЛИ страници (опростен header, 2 действия)
+
+`products-v2.php`, `warehouse.php`, `stats.php`, `inventory.php`, `transfers.php`, `deliveries.php`, `suppliers.php`, `finance.php`, всички производни страници.
+
+**4 елемента:**
+
+```html
+<header class="rms-header">
+    <a href="life-board.php" class="rms-brand">RUNMYSTORE.AI</a>
+    <div class="rms-header-spacer"></div>
+    <button class="rms-icon-btn" id="themeToggle" onclick="rmsToggleTheme()">[sun/moon]</button>
+    <a href="sale.php" class="sale-pill">
+        <svg>[cart icon]</svg>
+        <span>Продажба</span>
+    </a>
+</header>
+```
+
+**Ред:** brand → spacer → Theme → Продажба pill (амбър gradient)
+
+**НЕ показва:** plan-badge, Print, Settings, Logout, Camera, Back бутон.
+
+### Форма В — sale.php (БЕЗ header)
+
+sale.php няма header изобщо. Камерата заема цялата горна част на екрана (`v-camera-header` 80px видео фон с зелена лазерна линия).
+
+### Правилото с 1 изречение
+
+**Във всеки модул е форма Б, освен chat.php = форма А, sale.php = форма В.**
 
 ## 3.2 Header CSS (apply 1:1)
 
@@ -420,7 +446,38 @@
 .rms-logout-dd.show { display: block; }
 ```
 
-## 3.3 Bottom nav structure (от `partials/bottom-nav.php` — НЕ ПИПАЙ)
+## 3.3 Bottom nav — SESSION-BASED (S144 правило)
+
+> **🔒 ЗАКОН (S144):** Bottom-nav-ът се показва/скрива според **режима на влизане**, не според текущата страница. Това правило е финално — четеш и прилагаш.
+
+### Правилото с 1 изречение
+
+**Влязъл от Лесен → никъде нямаш 4 таба. Влязъл от Разширен → навсякъде имаш 4 таба.**
+
+### Как се запомня
+
+`$_SESSION['active_mode']` се сетва когато потребителят влиза в режим:
+
+- **Simple home** (chat.php или life-board.php или `?mode=simple`) → `$_SESSION['active_mode'] = 'simple'`
+- **Detailed home** (`?mode=detailed`) → `$_SESSION['active_mode'] = 'detailed'`
+- Owner default (без override) → `'detailed'`
+- Seller default → `'simple'`
+
+### Как се ползва в partials/bottom-nav.php
+
+```php
+<?php if (($_SESSION['active_mode'] ?? 'simple') === 'detailed'): ?>
+<nav class="rms-bottom-nav">
+    [4 tabs]
+</nav>
+<?php endif; ?>
+```
+
+В Simple — bottom-nav изобщо не се рендерира. Вместо това chat-input-bar (`life-board.php` стил).
+
+### 4 tabs структура (когато се показва, в Detailed)
+
+ОТ `partials/bottom-nav.php` — НЕ пипай.
 
 **4 tabs в ТОЧЕН ред:**
 
