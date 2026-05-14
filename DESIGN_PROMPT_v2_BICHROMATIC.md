@@ -1,3 +1,10 @@
+> ⚠️ **DEPRECATED (13.05.2026)** — Този документ е остарял.
+> Заменен от: `DESIGN_CANON_v1.md` (canonical reference, S142 ratified).
+> Не следвай patterns/layout от тук — използвай DESIGN_CANON_v1.md.
+> Tokens (цветове, typography) са в `DESIGN_SYSTEM_v4.0_BICHROMATIC.md`.
+
+---
+
 # DESIGN_PROMPT_v2_BICHROMATIC.md
 
 **Версия:** v2 (08.05.2026 — след S97 P13 deployment)

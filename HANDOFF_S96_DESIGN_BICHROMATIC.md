@@ -1,3 +1,10 @@
+> ⚠️ **DEPRECATED (13.05.2026)** — Този документ е остарял.
+> Заменен от: `DESIGN_CANON_v1.md` (canonical reference, S142 ratified).
+> Не следвай patterns/layout от тук — използвай DESIGN_CANON_v1.md.
+> Tokens (цветове, typography) са в `DESIGN_SYSTEM_v4.0_BICHROMATIC.md`.
+
+---
+
 # HANDOFF S96 — DESIGN_SYSTEM v4.1 BICHROMATIC
 
 **Дата:** 2026-05-07 (вечер)
