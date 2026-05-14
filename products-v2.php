@@ -539,17 +539,17 @@ try {
 } catch (Throwable $e) { $delayed_deliveries = 0; }
 
 // ════════════════════════════════════════════════════════════════════
-// S143 v4 — COMPLETENESS STATS (информативен бокс)
-// Артикули с пълна информация vs бързо добавени (минимална информация)
-// confidence_score >= 80 → пълна
-// confidence_score < 80 (или NULL) → чака допълване
+// S144 — COMPLETENESS STATS по 3-те нива (формула от INVENTORY_AND_PRODUCT_LIFECYCLE.md)
+// 🔴 Минимална: 0-39   🟡 Частична: 40-79   🟢 Пълна: 80-100
 // ════════════════════════════════════════════════════════════════════
-$completeness = ['total' => 0, 'complete' => 0, 'incomplete' => 0, 'pct' => 0];
+$completeness = ['total' => 0, 'full' => 0, 'partial' => 0, 'minimal' => 0, 'pct' => 0];
 try {
     $row = DB::run(
         "SELECT
             COUNT(*) AS total,
-            SUM(CASE WHEN COALESCE(p.confidence_score, 0) >= 80 THEN 1 ELSE 0 END) AS complete
+            SUM(CASE WHEN COALESCE(p.confidence_score, 0) >= 80 THEN 1 ELSE 0 END) AS full_cnt,
+            SUM(CASE WHEN COALESCE(p.confidence_score, 0) BETWEEN 40 AND 79 THEN 1 ELSE 0 END) AS partial_cnt,
+            SUM(CASE WHEN COALESCE(p.confidence_score, 0) < 40 THEN 1 ELSE 0 END) AS minimal_cnt
          FROM products p
          LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
          WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL
@@ -558,15 +558,15 @@ try {
     )->fetch(PDO::FETCH_ASSOC);
     if ($row) {
         $completeness['total'] = (int)$row['total'];
-        $completeness['complete'] = (int)$row['complete'];
-        $completeness['incomplete'] = $completeness['total'] - $completeness['complete'];
+        $completeness['full'] = (int)$row['full_cnt'];
+        $completeness['partial'] = (int)$row['partial_cnt'];
+        $completeness['minimal'] = (int)$row['minimal_cnt'];
         $completeness['pct'] = $completeness['total'] > 0
-            ? (int)round($completeness['complete'] * 100 / $completeness['total'])
+            ? (int)round($completeness['full'] * 100 / $completeness['total'])
             : 0;
     }
 } catch (Throwable $e) {
-    // Fallback ако confidence_score не съществува (графично, не за криза)
-    $completeness = ['total' => $total_products, 'complete' => 0, 'incomplete' => 0, 'pct' => 0];
+    $completeness = ['total' => $total_products, 'full' => 0, 'partial' => 0, 'minimal' => 0, 'pct' => 0];
 }
 
 // ─── Helper: format BGN/EUR ───
@@ -2475,6 +2475,53 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   color: hsl(35 90% 50%);
 }
 .info-box-stats .pending b { color: hsl(35 90% 50%); }
+
+/* S144: 4-те бутона за 3 нива + общ списък */
+.info-box-levels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.1fr;
+  gap: 6px;
+  margin-top: 2px;
+}
+.ibl {
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(99,102,241,0.15);
+  background: rgba(99,102,241,0.03);
+  font-size: 11px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.18s var(--ease);
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+.ibl:active { transform: scale(0.96); }
+.ibl:hover { background: rgba(99,102,241,0.07); }
+.ibl b { font-weight: 800; font-size: 13px; }
+.ibl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ibl-lbl { font-weight: 600; }
+
+.ibl-full .ibl-dot { background: hsl(150 65% 50%); box-shadow: 0 0 6px hsl(150 65% 50% / 0.5); }
+.ibl-full { border-color: hsl(150 50% 40% / 0.35); }
+.ibl-full b { color: hsl(150 65% 45%); }
+
+.ibl-partial .ibl-dot { background: hsl(40 90% 55%); box-shadow: 0 0 6px hsl(40 90% 55% / 0.5); }
+.ibl-partial { border-color: hsl(40 75% 45% / 0.35); }
+.ibl-partial b { color: hsl(40 90% 50%); }
+
+.ibl-minimal .ibl-dot { background: hsl(0 75% 60%); box-shadow: 0 0 6px hsl(0 75% 60% / 0.5); }
+.ibl-minimal { border-color: hsl(0 60% 45% / 0.35); }
+.ibl-minimal b { color: hsl(0 75% 55%); }
+
+.ibl-all {
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08));
+  border-color: rgba(99,102,241,0.3);
+  color: var(--accent);
+  font-weight: 700;
+}
+.ibl-all svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 .info-box-stats a {
   color: var(--accent);
   font-weight: 700;
@@ -2664,20 +2711,13 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SIMPLE MODE (P15) — главна за Пешо                       -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- ─── INV-NUDGE (Закон §10 — на всеки модул) ─── -->
-  <button class="inv-nudge" onclick="alert('inventory zone walk')">
-    <span class="inv-nudge-ic">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    </span>
-    <span class="inv-nudge-text"><b><?= $uncounted_count ?? 34 ?></b> артикула не са броени · 12 дни</span>
-    <svg class="inv-nudge-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
+<!-- S144: inv-nudge премахнат — дублира info-box с 3-те нива по-долу -->
 
 
   
 
-  <!-- ─── S143 v4: ИНФОРМАТИВЕН БОКС за completeness (дискретна подкана) ─── -->
-  <div class="info-box" onclick="location.href='products.php?screen=products&filter=incomplete'">
+  <!-- ─── S144: ИНФОРМАТИВЕН БОКС — 3 нива + общ списък ─── -->
+  <div class="info-box">
     <div class="info-box-top">
       <div class="info-box-title">
         <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -2688,11 +2728,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
     <div class="info-box-bar">
       <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
     </div>
-    <div class="info-box-stats">
-      <span><b><?= number_format($completeness['complete'], 0, '.', ' ') ?></b>с пълна информация</span>
-      <?php if ($completeness['incomplete'] > 0): ?>
-      <span class="pending"><b><?= number_format($completeness['incomplete'], 0, '.', ' ') ?></b>чакат допълване →</span>
-      <?php endif; ?>
+    <div class="info-box-levels">
+      <button class="ibl ibl-full" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+        <span class="ibl-dot"></span>
+        <b><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
+        <span class="ibl-lbl">пълна</span>
+      </button>
+      <button class="ibl ibl-partial" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+        <span class="ibl-dot"></span>
+        <b><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
+        <span class="ibl-lbl">частична</span>
+      </button>
+      <button class="ibl ibl-minimal" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+        <span class="ibl-dot"></span>
+        <b><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
+        <span class="ibl-lbl">минимална</span>
+      </button>
+      <button class="ibl ibl-all" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+        <span class="ibl-lbl">Виж всички</span>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
   </div>
 
@@ -3037,14 +3092,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- DETAILED MODE (P2v2 tabs) — главна за Митко              -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- ─── ГЛОБАЛЕН ИНВЕНТАРИЗАЦИЯ NUDGE (закон §16.2) ─── -->
-  <button class="inv-nudge" onclick="alert('inventory zone walk')">
-    <span class="inv-nudge-ic">
-      <svg viewBox="0 0 24 24"><polyline points="12 6 12 12 16 14"/><circle cx="12" cy="12" r="10"/></svg>
-    </span>
-    <span class="inv-nudge-text"><b>34</b> артикула не са броени · 12 дни</span>
-    <svg class="inv-nudge-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
+<!-- S144: inv-nudge премахнат — дублира info-box с 3-те нива по-долу -->
 
   <!-- ─── ТЪРСАЧКА с микрофон + филтър (S142 inject) ─── -->
   <div class="search-wrap">
@@ -3165,8 +3213,8 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       </div>
     </div>
 
-    <!-- ─── S143 v4: ИНФОРМАТИВЕН БОКС (също в Detailed Mode) ─── -->
-    <div class="info-box" onclick="location.href='products.php?screen=products&filter=incomplete'">
+    <!-- ─── S144: ИНФОРМАТИВЕН БОКС — 3 нива + общ списък (Detailed) ─── -->
+    <div class="info-box">
       <div class="info-box-top">
         <div class="info-box-title">
           <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -3177,11 +3225,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <div class="info-box-bar">
         <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
       </div>
-      <div class="info-box-stats">
-        <span><b><?= number_format($completeness['complete'], 0, '.', ' ') ?></b>с пълна информация</span>
-        <?php if ($completeness['incomplete'] > 0): ?>
-        <span class="pending"><b><?= number_format($completeness['incomplete'], 0, '.', ' ') ?></b>чакат допълване →</span>
-        <?php endif; ?>
+      <div class="info-box-levels">
+        <button class="ibl ibl-full" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=full'">
+          <span class="ibl-dot"></span>
+          <b><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
+          <span class="ibl-lbl">пълна</span>
+        </button>
+        <button class="ibl ibl-partial" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=partial'">
+          <span class="ibl-dot"></span>
+          <b><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
+          <span class="ibl-lbl">частична</span>
+        </button>
+        <button class="ibl ibl-minimal" onclick="event.stopPropagation();location.href='products.php?screen=products&confidence=minimal'">
+          <span class="ibl-dot"></span>
+          <b><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
+          <span class="ibl-lbl">минимална</span>
+        </button>
+        <button class="ibl ibl-all" onclick="event.stopPropagation();location.href='products.php?screen=products'">
+          <span class="ibl-lbl">Виж всички</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
     </div>
 
