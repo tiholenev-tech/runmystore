@@ -2,7 +2,7 @@
 
 **Дата на създаване:** 14.05.2026 (S143 EOD)
 **Решено в:** S143 шеф-чат с Тих (документирано в MASTER_COMPASS S143 секции)
-**Версия:** v1.0
+**Версия:** v1.1 (добавена пълна стратегия за спестяване — 8 техники + AI Studio тест)
 
 ---
 
@@ -261,6 +261,196 @@ UI показва:
 **Default:** Gemini 2.5 Flash + GPT-4o mini + Deepgram Nova-3.
 
 **Виж:** `docs/AI_AUTOFILL_RESEARCH_2026.md` за пълен анализ.
+
+---
+
+## 💰 СТРАТЕГИЯ ЗА СПЕСТЯВАНЕ НА ПАРИ (8 ТЕХНИКИ)
+
+Реда е по важност (най-голямо спестяване → най-малко):
+
+### 1. ⭐ NIVELACHANO УЧЕНЕ — 4 НИВА (главна стратегия)
+
+| Ниво | Какво е | Кога | Точност | Спестяване | Цена |
+|---|---|---|---|---|---|
+| **1** | Баркод lookup в DB | **S144** (веднага) | 100% | ~30% | €0 |
+| **2** | Perceptual hash на снимки | **S144** (веднага) | 95% | ~20-40% | €0 |
+| **3** | Local rule engine от потвържденията | **След 2-3 месеца** | 88% | ~50% | €0 |
+| **4** | Локален ML модел (GPU) | **Чак при 50+ магазина** | 85-90% | ~85% | -€150/мес инфраструктура |
+
+**КЛЮЧОВО:** Ниво 4 не се прави при <50 магазина — инфраструктурата надделява.
+
+**Цитат на Тих (S143):** "ОК САМО ЗАПИШИ ВСИЧКО В КОМПАСА"
+
+### 2. PROMPT CACHING (90% намаление на input токени)
+
+Gemini и Claude поддържат prompt caching — повторно използване на стабилни
+части от prompt-а (system instructions, business context).
+
+```php
+// Първо обаждане — пълен prompt
+$response1 = callGemini([
+    'cached_content' => buildCachedContext($business_type), // 90% от prompt-а
+    'user_input' => $photo
+]);
+
+// Втори обаждания — кешираната част е €0
+$response2 = callGemini([
+    'cache_id' => $cached_id,
+    'user_input' => $photo2
+]);
+```
+
+**Очаквана икономия:** до 90% от input cost-а за повторни обаждания.
+
+### 3. BATCH API (50% намаление за async задачи)
+
+За не-критични задачи (масово допълване на стари артикули, нощни анализи):
+
+```php
+// Не: единично обаждане
+foreach ($products as $p) {
+    callGemini($p);  // $0.0015 × 1000 = $1.50
+}
+
+// Да: batch обаждане
+submitBatch($products);  // $0.00075 × 1000 = $0.75 (50% надолу)
+```
+
+**Кога:** AI Studio масово допълване на празни полета за стар инвентар.
+**Кога не:** реално време wizard auto-fill.
+
+### 4. SMART ROUTING (лесни → евтин модел, сложни → скъп)
+
+```php
+function routeAIModel($task) {
+    if ($task->complexity === 'simple') {
+        return 'gemini-nano';      // $0.0005
+    } elseif ($task->complexity === 'medium') {
+        return 'gemini-2.5-flash'; // $0.0015 (default)
+    } else {
+        return 'gemini-2.5-pro';   // $0.005
+    }
+}
+```
+
+**Реалистично:** 70% от обажданията са "simple" → големи икономии.
+
+### 5. IMAGE COMPRESSION ПРЕДИ AI ОБАЖДАНЕ
+
+AI таксува по input bytes. По-малка снимка = по-евтино.
+
+```php
+// Преди обаждане — компресирай до 1024px, JPEG quality 80
+$compressed = compressImage($photo, 1024, 80);
+$response = callGemini($compressed);
+```
+
+**Очаквана икономия:** ~30% input cost. Точността НЕ страда при ≥1024px.
+
+### 6. CROSS-TENANT BARCODE COPYING (Rule #38 разширение)
+
+Ако баркод съществува в друг tenant на платформата → копираме
+**нечувствителни** полета:
+
+```php
+$other = DB::run("SELECT name, category_id, description, gender, season,
+                  brand, material FROM products WHERE barcode=? AND tenant_id<>?",
+                  [$barcode, $tenant_id])->fetch();
+if ($other) {
+    // Копирай безопасни полета (НЕ цени, НЕ маржове, НЕ доставчик)
+    return copyAllowedFields($other);
+}
+```
+
+**Допълнителна икономия:** ~10-15% от AI обаждания (особено за популярни брандове).
+
+### 7. FREE TIER ЛИМИТИ (защита от експоненциален разход)
+
+```php
+function checkAILimit($tenant_id) {
+    $monthly_count = countAICalls($tenant_id, 'this_month');
+    $plan_limit = getPlanLimit($tenant_id); // 20 / 150 / 1000 / unlimited
+    if ($monthly_count >= $plan_limit) {
+        showUpgradePrompt(); // или предложи кредити
+        return false;
+    }
+    return true;
+}
+```
+
+**КРИТИЧНО:** FREE план рискува експоненциален разход без лимит. Виж Rule #45.
+
+### 8. RETRY ЛОГИКА БЕЗ ДУБЛИРАНИ ОБАЖДАНИЯ
+
+```php
+function callAIWithRetry($photo, $maxRetries = 2) {
+    static $cache = [];
+    $hash = md5_file($photo);
+    if (isset($cache[$hash])) return $cache[$hash]; // не дублирай
+
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        try {
+            $result = callGemini($photo);
+            $cache[$hash] = $result;
+            return $result;
+        } catch (RateLimitException $e) {
+            sleep(pow(2, $i)); // exponential backoff
+        }
+    }
+    return null;
+}
+```
+
+**Защо:** случайни мрежови грешки → 2x billing ако retry без cache.
+
+---
+
+## 🧪 ПРЕПОРЪЧАНО — ПРАКТИЧЕСКИ ТЕСТ В AI STUDIO (преди S144)
+
+**Защо:** Deep Research дава теоретични цени. Реалните разходи зависят от:
+- Размер на твоите снимки
+- Дължина на prompt-а
+- Цвят/качество на снимките
+- Бизнес тип (бельо vs бижута vs аптека)
+
+**Препоръчан тест преди S144:**
+
+### Стъпки:
+1. Отиди на `aistudio.google.com`
+2. Избери модел Gemini 2.5 Flash
+3. Качи **3 снимки от тенант 7 (Ени)** — реални артикули с пълна снимка
+4. Тествай prompt от `AI_AUTOFILL_SOURCE_OF_TRUTH.md` (Стъпка 3 JSON)
+5. Запиши за всяка снимка:
+   - Точност на категорията (правилна ли е?)
+   - Точност на цвета
+   - Качество на описанието
+   - Реална цена (от AI Studio таблото)
+   - Latency
+
+6. Повтори с Gemini Pro и Nano за сравнение.
+
+### Очаквана продължителност: 1 час
+### Очаквана цена: <€0.10 за тест
+### Очаквана стойност: знаем реалните числа за нашия бизнес
+
+**КОГА:** ПРЕДИ да започнем S144 wizard редизайн. Спестява много гадания.
+
+**TODO в S144:** добави резултатите в `docs/AI_AUTOFILL_REAL_TESTS.md`.
+
+---
+
+## 📈 ПРОГНОЗА ЗА АИ РАЗХОДИ (с всички 8 оптимизации)
+
+| Брой клиенти | Без оптимизация | С 8-те техники | Разлика |
+|---|---|---|---|
+| 10 | €45/мес | €18/мес | -60% |
+| 100 | €450/мес | €180/мес | -60% |
+| 500 | €2,250/мес | €900/мес | -60% |
+| 2,000 | €9,000/мес | €3,600/мес | -60% |
+
+**При 100 клиента — спестяване €270/месец = €3,240/година.**
+
+Това е РЕАЛНО ВЪЗМОЖНО при добро implement-иране на 4-те нива + кеш стратегиите.
 
 ---
 
