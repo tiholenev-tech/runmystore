@@ -2986,22 +2986,22 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
   <!-- ─── CONFIDENCE FILTER PILLS (4 бутона горе) ─── -->
   <div class="cf-row">
-    <a class="cf-pill cf-all <?= !$confidence_filter ? 'active' : '' ?>" href="?screen=list">
+    <a class="cf-pill cf-all <?= !$confidence_filter ? 'active' : '' ?>" href="?screen=list&mode=<?= $active_mode ?>">
       <span class="cf-dot"></span>
       <span>Всички</span>
       <span class="cf-num"><?= $completeness['total'] ?></span>
     </a>
-    <a class="cf-pill cf-full <?= $confidence_filter==='full' ? 'active' : '' ?>" href="?screen=list&confidence=full">
+    <a class="cf-pill cf-full <?= $confidence_filter==='full' ? 'active' : '' ?>" href="?screen=list&confidence=full&mode=<?= $active_mode ?>">
       <span class="cf-dot"></span>
       <span>Пълна</span>
       <span class="cf-num"><?= $completeness['full'] ?></span>
     </a>
-    <a class="cf-pill cf-partial <?= $confidence_filter==='partial' ? 'active' : '' ?>" href="?screen=list&confidence=partial">
+    <a class="cf-pill cf-partial <?= $confidence_filter==='partial' ? 'active' : '' ?>" href="?screen=list&confidence=partial&mode=<?= $active_mode ?>">
       <span class="cf-dot"></span>
       <span>Частична</span>
       <span class="cf-num"><?= $completeness['partial'] ?></span>
     </a>
-    <a class="cf-pill cf-minimal <?= $confidence_filter==='minimal' ? 'active' : '' ?>" href="?screen=list&confidence=minimal">
+    <a class="cf-pill cf-minimal <?= $confidence_filter==='minimal' ? 'active' : '' ?>" href="?screen=list&confidence=minimal&mode=<?= $active_mode ?>">
       <span class="cf-dot"></span>
       <span>Минимална</span>
       <span class="cf-num"><?= $completeness['minimal'] ?></span>
@@ -3080,26 +3080,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
     </div>
     <div class="info-box-levels">
-      <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full'">
+      <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full&mode=<?= $active_mode ?>'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">пълна</span>
       </button>
-      <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial'">
+      <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial&mode=<?= $active_mode ?>'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">частична</span>
       </button>
-      <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal'">
+      <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal&mode=<?= $active_mode ?>'">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
         <span class="ibl-lbl">минимална</span>
       </button>
     </div>
-    <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list'">
+    <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&mode=<?= $active_mode ?>'">
       <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
       <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
@@ -3118,7 +3118,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   </div>
   <div id="hSearchDD" class="search-dd"></div>
 
-  <a class="all-items-link" href="products-v2.php?screen=list">
+  <a class="all-items-link" href="products-v2.php?screen=list&mode=<?= $active_mode ?>">
     Виж всички <b><?= number_format($total_products, 0, "", " ") ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -3463,7 +3463,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   <div id="dSearchDD" class="search-dd"></div>
 
   <!-- ─── ВСИЧКИ АРТИКУЛИ link (отива в P3 list) ─── -->
-  <a class="all-items-link" href="products-v2.php?screen=list">
+  <a class="all-items-link" href="products-v2.php?screen=list&mode=<?= $active_mode ?>">
     Виж всички <b><?= fmtMoney($total_products) ?></b> артикула
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
   </a>
@@ -3580,26 +3580,26 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
         <div class="info-box-bar-fill" style="width: <?= $completeness['pct'] ?>%"></div>
       </div>
       <div class="info-box-levels">
-        <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full'">
+        <button class="glass sm ibl q3" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=full&mode=<?= $active_mode ?>'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['full'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">пълна</span>
         </button>
-        <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial'">
+        <button class="glass sm ibl q5" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=partial&mode=<?= $active_mode ?>'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['partial'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">частична</span>
         </button>
-        <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal'">
+        <button class="glass sm ibl q1" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&confidence=minimal&mode=<?= $active_mode ?>'">
           <span class="shine"></span><span class="shine shine-bottom"></span>
           <span class="glow"></span><span class="glow glow-bottom"></span>
           <b class="ibl-num"><?= number_format($completeness['minimal'], 0, '.', ' ') ?></b>
           <span class="ibl-lbl">минимална</span>
         </button>
       </div>
-      <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list'">
+      <button class="ibl-all-link" onclick="event.stopPropagation();location.href='products-v2.php?screen=list&mode=<?= $active_mode ?>'">
         <span>Виж всички <b><?= number_format($completeness['total'], 0, '.', ' ') ?></b> артикула</span>
         <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
