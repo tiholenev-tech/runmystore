@@ -3630,3 +3630,22 @@ AI COGS = постоянни ~12.8% от приходите при добра о
 3. Махане на inv-nudge
 4. Wizard редизайн (Снимка напред + Ниво 1+2 cache)
 
+
+## 📚 ЗА ВСЕКИ НОВ CHAT — ЗАДЪЛЖИТЕЛНИ ДОКУМЕНТИ ПРИ AI РАБОТА
+
+Когато започваш работа по wizard, AI обаждания, image recognition,
+описания, категории — **прочети тези файлове ПРЕДИ всичко друго:**
+
+1. **`docs/AI_AUTOFILL_SOURCE_OF_TRUTH.md`** — отговаря на въпроса
+   "откъде AI взема информация за auto-fill"
+2. **`docs/AI_AUTOFILL_RESEARCH_2026.md`** — Deep Research (икономика)
+3. **`biz-coefficients.php`** — 300 бизнеса с ai_scan_detects (главен източник!)
+4. **`TOMORROW_WIZARD_REDESIGN.md`** — план за wizard редизайн
+5. **`CORE_BUSINESS_RULES.md`** — бизнес правила за категории
+6. **`/mnt/project/08_onboarding.md`** — Voice onboarding flow
+
+**КРИТИЧНО:** Без четене на тези файлове — НЕ започвай работа по AI
+auto-fill. Има специфики (300 бизнеса × различни ai_scan_detects, кеш
+стратегия Ниво 1+2, AI flow) които не са очевидни от кода.
+
+---
