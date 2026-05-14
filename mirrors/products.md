@@ -9,6 +9,19 @@
  */
 session_start();
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+
+// ════════════════════════════════════════════════════════════════════
+// S144 MIGRATION: products.php → products-v2.php (новата главна страница)
+// Само HTML render. Ajax endpoints (?ajax=...) остават тук — те връщат
+// JSON и още не са пренесени в products-v2.php.
+// ════════════════════════════════════════════════════════════════════
+if (empty($_GET['ajax']) && empty($_GET['legacy'])) {
+    $qs = $_SERVER['QUERY_STRING'] ?? '';
+    $url = 'products-v2.php' . ($qs !== '' ? '?' . $qs : '?mode=simple');
+    header('Location: ' . $url);
+    exit;
+}
+
 require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'config/helpers.php';
