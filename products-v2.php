@@ -1215,6 +1215,15 @@ a { text-decoration: none; }
 [data-theme="light"] .lb-fb-btn:active, :root:not([data-theme]) .lb-fb-btn:active { box-shadow: var(--shadow-pressed); }
 [data-theme="dark"] .lb-fb-btn { background: hsl(220 25% 8%); }
 .lb-fb-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* S144: empty state когато няма ai_insights */
+.lb-empty { padding: 28px 16px; text-align: center; border-radius: 22px; border: 1px dashed var(--border-color); margin-bottom: 12px; }
+[data-theme="light"] .lb-empty, :root:not([data-theme]) .lb-empty { background: rgba(0,0,0,0.02); border: 1px dashed rgba(163,177,198,0.4); }
+[data-theme="dark"] .lb-empty { background: hsl(220 25% 4% / 0.5); border: 1px dashed hsl(var(--hue2) 15% 20%); }
+.lb-empty-ic { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--magic), var(--accent-2)); }
+.lb-empty-ic svg { width: 22px; height: 22px; stroke: white; fill: none; stroke-width: 2; }
+.lb-empty-title { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.lb-empty-text { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
 .lb-fb-btn.up { color: hsl(145 60% 45%); }
 [data-theme="dark"] .lb-fb-btn.up { color: hsl(145 70% 65%); }
 .lb-fb-btn.down { color: hsl(0 70% 50%); }
@@ -3207,65 +3216,9 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   </div>
 
   <!-- ═══ МАГАЗИНИ — преглед на 5 обекта (без графики) ═══ -->
-  <div class="glass sm stores-glance qd">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="sg-head">
-      <span class="sg-head-ic">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </span>
-      <span class="sg-title">Магазините днес</span>
-      <span class="sg-date">12.05</span>
-    </div>
-    <div class="sg-list">
-      <?php foreach ($multistore as $ms): ?>
-      <div class="sg-row" onclick="location.href='?store=<?= (int)$ms['id'] ?>&mode=simple'">
-        <span class="sg-dot <?= htmlspecialchars($ms['status_dot']) ?>"></span>
-        <span class="sg-name"><?= htmlspecialchars($ms['name']) ?>
-          <?php if ($ms['trend_pct'] < -15): ?><small>под средното</small><?php endif; ?>
-        </span>
-        <span class="sg-trend <?= htmlspecialchars($ms['trend_dir']) ?>">
-          <?= $ms['trend_pct'] > 0 ? '+' : '' ?><?= $ms['trend_pct'] ?>%
-        </span>
-        <span class="sg-revenue"><?= fmtMoney($ms['revenue']) ?><small> <?= $cs ?></small></span>
-      </div>
-      <?php endforeach; ?>
-      <?php if (empty($multistore)): ?>
-      <div class="sg-row" style="justify-content:center;color:var(--text-muted);font-size:11px">
-        Само 1 магазин · няма multi-store данни
-      </div>
-      <?php endif; ?>
-    </div>
-  </div>
+  <!-- S144: stores-glance махнат от Simple — продажби инфо, не артикулна -->
 
-  <!-- ═══ S143 v4: ТРЕВОГИ (Свършили + Застояли) — преместени под info-box, над AI feed ═══ -->
-  <div class="top-row">
-    <div class="glass sm cell qd">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <div class="cell-header-row">
-        <div class="cell-label">СВЪРШИЛИ</div>
-      </div>
-      <div class="cell-numrow">
-        <span class="cell-num"><?= $out_of_stock ?></span>
-        <span class="cell-cur">бр</span>
-      </div>
-      <div class="cell-meta">−340 €/седмица</div>
-    </div>
-
-    <div class="glass sm cell q1">
-      <span class="shine"></span><span class="shine shine-bottom"></span>
-      <span class="glow"></span><span class="glow glow-bottom"></span>
-      <div class="cell-header-row">
-        <div class="cell-label">ЗАСТОЯЛИ 60+ ДНИ</div>
-      </div>
-      <div class="cell-numrow">
-        <span class="cell-num"><?= $stale_60d ?></span>
-        <span class="cell-cur">бр</span>
-      </div>
-      <div class="cell-meta"><?= fmtMoney($kpi_locked_cash ?? 1180) ?> € замразени</div>
-    </div>
-  </div>
+  <!-- S144: 2 chips махнати — дублират AI feed insights -->
 
   <!-- ═══ AI feed: 10 сигнала · всички типове (alerts/weather/transfer/cash/size/wins) ═══ -->
   <div class="lb-header">
@@ -3276,187 +3229,97 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
     <span class="lb-count"><?= $ai_insights_count ?: 10 ?> сигнала · <?= date("H:i") ?></span>
   </div>
 
-  <!-- 1. ALERT — свърши най-продаваният -->
-  <div class="glass sm lb-card q1 urgent" onclick="lbToggleCard(event,this)">
+  <?php
+  // S144: РЕАЛНИ ai_insights — products module
+  $products_insights = [];
+  $products_briefing = [];
+  try {
+      if (function_exists('getInsightsForModule')) {
+          $products_insights = getInsightsForModule($tenant_id, $store_id, $user_id, 'products', $tenant['plan'] ?? 'business', $user_role);
+      }
+  } catch (Throwable $e) { $products_insights = []; }
+
+  // Top 1 per fundamental_question (6 категории)
+  $p_by_fq = [];
+  foreach ($products_insights as $pi) {
+      $fq = $pi['fundamental_question'] ?? '';
+      if ($fq && !isset($p_by_fq[$fq])) $p_by_fq[$fq] = $pi;
+  }
+  $p_order = ['loss', 'loss_cause', 'gain', 'gain_cause', 'order', 'anti_order'];
+  foreach ($p_order as $fq) {
+      if (isset($p_by_fq[$fq])) $products_briefing[] = $p_by_fq[$fq];
+  }
+  $p_remaining = max(0, count($products_insights) - count($products_briefing));
+
+  // FQ meta (1:1 от chat.php)
+  $p_fq_meta = [
+      'loss'       => ['q'=>'q1', 'name'=>'ФИНАНСИ · КАКВО ГУБЯ',     'svg'=>'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'],
+      'loss_cause' => ['q'=>'q2', 'name'=>'ПРИЧИНА · ОТ КАКВО ГУБЯ',  'svg'=>'<path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.3 7 12 12 20.7 7"/>'],
+      'gain'       => ['q'=>'q3', 'name'=>'ПРОДАЖБИ · КАКВО ПЕЧЕЛЯ',  'svg'=>'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'],
+      'gain_cause' => ['q'=>'q4', 'name'=>'ПРИЧИНА · ОТ КАКВО ПЕЧЕЛЯ', 'svg'=>'<polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/>'],
+      'order'      => ['q'=>'q5', 'name'=>'ПОРЪЧКИ · ПОРЪЧАЙ',         'svg'=>'<circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M3 3h2l2.7 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.5L21 8H6"/>'],
+      'anti_order' => ['q'=>'q6', 'name'=>'СКЛАД · НЕ ПОРЪЧВАЙ',        'svg'=>'<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>'],
+  ];
+  ?>
+
+  <?php if (empty($products_briefing)): ?>
+  <div class="lb-empty">
+    <div class="lb-empty-ic">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div class="lb-empty-title">AI още не е генерирал съвети</div>
+    <div class="lb-empty-text">Натисни микрофона и попитай AI каквото искаш</div>
+  </div>
+  <?php else: foreach ($products_briefing as $pi):
+      $pi_fq = $pi['fundamental_question'] ?? 'gain';
+      $pi_meta = $p_fq_meta[$pi_fq] ?? $p_fq_meta['gain'];
+      $pi_title = $pi['title'] ?? '';
+      $pi_title_js = htmlspecialchars(addslashes($pi_title), ENT_QUOTES);
+      $pi_body = trim((string)($pi['detail_text'] ?? ''));
+      if ($pi_body === '') {
+          $pi_body = $pi_title;
+          $pc = (int)($pi['product_count'] ?? 0);
+          if ($pc > 0) $pi_body .= ' · засегнати ' . $pc . ' артикула.';
+      }
+      if (mb_strlen($pi_body) > 500) $pi_body = mb_substr($pi_body, 0, 497) . '...';
+
+      $pi_action = '';
+      if ($pi_fq === 'order' || $pi_fq === 'gain_cause') $pi_action = 'Поръчай';
+      elseif ($pi_fq === 'loss' || $pi_fq === 'loss_cause') $pi_action = 'Виж';
+      elseif ($pi_fq === 'gain') $pi_action = 'Покажи';
+      else $pi_action = 'Виж';
+  ?>
+  <div class="glass sm lb-card <?= $pi_meta['q'] ?>" data-topic="<?= htmlspecialchars($pi['topic_id'] ?? '', ENT_QUOTES) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><polygon points="10.29 3.86 1.82 18 22.18 18 13.71 3.86 10.29 3.86"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </span>
+    <div class="lb-collapsed" onclick="v2lbToggleCard(event, this)" style="cursor:pointer">
+      <span class="lb-emoji-orb"><svg viewBox="0 0 24 24"><?= $pi_meta['svg'] ?></svg></span>
       <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">СВЪРШИ</span>
-        <span class="lb-collapsed-title">Nike Air Max 42 · 7 продажби тази седмица</span>
+        <span class="lb-fq-tag-mini"><?= htmlspecialchars($pi_meta['name']) ?></span>
+        <span class="lb-collapsed-title"><?= htmlspecialchars($pi_title) ?></span>
       </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
+      <button class="lb-expand-btn" aria-label="Разшири"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+    <div class="lb-expanded">
+      <div class="lb-body"><?= htmlspecialchars($pi_body) ?></div>
+      <div class="lb-actions">
+        <button class="lb-action" onclick="v2openCardQ('Защо: <?= $pi_title_js ?>')">Защо</button>
+        <button class="lb-action" onclick="v2openCardQ('Покажи ми: <?= $pi_title_js ?>')">Покажи</button>
+        <button class="lb-action primary" onclick="v2openCardQ('<?= $pi_action ?>: <?= $pi_title_js ?>')"><?= htmlspecialchars($pi_action) ?> →</button>
+      </div>
+      <div class="lb-feedback">
+        <span class="lb-fb-label">Полезно?</span>
+        <button class="lb-fb-btn up" onclick="v2lbFb(event,this,'up')" aria-label="Полезно"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></button>
+        <button class="lb-fb-btn down" onclick="v2lbFb(event,this,'down')" aria-label="Неполезно"><svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></button>
+        <button class="lb-fb-btn hmm" onclick="v2lbFb(event,this,'hmm')" aria-label="Неясно"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
+      </div>
     </div>
   </div>
+  <?php endforeach; endif; ?>
 
-  <!-- 2. WEATHER — топло идва (от готовата weather интеграция) -->
-  <div class="glass sm lb-card q5" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-weather">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini tag-weather">ВРЕМЕ</span>
-        <span class="lb-collapsed-title">Топло идва 25-26°C · летни рокли ще тръгнат · имаш 8 бр</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 3. TRANSFER — multi-store balance -->
-  <div class="glass sm lb-card q4" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-transfer">
-        <svg viewBox="0 0 24 24"><path d="M7 17l-4-4 4-4"/><path d="M3 13h12"/><path d="M17 7l4 4-4 4"/><path d="M21 11H9"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini tag-transfer">ПРЕХВЪРЛИ</span>
-        <span class="lb-collapsed-title">5 бр Nike Air Max 42 · Бургас → Скайтия</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 4. CASH — замразен капитал -->
-  <div class="glass sm lb-card q2" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-cash">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini tag-cash">ЗАМРАЗЕНИ</span>
-        <span class="lb-collapsed-title">1 180 € спят в стока 60+ дни · виж кои</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 5. SIZE — broken size run -->
-  <div class="glass sm lb-card q5" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-size">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">РАЗМЕР</span>
-        <span class="lb-collapsed-title">Тениска H&M · M свърши, остават S+L · сплит 60/30/10</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 6. SUPPLIER reliability -->
-  <div class="glass sm lb-card q1" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-supplier">
-        <svg viewBox="0 0 24 24"><path d="M16 16h6V8H16"/><path d="M8 16H2V8h6"/><rect x="8" y="4" width="8" height="16"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ДОСТАВЧИК</span>
-        <span class="lb-collapsed-title">Verona закъсня · 11 пропуснати продажби този месец</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 7. CASH variance (Z отчет) -->
-  <div class="glass sm lb-card q1" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-cash">
-        <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini tag-cash">КАСА</span>
-        <span class="lb-collapsed-title">Z вчера +24 лв · кешът над POS · провери</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 8. SELL-THROUGH (нови артикули) -->
-  <div class="glass sm lb-card q5" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-sellthrough">
-        <svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">SELL-THROUGH</span>
-        <span class="lb-collapsed-title">Новите от април · 12% продадени (цел 25%) · markdown -20%</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 9. TREND — печалба +12% -->
-  <div class="glass sm lb-card q3" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini">ТРЕНД</span>
-        <span class="lb-collapsed-title">Печалба +12% спрямо миналата седмица · виж защо</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- 10. WIN — рекорден ден -->
-  <div class="glass sm lb-card q3" onclick="lbToggleCard(event,this)">
-    <span class="shine"></span><span class="shine shine-bottom"></span>
-    <span class="glow"></span><span class="glow glow-bottom"></span>
-    <div class="lb-collapsed">
-      <span class="lb-emoji-orb lb-ic-win">
-        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </span>
-      <div class="lb-collapsed-content">
-        <span class="lb-fq-tag-mini tag-win">ПОБЕДА</span>
-        <span class="lb-collapsed-title">Рекорден ден · 47 продажби · 1 840 €</span>
-      </div>
-      <button class="lb-expand-btn" aria-label="разгърни">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="see-more-mini">Виж всички 23 →</div>
+  <?php if (!empty($products_briefing) && $p_remaining > 0): ?>
+  <div class="see-more-mini" onclick="v2openCardQ('Покажи ми всички AI препоръки за артикулите')" style="cursor:pointer">Виж всички <?= count($products_insights) ?> →</div>
+  <?php endif; ?>
 <?php else: ?>
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- DETAILED MODE (P2v2 tabs) — главна за Митко              -->
@@ -4351,6 +4214,35 @@ function searchInlineMic(btn, inputId){
 }
 
 // ─── lb-card expand/collapse ───
+// S144: Сигнал card pattern (1:1 като chat.php)
+// v2lbToggleCard — toggle collapsed/expanded
+function v2lbToggleCard(e, el) {
+    if (e) e.stopPropagation();
+    const card = el.closest('.lb-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+    const btn = el.querySelector('.lb-expand-btn svg');
+    if (btn) btn.style.transform = card.classList.contains('expanded') ? 'rotate(180deg)' : '';
+    if (navigator.vibrate) navigator.vibrate(6);
+}
+
+// v2openCardQ — отваря chat.php с pre-filled prompt + from=products-v2.php
+function v2openCardQ(title) {
+    if (!title) { location.href = 'chat.php?from=products-v2.php'; return; }
+    location.href = 'chat.php?prompt=' + encodeURIComponent(title) + '&from=products-v2.php';
+}
+
+// v2lbFb — feedback (визуален избор; backend следва)
+function v2lbFb(e, btn, kind) {
+    if (e) e.stopPropagation();
+    const card = btn.closest('.lb-card');
+    if (!card) return;
+    card.querySelectorAll('.lb-fb-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if (navigator.vibrate) navigator.vibrate(8);
+}
+
+// Legacy alias (за стари hardcoded карти ако останат)
 function lbToggleCard(e, row) {
     if (e && e.target && e.target.closest && e.target.closest('.lb-feedback, .lb-action')) return;
     const card = row.classList.contains('lb-card') ? row : row.closest('.lb-card');
