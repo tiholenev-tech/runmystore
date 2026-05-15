@@ -24,6 +24,13 @@ $user_id   = (int)$_SESSION['user_id'];
 $store_id  = (int)($_SESSION['store_id'] ?? 0);
 $role      = $_SESSION['role'] ?? 'seller';
 
+// S144: Pre-filled prompt + back navigation
+$prefill_prompt = isset($_GET['prompt']) ? trim($_GET['prompt']) : '';
+$back_to = isset($_GET['from']) ? trim($_GET['from']) : '';
+// whitelist of allowed back URLs (security)
+$allowed_back = ['products-v2.php', 'warehouse.php', 'inventory.php', 'stats.php'];
+$back_to = in_array($back_to, $allowed_back, true) ? $back_to : '';
+
 // Store switch via GET (без redirect — за да тестваме лесно)
 if (!empty($_GET['store'])) {
     $chk = DB::run('SELECT id FROM stores WHERE id=? AND tenant_id=? LIMIT 1',
@@ -2571,6 +2578,29 @@ document.addEventListener('DOMContentLoaded', function(){
             if (navigator.vibrate) navigator.vibrate(6);
         }, { passive: true });
     });
+
+    // S144: Pre-filled prompt от URL (?prompt=Какво+свърши)
+    <?php if (!empty($prefill_prompt)): ?>
+    setTimeout(function(){
+        if (typeof window.openChatQ === 'function') {
+            window.openChatQ(<?= json_encode($prefill_prompt, JSON_UNESCAPED_UNICODE) ?>);
+        }
+    }, 500);
+    <?php endif; ?>
+
+    // S144: Back navigation — ако дошъл от products-v2.php → close chat бутон връща там
+    <?php if (!empty($back_to)): ?>
+    window._chatBackTo = <?= json_encode($back_to, JSON_UNESCAPED_UNICODE) ?>;
+    // Override close behavior — when closing the chat overlay, go back to source page
+    const _origCloseChat = window.closeChat;
+    window.closeChat = function(skipHistory){
+        if (_origCloseChat) _origCloseChat(skipHistory);
+        // Wait for overlay animation then navigate
+        setTimeout(function(){
+            location.href = window._chatBackTo;
+        }, 300);
+    };
+    <?php endif; ?>
 });
 
 // Life Board card toggle (expand/collapse вътрешен info панел)

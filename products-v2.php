@@ -3184,10 +3184,12 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
     <div class="help-body">Добави артикул със снимка, глас или скенер. AI ще ти каже кога да поръчаш, кога да намалиш и какво търсят клиентите.</div>
     <div class="help-chips-label">Попитай AI:</div>
     <div class="help-chips">
-      <button class="help-chip"><span class="help-chip-q">?</span>Какво свърши?</button>
-      <button class="help-chip"><span class="help-chip-q">?</span>Какво застоява?</button>
-      <button class="help-chip"><span class="help-chip-q">?</span>Какво да поръчам?</button>
-      <button class="help-chip"><span class="help-chip-q">?</span>Какво търсят клиентите?</button>
+      <button class="help-chip" onclick="askAI('Какво свърши?')"><span class="help-chip-q">?</span>Какво свърши?</button>
+      <button class="help-chip" onclick="askAI('Какво застоява?')"><span class="help-chip-q">?</span>Какво застоява?</button>
+      <button class="help-chip" onclick="askAI('Какво да поръчам?')"><span class="help-chip-q">?</span>Какво да поръчам?</button>
+      <button class="help-chip" onclick="askAI('Кои са топ продавачи?')"><span class="help-chip-q">?</span>Кои са топ продавачи?</button>
+      <button class="help-chip" onclick="askAI('Какъв ми е маржът?')"><span class="help-chip-q">?</span>Какъв ми е маржът?</button>
+      <button class="help-chip" onclick="askAI('Какво търсят клиентите?')"><span class="help-chip-q">?</span>Какво търсят клиентите?</button>
     </div>
     <div class="help-video-ph">
       <span class="help-video-ic">
@@ -4906,6 +4908,12 @@ function updateFilterBadge() {
         }
     } catch(_) {}
 })();
+
+// S144: Help chips → chat с pre-filled prompt + back loop
+function askAI(question) {
+    const url = 'chat.php?prompt=' + encodeURIComponent(question) + '&from=products-v2.php';
+    location.href = url;
+}
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════
