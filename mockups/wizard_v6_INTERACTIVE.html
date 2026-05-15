@@ -1449,13 +1449,6 @@ function toast(msg) {
   });
 })();
 
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
-}
-
 // Init
 setState('with-photo');
 </script>
