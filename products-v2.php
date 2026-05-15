@@ -3230,12 +3230,12 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   </div>
 
   <?php
-  // S144: РЕАЛНИ ai_insights — products module
+  // S144: РЕАЛНИ ai_insights — module='home' (cron генерира за home, не products)
   $products_insights = [];
   $products_briefing = [];
   try {
       if (function_exists('getInsightsForModule')) {
-          $products_insights = getInsightsForModule($tenant_id, $store_id, $user_id, 'products', $tenant['plan'] ?? 'business', $user_role);
+          $products_insights = getInsightsForModule($tenant_id, $store_id, $user_id, 'home', $tenant['plan'] ?? 'business', $user_role);
       }
   } catch (Throwable $e) { $products_insights = []; }
 
