@@ -157,14 +157,26 @@ function updateInsightAction(int $shownId, string $action): void {
  */
 function getInsightsForModule(int $tenantId, int $storeId, int $userId, string $module, string $effectivePlan, string $userRole): array {
     // S58: 1/4 silence rule REMOVED — Пешо иска сигнали винаги
+    // S144: store_id=0 (Всички магазини) → не филтрирай по store_id (вземи от всички)
     
-    $all = DB::run(
-        "SELECT * FROM ai_insights 
-         WHERE tenant_id=? AND store_id=? AND module=? 
-         AND (expires_at IS NULL OR expires_at > NOW())
-         ORDER BY FIELD(urgency,'critical','warning','info','passive'), value_numeric DESC",
-        [$tenantId, $storeId, $module]
-    )->fetchAll();
+    if ($storeId > 0) {
+        $all = DB::run(
+            "SELECT * FROM ai_insights 
+             WHERE tenant_id=? AND store_id=? AND module=? 
+             AND (expires_at IS NULL OR expires_at > NOW())
+             ORDER BY FIELD(urgency,'critical','warning','info','passive'), value_numeric DESC",
+            [$tenantId, $storeId, $module]
+        )->fetchAll();
+    } else {
+        // Всички магазини — без store_id филтър
+        $all = DB::run(
+            "SELECT * FROM ai_insights 
+             WHERE tenant_id=? AND module=? 
+             AND (expires_at IS NULL OR expires_at > NOW())
+             ORDER BY FIELD(urgency,'critical','warning','info','passive'), value_numeric DESC",
+            [$tenantId, $module]
+        )->fetchAll();
+    }
     
     $result = [];
     $counts = ['critical' => 0, 'warning' => 0, 'info' => 0];
