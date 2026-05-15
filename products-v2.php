@@ -152,6 +152,64 @@ if (!empty($_GET['ajax'])) {
         }
 
         // ─── ADVANCED SEARCH: ползва всички филтри ───
+        if ($ajax_action === 'insight_products') {
+            // S144: Връща артикулите за конкретен insight (за "Покажи списък" overlay)
+            $insight_id = (int)($_GET['id'] ?? 0);
+            if (!$insight_id) { echo json_encode(['products'=>[], 'title'=>'']); exit; }
+
+            try {
+                $ins = DB::run("SELECT * FROM ai_insights WHERE id=? AND tenant_id=? LIMIT 1", [$insight_id, $tenant_id])->fetch(PDO::FETCH_ASSOC);
+                if (!$ins) { echo json_encode(['products'=>[], 'title'=>'']); exit; }
+
+                // Опитай data_json първо (списък ID)
+                $product_ids = [];
+                $data = is_string($ins['data_json'] ?? null) ? json_decode($ins['data_json'], true) : ($ins['data_json'] ?? null);
+                if (is_array($data)) {
+                    if (!empty($data['product_ids']) && is_array($data['product_ids'])) {
+                        $product_ids = array_map('intval', $data['product_ids']);
+                    } elseif (!empty($data['products']) && is_array($data['products'])) {
+                        foreach ($data['products'] as $p) {
+                            if (isset($p['id'])) $product_ids[] = (int)$p['id'];
+                        }
+                    }
+                }
+
+                // Single product (ако insight е за един артикул)
+                if (empty($product_ids) && !empty($ins['product_id'])) {
+                    $product_ids = [(int)$ins['product_id']];
+                }
+
+                $products_out = [];
+                if (!empty($product_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+                    $sql = "SELECT
+                        p.id, p.name, p.code, p.retail_price, p.cost_price, p.image_url,
+                        COALESCE(SUM(i.quantity), 0) AS qty,
+                        s.name AS supplier_name
+                     FROM products p
+                     LEFT JOIN inventory i ON i.product_id = p.id
+                     LEFT JOIN suppliers s ON s.id = p.supplier_id
+                     WHERE p.id IN ($placeholders) AND p.tenant_id = ?
+                     GROUP BY p.id
+                     ORDER BY p.name ASC
+                     LIMIT 50";
+                    $sql_params = array_merge($product_ids, [$tenant_id]);
+                    $products_out = DB::run($sql, $sql_params)->fetchAll(PDO::FETCH_ASSOC);
+                }
+
+                echo json_encode([
+                    'title' => $ins['title'] ?? '',
+                    'detail' => $ins['detail_text'] ?? '',
+                    'products' => $products_out,
+                    'count' => count($products_out),
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } catch (Throwable $e) {
+                echo json_encode(['products'=>[], 'title'=>'', 'error'=>$e->getMessage()]);
+                exit;
+            }
+        }
+
         if ($ajax_action === 'advanced_search') {
             $f = $_GET;
             $where = ["p.tenant_id = ?", "p.is_active = 1", "p.parent_id IS NULL"];
@@ -2696,6 +2754,84 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
   text-decoration: none;
 }
 
+/* S144: Insight Products Overlay — "Покажи списък" от сигнал */
+.ipov-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ipov-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.ipov-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  max-height: 85vh;
+  overflow-y: auto;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="light"] .ipov-drawer, :root:not([data-theme]) .ipov-drawer { background: var(--bg-main); box-shadow: 0 -16px 48px rgba(0,0,0,0.15); }
+[data-theme="dark"] .ipov-drawer { background: hsl(220 25% 4.8% / 0.95); backdrop-filter: blur(20px); border-top: 1px solid var(--border-color); }
+.ipov-drawer.open { transform: translateY(0); }
+
+.ipov-handle { width: 40px; height: 4px; background: var(--text-muted); border-radius: 999px; margin: 12px auto 4px; opacity: 0.35; }
+.ipov-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  z-index: 10;
+  border: none;
+}
+[data-theme="light"] .ipov-close, :root:not([data-theme]) .ipov-close { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .ipov-close { background: hsl(220 25% 8% / 0.8); }
+.ipov-close svg { width: 14px; height: 14px; stroke: var(--text); fill: none; stroke-width: 2.5; }
+
+.ipov-body { padding: 12px 16px 20px; }
+.ipov-title { font-size: 17px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); padding-right: 40px; line-height: 1.2; margin-bottom: 4px; }
+.ipov-count { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 14px; letter-spacing: 0.04em; }
+.ipov-list { display: flex; flex-direction: column; gap: 8px; }
+
+.ipov-prod {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+[data-theme="light"] .ipov-prod, :root:not([data-theme]) .ipov-prod { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .ipov-prod { background: hsl(220 25% 6%); border: 1px solid var(--border-color); }
+.ipov-prod:active { transform: scale(0.99); }
+.ipov-prod-photo {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  overflow: hidden; flex-shrink: 0;
+}
+[data-theme="light"] .ipov-prod-photo, :root:not([data-theme]) .ipov-prod-photo { background: var(--bg-main); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .ipov-prod-photo { background: hsl(220 25% 4%); }
+.ipov-prod-photo img { width: 100%; height: 100%; object-fit: cover; }
+.ipov-prod-photo svg { width: 20px; height: 20px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+.ipov-prod-info { flex: 1; min-width: 0; }
+.ipov-prod-name { font-size: 12.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ipov-prod-meta { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+.ipov-prod-right { flex-shrink: 0; text-align: right; }
+.ipov-prod-price { font-size: 13px; font-weight: 800; color: var(--text); }
+.ipov-prod-stock { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; display: inline-block; margin-top: 2px; }
+.ipov-prod-stock.ok { color: hsl(145 60% 35%); background: hsl(145 70% 50% / 0.1); }
+.ipov-prod-stock.danger { color: hsl(0 75% 40%); background: hsl(0 85% 55% / 0.1); }
+[data-theme="dark"] .ipov-prod-stock.ok { color: hsl(145 70% 65%); }
+[data-theme="dark"] .ipov-prod-stock.danger { color: hsl(0 80% 75%); }
+
+.ipov-empty { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 12px; }
+.ipov-loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; }
+
 /* ════════════════════════════════════════════════════════════════════
  * S144 — LIST VIEW (screen=list) — списък на артикули с confidence filter
  * ════════════════════════════════════════════════════════════════════ */
@@ -3362,7 +3498,7 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
       elseif ($pi_fq === 'gain') $pi_action = 'Покажи';
       else $pi_action = 'Виж';
   ?>
-  <div class="glass sm lb-card <?= $pi_meta['q'] ?>" data-topic="<?= htmlspecialchars($pi['topic_id'] ?? '', ENT_QUOTES) ?>">
+  <div class="glass sm lb-card <?= $pi_meta['q'] ?>" data-topic="<?= htmlspecialchars($pi['topic_id'] ?? '', ENT_QUOTES) ?>" data-insight-id="<?= (int)($pi['id'] ?? 0) ?>">
     <span class="shine"></span><span class="shine shine-bottom"></span>
     <span class="glow"></span><span class="glow glow-bottom"></span>
     <div class="lb-collapsed" onclick="v2lbToggleCard(event, this)" style="cursor:pointer">
@@ -3376,8 +3512,8 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
     <div class="lb-expanded">
       <div class="lb-body"><?= htmlspecialchars($pi_body) ?></div>
       <div class="lb-actions">
+        <button class="lb-action" onclick="v2openShowList(<?= (int)($pi['id'] ?? 0) ?>, '<?= $pi_title_js ?>')">Покажи списък</button>
         <button class="lb-action" onclick="v2openCardQ('Защо: <?= $pi_title_js ?>')">Защо</button>
-        <button class="lb-action" onclick="v2openCardQ('Покажи ми: <?= $pi_title_js ?>')">Покажи</button>
         <button class="lb-action primary" onclick="v2openCardQ('<?= $pi_action ?>: <?= $pi_title_js ?>')"><?= htmlspecialchars($pi_action) ?> →</button>
       </div>
       <div class="lb-feedback">
@@ -4185,6 +4321,20 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 
 </main>
 
+<!-- S144: Insight Products Overlay — "Покажи списък" от сигнал -->
+<div class="ipov-backdrop" id="ipovBackdrop" onclick="v2closeShowList()"></div>
+<div class="ipov-drawer" id="ipovDrawer">
+  <div class="ipov-handle"></div>
+  <button class="ipov-close" onclick="v2closeShowList()" aria-label="Затвори">
+    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div class="ipov-body">
+    <div class="ipov-title" id="ipovTitle">Зареждам...</div>
+    <div class="ipov-count" id="ipovCount"></div>
+    <div class="ipov-list" id="ipovList"></div>
+  </div>
+</div>
+
 <?php if ($is_simple_view): ?>
 <!-- ═══ CHAT INPUT BAR — sticky отдолу (само в simple mode) ═══ -->
 <div class="chat-input-bar" onclick="alert('Чат отворен (TODO)')" role="button" tabindex="0" style="cursor:pointer">
@@ -4303,6 +4453,75 @@ function v2lbToggleCard(e, el) {
 function v2openCardQ(title) {
     if (!title) { location.href = 'chat.php?from=products-v2.php'; return; }
     location.href = 'chat.php?prompt=' + encodeURIComponent(title) + '&from=products-v2.php';
+}
+
+// S144: v2openShowList — отваря локален overlay със артикулите за конкретен insight
+async function v2openShowList(insightId, title) {
+    const backdrop = document.getElementById('ipovBackdrop');
+    const drawer = document.getElementById('ipovDrawer');
+    const titleEl = document.getElementById('ipovTitle');
+    const countEl = document.getElementById('ipovCount');
+    const listEl = document.getElementById('ipovList');
+
+    if (!backdrop || !drawer) return;
+
+    titleEl.textContent = title || 'Артикули';
+    countEl.textContent = '';
+    listEl.innerHTML = '<div class="ipov-loading">Зареждам артикулите...</div>';
+
+    backdrop.classList.add('open');
+    drawer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    try {
+        const res = await fetch('products-v2.php?ajax=insight_products&id=' + encodeURIComponent(insightId));
+        const data = await res.json();
+
+        if (!data.products || data.products.length === 0) {
+            listEl.innerHTML = '<div class="ipov-empty">AI не е записал конкретни артикули за този сигнал.<br>Натисни "Защо" за обяснение в чата.</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        countEl.textContent = data.count + ' ' + (data.count === 1 ? 'артикул' : 'артикула');
+
+        let html = '';
+        data.products.forEach(p => {
+            const qty = parseInt(p.qty) || 0;
+            const stockCls = qty > 0 ? 'ok' : 'danger';
+            const photo = p.image_url
+                ? `<img src="${esc(p.image_url)}" alt="">`
+                : `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+            const meta = [];
+            if (p.code) meta.push(esc(p.code));
+            if (p.supplier_name) meta.push(esc(p.supplier_name));
+            html += `<div class="ipov-prod" onclick="openProductDetail(${parseInt(p.id)});v2closeShowList()">
+                <div class="ipov-prod-photo">${photo}</div>
+                <div class="ipov-prod-info">
+                    <div class="ipov-prod-name">${esc(p.name)}</div>
+                    <div class="ipov-prod-meta">${meta.join(' · ') || '—'}</div>
+                </div>
+                <div class="ipov-prod-right">
+                    <div class="ipov-prod-price">${parseFloat(p.retail_price).toFixed(2)} €</div>
+                    <div class="ipov-prod-stock ${stockCls}">${qty} бр</div>
+                </div>
+            </div>`;
+        });
+        listEl.innerHTML = html;
+    } catch (err) {
+        listEl.innerHTML = '<div class="ipov-empty">Грешка при зареждане. Опитай пак.</div>';
+        console.error('v2openShowList error:', err);
+    }
+}
+
+function v2closeShowList() {
+    document.getElementById('ipovBackdrop').classList.remove('open');
+    document.getElementById('ipovDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function esc(s) {
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 // v2lbFb — feedback (визуален избор; backend следва)
