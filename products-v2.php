@@ -603,12 +603,51 @@ try {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// S144 — LIST VIEW: артикули според confidence филтър
+// S144 — LIST VIEW: артикули според confidence филтър + filter drawer
 // ════════════════════════════════════════════════════════════════════
 $list_products = [];
 $list_count = 0;
 if ($is_list_view) {
+    // S144: Parse filter drawer parameters
+    $filter_where = [];
+    $filter_params = [];
+
+    $f_sup = isset($_GET['sup']) && $_GET['sup'] !== '' ? (int)$_GET['sup'] : null;
+    if ($f_sup) { $filter_where[] = 'p.supplier_id = ?'; $filter_params[] = $f_sup; }
+
+    $f_cat = isset($_GET['cat']) && $_GET['cat'] !== '' ? (int)$_GET['cat'] : null;
+    if ($f_cat) { $filter_where[] = 'p.category_id = ?'; $filter_params[] = $f_cat; }
+
+    $f_subcat = isset($_GET['subcat']) && $_GET['subcat'] !== '' ? (int)$_GET['subcat'] : null;
+    if ($f_subcat) { $filter_where[] = 'p.subcategory_id = ?'; $filter_params[] = $f_subcat; }
+
+    $f_price_min = isset($_GET['price_min']) && $_GET['price_min'] !== '' ? (float)$_GET['price_min'] : null;
+    if ($f_price_min !== null) { $filter_where[] = 'p.retail_price >= ?'; $filter_params[] = $f_price_min; }
+
+    $f_price_max = isset($_GET['price_max']) && $_GET['price_max'] !== '' ? (float)$_GET['price_max'] : null;
+    if ($f_price_max !== null) { $filter_where[] = 'p.retail_price <= ?'; $filter_params[] = $f_price_max; }
+
+    $f_size = isset($_GET['size']) && $_GET['size'] !== '' ? trim($_GET['size']) : null;
+    if ($f_size) { $filter_where[] = 'p.size = ?'; $filter_params[] = $f_size; }
+
+    $f_color = isset($_GET['color']) && $_GET['color'] !== '' ? trim($_GET['color']) : null;
+    if ($f_color) { $filter_where[] = 'p.color = ?'; $filter_params[] = $f_color; }
+
+    $filter_sql = '';
+    if (!empty($filter_where)) {
+        $filter_sql = ' AND ' . implode(' AND ', $filter_where);
+    }
+
+    // HAVING за qty (после GROUP BY)
+    $f_qty_min = isset($_GET['qty_min']) && $_GET['qty_min'] !== '' ? (int)$_GET['qty_min'] : null;
+    $f_qty_max = isset($_GET['qty_max']) && $_GET['qty_max'] !== '' ? (int)$_GET['qty_max'] : null;
+    $having = [];
+    if ($f_qty_min !== null) { $having[] = 'qty >= ' . (int)$f_qty_min; }
+    if ($f_qty_max !== null) { $having[] = 'qty <= ' . (int)$f_qty_max; }
+    $having_sql = !empty($having) ? ' HAVING ' . implode(' AND ', $having) : '';
+
     try {
+        $sql_params = array_merge([$tenant_id], $filter_params);
         $list_products = DB::run(
             "SELECT
                 p.id, p.name, p.code, p.barcode, p.retail_price, p.cost_price,
@@ -626,10 +665,12 @@ if ($is_list_view) {
                AND p.is_active = 1
                AND p.parent_id IS NULL
                {$confidence_sql}
+               {$filter_sql}
              GROUP BY p.id
+             {$having_sql}
              ORDER BY p.confidence_score DESC, p.name ASC
              LIMIT 100",
-            [$tenant_id]
+            $sql_params
         )->fetchAll(PDO::FETCH_ASSOC);
         $list_count = count($list_products);
     } catch (Throwable $e) {
@@ -4457,7 +4498,18 @@ document.addEventListener('click', function(e) {
 
 // ─── FILTER DRAWER ───
 var _filterOptionsLoaded = false;
-var _filterState = {}; // {sup:'2', cat:'5', subcat:'13', size:'M', color:'red', ...}
+// S144: Инициализирай _filterState от URL params (за persistence)
+var _filterState = (function(){
+    var s = {};
+    try {
+        var p = new URLSearchParams(location.search);
+        ['sup','cat','subcat','size','color','price_min','price_max','qty_min','qty_max'].forEach(function(k){
+            var v = p.get(k);
+            if (v !== null && v !== '') s[k] = v;
+        });
+    } catch(_) {}
+    return s;
+})();
 var _filterOptions = null;
 var _openSections = new Set(['sup']); // sup отворен по default
 
@@ -4759,15 +4811,22 @@ function applyFilters() {
     if (pmin && pmin.value) _filterState.price_min = pmin.value; else delete _filterState.price_min;
     if (pmax && pmax.value) _filterState.price_max = pmax.value; else delete _filterState.price_max;
 
+    const qmin = document.getElementById('fQtyMin');
+    const qmax = document.getElementById('fQtyMax');
+    if (qmin && qmin.value !== '') _filterState.qty_min = qmin.value; else delete _filterState.qty_min;
+    if (qmax && qmax.value !== '') _filterState.qty_max = qmax.value; else delete _filterState.qty_max;
+
     closeFilterDrawer();
     updateFilterBadge();
 
+    // S144: пренасочва към products-v2.php?screen=list (запазва mode)
     const qs = new URLSearchParams();
-    Object.keys(_filterState).forEach(k => { if (_filterState[k]) qs.set(k, _filterState[k]); });
+    qs.set('screen', 'list');
+    const currentMode = new URLSearchParams(location.search).get('mode') || '<?= $active_mode ?>';
+    qs.set('mode', currentMode);
+    Object.keys(_filterState).forEach(k => { if (_filterState[k] !== undefined && _filterState[k] !== '') qs.set(k, _filterState[k]); });
 
-    if (qs.toString()) {
-        location.href = 'products.php?screen=products&' + qs.toString();
-    }
+    location.href = 'products-v2.php?' + qs.toString();
 }
 
 function clearFilters() {
