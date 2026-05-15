@@ -67,8 +67,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 /* ───── BULK MODE BANNER (показва се само когато "Като предния" е active) ───── */
 .bulk-banner{display:none;align-items:flex-start;gap:10px;padding:12px;border-radius:var(--radius-sm);margin-bottom:12px;position:relative;overflow:hidden}
 .bulk-banner.show{display:flex}
-[data-theme="light"] .bulk-banner,:root:not([data-theme]) .bulk-banner{background:linear-gradient(135deg,oklch(0.94 0.04 285),oklch(0.94 0.04 310));box-shadow:var(--shadow-card-sm)}
-[data-theme="dark"] .bulk-banner{background:linear-gradient(135deg,hsl(280 30% 12%),hsl(var(--hue1) 30% 12%));border:1px solid hsl(280 60% 28%)}
+
+
 .bulk-banner-ic{width:32px;height:32px;border-radius:var(--radius-icon);background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));display:grid;place-items:center;flex-shrink:0;position:relative;overflow:hidden}
 .bulk-banner-ic::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
 .bulk-banner-ic svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2.2;position:relative;z-index:1}
@@ -133,27 +133,10 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 [data-theme="dark"] .glass.qd .shine-bottom,[data-theme="dark"] .glass.qd .glow-bottom{--hue:var(--hue2)}
 .glass > *{position:relative;z-index:5}
 
-/* ───── ACCORDION (4 акордеона) — преработени с glass pattern ───── */
-.acc-section{margin-bottom:14px;border-radius:var(--radius);position:relative;isolation:isolate;border:1px solid transparent}
-[data-theme="light"] .acc-section,:root:not([data-theme]) .acc-section{background:var(--surface);box-shadow:var(--shadow-card)}
-[data-theme="dark"] .acc-section{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220 25% 4.8% / .78));backdrop-filter:blur(12px);box-shadow:var(--shadow-card)}
+/* ───── ACCORDION (4 акордеона) — фон + box-shadow идват от .glass класа ───── */
+.acc-section{margin-bottom:14px;border-radius:var(--radius);position:relative}
 
-/* Sacred glass shine/glow spans — приложени към acc-section директно */
-.acc-section .shine,.acc-section .glow{--hue:var(--hue1)}
-.acc-section .shine-bottom,.acc-section .glow-bottom{--hue:var(--hue2);--conic:135deg}
-.acc-section.qd .shine,.acc-section.qd .glow{--hue:var(--hue1)}
-.acc-section.qd .shine-bottom,.acc-section.qd .glow-bottom{--hue:var(--hue2)}
-.acc-section.qm .shine,.acc-section.qm .glow{--hue:280}
-.acc-section.qm .shine-bottom,.acc-section.qm .glow-bottom{--hue:310}
-.acc-section.q3 .shine,.acc-section.q3 .glow{--hue:145}
-.acc-section.q3 .shine-bottom,.acc-section.q3 .glow-bottom{--hue:165}
-[data-theme="light"] .acc-section .shine,[data-theme="light"] .acc-section .glow,:root:not([data-theme]) .acc-section .shine,:root:not([data-theme]) .acc-section .glow{display:none}
-[data-theme="dark"] .acc-section .shine{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:-1px;top:-1px;z-index:1;background:conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-clip:padding-box,border-box;mask-composite:subtract}
-[data-theme="dark"] .acc-section .shine.shine-bottom{right:auto;top:auto;left:-1px;bottom:-1px}
-[data-theme="dark"] .acc-section .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;background:conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);filter:blur(12px) saturate(1.25);mix-blend-mode:plus-lighter;z-index:3;opacity:0.6}
-[data-theme="dark"] .acc-section .glow.glow-bottom{inset:auto;left:calc(var(--radius) * -2);bottom:calc(var(--radius) * -2)}
-
-/* Status-color override на shine/glow hue */
+/* Status-color override на shine/glow hue (work-ват само ако .glass клас е сложен) */
 .acc-section[data-status="filled"] .shine,.acc-section[data-status="filled"] .glow{--hue:145}
 .acc-section[data-status="filled"] .shine-bottom,.acc-section[data-status="filled"] .glow-bottom{--hue:165}
 .acc-section[data-status="error"] .shine,.acc-section[data-status="error"] .glow{--hue:0}
@@ -273,8 +256,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* ───── AI VISION BANNER — glass tint (не full purple fill) ───── */
 .ai-vision-banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:18px;position:relative;overflow:hidden;cursor:pointer}
-[data-theme="light"] .ai-vision-banner,:root:not([data-theme]) .ai-vision-banner{background:linear-gradient(135deg,oklch(0.94 0.06 285 / 0.7),oklch(0.94 0.06 310 / 0.6));box-shadow:var(--shadow-card-sm)}
-[data-theme="dark"] .ai-vision-banner{background:linear-gradient(135deg,hsl(280 35% 12% / 0.7),hsl(305 35% 12% / 0.55));backdrop-filter:blur(10px);border:1px solid hsl(280 55% 32% / 0.5);box-shadow:0 6px 20px hsl(280 60% 30% / 0.25)}
+
+
 [data-theme="dark"] .ai-vision-banner::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:conic-gradient(from 220deg at 50% 0%,oklch(0.72 0.22 280 / 0.7) 0deg,oklch(0.68 0.24 305 / 0.5) 120deg,oklch(0.65 0.2 280 / 0.3) 240deg,oklch(0.72 0.22 280 / 0.7) 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 [data-theme="dark"] .ai-vision-banner::after{content:'';position:absolute;inset:-1px;background:conic-gradient(from 0deg,transparent 60%,oklch(0.7 0.22 280 / 0.18) 80%,transparent 100%);animation:conicSpin 6s linear infinite;pointer-events:none;mix-blend-mode:plus-lighter}
 .ai-vision-banner > *{position:relative;z-index:2}
@@ -308,8 +291,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* ───── AI MARKUP ROW (под Цена) — buffed ───── */
 .ai-markup-row{margin-top:12px;padding:14px 16px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
-[data-theme="light"] .ai-markup-row,:root:not([data-theme]) .ai-markup-row{background:linear-gradient(135deg,oklch(0.94 0.06 145 / 0.7),oklch(0.94 0.06 165 / 0.6));box-shadow:var(--shadow-card-sm)}
-[data-theme="dark"] .ai-markup-row{background:linear-gradient(135deg,hsl(145 35% 11% / 0.7),hsl(165 35% 11% / 0.55));backdrop-filter:blur(10px);border:1px solid hsl(145 55% 32% / 0.5);box-shadow:0 6px 18px hsl(145 60% 25% / 0.25)}
+
+
 [data-theme="dark"] .ai-markup-row::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:conic-gradient(from 220deg at 50% 0%,oklch(0.72 0.18 145 / 0.6) 0deg,oklch(0.68 0.18 165 / 0.4) 180deg,oklch(0.72 0.18 145 / 0.6) 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .ai-markup-row > *{position:relative;z-index:2}
 .ai-markup-ic{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,hsl(145 65% 50%),hsl(165 60% 45%));display:grid;place-items:center;flex-shrink:0;box-shadow:0 4px 12px hsl(145 65% 45% / 0.5)}
@@ -371,7 +354,7 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* ───── INFO BANNER (Section 3 fallback) ───── */
 .info-banner{display:flex;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;background:hsl(var(--hue1) 50% 12% / 0.35);border:1px solid hsl(var(--hue1) 50% 28% / 0.5)}
-[data-theme="light"] .info-banner,:root:not([data-theme]) .info-banner{background:oklch(0.93 0.04 285 / 0.5);border-color:oklch(0.75 0.1 285 / 0.4)}
+[data-theme="light"] .info-banner,:root:not([data-theme]) .info-banner{border-color:oklch(0.75 0.1 285 / 0.4)}
 .info-banner-ic{width:24px;height:24px;border-radius:50%;background:var(--accent);display:grid;place-items:center;flex-shrink:0}
 .info-banner-ic svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:2.5}
 .info-banner-txt{font-size:11.5px;color:var(--text);line-height:1.5}
@@ -388,8 +371,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 .matrix-quick-num{padding:2px 8px;border-radius:var(--radius-pill);background:rgba(255,255,255,0.22);font-weight:900;color:white}
 
 .matrix-board{margin-top:6px;border-radius:var(--radius);position:relative;isolation:isolate;padding:14px;overflow-x:auto}
-[data-theme="light"] .matrix-board,:root:not([data-theme]) .matrix-board{background:var(--surface);box-shadow:var(--shadow-card)}
-[data-theme="dark"] .matrix-board{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220 25% 4.8% / .78));backdrop-filter:blur(12px);box-shadow:var(--shadow-card);border:1px solid transparent}
+
+
 
 /* Matrix grid */
 .mx-grid{display:grid;gap:10px;min-width:max-content;position:relative;z-index:5}
@@ -467,7 +450,7 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* ───── AI STUDIO PROMO (4-ти акордеон) ───── */
 .studio-promo{padding:12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,hsl(280 70% 30% / 0.4),hsl(305 65% 35% / 0.3));border:1px solid hsl(280 60% 35%);display:flex;align-items:center;gap:12px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden}
-[data-theme="light"] .studio-promo,:root:not([data-theme]) .studio-promo{background:linear-gradient(135deg,oklch(0.92 0.06 285),oklch(0.92 0.06 310));border-color:oklch(0.75 0.1 285 / 0.5)}
+[data-theme="light"] .studio-promo,:root:not([data-theme]) .studio-promo{border-color:oklch(0.75 0.1 285 / 0.5)}
 .studio-promo::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 75%,hsl(280 70% 60% / 0.15) 88%,transparent 100%);animation:conicSpin 8s linear infinite;pointer-events:none}
 .studio-promo > *{position:relative;z-index:1}
 .studio-promo-ic{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));display:grid;place-items:center;flex-shrink:0;box-shadow:0 4px 12px hsl(280 70% 50% / 0.5)}
@@ -1420,12 +1403,48 @@ function toast(msg) {
     el.insertBefore(shineBot,el.firstChild);
     el.insertBefore(shineTop,el.firstChild);
   }
-  // ACC sections — auto-class по статус
+  // 1) ACC sections — .glass + qd/qm/q3
   document.querySelectorAll('.acc-section').forEach(function(s){
     var status=s.getAttribute('data-status');
+    s.classList.add('glass');
     if(s.classList.contains('magic')){ s.classList.add('qm'); }
     else if(status==='filled'){ s.classList.add('q3'); }
     else { s.classList.add('qd'); }
+    addSpans(s);
+  });
+  // 2) AI Vision Banner → .glass.sm.qm (purple tint)
+  document.querySelectorAll('.ai-vision-banner').forEach(function(s){
+    s.classList.add('glass','sm','qm');
+    addSpans(s);
+  });
+  // 3) AI Markup row → .glass.sm.q3 (green tint)
+  document.querySelectorAll('.ai-markup-row').forEach(function(s){
+    s.classList.add('glass','sm','q3');
+    addSpans(s);
+  });
+  // 4) Bulk banner → .glass.sm.qm
+  document.querySelectorAll('.bulk-banner').forEach(function(s){
+    s.classList.add('glass','sm','qm');
+    addSpans(s);
+  });
+  // 5) Cat confirm → .glass.sm.qm
+  document.querySelectorAll('.cat-confirm').forEach(function(s){
+    s.classList.add('glass','sm','qm');
+    addSpans(s);
+  });
+  // 6) Info banner (no-photo fallback hint) → .glass.sm.qd
+  document.querySelectorAll('.info-banner').forEach(function(s){
+    s.classList.add('glass','sm','qd');
+    addSpans(s);
+  });
+  // 7) Matrix board → .glass.qd
+  document.querySelectorAll('.matrix-board').forEach(function(s){
+    s.classList.add('glass','qd');
+    addSpans(s);
+  });
+  // 8) Studio promo → .glass.sm.qm
+  document.querySelectorAll('.studio-promo').forEach(function(s){
+    s.classList.add('glass','sm','qm');
     addSpans(s);
   });
 })();
