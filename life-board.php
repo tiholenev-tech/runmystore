@@ -24,10 +24,7 @@ if (!empty($_GET['store'])) {
     if ($chk) { $_SESSION['store_id'] = (int)$_GET['store']; $store_id = (int)$_GET['store']; }
     header('Location: life-board-v2.php'); exit;
 }
-if (!$store_id) {
-    $first = DB::run('SELECT id FROM stores WHERE tenant_id=? ORDER BY id LIMIT 1', [$tenant_id])->fetch();
-    if ($first) { $store_id = (int)$first['id']; $_SESSION['store_id'] = $store_id; }
-}
+// S144: НЕ auto-select първи магазин — запази "Всички магазини" (store_id=0) ако не е избран
 
 $tenant = DB::run('SELECT * FROM tenants WHERE id=? LIMIT 1', [$tenant_id])->fetch();
 $cs = htmlspecialchars($tenant['currency'] ?? '€');

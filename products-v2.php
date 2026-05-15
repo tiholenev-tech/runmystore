@@ -359,11 +359,11 @@ $stale_60d = (int)DB::run(
     [$tenant_id]
 )->fetchColumn();
 
-// Total products in this store
+// Total products in this store (S144 BUGFIX: parent_id IS NULL за да не брои variants)
 $total_products = (int)DB::run(
     "SELECT COUNT(DISTINCT p.id) FROM products p
      LEFT JOIN inventory i ON i.product_id=p.id{$SF_INV}
-     WHERE p.tenant_id=? AND p.is_active=1",
+     WHERE p.tenant_id=? AND p.is_active=1 AND p.parent_id IS NULL",
     [$tenant_id]
 )->fetchColumn();
 
