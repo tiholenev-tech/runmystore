@@ -3636,7 +3636,15 @@ AI COGS = постоянни ~12.8% от приходите при добра о
 Когато започваш работа по wizard, AI обаждания, image recognition,
 описания, категории — **прочети тези файлове ПРЕДИ всичко друго:**
 
-1. **`docs/AI_AUTOFILL_SOURCE_OF_TRUTH.md`** — отговаря на въпроса
+**ОТ S142 (финалните Simple/Detailed логики + 4 AI brainstorm):**
+0. **`SESSION_S142_FULL_HANDOFF.md`** — 1746 реда, 6 части обединени:
+   контекст + visual journey + brainstorm с 4 AI (Kimi/DeepSeek/ChatGPT/Gemini)
+   + Закон №6 + имплементация + план
+0b. **`docs/BIBLE_v3_0_CORE.md`** ред 358 — Закон №6 (Simple=СИГНАЛИ, Detailed=ДАННИ)
+0c. **`mockups/P15_simple_FINAL.html`** + **`P2_v2_detailed_FINAL.html`** — одобрени mockups
+
+**ОТ S143 (търсачка + AI auto-fill стратегия):**
+1. **`docs/AI_AUTOFILL_SOURCE_OF_TRUTH.md`** (v1.1) — отговаря на въпроса
    "откъде AI взема информация за auto-fill"
 2. **`docs/AI_AUTOFILL_RESEARCH_2026.md`** — Deep Research (икономика)
 3. **`biz-coefficients.php`** — 300 бизнеса с ai_scan_detects (главен източник!)
@@ -3646,7 +3654,8 @@ AI COGS = постоянни ~12.8% от приходите при добра о
 
 **КРИТИЧНО:** Без четене на тези файлове — НЕ започвай работа по AI
 auto-fill. Има специфики (300 бизнеса × различни ai_scan_detects, кеш
-стратегия Ниво 1+2, AI flow) които не са очевидни от кода.
+стратегия Ниво 1+2, AI flow, S142 финални Simple/Detailed решения)
+които не са очевидни от кода.
 
 ---
 
