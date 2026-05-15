@@ -2484,19 +2484,51 @@ main.app { padding-bottom: calc(64px + 50px + 32px + env(safe-area-inset-bottom,
 }
 
 /* Price range */
-.f-price-row { display: flex; gap: 8px; align-items: center; }
+.f-price-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .f-price-inp {
-  flex: 1; padding: 10px 12px;
+  flex: 0 0 90px; padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid rgba(0,0,0,0.1);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
+  width: 90px;
+  max-width: 90px;
+  text-align: center;
 }
 [data-theme="dark"] .f-price-inp { background: hsl(220 25% 8%); border-color: rgba(255,255,255,0.1); }
 .f-price-inp:focus { outline: none; border-color: var(--accent); }
 .f-price-sep { color: var(--text-muted); font-size: 13px; }
+
+/* S144: Qty range row (slider + 2 number inputs) */
+.f-qty-row { display: flex; flex-direction: column; gap: 10px; }
+.f-qty-slider-wrap { padding: 4px 0; }
+.f-qty-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px;
+  border-radius: 3px;
+  background: hsl(220 15% 80%);
+  outline: none;
+}
+[data-theme="dark"] .f-qty-slider { background: hsl(220 25% 15%); }
+.f-qty-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+}
+.f-qty-slider::-moz-range-thumb {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+.f-qty-numbers { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.f-qty-numbers .f-price-inp { flex: 0 0 80px; width: 80px; }
 
 /* Apply / Clear buttons */
 .f-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; position: sticky; bottom: 0; padding: 12px 0 4px; background: var(--surface); }
@@ -4624,15 +4656,12 @@ function renderFilterDrawer() {
     }
     // 15. Произход
     sections.push({key:'domestic', label:'Произход', items:[{val:'1',lbl:'БГ производство'},{val:'0',lbl:'Внос'}]});
-    // 16. Наличност
+    // 16. Наличност (включва: в наличност, свършил, под минимум, застоял)
     sections.push({key:'stock', label:'Наличност', items:[{val:'in',lbl:'В наличност'},{val:'out',lbl:'Свършил'},{val:'low',lbl:'Под минимум'},{val:'stale60',lbl:'Застоял 60+ дни'}]});
-    // 17. Преброяване
-    sections.push({key:'counted', label:'Преброяване', items:[{val:'counted',lbl:'Преброен ≤30д'},{val:'uncounted',lbl:'Непреброен'}]});
-    // 18. Допълненост (НОВО — за filter "incomplete" артикули)
-    sections.push({key:'complete', label:'Информация', items:[{val:'complete',lbl:'Пълна'},{val:'incomplete',lbl:'Чака допълване'}]});
-    // 19. Снимка
+    // S144: махнати "Преброяване 30 дни" + "Информация Пълна/Чака допълване" — дублираха
+    // 17. Снимка
     sections.push({key:'has_image', label:'Снимка', items:[{val:'1',lbl:'Има снимка'},{val:'0',lbl:'Без снимка'}]});
-    // 20. Промоция
+    // 18. Промоция
     sections.push({key:'discount', label:'Отстъпка', items:[{val:'1',lbl:'На промоция'}]});
 
     // Render всички акордеон секции
@@ -4653,6 +4682,29 @@ function renderFilterDrawer() {
                     <input type="number" class="f-price-inp" id="fPriceMin" placeholder="от" value="${s.price_min||''}" min="0" step="0.5">
                     <span class="f-price-sep">—</span>
                     <input type="number" class="f-price-inp" id="fPriceMax" placeholder="до" value="${s.price_max||''}" min="0" step="0.5">
+                </div>
+            </div></div>`;
+
+            // S144: Qty range section (separate accordion)
+            const qtyOpen = _openSections.has('qty') ? ' open' : '';
+            const qtySelLbl = (s.qty_min !== undefined || s.qty_max !== undefined)
+                ? `${s.qty_min||'0'}–${s.qty_max||'∞'} бр` : '';
+            html += `<div class="f-section acc${qtyOpen}" id="fSec_qty">`;
+            html += `<button class="f-section-head" onclick="toggleAccordion('qty')">`;
+            html += `<div class="f-section-head-left"><span class="f-section-head-title">Бройка</span></div>`;
+            if (qtySelLbl) html += `<span class="f-section-head-selected">${esc(qtySelLbl)}</span>`;
+            html += `<svg class="f-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+            html += `</button>`;
+            html += `<div class="f-section-body">
+                <div class="f-qty-row">
+                    <div class="f-qty-slider-wrap">
+                        <input type="range" class="f-qty-slider" id="fQtySlider" min="0" max="100" value="${s.qty_max || 100}" oninput="onQtySliderChange(this.value)">
+                    </div>
+                    <div class="f-qty-numbers">
+                        <input type="number" class="f-price-inp" id="fQtyMin" placeholder="от" value="${s.qty_min||''}" min="0" step="1">
+                        <span class="f-price-sep">—</span>
+                        <input type="number" class="f-price-inp" id="fQtyMax" placeholder="до" value="${s.qty_max||''}" min="0" step="1">
+                    </div>
                 </div>
             </div></div>`;
         } else {
@@ -4771,6 +4823,12 @@ function toggleAccordion(key) {
     else _openSections.add(key);
     const sec = document.getElementById('fSec_' + key);
     if (sec) sec.classList.toggle('open');
+}
+
+// S144: Qty slider sync (slider променя qty_max input-а)
+function onQtySliderChange(val) {
+    const qmaxInput = document.getElementById('fQtyMax');
+    if (qmaxInput) qmaxInput.value = val;
 }
 
 async function toggleFChip(el) {
