@@ -504,7 +504,60 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
 .ai-revealed{animation:slideInAI 0.4s var(--ease-spring) both}
 @keyframes slideInAI{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
-/* ═══ END v5 NEW CLASSES ═══ */
+/* AI markup suggestion (показва се ако има cost_price → AI предлага retail) */
+.ai-markup-row{margin-top:6px;padding:8px 11px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px;position:relative;overflow:hidden}
+[data-theme="light"] .ai-markup-row,:root:not([data-theme]) .ai-markup-row{background:linear-gradient(135deg,oklch(0.92 0.08 145 / 0.5),oklch(0.92 0.08 165 / 0.4));box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .ai-markup-row{background:hsl(145 30% 10% / 0.5);border:1px solid hsl(145 50% 25% / 0.4)}
+.aim-ic{width:26px;height:26px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 3px 8px hsl(145 70% 45% / 0.4)}
+.aim-ic svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:2.5}
+.aim-text{flex:1;min-width:0}
+.aim-title{font-size:11px;font-weight:800;color:var(--text);line-height:1.2}
+.aim-title b{color:hsl(145 60% 35%);font-weight:900}
+[data-theme="dark"] .aim-title b{color:hsl(145 70% 70%)}
+.aim-formula{font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;margin-top:1px}
+.aim-actions{display:flex;gap:4px;flex-shrink:0}
+.aim-btn{height:28px;padding:0 10px;border-radius:var(--radius-pill);font-family:var(--font-mono);font-size:9.5px;font-weight:800;letter-spacing:0.04em;color:var(--text)}
+[data-theme="light"] .aim-btn,:root:not([data-theme]) .aim-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .aim-btn{background:hsl(220 25% 8%)}
+.aim-btn.primary{color:white;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 3px 8px hsl(145 70% 45% / 0.4)}
+.aim-config{margin-left:4px;font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--text-faint);text-decoration:underline;letter-spacing:0.04em}
+
+/* "Като предния" pill в header */
+.kp-header-pill{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:var(--radius-pill);font-family:var(--font-mono);font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text);flex-shrink:0}
+[data-theme="light"] .kp-header-pill,:root:not([data-theme]) .kp-header-pill{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .kp-header-pill:active,:root:not([data-theme]) .kp-header-pill:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .kp-header-pill{background:hsl(220 25% 8%)}
+.kp-header-pill svg{width:11px;height:11px;stroke:var(--accent);fill:none;stroke-width:2.2}
+[data-theme="dark"] .kp-header-pill svg{stroke:hsl(var(--hue1) 80% 75%)}
+.kp-header-pill.bulk-active{color:white;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.4)}
+.kp-header-pill.bulk-active svg{stroke:white}
+
+/* Bulk mode banner — когато си в "Като предния" режим */
+.bulk-mode-banner{margin:0 0 14px;padding:10px 12px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px;position:relative;overflow:hidden}
+[data-theme="light"] .bulk-mode-banner,:root:not([data-theme]) .bulk-mode-banner{background:linear-gradient(135deg,oklch(0.92 0.08 280 / 0.6),oklch(0.92 0.08 310 / 0.5));box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .bulk-mode-banner{background:linear-gradient(135deg,hsl(280 40% 12% / 0.6),hsl(305 40% 12% / 0.5));border:1px solid hsl(280 50% 28% / 0.4)}
+.bmb-ic{width:26px;height:26px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 3px 8px hsl(280 70% 50% / 0.5)}
+.bmb-ic svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:2.5}
+.bmb-text{flex:1;font-size:11px;font-weight:700;color:var(--text);line-height:1.3}
+.bmb-text b{font-weight:900;color:var(--magic)}
+[data-theme="dark"] .bmb-text b{color:hsl(280 80% 75%)}
+.bmb-close{width:24px;height:24px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:transparent}
+.bmb-close svg{width:10px;height:10px;stroke:var(--text-muted);fill:none;stroke-width:2.5}
+
+/* Multi-photo recognized colors hint (в Вариации) */
+.multi-photo-hint{margin-bottom:10px;padding:8px 11px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px}
+[data-theme="light"] .multi-photo-hint,:root:not([data-theme]) .multi-photo-hint{background:linear-gradient(135deg,oklch(0.92 0.08 280 / 0.5),oklch(0.92 0.08 310 / 0.4));box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .multi-photo-hint{background:hsl(280 30% 10% / 0.4);border:1px solid hsl(280 50% 25% / 0.4)}
+.mph-ic{width:24px;height:24px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))}
+.mph-ic svg{width:10px;height:10px;stroke:white;fill:none;stroke-width:2.5}
+.mph-text{flex:1;font-size:10.5px;font-weight:700;color:var(--text);line-height:1.3}
+.mph-text b{font-weight:900;color:var(--magic)}
+[data-theme="dark"] .mph-text b{color:hsl(280 80% 75%)}
+
+/* AI auto-filled chip (в Вариации — chip-ове идващи от multi-photo) */
+.chip-col.ai-filled{position:relative;color:white;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.4);border:none}
+.chip-col.ai-filled::after{content:'✨';position:absolute;top:-3px;right:-3px;font-size:9px;line-height:1}
+
 
 
 [data-theme="dark"] .acc-section{position:relative}
@@ -598,6 +651,10 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
   <header class="bm-header">
     <button class="icon-btn" aria-label="Назад"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="bm-title">Добави артикул</div>
+    <button class="kp-header-pill bulk-active" onclick="toggleBulkMode()" title="Като предния — копира всичко от последния артикул">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <span>Като предния</span>
+    </button>
     <button class="icon-btn scan-btn" aria-label="Скенирай"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 012-2h2"/><path d="M17 3h2a2 2 0 012 2v2"/><path d="M21 17v2a2 2 0 01-2 2h-2"/><path d="M7 21H5a2 2 0 01-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg></button>
     <button class="icon-btn" id="themeToggle" onclick="rmsToggleTheme()" aria-label="Тема">
       <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
@@ -667,6 +724,13 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
         <div class="voice-bar-sub">"Тениска 28лв · бял розов · S M L"</div>
       </div>
     </button>
+
+    <!-- BULK MODE BANNER (показва се когато 'Като предния' е активно) -->
+    <div class="bulk-mode-banner">
+      <span class="bmb-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>
+      <div class="bmb-text">Режим <b>Като предния</b> · име, цена, доставчик, категория · наследени от <b>Дамски бикини Tommy Jeans</b></div>
+      <button class="bmb-close" onclick="this.closest('.bulk-mode-banner').style.display='none'" title="Откажи"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
 
     <!-- MODE TOGGLE -->
     <div class="mode-toggle" data-mode="var">
@@ -748,6 +812,18 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
             <button class="fbtn voice"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></button>
           </div>
           <div class="price-bgn">54,76 лв</div>
+          <!-- AI MARKUP SUGGESTION (показва се при налична доставна цена) -->
+          <div class="ai-markup-row">
+            <span class="aim-ic"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+            <div class="aim-text">
+              <div class="aim-title">AI предлага <b>€27.99</b></div>
+              <div class="aim-formula">×2.5 + .99 · бельо · confidence 92% · <a class="aim-config" href="#" onclick="alert('Конфигурирай надценки → settings')">смени</a></div>
+            </div>
+            <div class="aim-actions">
+              <button class="aim-btn primary"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>
+              <button class="aim-btn">Друга</button>
+            </div>
+          </div>
         </div>
 
         <!-- Количество (single only) -->
@@ -917,6 +993,12 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
       </div>
       <div class="acc-body">
 
+        <!-- MULTI-PHOTO RECOGNIZED HINT — показва се ако в Section 1 е multi-photo + AI разпозна 2+ цвята -->
+        <div class="multi-photo-hint">
+          <span class="mph-ic"><svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg></span>
+          <div class="mph-text">AI разпозна <b>3 цвята</b> от снимките · вече попълнени отдолу · можеш само да допълниш размерите ↓</div>
+        </div>
+
         <div class="field">
           <div class="field-label"><span>Размери</span></div>
           <div class="chips-row">
@@ -934,11 +1016,11 @@ button,input,a,select{font-family:inherit;color:inherit}button{background:none;b
         </div>
 
         <div class="field">
-          <div class="field-label"><span>Цветове</span></div>
+          <div class="field-label"><span>Цветове</span><span class="ai-spark"><svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>AI</span></div>
           <div class="chips-row">
-            <button class="chip-col"><span class="chip-col-dot" style="background:#1a1a1a"></span>Черен</button>
-            <button class="chip-col active"><span class="chip-col-dot" style="background:#ffffff;border:1px solid #d1d5db"></span>Бял</button>
-            <button class="chip-col active"><span class="chip-col-dot" style="background:#ec4899"></span>Розов</button>
+            <button class="chip-col ai-filled"><span class="chip-col-dot" style="background:#ffffff;border:1px solid #d1d5db"></span>Бял</button>
+            <button class="chip-col ai-filled"><span class="chip-col-dot" style="background:#ec4899"></span>Розов</button>
+            <button class="chip-col ai-filled"><span class="chip-col-dot" style="background:#1a1a1a"></span>Черен</button>
             <button class="chip-col"><span class="chip-col-dot" style="background:#dc2626"></span>Червен</button>
             <button class="chip-col"><span class="chip-col-dot" style="background:#1e40af"></span>Син</button>
             <button class="chip-add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави</button>
