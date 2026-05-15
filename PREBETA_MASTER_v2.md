@@ -684,3 +684,70 @@ git push origin main
 - Чака потвърждение от Тих след тестване
 - Кога активира: rename products.php → products-v1-old.php; mv products-v2.php → products.php
 
+
+---
+
+# S144 BETA READINESS UPDATE (15.05.2026)
+
+## Status: Beta launch DAY = TODAY (15 май)
+
+**Реалистично:** не е готов 100%. Имаме функциониращ Simple Mode на products-v2.php, но wizard + AI Studio не са финализирани.
+
+## Какво е готово за beta
+
+### ✅ Stable (можем да startirame с тези)
+
+- **Login + auth** ✓
+- **chat.php Simple home** (life-board)
+- **products-v2.php Simple Mode** — реални insights, info-box, list view, filter
+- **products-v2.php Detailed Mode** — UI е там, mockup data в някои секции
+- **sale.php** — основни функции работят (numpad, voice, scanner)
+- **inventory.php v3** — count sessions
+- **products.php → products-v2.php redirect** (clean migration)
+- **Header унифициран** (3 форми)
+- **Bottom-nav session-based**
+
+### ⚠️ Functional но incomplete
+
+- **Wizard "Добави артикул"** — работи без 4 нови AI полета. Voice STT locked.
+- **AI Studio** — работи, но drawer-овете не са дизайн-rafinirani
+- **AI insights** — 13 от 25 имплементирани, активни на ENI
+
+### ❌ Не готови за beta
+
+- **deliveries.php** — 0% (без него: 5 типа AI сигнали не светят)
+- **orders.php** — 0%
+- **transfers.php** — 0%
+- **promotions** — 0%
+- **loyalty** — 0%
+- **finance.php** — 0%
+- **10-те S142 типа сигнали** — само generic 25 (НЕ specific Alert/Weather/Transfer/...)
+
+## Recommended beta strategy
+
+**За ENI клиент (tenant_id=7 пробен):**
+- НЕ launch-вай на реален клиент още — wait for wizard + AI Studio done
+- Използвай tenant=7 като продължение на тестване
+- Финализирай products module (wizard + AI Studio + Detailed Mode) → след това beta на реален клиент
+
+**Realistic beta date:** **края на май / началото на юни 2026** (не 14-15 май).
+
+## Critical path до реален beta
+
+1. **S145** — wizard 4 нови AI полета + AI Studio polish
+2. **S146** — Detailed Mode finalization (11 секции реални данни)
+3. **S147** — deliveries.php (минимум — за supplier reliability)
+4. **S148** — orders.php
+5. **S149** — promotions basic
+6. **S150** — beta launch на реален клиент
+
+## Какво S144 направи за beta готовност
+
+- Стабилизира Simple Mode (повече не се чупи)
+- Унифицира header/bottom-nav (по-малко UX гафове)
+- Премахна Nike/Adidas mockup data (вече реални insights)
+- Премахна дублиращи UI елементи (по-чист интерфейс)
+- Документира всички правила в design system v4
+
+**Net effect: По-стабилна основа, но НЕ ускорихме beta date.**
+

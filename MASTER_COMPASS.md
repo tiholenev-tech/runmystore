@@ -3748,3 +3748,39 @@ Native back бутон на телефона може да:
 
 **Веднага щом chat.php или products.php (което свърши първо) → активирай Закон #51.**
 
+
+---
+
+## S144 Closing State (15.05.2026 EOD)
+
+**Шеф-чат S144 завърши с 23 commits в main.** Фокус: Simple Mode на products-v2.php → реални данни.
+
+### Финални решения (документирани в SESSION_S144_FULL_HANDOFF.md):
+
+- **Правило #49** — Преброяване ≠ Информация. Confidence формула обновена.
+- **Правило #50** — Header има 3 форми (А=chat, Б=всички други, В=sale)
+- **Правило #51** — Bottom-nav SESSION-BASED (от къде си влязъл)
+- **Правило #52** — Back-button guard global = post-beta. Per-products-v2.php при финализация.
+- **tenant_id=7** = пробен профил, защитите свалени, фиктивни данни OK
+
+### Documentation entry point за S145:
+
+Преди S145 да започне работа → ЗАДЪЛЖИТЕЛНО прочита:
+1. `SESSION_S144_FULL_HANDOFF.md` (300+ реда) — единствен source
+2. `DESIGN_SYSTEM_v4.0_BICHROMATIC.md` §3.1 + §3.3
+3. `BIBLE_v3_0_CORE.md` Закон #6
+
+S145 завършва Boot Test (7 въпроса) преди да отговори на Тих.
+
+### Приоритет за S145:
+
+1. **Wizard "Добави артикул"** — 4 нови AI полета (gender, season, brand, description_short)
+2. **AI Studio** — отделна страница, 3 типа обработка
+3. **(паралелно) Claude Code STRESS Lab** — виж CLAUDE_CODE_STRESS_LAB_PROMPT.md
+
+### НЕ се реализира до post-beta (Q3 2026):
+
+- 10-те S142 типа сигнали (Alert/Weather/Transfer/...)
+- 11-те секции Detailed Tab Преглед
+- Global back-button guard
+
