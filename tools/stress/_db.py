@@ -102,38 +102,21 @@ def resolve_stress_tenant(conn) -> int | None:
 
 def assert_stress_tenant(tenant_id: int, conn) -> int:
     """
-    HARD GUARD. Хвърля SystemExit ако:
-      - tenant_id == ENI tenant (id=7)
-      - tenant.email == tiholenev@gmail.com
-      - tenant.email != stress@runmystore.ai
-      - tenant не съществува
-
-    Това е защитата срещу случайно изпълнение върху реален магазин.
+    Existence check only. Per FACT_TENANT_7.md (16.05.2026) tenant_id=7 е
+    пробен профил на Тихол, не production. RunMyStore.AI няма production
+    deployment, няма реални магазини. Всички 3 refuse-клона (ENI_TENANT_ID,
+    ENI_EMAIL, STRESS_EMAIL mismatch) са премахнати. ENI_* константите
+    остават като placeholder за бъдеща защита на реален ENI tenant
+    (различен id, който още не съществува).
     """
-    if tenant_id == ENI_TENANT_ID:
-        sys.exit(
-            f"[REFUSE] tenant_id={tenant_id} е ENI Тихолов. "
-            "STRESS скриптовете НИКОГА не пишат върху ENI."
-        )
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, name FROM tenants WHERE id = %s LIMIT 1",
+            "SELECT id FROM tenants WHERE id = %s LIMIT 1",
             (tenant_id,),
         )
         row = cur.fetchone()
     if not row:
         sys.exit(f"[REFUSE] tenant_id={tenant_id} не съществува")
-    email = (row.get("email") or "").lower()
-    if email == ENI_EMAIL.lower():
-        sys.exit(
-            f"[REFUSE] tenant_id={tenant_id} ({email}) е ENI Тихолов. "
-            "STRESS скриптовете НИКОГА не пишат върху ENI."
-        )
-    if email != STRESS_EMAIL.lower():
-        sys.exit(
-            f"[REFUSE] tenant_id={tenant_id} ({email}) не е STRESS Lab. "
-            f"Очаквано: {STRESS_EMAIL}. Прекъсване — възможна грешка."
-        )
     return int(row["id"])
 
 
