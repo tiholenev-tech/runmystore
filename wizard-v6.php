@@ -698,23 +698,23 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:34px!important;min-width:34px;height:34px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 8px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.wiz-mic{width:30px!important;min-width:30px;height:30px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 6px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
-.wiz-mic:active{transform:scale(0.94)}
-.wiz-mic svg{width:12px!important;height:12px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 8px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
+.wiz-mic:active{transform:scale(0.92)}
+.wiz-mic svg{width:11px!important;height:11px!important;stroke:#fff!important;fill:none;stroke-width:2.4;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 6px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
 
 /* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
-.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 2px 8px hsl(0 80% 50% / 0.45)!important;border:none!important}
-.wiz-mic.recording::before{content:''!important;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
+.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 2px 6px hsl(0 80% 50% / 0.45)!important;border:none!important}
+.wiz-mic.recording::before{content:''!important;position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
 .wiz-mic.recording::after{content:none!important;animation:none!important}
 
 /* Active-field highlight (mic вътре в .fg.wiz-active) — purple variant без animation */
 .fg.wiz-active .wiz-mic{background:linear-gradient(135deg,hsl(255 75% 60%),hsl(280 65% 55%))!important;animation:none!important}
 
-/* Copy button — same size as mic (34×34) */
-.copy-btn{width:34px!important;height:34px!important;font-size:12px}
-.copy-btn svg{width:12px!important;height:12px!important}
+/* Copy button — same size as mic (30×30) */
+.copy-btn{width:30px!important;height:30px!important;font-size:11px;padding:0}
+.copy-btn svg{width:11px!important;height:11px!important}
   </style>
 </head>
 <body>
@@ -1765,8 +1765,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var hasLast = false;
     try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
     var copyPrevBtn = hasLast
-      ? '<button type="button" class="wz-copy-prev-btn" onclick="wizCopyPrevProductFull()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Като предния</button>'
-      : '<button type="button" class="wz-copy-prev-btn" disabled onclick="showToast(\'Налично след първия записан артикул\',\'info\')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Като предния (след първи запис)</button>';
+      ? '<button type="button" class="wz-copy-prev-btn" onclick="wizCopyPrevProductFull()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул</button>'
+      : '<button type="button" class="wz-copy-prev-btn" disabled onclick="showToast(\'Налично след първия записан артикул\',\'info\')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул</button>';
     var typeBtnSingle='<button type="button" onclick="wizSwitchType(\'single\')" class="s95-type-btn'+(sActive?' active':'')+'">'+
         '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
         '<span class="s95-type-btn-lbl">Единичен</span>'+
