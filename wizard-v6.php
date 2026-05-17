@@ -653,6 +653,33 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="dark"] .wz-variant-qty-note{background:linear-gradient(135deg,hsl(280 30% 12% / 0.5),hsl(255 30% 12% / 0.4));border:1px solid hsl(255 12% 20%);color:var(--text-muted)}
 .wz-variant-qty-note svg{width:18px;height:18px;flex-shrink:0;stroke:var(--accent);fill:none;stroke-width:2;margin-top:1px}
 .wz-variant-qty-note b{color:var(--text);font-weight:800}
+
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2h.3 — MIC + COPY size/animation FINAL per Тих           ║
+   ║ "Намали размера, махни анимациите, при натиск само пулсираща       ║
+   ║  червена точка (както е в сегашния)."                              ║
+   ║ Mic: 44→38px, без chatMicRing dual rings, без micRecPulse halo,    ║
+   ║ recording state = ONLY .recording::before (8×8 red dot pulse).     ║
+   ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+.wiz-mic{width:38px!important;min-width:38px;height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 3px 10px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
+.wiz-mic:active{transform:scale(0.94)}
+.wiz-mic svg{width:13px!important;height:13px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 3px 10px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
+
+/* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
+.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 3px 10px hsl(0 80% 50% / 0.45)!important;border:none!important}
+.wiz-mic.recording::before{content:''!important;position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
+.wiz-mic.recording::after{content:none!important;animation:none!important}
+
+/* Active-field highlight (mic вътре в .fg.wiz-active) — purple variant без animation */
+.fg.wiz-active .wiz-mic{background:linear-gradient(135deg,hsl(255 75% 60%),hsl(280 65% 55%))!important;animation:none!important}
+
+/* Copy button — same size as mic (38×38) */
+.copy-btn{width:38px!important;height:38px!important;font-size:13px}
+.copy-btn svg{width:13px!important;height:13px!important}
   </style>
 </head>
 <body>
