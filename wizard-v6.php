@@ -134,8 +134,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
      .v4-pz / .v4-pz::before / .v4-pz-top/-ic/-title/-sub/-btns/-tips   ← p.php 2851-2895
      .ai-inline-rows / .ai-inline-row (минимум)                         ← p.php 2899-2900
 */
-:root[data-theme="dark"]{--indigo-300:#a5b4fc;--text-primary:#f1f5f9;--text-secondary:rgba(255,255,255,.6);--success:#86efac;--border-subtle:rgba(99,102,241,.15);--bg-card:rgba(15,15,40,.75);--border-glow:rgba(99,102,241,.4)}
-:root:not([data-theme]),:root[data-theme="light"]{--indigo-300:#4f46e5;--text-primary:#0f172a;--text-secondary:rgba(15,23,42,.70);--success:#22c55e;--border-subtle:rgba(99,102,241,.18);--bg-card:rgba(255,255,255,.95);--border-glow:rgba(99,102,241,.4)}
+:root[data-theme="dark"]{--indigo-300:#a5b4fc;--indigo-400:#818cf8;--indigo-500:#6366f1;--indigo-600:#4f46e5;--text-primary:#f1f5f9;--text-secondary:rgba(255,255,255,.6);--success:#86efac;--border-subtle:rgba(99,102,241,.15);--bg-card:rgba(15,15,40,.75);--border-glow:rgba(99,102,241,.4)}
+:root:not([data-theme]),:root[data-theme="light"]{--indigo-300:#4f46e5;--indigo-400:#6366f1;--indigo-500:#4f46e5;--indigo-600:#4338ca;--text-primary:#0f172a;--text-secondary:rgba(15,23,42,.70);--success:#22c55e;--border-subtle:rgba(99,102,241,.18);--bg-card:rgba(255,255,255,.95);--border-glow:rgba(99,102,241,.4)}
 
 .toast-c{position:fixed;top:16px;left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .toast{padding:10px 16px;border-radius:12px;background:rgba(15,15,40,0.95);border:1px solid var(--border-glow);color:var(--text-primary);font-size:13px;font-weight:600;transform:translateY(-20px);opacity:0;transition:all 0.3s;pointer-events:auto;display:flex;align-items:center;gap:6px}
@@ -267,6 +267,119 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* Light overrides — inactive state. Active gradients остават такива (контраст на цветни active states е достатъчен в двата режима). */
 [data-theme="light"] .s95-type-btn,:root:not([data-theme]) .s95-type-btn{background:var(--surface);border-color:rgba(99,102,241,0.22);color:var(--text-muted);box-shadow:var(--shadow-card-sm)}
+
+/* ═══ S148 ФАЗА 2e++b — camera loop overlay + AI working overlay (1:1 sacred от p.php 2032-2146) ═══
+   Full-screen camera UX винаги остава dark — не добавям light overrides (одобрено от Тих).
+   .cam-tip / .cam-setup / .cam-picker са sacred "kept inert" класове — копирани за 1:1 fidelity.
+*/
+.cam-loop-ov{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column}
+.cam-loop-ov.show{display:flex}
+.cam-loop-stage{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;position:relative}
+.cam-loop-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
+.cam-loop-empty-msg{color:rgba(255,255,255,0.55);font-size:13px;text-align:center;line-height:1.5;max-width:280px}
+.cam-loop-preview{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;display:block}
+.cam-loop-stage:has(.cam-loading){background:linear-gradient(135deg,#1a1033,#0a0518)}
+.cam-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px 28px;text-align:center;animation:camLoadFadeIn 0.18s ease}
+@keyframes camLoadFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.cam-loader{display:flex;gap:14px}
+.cam-loader div{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 28px rgba(167,139,250,0.85),0 0 50px rgba(99,102,241,0.5);opacity:0.35;animation:camLoaderPulse 1.2s infinite ease-in-out}
+.cam-loader div:nth-child(1){animation-delay:-0.32s}
+.cam-loader div:nth-child(2){animation-delay:-0.16s}
+@keyframes camLoaderPulse{0%,80%,100%{opacity:0.35;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
+.cam-loading-msg{font-size:18px;font-weight:800;color:#fff;letter-spacing:0.01em;text-shadow:0 2px 12px rgba(167,139,250,0.4)}
+.cam-loading-sub{font-size:12.5px;color:rgba(233,213,255,0.65);max-width:280px;line-height:1.5;font-weight:500}
+
+.cam-tip{display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 24px;max-width:340px;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(99,102,241,0.10));border:1.5px solid rgba(139,92,246,0.4);border-radius:20px;margin:20px}
+.cam-tip-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(99,102,241,0.15));display:flex;align-items:center;justify-content:center}
+.cam-tip-icon svg{width:30px;height:30px}
+.cam-tip-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
+.cam-tip-body{font-size:13px;color:rgba(233,213,255,0.85);text-align:center;line-height:1.6;font-weight:500}
+.cam-tip-body b{color:#fff}
+.cam-tip-flip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:14px;border:1px solid rgba(167,139,250,0.4)}
+.cam-tip-btn{padding:13px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 4px 18px rgba(124,58,237,0.4)}
+
+.cam-drawer-tip{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;margin-bottom:12px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,0.14),rgba(99,102,241,0.07));border:1px solid rgba(139,92,246,0.32);position:relative;overflow:hidden;animation:tipFadeIn 0.4s ease-out}
+.cam-drawer-tip::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(167,139,250,0.08) 50%,transparent 70%);background-size:200% 200%;animation:tipShine 4s ease-in-out infinite;pointer-events:none}
+@keyframes tipFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tipShine{0%,100%{background-position:200% 200%}50%{background-position:0% 0%}}
+.cam-drawer-tip-icon{font-size:22px;flex-shrink:0;line-height:1.2;animation:tipIconPulse 2.4s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(251,191,36,0.6))}
+@keyframes tipIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.cam-drawer-tip-text{font-size:11.5px;color:rgba(233,213,255,0.82);line-height:1.55;font-weight:500;flex:1;min-width:0;position:relative}
+.cam-drawer-tip-text b{color:#fff;font-weight:700}
+.cam-drawer-tip-app{display:inline-block;padding:1px 6px;margin:0 1px;border-radius:5px;background:rgba(167,139,250,0.22);font-size:11px;font-weight:700;border:1px solid rgba(167,139,250,0.35);color:#fff;white-space:nowrap}
+.cam-drawer-tip-or{display:inline-block;color:rgba(233,213,255,0.6);font-size:11px}
+.cam-drawer-tip-flip{display:inline-block;font-size:13px;animation:tipFlipRot 2.6s linear infinite;vertical-align:middle}
+@keyframes tipFlipRot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.cam-setup{display:flex;flex-direction:column;gap:16px;padding:24px 20px 20px;max-width:420px;width:100%;overflow-y:auto;max-height:90vh}
+.cam-setup-header{text-align:center;margin-bottom:6px}
+.cam-setup-emoji{font-size:48px;margin-bottom:8px;animation:setupBounce 2.4s ease-in-out infinite}
+@keyframes setupBounce{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+.cam-setup-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.01em;margin-bottom:6px}
+.cam-setup-sub{font-size:13.5px;color:rgba(233,213,255,0.8);line-height:1.5}
+.cam-setup-steps{display:flex;flex-direction:column;gap:11px;margin:8px 0}
+.cam-setup-step{display:flex;gap:14px;align-items:flex-start;padding:14px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(99,102,241,0.08));border:1px solid rgba(139,92,246,0.32);opacity:0;transform:translateX(-12px);animation:setupStepIn 0.55s ease-out forwards}
+@keyframes setupStepIn{to{opacity:1;transform:translateX(0)}}
+.cam-setup-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,0.5);animation:setupNumPulse 2s ease-in-out infinite}
+@keyframes setupNumPulse{0%,100%{box-shadow:0 0 14px rgba(167,139,250,0.5)}50%{box-shadow:0 0 22px rgba(167,139,250,0.85)}}
+.cam-setup-step-body{flex:1;min-width:0}
+.cam-setup-step-title{font-size:14.5px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:3px}
+.cam-setup-step-desc{font-size:12px;color:rgba(233,213,255,0.72);line-height:1.5}
+.cam-setup-step-desc b{color:#fff}
+.cam-setup-tap{display:inline-block;padding:1px 7px;margin:0 2px;border-radius:5px;background:rgba(167,139,250,0.25);font-size:13px;border:1px solid rgba(167,139,250,0.4)}
+.cam-setup-app{display:inline-block;padding:1px 8px;margin:0 2px;border-radius:6px;background:rgba(167,139,250,0.25);font-size:13px;font-weight:700;border:1px solid rgba(167,139,250,0.4);color:#fff}
+.cam-setup-flip{display:inline-block;font-size:16px;animation:setupFlipRot 2.4s linear infinite}
+@keyframes setupFlipRot{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.cam-setup-finale{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(22,163,74,0.08));border:1.5px solid rgba(34,197,94,0.4);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-finale-icon{font-size:32px;animation:setupFinaleSparkle 1.8s ease-in-out infinite}
+@keyframes setupFinaleSparkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.15) rotate(8deg)}}
+.cam-setup-finale-text{font-size:13.5px;color:#fff;font-weight:600;line-height:1.4}
+.cam-setup-finale-text b{color:#86efac}
+.cam-setup-done-btn{margin-top:6px;padding:15px 22px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 22px rgba(124,58,237,0.5);opacity:0;transform:translateY(8px);animation:setupStepIn 0.55s ease-out forwards}
+.cam-setup-done-btn:active{transform:scale(0.98)}
+.cam-setup-done-btn svg{width:18px;height:18px}
+.cam-setup-skip{margin-top:4px;background:transparent;border:none;color:rgba(255,255,255,0.4);font-size:11.5px;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline}
+
+.cam-loop-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.cam-picker{display:flex;flex-direction:column;gap:14px;padding:20px;width:100%;max-width:420px;align-items:stretch}
+.cam-picker-title{font-size:18px;font-weight:800;color:#e9d5ff;text-align:center}
+.cam-picker-sub{font-size:12px;color:rgba(233,213,255,0.65);text-align:center;line-height:1.55;padding:0 8px}
+.cam-picker-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.cam-picker-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(139,92,246,0.25)}
+.cam-picker-item-info{display:flex;flex-direction:column;gap:2px}
+.cam-picker-item-name{font-size:13px;font-weight:700;color:#fff;word-break:break-word}
+.cam-picker-item-sub{font-size:10.5px;color:rgba(233,213,255,0.55)}
+.cam-picker-item-actions{display:flex;gap:6px}
+.cam-picker-test,.cam-picker-save{flex:1;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
+.cam-picker-test{background:rgba(255,255,255,0.08);color:#e9d5ff;border:1px solid rgba(255,255,255,0.12)}
+.cam-picker-save{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 2px 10px rgba(124,58,237,0.35)}
+.cam-picker-test-bar{position:absolute;bottom:14px;left:14px;right:14px;display:flex;gap:8px;z-index:2}
+.cam-picker-back,.cam-picker-use{flex:1;padding:11px 14px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none}
+.cam-picker-back{background:rgba(0,0,0,0.5);color:#fff;border:1px solid rgba(255,255,255,0.15)}
+.cam-picker-use{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 14px rgba(22,163,74,0.4)}
+.cam-change-link{position:absolute;bottom:calc(80px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:100px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;z-index:1}
+
+.ai-working-ov{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:10000;display:flex;align-items:center;justify-content:center;animation:aiOvFade 0.22s ease;padding:20px}
+@keyframes aiOvFade{from{opacity:0}to{opacity:1}}
+.ai-working-card{padding:32px 26px;border-radius:24px;background:linear-gradient(135deg,rgba(124,58,237,0.32),rgba(99,102,241,0.18));border:1.5px solid rgba(139,92,246,0.55);box-shadow:0 0 50px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;gap:14px;min-width:260px;max-width:340px}
+.ai-working-orb{display:flex;gap:10px;margin-bottom:6px}
+.ai-working-orb div{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 0 16px rgba(167,139,250,0.7);animation:aiOrbPulse 1.4s infinite ease-in-out}
+.ai-working-orb div:nth-child(1){animation-delay:-0.32s}
+.ai-working-orb div:nth-child(2){animation-delay:-0.16s}
+@keyframes aiOrbPulse{0%,80%,100%{opacity:0.4;transform:scale(0.7)}40%{opacity:1;transform:scale(1.4)}}
+.ai-working-title{font-size:18px;font-weight:800;color:#e9d5ff;letter-spacing:-0.01em}
+.ai-working-msg{font-size:13px;color:rgba(233,213,255,0.85);text-align:center;line-height:1.5;font-weight:600}
+.ai-working-hint{font-size:10.5px;color:rgba(233,213,255,0.5);text-align:center;letter-spacing:0.02em}
+.cam-loop-controls{padding:14px 14px calc(14px + env(safe-area-inset-bottom,0));background:rgba(0,0,0,0.9);display:flex;gap:8px;align-items:center;justify-content:center}
+.cam-loop-btn{padding:14px 18px;border-radius:14px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.cam-loop-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cam-loop-btn.shoot{width:74px;height:74px;border-radius:50%;background:#fff;color:#000;padding:0;box-shadow:0 0 0 4px rgba(255,255,255,0.25)}
+.cam-loop-btn.shoot svg{width:30px;height:30px;stroke-width:2.2}
+.cam-loop-btn.next{background:linear-gradient(135deg,var(--indigo-500),var(--indigo-600));color:#fff;flex:1;max-width:160px}
+.cam-loop-btn.done{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;flex:1;max-width:160px}
+.cam-loop-btn.retake{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);flex:1;max-width:140px}
+.cam-loop-btn.cancel{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);width:50px;height:50px;border-radius:14px;padding:0}
+.cam-loop-counter{position:absolute;top:calc(14px + env(safe-area-inset-top,0));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:100px;background:rgba(0,0,0,0.7);color:#fff;font-size:12px;font-weight:700;z-index:1}
 
 /* ═══ S148 ФАЗА 2f — light mode overrides за form-control + mic ═══ */
 [data-theme="light"] .fl,:root:not([data-theme]) .fl{color:var(--text-muted)}
@@ -440,9 +553,51 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     S.wizData._aiColorsApplied = false;
   }
 
-  // STUBS (deferred — multi-mode drawer + AI inline funcs ще се добавят в следваща sub-step).
-  // В 2e default flow е single-mode (S.wizType !== 'variant' → _photoMode='single' винаги),
-  // тези не се извикват в normal usage.
+  /* ═══ S148 ФАЗА 2e++b — camera loop infra (1:1 sacred от p.php) ═══
+       9575-9590  _downscaleDataUrl(dataUrl, maxDim, quality)
+       9593-9606  wizShowAIWorking(count)
+       9608-9611  wizHideAIWorking()
+     Тези са самостоятелни utilities — без deps извън дом + Image API.
+  */
+
+  function _downscaleDataUrl(dataUrl, maxDim, quality) {
+    return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() {
+            var w = img.width, h = img.height;
+            var scale = Math.min(1, maxDim / Math.max(w, h));
+            var dw = Math.round(w * scale), dh = Math.round(h * scale);
+            var c = document.createElement('canvas');
+            c.width = dw; c.height = dh;
+            c.getContext('2d').drawImage(img, 0, 0, dw, dh);
+            resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = function(){ resolve(dataUrl); };
+        img.src = dataUrl;
+    });
+  }
+
+  function wizShowAIWorking(count) {
+    if (document.getElementById('rmsAIWorking')) document.getElementById('rmsAIWorking').remove();
+    var ov = document.createElement('div');
+    ov.id = 'rmsAIWorking';
+    ov.className = 'ai-working-ov';
+    ov.innerHTML =
+        '<div class="ai-working-card">' +
+            '<div class="ai-working-orb"><div></div><div></div><div></div></div>' +
+            '<div class="ai-working-title">✨ AI анализира</div>' +
+            '<div class="ai-working-msg">Разпознавам цветовете на ' + count + ' ' + (count === 1 ? 'снимка' : 'снимки') + '...</div>' +
+            '<div class="ai-working-hint">Обикновено отнема 3-8 секунди</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+  }
+
+  function wizHideAIWorking() {
+    var ov = document.getElementById('rmsAIWorking');
+    if (ov) ov.remove();
+  }
+
+  // STUBS (deferred — multi-photo drawer/camera + AI inline + color detect идват в 2e++c/d/e).
   function wizPhotoMultiPick(){showToast('Multi-photo flow: следваща sub-step','info')}
   function wizAIInlineBgRemove(){showToast('AI махни фон: следваща sub-step','info')}
   function wizAIInlineSeoDesc(){showToast('SEO описание: следваща sub-step','info')}
