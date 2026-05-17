@@ -715,13 +715,14 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:8px!important;background:rgba(239,68,68,.08)!important;border:1px solid rgba(239,68,68,.22)!important;color:#fca5a5!important;position:relative;overflow:visible!important;animation:none!important;transition:all .15s;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0;box-shadow:none!important}
-.wiz-mic:active{background:rgba(239,68,68,.18)!important;transform:scale(.95)}
+.wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:50%!important;border:none!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms,box-shadow 200ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0;font-family:inherit}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:linear-gradient(145deg,#f0f3f9,#cdd5e1)!important;box-shadow:var(--shadow-card-sm),inset 0 1px 0 rgba(255,255,255,0.7)!important;color:var(--accent)!important}
+[data-theme="dark"] .wiz-mic{background:linear-gradient(145deg,hsl(220 25% 11%),hsl(220 30% 6%))!important;box-shadow:0 3px 10px hsl(220 35% 2% / 0.6),inset 0 1px 0 hsl(255 30% 30% / 0.4)!important;border:1px solid hsl(255 12% 22%)!important;color:hsl(255 80% 75%)!important}
+.wiz-mic:active{transform:scale(.94)}
+[data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)!important}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
 .wiz-mic:active{transform:scale(0.92)}
-.wiz-mic svg{width:13px!important;height:13px!important;stroke:currentColor!important;fill:none;stroke-width:2.2;position:relative;z-index:1;display:block}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:var(--surface)!important;border:none!important;box-shadow:var(--shadow-card-sm)!important;color:oklch(0.58 0.22 25)!important}
-[data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)!important;background:var(--surface)!important}
+.wiz-mic svg{width:13px!important;height:13px!important;stroke:currentColor!important;fill:none;stroke-width:2.2;position:relative;z-index:1;display:block;filter:drop-shadow(0 1px 0 rgba(0,0,0,0.15))}
 
 /* Recording state — sacred 1:1: червен fill + пулсираща червена точка (БЕЗ rings, БЕЗ REC label) */
 .wiz-mic.recording{background:rgba(239,68,68,.28)!important;border-color:#ef4444!important;color:#fff!important;animation:none!important;box-shadow:none!important}
@@ -1619,7 +1620,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     if (p.supplier_id) S.wizData.supplier_id = parseInt(p.supplier_id);
     if (p.supplier_name) S.wizData.supplier_name = p.supplier_name;
     if (p.category_name) S.wizData.category_name = p.category_name;
-    if (p.image_url) S.wizData._photoDataUrl = p.image_url;
+    // Per Тих: снимката НЕ се копира (всеки артикул иска нова уникална снимка).
     // Closes dropdown + clear input
     var inp = document.getElementById('wzSearchInp');
     if (inp) inp.value = '';
