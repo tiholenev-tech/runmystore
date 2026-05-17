@@ -5369,3 +5369,3184 @@ git revert HEAD~5
 **Owner:** Тихол
 **Live document — попълва се при изменения**
 
+
+═══════════════════════════════════════════════════════════════
+# ETAP 5 — POCKET CFO + RUNMYSTORE DUAL-PRODUCT ARCHITECTURE
+# Версия v1.1 (S148 → S149 transition)
+# Дата: 17.05.2026
+═══════════════════════════════════════════════════════════════
+
+# §28. SINGLE CODEBASE — DUAL PRODUCT АРХИТЕКТУРА
+
+## 28.1 Концептуална рамка
+
+**Pocket CFO** е personal finance tracker за свободни професии. **RunMyStore.AI** е retail management система. И двата продукта **споделят 80% от codebase-а** — един engine, два UI shell-а.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│              ОБЩ ENGINE (един codebase)                   │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ Voice → AI Parser → Money Movement → Analytics      │  │
+│  │ Photo → Vision → Receipt Parse → Money Movement     │  │
+│  │                                                      │  │
+│  │ CORE TABLES:                                         │  │
+│  │ - money_movements (универсална, replaces             │  │
+│  │   cash_drawer_movements + sales)                     │  │
+│  │ - tenants (с plan ENUM)                              │  │
+│  │ - users (multi-role)                                 │  │
+│  │ - ai_insights (унифицирано)                          │  │
+│  │ - ai_topics_catalog (modules: cfo, retail, hybrid)   │  │
+│  │ - categories (универсални)                           │  │
+│  │ - goals (savings + reinvestment)                     │  │
+│  │ - bank_accounts                                      │  │
+│  │ - reconciliations                                    │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+              ▲                              ▲
+              │                              │
+   ┌──────────┴──────────┐         ┌────────┴──────────┐
+   │ POCKET CFO          │         │ RunMyStore.AI     │
+   │ (personal UI)       │         │ (retail UI)       │
+   │                     │         │                   │
+   │ Bottom nav:         │         │ Bottom nav:       │
+   │ [AI] [Записи]      │         │ [AI] [Склад]     │
+   │ [Анализ] [Цели]    │         │ [Финанси] [Прод.]│
+   │                     │         │                   │
+   │ Цена: €4.99/мес    │         │ €19/49/109        │
+   │ tenants.plan='cfo'  │         │ start/pro/business│
+   │ modules='finance'   │         │ +retail,multistore│
+   │                     │         │                   │
+   │ Personal categories │         │ Products+inventory│
+   │ Operating profit    │         │ Sales+POS         │
+   │ Net cash position   │         │ Deliveries        │
+   └─────────────────────┘         └───────────────────┘
+```
+
+## 28.2 Tenant types и plans
+
+Базата дискриминира потребители чрез `tenants.plan` ENUM. Всеки план отключва конкретни modules:
+
+```sql
+ALTER TABLE tenants
+  ADD COLUMN plan ENUM('cfo','start','pro','business') DEFAULT 'cfo',
+  ADD COLUMN modules_unlocked SET('finance','retail','multistore','b2b') 
+    DEFAULT 'finance',
+  ADD COLUMN profession_template VARCHAR(50) NULL,
+  -- За CFO: 'driver','psychologist','freelancer','beautician','tutor',
+  --         'instructor','craftsman','courier','small_trader'
+  ADD COLUMN tenant_category VARCHAR(100) NULL,
+  -- За retail: 'clothing','shoes','jewelry','accessories' (от biz-compositions)
+  ADD COLUMN expected_monthly_income DECIMAL(10,2) NULL,
+  ADD COLUMN ai_training_consent BOOLEAN DEFAULT FALSE,
+  ADD COLUMN benchmark_optin BOOLEAN DEFAULT TRUE,
+  ADD COLUMN service_currency VARCHAR(3) DEFAULT 'EUR';
+```
+
+**Plan → modules mapping (data-driven):**
+
+```php
+function getModulesForPlan(string $plan): array {
+    return match($plan) {
+        'cfo'      => ['finance'],
+        'start'    => ['finance', 'retail'],
+        'pro'      => ['finance', 'retail', 'multistore'],
+        'business' => ['finance', 'retail', 'multistore', 'b2b'],
+    };
+}
+```
+
+**Upgrade path е безопасен** — всички данни остават, само се отключват нови modules. Pocket CFO user отваря магазин → upgrade на START → запазва историята си.
+
+## 28.3 UI shell routing
+
+Един и същ login + route. Bootstrap избира shell според `tenants.plan`:
+
+```php
+// index.php (entry point)
+session_start();
+$tenant = getTenant($_SESSION['tenant_id']);
+
+if ($tenant->plan === 'cfo') {
+    // Pocket CFO shell
+    header('Location: cfo/home.php');
+} else {
+    // RunMyStore shell
+    header('Location: life-board.php');
+}
+```
+
+**Файлова структура:**
+
+```
+/var/www/runmystore/
+├── cfo/                              ← НОВО — Pocket CFO shell
+│   ├── home.php                      ← Personal dashboard
+│   ├── records.php                   ← Money movements feed
+│   ├── analysis.php                  ← Charts + insights
+│   ├── goals.php                     ← Savings goals
+│   ├── settings.php                  ← Profile, plan, consents
+│   └── partials/
+│       ├── home-voice-bar.php
+│       ├── home-quick-stats.php
+│       └── analysis-charts.php
+│
+├── life-board.php                    ← RunMyStore home (existing)
+├── stats.php                         ← RunMyStore Финанси (existing)
+├── partials/
+│   ├── stats-finance.php             ← Sub-tab router
+│   ├── stats-finance-profit.php      ← Phase B
+│   ├── stats-finance-cashflow.php    ← Phase 8
+│   ├── stats-finance-expenses.php    ← Phase 8
+│   ├── stats-finance-controller.php  ← Phase 8 (НОВО, used by CFO too)
+│   └── stats-finance-exports.php     ← Phase 8
+│
+├── lib/
+│   ├── money-engine.php              ← НОВО — universal CRUD за movements
+│   ├── voice-parser.php              ← НОВО — Gemini/Whisper integration
+│   ├── photo-receipt-parser.php      ← НОВО — Vision API
+│   ├── ai-engine.php                 ← Универсална (extends existing)
+│   ├── ai-topics-loader.php          ← Универсална
+│   ├── stats-formulas.php            ← Универсална (cash split, op profit)
+│   ├── plan-gate.php                 ← Plan + module gating
+│   └── currency.php                  ← Pure EUR (БГ вече в евро)
+│
+└── ai-topics-catalog.json            ← Extended: + cfo module topics
+```
+
+## 28.4 Reuse map от RunMyStore
+
+Това което Pocket CFO **директно ползва** без промяна:
+
+| RunMyStore компонент | Pocket CFO ползва | Промяна |
+|---|---|---|
+| Sacred Glass canon (CSS) | ✅ 100% | Никаква |
+| Aurora background | ✅ 100% | Никаква |
+| Header Тип Б | ✅ Adapted | "Сметки" вместо "ПРОДАЖБА" |
+| Voice STT engine | ✅ 100% | Whisper paid за GDPR compliance |
+| `ai_insights` table | ✅ 100% | + module='cfo' filter |
+| `ai_topics_catalog` структура | ✅ 100% | + 30 нови CFO теми |
+| Confidence routing (Закон №8) | ✅ 100% | Никаква |
+| Audit trail (Закон №7) | ✅ 100% | Никаква |
+| 3-layer caching | ✅ 100% | Никаква |
+| Anti-repetition (`ai_shown`) | ✅ 100% | Никаква |
+| `build-prompt.php` Layers | ✅ Subset | Само Layers 1, 4, 6, 7 (без 2A-2H retail) |
+| Stripe Connect | ✅ 100% | Нов плановой product |
+| i18n architecture | ✅ 100% | БГ-first, готов за RO/GR |
+| Plan-based gating UI | ✅ 100% | Нов plan='cfo' |
+| Onboarding wizard pattern | ✅ Adapted | Различни въпроси |
+| Bichromatic light/dark | ✅ 100% | Никаква |
+| Mobile-first 375px | ✅ 100% | Никаква |
+| Currency formatting | ⚠ Pure EUR | Без двойна валута (БГ вече в €) |
+
+**Не ползваме (retail-only):**
+- ❌ Products + inventory
+- ❌ Deliveries + suppliers
+- ❌ Sales/POS логика
+- ❌ B2B invoicing
+- ❌ Z-reports
+- ❌ Weather integration (освен за outdoor професии бъдеще)
+- ❌ Wholesale logic
+
+## 28.5 Architecture decision records (ADR)
+
+### ADR-1: Single DB с tenant_id RLS
+
+**Решение:** Един schema, един DB, разделяме потребителите чрез `tenant_id` колоната във всяка таблица.
+
+**Алтернативи отхвърлени:**
+- Separate DB per tenant — твърде скъпо, сложно DevOps
+- Schema-per-tenant — не scale-ва над 100 tenants
+
+**Confirmation:** Industry standard (Monarch, YNAB, Klarna ползват същия pattern). От Research 3.
+
+### ADR-2: Voice — Whisper API paid tier, не Web Speech
+
+**Решение:** OpenAI Whisper API на платена тарифа (zero-data retention в DPA).
+
+**Алтернативи отхвърлени:**
+- Web Speech API — изпраща аудио към Google без DPA = GDPR violation
+- Self-hosted Whisper — изисква GPU, ROI едва над 10K users
+- Free Whisper tier — използва данни за training, забранено за финансови данни
+
+**Cost:** $0.006/min × 5 min/user/мес = **$0.03/user/мес**
+
+### ADR-3: Photo receipt parsing — Gemini Vision
+
+**Решение:** Gemini 2.5 Flash multimodal приема directly image + извежда structured JSON.
+
+**Алтернативи отхвърлени:**
+- Tesseract OCR — низка accuracy за БГ касови бележки
+- AWS Textract — скъпо, не БГ-локализирано
+- Google Cloud Vision — старо API, manual OCR
+
+**Cost:** ~$0.001 per receipt × 30 receipts/мес = **$0.03/user/мес**
+
+### ADR-4: Currency — pure EUR (без BGN dual display)
+
+**Решение:** БГ е вече в евро (1.1.2026). Всички цени, transactions, exports — само в евро.
+
+**Защо:** Двойната валута € + лв беше задължителна 8.8.2025 - 31.12.2026, но за нов продукт от 2026 нататък — само EUR опростява всичко.
+
+### ADR-5: Anonymization за training, не pseudonymization
+
+**Решение:** Voice transcripts → NER pipeline (изтрива имена, IBAN, локации) → anonymized текст за AI training.
+
+**Защо:** Anonymized = извън GDPR обхвата. Pseudonymized = под GDPR. От Research 3.
+
+## 28.6 Code reuse percentage
+
+Реалистично, по обем код:
+
+```
+RunMyStore текущ codebase:           ~150 000 редa PHP + JS + CSS
+
+POCKET CFO ще ползва директно:
+  - lib/* (engine functions)              ~25 000 редa  ← REUSE
+  - includes/* (UI partials)              ~12 000 редa  ← REUSE
+  - CSS canon (DESIGN_SYSTEM)             ~8 000 редa   ← REUSE
+  - Stripe + auth + i18n                  ~15 000 редa  ← REUSE
+  - AI engine + topics                    ~20 000 редa  ← REUSE (+ нови теми)
+                                          ─────────
+  Общо REUSE:                            ~80 000 редa  (53%)
+
+POCKET CFO нов code:
+  - cfo/* нови php файлове                ~8 000 редa
+  - voice-parser.php                      ~1 500 редa
+  - photo-receipt-parser.php              ~1 200 редa
+  - profession_templates seed             ~500 редa
+  - 30 нови AI теми (catalog + functions) ~3 500 редa
+  - Onboarding wizard CFO версия          ~2 000 редa
+  - cfo settings + GDPR consent           ~1 500 редa
+                                          ─────────
+  Общо НОВО:                             ~18 200 редa  (12% extra)
+
+Total:                                   ~98 200 редa за двата продукта
+(vs ~150K + ~150K = 300K ако бяха отделни)
+```
+
+**Реална икономия: 67%.** Един codebase спестява ~200K реда maintainance.
+
+---
+
+# §29. ONBOARDING — DUAL FLOW
+
+## 29.1 Shared entry point
+
+Един и същ landing page → разклонява се на стъпка 2.
+
+```
+landing.runmymoney.bg или landing.runmystore.bg
+         ↓
+    Single signup form
+    (email + парола + телефон)
+         ↓
+    EMAIL VERIFICATION
+         ↓
+    STEP 1: "Какво искаш да правиш?"
+    ┌─────────────────────────────────┐
+    │ ● Личните си финанси            │  → plan='cfo'
+    │   (свободна практика, фрилансер,│
+    │    или просто следя харчовете)  │
+    │                                 │
+    │ ● Магазин                       │  → plan='start' (default)
+    │   (имам физически магазин или    │
+    │    онлайн продажби)             │
+    └─────────────────────────────────┘
+         ↓
+    Различни pathways оттук нататък
+```
+
+## 29.2 POCKET CFO Onboarding (3 minutes)
+
+```
+STEP 1: Какво правиш? (избран)
+   ↓
+STEP 2: Каква е твоята професия / дейност?
+   
+   ┌─────────────────────────────────────────┐
+   │ Свободни професии:                      │
+   │                                         │
+   │ 💻 IT/Дизайнер/Маркетолог              │
+   │ ✂️ Козметичка/Фризьорка/Маникюрист    │
+   │ 🛵 Куриер (Glovo/Speedy/Еконт)         │
+   │ 🔧 Майстор (електро/ВиК/климатик)      │
+   │ 🚕 Uber/Bolt/Такси                     │
+   │ 📚 Частен учител                       │
+   │ 🧠 Психолог/Терапевт                   │
+   │ 🧘 Йога/Фитнес инструктор             │
+   │ 🌱 Земеделски производител             │
+   │ ─────────────                           │
+   │ 👤 Просто следя личните си харчове    │
+   │    (не работя на свободна практика)     │
+   │ ─────────────                           │
+   │ ⚙️ Друго (опиши кратко)                │
+   └─────────────────────────────────────────┘
+   
+   → Запазва се в tenants.profession_template
+
+   ↓
+
+STEP 3: Какъв е средният ти месечен приход?
+   (за персонализирани съвети — никой друг не вижда)
+   
+   [Slider]  €500 ─────●─────── €5000+
+            (default base на template)
+   
+   ✓ €0-500
+   ✓ €500-1000
+   ✓ €1000-2000
+   ✓ €2000-3500
+   ✓ €3500-5000
+   ✓ €5000+
+   ✓ Не искам да казвам
+   
+   → Запазва се в tenants.expected_monthly_income
+
+   ↓
+
+STEP 4: Първи запис (демо)
+   
+   ┌─────────────────────────────────────────┐
+   │ Опитай гласовия запис сега:             │
+   │                                         │
+   │ [🎤] Натисни и кажи:                    │
+   │                                         │
+   │ "Взех 50 лева за обяд"                  │
+   │  или                                    │
+   │ "Получих 300 евро от клиент"            │
+   │                                         │
+   │ AI ще го разпознае и запише.            │
+   │                                         │
+   │ [Прескочи] [Опитай сега]                │
+   └─────────────────────────────────────────┘
+
+   ↓
+
+STEP 5: Privacy & Consent
+   
+   ┌─────────────────────────────────────────┐
+   │ Преди да започнем:                      │
+   │                                         │
+   │ ☑ Съгласен съм с Правилата за ползване │
+   │   и Политиката за поверителност        │
+   │   (задължително)                        │
+   │                                         │
+   │ ☐ Съгласен съм моите анонимизирани    │
+   │   данни да се ползват за подобряване    │
+   │   на AI препоръките                     │
+   │   (опционално, може да оттеглиш         │
+   │   по всяко време от Настройки)          │
+   │                                         │
+   │ ☑ Съгласен съм да получавам         │
+   │   персонализирани сравнения с други     │
+   │   потребители от моята професия         │
+   │   (минимум 5 души в групата)            │
+   │                                         │
+   │ [Продължи] [Назад]                      │
+   └─────────────────────────────────────────┘
+   
+   ↓
+   
+STEP 6: Free trial
+   
+   ┌─────────────────────────────────────────┐
+   │ 🎁 7 ДНИ БЕЗПЛАТНО                      │
+   │                                         │
+   │ Достъп до всичко:                       │
+   │ ✓ Неограничени гласови записи           │
+   │ ✓ Снимки на касови бележки              │
+   │ ✓ Месечни и годишни анализи             │
+   │ ✓ Цели и спестявания                    │
+   │ ✓ Експорт за счетоводител               │
+   │                                         │
+   │ След 7 дни: €4.99/мес или €34.99/год  │
+   │            (42% по-евтино с годишен)   │
+   │                                         │
+   │ Можеш да откажеш по всяко време.       │
+   │ Без карта — само email потвърждение.   │
+   │                                         │
+   │ [Започни →]                             │
+   └─────────────────────────────────────────┘
+```
+
+## 29.3 RunMyStore Onboarding (existing, unchanged)
+
+Това вече е built в `onboarding.php` (existing). 4 стъпки според MASTER_TRACKER:
+1. Име на магазин + категория
+2. Локация + площ
+3. Брой потребители + роли
+4. Plan избор (START/PRO/BUSINESS)
+
+## 29.4 Cross-product migration (CFO → Start)
+
+Сценарий: Pocket CFO user реши да отвори физически магазин.
+
+```
+[В Settings на CFO]
+   ↓
+"Искам да добавя магазин"
+   ↓
+ВНИМАНИЕ: Това променя плана от €4.99/мес на €19/мес
+   ↓
+Onboarding STEP 2: Каква категория магазин?
+   (същия flow като нов RunMyStore user)
+   ↓
+Onboarding STEP 3: Колко магазина имаш?
+   ↓
+UPGRADE:
+   - tenants.plan: 'cfo' → 'start'
+   - tenants.modules_unlocked: 'finance' → 'finance,retail'
+   - Stripe billing update
+   - Запазват се ВСИЧКИ existing money_movements
+   - Личните транзакции продължават да live в Контролер sub-tab
+   - Новите бизнес транзакции отиват в Финанси таб
+   ↓
+След upgrade: 
+   - Bottom nav преминава от CFO към RunMyStore version
+   - Личните harчове видими в "Контролер" sub-tab
+   - Бизнес harчове в "Разходи" sub-tab
+```
+
+**Key insight:** Никаква data migration. Същата `money_movements` таблица, само различен UI shell.
+
+## 29.5 Professional templates
+
+Всеки от 9-те templates preconfigure-ва:
+- Default categories
+- Tax mode hints (за UI hints, не за advice)
+- Expected expense patterns
+- Income frequency expectations
+
+### Template: 💻 IT/Дизайнер/Маркетолог
+
+```php
+[
+    'name' => 'it_freelancer',
+    'name_bg' => 'IT/Дизайнер/Маркетолог',
+    'default_categories' => [
+        ['name_bg' => 'Клиентски проекти', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Заплати/договори', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Кафе/обяд работа', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Софтуер/абонаменти', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хардуер/техника', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Курс/конференция', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Транспорт лично', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Развлечения', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'irregular_monthly',  // от 1 до 5 големи плащания
+    'typical_payment_methods' => ['bank_transfer'],
+    'currency_default' => 'EUR',  // могат да имат USD/EUR клиенти
+    'expected_income_range' => [2300, 5620],  // от Research 1
+    'ai_hints' => [
+        'income_variance_alert' => 'Доходите на IT freelancer варират значително',
+        'recommend_reserve_months' => 6,  // по-голям резерв заради variance
+    ],
+]
+```
+
+### Template: ✂️ Козметичка/Фризьорка/Маникюрист
+
+```php
+[
+    'name' => 'beautician',
+    'name_bg' => 'Козметичка/Фризьорка/Маникюрист',
+    'default_categories' => [
+        ['name_bg' => 'Клиенти кеш', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Клиенти карта/Revolut', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Наем работно място', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Козметика/материали', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Инструменти', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Транспорт лично', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Облекло/обувки', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'daily_micro',  // много малки трансакции на ден
+    'typical_payment_methods' => ['cash', 'card'],
+    'expected_income_range' => [1020, 2300],
+    'ai_hints' => [
+        'cash_heavy_warning' => 'Високо ниво на кеш — внимание с reconciliation',
+        'recommend_daily_tracking' => true,
+    ],
+]
+```
+
+### Template: 🛵 Куриер (Glovo/Speedy/Еконт)
+
+```php
+[
+    'name' => 'courier',
+    'name_bg' => 'Куриер',
+    'default_categories' => [
+        ['name_bg' => 'Поръчки Glovo', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Поръчки Speedy', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Поръчки Еконт', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Бонуси', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Гориво', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Поддръжка кола/мотор', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Амортизация', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Телефон/Data', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Храна по време работа', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'weekly_aggregate',  // обикновено weekly settlement
+    'typical_payment_methods' => ['bank_transfer'],
+    'expected_income_range' => [920, 1630],
+    'ai_hints' => [
+        'fuel_ratio_track' => true,
+        'recommend_fuel_pct_of_income' => 15,  // ако >25% = inefficient
+        'weather_aware' => true,  // прогноза от weather-cache.php
+    ],
+]
+```
+
+### Template: 🔧 Майстор (електро/ВиК/климатик)
+
+```php
+[
+    'name' => 'craftsman',
+    'name_bg' => 'Майстор/Сервиз',
+    'default_categories' => [
+        ['name_bg' => 'Услуги клиенти', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Спешни поправки', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Материали/части', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Инструменти', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Гориво транспорт', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Реклама OLX/FB', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Развлечения', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'per_job',  // 1-3 големи плащания на седмица
+    'typical_payment_methods' => ['cash', 'bank_transfer'],
+    'expected_income_range' => [1790, 3580],
+    'ai_hints' => [
+        'materials_pct_track' => true,
+        'recommend_materials_pct' => 30,  // ако >50% = lossymaking
+        'cash_heavy' => true,
+    ],
+]
+```
+
+### Template: 🚕 Uber/Bolt/Такси
+
+```php
+[
+    'name' => 'driver',
+    'name_bg' => 'Uber/Bolt/Такси шофьор',
+    'default_categories' => [
+        ['name_bg' => 'Пътувания Uber', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Пътувания Bolt', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Бонуси платформа', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Гориво', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Сервиз кола', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Гуми/масло', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Застраховка КАСКО', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Платена цена кола (leasing)', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Дом/семейство', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'daily_high_variance',
+    'typical_payment_methods' => ['bank_transfer'],
+    'expected_income_range' => [1280, 2300],
+    'ai_hints' => [
+        'fuel_critical_track' => true,
+        'recommend_fuel_pct' => 25,  // ако >40% = лошо
+        'depreciation_aware' => true,
+    ],
+]
+```
+
+### Template: 📚 Частен учител
+
+```php
+[
+    'name' => 'tutor',
+    'name_bg' => 'Частен учител',
+    'default_categories' => [
+        ['name_bg' => 'Уроци', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Курсове', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Учебни материали', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Софтуер (Zoom/Office)', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Транспорт до учебни места', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'seasonal',  // септ-юни peak, юли-авг slowdown
+    'typical_payment_methods' => ['cash', 'bank_transfer', 'revolut'],
+    'expected_income_range' => [770, 1790],
+    'ai_hints' => [
+        'seasonal_pattern' => 'school_year',
+        'summer_reserve_alert' => true,  // напомняй за резерв преди лятото
+    ],
+]
+```
+
+### Template: 🧠 Психолог/Терапевт
+
+```php
+[
+    'name' => 'psychologist',
+    'name_bg' => 'Психолог/Терапевт',
+    'default_categories' => [
+        ['name_bg' => 'Сесии частни клиенти', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Корпоративни клиенти', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Наем кабинет', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Супервизия (професионално развитие)', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Книги/курсове', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'recurring_weekly',  // клиенти ходят редовно
+    'typical_payment_methods' => ['cash', 'bank_transfer'],
+    'expected_income_range' => [1020, 2300],
+    'ai_hints' => [
+        'fixed_clients_track' => true,
+        'recommend_session_count_target' => 'weekly',
+    ],
+]
+```
+
+### Template: 🧘 Йога/Фитнес инструктор
+
+```php
+[
+    'name' => 'instructor',
+    'name_bg' => 'Йога/Фитнес инструктор',
+    'default_categories' => [
+        ['name_bg' => 'Зала 1 - часове', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Зала 2 - часове', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Частни клиенти', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Workshops/Retreats', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Облекло спортно', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Сертификации/обучения', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Транспорт между зали', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'weekly_classes',
+    'typical_payment_methods' => ['cash', 'bank_transfer', 'revolut'],
+    'expected_income_range' => [770, 1530],
+    'ai_hints' => [
+        'multi_location' => true,
+        'seasonal_pattern' => 'jan_resolutions',  // janurari peak
+    ],
+]
+```
+
+### Template: 🌱 Земеделски производител
+
+```php
+[
+    'name' => 'farmer',
+    'name_bg' => 'Земеделски производител',
+    'default_categories' => [
+        ['name_bg' => 'Продажби пазар', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Продажби директни', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Субсидии ДФ', 'type' => 'income', 'is_business' => true],
+        ['name_bg' => 'Семена/разсад', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Тор/препарати', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Гориво техника', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Заплати помощници', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Транспорт стока', 'type' => 'expense', 'is_business' => true],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'highly_seasonal',
+    'typical_payment_methods' => ['cash', 'bank_transfer'],
+    'expected_income_range' => [770, 2040],
+    'ai_hints' => [
+        'seasonal_extreme' => true,
+        'subsidy_track' => true,
+        'weather_critical' => true,
+    ],
+]
+```
+
+### Template: 👤 Личен бюджет
+
+```php
+[
+    'name' => 'personal',
+    'name_bg' => 'Личен бюджет',
+    'default_categories' => [
+        ['name_bg' => 'Заплата', 'type' => 'income', 'is_business' => false],
+        ['name_bg' => 'Други доходи', 'type' => 'income', 'is_business' => false],
+        ['name_bg' => 'Хранителни', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Транспорт', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Сметки (ток/вода/инет)', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Наем/ипотека', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Развлечения', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Ресторанти', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Здраве', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Облекло', 'type' => 'expense', 'is_business' => false],
+        ['name_bg' => 'Подаръци', 'type' => 'expense', 'is_business' => false],
+    ],
+    'income_pattern' => 'monthly_fixed',
+    'typical_payment_methods' => ['bank_transfer', 'card'],
+    'expected_income_range' => [500, 5000],
+    'ai_hints' => [
+        'recommend_50_30_20' => true,  // правило 50/30/20
+    ],
+]
+```
+
+## 29.6 Custom template
+
+Опция "⚙️ Друго" → user пише кратко описание → AI генерира personalized categories през Gemini Flash:
+
+```php
+function generateCustomCategories(string $profession_description, string $lang = 'bg'): array {
+    $prompt = <<<PROMPT
+Потребител описва своята професия: "{$profession_description}"
+
+Генерирай 6-10 категории за финансово проследяване в JSON формат.
+
+Изисквания:
+- Категории за приходи (поне 2)
+- Категории за разходи (поне 4 бизнес + 3 лични)
+- Имена на български
+- За всяка маркирай дали е бизнес (true) или лично (false)
+- Реалистично за БГ контекст
+
+Output ONLY valid JSON array. Example:
+[
+  {"name_bg": "Услуги клиенти", "type": "income", "is_business": true},
+  {"name_bg": "Гориво", "type": "expense", "is_business": true},
+  ...
+]
+PROMPT;
+
+    return parseGeminiJSON(callGemini($prompt));
+}
+```
+
+User преглежда → може да edit-не → запазва.
+
+
+# §30. MONEY_MOVEMENTS — UNIVERSAL CORE TABLE
+
+## 30.1 Преди и сега
+
+Преди (RunMyStore-only):
+- `sales` (за продажби)
+- `cash_drawer_movements` (planned)
+- `expenses` (за разходи)
+- `bank_transactions` (planned)
+
+**Сега (унифицирано):**
+
+ВСЯКО движение на пари (приход или разход) минава през **една таблица**:
+
+```sql
+CREATE TABLE money_movements (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    user_id INT NOT NULL,
+    
+    -- === DIRECTION + AMOUNT ===
+    direction ENUM('in', 'out') NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'EUR',
+    
+    -- === LOCATION (where money lives) ===
+    location ENUM('cash', 'bank', 'card', 'wallet', 'savings', 'crypto') NOT NULL,
+    bank_account_id INT UNSIGNED NULL,        -- FK ако location='bank'
+    store_id INT NULL,                         -- ако retail (NULL за CFO)
+    
+    -- === REASON ===
+    reason ENUM(
+      -- INCOME types
+      'sale',                  -- retail: продажба
+      'service_income',        -- personal: hourly клиент платил
+      'platform_income',       -- Uber/Glovo/Bolt платформа
+      'salary_received',
+      'subscription_income',   -- monthly recurring
+      'subsidy_received',      -- държавна помощ
+      'gift_received',
+      'refund_received',
+      'owner_inject',          -- личен капитал → бизнес
+      'transfer_in',           -- движение между сметки
+      'other_income',
+      
+      -- OUTCOME types
+      'supplier_payment',      -- retail: доставка
+      'expense_payment',       -- ВСЕКИ разход (ток, наем, гориво, материали...)
+      'personal_expense',      -- CFO: лични харчове (храна, развлечения)
+      'salary_paid',           -- retail: заплати на персонал
+      'tax_paid',
+      'rent_paid',
+      'utility_paid',
+      'transfer_out',          -- движение между сметки
+      'owner_withdrawal',      -- бизнес → лично
+      'refund_given',
+      'adjustment'             -- ръчна корекция
+    ) NOT NULL,
+    
+    -- === CATEGORIZATION ===
+    category_id INT UNSIGNED NULL,             -- FK to categories
+    is_business BOOLEAN DEFAULT TRUE,           -- retail=true default
+    business_pct DECIMAL(5,2) DEFAULT 100.00,  -- ако mixed (телефон 70% бизнес)
+    
+    -- === LINK ===
+    related_type ENUM('sale','delivery','expense','invoice','goal','transfer','none') 
+        DEFAULT 'none',
+    related_id BIGINT NULL,
+    
+    -- === VOICE / AI ===
+    input_method ENUM('voice','photo','manual','api','import') DEFAULT 'manual',
+    voice_transcript TEXT NULL,
+    ai_parsed JSON NULL,                       -- raw AI output
+    ai_confidence DECIMAL(3,2) NULL,
+    needs_review BOOLEAN DEFAULT FALSE,         -- ако confidence < 0.85
+    
+    -- === RECEIPTS ===
+    receipt_photo_path VARCHAR(255) NULL,
+    vendor_name VARCHAR(200) NULL,             -- от photo parse
+    vendor_eik VARCHAR(20) NULL,                -- от photo parse (бг касова)
+    note VARCHAR(500),
+    
+    -- === APPROVAL (multi-user retail) ===
+    requires_approval BOOLEAN DEFAULT FALSE,
+    approved_by INT NULL,
+    approved_at DATETIME NULL,
+    
+    -- === RECONCILIATION ===
+    reconciliation_id BIGINT NULL,
+    
+    -- === TIMESTAMPS ===
+    occurred_at DATETIME NOT NULL,             -- когато реално стана
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- === SOFT DELETE (GDPR right to erasure) ===
+    is_deleted BOOLEAN DEFAULT FALSE,
+    anonymized_at DATETIME NULL,
+    
+    INDEX idx_tenant_occurred (tenant_id, occurred_at),
+    INDEX idx_tenant_reason (tenant_id, reason),
+    INDEX idx_tenant_location (tenant_id, location, occurred_at),
+    INDEX idx_user (user_id),
+    INDEX idx_category (category_id),
+    INDEX idx_related (related_type, related_id),
+    INDEX idx_needs_review (tenant_id, needs_review),
+    FOREIGN KEY (bank_account_id) REFERENCES bank_accounts(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+```
+
+## 30.2 Migration от съществуващите таблици
+
+За RunMyStore tenants (start/pro/business), `money_movements` се popula-ва от existing `sales`, `expenses`, `stock_movements (sale type)`:
+
+```sql
+-- Migration script (run веднъж при upgrade)
+
+-- 1. Sales → money_movements (income)
+INSERT INTO money_movements (
+    tenant_id, user_id, direction, amount, currency,
+    location, store_id, reason, is_business,
+    related_type, related_id, occurred_at, created_at
+)
+SELECT
+    s.tenant_id,
+    s.user_id,
+    'in' AS direction,
+    s.total AS amount,
+    'EUR' AS currency,
+    CASE 
+      WHEN s.payment_method = 'cash' THEN 'cash'
+      WHEN s.payment_method = 'card' THEN 'bank'
+      ELSE 'bank'
+    END AS location,
+    s.store_id,
+    'sale' AS reason,
+    TRUE AS is_business,
+    'sale' AS related_type,
+    s.id AS related_id,
+    s.created_at AS occurred_at,
+    s.created_at AS created_at
+FROM sales s
+WHERE s.status = 'completed';
+
+-- 2. Expenses → money_movements (out) [когато таблицата съществува]
+-- ... аналогично
+
+-- 3. Stock movements (sale type) — НЕ дублираме, имаме ги от sales
+```
+
+**Backward compatibility:** `sales` и `expenses` таблиците остават като **views** или като **детайл** таблици. money_movements е универсалният summary.
+
+## 30.3 Categories таблица (унифицирана)
+
+```sql
+CREATE TABLE categories (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    parent_id INT UNSIGNED NULL,
+    
+    name VARCHAR(100) NOT NULL,
+    name_bg VARCHAR(100),
+    icon VARCHAR(10),                          -- emoji или icon name
+    color_hue INT,                              -- 0-360 за UI hue
+    
+    type ENUM('income','expense','transfer') NOT NULL,
+    is_business BOOLEAN DEFAULT FALSE,
+    is_fixed BOOLEAN DEFAULT FALSE,             -- recurring (наем/абонамент)
+    
+    -- За custom categories от user
+    is_system BOOLEAN DEFAULT FALSE,            -- preset от template
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    
+    -- За AI matching (по време на voice parse)
+    keywords JSON,                              -- ["обяд","хапка","нахраних"]
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_tenant_type (tenant_id, type, is_active),
+    FOREIGN KEY (parent_id) REFERENCES categories(id)
+);
+```
+
+При onboarding с template → се seed-ват default категориите (виж §29.5).
+
+## 30.4 Reconciliations table
+
+```sql
+CREATE TABLE reconciliations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    
+    -- Scope
+    type ENUM('cash','bank','total') NOT NULL,
+    bank_account_id INT UNSIGNED NULL,         -- ако type='bank'
+    store_id INT NULL,                          -- ако retail
+    
+    -- Period
+    period_start DATETIME NOT NULL,
+    period_end DATETIME NOT NULL,
+    
+    -- Calculated values
+    opening_balance DECIMAL(12,2) NOT NULL,
+    total_in DECIMAL(12,2) NOT NULL,
+    total_out DECIMAL(12,2) NOT NULL,
+    expected_close DECIMAL(12,2) NOT NULL,
+    actual_close DECIMAL(12,2) NULL,            -- manual count
+    diff DECIMAL(12,2) GENERATED ALWAYS AS (actual_close - expected_close) STORED,
+    
+    -- Metadata
+    performed_by INT NOT NULL,
+    performed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    
+    INDEX idx_tenant_period (tenant_id, period_end),
+    FOREIGN KEY (bank_account_id) REFERENCES bank_accounts(id)
+);
+```
+
+## 30.5 Goals table
+
+```sql
+CREATE TABLE goals (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    user_id INT NOT NULL,
+    
+    name VARCHAR(200) NOT NULL,
+    type ENUM('savings','reserve','reinvestment','custom') DEFAULT 'savings',
+    
+    target_amount DECIMAL(12,2) NOT NULL,
+    current_amount DECIMAL(12,2) DEFAULT 0,
+    currency VARCHAR(3) DEFAULT 'EUR',
+    
+    deadline_date DATE NULL,                    -- optional
+    
+    -- Linked savings account
+    savings_account_id INT UNSIGNED NULL,
+    
+    -- AI hints
+    monthly_recommended DECIMAL(10,2) NULL,     -- AI calc от income vs expenses
+    
+    status ENUM('active','paused','achieved','abandoned') DEFAULT 'active',
+    achieved_at DATETIME NULL,
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_tenant_user (tenant_id, user_id),
+    INDEX idx_status (status)
+);
+```
+
+## 30.6 Bank accounts (existing, но reuse)
+
+Същата структура от RunMyStore Bible §6.2 M-008. Pocket CFO просто я ползва без промяна.
+
+## 30.7 Helper functions
+
+```php
+// lib/money-engine.php
+
+/**
+ * Insert money movement (universal)
+ * @param array $data — all relevant fields
+ * @return int — inserted ID
+ */
+function insertMoneyMovement(array $data): int {
+    // Validation
+    if (!isset($data['amount']) || $data['amount'] <= 0) {
+        throw new \InvalidArgumentException('Amount must be positive');
+    }
+    
+    // Default occurred_at to now
+    $data['occurred_at'] = $data['occurred_at'] ?? date('Y-m-d H:i:s');
+    
+    // Confidence routing
+    if (isset($data['ai_confidence']) && $data['ai_confidence'] < 0.85) {
+        $data['needs_review'] = true;
+    }
+    
+    // Build INSERT
+    $sql = "INSERT INTO money_movements (...) VALUES (...)";
+    $id = DB::insert($sql, $data);
+    
+    // Invalidate cache
+    invalidateMovementCache($data['tenant_id']);
+    
+    // Trigger AI insights re-compute (async)
+    queueInsightRecompute($data['tenant_id'], $data['reason']);
+    
+    return $id;
+}
+
+/**
+ * Get current balance for location
+ */
+function getBalance(int $tenant_id, string $location, ?int $bank_account_id = null): float {
+    $sql = "SELECT 
+              SUM(CASE WHEN direction='in' THEN amount ELSE -amount END) AS balance
+            FROM money_movements
+            WHERE tenant_id = ?
+              AND location = ?
+              AND is_deleted = FALSE";
+    
+    $params = [$tenant_id, $location];
+    
+    if ($bank_account_id) {
+        $sql .= " AND bank_account_id = ?";
+        $params[] = $bank_account_id;
+    }
+    
+    return DB::query($sql, $params)->fetchColumn() ?: 0;
+}
+
+/**
+ * Working capital split (cash drawer)
+ */
+function calcCashSplit(int $tenant_id, ?int $store_id = null): array {
+    $total = getBalance($tenant_id, 'cash');
+    
+    $working_capital = 
+        getUnpaidObligationsInDays($tenant_id, 7) +    // доставки + разходи дължими в 7д
+        getAvgWeeklyExpenseObligation($tenant_id) * 1.5 +
+        getFixedCostsMonthly($tenant_id) / 4;
+    
+    $free_money = max(0, $total - $working_capital);
+    
+    return [
+        'total' => $total,
+        'working_capital' => $working_capital,
+        'free_money' => $free_money,
+        'free_pct' => $total > 0 ? round($free_money / $total * 100) : 0,
+        'is_overdrawn' => ($working_capital > $total),
+    ];
+}
+
+/**
+ * Operating profit (revenue - business expenses)
+ */
+function calcOperatingProfit(int $tenant_id, string $period_start, string $period_end): array {
+    $income = DB::query(
+        "SELECT SUM(amount) FROM money_movements
+         WHERE tenant_id = ? AND direction = 'in'
+           AND is_business = TRUE
+           AND occurred_at BETWEEN ? AND ?
+           AND is_deleted = FALSE",
+        [$tenant_id, $period_start, $period_end]
+    )->fetchColumn() ?: 0;
+    
+    $expenses = DB::query(
+        "SELECT SUM(amount) FROM money_movements
+         WHERE tenant_id = ? AND direction = 'out'
+           AND is_business = TRUE
+           AND occurred_at BETWEEN ? AND ?
+           AND is_deleted = FALSE",
+        [$tenant_id, $period_start, $period_end]
+    )->fetchColumn() ?: 0;
+    
+    return [
+        'income' => $income,
+        'expenses' => $expenses,
+        'operating_profit' => $income - $expenses,
+        'margin_pct' => $income > 0 ? round(($income - $expenses) / $income * 100, 1) : 0,
+    ];
+}
+
+/**
+ * Net cash position (after personal withdrawals)
+ */
+function calcNetCashPosition(int $tenant_id, string $period_start, string $period_end): array {
+    $op = calcOperatingProfit($tenant_id, $period_start, $period_end);
+    
+    $personal = DB::query(
+        "SELECT SUM(amount) FROM money_movements
+         WHERE tenant_id = ? AND direction = 'out'
+           AND is_business = FALSE
+           AND occurred_at BETWEEN ? AND ?
+           AND is_deleted = FALSE",
+        [$tenant_id, $period_start, $period_end]
+    )->fetchColumn() ?: 0;
+    
+    return [
+        'operating_profit' => $op['operating_profit'],
+        'personal_withdrawals' => $personal,
+        'net_cash_position' => $op['operating_profit'] - $personal,
+        'burn_pct_of_income' => $op['income'] > 0 ? round($personal / $op['income'] * 100) : 0,
+    ];
+}
+```
+
+---
+
+# §31. VOICE + PHOTO INPUT
+
+## 31.1 Voice flow — полный pipeline
+
+```
+[User натиска 🎤]
+        ↓
+[Recording 0.5-30 sec]
+        ↓
+[STT — Whisper API (paid, GDPR-compliant)]
+        ↓
+[Transcript: "Взех 50 лева за обяд"]
+        ↓
+[Voice Parser — Gemini Flash structured output]
+        ↓
+[JSON parsed: {
+    amount: 50,
+    currency: 'BGN',
+    direction: 'out',
+    reason: 'personal_expense',
+    category_guess: 'Хранителни',
+    is_business: false,
+    confidence: 0.93,
+    transcript_clean: 'Взех 50 лева за обяд'
+  }]
+        ↓
+[NER — извлича и изтрива PII]
+[Transcript cleaned: "Взех [AMOUNT] за [CATEGORY]"]
+        ↓
+[Confirmation Card (2-4 sec auto-dismiss)]
+        ↓
+[INSERT money_movements]
+        ↓
+[Update cache + trigger AI insights]
+        ↓
+[Show in feed]
+```
+
+## 31.2 Photo receipt flow
+
+```
+[User натиска 📷]
+        ↓
+[Camera opens — preview frame для касова бележка]
+        ↓
+[Capture]
+        ↓
+[Photo uploaded — local /tmp/ → optional R2 storage]
+        ↓
+[Gemini 2.5 Flash Vision — structured output]
+        ↓
+[JSON parsed: {
+    total: 23.45,
+    currency: 'EUR',
+    vendor_name: 'Билла',
+    vendor_eik: '202103973',
+    date: '2026-05-15',
+    items: [
+      {name: 'Хляб', price: 1.30},
+      {name: 'Мляко', price: 2.85},
+      ...
+    ],
+    vat_total: 3.91,
+    confidence: 0.91
+  }]
+        ↓
+[Confirmation Card with edit option]
+        ↓
+[User confirms or edits]
+        ↓
+[INSERT money_movements]
+[Photo saved to GDPR-compliant storage (anonymized path)]
+        ↓
+[Show in feed]
+```
+
+## 31.3 STT engine selection
+
+```php
+// lib/voice-parser.php
+
+class VoiceParser {
+    private const WHISPER_API = 'https://api.openai.com/v1/audio/transcriptions';
+    private const COST_PER_MIN = 0.006;  // USD
+    
+    /**
+     * Transcribe audio file
+     */
+    public function transcribe(string $audio_path, string $lang = 'bg'): array {
+        // Check audio duration
+        $duration = $this->getAudioDuration($audio_path);
+        
+        if ($duration > 30) {
+            throw new \Exception('Audio too long, max 30 seconds');
+        }
+        
+        // Choose engine based on lang + cost optimization
+        if ($lang === 'bg') {
+            // Whisper API (paid tier) — GDPR compliant
+            return $this->whisperAPI($audio_path, 'bg');
+        } else {
+            // Multi-lang support
+            return $this->whisperAPI($audio_path, $lang);
+        }
+    }
+    
+    private function whisperAPI(string $audio_path, string $lang): array {
+        $ch = curl_init(self::WHISPER_API);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . getenv('OPENAI_API_KEY'),
+                'Content-Type: multipart/form-data',
+            ],
+            CURLOPT_POSTFIELDS => [
+                'file' => new CURLFile($audio_path),
+                'model' => 'whisper-1',
+                'language' => $lang,
+                'response_format' => 'verbose_json',
+                'temperature' => 0,  // deterministic
+            ],
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($http_code !== 200) {
+            throw new \Exception("Whisper API failed: HTTP $http_code");
+        }
+        
+        $data = json_decode($response, true);
+        
+        return [
+            'text' => $data['text'],
+            'duration' => $data['duration'],
+            'language' => $data['language'],
+            'cost_usd' => $data['duration'] / 60 * self::COST_PER_MIN,
+        ];
+    }
+    
+    /**
+     * Parse transcribed text into structured money movement
+     */
+    public function parseToMovement(
+        string $transcript, 
+        int $tenant_id,
+        array $tenant_categories
+    ): array {
+        $categoriesJSON = json_encode($tenant_categories);
+        
+        $prompt = <<<PROMPT
+Ти си AI парсер за финансово приложение. Анализирай това изречение на български
+и върни СТРИКТЕН JSON.
+
+Изречение: "{$transcript}"
+
+Налични категории:
+{$categoriesJSON}
+
+Извлечи:
+- amount (число)
+- currency (EUR по подразбиране; "лева" → BGN converted to EUR by 1.95583; 
+  "евро"→ EUR; "долара"→ USD)
+- direction ("in" ако получено, "out" ако харчено)
+- reason (от ENUM: sale, service_income, personal_expense, expense_payment, 
+  supplier_payment, transfer_in, transfer_out, salary_received, salary_paid, 
+  rent_paid, utility_paid, tax_paid, refund_received, refund_given, 
+  owner_inject, owner_withdrawal, gift_received, other_income)
+- category_id (ID от наличните категории, най-близка по смисъл)
+- is_business (true ако е свързано с работа/клиенти; false ако лично)
+- vendor_name (име на търговец/доставчик ако споменато, иначе null)
+- confidence (0.0-1.0, твоята увереност в parse-а)
+
+ВАЖНО:
+- Ако не разпознаваш сумата → confidence < 0.5
+- "Лева" винаги се конвертира в EUR
+- Без guessing — ако не си сигурен, понижи confidence
+
+Output ONLY valid JSON. No markdown, no explanation.
+PROMPT;
+        
+        $response = $this->callGemini($prompt);
+        return json_decode($response, true);
+    }
+    
+    /**
+     * Estimate cost for current usage
+     */
+    public function estimateMonthlyCost(int $tenant_id): float {
+        // Average usage profile
+        $voice_count = 100;
+        $avg_duration_sec = 3;
+        $total_minutes = ($voice_count * $avg_duration_sec) / 60;
+        
+        return $total_minutes * self::COST_PER_MIN;
+    }
+}
+```
+
+## 31.4 Photo receipt parser
+
+```php
+// lib/photo-receipt-parser.php
+
+class PhotoReceiptParser {
+    private const GEMINI_VISION_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    private const COST_PER_IMAGE = 0.001;  // USD approx
+    
+    public function parse(string $image_path): array {
+        // Read image as base64
+        $image_data = base64_encode(file_get_contents($image_path));
+        $mime_type = mime_content_type($image_path);
+        
+        $prompt = <<<PROMPT
+Анализирай тази снимка на касова бележка на български или европейски магазин.
+Извлечи структурирана информация в JSON.
+
+Извлечи:
+- total (общата сума, число)
+- currency (EUR по подразбиране за БГ касови след 1.1.2026)
+- vendor_name (име на магазина/доставчика)
+- vendor_eik (ЕИК ако видим, формат XXXXXXXXX или XXXXXXXXXXX)
+- date (YYYY-MM-DD)
+- time (HH:MM ако видимо)
+- payment_method ('cash', 'card', 'transfer', или null)
+- items (масив с {name, qty, price} ако видими, иначе празен)
+- vat_total (общо ДДС ако видимо)
+- vat_breakdown (масив {rate, base, vat} ако видимо)
+- confidence (0.0-1.0)
+
+ВАЖНО:
+- БГ касови бележки имат "Общо" в края
+- ЕИК е до 13 цифри обикновено
+- Дата формат в БГ: DD.MM.YYYY (превърни в YYYY-MM-DD)
+- Ако числата са замазани/нечетливи → confidence < 0.6
+
+Output ONLY valid JSON.
+PROMPT;
+        
+        $payload = [
+            'contents' => [[
+                'parts' => [
+                    ['text' => $prompt],
+                    ['inline_data' => [
+                        'mime_type' => $mime_type,
+                        'data' => $image_data
+                    ]]
+                ]
+            ]],
+            'generationConfig' => [
+                'temperature' => 0,
+                'responseMimeType' => 'application/json'
+            ]
+        ];
+        
+        $ch = curl_init(self::GEMINI_VISION_API . '?key=' . getenv('GEMINI_API_KEY'));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_TIMEOUT => 15,
+        ]);
+        
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
+        $result = json_decode($response, true);
+        $text = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        
+        return json_decode($text, true);
+    }
+    
+    /**
+     * Save receipt photo to GDPR-compliant storage
+     */
+    public function saveReceiptPhoto(string $temp_path, int $tenant_id): string {
+        $year = date('Y');
+        $month = date('m');
+        
+        // Path: /storage/receipts/2026/05/{tenant_id}/{uuid}.jpg
+        $relative_path = "receipts/{$year}/{$month}/{$tenant_id}/" . 
+                          generateUUID() . '.' . pathinfo($temp_path, PATHINFO_EXTENSION);
+        $full_path = STORAGE_ROOT . '/' . $relative_path;
+        
+        // Ensure directory exists
+        @mkdir(dirname($full_path), 0755, true);
+        
+        // Move and set perms
+        rename($temp_path, $full_path);
+        chmod($full_path, 0640);
+        
+        return $relative_path;
+    }
+}
+```
+
+## 31.5 NER pipeline (anonymization преди AI training)
+
+```php
+// lib/ner-anonymizer.php
+
+class NERAnonymizer {
+    private const REPLACEMENTS = [
+        // Имена (capitalized words + БГ patterns)
+        '/\\b[А-Я][а-я]+\\s+[А-Я][а-я]+\\b/u' => '[ИМЕ]',
+        
+        // IBAN (БГ formato BG + 22 chars)
+        '/BG\\d{2}\\s?\\w{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{2}/' => '[IBAN]',
+        
+        // Кредитни карти (16 digits)
+        '/\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b/' => '[КАРТА]',
+        
+        // Email
+        '/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/' => '[ИМЕЙЛ]',
+        
+        // Телефонни номера БГ
+        '/(\\+359|0)\\s?\\d{2}\\s?\\d{3}\\s?\\d{4}/' => '[ТЕЛЕФОН]',
+        
+        // ЕГН (10 digits with checksum pattern)
+        '/\\b\\d{10}\\b/' => '[ЕГН]',
+        
+        // Адреси (улица + номер pattern)
+        '/(ул\\.|улица|бул\\.|булевард)\\s+[А-Я][а-я]+(\\s+\\d+)?/iu' => '[АДРЕС]',
+    ];
+    
+    public function anonymize(string $text): string {
+        $clean = $text;
+        foreach (self::REPLACEMENTS as $pattern => $replacement) {
+            $clean = preg_replace($pattern, $replacement, $clean);
+        }
+        return $clean;
+    }
+    
+    /**
+     * Анonymize с keep important context
+     * Например: запазваме "обяд", "гориво", "доставчик" — общи термини
+     * Изтриваме конкретни идентификатори
+     */
+    public function anonymizeForTraining(string $text): array {
+        $cleaned = $this->anonymize($text);
+        
+        // Допълнително: заменяме конкретни магазини с категории
+        $vendor_categories = [
+            'Билла' => '[СУПЕРМАРКЕТ]',
+            'Кауфланд' => '[СУПЕРМАРКЕТ]',
+            'Лидл' => '[СУПЕРМАРКЕТ]',
+            'Метро' => '[ГОЛЯМ_МАГАЗИН]',
+            'OMV' => '[БЕНЗИНОСТАНЦИЯ]',
+            'Lukoil' => '[БЕНЗИНОСТАНЦИЯ]',
+            'Shell' => '[БЕНЗИНОСТАНЦИЯ]',
+            // ... extensible
+        ];
+        
+        foreach ($vendor_categories as $vendor => $category) {
+            $cleaned = str_replace($vendor, $category, $cleaned);
+        }
+        
+        return [
+            'original_hash' => hash('sha256', $text),  // за reference, не идентификация
+            'anonymized_text' => $cleaned,
+        ];
+    }
+}
+```
+
+## 31.6 Voice + Photo training data pipeline
+
+```php
+// lib/ai-training-pipeline.php
+
+class AITrainingPipeline {
+    /**
+     * Process consented data for model improvement
+     * Run nightly via cron
+     */
+    public function processNightly(): void {
+        // Само от tenants със consent
+        $tenants = DB::query(
+            "SELECT id FROM tenants WHERE ai_training_consent = TRUE"
+        )->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (empty($tenants)) return;
+        
+        foreach ($tenants as $tenant_id) {
+            $movements = DB::query(
+                "SELECT id, voice_transcript, ai_parsed, ai_confidence
+                 FROM money_movements
+                 WHERE tenant_id = ?
+                   AND voice_transcript IS NOT NULL
+                   AND created_at >= NOW() - INTERVAL 1 DAY
+                   AND ai_confidence >= 0.85
+                   AND is_deleted = FALSE",
+                [$tenant_id]
+            )->fetchAll();
+            
+            foreach ($movements as $m) {
+                $anonymizer = new NERAnonymizer();
+                $anonymized = $anonymizer->anonymizeForTraining($m['voice_transcript']);
+                
+                // Save to training corpus (S3 bucket, isolated)
+                $this->saveToTrainingCorpus([
+                    'date' => date('Y-m-d'),
+                    'text' => $anonymized['anonymized_text'],
+                    'expected_parse' => $m['ai_parsed'],
+                    'confidence' => $m['ai_confidence'],
+                ]);
+            }
+        }
+        
+        // Корпусът се ползва месечно за prompt tuning, не за weights training
+    }
+}
+```
+
+
+# §32. AI ADVISOR — 30 ТЕМИ БЕЗ ХАЛЮЦИНАЦИИ
+
+## 32.1 Принцип "PHP смята, AI говори"
+
+ВСЕКИ AI insight в Pocket CFO следва Закон №2 от RunMyStore: **числата идват от PHP/SQL, AI само форматира текста**. Това гарантира zero halucination.
+
+```
+WRONG (halucination риск):
+prompt = "Анализирай харчовете на user X и дай съвет"
+→ AI може да измисли цифри
+
+RIGHT (zero halucination):
+data = sqlQuery("SELECT SUM(amount) FROM money_movements WHERE...")
+prompt = "Опиши тези факти в едно изречение БГ: {data}"
+→ AI връща текст с РЕАЛНИТЕ числа
+```
+
+## 32.2 Три типа AI изхода
+
+### Тип 1: ФАКТ
+AI описва само това което виждаме в данните.
+
+```
+SQL: SELECT SUM(amount) WHERE direction='out' AND occurred_at >= NOW() - INTERVAL 7 DAY
+Result: 380.50
+
+Prompt: "Опиши: тази седмица харчиш €380.50"
+Output: "Тази седмица харчиш €380.50."
+
+Halucination risk: ZERO
+```
+
+### Тип 2: МАТЕМАТИЧЕСКО СРАВНЕНИЕ
+AI сравнява две числа известни.
+
+```
+SQL #1: SUM(out) this_week = 380
+SQL #2: SUM(in) this_week = 310
+Calc:   delta = -70
+
+Prompt: "Опиши: this_week_spend=€380, this_week_income=€310. Разлика €70."
+Output: "Тази седмица харчиш €70 повече от колкото изкарваш."
+
+Halucination risk: ZERO
+```
+
+### Тип 3: ОБЩИ ФИНАНСОВИ ПРИНЦИПИ
+AI прилага общоприети правила (50/30/20, резерв 3-6 месеца).
+
+```
+SQL: savings_rate = 8%
+
+Prompt: "User спестява 8%. Финансовите експерти препоръчват 20%. 
+         Кратко обясни без conkretni съвети."
+Output: "Спестяваш 8% от приходите. Финансовите експерти 
+         препоръчват около 20%."
+
+Halucination risk: LOW (principles са public knowledge)
+```
+
+## 32.3 Каталог: 30 AI ТЕМИ ЗА POCKET CFO
+
+### КАТЕГОРИЯ A: SPENDING PATTERNS (10 теми)
+
+#### A.1 — Burn rate alert (cfo_001)
+
+```php
+[
+    'id' => 'cfo_001',
+    'cat' => 'spending',
+    'name_bg' => 'Харчиш повече отколкото изкарваш',
+    'trigger' => function($context) {
+        return $context['weekly_spend'] > $context['weekly_income'];
+    },
+    'sql' => "
+        SELECT 
+            (SELECT SUM(amount) FROM money_movements 
+             WHERE tenant_id=:t AND direction='out' AND is_business=FALSE
+               AND occurred_at >= NOW() - INTERVAL 7 DAY) AS weekly_spend,
+            (SELECT SUM(amount) FROM money_movements 
+             WHERE tenant_id=:t AND direction='in' AND is_business=FALSE
+               AND occurred_at >= NOW() - INTERVAL 7 DAY) AS weekly_income
+    ",
+    'prompt_template' => <<<P
+Опиши в едно изречение БГ, максимум 60 символа:
+- Тази седмица харчиш: €{weekly_spend}
+- Тази седмица получаваш: €{weekly_income}
+- Разлика: €{delta}
+
+Без съвети. Само факт + кратко "време за анализ".
+P,
+    'urgency' => 'warning',
+    'cooldown_hours' => 168,  // 1 week
+    'plan' => ['cfo','start','pro','business'],
+]
+```
+
+#### A.2 — 3-месечен burn streak (cfo_002)
+
+```php
+[
+    'id' => 'cfo_002',
+    'cat' => 'spending',
+    'name_bg' => '3 поредни месеца с burn',
+    'trigger' => function($ctx) {
+        return $ctx['consecutive_negative_months'] >= 3;
+    },
+    'sql' => "
+        WITH monthly AS (
+            SELECT 
+                DATE_FORMAT(occurred_at, '%Y-%m') AS month,
+                SUM(CASE WHEN direction='in' THEN amount ELSE 0 END) AS income,
+                SUM(CASE WHEN direction='out' THEN amount ELSE 0 END) AS spend
+            FROM money_movements
+            WHERE tenant_id = :t AND is_business = FALSE
+              AND occurred_at >= NOW() - INTERVAL 6 MONTH
+            GROUP BY DATE_FORMAT(occurred_at, '%Y-%m')
+            ORDER BY month DESC
+        )
+        SELECT 
+            COUNT(*) AS negative_count,
+            (SELECT month FROM monthly WHERE income < spend ORDER BY month DESC LIMIT 1) AS last_red
+        FROM monthly
+        WHERE income < spend
+    ",
+    'prompt_template' => <<<P
+User има {negative_count} поредни месеца с харчове > приходи.
+Последен такъв: {last_red}.
+
+Кратко (max 70 chars БГ): сигнализирай че време за анализ. 
+Без специфични съвети. Спомени възможността да говори с финансов 
+консултант (без да рекламираш конкретен).
+P,
+    'urgency' => 'critical',
+    'cooldown_hours' => 336,  // 2 weeks
+    'plan' => ['cfo','start','pro','business'],
+]
+```
+
+#### A.3 — Category leak (cfo_003)
+
+```php
+[
+    'id' => 'cfo_003',
+    'cat' => 'spending',
+    'name_bg' => 'Една категория e >30% от дохода',
+    'sql' => "
+        SELECT 
+            c.name_bg AS category,
+            SUM(mm.amount) AS cat_total,
+            (SELECT SUM(amount) FROM money_movements 
+             WHERE tenant_id=:t AND direction='in' AND is_business=FALSE
+               AND occurred_at >= NOW() - INTERVAL 30 DAY) AS monthly_income,
+            ROUND(SUM(mm.amount) / (SELECT SUM(amount) FROM money_movements 
+                                     WHERE tenant_id=:t AND direction='in' 
+                                       AND occurred_at >= NOW() - INTERVAL 30 DAY) * 100, 1) AS pct
+        FROM money_movements mm
+        JOIN categories c ON c.id = mm.category_id
+        WHERE mm.tenant_id = :t
+          AND mm.direction = 'out'
+          AND mm.is_business = FALSE
+          AND mm.occurred_at >= NOW() - INTERVAL 30 DAY
+        GROUP BY mm.category_id
+        HAVING pct > 30
+        ORDER BY pct DESC
+        LIMIT 1
+    ",
+    'prompt_template' => <<<P
+Категория "{category}" е {pct}% от месечния доход на user.
+Стойност: €{cat_total} от €{monthly_income} приход.
+
+Кратко (max 70 chars БГ): кажи факта. 
+Не давай съвет освен "наблюдавай тенденцията".
+P,
+    'urgency' => 'info',
+    'plan' => ['cfo','start','pro','business'],
+]
+```
+
+#### A.4 — Spending acceleration (cfo_004)
+
+```php
+[
+    'id' => 'cfo_004',
+    'cat' => 'spending',
+    'name_bg' => 'Този месец харчиш с +20% повече',
+    'sql' => "
+        SELECT
+            (SELECT SUM(amount) FROM money_movements 
+             WHERE tenant_id=:t AND direction='out' 
+               AND occurred_at >= DATE_SUB(NOW(), INTERVAL DAYOFMONTH(NOW())-1 DAY)) AS this_month,
+            (SELECT SUM(amount)/3 FROM money_movements 
+             WHERE tenant_id=:t AND direction='out'
+               AND occurred_at >= NOW() - INTERVAL 4 MONTH
+               AND occurred_at < DATE_SUB(NOW(), INTERVAL DAYOFMONTH(NOW())-1 DAY)) AS avg_3mo
+    ",
+    'trigger' => function($ctx) {
+        return $ctx['this_month'] > $ctx['avg_3mo'] * 1.20;
+    },
+    'prompt_template' => <<<P
+Този месец user харчи €{this_month}.
+3-месечен avg: €{avg_3mo}.
+
+Кратко (max 60 chars БГ): факт за повишение, без съвет.
+P,
+    'urgency' => 'info',
+    'cooldown_hours' => 168,
+]
+```
+
+#### A.5 — Restaurant ratio (cfo_005)
+
+```php
+[
+    'id' => 'cfo_005',
+    'cat' => 'spending',
+    'name_bg' => 'Ресторанти > 15% от харчовете',
+    'sql' => "
+        SELECT 
+            SUM(CASE WHEN c.name_bg IN ('Ресторанти','Хапки','Заведения') 
+                THEN mm.amount ELSE 0 END) AS dining_out,
+            SUM(mm.amount) AS total_spend,
+            ROUND(SUM(CASE WHEN c.name_bg IN ('Ресторанти','Хапки','Заведения') 
+                THEN mm.amount ELSE 0 END) / SUM(mm.amount) * 100, 1) AS pct
+        FROM money_movements mm
+        LEFT JOIN categories c ON c.id = mm.category_id
+        WHERE mm.tenant_id = :t AND mm.direction = 'out'
+          AND mm.occurred_at >= NOW() - INTERVAL 30 DAY
+        HAVING pct > 15
+    ",
+    'prompt_template' => <<<P
+User харчи €{dining_out} за ресторанти ({pct}% от месечните харчове).
+Средно за хора от профила: 10-15%.
+
+Кратко (max 70 chars БГ): факт + сравнение с benchmark.
+P,
+    'urgency' => 'info',
+]
+```
+
+#### A.6 — Subscription creep (cfo_006)
+
+```sql
+SELECT category_id, COUNT(*) as cnt, SUM(amount) as total
+FROM money_movements
+WHERE tenant_id = :t 
+  AND direction='out'
+  AND reason='utility_paid'
+  AND occurred_at >= NOW() - INTERVAL 30 DAY
+  AND amount BETWEEN 3 AND 50  -- typical subscription range
+GROUP BY category_id
+HAVING cnt >= 5
+```
+**Trigger:** 5+ малки регулярни плащания в месеца.
+**Output:** "Имаш {cnt} абонамента общо €{total}/мес. Прегледай ги."
+
+#### A.7 — Impulse cluster (cfo_007)
+
+```sql
+SELECT DATE(occurred_at) AS day, COUNT(*) AS cnt, SUM(amount) AS daily_total
+FROM money_movements
+WHERE tenant_id = :t AND direction='out'
+  AND occurred_at >= NOW() - INTERVAL 7 DAY
+  AND amount BETWEEN 1 AND 30
+GROUP BY DATE(occurred_at)
+HAVING cnt >= 5
+```
+**Output:** "На {day}: {cnt} малки покупки = €{daily_total}. Импулс?"
+
+#### A.8 — Cash leak (cfo_008)
+
+```sql
+SELECT 
+    SUM(CASE WHEN location='cash' AND note IS NULL THEN amount ELSE 0 END) AS unlabeled_cash,
+    SUM(amount) AS total
+FROM money_movements
+WHERE tenant_id = :t AND direction='out'
+  AND occurred_at >= NOW() - INTERVAL 30 DAY
+HAVING unlabeled_cash / total > 0.20
+```
+**Output:** "{pct}% от харчовете в кеш без описание. Добави бележки."
+
+#### A.9 — Weekend spike (cfo_009)
+
+```sql
+SELECT
+    SUM(CASE WHEN DAYOFWEEK(occurred_at) IN (1,7) THEN amount ELSE 0 END) AS weekend,
+    SUM(amount) AS week_total
+FROM money_movements
+WHERE tenant_id = :t AND direction='out'
+  AND occurred_at >= NOW() - INTERVAL 7 DAY
+HAVING weekend / week_total > 0.50
+```
+**Output:** "60% от харчовете ти са в weekend."
+
+#### A.10 — Day-of-week pattern (cfo_010)
+
+Detect ако определен ден от седмицата има 2× по-високи харчове от средното.
+**Output:** "Неделите харчиш 2× повече — навик за внимание."
+
+---
+
+### КАТЕГОРИЯ B: INCOME ANALYSIS (5 теми)
+
+#### B.1 — Income drop (cfo_011)
+
+```sql
+SELECT
+    (SELECT SUM(amount) FROM money_movements 
+     WHERE tenant_id=:t AND direction='in' 
+       AND occurred_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS this_30d,
+    (SELECT SUM(amount) FROM money_movements 
+     WHERE tenant_id=:t AND direction='in'
+       AND occurred_at BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) 
+                            AND DATE_SUB(NOW(), INTERVAL 30 DAY)) AS prev_30d
+```
+**Trigger:** this_30d < prev_30d * 0.80
+**Output:** "Този месец €{this_30d} vs миналия €{prev_30d} (-{delta}%)"
+
+#### B.2 — Income consistency (cfo_012)
+
+Variance check на monthly income.
+**Trigger:** stddev(monthly_income) / avg_monthly_income > 0.40
+**Output:** "Доходите варират {pct}% — нужен е по-голям резерв."
+
+#### B.3 — Best month detected (cfo_013)
+
+```sql
+SELECT 
+    DATE_FORMAT(occurred_at, '%Y-%m') AS month,
+    SUM(amount) AS month_income
+FROM money_movements
+WHERE tenant_id=:t AND direction='in'
+  AND occurred_at >= NOW() - INTERVAL 6 MONTH
+GROUP BY DATE_FORMAT(occurred_at, '%Y-%m')
+ORDER BY month_income DESC
+LIMIT 1
+```
+**Trigger:** current_month == top_month и not_first_month_of_data
+**Output:** "Това е най-силният ти месец за последните 6."
+
+#### B.4 — Income source concentration (cfo_014)
+
+```sql
+SELECT vendor_name, SUM(amount) AS source_income, 
+       SUM(amount)/total * 100 AS pct
+FROM money_movements
+WHERE tenant_id=:t AND direction='in'
+  AND occurred_at >= NOW() - INTERVAL 90 DAY
+GROUP BY vendor_name
+ORDER BY pct DESC LIMIT 1
+HAVING pct > 70
+```
+**Output:** "{pct}% от приходите идват от един източник ({vendor})."
+
+#### B.5 — Day of income pattern (cfo_015)
+
+Pattern detection — обикновено заплати на 1-2 число.
+**Output:** "Парите идват на 1-2 число — планирай harчовете."
+
+---
+
+### КАТЕГОРИЯ C: CASH FLOW & RESERVE (5 теми)
+
+#### C.1 — Free money split (cfo_016)
+
+```php
+$split = calcCashSplit($tenant_id);
+// Output: 
+// "Свободни: €{free_money}. Работен капитал: €{working_capital}."
+```
+
+#### C.2 — Reserve adequacy (cfo_017)
+
+```php
+$total_savings = getBalance($tenant_id, 'savings');
+$monthly_expenses = getAvgMonthlyExpenses($tenant_id);
+$reserve_months = $total_savings / $monthly_expenses;
+
+// Trigger: reserve_months < 3
+// Output: "Резерв: {months} месеца. Финансовите експерти 
+//          препоръчват 3-6 месеца."
+```
+
+#### C.3 — Working capital warning (cfo_018) — само retail
+
+```php
+if ($cash_split['is_overdrawn']) {
+    // Output: "Касата не покрива предстоящите плащания. €{shortage} разлика."
+}
+```
+
+#### C.4 — Cash vs Bank ratio (cfo_019)
+
+```php
+$cash = getBalance($tenant_id, 'cash');
+$bank = getBalance($tenant_id, 'bank');
+$ratio = $cash / ($cash + $bank);
+
+// Trigger: ratio > 0.50
+// Output: "60% от парите ти са в кеш — обмисли да внасяш в банка."
+```
+
+#### C.5 — Surplus signal (cfo_020)
+
+```php
+$op = calcOperatingProfit($tenant_id, $month_start, $today);
+$personal = getPersonalWithdrawals($tenant_id, $month_start, $today);
+$surplus = $op['operating_profit'] - $personal;
+
+// Trigger: end-of-month AND surplus > 0
+// Output: "Този месец €{surplus} излишък."
+```
+
+---
+
+### КАТЕГОРИЯ D: SAVINGS & GOALS (5 теми)
+
+#### D.1 — Savings rate (cfo_021)
+
+```sql
+SELECT 
+    SUM(CASE WHEN reason='transfer_to_savings' THEN amount ELSE 0 END) AS saved,
+    SUM(CASE WHEN direction='in' THEN amount ELSE 0 END) AS income,
+    ROUND(SUM(CASE WHEN reason='transfer_to_savings' THEN amount ELSE 0 END) 
+          / SUM(CASE WHEN direction='in' THEN amount ELSE 0 END) * 100, 1) AS savings_rate
+FROM money_movements
+WHERE tenant_id=:t
+  AND occurred_at >= NOW() - INTERVAL 30 DAY
+```
+**Output:** "Спестяваш {pct}% от приходите. Препоръка: 20%+."
+
+#### D.2 — Goal progress (cfo_022)
+
+Auto-track goals от `goals` таблица.
+**Output:** "До '{goal_name}': още €{remaining} ({pct}% постигнато)."
+
+#### D.3 — No savings 3 months (cfo_023)
+
+```sql
+SELECT COUNT(*) FROM money_movements 
+WHERE tenant_id=:t AND reason='transfer_to_savings'
+  AND occurred_at >= NOW() - INTERVAL 90 DAY
+```
+**Trigger:** count = 0
+**Output:** "3 месеца без спестявания. Малки стъпки помагат."
+
+#### D.4 — Goal achievable timeline (cfo_024)
+
+```php
+$goal = getGoal($goal_id);
+$monthly_savings = getAvgMonthlySavings($tenant_id);
+$months_left = ($goal['target'] - $goal['current']) / $monthly_savings;
+
+// Output: "При €{monthly_savings}/мес ще достигнеш целта за {months} мес."
+```
+
+#### D.5 — Reinvest opportunity (cfo_025) — само за retail/CFO с business movements
+
+```php
+$surplus = calcMonthEndSurplus($tenant_id);
+$tenant = getTenant($tenant_id);
+
+if ($surplus > 100 && $tenant->modules_contains('retail')) {
+    // Output: "Имаш €{surplus} излишък — обмисли реинвестиция в стока."
+}
+```
+
+---
+
+### КАТЕГОРИЯ E: COMPARISON & BENCHMARKS (5 теми)
+
+ВАЖНО: Активират се само ако `tenants.benchmark_optin = TRUE` И има поне k=5 similar users.
+
+#### E.1 — Professional cohort comparison (cfo_026)
+
+```sql
+-- Cohort: same profession_template, similar income range, last 30d
+WITH cohort_metrics AS (
+    SELECT
+        AVG(monthly_expenses) AS avg_expenses,
+        AVG(savings_rate) AS avg_savings_rate,
+        COUNT(*) AS cohort_size
+    FROM tenant_monthly_metrics
+    WHERE profession_template = :tpl
+      AND income_bucket = :bucket
+      AND month = DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m')
+)
+SELECT * FROM cohort_metrics
+WHERE cohort_size >= 5  -- k-anonymity
+```
+
+**Output:** "Куриери в твоя приходен диапазон харчат средно €{avg_expenses}. 
+            Ти: €{my_expenses}."
+
+#### E.2 — Geographic cohort (cfo_027)
+
+Подобно но по `tenants.country + tenants.city`.
+
+#### E.3 — Spending benchmarks (cfo_028)
+
+Category-level comparison.
+**Output:** "Транспорт: €{my_transport} (cohort avg €{cohort_transport})"
+
+#### E.4 — Saving benchmarks (cfo_029)
+
+**Output:** "Спестяваш {my_rate}% (cohort avg {cohort_rate}%)"
+
+#### E.5 — Inflation tracker (cfo_030)
+
+```sql
+-- Compare same category 6 mo ago vs now
+SELECT 
+    (SELECT AVG(amount) FROM money_movements 
+     WHERE tenant_id=:t AND category_id=:c
+       AND occurred_at BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()) AS now_avg,
+    (SELECT AVG(amount) FROM money_movements 
+     WHERE tenant_id=:t AND category_id=:c
+       AND occurred_at BETWEEN DATE_SUB(NOW(), INTERVAL 7 MONTH) 
+                            AND DATE_SUB(NOW(), INTERVAL 6 MONTH)) AS old_avg
+```
+
+**Output:** "Храна: +{pct}% за 6 месеца (типично 8%)."
+
+---
+
+## 32.4 AI Engine flow
+
+```php
+// lib/ai-engine.php
+
+class AIEngine {
+    private const TOPICS = [
+        // 30 темите от §32.3
+    ];
+    
+    /**
+     * Compute insights for tenant (cron, hourly)
+     */
+    public function computeInsights(int $tenant_id): array {
+        $tenant = getTenant($tenant_id);
+        $context = $this->buildContext($tenant_id);
+        $insights = [];
+        
+        // 1. Filter topics by plan + modules
+        $eligible = array_filter(self::TOPICS, function($topic) use ($tenant) {
+            return in_array($tenant->plan, $topic['plan']);
+        });
+        
+        // 2. Filter by data availability
+        $eligible = $this->filterByDataAvailability($eligible, $context);
+        
+        // 3. Filter by anti-repetition (ai_shown table)
+        $eligible = $this->filterByAntiRepetition($eligible, $tenant_id);
+        
+        // 4. For each eligible, run trigger
+        foreach ($eligible as $topic) {
+            $data = DB::query($topic['sql'], [':t' => $tenant_id])->fetch();
+            
+            if (!$topic['trigger']($data)) continue;
+            
+            // 5. Generate AI text (or PHP fallback)
+            $insight = $this->generateInsightText($topic, $data, $tenant);
+            
+            // 6. Confidence routing
+            if ($insight['confidence'] < 0.50) continue;  // suppress
+            
+            // 7. Save to ai_insights
+            $insight_id = DB::insert('ai_insights', [
+                'tenant_id' => $tenant_id,
+                'topic_id' => $topic['id'],
+                'module' => 'cfo',
+                'rendered_text' => $insight['text'],
+                'urgency' => $topic['urgency'],
+                'confidence' => $insight['confidence'],
+                'retrieved_facts' => json_encode($data),
+            ]);
+            
+            $insights[] = $insight;
+        }
+        
+        return $insights;
+    }
+    
+    private function generateInsightText(array $topic, array $data, $tenant): array {
+        // Build prompt с реалните числа
+        $prompt = $this->renderTemplate($topic['prompt_template'], $data);
+        
+        try {
+            $response = $this->callGemini($prompt, [
+                'temperature' => 0.3,  // ниска температура за consistency
+                'max_tokens' => 100,
+                'timeout' => 3,
+            ]);
+            
+            return [
+                'text' => trim($response),
+                'confidence' => 0.90,  // PHP-driven numbers = high confidence
+                'source' => 'ai',
+            ];
+        } catch (\Exception $e) {
+            // PHP fallback
+            return [
+                'text' => $this->phpFallback($topic, $data),
+                'confidence' => 1.0,
+                'source' => 'php_fallback',
+            ];
+        }
+    }
+    
+    /**
+     * Build context for tenant
+     */
+    private function buildContext(int $tenant_id): array {
+        return [
+            'days_of_data' => $this->getDaysOfData($tenant_id),
+            'movements_count' => $this->getMovementsCount($tenant_id),
+            'has_business_movements' => $this->hasBusinessMovements($tenant_id),
+            'has_goals' => $this->hasGoals($tenant_id),
+            // ... 15-20 contextual flags
+        ];
+    }
+}
+```
+
+## 32.5 Anti-repetition (Закон №7 от RunMyStore)
+
+```sql
+CREATE TABLE ai_shown (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    topic_id VARCHAR(50) NOT NULL,
+    shown_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    cooldown_until DATETIME NOT NULL,
+    INDEX idx_tenant_topic (tenant_id, topic_id, cooldown_until)
+);
+```
+
+```php
+function filterByAntiRepetition(array $topics, int $tenant_id): array {
+    return array_filter($topics, function($topic) use ($tenant_id) {
+        $last = DB::query(
+            "SELECT cooldown_until FROM ai_shown
+             WHERE tenant_id = ? AND topic_id = ?
+               AND cooldown_until > NOW()
+             ORDER BY shown_at DESC LIMIT 1",
+            [$tenant_id, $topic['id']]
+        )->fetchColumn();
+        
+        return $last === false;  // ако нямa active cooldown
+    });
+}
+```
+
+## 32.6 Cron schedule
+
+```bash
+# /etc/cron.d/runmystore-cfo
+
+# Realtime insights — hourly
+0 * * * * www-data php /var/www/runmystore/cron/cfo-insights-hourly.php
+
+# Heavy insights — nightly
+0 3 * * * www-data php /var/www/runmystore/cron/cfo-insights-heavy.php
+
+# Monthly aggregations
+0 4 1 * * www-data php /var/www/runmystore/cron/cfo-monthly-aggregates.php
+
+# Cohort metrics (for benchmarks) — weekly
+0 5 * * 0 www-data php /var/www/runmystore/cron/cfo-cohort-metrics.php
+```
+
+---
+
+# §33. КОНТРОЛЕР SUB-TAB
+
+## 33.1 Концепция
+
+Контролер е специален UI който живее в **двата продукта**:
+- **Pocket CFO:** като главна страница "Анализ"
+- **RunMyStore:** като sub-tab в Финанси модул
+
+Показва трите критични метрики:
+1. **Working capital split** (cash split от §30.7)
+2. **Operating Profit** (revenue - business expenses)
+3. **Net Cash Position** (operating profit - personal withdrawals)
+
+## 33.2 UI wireframe (375px)
+
+```
+┌─────────────────────────────────────────┐
+│ КОНТРОЛЕР · Личен AI финансов съветник │  hero header
+├─────────────────────────────────────────┤
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ ОБЩА КАСОВА НАЛИЧНОСТ          €2 400│ │  KPI hero
+│ │                                      │ │
+│ │ ┌────────────────────────────────┐  │ │
+│ │ │ 🔒 Работен капитал    €1 680   │  │ │  q4 cyan
+│ │ │    "Това НЕ е за тебе"         │  │ │
+│ │ │    Доставки + наем (7д)         │  │ │
+│ │ ├────────────────────────────────┤  │ │
+│ │ │ 🟢 Свободни пари       €720    │  │ │  q3 green
+│ │ │    "Можеш да харчиш"            │  │ │
+│ │ └────────────────────────────────┘  │ │
+│ │                                      │ │
+│ │ ✨ "Имаш €720 свободни. Половината │ │
+│ │   за себе си, половината резерв?"  │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ ТОЗИ МЕСЕЦ                          │ │
+│ │                                      │ │
+│ │ Приходи (Gross):       €4 237 ✓    │ │
+│ │ ──────────────────                  │ │
+│ │ − Бизнес разходи:      €2 800       │ │
+│ │ ──────────────────                  │ │
+│ │ = OPERATING PROFIT:    €1 437 ✓    │ │  q3 green
+│ │                                      │ │
+│ │ − Лични тегления:      €1 500 ⚠    │ │  q5 amber
+│ │ ──────────────────                  │ │
+│ │ = NET CASH POSITION:   −€63   ✗    │ │  q1 red
+│ │                                      │ │
+│ │ ✨ "Този месец гориш реално €63    │ │
+│ │   повече отколкото оперативно       │ │
+│ │   изкарваш."                        │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 📊 6-МЕСЕЧЕН ТРЕНД                  │ │  line chart
+│ │                                      │ │
+│ │   €5K ╱╲    ╱╲                       │ │
+│ │       ╱  ╲╱   ╲   ╱╲                 │ │  operating profit
+│ │   €0  ────────────────              │ │  baseline
+│ │       ╲╱╲           ╲╱               │ │  net position
+│ │  −€1K                                │ │
+│ │   Дек Яну Фев Мар Апр Май             │ │
+│ │                                      │ │
+│ │ ✨ "2 от последните 6 месеца си     │ │
+│ │   гори. Резерв за криза: 1.2 мес." │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 💸 ЛИЧНИ ТЕГЛЕНИЯ — ТОП КАТЕГОРИИ    │ │
+│ │ Ресторанти      ████ €420  28%      │ │
+│ │ Бензин личен    ███  €280  19%      │ │
+│ │ Дрехи семейство ██   €180  12%      │ │
+│ │ Подаръци        ██   €170  11%      │ │
+│ │ Други           ██   €450  30%      │ │
+│ │                                      │ │
+│ │ ✨ "Ресторантите ти са 28% от       │ │
+│ │   личните и 9.9% от месечната       │ │
+│ │   ти печалба."                      │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 🎯 РАЗПРЕДЕЛЕНИЕ                    │ │  bar chart
+│ │ (По правило 50/30/20)               │ │
+│ │                                      │ │
+│ │       Income €4 237                 │ │
+│ │ ████████████████████ 100%           │ │
+│ │                                      │ │
+│ │ Бизнес  €2 800        Лично €1 500  │ │
+│ │ ████████████ 66%    ███████  35%    │ │
+│ │                                      │ │
+│ │ ⚠ Total burn 101% от income         │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ 💡 АВТОМАТИЧНО РАЗПРЕДЕЛЕНИЕ        │ │
+│ │ (При свободни в края на месец)      │ │
+│ │                                      │ │
+│ │ Свободни сега: €720                 │ │
+│ │                                      │ │
+│ │ ┌──────────────────────────────┐    │ │
+│ │ │ 🛍 Реинвестиция в стока 30%  │    │ │
+│ │ │    €216                       │    │ │  само ако retail
+│ │ ├──────────────────────────────┤    │ │
+│ │ │ 💰 Резерв (emergency)    40%  │    │ │
+│ │ │    €288 → спестовна сметка    │    │ │
+│ │ │    Текущ резерв: 1.2 мес.     │    │ │
+│ │ │    Цел: 3 мес. = €4 800       │    │ │
+│ │ ├──────────────────────────────┤    │ │
+│ │ │ 👤 За тебе                30% │    │ │
+│ │ │    €216                       │    │ │
+│ │ └──────────────────────────────┘    │ │
+│ │                                      │ │
+│ │ [Промени разпределението]            │ │
+│ │ [Прехвърли в банка]                 │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+## 33.3 RBAC + Plan gating
+
+| Audience | Контролер | Personal categorization |
+|---|---|---|
+| Pocket CFO user | ✅ Main page | ✅ Default mode |
+| RunMyStore Owner | ✅ Sub-tab "Контролер" | ✅ Optional flag |
+| RunMyStore Manager | ❌ Hidden | ❌ |
+| RunMyStore Seller | ❌ Hidden | ❌ |
+
+**За RunMyStore:** Контролер sub-tab е owner-only + PRO+. CFO users получават го по default.
+
+## 33.4 Distribution Preferences
+
+```sql
+CREATE TABLE owner_distribution_preferences (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL UNIQUE,
+    
+    reinvestment_pct DECIMAL(5,2) DEFAULT 30.00,
+    reserve_pct DECIMAL(5,2) DEFAULT 40.00,
+    personal_pct DECIMAL(5,2) DEFAULT 30.00,
+    
+    reserve_target_months DECIMAL(3,1) DEFAULT 3.0,
+    
+    -- За retail
+    auto_alert_threshold_eur DECIMAL(10,2) DEFAULT 100,
+    seller_spend_limit_daily_eur DECIMAL(10,2) DEFAULT 100,
+    
+    -- За CFO
+    notify_overdraft BOOLEAN DEFAULT TRUE,
+    notify_burn_streak BOOLEAN DEFAULT TRUE,
+    
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+
+# §34. RUNMYSTORE → POCKET CFO REUSE MAP
+
+Подробен mapping какво да копираме директно vs какво да адаптираме vs какво е нов код.
+
+## 34.1 ✅ Direct reuse (без промяна)
+
+| RunMyStore component | File path | Pocket CFO usage |
+|---|---|---|
+| Sacred Glass CSS canon | `partials/css/glass.css` | Same | 
+| Aurora background | `partials/aurora.php` | Same |
+| Bichromatic light/dark | `partials/css/theme.css` | Same |
+| 6 hue класа (q1-q6) | `partials/css/hues.css` | Same |
+| `priceFormat()` | `lib/currency.php` | Само € (БГ в евро) |
+| `auth.php` | `lib/auth.php` | Same |
+| `db.php` | `lib/db.php` | Same |
+| Confidence routing | `lib/ai-routing.php` | Same |
+| Audit trail (retrieved_facts) | `lib/audit-trail.php` | Same |
+| Anti-repetition (ai_shown) | `lib/anti-repetition.php` | Same |
+| Voice button styling | `includes/voice-button.php` | Same |
+| Microphone permissions | `js/mic-permissions.js` | Same |
+| Capacitor mobile shell | `mobile/capacitor.config.js` | Same |
+| Stripe Connect subscription | `lib/stripe-connect.php` | Same (нов plan) |
+| Email service | `lib/email.php` | Same |
+| Push notifications | `lib/push.php` | Same |
+| i18n framework | `lib/i18n.php` + `lang/*.json` | Same |
+| `build-prompt.php` Layers 1, 4, 6, 7 | `build-prompt.php` | Same |
+
+## 34.2 ⚠️ Adapted (нужна е промяна)
+
+### Voice STT engine
+
+**RunMyStore текущ stack:**
+```
+БГ price field → Web Speech API (free, instant)
+Non-БГ → Groq Whisper API
+```
+
+**Pocket CFO change за GDPR compliance:**
+```
+БГ всеки voice input → OpenAI Whisper API (paid, zero-data retention)
+Non-БГ → OpenAI Whisper API (paid)
+NEVER Web Speech API (audio leaves device без DPA)
+```
+
+**Защо:** RunMyStore Web Speech API е valid за price-only (numbers без personal context). Pocket CFO записва free-form personal info (имена, адреси, лични харчове) — задължително zero-data retention.
+
+**File промени:**
+- `lib/voice-stt.php` → нова версия v2 само Whisper API
+- `lib/voice-stt-legacy.php` → kept за RunMyStore Web Speech price fields
+
+### Onboarding wizard
+
+**RunMyStore wizard (existing 4 стъпки):**
+1. Име на магазин + категория
+2. Локация + площ
+3. Брой потребители + роли
+4. Plan избор
+
+**Pocket CFO wizard (нов flow):**
+1. Single signup form
+2. "Какво искаш?" (personal/business)
+3. Profession template (9 options)
+4. Expected income range
+5. Demo voice record
+6. Privacy & consent
+7. 7-day free trial
+
+**File:** `cfo/onboarding.php` (нов) extends shell от `onboarding.php`.
+
+### Bottom navigation
+
+**RunMyStore:** [AI] [Склад] [Финанси] [Продажба] [Магазини*]
+
+**Pocket CFO:** [AI] [Записи] [Анализ] [Цели]
+
+**File:** `partials/bottom-nav.php` → дискриминира според `tenants.plan`:
+
+```php
+if ($tenant->plan === 'cfo') {
+    require 'partials/bottom-nav-cfo.php';
+} else {
+    require 'partials/bottom-nav-retail.php';
+}
+```
+
+### `build-prompt.php`
+
+**Layers reused:**
+- Layer 1: Identity + Rules ✅
+- Layer 4: Business Signals ✅ (adapted за CFO context)
+- Layer 6: Language ✅
+- Layer 7: Topics ✅ (filter за module='cfo')
+
+**Layers NOT used in CFO:**
+- Layer 2A-2H: Retail-specific data (products, sales, suppliers, customers, sellers)
+- Layer 3: Memory (нужно ще е, но не сега)
+- Layer 5: Seasonal Context (само за outdoor професии)
+
+**Адаптация:** `cfo/build-prompt-cfo.php` използва `lib/build-prompt-shared.php` (extract на shared logic) + добавя CFO-specific layers:
+
+```
+Layer CFO-2A: Last 30 days money_movements summary
+Layer CFO-2B: Top categories breakdown
+Layer CFO-2C: Income sources
+Layer CFO-2D: Goals progress
+Layer CFO-2E: Recent insights (от ai_insights WHERE module='cfo')
+```
+
+### `ai-topics-catalog.json`
+
+**Current state:** 649 теми за RunMyStore (modules: home, products, warehouse, stats, sale).
+
+**Promised:** + 30 нови теми с `module: 'cfo'` (от §32.3).
+
+**File:** Same `ai-topics-catalog.json`, added entries.
+
+```json
+{
+  "version": "1.1",
+  "topics": [
+    // ... existing 649 теми ...
+    
+    // НОВИ 30 CFO теми
+    {
+      "id": "cfo_001",
+      "module": "cfo",
+      "category": "spending",
+      "name_bg": "Burn rate alert",
+      "urgency": "warning",
+      "plan": ["cfo", "start", "pro", "business"],
+      "trigger_sql_id": "weekly_spend_vs_income",
+      "cooldown_hours": 168
+    },
+    // ... cfo_002 to cfo_030
+  ]
+}
+```
+
+## 34.3 🆕 Нов код (специфичен за CFO)
+
+### Нови файлове
+
+```
+/var/www/runmystore/
+├── cfo/
+│   ├── home.php                          ← Главна CFO страница
+│   ├── records.php                       ← Money movements feed
+│   ├── analysis.php                      ← Charts + AI insights
+│   ├── goals.php                         ← Savings goals
+│   ├── settings.php                      ← Profile, plan, GDPR consents
+│   ├── onboarding.php                    ← CFO onboarding wizard
+│   ├── partials/
+│   │   ├── home-voice-bar.php            ← Always-visible voice button
+│   │   ├── home-quick-stats.php          ← This month overview
+│   │   ├── home-feed.php                 ← Recent movements list
+│   │   ├── records-filter.php            ← Filter by category/period
+│   │   ├── records-list.php              ← Paginated movements
+│   │   ├── analysis-monthly.php          ← Monthly breakdown
+│   │   ├── analysis-yearly.php           ← Annual view
+│   │   ├── analysis-comparisons.php      ← Cohort benchmarks
+│   │   ├── goals-active.php              ← Active goals
+│   │   ├── goals-history.php             ← Achieved goals
+│   │   ├── settings-profile.php          ← User info
+│   │   ├── settings-categories.php       ← Manage categories
+│   │   ├── settings-consent.php          ← GDPR controls
+│   │   └── settings-plan.php             ← Subscription mgmt
+│   └── api/
+│       ├── voice-parse.php               ← Voice input endpoint
+│       ├── photo-parse.php               ← Photo receipt endpoint
+│       ├── movement-create.php           ← INSERT money_movements
+│       ├── movement-update.php           ← Edit existing
+│       ├── movement-delete.php           ← Soft delete + anonymize
+│       └── insights-fetch.php            ← Get AI insights
+│
+├── lib/
+│   ├── money-engine.php                  ← Universal money_movements CRUD
+│   ├── voice-parser.php                  ← Whisper API + Gemini parse
+│   ├── photo-receipt-parser.php          ← Gemini Vision
+│   ├── ner-anonymizer.php                ← PII removal
+│   ├── cohort-benchmarks.php             ← K-anonymity aggregations
+│   ├── profession-templates.php          ← 9 templates seed
+│   └── gdpr-compliance.php               ← Consent, deletion, export
+│
+└── cron/
+    ├── cfo-insights-hourly.php           ← Realtime insights
+    ├── cfo-insights-heavy.php            ← Heavy aggregations
+    ├── cfo-monthly-aggregates.php        ← Month-end summary
+    ├── cfo-cohort-metrics.php            ← Update cohort benchmarks
+    ├── cfo-training-pipeline.php         ← Anonymize for AI training (opt-in only)
+    └── cfo-gdpr-cleanup.php              ← Right to erasure execution
+```
+
+### Нови DB таблици (extended от §30)
+
+- `money_movements` (универсална)
+- `categories` (универсална)
+- `reconciliations` (универсална)
+- `goals` (нова за CFO)
+- `owner_distribution_preferences` (универсална)
+- `cohort_metrics` (нова за benchmarks)
+- `consent_log` (GDPR audit trail)
+
+### Нови AI теми
+
+- 30 CFO теми в `ai-topics-catalog.json` (§32.3)
+- 30 нови `selectXxx()` функции в `ai-engine.php`
+- 30 prompt templates в `lib/ai-prompts/cfo/`
+
+## 34.4 Estimated effort breakdown
+
+```
+DIRECT REUSE (0 effort):                    ~80 000 редa код
+                                            ────────────────
+ADAPTED COMPONENTS:
+  Voice STT v2 (Whisper-only):             ~600 редa
+  Onboarding CFO wizard:                   ~1 800 редa
+  Bottom navigation CFO version:           ~250 редa
+  build-prompt-cfo.php:                    ~800 редa
+  ai-topics-catalog.json (+30):             ~200 редa
+                                            ────────────────
+                                          ~3 650 редa
+NEW CODE:
+  cfo/* (all pages + partials):            ~5 500 редa
+  lib/money-engine.php:                    ~1 200 редa
+  lib/voice-parser.php:                    ~1 500 редa
+  lib/photo-receipt-parser.php:            ~1 100 редa
+  lib/ner-anonymizer.php:                  ~400 редa
+  lib/cohort-benchmarks.php:               ~600 редa
+  lib/profession-templates.php:            ~700 редa
+  lib/gdpr-compliance.php:                 ~500 редa
+  ai-engine.php нови функции (30):         ~3 500 редa
+  ai-prompts/cfo/* (30 templates):         ~1 500 редa
+  cron/cfo-*.php (6 scripts):              ~1 800 редa
+                                            ────────────────
+                                          ~18 300 редa
+
+TOTAL NEW + ADAPTED:                       ~21 950 редa
+TOTAL CODEBASE (with reuse):              ~101 950 редa
+```
+
+**Реална икономия:** Ако строим CFO като отделен product → ~120K реда. С reuse → ~22K реда нов код. **82% икономия.**
+
+## 34.5 Timeline
+
+```
+═══ ФАЗА B1 — JUNE 2026 (3 weeks) ═══
+Week 1:
+  - DB migrations (money_movements + dependencies)
+  - lib/money-engine.php
+  - cfo/ скелет (home, records, analysis, goals, settings)
+  - profession-templates seed
+
+Week 2:
+  - voice-parser.php (Whisper integration)
+  - photo-receipt-parser.php (Gemini Vision)
+  - ner-anonymizer.php
+  - Onboarding CFO wizard
+
+Week 3:
+  - 30 AI теми (selectXxx() functions + prompts)
+  - Controller sub-tab UI
+  - GDPR consent flows
+  - Beta deploy
+
+═══ ФАЗА B2 — JULY 2026 (2 weeks) ═══
+Week 1:
+  - Cohort benchmarks (k-anonymity infrastructure)
+  - cron scripts (hourly, heavy, monthly)
+  - AI training pipeline (anonymization)
+
+Week 2:
+  - Mobile Capacitor build
+  - App Store + Google Play submission
+  - Polish + user testing
+
+═══ ФАЗА B3 — AUGUST 2026 (Public Launch) ═══
+  - TikTok + Instagram ads
+  - Press release
+  - Influencer outreach
+  - First 100 paying users target
+```
+
+---
+
+# §35. GDPR ARCHITECTURE
+
+## 35.1 Legal базисна структура
+
+### Лица в системата
+
+| Role | Description |
+|---|---|
+| **Data Controller** | RunMyStore.AI Ltd. (юридическо лице на Tihol) |
+| **Data Subject** | Всеки tenant (user) |
+| **Data Processor (под-обработващ)** | OpenAI (Whisper), Google (Gemini), Stripe |
+
+### Legal basis за обработка
+
+| Дейност | Legal basis (GDPR чл. 6) |
+|---|---|
+| Запис money_movements | (b) Performance of contract |
+| Voice STT processing | (b) Performance of contract |
+| Receipt photo OCR | (b) Performance of contract |
+| AI insights generation | (b) Performance of contract |
+| Anonymized benchmarking | (a) Consent (opt-in) |
+| AI training pipeline | (a) Consent (separate opt-in) |
+| Marketing emails | (a) Consent (separate) |
+| Audit logs retention | (c) Legal obligation (БГ Закон) |
+
+## 35.2 Consent management
+
+```sql
+CREATE TABLE consent_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    user_id INT NOT NULL,
+    
+    consent_type ENUM(
+        'privacy_policy',         -- ТРЪБА (за account)
+        'terms_of_service',       -- ТРЪБА
+        'benchmarking',           -- Optional (k-anonymity comparisons)
+        'ai_training',            -- Optional (anonymized data for prompt tuning)
+        'marketing_emails',       -- Optional
+        'product_updates',        -- Optional
+        'data_export',            -- За data portability requests
+        'data_deletion'           -- За right to erasure
+    ) NOT NULL,
+    
+    action ENUM('granted','revoked') NOT NULL,
+    
+    consent_text_version VARCHAR(20),  -- За legal proof
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(255),
+    
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NULL,           -- ако consent има срок
+    
+    INDEX idx_tenant_type (tenant_id, consent_type, action)
+);
+```
+
+## 35.3 Right to Erasure (чл. 17)
+
+```php
+// lib/gdpr-compliance.php
+
+class GDPRCompliance {
+    /**
+     * Execute right to erasure
+     * Per чл. 17 GDPR + Research 3 best practice:
+     * - Hard delete personal identifiers
+     * - Anonymize transaction data (preserves aggregate stats)
+     */
+    public function rightToErasure(int $tenant_id, int $user_id): array {
+        DB::beginTransaction();
+        
+        try {
+            // 1. Anonymize money_movements (NOT delete)
+            DB::query("
+                UPDATE money_movements
+                SET 
+                    voice_transcript = NULL,
+                    receipt_photo_path = NULL,
+                    vendor_name = NULL,
+                    note = NULL,
+                    ai_parsed = NULL,
+                    user_id = -1,  -- de-link from user
+                    anonymized_at = NOW(),
+                    is_deleted = FALSE  -- keep for aggregate stats
+                WHERE tenant_id = ?
+            ", [$tenant_id]);
+            
+            // 2. Delete receipt photos from disk
+            $photos = DB::query(
+                "SELECT receipt_photo_path FROM money_movements WHERE tenant_id = ?",
+                [$tenant_id]
+            )->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($photos as $photo) {
+                if ($photo && file_exists(STORAGE_ROOT . '/' . $photo)) {
+                    unlink(STORAGE_ROOT . '/' . $photo);
+                }
+            }
+            
+            // 3. Hard delete user record
+            DB::query("DELETE FROM users WHERE id = ?", [$user_id]);
+            
+            // 4. Hard delete tenant
+            DB::query("DELETE FROM tenants WHERE id = ?", [$tenant_id]);
+            
+            // 5. Delete goals
+            DB::query("DELETE FROM goals WHERE tenant_id = ?", [$tenant_id]);
+            
+            // 6. Delete consent_log (keep last entry for audit)
+            DB::query("
+                DELETE FROM consent_log 
+                WHERE tenant_id = ?
+                  AND id NOT IN (SELECT MAX(id) FROM consent_log WHERE tenant_id = ?)
+            ", [$tenant_id, $tenant_id]);
+            
+            // 7. Cancel Stripe subscription
+            $this->cancelStripeSubscription($tenant_id);
+            
+            // 8. Log final consent (audit)
+            DB::insert('consent_log', [
+                'tenant_id' => $tenant_id,
+                'user_id' => $user_id,
+                'consent_type' => 'data_deletion',
+                'action' => 'granted',
+                'granted_at' => date('Y-m-d H:i:s'),
+            ]);
+            
+            DB::commit();
+            
+            return [
+                'success' => true,
+                'message' => 'Личните данни са анонимизирани. Account изтрит.',
+            ];
+        } catch (\Exception $e) {
+            DB::rollback();
+            throw $e;
+        }
+    }
+    
+    /**
+     * Data portability (чл. 20)
+     * Export all user data in machine-readable format
+     */
+    public function exportUserData(int $tenant_id): string {
+        $data = [
+            'export_date' => date('c'),
+            'tenant_info' => DB::query("SELECT * FROM tenants WHERE id = ?", [$tenant_id])->fetch(),
+            'movements' => DB::query("
+                SELECT * FROM money_movements 
+                WHERE tenant_id = ? AND is_deleted = FALSE
+                ORDER BY occurred_at DESC
+            ", [$tenant_id])->fetchAll(),
+            'goals' => DB::query("SELECT * FROM goals WHERE tenant_id = ?", [$tenant_id])->fetchAll(),
+            'categories' => DB::query("SELECT * FROM categories WHERE tenant_id = ?", [$tenant_id])->fetchAll(),
+            'consents' => DB::query("SELECT * FROM consent_log WHERE tenant_id = ?", [$tenant_id])->fetchAll(),
+        ];
+        
+        $filename = "user_data_export_{$tenant_id}_" . date('Ymd_His') . ".json";
+        $path = STORAGE_ROOT . '/exports/' . $filename;
+        
+        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        
+        return $path;
+    }
+}
+```
+
+## 35.4 K-anonymity for benchmarks
+
+```php
+// lib/cohort-benchmarks.php
+
+class CohortBenchmarks {
+    const MIN_K = 5;  // Минимум 5 users в cohort (Research 3 confirm)
+    
+    public function getProfessionBenchmark(string $profession, string $metric): ?array {
+        $cohort_size = DB::query("
+            SELECT COUNT(*) FROM tenants 
+            WHERE profession_template = ?
+              AND benchmark_optin = TRUE
+        ", [$profession])->fetchColumn();
+        
+        if ($cohort_size < self::MIN_K) {
+            return null;  // Suppress for privacy
+        }
+        
+        return DB::query("
+            SELECT 
+                AVG({$metric}) AS avg_value,
+                COUNT(*) AS cohort_size
+            FROM cohort_metrics
+            WHERE profession_template = ?
+              AND month = DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m')
+        ", [$profession])->fetch();
+    }
+    
+    /**
+     * Aggregate metrics nightly (cron)
+     */
+    public function computeCohortMetrics(): void {
+        // Only tenants with opt-in
+        $tenants = DB::query("
+            SELECT id, profession_template, expected_monthly_income
+            FROM tenants 
+            WHERE benchmark_optin = TRUE
+        ")->fetchAll();
+        
+        foreach ($tenants as $tenant) {
+            $income_bucket = $this->getIncomeBucket($tenant['expected_monthly_income']);
+            $month = date('Y-m', strtotime('-1 month'));
+            
+            // Calc metrics for this tenant last month
+            $metrics = $this->calcTenantMonthly($tenant['id'], $month);
+            
+            // Insert anonymized aggregate
+            DB::insert('tenant_monthly_metrics', [
+                'tenant_id_hash' => hash('sha256', $tenant['id']),  // pseudonymized
+                'profession_template' => $tenant['profession_template'],
+                'income_bucket' => $income_bucket,
+                'month' => $month,
+                'monthly_expenses' => $metrics['expenses'],
+                'savings_rate' => $metrics['savings_rate'],
+                'top_category' => $metrics['top_category'],
+                // ... other metrics
+            ]);
+        }
+    }
+}
+```
+
+## 35.5 AI training data anonymization
+
+```php
+// cron/cfo-training-pipeline.php
+// Run nightly
+
+$pipeline = new AITrainingPipeline();
+
+// Only tenants със consent
+$consented = DB::query("
+    SELECT id FROM tenants WHERE ai_training_consent = TRUE
+")->fetchAll(PDO::FETCH_COLUMN);
+
+foreach ($consented as $tenant_id) {
+    $movements = DB::query("
+        SELECT id, voice_transcript, ai_parsed, ai_confidence
+        FROM money_movements
+        WHERE tenant_id = ?
+          AND voice_transcript IS NOT NULL
+          AND occurred_at >= NOW() - INTERVAL 1 DAY
+          AND ai_confidence >= 0.85
+          AND is_deleted = FALSE
+    ", [$tenant_id])->fetchAll();
+    
+    foreach ($movements as $m) {
+        $anonymizer = new NERAnonymizer();
+        $clean = $anonymizer->anonymizeForTraining($m['voice_transcript']);
+        
+        // Save to isolated training corpus (S3, no read access from prod)
+        saveToTrainingCorpus([
+            'date' => date('Y-m-d'),
+            'text_hash' => $clean['original_hash'],  // не original text!
+            'anonymized_text' => $clean['anonymized_text'],
+            'expected_parse' => $m['ai_parsed'],
+        ]);
+    }
+}
+```
+
+## 35.6 Data residency
+
+**Confirmed:** DigitalOcean Frankfurt, EU region.
+
+| Data type | Location | Compliance |
+|---|---|---|
+| MySQL DB | DO Frankfurt | EU ✅ |
+| Receipt photos | DO Spaces Frankfurt | EU ✅ |
+| AI training corpus | AWS S3 eu-central-1 | EU ✅ |
+| Backups | DO Spaces Frankfurt | EU ✅ |
+| Logs | DO Frankfurt | EU ✅ |
+| Stripe payments | Stripe EU | EU ✅ |
+| OpenAI Whisper | OpenAI US | DPA covers (SCCs) ✅ |
+| Google Gemini | Google US | DPA covers (SCCs) ✅ |
+
+**SCCs (Standard Contractual Clauses)** са вписани в DPA-овете с OpenAI Stripe и Google за всеки трансфер извън ЕС.
+
+## 35.7 DPO requirement check
+
+Според Research 3:
+- DPO задължителен при > 10 000 users в БГ.
+- Pocket CFO startup → < 10K за първите 6-12 месеца.
+- Действие: **Назначи DPO при достигане на 8 000 users** (буфер).
+
+Cost: External DPO service в БГ ~€2 500-5 000/year. Affordable когато имаме >5K users.
+
+## 35.8 Privacy policy & ToS structure
+
+(За юрист да направи финални версии)
+
+**Privacy Policy задължителни секции:**
+1. Кой сме (data controller info)
+2. Какви данни събираме (and why)
+3. Legal basis за всеки тип обработка
+4. Кога делим данни и с кого (Stripe, OpenAI, Google)
+5. Колко дълго пазим (retention periods)
+6. Вашите права (access, erasure, portability, objection)
+7. Cookies и tracking
+8. Сигурност мерки
+9. Trans-border transfers (SCCs)
+10. DPO contact / supervisory authority
+
+**Terms of Service задължителни:**
+1. Service description
+2. Subscription & payment
+3. Trial period (7 дни)
+4. Cancellation
+5. Acceptable use
+6. AI disclaimer ("AI не дава финансови съвети")
+7. Limitations of liability
+8. Governing law (БГ)
+
+---
+
+# §36. PRICING STRATEGY (FINAL)
+
+## 36.1 Plan matrix
+
+```
+┌─────────────────┬─────────┬──────────┬──────────┬───────────┐
+│ Feature         │ POCKET  │  START   │   PRO    │ BUSINESS  │
+│                 │  CFO    │          │          │           │
+├─────────────────┼─────────┼──────────┼──────────┼───────────┤
+│ Monthly price   │ €4.99   │  €19     │  €49     │  €109     │
+│ Annual price    │ €34.99  │  €159    │  €399    │  €899     │
+│ Annual savings  │  42%    │  30%     │  32%     │  31%      │
+├─────────────────┼─────────┼──────────┼──────────┼───────────┤
+│ Voice records   │ ∞       │ ∞        │ ∞        │ ∞         │
+│ Photo receipts  │ ∞       │ ∞        │ ∞        │ ∞         │
+│ Categories      │ ∞       │ ∞        │ ∞        │ ∞         │
+│ Personal track  │ ✅      │ ✅       │ ✅       │ ✅        │
+│ Goals + savings │ ✅      │ ✅       │ ✅       │ ✅        │
+│ Контролер       │ ✅      │ ❌       │ ✅       │ ✅        │
+│ Cohort benchmark│ ✅      │ ❌       │ ✅       │ ✅        │
+├─────────────────┼─────────┼──────────┼──────────┼───────────┤
+│ Products inventory │ ❌   │ ✅       │ ✅       │ ✅        │
+│ POS / Sales     │ ❌      │ ✅       │ ✅       │ ✅        │
+│ 1 магазин       │ ❌      │ ✅       │ ✅       │ ✅        │
+│ Multi-store     │ ❌      │ ❌       │ ✅ (3)   │ ✅ (∞)    │
+│ Deliveries      │ ❌      │ ❌       │ ✅       │ ✅        │
+│ B2B Invoicing   │ ❌      │ ❌       │ ❌       │ ✅        │
+│ Wholesale       │ ❌      │ ❌       │ ❌       │ ✅        │
+│ Accountant exp. │ Basic   │ Basic    │ Full     │ Full + API│
+├─────────────────┼─────────┼──────────┼──────────┼───────────┤
+│ Users included  │ 1       │ 1        │ 3        │ ∞         │
+│ Trial period    │ 7 дни   │ 14 дни   │ 14 дни   │ 30 дни    │
+└─────────────────┴─────────┴──────────┴──────────┴───────────┘
+```
+
+## 36.2 Trial structure
+
+**Hard paywall с 7-day trial:**
+- Immediately след install/signup
+- 78% conversion rate (vs 45% freemium) — Research 2
+- Card not required upfront for CFO (email enough)
+- Reminder на ден 5: "2 дни остават от безплатния период"
+
+**Reverse trial fallback:**
+- Ако не плати на ден 7 → НЕ блокираме напълно
+- Преминава към lite mode:
+  - 15 voice records / month max
+  - 5 photo receipts / month max
+  - Charts работят (без AI insights)
+  - "Upgrade за пълни функции" prompt
+
+**Защо reverse trial:**
+- Запазва user-а в системата (не churn-ва напълно)
+- Възможност за later conversion при life event (нов магазин, увеличаване на разходи)
+- LTV remains positive (Research 2)
+
+## 36.3 Upgrade paths
+
+```
+POCKET CFO (€4.99) → 
+    AUTO triggers за upgrade:
+    1. User записва > 5 retail-related движения/седмица
+       (купуване на стока за препродажба, доставки, т.н.)
+       → Suggest: "Изглежда продаваш стока. START план €19 ти дава 
+         склад, POS, и продажби."
+    
+    2. User казва "магазин", "стока", "клиенти" 5+ пъти в voice
+       → Suggest: "Изглежда имаш магазин. Опитай START."
+    
+    3. User add-ва >50 категории с retail context
+       → Suggest START upgrade.
+
+START (€19) →
+    Triggers за PRO upgrade:
+    1. > 80 продукта в inventory
+    2. Иска multi-store
+    3. Иска deliveries module
+
+PRO (€49) →
+    Triggers за BUSINESS:
+    1. > 4-ти потребител
+    2. B2B клиенти с invoicing
+    3. Wholesale customer
+```
+
+## 36.4 Lifetime offer (limited)
+
+**Strategy:** Не предлагаме отначало. Запазваме за марketing pushes.
+
+**When activated:**
+- Black Friday (последен петък ноември)
+- New Year promotion
+- Productehunt launch day
+- 1 year anniversary
+
+**Offer:**
+- €99 Lifetime Pocket CFO
+- 100 spots only per promotion
+- Fair Use Policy:
+  - 200 voice records / month max (anti-abuse)
+  - 100 photo receipts / month max
+- Same features as monthly subscriber
+
+**Research 2 finding:** Lifetime offers ARE sustainable IF rate-limited (Fair Use Policy). Без это могат да fail-нат при continued AI costs.
+
+## 36.5 Revenue projections
+
+### Conservative scenario (B1 launch + 12 months)
+
+```
+Month 1-2:    50 paid users      → €250 MRR
+Month 3-4:   200 paid users      → €1 000 MRR
+Month 5-6:   500 paid users      → €2 500 MRR
+Month 7-9:  1 500 paid users     → €7 500 MRR
+Month 10-12: 3 500 paid users    → €17 500 MRR
+
+End of year 1:    €210K ARR
+```
+
+### Realistic scenario (with proper marketing)
+
+```
+Month 1-2:    300 paid users     → €1 500 MRR
+Month 3-4:   1 000 paid users    → €5 000 MRR
+Month 5-6:   2 500 paid users    → €12 500 MRR
+Month 7-9:   5 000 paid users    → €25 000 MRR
+Month 10-12: 8 350 paid users    → €41 750 MRR
+
+End of year 1:    €500K ARR (target пазар 5% conversion)
+```
+
+### Aggressive scenario (viral TikTok)
+
+```
+End of year 1:   20 000 paid users → €100K MRR → €1.2M ARR
+```
+
+## 36.6 Cost structure per user
+
+```
+PER USER MONTH:
+  Revenue (Pocket CFO):           €4.99
+  - Apple/Google fee 15%:        -€0.75
+  - ДДС VAT 20%:                 -€0.83
+  - Stripe fee 2.9% + €0.30:     -€0.44
+  - OpenAI Whisper:              -€0.03
+  - Gemini Vision (receipts):    -€0.03
+  - DigitalOcean infrastructure: -€0.05
+  - Support tools:               -€0.10
+  ────────────────────────────────────
+  NET MARGIN:                     €2.76 (55%)
+```
+
+**LTV/CAC:**
+- Average customer lifetime (LT): 18 months
+- LTV = €2.76 × 18 = **€49.68**
+- CAC (BG TikTok ad): **€10-15**
+- LTV/CAC ratio: **3.3-5.0x** (healthy, Research 1 confirms)
+
+---
+
+# 🏁 КРАЙ НА BIBLE V1.1
+
+**Bible v1.1 финализиран. Готов за код-имплементация.**
+
+**Общ обем:** ~8800 редa (от 5371 → 8800, +3500 нови)
+
+**Покрити секции:**
+- §1-§27 (original v1.0 Stats+Finance Bible)
+- **§28** — Dual-product architecture (Pocket CFO + RunMyStore)
+- **§29** — Onboarding (9 професионални templates)
+- **§30** — money_movements universal table
+- **§31** — Voice + Photo input (Whisper + Gemini Vision)
+- **§32** — 30 AI теми с zero halucination
+- **§33** — Контролер sub-tab (UI + logic)
+- **§34** — RunMyStore → CFO reuse map
+- **§35** — GDPR architecture
+- **§36** — Pricing strategy
+
+**Следваща стъпка:** Mockups + код implementation.
