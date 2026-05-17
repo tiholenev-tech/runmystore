@@ -980,6 +980,29 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="dark"] .chip-add:hover{background:hsl(var(--hue1) 30% 14% / 0.4)}
 .chip-add svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
 
+/* .chip-search — search input в chips-row (Тих: "търсачка до добави") */
+.chip-search{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 10px 0 12px;border-radius:var(--radius-pill);font-family:inherit}
+[data-theme="light"] .chip-search,:root:not([data-theme]) .chip-search{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .chip-search{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.chip-search svg{width:11px;height:11px;stroke:var(--text-muted);fill:none;stroke-width:2;flex-shrink:0}
+.chip-search input{width:130px;background:transparent;border:none;outline:none;font-family:inherit;font-size:11px;font-weight:700;color:var(--text);padding:0}
+.chip-search input::placeholder{color:var(--text-faint);font-weight:600}
+
+/* axis-search-results — live result chips под chips-row при typing */
+.axis-search-results{display:none;flex-wrap:wrap;gap:6px;margin-top:8px;padding:10px;border-radius:var(--radius-sm);font-family:inherit}
+.axis-search-results.show{display:flex}
+[data-theme="light"] .axis-search-results,:root:not([data-theme]) .axis-search-results{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .axis-search-results{background:hsl(220 25% 4% / 0.6);border:1px solid hsl(var(--hue2) 12% 18%)}
+.axis-search-empty{font-size:11px;font-weight:600;color:var(--text-muted);padding:8px;text-align:center;width:100%}
+
+/* inline-panel-search — search bar вътре в "други групи" expand */
+.inline-panel-search{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;margin-bottom:8px;font-family:inherit}
+[data-theme="light"] .inline-panel-search,:root:not([data-theme]) .inline-panel-search{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .inline-panel-search{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.inline-panel-search svg{width:12px;height:12px;stroke:var(--text-muted);fill:none;stroke-width:2;flex-shrink:0}
+.inline-panel-search input{flex:1;background:transparent;border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--text);padding:0}
+.inline-panel-search input::placeholder{color:var(--text-faint);font-weight:500}
+
 /* extra-row под chips (за добави + други групи бутони) */
 .extra-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .groups-btn{height:34px;padding:0 12px 0 10px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:0.03em;color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;transition:transform 150ms,box-shadow 200ms}
@@ -2839,7 +2862,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     // "+ Добави ос" full-width бутон (Q1=B sacred parity)
     html += '<button type="button" class="axis-add" onclick="wizAxisAddNew()">'+
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
-      'Добави още една ос (Материя, Дължина, ...)'+
+      'Добави друга вариация (Материя, Дължина, Стил...)'+
     '</button>';
     // SKU summary (recalc на render)
     html += renderSKUSummary();
@@ -2850,39 +2873,63 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var nm = (ax.name || '').toLowerCase();
     var isColor = nm.indexOf('цвят') !== -1 || nm.indexOf('color') !== -1;
     var isSize = nm.indexOf('размер') !== -1 || nm.indexOf('size') !== -1;
-    var labelText = ax.name || ('Вариация ' + (idx + 1));
+    var labelText = isColor ? 'Цветове' : (isSize ? 'Размери' : (ax.name || ('Вариация ' + (idx + 1))));
     var head =
       '<div class="axis-head-row">'+
         '<div class="field-label"><span>' + esc(labelText) + '</span></div>'+
         ((S.wizData.axes && S.wizData.axes.length > 1)
-          ? '<button type="button" class="axis-remove-btn" onclick="wizAxisRemove(' + idx + ')" aria-label="Премахни ос"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+          ? '<button type="button" class="axis-remove-btn" onclick="wizAxisRemove(' + idx + ')" aria-label="Премахни вариация"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
           : '')+
       '</div>';
 
+    // Build chip pool: preset values (always shown) ∪ custom user-added (in axes[i].values но не в preset)
+    var presetVals = [];
+    if (isColor) {
+      var palette = (typeof wizColorPalette === 'function') ? wizColorPalette() : WIZ_BASE_COLORS;
+      presetVals = palette.map(function(c){ return c.name; });
+    } else if (isSize) {
+      var presets = (typeof _getSizePresetsOrdered === 'function') ? _getSizePresetsOrdered() : [];
+      if (presets.length && presets[0].vals) presetVals = presets[0].vals.slice();
+    }
+    // Union с user-added
+    var allVals = presetVals.slice();
+    (ax.values || []).forEach(function(v){
+      if (allVals.indexOf(v) === -1) allVals.push(v);
+    });
+    var activeSet = {};
+    (ax.values || []).forEach(function(v){ activeSet[v] = true; });
+
     var chips = '<div class="chips-row" id="chips-' + idx + '">';
-    // Selected chips first (active)
-    (ax.values || []).forEach(function(val){
-      var hex = isColor ? wizHexForName(val) : '';
+    allVals.forEach(function(val){
+      var isActive = !!activeSet[val];
       if (isColor) {
+        var hex = (typeof wizHexForName === 'function') ? wizHexForName(val) : '#666';
         var dotStyle = 'background:' + hex + (hex.toLowerCase() === '#ffffff' ? ';border:1px solid #d1d5db' : '');
-        chips += '<button type="button" class="chip-col active" onclick="wizAxisToggle(' + idx + ', \'' + esc(val) + '\')">'+
+        chips += '<button type="button" class="chip-col' + (isActive?' active':'') + '" data-val="' + esc(val) + '" onclick="wizAxisToggle(' + idx + ', \'' + esc(val).replace(/'/g, "\\'") + '\')">'+
           '<span class="chip-col-dot" style="' + dotStyle + '"></span>' + esc(val) +
         '</button>';
       } else {
-        chips += '<button type="button" class="chip-sz active" onclick="wizAxisToggle(' + idx + ', \'' + esc(val) + '\')">' + esc(val) + '</button>';
+        chips += '<button type="button" class="chip-sz' + (isActive?' active':'') + '" data-val="' + esc(val) + '" onclick="wizAxisToggle(' + idx + ', \'' + esc(val).replace(/'/g, "\\'") + '\')">' + esc(val) + '</button>';
       }
     });
+    // Search input chip (search across ALL groups за размер, ALL colors за цвят)
+    chips += '<div class="chip-search">'+
+      '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+      '<input type="text" id="axSearch-' + idx + '" placeholder="' + (isColor ? 'Търси цвят' : 'Търси размер') + '" oninput="wizAxisSearch(' + idx + ', this.value)" autocomplete="off">'+
+    '</div>';
     // "+ добави" inline expand
     chips += '<button type="button" class="chip-add" onclick="wizAxisAddInline(' + idx + ')">'+
       '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави'+
     '</button>';
-    // Voice mic за тази ос (sacred wizMicAxis equivalent)
+    // Voice mic
     chips += '<button type="button" class="fbtn voice wiz-mic" onclick="wizMicAxis(' + idx + ')" style="height:34px;width:34px;border-radius:50%" aria-label="Гласово">'+
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>'+
     '</button>';
     chips += '</div>';
+    // Search results panel (hidden by default; populated по wizAxisSearch)
+    chips += '<div class="axis-search-results" id="axSearchRes-' + idx + '"></div>';
 
-    // extra-row: "други групи →" toggle (Q3=B inline expand)
+    // extra-row: "други групи →" toggle (size/generic only)
     var extra = '';
     if (isSize || (!isColor && !isSize)) {
       extra = '<div class="extra-row">'+
@@ -2894,21 +2941,19 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       '</div>';
     }
 
-    // Inline groups panel (size only) — list of presets
+    // Inline groups panel — с търсачка вътре + list
     var groupsPanel = '';
     if (isSize || (!isColor && !isSize)) {
-      groupsPanel = '<div class="inline-panel" id="groupsPanel-' + idx + '"><div class="inline-panel-groups">';
-      var presets = (typeof _getSizePresetsOrdered === 'function') ? _getSizePresetsOrdered() : [];
-      presets.forEach(function(g){
-        groupsPanel += '<button type="button" class="group-row" onclick="wizGroupPick(' + idx + ', \'' + esc(g.id) + '\')">'+
-          '<span class="group-label">' + esc(g.label) + '</span>'+
-          '<span class="group-vals">' + esc((g.vals || []).slice(0, 5).join(' · ')) + (g.vals && g.vals.length > 5 ? '...' : '') + '</span>'+
-        '</button>';
-      });
-      groupsPanel += '</div></div>';
+      groupsPanel = '<div class="inline-panel" id="groupsPanel-' + idx + '">'+
+        '<div class="inline-panel-search">'+
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+          '<input type="text" id="groupSearch-' + idx + '" placeholder="Търси група (напр. дънки, бельо, шапки)" oninput="wizGroupSearch(' + idx + ', this.value)" autocomplete="off">'+
+        '</div>'+
+        '<div class="inline-panel-groups" id="groupsList-' + idx + '">' + renderGroupsList('', idx) + '</div>'+
+      '</div>';
     }
 
-    // Inline add-color panel (color only) — native picker + name
+    // Inline add-color panel (color: hex picker + name; size/generic: text input)
     var addColorPanel = '';
     if (isColor) {
       addColorPanel = '<div class="inline-panel" id="addColorPanel-' + idx + '">'+
@@ -2922,7 +2967,6 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '</div>'+
       '</div>';
     } else {
-      // Generic/Size: inline text input (chip-add expand)
       addColorPanel = '<div class="inline-panel" id="addColorPanel-' + idx + '">'+
         '<div class="add-color-row">'+
           '<input type="text" class="add-color-name" id="addValName-' + idx + '" placeholder="' + (isSize ? 'напр. 3XL, 44, W34' : 'нова стойност') + '">'+
@@ -2935,6 +2979,74 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     }
 
     return '<div class="field" data-axis-idx="' + idx + '">' + head + chips + extra + groupsPanel + addColorPanel + '</div>';
+  }
+
+  function renderGroupsList(filter, idx){
+    var presets = (typeof _getSizePresetsOrdered === 'function') ? _getSizePresetsOrdered() : [];
+    var fl = (filter || '').toLowerCase().trim();
+    var filtered = fl ? presets.filter(function(g){
+      if (g.label.toLowerCase().indexOf(fl) !== -1) return true;
+      return (g.vals || []).some(function(v){ return String(v).toLowerCase().indexOf(fl) !== -1; });
+    }) : presets;
+    if (!filtered.length) return '<div style="padding:14px;text-align:center;font-size:11px;color:var(--text-muted)">Няма групи за "' + esc(filter) + '"</div>';
+    return filtered.map(function(g){
+      return '<button type="button" class="group-row" onclick="wizGroupPick(' + idx + ', \'' + esc(g.id) + '\')">'+
+        '<span class="group-label">' + esc(g.label) + '</span>'+
+        '<span class="group-vals">' + esc((g.vals || []).slice(0, 5).join(' · ')) + (g.vals && g.vals.length > 5 ? '...' : '') + '</span>'+
+      '</button>';
+    }).join('');
+  }
+
+  // Search в chips-row — search across ALL groups (size) или ALL palette (color)
+  function wizAxisSearch(idx, q){
+    var ax = S.wizData.axes[idx];
+    if (!ax) return;
+    var resBox = document.getElementById('axSearchRes-' + idx);
+    if (!resBox) return;
+    var ql = (q || '').toLowerCase().trim();
+    if (!ql || ql.length < 1) { resBox.innerHTML = ''; resBox.classList.remove('show'); return; }
+    var nm = (ax.name || '').toLowerCase();
+    var isColor = nm.indexOf('цвят') !== -1 || nm.indexOf('color') !== -1;
+    var matches = [];
+    if (isColor) {
+      var palette = (typeof wizColorPalette === 'function') ? wizColorPalette() : WIZ_BASE_COLORS;
+      palette.forEach(function(c){
+        if (c.name.toLowerCase().indexOf(ql) !== -1) matches.push({val: c.name, hex: c.hex});
+      });
+    } else {
+      // Search across ALL _SIZE_GROUPS
+      if (typeof _SIZE_GROUPS !== 'undefined') {
+        _SIZE_GROUPS.forEach(function(g){
+          (g.values || []).forEach(function(v){
+            if (String(v).toLowerCase().indexOf(ql) !== -1) {
+              if (!matches.find(function(m){ return m.val === v; })) {
+                matches.push({val: v, group: g.label});
+              }
+            }
+          });
+        });
+      }
+    }
+    if (!matches.length) { resBox.innerHTML = '<div class="axis-search-empty">Няма съвпадения</div>'; resBox.classList.add('show'); return; }
+    var activeSet = {};
+    (ax.values || []).forEach(function(v){ activeSet[v] = true; });
+    resBox.innerHTML = matches.slice(0, 12).map(function(m){
+      if (isColor) {
+        var dotStyle = 'background:' + m.hex + (m.hex.toLowerCase() === '#ffffff' ? ';border:1px solid #d1d5db' : '');
+        return '<button type="button" class="chip-col' + (activeSet[m.val]?' active':'') + '" onclick="wizAxisToggle(' + idx + ', \'' + esc(m.val).replace(/'/g, "\\'") + '\');wizAxisSearch(' + idx + ', document.getElementById(\'axSearch-' + idx + '\').value)">'+
+          '<span class="chip-col-dot" style="' + dotStyle + '"></span>' + esc(m.val) +
+        '</button>';
+      } else {
+        return '<button type="button" class="chip-sz' + (activeSet[m.val]?' active':'') + '" title="' + esc(m.group || '') + '" onclick="wizAxisToggle(' + idx + ', \'' + esc(m.val).replace(/'/g, "\\'") + '\');wizAxisSearch(' + idx + ', document.getElementById(\'axSearch-' + idx + '\').value)">' + esc(m.val) + '</button>';
+      }
+    }).join('');
+    resBox.classList.add('show');
+  }
+
+  function wizGroupSearch(idx, q){
+    var listBox = document.getElementById('groupsList-' + idx);
+    if (!listBox) return;
+    listBox.innerHTML = renderGroupsList(q, idx);
   }
 
   function renderSKUSummary(){
@@ -3054,7 +3166,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function wizAxisAddNew(){
-    var n = prompt('Име на нова ос (напр. Материя, Дължина, Стил):');
+    var n = prompt('Име на нова вариация (напр. Материя, Дължина, Стил):\n\nСлед като я добавиш, ще можеш да добавиш разновидности (стойности) към нея.');
     if (!n || !n.trim()) return;
     if (!Array.isArray(S.wizData.axes)) S.wizData.axes = [];
     S.wizData.axes.push({name: n.trim(), values: []});
