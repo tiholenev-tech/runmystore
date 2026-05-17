@@ -1079,6 +1079,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 
   <!-- S148 ФАЗА 2a deliverable — sacred JS parser (audio recorder shell + BG price parser). -->
   <script src="js/wizard-parser.js"></script>
+  <!-- S148 ФАЗА 3c.1 deliverable — sacred variations logic extract. -->
+  <script src="js/wizard-variations.js"></script>
   <script src="js/capacitor-printer.js"></script>
   <script>
   /* ═══ S148 ФАЗА 2e — sacred wizard state + photo block (1:1 от products.php) ═══
