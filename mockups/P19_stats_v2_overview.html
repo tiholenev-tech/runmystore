@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>Справки · Преглед · RunMyStore.AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'dark';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<style>
+/* ════════════════════════════════════════════════════════════ */
+/* P19 — stats.php DETAILED MODE — TAB 1 ПРЕГЛЕД                */
+/* Copy 1:1 от wizard_v6_INTERACTIVE + P2_v2_detailed_FINAL     */
+/* CSS canon: DESIGN_SYSTEM_v4.0_BICHROMATIC §5.4 Sacred Glass  */
+/* ════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a, select, textarea { font-family: inherit; color: inherit; font-size: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; color: inherit; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 250ms; --press: 0.97;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --z-aurora: 0; --z-content: 5; --z-shine: 1; --z-glow: 3;
+}
+:root:not([data-theme]), :root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card: var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark), calc(var(--neu-d)*-1) calc(var(--neu-d)*-1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm: var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), calc(var(--neu-d-s)*-1) calc(var(--neu-d-s)*-1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed: inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), inset calc(var(--neu-d-s)*-1) calc(var(--neu-d-s)*-1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 305);
+  --gain: oklch(0.6 0.18 145); --loss: oklch(0.6 0.22 25); --amber: oklch(0.7 0.18 60);
+  --aurora-blend: multiply; --aurora-opacity: 0.22;
+}
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220,25%,4.8%); --surface-2: hsl(220,25%,8%);
+  --border-color: hsl(var(--hue2),12%,20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.7); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px, hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1),80%,68%); --accent-2: hsl(var(--hue2),80%,68%); --accent-3: hsl(var(--hue3),70%,55%);
+  --magic: hsl(280,75%,68%); --gain: hsl(145,65%,55%); --loss: hsl(0,75%,65%); --amber: hsl(38,90%,60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.45;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+
+@keyframes auroraDrift { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(40px,-30px) scale(1.08);} 66%{transform:translate(-30px,40px) scale(0.95);} }
+@keyframes conicSpin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+/* ───── DEMO CONTROLS (top bar) ───── */
+.demo-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: hsl(280 60% 15% / .96); backdrop-filter: blur(20px);
+  border-bottom: 1px solid hsl(280 60% 25%);
+  padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; font-size: 11px;
+}
+.demo-bar-label { color: #fff; font-weight: 800; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.demo-btn {
+  padding: 5px 9px; border-radius: 7px; border: 1px solid hsl(280 50% 35%);
+  background: hsl(280 50% 20%); color: #fff; font-weight: 700;
+  cursor: pointer; font-size: 10.5px; transition: all 150ms;
+}
+.demo-btn.active {
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  border-color: transparent; box-shadow: 0 4px 12px hsl(280 70% 50% / 0.5);
+}
+.demo-btn:hover { background: hsl(280 50% 28%); }
+.demo-divider { width: 1px; height: 18px; background: hsl(280 30% 35%); margin: 0 2px; }
+
+/* ───── AURORA ───── */
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.aurora-blob {
+  position: absolute; border-radius: 50%; filter: blur(80px);
+  opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend);
+  animation: auroraDrift 22s ease-in-out infinite;
+}
+.aurora-blob:nth-child(1) { width: 340px; height: 340px; background: hsl(var(--hue1) 80% 60%); top: -90px; left: -110px; }
+.aurora-blob:nth-child(2) { width: 300px; height: 300px; background: hsl(280 75% 62%); top: 30%; right: -130px; animation-delay: 5s; }
+.aurora-blob:nth-child(3) { width: 320px; height: 320px; background: hsl(var(--hue2) 70% 55%); bottom: -120px; left: 15%; animation-delay: 10s; }
+.aurora-blob:nth-child(4) { width: 260px; height: 260px; background: hsl(195 75% 58%); top: 55%; left: -80px; animation-delay: 15s; opacity: calc(var(--aurora-opacity) * 0.7); }
+[data-theme="light"] .aurora-blob { opacity: 0.18; mix-blend-mode: multiply; }
+
+.shell {
+  position: relative; z-index: 5; max-width: 480px; margin: 0 auto;
+  padding-top: 44px; padding-bottom: calc(80px + env(safe-area-inset-bottom,0));
+}
+
+/* ═════════ HEADER ТИП Б ═════════ */
+.rms-header {
+  position: sticky; top: 44px; z-index: 50; height: 56px;
+  padding: 0 12px; display: flex; align-items: center; gap: 8px;
+}
+[data-theme="light"] .rms-header, :root:not([data-theme]) .rms-header {
+  background: var(--bg-main); box-shadow: 0 4px 12px rgba(163,177,198,0.15);
+}
+[data-theme="dark"] .rms-header {
+  background: hsl(220 25% 4.8% / 0.85); backdrop-filter: blur(16px);
+  border-bottom: 1px solid hsl(var(--hue2) 12% 14%);
+}
+
+.icon-btn {
+  width: 38px; height: 38px; border-radius: var(--radius-icon);
+  display: grid; place-items: center; flex-shrink: 0;
+  transition: transform 150ms;
+}
+.icon-btn:active { transform: scale(0.94); }
+[data-theme="light"] .icon-btn, :root:not([data-theme]) .icon-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .icon-btn { background: hsl(220 25% 8%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+.icon-btn svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.rms-title {
+  flex: 1; font-size: 15px; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.sale-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--gain), hsl(145 65% 45%));
+  color: white; font-weight: 700; font-size: 11px; letter-spacing: 0.01em;
+  box-shadow: 0 4px 12px hsl(145 65% 45% / 0.4);
+  border: none; cursor: pointer; position: relative; overflow: hidden;
+}
+.sale-pill::before { content:''; position:absolute; inset:0; background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.3) 85%,transparent 100%); animation:conicSpin 4s linear infinite; }
+.sale-pill > * { position: relative; z-index: 1; }
+.sale-pill svg { width: 13px; height: 13px; stroke: white; fill: none; stroke-width: 2; }
+
+/* ═════════ SUBBAR (store toggle + period + Лесен link) ═════════ */
+.rms-subbar {
+  position: sticky; top: 100px; z-index: 49; height: 40px;
+  padding: 0 12px; display: flex; align-items: center; gap: 10px;
+}
+[data-theme="light"] .rms-subbar, :root:not([data-theme]) .rms-subbar { background: var(--bg-main); }
+[data-theme="dark"] .rms-subbar { background: hsl(220 25% 4.8% / 0.7); backdrop-filter: blur(12px); }
+
+.store-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px 5px 8px; border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 700; color: var(--text);
+}
+[data-theme="light"] .store-toggle, :root:not([data-theme]) .store-toggle { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .store-toggle { background: hsl(220 25% 8%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+.store-toggle svg { width: 12px; height: 12px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+
+.subbar-where { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+.simple-link {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+}
+.simple-link svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ═════════ TAB BAR (3 таба) ═════════ */
+.tab-bar {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
+  padding: 4px; margin: 0 12px 8px; border-radius: var(--radius-pill);
+}
+[data-theme="light"] .tab-bar, :root:not([data-theme]) .tab-bar { background: var(--surface-2); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .tab-bar { background: hsl(220 25% 3.5%); border: 1px solid hsl(var(--hue2) 12% 18%); }
+
+.tab-btn {
+  padding: 9px 8px; border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  text-align: center; cursor: pointer; transition: all 200ms;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+}
+.tab-btn.active {
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px hsl(var(--hue1) 80% 50% / 0.4);
+}
+.tab-btn .owner-badge { font-size: 10px; opacity: 0.9; }
+
+/* ═════════ PERIOD PILLS ═════════ */
+.period-row {
+  display: flex; align-items: center; gap: 5px; padding: 0 12px;
+  margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.period-row::-webkit-scrollbar { display: none; }
+
+.period-pill {
+  flex-shrink: 0; height: 28px; padding: 0 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  border: none; cursor: pointer; transition: all 0.15s;
+}
+[data-theme="light"] .period-pill, :root:not([data-theme]) .period-pill {
+  background: var(--surface-2); box-shadow: var(--shadow-pressed);
+}
+[data-theme="dark"] .period-pill { background: hsl(220 25% 8% / 0.5); border: 1px solid hsl(var(--hue2) 12% 16%); }
+.period-pill.active {
+  color: white;
+  background: linear-gradient(135deg, hsl(var(--hue1) 60% 55%), hsl(var(--hue2) 60% 60%));
+  box-shadow: 0 2px 8px hsl(var(--hue1) 70% 50% / 0.3);
+  border-color: transparent;
+}
+
+.mode-divider { width: 1px; height: 18px; background: var(--text-faint); opacity: 0.3; margin: 0 4px; }
+
+/* ═════════ ALERT RIBBON ═════════ */
+.alert-ribbon {
+  margin: 0 12px 10px; padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 600; color: var(--text);
+  cursor: pointer;
+  background: linear-gradient(135deg, hsl(0 50% 22% / 0.4), hsl(15 50% 22% / 0.3));
+  border: 1px solid hsl(0 60% 40% / 0.3);
+}
+[data-theme="light"] .alert-ribbon {
+  background: linear-gradient(135deg, hsl(0 80% 95%), hsl(15 80% 96%));
+  border: 1px solid hsl(0 60% 80% / 0.5);
+}
+.alert-ribbon-icon { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: var(--loss); stroke-width: 2.2; }
+.alert-ribbon-text { flex: 1; line-height: 1.3; }
+.alert-ribbon-text b { color: var(--loss); }
+.alert-ribbon-arrow { width: 12px; height: 12px; opacity: 0.5; }
+.alert-ribbon.hidden { display: none; }
+
+/* ═════════ SACRED GLASS + SHINE + GLOW (1:1 от §5.4) ═════════ */
+.glass { position: relative; border-radius: var(--radius); border: var(--border) solid transparent; isolation: isolate; }
+.glass.sm { border-radius: var(--radius-sm); }
+.glass .shine, .glass .glow { --hue: var(--hue1); }
+.glass .shine-bottom, .glass .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+
+[data-theme="light"] .glass, :root:not([data-theme]) .glass { background: var(--surface); box-shadow: var(--shadow-card); }
+[data-theme="light"] .glass .shine, [data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine, :root:not([data-theme]) .glass .glow { display: none; }
+
+[data-theme="dark"] .glass {
+  background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+              linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+              linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .glass .shine {
+  pointer-events: none; border-radius: 0;
+  border-top-right-radius: inherit; border-bottom-left-radius: inherit;
+  border: 1px solid transparent;
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  right: calc(var(--border) * -1); top: calc(var(--border) * -1);
+  z-index: var(--z-shine);
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;
+  mask: linear-gradient(transparent), linear-gradient(black);
+  mask-clip: padding-box, border-box; mask-composite: subtract;
+}
+[data-theme="dark"] .glass .shine.shine-bottom {
+  right: auto; top: auto;
+  left: calc(var(--border) * -1); bottom: calc(var(--border) * -1);
+}
+[data-theme="dark"] .glass .glow {
+  pointer-events: none;
+  border-top-right-radius: calc(var(--radius) * 2.5);
+  border-bottom-left-radius: calc(var(--radius) * 2.5);
+  border: calc(var(--radius) * 1.25) solid transparent;
+  inset: calc(var(--radius) * -2); width: 75%; aspect-ratio: 1;
+  display: block; position: absolute; left: auto; bottom: auto;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);
+  filter: blur(12px) saturate(1.25); mix-blend-mode: plus-lighter;
+  z-index: var(--z-glow); opacity: 0.6;
+}
+[data-theme="dark"] .glass .glow.glow-bottom {
+  inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2);
+}
+
+/* Hue overrides */
+[data-theme="dark"] .glass.q1 .shine, [data-theme="dark"] .glass.q1 .glow { --hue: 0; }
+[data-theme="dark"] .glass.q1 .shine-bottom, [data-theme="dark"] .glass.q1 .glow-bottom { --hue: 15; }
+[data-theme="dark"] .glass.q2 .shine, [data-theme="dark"] .glass.q2 .glow,
+[data-theme="dark"] .glass.qm .shine, [data-theme="dark"] .glass.qm .glow { --hue: 280; }
+[data-theme="dark"] .glass.q2 .shine-bottom, [data-theme="dark"] .glass.q2 .glow-bottom { --hue: 305; }
+[data-theme="dark"] .glass.qm .shine-bottom, [data-theme="dark"] .glass.qm .glow-bottom { --hue: 310; }
+[data-theme="dark"] .glass.q3 .shine, [data-theme="dark"] .glass.q3 .glow { --hue: 145; }
+[data-theme="dark"] .glass.q3 .shine-bottom, [data-theme="dark"] .glass.q3 .glow-bottom { --hue: 165; }
+[data-theme="dark"] .glass.q4 .shine, [data-theme="dark"] .glass.q4 .glow { --hue: 180; }
+[data-theme="dark"] .glass.q4 .shine-bottom, [data-theme="dark"] .glass.q4 .glow-bottom { --hue: 195; }
+[data-theme="dark"] .glass.q5 .shine, [data-theme="dark"] .glass.q5 .glow { --hue: 38; }
+[data-theme="dark"] .glass.q5 .shine-bottom, [data-theme="dark"] .glass.q5 .glow-bottom { --hue: 28; }
+[data-theme="dark"] .glass.qd .shine, [data-theme="dark"] .glass.qd .glow { --hue: var(--hue1); }
+[data-theme="dark"] .glass.qd .shine-bottom, [data-theme="dark"] .glass.qd .glow-bottom { --hue: var(--hue2); }
+.glass > *:not(.shine):not(.glow) { position: relative; z-index: var(--z-content); }
+
+/* ═════════ CONTENT AREA ═════════ */
+.app { padding: 0 12px; position: relative; }
+
+/* ═════════ KPI HERO CARD (Revenue) ═════════ */
+.kpi-hero { padding: 16px 18px 14px; margin-bottom: 12px; }
+.kpi-hero-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px;
+}
+.kpi-label {
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+.kpi-pct {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 800;
+  padding: 3px 9px; border-radius: var(--radius-pill);
+  background: oklch(0.92 0.08 145 / 0.5); color: hsl(145 60% 35%);
+}
+[data-theme="dark"] .kpi-pct { background: hsl(145 50% 12%); color: hsl(145 70% 65%); }
+.kpi-pct.neg { background: oklch(0.92 0.08 25 / 0.5); color: hsl(0 60% 45%); }
+[data-theme="dark"] .kpi-pct.neg { background: hsl(0 50% 12%); color: hsl(0 80% 70%); }
+.kpi-pct.zero { background: rgba(148,163,184,0.18); color: var(--text-muted); }
+
+.kpi-num-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.kpi-num { font-size: 38px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+.kpi-cur { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text-muted); }
+.kpi-num-secondary { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-faint); }
+
+.kpi-meta { font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+
+.ai-slot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; margin: 0 -4px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, hsl(280 50% 25% / 0.35), hsl(305 50% 25% / 0.25));
+  border: 1px solid hsl(280 50% 40% / 0.25);
+  font-size: 12px; font-weight: 600; color: var(--text);
+}
+[data-theme="light"] .ai-slot {
+  background: linear-gradient(135deg, oklch(0.94 0.05 285 / 0.6), oklch(0.94 0.05 310 / 0.5));
+  border: 1px solid oklch(0.85 0.08 290 / 0.3);
+}
+.ai-spark { width: 14px; height: 14px; flex-shrink: 0; }
+.ai-spark path { fill: var(--magic); }
+.ai-text { flex: 1; line-height: 1.3; }
+.ai-text.fallback { color: var(--text-muted); }
+.confidence-marker {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--surface-2); color: var(--text-faint);
+  font-size: 9px; font-weight: 700; text-align: center; line-height: 14px;
+  margin-left: 4px; cursor: help;
+}
+
+/* ═════════ KPI MINI GRID (2 col) ═════════ */
+.kpi-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 12px;
+}
+.kpi-mini { padding: 12px 14px; }
+.kpi-mini-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.kpi-mini-value { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.kpi-mini-cur { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-muted); margin-left: 3px; }
+.kpi-mini-delta {
+  margin-top: 4px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+}
+.kpi-mini-delta.positive { color: hsl(145 70% 55%); }
+.kpi-mini-delta.negative { color: hsl(0 75% 65%); }
+.kpi-mini-delta.zero { color: var(--text-muted); }
+.kpi-mini-delta.locked {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: var(--radius-pill);
+  background: var(--surface-2); color: var(--text-muted);
+  font-size: 9px;
+}
+.lock-ic { width: 9px; height: 9px; }
+.lock-ic path { fill: var(--text-muted); }
+
+.kpi-mini.owner-only::after {
+  content: '👑'; position: absolute; top: 8px; right: 10px; font-size: 10px;
+  opacity: 0.5;
+}
+
+/* ═════════ TOP 5 CARD ═════════ */
+.top5-card { padding: 14px 16px; margin-bottom: 12px; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.card-title {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+
+.segmented-ctrl {
+  display: flex; gap: 2px; padding: 3px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 12px;
+}
+[data-theme="light"] .segmented-ctrl, :root:not([data-theme]) .segmented-ctrl { background: var(--surface-2); box-shadow: var(--shadow-pressed); }
+[data-theme="dark"] .segmented-ctrl { background: hsl(220 25% 3.5%); border: 1px solid hsl(var(--hue2) 12% 14%); }
+.seg-btn {
+  flex: 1; padding: 6px 8px; border-radius: var(--radius-pill);
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.seg-btn.active {
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 2px 8px hsl(var(--hue1) 80% 50% / 0.3);
+}
+
+.hbar-list { list-style: none; }
+.hbar-item {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 8px;
+  padding: 7px 0; cursor: pointer;
+  border-bottom: 1px solid hsl(var(--hue2) 12% 15% / 0.3);
+}
+[data-theme="light"] .hbar-item { border-bottom-color: hsl(220 15% 88%); }
+.hbar-item:last-child { border-bottom: none; }
+.hbar-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.hbar-value { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+.hbar-bar-wrap { grid-column: 1 / -1; }
+.hbar-bar {
+  height: 4px; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, hsl(var(--hue1) 60% 55%), hsl(var(--hue2) 60% 60%));
+  width: var(--pct, 0%);
+  transition: width 0.4s var(--ease);
+}
+
+.card-link {
+  display: block; margin-top: 8px; text-align: center;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  padding: 6px; text-decoration: none;
+}
+
+/* ═════════ SPARKLINE CARD ═════════ */
+.sparkline-card { padding: 14px 16px; margin-bottom: 12px; }
+.spark-svg { width: 100%; height: 50px; margin: 8px 0 4px; display: block; }
+.spark-axis {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-faint);
+  font-weight: 600;
+}
+
+/* ═════════ HOURLY BARS ═════════ */
+.hourly-card { padding: 14px 16px; margin-bottom: 12px; }
+.hourly-bars {
+  display: flex; align-items: flex-end; gap: 4px;
+  height: 70px; padding-bottom: 18px; margin: 10px 0 4px;
+}
+.hb-item {
+  flex: 1; height: 100%; display: flex; flex-direction: column;
+  justify-content: flex-end; position: relative;
+}
+.hb-fill {
+  height: var(--h); min-height: 4px;
+  background: linear-gradient(to top, hsl(var(--hue1) 60% 45%), hsl(var(--hue1) 60% 65%));
+  border-radius: 3px 3px 0 0;
+}
+.hb-item.active .hb-fill {
+  background: linear-gradient(to top, var(--accent), var(--accent-2));
+  box-shadow: 0 0 12px hsl(var(--hue1) 60% 55% / 0.6);
+}
+.hb-label {
+  position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 8.5px; color: var(--text-faint);
+}
+.hourly-meta {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-align: center; margin-top: 4px;
+}
+.hourly-meta b { color: var(--accent); font-weight: 800; }
+
+/* ═════════ ALERT CARD ═════════ */
+.alert-card { padding: 14px 16px; margin-bottom: 12px; }
+.alert-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+.alert-ic {
+  width: 32px; height: 32px; border-radius: var(--radius-icon);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.alert-card.q1 .alert-ic { background: linear-gradient(135deg, var(--loss), hsl(0 70% 55%)); box-shadow: 0 4px 14px hsl(0 75% 50% / 0.4); }
+.alert-card.q5 .alert-ic { background: linear-gradient(135deg, var(--amber), hsl(28 90% 60%)); box-shadow: 0 4px 14px hsl(38 80% 50% / 0.4); }
+.alert-ic svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2.5; }
+
+.alert-body { flex: 1; }
+.alert-title { font-family: var(--font-mono); font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.alert-value { font-size: 17px; font-weight: 900; color: var(--text); letter-spacing: -0.01em; line-height: 1.1; margin-top: 2px; }
+.alert-action {
+  display: block; margin-top: 8px; padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2); font-size: 11px; font-weight: 700;
+  text-align: center; color: var(--accent); text-decoration: none;
+}
+.alert-card.q1 .alert-action { background: hsl(0 50% 22% / 0.3); color: hsl(0 80% 75%); }
+.alert-card.q5 .alert-action { background: hsl(38 50% 22% / 0.3); color: hsl(38 90% 70%); }
+[data-theme="light"] .alert-card.q1 .alert-action { background: hsl(0 80% 95%); color: hsl(0 65% 45%); }
+[data-theme="light"] .alert-card.q5 .alert-action { background: hsl(38 80% 95%); color: hsl(28 65% 45%); }
+
+/* ═════════ MULTI-STORE COMPARE ═════════ */
+.store-compare { padding: 14px 16px; margin-bottom: 12px; }
+.store-row {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 8px 0; cursor: pointer;
+  border-bottom: 1px solid hsl(var(--hue2) 12% 15% / 0.3);
+}
+[data-theme="light"] .store-row { border-bottom-color: hsl(220 15% 88%); }
+.store-row:last-child { border-bottom: none; }
+.store-name { font-size: 12.5px; font-weight: 700; }
+.store-rev { font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--text); }
+.store-bar-wrap { grid-column: 1 / -1; }
+.store-bar {
+  height: 5px; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, hsl(var(--hue1) 60% 55%), hsl(var(--hue2) 60% 60%));
+  width: var(--pct, 0%);
+}
+
+/* ═════════ EMPTY STATE ═════════ */
+.empty-state {
+  padding: 60px 24px 40px; text-align: center;
+  display: none;
+}
+.empty-state.show { display: block; }
+.empty-ic { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); }
+.empty-ic svg { width: 28px; height: 28px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+.empty-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+.empty-msg { font-size: 12.5px; font-weight: 500; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; }
+.empty-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 20px; border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white; font-weight: 800; font-size: 13px;
+  box-shadow: 0 4px 14px hsl(var(--hue1) 80% 50% / 0.4);
+  cursor: pointer; border: none;
+}
+
+/* ═════════ BOTTOM NAV (placeholder) ═════════ */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  height: 64px; padding: 6px 8px env(safe-area-inset-bottom,0);
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px;
+  max-width: 480px; margin: 0 auto;
+}
+[data-theme="light"] .bottom-nav, :root:not([data-theme]) .bottom-nav {
+  background: var(--bg-main); box-shadow: 0 -4px 12px rgba(163,177,198,0.15);
+}
+[data-theme="dark"] .bottom-nav {
+  background: hsl(220 25% 4.8% / 0.92); backdrop-filter: blur(20px);
+  border-top: 1px solid hsl(var(--hue2) 12% 14%);
+}
+.nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; font-size: 9.5px; font-weight: 700; color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.nav-tab svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+.nav-tab.active {
+  color: var(--accent);
+  background: hsl(var(--hue1) 30% 20% / 0.3);
+}
+[data-theme="light"] .nav-tab.active { background: oklch(0.94 0.05 285 / 0.5); }
+
+/* Theme toggle */
+.theme-toggle { position: fixed; top: 50px; right: 8px; z-index: 199; }
+.theme-toggle button {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: hsl(280 50% 20%); border: 1px solid hsl(280 50% 35%);
+  display: grid; place-items: center; cursor: pointer;
+}
+.theme-toggle svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; }
+
+/* Rotation indicator (за consistency с s82) */
+.rotation-dots { font-size: 7px; letter-spacing: 2px; color: var(--text-faint); font-family: var(--font-mono); }
+
+/* Plan badge */
+.role-badge { font-size: 10px; opacity: 0.8; margin-left: 4px; }
+
+/* Responsive */
+@media (max-width: 374px) { .kpi-num { font-size: 32px; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ DEMO BAR ═══════════ -->
+<div class="demo-bar">
+  <span class="demo-bar-label">State:</span>
+  <button class="demo-btn" data-state="empty">Празен</button>
+  <button class="demo-btn" data-state="weak">Слаб</button>
+  <button class="demo-btn active" data-state="normal">Нормален</button>
+  <button class="demo-btn" data-state="strong">Силен</button>
+  <button class="demo-btn" data-state="multi">Multi-store</button>
+  <span class="demo-divider"></span>
+  <span class="demo-bar-label">Role:</span>
+  <button class="demo-btn active" data-role="owner">👑 Owner</button>
+  <button class="demo-btn" data-role="manager">🔑 Manager</button>
+</div>
+
+<div class="theme-toggle">
+  <button onclick="toggleTheme()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </button>
+</div>
+
+<!-- ═══════════ AURORA BG ═══════════ -->
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<div class="shell">
+
+<!-- ═══════════ HEADER ТИП Б ═══════════ -->
+<header class="rms-header">
+  <button class="icon-btn" aria-label="Назад">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <h1 class="rms-title">Справки</h1>
+  <button class="icon-btn" onclick="toggleTheme()" aria-label="Тема">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </button>
+  <a class="sale-pill" href="sale.php">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    <span>Продажба</span>
+  </a>
+</header>
+
+<!-- ═══════════ SUBBAR ═══════════ -->
+<div class="rms-subbar">
+  <button class="store-toggle" id="storeToggle">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    <span id="storeName">Цариградско</span>
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <span class="subbar-where">Справки</span>
+  <a class="simple-link" href="life-board.php">
+    <span>Лесен</span>
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+</div>
+
+<!-- ═══════════ TAB BAR ═══════════ -->
+<nav class="tab-bar">
+  <button class="tab-btn active">Преглед</button>
+  <button class="tab-btn">Артикули</button>
+  <button class="tab-btn" id="financeTab">Финанси<span class="owner-badge">👑</span></button>
+</nav>
+
+<!-- ═══════════ PERIOD PILLS ═══════════ -->
+<div class="period-row">
+  <button class="period-pill active" data-period="today">Днес</button>
+  <button class="period-pill" data-period="7d">7 дни</button>
+  <button class="period-pill" data-period="30d">30 дни</button>
+  <button class="period-pill" data-period="90d">90 дни</button>
+  <span class="mode-divider"></span>
+  <button class="period-pill" data-period="custom">Избор</button>
+</div>
+
+<!-- ═══════════ ALERT RIBBON ═══════════ -->
+<div class="alert-ribbon" id="alertRibbon">
+  <svg class="alert-ribbon-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><circle cx="12" cy="17" r=".5"/></svg>
+  <span class="alert-ribbon-text"><b id="alertCount">2 аномалии</b> — <span id="alertText">N42 свършва · €340 замразени</span></span>
+  <svg class="alert-ribbon-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+</div>
+
+<main class="app">
+
+<!-- ═══════════ EMPTY STATE (hidden by default) ═══════════ -->
+<div class="empty-state" id="emptyState">
+  <div class="empty-ic">
+    <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><polyline points="7 12 11 8 15 12 21 6"/></svg>
+  </div>
+  <div class="empty-title">Още няма продажби днес</div>
+  <div class="empty-msg">Като направиш първата продажба, тук ще видиш числата и AI ще започне да анализира.</div>
+  <button class="empty-cta">
+    <svg viewBox="0 0 24 24" width="14" height="14" stroke="white" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Започни продажба
+  </button>
+</div>
+
+<!-- ═══════════ STATE CONTENT (нормално) ═══════════ -->
+<div class="state-content" id="stateContent">
+
+<!-- HERO REVENUE -->
+<div class="glass kpi-hero qd">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="kpi-hero-top">
+    <span class="kpi-label">Оборот днес · <span id="storeLabel">Цариградско</span></span>
+    <span class="kpi-pct" id="revPct">+12%</span>
+  </div>
+  
+  <div class="kpi-num-row">
+    <span class="kpi-num" id="revNum">847</span>
+    <span class="kpi-cur">€</span>
+    <span class="kpi-num-secondary">/ <span id="revBgn">1 656.46</span> лв</span>
+  </div>
+  
+  <div class="kpi-meta"><span id="txCount">7</span> продажби · vs <span id="txPrev">4</span> миналия петък</div>
+  
+  <div class="ai-slot" id="aiSlot">
+    <svg class="ai-spark" viewBox="0 0 24 24"><path d="M12 2l2.39 7.36H22l-6.18 4.49L18.21 21 12 16.52 5.79 21l2.39-7.15L2 9.36h7.61z"/></svg>
+    <span class="ai-text" id="aiText">4-тият петък над €700 — сезонът тръгва.</span>
+  </div>
+</div>
+
+<!-- KPI MINI GRID -->
+<div class="kpi-grid">
+  <div class="glass kpi-mini q4">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="kpi-mini-label">Продажби</div>
+    <div class="kpi-mini-value" id="txValue">7</div>
+    <div class="kpi-mini-delta positive">+3 vs вчера</div>
+  </div>
+  
+  <div class="glass kpi-mini qd">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="kpi-mini-label">Среден чек</div>
+    <div class="kpi-mini-value" id="aovValue">121<span class="kpi-mini-cur">€</span></div>
+    <div class="kpi-mini-delta positive">+8% vs седм.</div>
+  </div>
+  
+  <div class="glass kpi-mini q3 owner-only" id="marginCard">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="kpi-mini-label">Марж</div>
+    <div class="kpi-mini-value" id="marginValue">28<span class="kpi-mini-cur">%</span></div>
+    <div class="kpi-mini-delta zero">норма 28%</div>
+  </div>
+  
+  <div class="glass kpi-mini q3 owner-only" id="profitCard">
+    <span class="shine"></span><span class="shine shine-bottom"></span>
+    <span class="glow"></span><span class="glow glow-bottom"></span>
+    <div class="kpi-mini-label">Печалба</div>
+    <div class="kpi-mini-value" id="profitValue">237<span class="kpi-mini-cur">€</span></div>
+    <div class="kpi-mini-delta positive">+€26 vs седм.</div>
+  </div>
+</div>
+
+<!-- TOP 5 CARD -->
+<div class="glass top5-card qd">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="card-head">
+    <span class="card-title">Топ продавано</span>
+  </div>
+  
+  <div class="segmented-ctrl">
+    <button class="seg-btn active" data-mode="units">Бройки</button>
+    <button class="seg-btn" data-mode="revenue">Оборот</button>
+    <button class="seg-btn" data-mode="profit" id="profitSeg">Печалба 👑</button>
+  </div>
+  
+  <ul class="hbar-list" id="top5List">
+    <li class="hbar-item">
+      <span class="hbar-label">Nike Air 42</span>
+      <span class="hbar-value">3 бр</span>
+      <div class="hbar-bar-wrap"><div class="hbar-bar" style="--pct: 100%"></div></div>
+    </li>
+    <li class="hbar-item">
+      <span class="hbar-label">Levi's 501</span>
+      <span class="hbar-value">2 бр</span>
+      <div class="hbar-bar-wrap"><div class="hbar-bar" style="--pct: 67%"></div></div>
+    </li>
+    <li class="hbar-item">
+      <span class="hbar-label">H&M T-shirt</span>
+      <span class="hbar-value">2 бр</span>
+      <div class="hbar-bar-wrap"><div class="hbar-bar" style="--pct: 67%"></div></div>
+    </li>
+    <li class="hbar-item">
+      <span class="hbar-label">Adidas 44</span>
+      <span class="hbar-value">1 бр</span>
+      <div class="hbar-bar-wrap"><div class="hbar-bar" style="--pct: 33%"></div></div>
+    </li>
+    <li class="hbar-item">
+      <span class="hbar-label">Hugo колан</span>
+      <span class="hbar-value">1 бр</span>
+      <div class="hbar-bar-wrap"><div class="hbar-bar" style="--pct: 33%"></div></div>
+    </li>
+  </ul>
+  
+  <a class="card-link" href="stats.php?tab=products">Виж всички 47 →</a>
+</div>
+
+<!-- SPARKLINE 7d -->
+<div class="glass sparkline-card qd">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="card-head">
+    <span class="card-title">Тренд 7 дни</span>
+    <span class="hbar-value" id="trendCurrent">847€</span>
+  </div>
+  
+  <svg class="spark-svg" viewBox="0 0 280 50" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="sg1" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="hsl(255 60% 55%)" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="hsl(222 60% 60%)" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="sg2" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%" stop-color="hsl(255 60% 55%)"/>
+        <stop offset="100%" stop-color="hsl(222 60% 70%)"/>
+      </linearGradient>
+    </defs>
+    <path id="sparkArea" d="M0,40 L46,32 L93,40 L140,22 L186,30 L233,18 L280,12 L280,50 L0,50 Z" fill="url(#sg1)"/>
+    <path id="sparkLine" d="M0,40 L46,32 L93,40 L140,22 L186,30 L233,18 L280,12" stroke="url(#sg2)" stroke-width="2" fill="none" stroke-linejoin="round"/>
+    <circle cx="280" cy="12" r="3" fill="hsl(222 60% 70%)"/>
+  </svg>
+  
+  <div class="spark-axis">
+    <span>Пон</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
+  </div>
+</div>
+
+<!-- HOURLY -->
+<div class="glass hourly-card q4">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="card-head">
+    <span class="card-title">По часове днес</span>
+  </div>
+  
+  <div class="hourly-bars">
+    <div class="hb-item"><div class="hb-fill" style="--h: 8%"></div><span class="hb-label">9</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 18%"></div><span class="hb-label">10</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 28%"></div><span class="hb-label">11</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 48%"></div><span class="hb-label">12</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 56%"></div><span class="hb-label">13</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 38%"></div><span class="hb-label">14</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 42%"></div><span class="hb-label">15</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 68%"></div><span class="hb-label">16</span></div>
+    <div class="hb-item active"><div class="hb-fill" style="--h: 100%"></div><span class="hb-label">17</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 85%"></div><span class="hb-label">18</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 32%"></div><span class="hb-label">19</span></div>
+    <div class="hb-item"><div class="hb-fill" style="--h: 12%"></div><span class="hb-label">20</span></div>
+  </div>
+  
+  <div class="hourly-meta">Пиков час: <b>17:00</b> — €180</div>
+</div>
+
+<!-- DEAD CAPITAL -->
+<div class="glass alert-card q1" id="deadCard">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="alert-head">
+    <div class="alert-ic">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5-2 4-2 4 2 4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    </div>
+    <div class="alert-body">
+      <div class="alert-title">Замразени пари</div>
+      <div class="alert-value"><span id="deadValue">€340</span> в <span id="deadCount">5</span> артикула</div>
+    </div>
+  </div>
+  <a class="alert-action" href="stats.php?tab=products&filter=dead">Виж артикулите → намали цените</a>
+</div>
+
+<!-- LOW STOCK -->
+<div class="glass alert-card q5">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="alert-head">
+    <div class="alert-ic">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="alert-body">
+      <div class="alert-title">Близо до изчерпване</div>
+      <div class="alert-value">3 артикула · N42 свършва ~2 дни</div>
+    </div>
+  </div>
+  <a class="alert-action" href="orders.php?new">Поръчай →</a>
+</div>
+
+<!-- MULTI-STORE COMPARE (показва се само в multi state) -->
+<div class="glass store-compare qd" id="storeCompare" style="display:none">
+  <span class="shine"></span><span class="shine shine-bottom"></span>
+  <span class="glow"></span><span class="glow glow-bottom"></span>
+  
+  <div class="card-head">
+    <span class="card-title">Магазини днес</span>
+  </div>
+  
+  <div class="store-row">
+    <span class="store-name">Цариградско</span>
+    <span class="store-rev">€847</span>
+    <div class="store-bar-wrap"><div class="store-bar" style="--pct: 100%"></div></div>
+  </div>
+  <div class="store-row">
+    <span class="store-name">Студентски</span>
+    <span class="store-rev">€620</span>
+    <div class="store-bar-wrap"><div class="store-bar" style="--pct: 73%"></div></div>
+  </div>
+  <div class="store-row">
+    <span class="store-name">Витоша</span>
+    <span class="store-rev">€410</span>
+    <div class="store-bar-wrap"><div class="store-bar" style="--pct: 48%"></div></div>
+  </div>
+</div>
+
+</div><!-- /state-content -->
+
+</main>
+
+</div><!-- /shell -->
+
+<!-- ═══════════ BOTTOM NAV (placeholder) ═══════════ -->
+<nav class="bottom-nav">
+  <a class="nav-tab" href="chat.php">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>AI</span>
+  </a>
+  <a class="nav-tab" href="warehouse.php">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    <span>Склад</span>
+  </a>
+  <a class="nav-tab active">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Справки</span>
+  </a>
+  <a class="nav-tab" href="sale.php">
+    <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    <span>Продажба</span>
+  </a>
+</nav>
+
+<script>
+// ═══════════════════════════════════════
+// State management
+// ═══════════════════════════════════════
+const STATES = {
+  empty: {
+    showEmpty: true,
+    rev: 0, revBgn: '0.00', pct: '+0%', pctClass: '',
+    tx: 0, txPrev: 0, txDelta: '0',
+    aov: 0, aovDelta: '—',
+    margin: '—', marginDelta: '',
+    profit: 0, profitDelta: '',
+    aiText: 'Още няма продажби. Започни първата продажба за да видиш AI insight.',
+    alertText: '', alertCount: '',
+    deadValue: 0, deadCount: 0,
+    showMulti: false
+  },
+  weak: {
+    showEmpty: false,
+    rev: 234, revBgn: '457.66', pct: '-15%', pctClass: 'neg',
+    tx: 3, txPrev: 5, txDelta: '−2 vs вчера',
+    aov: 78, aovDelta: '−12%',
+    margin: '24', marginDelta: 'под нормата',
+    profit: 56, profitDelta: '−€42',
+    aiText: 'Слаб ден. Понеделник обикновено е тих — нормално.',
+    alertCount: '3 аномалии', alertText: 'Слаб ден · N42 свършва · €580 замразени',
+    deadValue: 580, deadCount: 8,
+    showMulti: false
+  },
+  normal: {
+    showEmpty: false,
+    rev: 847, revBgn: '1 656.46', pct: '+12%', pctClass: '',
+    tx: 7, txPrev: 6, txDelta: '+1 vs вчера',
+    aov: 121, aovDelta: '+8% vs седм.',
+    margin: '28', marginDelta: 'норма 28%',
+    profit: 237, profitDelta: '+€26 vs седм.',
+    aiText: '4-тият петък над €700 — сезонът тръгва.',
+    alertCount: '2 аномалии', alertText: 'N42 свършва · €340 замразени',
+    deadValue: 340, deadCount: 5,
+    showMulti: false
+  },
+  strong: {
+    showEmpty: false,
+    rev: 1547, revBgn: '3 025.18', pct: '+35%', pctClass: '',
+    tx: 14, txPrev: 9, txDelta: '+5 vs вчера',
+    aov: 110, aovDelta: '+18% vs седм.',
+    margin: '31', marginDelta: '+3% vs норма',
+    profit: 479, profitDelta: '+€198 vs седм.',
+    aiText: 'Рекорден петък за месеца! Маржът над нормата с 3%.',
+    alertCount: '1 аномалия', alertText: 'Levi\'s 32 свършва ~1 ден',
+    deadValue: 230, deadCount: 4,
+    showMulti: false
+  },
+  multi: {
+    showEmpty: false,
+    rev: 1877, revBgn: '3 670.59', pct: '+18%', pctClass: '',
+    tx: 24, txPrev: 19, txDelta: '+5 vs вчера',
+    aov: 78, aovDelta: '+4% vs седм.',
+    margin: '29', marginDelta: 'норма 28%',
+    profit: 544, profitDelta: '+€87 vs седм.',
+    aiText: 'Витоша изпуска — трансфер от Цариградско?',
+    alertCount: '4 аномалии', alertText: 'Витоша −20% · 2 stockout · €410 замразени',
+    deadValue: 410, deadCount: 7,
+    showMulti: true
+  }
+};
+
+let currentState = 'normal';
+let currentRole = 'owner';
+
+function applyState(name) {
+  currentState = name;
+  const s = STATES[name];
+  
+  // Empty state
+  document.getElementById('emptyState').classList.toggle('show', s.showEmpty);
+  document.getElementById('stateContent').style.display = s.showEmpty ? 'none' : 'block';
+  document.getElementById('alertRibbon').classList.toggle('hidden', s.showEmpty || !s.alertCount);
+  
+  if (s.showEmpty) return;
+  
+  // Hero
+  document.getElementById('revNum').textContent = s.rev.toLocaleString('bg-BG');
+  document.getElementById('revBgn').textContent = s.revBgn;
+  const pctEl = document.getElementById('revPct');
+  pctEl.textContent = s.pct;
+  pctEl.className = 'kpi-pct ' + s.pctClass;
+  document.getElementById('txCount').textContent = s.tx;
+  document.getElementById('txPrev').textContent = s.txPrev;
+  
+  // AI
+  document.getElementById('aiText').textContent = s.aiText;
+  
+  // KPI mini
+  document.getElementById('txValue').textContent = s.tx;
+  document.querySelector('#txValue').parentElement.querySelector('.kpi-mini-delta').textContent = s.txDelta;
+  document.getElementById('aovValue').innerHTML = s.aov + '<span class="kpi-mini-cur">€</span>';
+  document.querySelector('#aovValue').parentElement.querySelector('.kpi-mini-delta').textContent = s.aovDelta;
+  document.getElementById('marginValue').innerHTML = s.margin + '<span class="kpi-mini-cur">%</span>';
+  document.querySelector('#marginValue').parentElement.querySelector('.kpi-mini-delta').textContent = s.marginDelta;
+  document.getElementById('profitValue').innerHTML = s.profit + '<span class="kpi-mini-cur">€</span>';
+  document.querySelector('#profitValue').parentElement.querySelector('.kpi-mini-delta').textContent = s.profitDelta;
+  
+  // Alert ribbon
+  if (s.alertCount) {
+    document.getElementById('alertCount').textContent = s.alertCount;
+    document.getElementById('alertText').textContent = s.alertText;
+  }
+  
+  // Dead capital
+  document.getElementById('deadValue').textContent = '€' + s.deadValue;
+  document.getElementById('deadCount').textContent = s.deadCount;
+  
+  // Multi-store
+  document.getElementById('storeCompare').style.display = s.showMulti ? 'block' : 'none';
+  
+  // Store label
+  document.getElementById('storeLabel').textContent = s.showMulti ? 'Всички магазини' : 'Цариградско';
+  document.getElementById('storeName').textContent = s.showMulti ? 'Всички (3)' : 'Цариградско';
+}
+
+function applyRole(role) {
+  currentRole = role;
+  const ownerOnly = document.querySelectorAll('.owner-only, #financeTab, #profitSeg');
+  ownerOnly.forEach(el => {
+    el.style.display = role === 'owner' ? '' : 'none';
+  });
+}
+
+// Wire demo buttons
+document.querySelectorAll('[data-state]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-state]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyState(btn.dataset.state);
+  });
+});
+document.querySelectorAll('[data-role]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyRole(btn.dataset.role);
+  });
+});
+
+// Period pills
+document.querySelectorAll('.period-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Tab bar
+document.querySelectorAll('.tab-bar .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Segmented control (Top 5)
+document.querySelectorAll('.seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Theme
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('rms_theme', next); } catch(_) {}
+}
+
+// Init
+applyState('normal');
+applyRole('owner');
+</script>
+
+</body>
+</html>
