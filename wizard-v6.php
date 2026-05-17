@@ -535,24 +535,23 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .pmt-opt svg{flex-shrink:0}
 
 /* Photo main badge — neumorphic accent (заменя inline #fbbf24 gradient + ★ emoji) */
-.ph-main-badge{position:absolute;top:6px;left:6px;padding:3px 8px;border-radius:6px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;box-shadow:0 2px 8px hsl(255 80% 50% / 0.4);z-index:2;text-transform:uppercase;font-family:var(--font-mono,monospace)}
+.ph-main-badge{position:absolute;top:6px;left:6px;padding:3px 8px;border-radius:6px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;box-shadow:0 2px 8px hsl(255 80% 50% / 0.4);z-index:2;text-transform:uppercase;font-family:inherit}
 .photo-multi-cell.is-main .photo-multi-thumb{box-shadow:0 0 0 2px var(--accent),0 0 14px hsl(255 80% 50% / 0.35)}
-.ph-main-label{margin-top:6px;font-size:10px;color:var(--accent);text-align:center;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;font-family:var(--font-mono,monospace)}
+.ph-main-label{margin-top:6px;font-size:10px;color:var(--accent);text-align:center;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;font-family:inherit}
 .ph-main-btn{margin-top:6px;width:100%;padding:7px;border-radius:8px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.03em;text-transform:uppercase;color:var(--accent)}
 [data-theme="light"] .ph-main-btn,:root:not([data-theme]) .ph-main-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
 [data-theme="dark"] .ph-main-btn{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 22%)}
 .ph-main-btn:active{transform:scale(0.97)}
 [data-theme="light"] .ph-main-btn:active,:root:not([data-theme]) .ph-main-btn:active{box-shadow:var(--shadow-pressed)}
 
-/* Photo color confidence — стандартни цветове (не light-зелено #86efac) */
-.photo-color-conf{font-size:8.5px;font-weight:800;letter-spacing:0.05em;flex-shrink:0;font-family:var(--font-mono,monospace);color:var(--success)}
-.photo-color-conf.warn{color:var(--warning,hsl(38 60% 45%))}
+/* Photo color confidence — canon accent (БЕЗ зелено/жълто текст per Тих) */
+.photo-color-conf{font-size:8.5px;font-weight:800;letter-spacing:0.05em;flex-shrink:0;font-family:inherit;color:var(--accent)}
+.photo-color-conf.warn{color:var(--text-muted)}
 .photo-color-conf.detecting{color:var(--accent)}
-[data-theme="light"] .photo-color-conf,:root:not([data-theme]) .photo-color-conf{color:hsl(145 55% 35%)}
-[data-theme="light"] .photo-color-conf.warn,:root:not([data-theme]) .photo-color-conf.warn{color:hsl(38 70% 40%)}
 
-/* v4-pz tip green checkmarks → muted в light, по-четим */
-[data-theme="light"] .v4-pz-tip svg,:root:not([data-theme]) .v4-pz-tip svg{color:hsl(145 55% 35%)!important}
+/* v4-pz tip ✓ icons — canon accent (БЕЗ зелено per Тих) */
+.v4-pz-tip svg{color:var(--accent)!important}
+[data-theme="light"] .v4-pz-tip svg,:root:not([data-theme]) .v4-pz-tip svg{color:var(--accent)!important}
 
 /* === КЛЮЧЕВ FIX: cam-drawer-tip light mode === */
 /* Drawer itself (overlay) — текст vars правилни */
@@ -597,17 +596,13 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 /* .fl .hint — secondary label hint (mockup ред 162) */
 .fl .hint{font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-faint);font-size:11px;margin-left:4px}
 
-/* Live margin display (под retail price) */
-.wz-margin-display{margin-top:8px;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;font-family:var(--font-mono,monospace);letter-spacing:0.03em;display:flex;align-items:center;gap:6px}
-.wz-margin-display b{font-weight:800;font-size:14px}
+/* Live margin display — Montserrat + canon accent (cost field moved to next section,
+   но defs остават за reuse в Phase 4 / Section 3). */
+.wz-margin-display{margin-top:8px;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;font-family:inherit;letter-spacing:0.01em;display:flex;align-items:center;gap:6px;color:var(--text)}
+.wz-margin-display b{font-weight:800;font-size:14px;color:var(--accent)}
 [data-theme="light"] .wz-margin-display,:root:not([data-theme]) .wz-margin-display{background:var(--surface);box-shadow:var(--shadow-pressed)}
 [data-theme="dark"] .wz-margin-display{background:hsl(220 25% 6%);border:1px solid hsl(var(--hue2) 12% 18%)}
-.wz-margin-display.gain b{color:var(--success)}
-.wz-margin-display.warn b{color:var(--warning,hsl(38 70% 50%))}
-.wz-margin-display.loss b{color:var(--danger,hsl(0 75% 55%))}
-[data-theme="light"] .wz-margin-display.gain b,:root:not([data-theme]) .wz-margin-display.gain b{color:hsl(145 55% 35%)}
-[data-theme="light"] .wz-margin-display.warn b,:root:not([data-theme]) .wz-margin-display.warn b{color:hsl(38 70% 40%)}
-[data-theme="light"] .wz-margin-display.loss b,:root:not([data-theme]) .wz-margin-display.loss b{color:hsl(0 60% 45%)}
+.wz-margin-display.loss b{color:var(--danger,oklch(0.65 0.22 25))}
 
 /* AI markup row — appears under cost field when cost > 0 */
 .ai-markup-row{margin-top:10px;border-radius:14px;overflow:hidden}
@@ -618,42 +613,44 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .ai-markup-icon::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
 .ai-markup-icon svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;position:relative;z-index:1}
 .ai-markup-text{flex:1;font-size:12.5px;color:var(--text);line-height:1.4;font-weight:600}
-.ai-markup-value{font-size:14px;font-weight:800;color:var(--magic,var(--accent));font-family:var(--font-mono,monospace);margin:0 2px}
-.ai-markup-meta{font-size:10.5px;color:var(--text-muted);font-weight:600;margin-left:6px;font-family:var(--font-mono,monospace)}
+.ai-markup-value{font-size:14px;font-weight:800;color:var(--magic,var(--accent));font-family:inherit;margin:0 2px}
+.ai-markup-meta{font-size:10.5px;color:var(--text-muted);font-weight:600;margin-left:6px;font-family:inherit}
 .ai-markup-apply{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 4px 12px hsl(255 80% 50% / 0.4);letter-spacing:0.02em;transition:transform 150ms,box-shadow 200ms;flex-shrink:0}
 .ai-markup-apply:active{transform:scale(0.96);box-shadow:0 2px 6px hsl(255 80% 50% / 0.3)}
 .ai-markup-loading{font-size:12px;color:var(--text-muted);font-weight:600;padding:10px;display:flex;align-items:center;gap:8px}
 .ai-markup-loading::before{content:'';width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:conicSpin 0.8s linear infinite}
 
 /* ╔═══════════════════════════════════════════════════════════════════╗
-   ║ S148 ФАЗА 2h — Количество (qty + min_qty) — neumorphic stepper    ║
-   ║ Canonical stepper от mockups/wizard_v6_INTERACTIVE.html ред 208-220║
+   ║ S148 ФАЗА 2h.2 — Количество — sacred-compact inline stepper        ║
+   ║ User feedback 2026-05-17: existing wizard stepper "100x по-добре". ║
+   ║ Pattern 1:1 от products.php 12575-12604 (compact inline +/-).      ║
+   ║ Canonical Montserrat font + canon accent colors (БЕЗ зелено/жълто).║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.stepper{display:flex;align-items:center;gap:10px}
-.step-btn{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:22px;color:var(--accent);transition:transform 150ms,box-shadow 200ms;position:relative;cursor:pointer;border:none;font-family:inherit;flex-shrink:0}
-[data-theme="light"] .step-btn,:root:not([data-theme]) .step-btn{background:linear-gradient(145deg,#f0f3f9,#cdd5e1);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,0.7)}
-[data-theme="dark"] .step-btn{background:linear-gradient(145deg,hsl(220 25% 11%),hsl(220 30% 6%));box-shadow:0 5px 14px hsl(220 35% 2% / 0.7),inset 0 1px 0 hsl(255 30% 30% / 0.4),inset 0 -1px 0 hsl(220 30% 2%);border:1px solid hsl(222 12% 22%);color:hsl(255 80% 75%);text-shadow:0 0 12px hsl(255 70% 55% / 0.5)}
-.step-btn:active{transform:scale(0.95)}
-[data-theme="light"] .step-btn:active,:root:not([data-theme]) .step-btn:active{box-shadow:var(--shadow-pressed)}
-[data-theme="dark"] .step-btn:active{box-shadow:inset 0 2px 6px hsl(220 35% 2% / 0.8)}
+.wz-qty-row{display:flex;align-items:center;gap:6px}
+.wz-qty-stepper{display:flex;align-items:center;border-radius:14px;height:48px;overflow:hidden;flex:1;min-width:0;font-family:inherit}
+[data-theme="light"] .wz-qty-stepper,:root:not([data-theme]) .wz-qty-stepper{background:var(--bg-main);box-shadow:var(--shadow-pressed);border:none}
+[data-theme="dark"] .wz-qty-stepper{background:hsl(220 25% 4%);border:1px solid hsl(255 12% 22%)}
 
-.step-num{flex:1;height:50px;text-align:center;font-size:22px;font-weight:900;display:grid;place-items:center;border-radius:14px;font-family:var(--font-mono,monospace);border:none;outline:none;width:100%;color:var(--text);padding:0 8px;-moz-appearance:textfield}
-.step-num::-webkit-outer-spin-button,.step-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-[data-theme="light"] .step-num,:root:not([data-theme]) .step-num{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
-[data-theme="dark"] .step-num{background:linear-gradient(180deg,hsl(220 30% 2.5%),hsl(220 25% 5%));border:1px solid hsl(222 12% 22%);color:hsl(255 80% 75%);box-shadow:inset 0 2px 6px hsl(220 35% 1% / 0.6);text-shadow:0 0 14px hsl(255 70% 55% / 0.4)}
+.wz-qty-btn{width:48px;height:48px;background:transparent;border:none;font-size:22px;font-weight:800;font-family:inherit;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:transform 150ms,background 200ms;color:var(--accent);line-height:1}
+.wz-qty-btn:active{transform:scale(0.92)}
+[data-theme="light"] .wz-qty-btn:active,:root:not([data-theme]) .wz-qty-btn:active{background:rgba(99,102,241,0.10)}
+[data-theme="dark"] .wz-qty-btn:active{background:hsl(255 25% 10%)}
 
-.step-min .step-num{color:var(--warning,oklch(0.65 0.18 70))}
-[data-theme="dark"] .step-min .step-num{color:hsl(38 90% 65%);text-shadow:0 0 12px hsl(38 80% 50% / 0.4)}
-.step-min .step-btn{color:var(--warning,oklch(0.65 0.18 70))}
-[data-theme="dark"] .step-min .step-btn{color:hsl(38 90% 65%)}
-.step-min-hint{font-size:11px;font-weight:700;letter-spacing:0.03em;margin-top:6px;font-family:var(--font-mono,monospace);color:var(--warning,oklch(0.65 0.18 70))}
-[data-theme="dark"] .step-min-hint{color:hsl(38 90% 65%)}
+.wz-qty-input{flex:1;min-width:0;height:100%;background:transparent;border:none;color:var(--text);font-size:18px;font-weight:800;text-align:center;outline:none;font-family:inherit;padding:0 4px;letter-spacing:-0.01em;-moz-appearance:textfield}
+.wz-qty-input::-webkit-outer-spin-button,.wz-qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.wz-qty-input::placeholder{color:var(--text-faint);font-weight:600}
 
-/* Variant qty placeholder */
-.wz-variant-qty-note{margin:0;padding:14px 16px;border-radius:14px;font-size:12.5px;line-height:1.5;font-weight:600;display:flex;align-items:flex-start;gap:10px}
-[data-theme="light"] .wz-variant-qty-note,:root:not([data-theme]) .wz-variant-qty-note{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.5),oklch(0.94 0.05 195 / 0.4));box-shadow:var(--shadow-pressed);color:var(--text)}
-[data-theme="dark"] .wz-variant-qty-note{background:linear-gradient(135deg,hsl(280 30% 12% / 0.5),hsl(180 30% 12% / 0.4));border:1px solid hsl(222 12% 20%);color:var(--text-muted)}
+/* Min qty stepper — НЯКА визуална разлика, без amber/yellow (per Тих "забранявам зелен/жълт шрифт") */
+.wz-qty-stepper.is-min .wz-qty-btn{color:var(--text-muted)}
+
+/* Hint под min qty — Montserrat, text-muted (без amber/yellow) */
+.wz-min-hint{margin-top:6px;font-size:11.5px;font-weight:600;color:var(--text-muted);line-height:1.4;font-family:inherit;letter-spacing:0.01em}
+
+/* Variant qty placeholder — accent-tinted (без green/amber) */
+.wz-variant-qty-note{margin:0;padding:14px 16px;border-radius:14px;font-size:12.5px;line-height:1.5;font-weight:600;display:flex;align-items:flex-start;gap:10px;font-family:inherit}
+[data-theme="light"] .wz-variant-qty-note,:root:not([data-theme]) .wz-variant-qty-note{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.5),oklch(0.94 0.05 310 / 0.4));box-shadow:var(--shadow-pressed);color:var(--text)}
+[data-theme="dark"] .wz-variant-qty-note{background:linear-gradient(135deg,hsl(280 30% 12% / 0.5),hsl(255 30% 12% / 0.4));border:1px solid hsl(255 12% 20%);color:var(--text-muted)}
 .wz-variant-qty-note svg{width:18px;height:18px;flex-shrink:0;stroke:var(--accent);fill:none;stroke-width:2;margin-top:1px}
 .wz-variant-qty-note b{color:var(--text);font-weight:800}
   </style>
@@ -1558,7 +1555,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<div><b>Количество per вариация</b> — попълва се в "Вариации" секцията (matrix UI).</div>'+
       '</div>';
     }
-    // Single (или type не избран): стандартен qty + min_qty stepper.
+    // Single (или type не избран): sacred compact inline stepper (1:1 от p.php 12575-12604).
     if (S.wizType !== 'single') return '';
     var _qVal = (S.wizData.quantity === undefined || S.wizData.quantity === null) ? '' : S.wizData.quantity;
     var _mqVal = (S.wizData.min_quantity === undefined || S.wizData.min_quantity === null || S.wizData.min_quantity === '') ? '' : S.wizData.min_quantity;
@@ -1566,24 +1563,28 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var copySvg = '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>';
     return '<div class="fg" style="margin:0 0 10px">'+
         '<label class="fl">Брой<span class="req-star">*</span></label>'+
-        '<div class="stepper">'+
-            '<button type="button" class="step-btn" onclick="s95QtyAdjust(\'wSingleQty\',-1)" aria-label="Намали">−</button>'+
-            '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="step-num" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
-            '<button type="button" class="step-btn" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
+        '<div class="wz-qty-row">'+
+            '<div class="wz-qty-stepper">'+
+                '<button type="button" class="wz-qty-btn" onclick="s95QtyAdjust(\'wSingleQty\',-1)" aria-label="Намали">−</button>'+
+                '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="wz-qty-input" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
+                '<button type="button" class="wz-qty-btn" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
+            '</div>'+
             '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
         '</div>'+
     '</div>'+
-    '<div class="fg step-min" style="margin:0 0 10px">'+
+    '<div class="fg" style="margin:0 0 10px">'+
         '<label class="fl">Минимално количество <span class="hint">(авто от брой)</span></label>'+
-        '<div class="stepper">'+
-            '<button type="button" class="step-btn" onclick="s95MinAdjust(-1)" aria-label="Намали">−</button>'+
-            '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="step-num" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
-            '<button type="button" class="step-btn" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
+        '<div class="wz-qty-row">'+
+            '<div class="wz-qty-stepper is-min">'+
+                '<button type="button" class="wz-qty-btn" onclick="s95MinAdjust(-1)" aria-label="Намали">−</button>'+
+                '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="wz-qty-input" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
+                '<button type="button" class="wz-qty-btn" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
+            '</div>'+
             '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'min_quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
         '</div>'+
-        '<div class="step-min-hint">Под този брой системата ще препоръча да поръчаш</div>'+
+        '<div class="wz-min-hint">Под този брой системата ще препоръча да поръчаш</div>'+
     '</div>';
   }
 
@@ -1736,14 +1737,14 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       renderWizSection1Type()+
       renderWizSection1Photo()+
       renderWizSection1Name()+
-      renderWizSection1Cost()+
       renderWizSection1Retail()+
       renderWizSection1Qty();
     // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
     wizHighlightNext();
-    // S148 ФАЗА 2g: live margin + AI markup ако вече има стойности.
-    if (typeof wizUpdateMarkup === 'function') wizUpdateMarkup();
-    if (typeof wizMaybeFetchAIMarkup === 'function') wizMaybeFetchAIMarkup();
+    // S148 ФАЗА 2h.2: cost field премахнат от Section 1 (Тих 2026-05-17 — "доставна цена в следващите").
+    // Cost + AI markup + margin display ще се местят в Section 3 "Допълнителни" (Phase 4).
+    // Функциите wizUpdateMarkup / wizFetchAIMarkup / _wizPriceCloudFallback / renderWizSection1Cost
+    // остават дефинирани за reuse в Phase 4.
   }
 
   // ═══ Sacred file change handlers 1:1 от products.php 12744-12781 ═══
