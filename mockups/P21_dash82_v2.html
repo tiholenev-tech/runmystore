@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<title>P21 · s82-dash v2 · Финансова карта</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+button, input, a { font-family: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { text-decoration: none; }
+
+:root {
+  --hue1: 255; --hue2: 222; --hue3: 180;
+  --radius: 22px; --radius-sm: 14px; --radius-pill: 999px; --radius-icon: 50%;
+  --border: 1px;
+  --ease: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms; --dur: 250ms;
+  --press: 0.97;
+  --font: 'Montserrat', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+}
+
+:root:not([data-theme]), :root[data-theme="light"] {
+  --bg-main: #e0e5ec; --surface: #e0e5ec; --surface-2: #d1d9e6;
+  --border-color: transparent;
+  --text: #2d3748; --text-muted: #64748b; --text-faint: #94a3b8;
+  --shadow-light: #ffffff; --shadow-dark: #a3b1c6;
+  --neu-d: 8px; --neu-b: 16px; --neu-d-s: 4px; --neu-b-s: 8px;
+  --shadow-card: var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark), calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);
+  --shadow-card-sm: var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --shadow-pressed: inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark), inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);
+  --accent: oklch(0.62 0.22 285); --accent-2: oklch(0.65 0.25 305); --accent-3: oklch(0.78 0.18 195);
+  --magic: oklch(0.65 0.25 310);
+  --success: oklch(0.68 0.18 155); --warning: oklch(0.72 0.18 70); --danger: oklch(0.65 0.22 25);
+  --aurora-blend: multiply; --aurora-opacity: 0.32;
+}
+
+:root[data-theme="dark"] {
+  --bg-main: #08090d; --surface: hsl(220, 25%, 4.8%); --surface-2: hsl(220, 25%, 8%);
+  --border-color: hsl(var(--hue2), 12%, 20%);
+  --text: #f1f5f9; --text-muted: rgba(255,255,255,0.6); --text-faint: rgba(255,255,255,0.4);
+  --shadow-card: hsl(var(--hue2) 50% 2%) 0 10px 16px -8px, hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;
+  --shadow-card-sm: hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed: inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent: hsl(var(--hue1), 80%, 65%); --accent-2: hsl(var(--hue2), 80%, 65%); --accent-3: hsl(var(--hue3), 70%, 55%);
+  --magic: hsl(280, 70%, 65%);
+  --success: hsl(145, 70%, 55%); --warning: hsl(38, 90%, 60%); --danger: hsl(0, 85%, 60%);
+  --aurora-blend: plus-lighter; --aurora-opacity: 0.35;
+}
+
+:root:not([data-theme]) body, [data-theme="light"] body { background: var(--bg-main); color: var(--text); }
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 10%, hsl(var(--hue1) 60% 35% / .22) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, hsl(var(--hue2) 60% 35% / .22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b14 0%, #050609 100%);
+  background-attachment: fixed; color: var(--text);
+}
+
+.aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.aurora-blob { position: absolute; border-radius: var(--radius-icon); filter: blur(60px); opacity: var(--aurora-opacity); mix-blend-mode: var(--aurora-blend); animation: auroraDrift 20s ease-in-out infinite; }
+.aurora-blob:nth-child(1) { width: 280px; height: 280px; background: hsl(var(--hue1),80%,60%); top: -60px; left: -80px; }
+.aurora-blob:nth-child(2) { width: 240px; height: 240px; background: hsl(var(--hue3),70%,60%); top: 35%; right: -100px; animation-delay: 4s; }
+.aurora-blob:nth-child(3) { width: 200px; height: 200px; background: hsl(280,80%,55%); bottom: 80px; left: -50px; animation-delay: 8s; }
+
+@keyframes auroraDrift {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(30px,-25px) scale(1.1); }
+  66% { transform: translate(-25px,35px) scale(0.95); }
+}
+
+/* ═══ DEMO CONTEXT (фен на life-board.php) ═══ */
+.demo-bar {
+  position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+  z-index: 999;
+  display: flex; gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 8px; font-weight: 800;
+}
+[data-theme="light"] .demo-bar, :root:not([data-theme]) .demo-bar { background: var(--surface); box-shadow: var(--shadow-card-sm); }
+[data-theme="dark"] .demo-bar { background: hsl(220 25% 8% / 0.95); backdrop-filter: blur(12px); }
+.demo-btn {
+  padding: 4px 8px; border-radius: var(--radius-pill);
+  color: var(--text-muted); cursor: pointer;
+}
+.demo-btn.active { background: var(--accent); color: white; }
+
+/* ═══ CONTAINER (имитира life-board.php) ═══ */
+.lb-container {
+  position: relative; z-index: 5;
+  max-width: 456px; margin: 0 auto;
+  padding: 60px 12px 24px;
+}
+
+.context-label {
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--text-faint);
+  opacity: 0.5;
+}
+
+/* ═══ S82-DASH CARD (КОМПАКТНА ФИНАНСОВА КАРТА) ═══ */
+.s82-card {
+  position: relative;
+  padding: 16px 18px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  isolation: isolate;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+[data-theme="light"] .s82-card, :root:not([data-theme]) .s82-card { background: var(--surface); box-shadow: var(--shadow-card); border: none; }
+[data-theme="dark"] .s82-card {
+  background: linear-gradient(235deg, hsl(var(--hue1) 50% 10% / .8), hsl(var(--hue1) 50% 10% / 0) 33%),
+              linear-gradient(45deg, hsl(var(--hue2) 50% 10% / .8), hsl(var(--hue2) 50% 10% / 0) 33%),
+              linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+}
+
+.s82-card:active { transform: scale(0.99); }
+
+/* SACRED SHINE + GLOW */
+.s82-card .shine, .s82-card .glow { --hue: var(--hue1); }
+.s82-card .shine-bottom, .s82-card .glow-bottom { --hue: var(--hue2); --conic: 135deg; }
+
+[data-theme="light"] .s82-card .shine, [data-theme="light"] .s82-card .glow,
+:root:not([data-theme]) .s82-card .shine, :root:not([data-theme]) .s82-card .glow { display: none; }
+
+[data-theme="dark"] .s82-card .shine {
+  pointer-events: none; border-radius: 0;
+  border-top-right-radius: inherit; border-bottom-left-radius: inherit;
+  border: 1px solid transparent;
+  width: 75%; aspect-ratio: 1; display: block; position: absolute;
+  right: calc(var(--border) * -1); top: calc(var(--border) * -1); z-index: 1;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;
+  mask: linear-gradient(transparent), linear-gradient(black); mask-clip: padding-box, border-box; mask-composite: subtract;
+}
+[data-theme="dark"] .s82-card .shine.shine-bottom { right: auto; top: auto; left: calc(var(--border) * -1); bottom: calc(var(--border) * -1); }
+[data-theme="dark"] .s82-card .glow {
+  pointer-events: none;
+  border-top-right-radius: calc(var(--radius) * 2.5);
+  border-bottom-left-radius: calc(var(--radius) * 2.5);
+  border: calc(var(--radius) * 1.25) solid transparent;
+  inset: calc(var(--radius) * -2);
+  width: 75%; aspect-ratio: 1; display: block; position: absolute; left: auto; bottom: auto;
+  background: conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);
+  filter: blur(12px) saturate(1.25); mix-blend-mode: plus-lighter; z-index: 3; opacity: 0.6;
+}
+[data-theme="dark"] .s82-card .glow.glow-bottom { inset: auto; left: calc(var(--radius) * -2); bottom: calc(var(--radius) * -2); }
+
+.s82-content { position: relative; z-index: 5; }
+
+/* ═══ HEADER ═══ */
+.s82-header {
+  display: flex; align-items: center;
+  margin-bottom: 10px;
+}
+.s82-label {
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex: 1;
+}
+.s82-tap-hint {
+  font-size: 9px; font-weight: 700;
+  color: var(--text-faint);
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.s82-tap-hint svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ═══ HERO NUMBER ═══ */
+.s82-hero {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 2px;
+}
+.s82-num {
+  font-family: var(--font-mono);
+  font-size: 38px; font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+.s82-num .currency {
+  font-size: 18px; color: var(--text-muted);
+  font-weight: 700; margin-left: 4px;
+}
+.s82-delta {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.s82-delta svg { width: 11px; height: 11px; fill: currentColor; stroke: none; }
+.s82-delta.up {
+  background: color-mix(in oklch, var(--success) 15%, transparent);
+  color: var(--success);
+}
+.s82-delta.down {
+  background: color-mix(in oklch, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+.s82-meta {
+  font-size: 11px; color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ═══ AI INSIGHT SLOT (rotating) ═══ */
+.s82-insight {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  overflow: hidden;
+}
+[data-theme="light"] .s82-insight, :root:not([data-theme]) .s82-insight {
+  background: linear-gradient(135deg, oklch(0.95 0.04 305 / 0.5), oklch(0.97 0.02 310 / 0.3)), var(--surface);
+  box-shadow: var(--shadow-card-sm);
+  border: none;
+}
+[data-theme="dark"] .s82-insight {
+  background:
+    linear-gradient(235deg, hsl(280 50% 14% / .5), transparent 60%),
+    linear-gradient(45deg, hsl(310 50% 14% / .5), transparent 60%),
+    linear-gradient(hsl(220 25% 7% / .85));
+  backdrop-filter: blur(8px);
+}
+
+.s82-sparkle {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  margin-top: 1px;
+}
+.s82-sparkle svg {
+  width: 14px; height: 14px;
+  stroke: var(--magic); fill: none;
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--magic));
+}
+
+.s82-insight-text {
+  flex: 1;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.s82-insight-dots {
+  position: absolute;
+  bottom: 6px; right: 12px;
+  display: flex; gap: 3px;
+}
+.s82-insight-dot {
+  width: 4px; height: 4px;
+  border-radius: var(--radius-icon);
+  background: var(--text-faint);
+  opacity: 0.4;
+}
+.s82-insight-dot.active {
+  background: var(--magic);
+  opacity: 1;
+}
+
+/* ═══ 3 QUICK ACTION БУТОНИ ═══ */
+.s82-actions {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.s82-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease);
+}
+[data-theme="light"] .s82-btn, :root:not([data-theme]) .s82-btn { background: var(--surface); box-shadow: var(--shadow-card-sm); border: none; }
+[data-theme="dark"] .s82-btn { background: hsl(220 25% 7% / 0.6); backdrop-filter: blur(6px); }
+.s82-btn:active { transform: scale(0.95); }
+
+.s82-btn-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-icon);
+  display: grid; place-items: center;
+}
+.s82-btn-icon svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.s82-btn.mic .s82-btn-icon {
+  background: linear-gradient(135deg, hsl(280 70% 55%), hsl(305 65% 55%));
+  box-shadow: 0 4px 12px hsl(280 70% 50% / 0.4);
+}
+.s82-btn.cam .s82-btn-icon {
+  background: linear-gradient(135deg, hsl(38 90% 55%), hsl(28 85% 55%));
+  box-shadow: 0 4px 12px hsl(38 90% 50% / 0.4);
+}
+.s82-btn.chart .s82-btn-icon {
+  background: linear-gradient(135deg, hsl(145 70% 50%), hsl(165 65% 50%));
+  box-shadow: 0 4px 12px hsl(145 70% 45% / 0.4);
+}
+
+.s82-btn-label {
+  font-size: 10px; font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-muted);
+}
+
+/* Other cards (placeholder for life-board context) */
+.other-card {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 12px;
+}
+[data-theme="light"] .other-card, :root:not([data-theme]) .other-card { background: var(--surface); box-shadow: var(--shadow-card); border: none; opacity: 0.7; }
+[data-theme="dark"] .other-card {
+  background: linear-gradient(hsl(220 25% 6% / 0.6));
+  backdrop-filter: blur(8px); opacity: 0.7;
+}
+
+.other-card .oc-dot {
+  width: 8px; height: 8px;
+  border-radius: var(--radius-icon);
+  background: var(--text-faint);
+}
+.other-card .oc-text {
+  font-size: 12px; color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeInUp 0.4s var(--ease) backwards; }
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.s82-insight {
+  animation: slideInRight 0.5s var(--ease);
+}
+
+</style>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<!-- DEMO BAR за toggle на rotation insights -->
+<div class="demo-bar">
+  <div class="demo-btn active" onclick="rotateInsight(0)">Burn</div>
+  <div class="demo-btn" onclick="rotateInsight(1)">Top</div>
+  <div class="demo-btn" onclick="rotateInsight(2)">Резерв</div>
+  <div class="demo-btn" onclick="rotateInsight(3)">VAT</div>
+  <div class="demo-btn" onclick="rotateInsight(4)">Win</div>
+  <div class="demo-btn" onclick="toggleTheme()">
+    <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="4"/></svg>
+  </div>
+</div>
+
+<div class="lb-container">
+
+  <div class="context-label">
+    life-board.php — s82-dash е една от много карти
+  </div>
+
+  <!-- ═══ S82-DASH CARD ═══ -->
+  <div class="s82-card fade-in" onclick="openAnalysis()">
+    <span class="shine"></span>
+    <span class="shine shine-bottom"></span>
+    <span class="glow"></span>
+    <span class="glow glow-bottom"></span>
+
+    <div class="s82-content">
+
+      <!-- HEADER -->
+      <div class="s82-header">
+        <span class="s82-label">Финанси · Този месец</span>
+        <span class="s82-tap-hint">
+          тап
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>
+      </div>
+
+      <!-- HERO NUMBER -->
+      <div class="s82-hero">
+        <div class="s82-num" id="heroNum">1 437<span class="currency">€</span></div>
+        <span class="s82-delta up" id="heroDelta">
+          <svg viewBox="0 0 24 24"><polygon points="12 5 5 19 19 19"/></svg>
+          +18%
+        </span>
+      </div>
+      <div class="s82-meta" id="heroMeta">Печалба · спрямо миналия месец</div>
+
+      <!-- AI INSIGHT (rotating) -->
+      <div class="s82-insight" onclick="event.stopPropagation(); openInsightDrawer()">
+        <span class="s82-sparkle">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </span>
+        <div class="s82-insight-text" id="insightText">
+          Тази седмица харчиш €70 повече от колкото изкарваш
+        </div>
+        <div class="s82-insight-dots">
+          <span class="s82-insight-dot active"></span>
+          <span class="s82-insight-dot"></span>
+          <span class="s82-insight-dot"></span>
+          <span class="s82-insight-dot"></span>
+          <span class="s82-insight-dot"></span>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="s82-actions">
+        <button class="s82-btn mic" onclick="event.stopPropagation(); voiceRecord()">
+          <div class="s82-btn-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <div class="s82-btn-label">Запиши</div>
+        </button>
+        <button class="s82-btn cam" onclick="event.stopPropagation(); photoReceipt()">
+          <div class="s82-btn-icon">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="s82-btn-label">Снимка</div>
+        </button>
+        <button class="s82-btn chart" onclick="event.stopPropagation(); openAnalysis()">
+          <div class="s82-btn-icon">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          </div>
+          <div class="s82-btn-label">Виж</div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Placeholder за други карти на life-board (за контекст) -->
+  <div class="other-card">
+    <div class="oc-dot"></div>
+    <div class="oc-text">Продажби днес · 7 продажби</div>
+  </div>
+  <div class="other-card">
+    <div class="oc-dot"></div>
+    <div class="oc-text">Топ продукти · Nike 42 водещ</div>
+  </div>
+  <div class="other-card">
+    <div class="oc-dot"></div>
+    <div class="oc-text">Низък сток · Levi's 32 — ~2 дни</div>
+  </div>
+  <div class="other-card">
+    <div class="oc-dot"></div>
+    <div class="oc-text">AI Help · Питай AI</div>
+  </div>
+
+</div>
+
+<script>
+const insights = [
+  {
+    num: '1 437',
+    delta: '+18%',
+    deltaClass: 'up',
+    meta: 'Печалба · спрямо миналия месец',
+    text: 'Тази седмица харчиш €70 повече от колкото изкарваш'
+  },
+  {
+    num: '1 437',
+    delta: '+18%',
+    deltaClass: 'up',
+    meta: 'Печалба · спрямо миналия месец',
+    text: 'Топ харч този месец: Материали €420 (28%)'
+  },
+  {
+    num: '1 437',
+    delta: '+18%',
+    deltaClass: 'up',
+    meta: 'Печалба · спрямо миналия месец',
+    text: 'Резерв: 1.2 месеца. Препоръка: 3+ месеца'
+  },
+  {
+    num: '1 437',
+    delta: '+18%',
+    deltaClass: 'up',
+    meta: 'Печалба · спрямо миналия месец',
+    text: 'Достигаш 54% от ДДС прага €51 130'
+  },
+  {
+    num: '2 184',
+    delta: '+34%',
+    deltaClass: 'up',
+    meta: 'Печалба · най-силен месец 2026',
+    text: 'Това е най-силният ти месец за последните 6'
+  }
+];
+
+let currentIdx = 0;
+
+function rotateInsight(idx) {
+  if (idx !== undefined) {
+    currentIdx = idx;
+  } else {
+    currentIdx = (currentIdx + 1) % insights.length;
+  }
+  
+  const ins = insights[currentIdx];
+  
+  document.getElementById('heroNum').innerHTML = ins.num + '<span class="currency">€</span>';
+  document.getElementById('heroMeta').textContent = ins.meta;
+  document.getElementById('insightText').textContent = ins.text;
+  
+  const delta = document.getElementById('heroDelta');
+  delta.className = 's82-delta ' + ins.deltaClass;
+  delta.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="12 5 5 19 19 19"/></svg> ' + ins.delta;
+  
+  // Update dots
+  document.querySelectorAll('.s82-insight-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentIdx);
+  });
+  
+  // Update demo buttons
+  document.querySelectorAll('.demo-btn').forEach((b, i) => {
+    if (i < insights.length) b.classList.toggle('active', i === currentIdx);
+  });
+  
+  // Re-animate insight
+  const insightEl = document.querySelector('.s82-insight');
+  insightEl.style.animation = 'none';
+  insightEl.offsetHeight;
+  insightEl.style.animation = 'slideInRight 0.5s var(--ease)';
+}
+
+// Auto-rotate на 8 секунди
+let autoRotate = setInterval(() => rotateInsight(), 8000);
+
+function voiceRecord() {
+  clearInterval(autoRotate);
+  alert('Voice overlay would open here');
+  autoRotate = setInterval(() => rotateInsight(), 8000);
+}
+
+function photoReceipt() {
+  clearInterval(autoRotate);
+  alert('Camera would open here for receipt scan');
+  autoRotate = setInterval(() => rotateInsight(), 8000);
+}
+
+function openAnalysis() {
+  clearInterval(autoRotate);
+  alert('Would navigate to stats.php?tab=finance');
+  autoRotate = setInterval(() => rotateInsight(), 8000);
+}
+
+function openInsightDrawer() {
+  clearInterval(autoRotate);
+  alert('Insight details drawer:\n\n"' + insights[currentIdx].text + '"\n\nRetrieved facts: SQL query + numbers');
+  autoRotate = setInterval(() => rotateInsight(), 8000);
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('rms_theme', next); } catch(_){}
+}
+</script>
+
+</body>
+</html>

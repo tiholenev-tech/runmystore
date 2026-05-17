@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>RunMyWallet · Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>(function(){try{var s=localStorage.getItem('rmw_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{font-family:'Montserrat',sans-serif;overflow-x:hidden;font-variant-numeric:tabular-nums}
+button,input,a,select{font-family:inherit;color:inherit}
+button{background:none;border:none;cursor:pointer}
+a{text-decoration:none}
+
+:root{--hue1:255;--hue2:222;--hue3:180;--radius:22px;--radius-sm:14px;--radius-pill:999px;--radius-icon:50%;--border:1px;--ease:cubic-bezier(0.5,1,0.89,1);--ease-spring:cubic-bezier(0.34,1.56,0.64,1);--dur:250ms;--press:0.97;--font-mono:'Montserrat',sans-serif;--z-aurora:0;--z-content:5;--z-shine:1;--z-glow:3}
+:root:not([data-theme]),:root[data-theme="light"]{--bg-main:#e0e5ec;--surface:#e0e5ec;--surface-2:#d1d9e6;--border-color:transparent;--text:#2d3748;--text-muted:#64748b;--text-faint:#94a3b8;--shadow-light:#ffffff;--shadow-dark:#a3b1c6;--neu-d:8px;--neu-b:16px;--neu-d-s:4px;--neu-b-s:8px;--shadow-card:var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);--shadow-card-sm:var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--shadow-pressed:inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--accent:oklch(0.62 0.22 285);--accent-2:oklch(0.65 0.25 305);--accent-3:oklch(0.78 0.18 195);--magic:oklch(0.65 0.25 305);--gain:oklch(0.6 0.18 145);--loss:oklch(0.6 0.22 25);--amber:oklch(0.7 0.18 60);--aurora-blend:multiply;--aurora-opacity:0.32}
+:root[data-theme="dark"]{--bg-main:#08090d;--surface:hsl(220,25%,4.8%);--surface-2:hsl(220,25%,8%);--border-color:hsl(var(--hue2),12%,20%);--text:#f1f5f9;--text-muted:rgba(255,255,255,0.6);--text-faint:rgba(255,255,255,0.4);--shadow-card:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;--shadow-card-sm:hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;--shadow-pressed:inset 0 2px 4px hsl(var(--hue2) 50% 2%);--accent:hsl(var(--hue1),80%,65%);--accent-2:hsl(var(--hue2),80%,65%);--accent-3:hsl(var(--hue3),70%,55%);--magic:hsl(280,70%,65%);--gain:hsl(145,65%,55%);--loss:hsl(0,75%,65%);--amber:hsl(38,90%,60%);--aurora-blend:plus-lighter;--aurora-opacity:0.35}
+
+:root:not([data-theme]) body,[data-theme="light"] body{background:var(--bg-main);color:var(--text)}
+[data-theme="dark"] body{background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);background-attachment:fixed;color:var(--text)}
+
+@keyframes auroraDrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.05)}66%{transform:translate(-20px,30px) scale(0.95)}}
+@keyframes conicSpin{to{transform:rotate(360deg)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rmsBrandShimmer{0%{background-position:0% center}100%{background-position:200% center}}
+@keyframes bigMicPulse{0%,100%{transform:scale(1);box-shadow:0 12px 30px hsl(280 70% 40% / 0.55),inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -2px 6px hsl(280 70% 25% / 0.6)}50%{transform:scale(1.04);box-shadow:0 16px 40px hsl(280 70% 40% / 0.7),inset 0 1px 0 rgba(255,255,255,0.5),inset 0 -2px 6px hsl(280 70% 25% / 0.6)}}
+@keyframes pulseRing{0%{opacity:0.6;transform:scale(1)}100%{opacity:0;transform:scale(1.6)}}
+
+/* DEMO BAR */
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:200;background:hsl(280 60% 15% / .96);backdrop-filter:blur(20px);border-bottom:1px solid hsl(280 60% 25%);padding:8px 12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:10px}
+.demo-bar-label{color:#fff;font-weight:800;font-size:9px;opacity:0.7}
+.demo-btn{padding:5px 8px;border-radius:8px;border:1px solid hsl(280 50% 35%);background:hsl(280 50% 20%);color:#fff;font-weight:700;cursor:pointer;font-size:10px}
+.demo-btn.active{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));border-color:transparent;box-shadow:0 4px 12px hsl(280 70% 50% / 0.5)}
+
+/* AURORA */
+.aurora{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:var(--z-aurora)}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:var(--aurora-opacity);mix-blend-mode:var(--aurora-blend);animation:auroraDrift 20s ease-in-out infinite}
+.aurora-blob:nth-child(1){width:280px;height:280px;background:hsl(var(--hue1),80%,60%);top:-60px;left:-80px}
+.aurora-blob:nth-child(2){width:240px;height:240px;background:hsl(var(--hue3),70%,60%);top:35%;right:-100px;animation-delay:4s}
+.aurora-blob:nth-child(3){width:200px;height:200px;background:hsl(var(--hue2),80%,60%);bottom:80px;left:-50px;animation-delay:8s}
+
+/* TOP BAR */
+.onb-top{position:sticky;top:38px;z-index:50;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border-color)}
+[data-theme="light"] .onb-top,:root:not([data-theme]) .onb-top{background:var(--bg-main);box-shadow:0 4px 12px rgba(163,177,198,0.15)}
+[data-theme="dark"] .onb-top{background:hsl(220 25% 4.8% / 0.85);backdrop-filter:blur(16px)}
+
+.back-btn{width:40px;height:40px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;border:1px solid var(--border-color);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease)}
+[data-theme="light"] .back-btn,:root:not([data-theme]) .back-btn{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="light"] .back-btn:active,:root:not([data-theme]) .back-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .back-btn{background:hsl(220 25% 8% / 0.7);backdrop-filter:blur(8px)}
+.back-btn:active{transform:scale(var(--press))}
+.back-btn svg{width:16px;height:16px;stroke:var(--text);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+.progress-track{flex:1;height:6px;border-radius:100px;position:relative;overflow:hidden}
+[data-theme="light"] .progress-track,:root:not([data-theme]) .progress-track{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .progress-track{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.progress-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 0 12px hsl(var(--hue1) 80% 50% / 0.5);transition:width 0.5s var(--ease-spring)}
+
+.step-counter{font-family:var(--font-mono);font-size:10px;font-weight:800;color:var(--text-muted);letter-spacing:0.06em;min-width:32px;text-align:right}
+
+/* SHELL */
+.shell{position:relative;z-index:5;max-width:480px;margin:0 auto;min-height:100vh;padding-top:34px;display:flex;flex-direction:column}
+
+/* CONTENT */
+.content{flex:1;padding:20px 16px calc(100px + env(safe-area-inset-bottom,0));display:flex;flex-direction:column}
+.screen{display:none;flex:1;flex-direction:column;animation:fadeInUp 0.4s var(--ease)}
+.screen.active{display:flex}
+
+.title-block{margin-bottom:24px;padding:0 6px}
+.title{font-size:24px;font-weight:900;letter-spacing:-0.025em;line-height:1.15;margin-bottom:6px;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{font-size:13px;font-weight:500;color:var(--text-muted);line-height:1.45}
+
+/* SACRED GLASS */
+.glass{position:relative;border-radius:var(--radius);border:var(--border) solid var(--border-color);isolation:isolate}
+.glass.sm{border-radius:var(--radius-sm)}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+[data-theme="light"] .glass,:root:not([data-theme]) .glass{background:var(--surface);box-shadow:var(--shadow-card);border:none}
+[data-theme="light"] .glass .shine,[data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine,:root:not([data-theme]) .glass .glow{display:none}
+[data-theme="dark"] .glass{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220 25% 4.8% / .78));backdrop-filter:blur(12px);box-shadow:var(--shadow-card)}
+[data-theme="dark"] .glass .shine{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:calc(var(--border) * -1);top:calc(var(--border) * -1);z-index:1;background:conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-clip:padding-box,border-box;mask-composite:subtract}
+[data-theme="dark"] .glass .shine.shine-bottom{right:auto;top:auto;left:calc(var(--border) * -1);bottom:calc(var(--border) * -1)}
+[data-theme="dark"] .glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;background:conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);filter:blur(12px) saturate(1.25);mix-blend-mode:plus-lighter;z-index:3;opacity:0.6}
+[data-theme="dark"] .glass .glow.glow-bottom{inset:auto;left:calc(var(--radius) * -2);bottom:calc(var(--radius) * -2)}
+[data-theme="dark"] .glass.q2 .shine,[data-theme="dark"] .glass.q2 .glow{--hue:280}
+[data-theme="dark"] .glass.q2 .shine-bottom,[data-theme="dark"] .glass.q2 .glow-bottom{--hue:305}
+[data-theme="dark"] .glass.q3 .shine,[data-theme="dark"] .glass.q3 .glow{--hue:145}
+[data-theme="dark"] .glass.q3 .shine-bottom,[data-theme="dark"] .glass.q3 .glow-bottom{--hue:165}
+[data-theme="dark"] .glass.q5 .shine,[data-theme="dark"] .glass.q5 .glow{--hue:38}
+[data-theme="dark"] .glass.q5 .shine-bottom,[data-theme="dark"] .glass.q5 .glow-bottom{--hue:28}
+[data-theme="dark"] .glass.qd .shine,[data-theme="dark"] .glass.qd .glow{--hue:var(--hue1)}
+[data-theme="dark"] .glass.qd .shine-bottom,[data-theme="dark"] .glass.qd .glow-bottom{--hue:var(--hue2)}
+[data-theme="dark"] .glass.qm .shine,[data-theme="dark"] .glass.qm .glow{--hue:280}
+[data-theme="dark"] .glass.qm .shine-bottom,[data-theme="dark"] .glass.qm .glow-bottom{--hue:310}
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
+
+/* ───── SCREEN 0: WELCOME ───── */
+.welcome-screen{justify-content:center;align-items:center;text-align:center;gap:24px}
+.welcome-brand{font-size:32px;font-weight:900;letter-spacing:-0.025em;line-height:1;background:linear-gradient(90deg,hsl(var(--hue1) 80% 60%),hsl(280 75% 65%),hsl(var(--hue2) 80% 60%));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:rmsBrandShimmer 4s linear infinite;filter:drop-shadow(0 0 18px hsl(var(--hue1) 70% 50% / 0.4))}
+.welcome-by{font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:0.12em;text-transform:uppercase}
+
+.welcome-orb{width:140px;height:140px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 16px 40px hsl(280 70% 50% / 0.55),inset 0 2px 0 rgba(255,255,255,0.4),inset 0 -3px 6px hsl(280 70% 25% / 0.6);position:relative;overflow:hidden;border:1.5px solid hsl(280 70% 45%);margin:0 auto}
+.welcome-orb::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.55) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.welcome-orb::after{content:'';position:absolute;top:6px;left:14px;right:14px;height:40%;background:linear-gradient(180deg,rgba(255,255,255,0.4),transparent);border-radius:50% 50% 30% 30% / 60% 60% 40% 40%;pointer-events:none}
+.welcome-orb svg{width:56px;height:56px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;position:relative;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))}
+
+.welcome-hero{font-size:22px;font-weight:900;line-height:1.25;letter-spacing:-0.02em;padding:0 12px}
+.welcome-sub{font-size:14px;color:var(--text-muted);line-height:1.5;padding:0 12px;font-weight:500}
+
+.benefits-list{display:flex;flex-direction:column;gap:12px;text-align:left;width:100%;max-width:320px;margin:8px auto 0}
+.benefit-row{display:flex;align-items:flex-start;gap:12px;font-size:13px;font-weight:600;line-height:1.4}
+.benefit-ic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 3px 10px hsl(145 70% 45% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+.benefit-ic svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.benefit-text{flex:1}
+
+/* ───── SCREEN 1: VOICE PROMPT ───── */
+.voice-prompt{align-items:center;text-align:center;gap:16px;padding-top:8px}
+.voice-prompt-label{font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+
+.big-mic-wrap{position:relative;width:160px;height:160px;margin:0 auto 8px}
+.big-mic{width:140px;height:140px;border-radius:50%;display:grid;place-items:center;position:absolute;top:10px;left:10px;background:linear-gradient(145deg,hsl(282 75% 60%),hsl(295 70% 50%) 50%,hsl(305 70% 42%));box-shadow:0 12px 30px hsl(280 70% 40% / 0.55),inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -2px 6px hsl(280 70% 25% / 0.6);overflow:hidden;border:1.5px solid hsl(280 70% 45%);cursor:pointer;animation:bigMicPulse 2.5s ease-in-out infinite}
+.big-mic::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.55) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.big-mic::after{content:'';position:absolute;top:6px;left:14px;right:14px;height:40%;background:linear-gradient(180deg,rgba(255,255,255,0.4),transparent);border-radius:50% 50% 30% 30% / 60% 60% 40% 40%;pointer-events:none}
+.big-mic svg{width:54px;height:54px;stroke:white;fill:none;stroke-width:2.2;position:relative;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))}
+.mic-ring{position:absolute;width:160px;height:160px;border-radius:50%;border:2px solid hsl(280 70% 60%);top:0;left:0;animation:pulseRing 2.5s ease-out infinite;pointer-events:none}
+
+.prompt-text{font-size:18px;font-weight:800;line-height:1.3;margin-top:4px;padding:0 16px}
+.prompt-hint{font-size:12px;color:var(--text-muted);font-weight:500;line-height:1.4;padding:0 24px}
+
+.tap-or-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:280px;margin:8px auto;color:var(--text-faint);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+.tap-or-divider::before,.tap-or-divider::after{content:'';flex:1;height:1px;background:var(--text-faint);opacity:0.3}
+
+/* ───── TEMPLATE GRID (14 cards) ───── */
+.template-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.tmpl-card{padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);text-align:center;min-height:120px;justify-content:center}
+[data-theme="light"] .tmpl-card:active,:root:not([data-theme]) .tmpl-card:active{box-shadow:var(--shadow-pressed)}
+.tmpl-card:active{transform:scale(0.97)}
+.tmpl-card-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.tmpl-card-ic svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25))}
+.tmpl-card-name{font-size:11px;font-weight:800;line-height:1.2;letter-spacing:-0.01em}
+.tmpl-card-tax{font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em}
+
+/* Template card hue variants */
+.tmpl-card.q1 .tmpl-card-ic{background:linear-gradient(135deg,hsl(0 75% 55%),hsl(15 70% 50%));box-shadow:0 3px 10px hsl(0 75% 45% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+.tmpl-card.q2 .tmpl-card-ic{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 3px 10px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.3)}
+.tmpl-card.q3 .tmpl-card-ic{background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 3px 10px hsl(145 70% 45% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+.tmpl-card.q5 .tmpl-card-ic{background:linear-gradient(135deg,hsl(38 90% 55%),hsl(28 85% 55%));box-shadow:0 3px 10px hsl(38 90% 50% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+.tmpl-card.qd .tmpl-card-ic{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 10px hsl(var(--hue1) 80% 50% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+
+/* ───── SCREEN 2: INCOME TIERS ───── */
+.income-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.income-row{padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease)}
+[data-theme="light"] .income-row:active,:root:not([data-theme]) .income-row:active{box-shadow:var(--shadow-pressed)}
+.income-row:active{transform:scale(0.99)}
+.income-row.selected::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:1}
+.income-radio{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;border:1px solid var(--border-color);position:relative}
+[data-theme="light"] .income-radio,:root:not([data-theme]) .income-radio{background:var(--surface-2);box-shadow:var(--shadow-pressed);border:none}
+[data-theme="dark"] .income-radio{background:hsl(220 25% 6%)}
+.income-row.selected .income-radio{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 10px hsl(var(--hue1) 80% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.3)}
+.income-row.selected .income-radio::after{content:'';width:10px;height:10px;border-radius:50%;background:white}
+.income-info{flex:1;min-width:0}
+.income-amt{font-size:14px;font-weight:800;letter-spacing:-0.01em;line-height:1.2}
+.income-sub{font-size:10.5px;font-weight:600;color:var(--text-muted);margin-top:2px}
+
+/* ───── SCREEN 3: LIFESTYLE TILES (6) ───── */
+.lifestyle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.lif-tile{padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);text-align:center;min-height:96px;justify-content:center;position:relative}
+[data-theme="light"] .lif-tile:active,:root:not([data-theme]) .lif-tile:active{box-shadow:var(--shadow-pressed)}
+.lif-tile:active{transform:scale(0.97)}
+.lif-tile-ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;background:var(--surface-2);box-shadow:var(--shadow-pressed);transition:all var(--dur) var(--ease)}
+[data-theme="dark"] .lif-tile-ic{background:hsl(220 25% 6%);box-shadow:none}
+.lif-tile-ic svg{width:18px;height:18px;stroke:var(--text-muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke var(--dur) var(--ease)}
+.lif-tile-name{font-size:11px;font-weight:800;line-height:1.2;color:var(--text-muted);transition:color var(--dur) var(--ease)}
+.lif-tile.selected .lif-tile-ic{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.3)}
+.lif-tile.selected .lif-tile-ic svg{stroke:white}
+.lif-tile.selected .lif-tile-name{color:var(--text)}
+.lif-tile.selected::after{content:'';position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 2px 8px hsl(var(--hue1) 80% 50% / 0.4);display:grid;place-items:center}
+.lif-tile.selected::before{content:'✓';position:absolute;top:8px;right:8px;width:18px;height:18px;color:white;font-weight:900;font-size:11px;line-height:18px;text-align:center;z-index:2}
+
+/* ───── SCREEN 4: HIDDEN COSTS VOICE ───── */
+.hidden-prompt{padding:18px 16px;margin-bottom:14px}
+.hidden-prompt-row{display:flex;align-items:flex-start;gap:12px}
+.hidden-prompt-ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 14px hsl(280 70% 50% / 0.4)}
+.hidden-prompt-ic svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2}
+.hidden-prompt-text{flex:1}
+.hidden-prompt-q{font-size:14px;font-weight:800;letter-spacing:-0.01em;line-height:1.3;margin-bottom:4px}
+.hidden-prompt-eg{font-size:11px;font-weight:600;color:var(--text-muted);line-height:1.4}
+
+.hint-chips{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.hint-chip{padding:8px 12px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--border-color);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:box-shadow var(--dur) var(--ease)}
+[data-theme="light"] .hint-chip,:root:not([data-theme]) .hint-chip{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="light"] .hint-chip:active,:root:not([data-theme]) .hint-chip:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .hint-chip{background:hsl(220 25% 8%)}
+.hint-chip svg{width:11px;height:11px;stroke:var(--magic);fill:none;stroke-width:2.5}
+[data-theme="dark"] .hint-chip svg{stroke:hsl(280 70% 75%)}
+
+.recorded-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.rec-row{padding:10px 14px;display:flex;align-items:center;gap:10px;background:transparent;border-radius:var(--radius-sm)}
+[data-theme="light"] .rec-row,:root:not([data-theme]) .rec-row{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .rec-row{background:hsl(220 25% 4%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.rec-check{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 2px 6px hsl(145 70% 45% / 0.4)}
+.rec-check svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:3}
+.rec-text{flex:1;font-size:12px;font-weight:700}
+.rec-amt{font-size:12px;font-weight:800;color:var(--text-muted);letter-spacing:-0.01em}
+
+/* ───── SCREEN 5: PLAN + CONSENT ───── */
+.plan-card{padding:20px 18px;margin-bottom:14px;text-align:center}
+.plan-badge-big{display:inline-block;padding:5px 12px;border-radius:var(--radius-pill);font-size:10px;font-weight:800;letter-spacing:0.1em;color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.4);margin-bottom:14px}
+.plan-name{font-size:24px;font-weight:900;letter-spacing:-0.025em;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.plan-price{display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px}
+.plan-amt{font-size:38px;font-weight:900;letter-spacing:-0.03em;line-height:1}
+[data-theme="dark"] .plan-amt{text-shadow:0 0 18px hsl(var(--hue1) 70% 55% / 0.4)}
+.plan-cur{font-size:16px;font-weight:700;color:var(--text-muted)}
+.plan-per{font-size:13px;font-weight:700;color:var(--text-muted)}
+.plan-trial{font-size:11px;font-weight:700;color:var(--gain);margin-top:8px;letter-spacing:0.04em}
+[data-theme="dark"] .plan-trial{color:hsl(145 70% 65%)}
+
+.feature-list{display:flex;flex-direction:column;gap:10px;margin-top:18px;padding-top:18px;border-top:1px solid rgba(163,177,198,0.25);text-align:left}
+[data-theme="dark"] .feature-list{border-top:1px solid hsl(var(--hue2) 12% 15%)}
+.feature-row{display:flex;align-items:flex-start;gap:10px;font-size:12.5px;font-weight:600;line-height:1.4}
+.feature-ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 2px 6px hsl(145 70% 45% / 0.4)}
+.feature-ic svg{width:10px;height:10px;stroke:white;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+
+.consent-list{display:flex;flex-direction:column;gap:10px;margin:14px 0 4px}
+.consent-row{padding:14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:box-shadow var(--dur) var(--ease)}
+[data-theme="light"] .consent-row:active,:root:not([data-theme]) .consent-row:active{box-shadow:var(--shadow-pressed)}
+.consent-check{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;transition:all var(--dur) var(--ease)}
+[data-theme="light"] .consent-check,:root:not([data-theme]) .consent-check{background:var(--surface-2);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .consent-check{background:hsl(220 25% 6%);border:1px solid hsl(var(--hue2) 12% 20%)}
+.consent-row.checked .consent-check{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 10px hsl(var(--hue1) 80% 50% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)}
+.consent-check svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity var(--dur) var(--ease)}
+.consent-row.checked .consent-check svg{opacity:1}
+.consent-text{flex:1;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--text)}
+.consent-text b{font-weight:800}
+.consent-text.required::after{content:' *';color:var(--loss);font-weight:900}
+
+/* CTA BUTTON */
+.cta-row{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;max-width:456px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom,0)}
+.cta-btn{width:100%;height:56px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;gap:8px;color:white;font-size:15px;font-weight:800;letter-spacing:-0.01em;cursor:pointer;transition:transform 150ms,box-shadow 250ms;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 8px 24px hsl(var(--hue1) 80% 40% / 0.5),inset 0 1px 0 rgba(255,255,255,0.3),inset 0 -2px 4px hsl(var(--hue1) 60% 30% / 0.4);position:relative;overflow:hidden;border:1px solid hsl(var(--hue1) 70% 45%)}
+.cta-btn::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.3) 85%,transparent 100%);animation:conicSpin 5s linear infinite;pointer-events:none}
+.cta-btn::after{content:'';position:absolute;top:3px;left:8px;right:8px;height:35%;background:linear-gradient(180deg,rgba(255,255,255,0.25),transparent);border-radius:14px 14px 30% 30% / 14px 14px 50% 50%;pointer-events:none}
+.cta-btn:active{transform:scale(0.99);box-shadow:0 4px 14px hsl(var(--hue1) 80% 40% / 0.4),inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -1px 3px hsl(var(--hue1) 60% 30% / 0.4)}
+.cta-btn span{position:relative;z-index:2}
+.cta-btn svg{position:relative;z-index:2;width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+
+.cta-btn.welcome-cta{height:60px}
+
+/* SCROLL CONTAINER for content */
+.content-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* Theme toggle (in welcome) */
+.theme-corner{position:fixed;top:46px;right:16px;z-index:51}
+
+</style>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<div class="demo-bar">
+  <span class="demo-bar-label">STEP</span>
+  <button class="demo-btn active" onclick="goStep(0,this)">Welcome</button>
+  <button class="demo-btn" onclick="goStep(1,this)">Глас</button>
+  <button class="demo-btn" onclick="goStep(2,this)">Списък</button>
+  <button class="demo-btn" onclick="goStep(3,this)">Доход</button>
+  <button class="demo-btn" onclick="goStep(4,this)">Живот</button>
+  <button class="demo-btn" onclick="goStep(5,this)">Скрити</button>
+  <button class="demo-btn" onclick="goStep(6,this)">План</button>
+  <button class="demo-btn" onclick="toggleTheme()" style="margin-left:6px">Свети/Тъмно</button>
+</div>
+
+<div class="shell">
+
+  <!-- TOP BAR (hidden on welcome) -->
+  <div class="onb-top" id="topBar" style="display:none">
+    <button class="back-btn" onclick="prevStep()" aria-label="Назад">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:16%"></div>
+    </div>
+    <span class="step-counter" id="stepCounter">1/6</span>
+  </div>
+
+  <div class="content content-scroll">
+
+    <!-- ════ SCREEN 0: WELCOME ════ -->
+    <div class="screen welcome-screen active" data-step="0">
+      <div></div>
+      <div>
+        <div class="welcome-brand">RunMyWallet</div>
+        <div class="welcome-by">by RunMyStore.AI</div>
+      </div>
+
+      <div class="welcome-orb">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </div>
+
+      <div class="welcome-hero">Финансите ти с глас.<br>Без писане.</div>
+      <div class="welcome-sub">Кажи разход или приход. Снимай касова бележка. AI прави останалото.</div>
+
+      <div class="benefits-list">
+        <div class="benefit-row">
+          <div class="benefit-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="benefit-text">Запис за <b>3 секунди</b> с глас</div>
+        </div>
+        <div class="benefit-row">
+          <div class="benefit-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="benefit-text">Прогнозен <b>данък + осигуровки</b></div>
+        </div>
+        <div class="benefit-row">
+          <div class="benefit-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="benefit-text">ДДС праг <b>аларма</b></div>
+        </div>
+      </div>
+
+      <div></div>
+    </div>
+
+    <!-- ════ SCREEN 1: VOICE PROMPT ════ -->
+    <div class="screen voice-prompt" data-step="1">
+      <div class="title-block">
+        <div class="title">Какво работиш?</div>
+        <div class="subtitle">Кажи го с глас или избери от списък.</div>
+      </div>
+
+      <div style="margin:auto 0">
+        <div class="voice-prompt-label">Натисни и говори</div>
+        <div class="big-mic-wrap">
+          <span class="mic-ring"></span>
+          <button class="big-mic">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+        </div>
+
+        <div class="prompt-text">"Програмист съм" или "Правя ремонти"</div>
+        <div class="prompt-hint">AI ще разпознае и ще ти предложи правилния профил.</div>
+
+        <div class="tap-or-divider">Или</div>
+
+        <button class="cta-btn" style="position:relative;left:auto;right:auto;bottom:auto;margin:0;height:48px" onclick="goStep(2)">
+          <span>Избери от списък</span>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ════ SCREEN 2: TEMPLATE GRID ════ -->
+    <div class="screen" data-step="2">
+      <div class="title-block">
+        <div class="title">Избери професия</div>
+        <div class="subtitle">Това помага да настроим категории и данъци за теб.</div>
+      </div>
+
+      <div class="template-grid">
+        <button class="glass sm tmpl-card q5">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></div>
+          <div class="tmpl-card-name">Търговец</div>
+          <div class="tmpl-card-tax">Магазин / Онлайн</div>
+        </button>
+        <button class="glass sm tmpl-card qd">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+          <div class="tmpl-card-name">IT, Дизайн</div>
+          <div class="tmpl-card-tax">25% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card q3">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <div class="tmpl-card-name">Здраве, Терапия</div>
+          <div class="tmpl-card-tax">25% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card q2">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg></div>
+          <div class="tmpl-card-name">Красота</div>
+          <div class="tmpl-card-tax">Патент</div>
+        </button>
+        <button class="glass sm tmpl-card q5">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></div>
+          <div class="tmpl-card-name">Ремонти</div>
+          <div class="tmpl-card-tax">40% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card qd">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <div class="tmpl-card-name">Учители</div>
+          <div class="tmpl-card-tax">25% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card q2">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+          <div class="tmpl-card-name">Фото, Видео</div>
+          <div class="tmpl-card-tax">25% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card q5">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h-3l-3 8h6l-3-8z"/></svg></div>
+          <div class="tmpl-card-name">Куриери</div>
+          <div class="tmpl-card-tax">ЕООД</div>
+        </button>
+        <button class="glass sm tmpl-card q5">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
+          <div class="tmpl-card-name">Шофьори</div>
+          <div class="tmpl-card-tax">Патент</div>
+        </button>
+<button class="glass sm tmpl-card qd">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M16 2H8a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3z"/><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
+          <div class="tmpl-card-name">Консулт., Право</div>
+          <div class="tmpl-card-tax">25% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card q3">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 12l-8-5"/><path d="M12 12l8-5"/><path d="M12 12v10"/></svg></div>
+          <div class="tmpl-card-name">Земеделие</div>
+          <div class="tmpl-card-tax">60% НПР</div>
+        </button>
+        <button class="glass sm tmpl-card qd">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div class="tmpl-card-name">Имоти, Туризъм</div>
+          <div class="tmpl-card-tax">10%</div>
+        </button>
+        <button class="glass sm tmpl-card q2">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div>
+          <div class="tmpl-card-name">Креатори</div>
+          <div class="tmpl-card-tax">ЕООД</div>
+        </button>
+        <button class="glass sm tmpl-card qd">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="tmpl-card-ic"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="tmpl-card-name">Личен бюджет</div>
+          <div class="tmpl-card-tax">10%</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ════ SCREEN 3: INCOME TIERS ════ -->
+    <div class="screen" data-step="3">
+      <div class="title-block">
+        <div class="title">Колко изкарваш месечно?</div>
+        <div class="subtitle">Това е приблизително — после ще се калибрира от записите.</div>
+      </div>
+
+      <div class="income-list">
+        <button class="glass sm income-row" onclick="selectIncome(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="income-radio"></span>
+          <div class="income-info">
+            <div class="income-amt">До 500 €</div>
+            <div class="income-sub">Начинаещ или странична работа</div>
+          </div>
+        </button>
+        <button class="glass sm income-row" onclick="selectIncome(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="income-radio"></span>
+          <div class="income-info">
+            <div class="income-amt">500–1 500 €</div>
+            <div class="income-sub">Стабилно начало</div>
+          </div>
+        </button>
+        <button class="glass sm income-row selected" onclick="selectIncome(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="income-radio"></span>
+          <div class="income-info">
+            <div class="income-amt">1 500–3 000 €</div>
+            <div class="income-sub">Утвърдена практика</div>
+          </div>
+        </button>
+        <button class="glass sm income-row" onclick="selectIncome(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="income-radio"></span>
+          <div class="income-info">
+            <div class="income-amt">3 000–6 000 €</div>
+            <div class="income-sub">Силна година</div>
+          </div>
+        </button>
+        <button class="glass sm income-row" onclick="selectIncome(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="income-radio"></span>
+          <div class="income-info">
+            <div class="income-amt">Над 6 000 €</div>
+            <div class="income-sub">ДДС праг наблюдение</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ════ SCREEN 4: LIFESTYLE ════ -->
+    <div class="screen" data-step="4">
+      <div class="title-block">
+        <div class="title">Какво имаш?</div>
+        <div class="subtitle">Избери всичко, което важи за теб. Помага да открием скрити разходи.</div>
+      </div>
+
+      <div class="lifestyle-grid">
+        <button class="glass sm lif-tile selected" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
+          <div class="lif-tile-name">Кола</div>
+        </button>
+        <button class="glass sm lif-tile" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div class="lif-tile-name">Собствено жилище</div>
+        </button>
+        <button class="glass sm lif-tile selected" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div class="lif-tile-name">Деца</div>
+        </button>
+        <button class="glass sm lif-tile" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><path d="M11 5.4c-2 .4-4 1.4-4 4 0 1.8 1.5 3.5 3 4-1 .4-2 1.6-2 3v2h7v-2c0-1.4-1-2.6-2-3 1.5-.5 3-2.2 3-4 0-2.5-2-3.5-4-4 .2-.5.2-1 .2-1.4 0-1-.7-1.7-1.6-1.7-.9 0-1.5.7-1.5 1.7"/></svg></div>
+          <div class="lif-tile-name">Домашен любимец</div>
+        </button>
+        <button class="glass sm lif-tile selected" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg></div>
+          <div class="lif-tile-name">Самонает</div>
+        </button>
+        <button class="glass sm lif-tile" onclick="toggleLif(this)">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <div class="lif-tile-ic"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <div class="lif-tile-name">Частни осигур.</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ════ SCREEN 5: HIDDEN COSTS VOICE ════ -->
+    <div class="screen" data-step="5">
+      <div class="title-block">
+        <div class="title">Скрити разходи</div>
+        <div class="subtitle">Кажи нещо което плащаш редовно — абонаменти, застраховки, наеми.</div>
+      </div>
+
+      <div class="glass sm qm hidden-prompt">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+        <div class="hidden-prompt-row">
+          <div class="hidden-prompt-ic">
+            <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+          </div>
+          <div class="hidden-prompt-text">
+            <div class="hidden-prompt-q">Кажи: "Netflix 15 лева на месец"</div>
+            <div class="hidden-prompt-eg">Или: "ГО 350 на година", "Спортна зала 50 лева"</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin:14px 0">
+        <div class="big-mic-wrap" style="width:120px;height:120px">
+          <span class="mic-ring" style="width:120px;height:120px"></span>
+          <button class="big-mic" style="width:100px;height:100px;top:10px;left:10px">
+            <svg viewBox="0 0 24 24" style="width:42px;height:42px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin:14px 6px 8px">Подсказки</div>
+      <div class="hint-chips">
+        <span class="hint-chip">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Стрийминг
+        </span>
+        <span class="hint-chip">
+          <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 1 1-8.49 8.49l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>
+          Застраховки
+        </span>
+        <span class="hint-chip">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4"/><path d="M12 16V8"/></svg>
+          Абонаменти
+        </span>
+        <span class="hint-chip">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          Членства
+        </span>
+      </div>
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin:18px 6px 8px">Записани</div>
+      <div class="recorded-list">
+        <div class="rec-row">
+          <div class="rec-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="rec-text">Netflix · абонамент</div>
+          <div class="rec-amt">−15 лв/мес</div>
+        </div>
+        <div class="rec-row">
+          <div class="rec-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="rec-text">ГО кола</div>
+          <div class="rec-amt">−350 лв/год</div>
+        </div>
+        <div class="rec-row">
+          <div class="rec-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="rec-text">Фитнес</div>
+          <div class="rec-amt">−50 лв/мес</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SCREEN 6: PLAN + CONSENT ════ -->
+    <div class="screen" data-step="6">
+      <div class="title-block">
+        <div class="title">Готов си.</div>
+        <div class="subtitle">Започни с 14 дни безплатен достъп. Без карта.</div>
+      </div>
+
+      <div class="glass qd plan-card">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <span class="glow"></span><span class="glow glow-bottom"></span>
+
+        <div class="plan-badge-big">START</div>
+        <div class="plan-name">RunMyWallet</div>
+        <div class="plan-price">
+          <span class="plan-amt">4.99</span>
+          <span class="plan-cur">€</span>
+          <span class="plan-per">/мес</span>
+        </div>
+        <div class="plan-trial">14 ДНИ БЕЗПЛАТНО</div>
+
+        <div class="feature-list">
+          <div class="feature-row">
+            <div class="feature-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div>Неограничени записи с глас</div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div>Снимки на касови бележки + AI</div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div>Прогнозен данък + ДДС праг</div>
+          </div>
+          <div class="feature-row">
+            <div class="feature-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div>Месечни и годишни справки</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="consent-list">
+        <button class="glass sm consent-row checked" onclick="this.classList.toggle('checked')">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="consent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div class="consent-text required">Приемам <b>Условията за ползване</b> и <b>Политиката за поверителност</b></div>
+        </button>
+        <button class="glass sm consent-row checked" onclick="this.classList.toggle('checked')">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="consent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div class="consent-text required">Съгласен съм AI да обработва моите финансови данни в <b>EU центрове</b> (zero retention)</div>
+        </button>
+        <button class="glass sm consent-row" onclick="this.classList.toggle('checked')">
+          <span class="shine"></span><span class="shine shine-bottom"></span>
+          <span class="consent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div class="consent-text">Искам полезни новини и тригери от <b>RunMyStore.AI</b> (опционално)</div>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CTA BUTTON -->
+<div class="cta-row" id="ctaRow">
+  <button class="cta-btn welcome-cta" id="ctaBtn" onclick="nextStep()">
+    <span id="ctaText">Започни</span>
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<script>
+let curStep = 0;
+const totalSteps = 6;
+
+const ctaTexts = ['Започни', 'Прескочи', 'Продължи', 'Продължи', 'Продължи', 'Продължи', 'Влез в RunMyWallet'];
+
+function showStep(n){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.querySelector(`.screen[data-step="${n}"]`);
+  if(screen) screen.classList.add('active');
+  
+  const topBar = document.getElementById('topBar');
+  topBar.style.display = n === 0 ? 'none' : 'flex';
+  
+  const progress = (n / totalSteps) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+  document.getElementById('stepCounter').textContent = `${n}/${totalSteps}`;
+  
+  document.getElementById('ctaText').textContent = ctaTexts[n] || 'Продължи';
+  
+  curStep = n;
+  
+  // Update demo bar
+  document.querySelectorAll('.demo-bar .demo-btn').forEach((b, i) => {
+    if(i < 7) b.classList.toggle('active', i === n);
+  });
+}
+
+function nextStep(){
+  if(curStep < totalSteps) showStep(curStep + 1);
+  else alert('Welcome to RunMyWallet!');
+}
+
+function prevStep(){
+  if(curStep > 0) showStep(curStep - 1);
+}
+
+function goStep(n, btn){
+  showStep(n);
+}
+
+function selectIncome(el){
+  document.querySelectorAll('.income-row').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function toggleLif(el){
+  el.classList.toggle('selected');
+}
+
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('rmw_theme', next); } catch(_){}
+}
+</script>
+
+</body>
+</html>
