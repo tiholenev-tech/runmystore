@@ -489,8 +489,53 @@ Phase A скелет готов (11.05). Трябва DB корекции + Phas
 - compute-insights.php разширяване
 - AI теми активиране (857 теми от ai_topics_catalog)
 - Промоции модул (Phase D)
-- Финанси модул
+- Финанси модул — **разделено на Phase B + Phase 8** (виж по-долу)
 - Лоялна програма (LOYALTY_BIBLE.md)
+
+---
+
+## ФАЗА 3.1 — ФИНАНСОВ МОДУЛ (S148, разделено)
+
+**Source-of-truth:** `STATS_FINANCE_MODULE_BIBLE_v1.md` (12 500 реда, ETAP 1-7)
+
+### Phase B — beta-critical (юни-юли 2026, влиза в beta)
+
+✅ Включено в beta scope:
+- **stats.php → 3 таба:** Преглед / Артикули / Финанси (owner-only)
+- **Финанси sub-tab "Печалба" (12.1)** — пълно функционален:
+  - P&L breakdown (Revenue − COGS = Gross Profit)
+  - Margin trend 12 седмици
+  - Top profit products
+  - Category margin
+  - Discount erosion alert
+  - Confidence warning при cost_at_sale < 100%
+- **Финанси sub-tabs 12.2-12.5** — placeholder с "Скоро" badge
+- **s82-dash REVISED:** компактно финансово табло в life-board.php (виж по-долу)
+- **DB migrations Phase B:** vat_rates, z_reports, store_balances + universal money_movements
+
+### Phase 8 — post-beta (Q4 2026)
+
+- 12.2 Cash flow + balance + burn rate
+- 12.3 Разходи + budget vs actual
+- 12.4 Дължими + B2B invoicing + tax tracking
+- 12.5 Експорти (Microinvest/Sigma/Ajur)
+- 12 нови DB таблици (M-004 → M-015)
+
+### s82-dash REVISED (S148)
+
+**ОТМЕНЕНО:** Старата концепция "top product + low stock + dead capital + Поръчай бутон" е DEPRECATED.
+
+**НОВА концепция (Bible §24):** компактно финансово табло в life-board.php:
+- 1 голямо число (Operating Profit / Касов баланс)
+- AI ротиращ insight slot
+- 3 quick action бутона: 🎤 Запиши · 📷 Снимка · 📊 Виж
+- Tap → отваря stats.php?tab=finance
+
+Top product / low stock / dead capital остават в life-board.php но в ОТДЕЛНИ карти.
+
+### Two-Product Architecture (Закон §42)
+
+**Един codebase, два продукта.** RunMyStore (start/pro/business) + Pocket CFO (€4.99/мес). Не блокира RMS beta — Pocket CFO върви паралелно.
 
 ---
 

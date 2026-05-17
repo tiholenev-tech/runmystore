@@ -203,3 +203,82 @@
 ---
 
 **КРАЙ НА ROADMAP**
+
+---
+
+## ФАЗА 8 — ФИНАНСОВ МОДУЛ FULL (Q4 2026, post-beta)
+
+**Source-of-truth:** `STATS_FINANCE_MODULE_BIBLE_v1.md`
+
+### Phase B (юни-юли 2026, beta-included)
+
+- **stats.php → 3 таба:** Преглед / Артикули / Финанси
+- **Финанси > Печалба (12.1)** — P&L + margin + top profit + discount erosion
+- **s82-dash REVISED** — компактно финансово табло в life-board.php
+- **3 нови DB таблици:** vat_rates, z_reports, store_balances
+- **Universal money_movements** — replaces sales+expenses в единна таблица
+
+### Phase 8 (Q4 2026, post-beta)
+
+- **12.2 Cash flow** — balance, burn rate, break-even
+- **12.3 Разходи** — expenses + budget vs actual + fixed costs
+- **12.4 Дължими** — receivables + B2B invoicing + tax tracking
+- **12.5 Експорти** — Microinvest/Sigma/Ajur integrations + email scheduling
+- **12 нови DB таблици** — expense_categories, expenses, fixed_costs, budgets, bank_accounts, bank_transactions, b2b_customers, invoices_b2b, invoice_items, invoice_payments, tax_payments, accountant_exports
+
+### БГ Tax Engine (universal, в lib/)
+
+- НПР калкулатор (25%/40%/60%)
+- ДДС праг detector (€51 130)
+- ДДС chap 97a (за фрийлансъри/креатори)
+- Patent tax (фризьори/такси)
+- ППП detection
+
+---
+
+## ФАЗА 8B — POCKET CFO PARALLEL LAUNCH (юни 2026)
+
+**Паралелен продукт, не блокира RunMyStore beta.**
+
+### B1: Engine (1 седмица)
+- DB migrations (money_movements + 6 нови таблици)
+- lib/money-engine.php (споделен с RMS)
+- lib/voice-parser-v2.php (PHP-first parsing)
+- lib/photo-receipt-parser.php (Gemini Vision)
+- lib/bg-tax-engine.php (НПР + ДДС + Patent)
+- lib/profession-templates.php (14 templates)
+
+### B2: UI (1 седмица)
+- cfo/home.php (главна страница — mini stats)
+- cfo/records.php (money movements feed)
+- cfo/analysis.php (Контролер + charts)
+- cfo/goals.php (savings goals)
+- cfo/onboarding.php (lifestyle interview + 14 templates)
+- cfo/settings.php (GDPR consents + plan)
+
+### B3: AI (3 дни)
+- 60 AI теми (cfo_001-060) — selectXxx functions
+- Self-learning engine (PHP-first → AI fallback)
+- БГ calendar reminders (60+ events)
+- Anti-halucination framework (5 закона)
+
+### B4: Mobile (2 дни)
+- Capacitor build за iOS + Android
+- Voice permissions
+- Camera integration за касови бележки
+
+### Target launch: 1 август 2026 (Google Play + App Store)
+
+---
+
+## ⚠️ TWO-PRODUCT ARCHITECTURE (Закон §42)
+
+**Един codebase. Един git push. Два продукта.**
+
+- `/lib/*` — споделен engine (един път писан, двата продукта ползват)
+- `/partials/*`, `life-board.php`, `stats.php` etc. — RunMyStore-only
+- `/cfo/*` — Pocket CFO-only
+- Routing в `index.php` → `$tenant->plan` дискриминира UI shell
+
+**Commit prefixes:** `S15X ENGINE:` (shared) · `S15X RMS:` (RunMyStore) · `S15X CFO:` (Pocket CFO)
+

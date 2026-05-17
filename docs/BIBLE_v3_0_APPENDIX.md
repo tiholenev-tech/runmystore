@@ -702,3 +702,130 @@ Nike Air Max 90 - 42 - Бял;NAM-42-WH;...
 ---
 
 **КРАЙ НА BIBLE APPENDIX v3.1**
+
+---
+
+## §42. ЗАКОН — ОБЩ CODEBASE (S148)
+
+**Source:** `STATS_FINANCE_MODULE_BIBLE_v1.md §42`
+
+### Главният принцип
+
+**Един код се пише веднъж. Работи и за RunMyStore, и за Pocket CFO.**
+
+### 3 типа код в repo-то
+
+**TYPE 1: SHARED ENGINE (`/lib/`)** — един път писан, ползва се от двата:
+- `lib/money-engine.php`, `lib/voice-parser.php`, `lib/photo-receipt-parser.php`
+- `lib/ai-engine.php`, `lib/ner-anonymizer.php`, `lib/cohort-benchmarks.php`
+- `lib/auth.php`, `lib/db.php`, `lib/currency.php`, `lib/i18n.php`
+- `lib/stripe-connect.php`, `lib/cross-validation.php`
+- `lib/profession-templates.php`, `lib/gdpr-compliance.php`
+- **NEW:** `lib/bg-tax-engine.php` (НПР + ДДС + Patent + ППП)
+
+**TYPE 2: SAMO ZA RUNMYSTORE** (`/partials/` retail-specific + root retail файлове):
+- `partials/products-grid.php`, `partials/inventory-walk.php`, `partials/sales-pos.php`
+- `partials/deliveries.php`, `partials/suppliers.php`
+- `partials/stats-overview.php`, `partials/stats-products.php`, `partials/stats-finance-*.php`
+- `life-board.php`, `products.php`, `orders.php`, `sale.php`, `stats.php`
+
+**TYPE 3: SAMO ZA POCKET CFO** (`/cfo/`):
+- `cfo/home.php`, `cfo/records.php`, `cfo/analysis.php`, `cfo/goals.php`
+- `cfo/onboarding.php`, `cfo/settings.php`
+- `cfo/api/*`, `cfo/partials/*`
+
+### Routing — едно entry, две UI shells
+
+```php
+// index.php
+$tenant = getTenant($_SESSION['tenant_id']);
+if ($tenant->plan === 'cfo') {
+    header('Location: cfo/home.php');
+} else {
+    header('Location: life-board.php');
+}
+```
+
+### Plan-aware shared functions
+
+```php
+function getDashboardData(int $tenant_id): array {
+    $tenant = getTenant($tenant_id);
+    if ($tenant->plan === 'cfo') {
+        return cfo_dashboard_data($tenant_id);
+    } else {
+        return rms_dashboard_data($tenant_id);
+    }
+}
+```
+
+### Commit message convention
+
+- `S15X ENGINE:` — промяна в `/lib/*` (засяга и двата продукта)
+- `S15X RMS:` — RunMyStore-only промяна
+- `S15X CFO:` — Pocket CFO-only промяна
+
+### ЗАБРАНЕНО
+
+❌ `lib/money-engine.php` + `lib/money-engine-cfo.php` — дублирана логика, bug fix трябва на 2 места.
+
+✅ `lib/money-engine.php` — един файл, ползва се от двата.
+
+---
+
+## §44. БГ TAX ENGINE (S148, universal в /lib/)
+
+**Source:** `STATS_FINANCE_MODULE_BIBLE_v1.md §44`
+
+### Какво решава
+
+**НАП anxiety reduction** — самонаетите в БГ имат 4 постоянни страха, Pocket CFO + RMS Финанси ги решават всичките:
+
+1. "Колко ще плащам данък?" → НПР калкулатор
+2. "Преминах ли ДДС прага?" → automatic monitoring
+3. "Подадох ли тримесечния аванс?" → smart reminders
+4. "Колко осигуровки?" → 2026 estimates (~27.8% върху base)
+
+### Tax modes per template
+
+| Mode | НПР % | За кого |
+|---|---|---|
+| `npr_25` | 25% | IT, дизайнери, психолози, юристи, лекари |
+| `npr_40` | 40% | Майстори, занаятчии, фризьори (някои) |
+| `npr_60` | **60%** | Земеделски производители (~77K в БГ) |
+| `patent` | — | Такси, някои фризьори/маникюр |
+| `eood_regular` | — | ЕООД режим (10% корпоративен) |
+| `personal_only` | — | Личен бюджет (заплати) |
+
+### ДДС праг detector
+
+- **Threshold:** €51 130 (= 100 000 лв)
+- **Buffer alert:** 70% от прага
+- **Statuses:** safe / approaching / projected_cross / crossed
+- При crossed → "Задължителна ДДС регистрация в 7 дни"
+
+### ДДС chap 97a (за фрийлансъри/креатори)
+
+Автоматично detection на EU service transactions:
+- Vendors: Adobe, AWS, Google, FB Ads, Stripe, PayPal, YouTube, Patreon
+- Чест случай: IT фрийлансъри + Creators/Influencers
+- Output: "Adobe €19.99 = EU service. Задължителен ДДС chap 97a месечно."
+
+### Patent tax (фиксиран годишен)
+
+- Такси: €300-1000/год (city multiplier × 1.5 за София)
+- Фризьори/Маникюр: €250-800/год
+- Майстори: €150-600/год
+
+### ППП (Наложен платеж) detection
+
+- Еконт/Спиди cash on delivery → НЕ нужен касов апарат
+- Important за онлайн търговци (Instagram магазин, dropshipping)
+
+### Implementation status
+
+- ⏳ `lib/bg-tax-engine.php` — Phase B (юни 2026)
+- ⏳ UI integration в `stats.php?tab=finance > Печалба`
+- ⏳ Smart reminders cron (`cron/cfo-nra-reminders.php`)
+- ⏳ Annual declaration helper (януари-март)
+
