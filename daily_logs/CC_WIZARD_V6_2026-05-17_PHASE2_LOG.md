@@ -57,3 +57,39 @@ Iron rule (повтаряно преди всеки sub-step):
 ### Commit
 - New file: `services/wizard-bridge.php` (56 реда)
 - Sacred SHA непроменена.
+
+═══════════════════════════════════════════════════════════════
+## SUB-STEP 2c: `services/ai-vision.php`
+
+### Protocol checklist
+
+- ✓ Прочетох `ai-helper.php` редове **197-224** — `callGeminiVision($system, $userPrompt, $imageBase64, $mimeType)` готова за use
+- ✓ Прочетох `services/price-ai.php` като auth/error-handling pattern (модел)
+- ✓ Прочетох handoff §5.2 (логика) + §14.1 (JSON schema)
+- ✓ Логиката която копирам: НЯМА copy от products.php (ai-vision е НОВ endpoint). Pattern след price-ai.php (auth/POST/JSON). Gemini call е през callGeminiVision (вече sacred-grade wrapper).
+- ✓ Sacred check: НЕ пипам voice-tier2 · price-ai · ai-color-detect · products.php · capacitor-printer.js · ai-helper.php (само го include-вам и викам функцията му).
+- ✓ Bridge call: N/A — този endpoint е target на бриджа, не call-ва бриджа.
+
+### Дизайн решения
+- 3-level cache per handoff §5.2:
+  - L1 barcode lookup в `products` — wrapped in try/catch (graceful ако колоните `category`/`subcategory`/`gender`/etc още липсват)
+  - L2 phash в `ai_snapshots` — wrapped в try/catch
+  - L3 Gemini call (винаги работи; ai-helper handle-ва ключа)
+- aHash 8×8 — Q5 одобрено (pure PHP/GD, ~25 реда). SHA256 fallback ако imagecreatefromstring fail-не.
+- Cache writes (L1 не пише; L2 INSERT/UPDATE в ai_snapshots) wrapped в try/catch — main response не fail-ва ако DB е недостъпен.
+
+### Verification
+- `php -l services/ai-vision.php` → no syntax errors
+- Bridge smoke test:
+  - `POST ?action=mic_whisper` (no session) → `{"ok":false,"data":null,"error":"unauthorized"}` (voice-tier2 own 401 JSON)
+  - `POST` (no action) → `{"ok":false,"error":"unknown action","valid":[...]}` (bridge 400)
+  - `POST ?action=ai_vision` (no session) → HTTP 401 + empty body (вижте бележка по-долу)
+- `bash tools/verify_sacred.sh` → 5/5 PASS
+
+### Бележка за наследено поведение от `ai-helper.php`
+`ai-helper.php` ред 19-22 е не само library — той прави `session_start()` + проверка `$_SESSION['tenant_id']` + `http_response_code(401); exit;` ако липсва. Това е inherited behavior от `price-ai.php` (която също `require_once ai-helper.php`) и работи в production защото wizard-v6 потребителите са logged-in. В smoke test без сесия → 401 + empty body (ai-helper-то exit-ва преди моят JSON encode да изпълни). Production user-ите никога не trip-ват този path.
+
+### Commit
+- New file: `services/ai-vision.php` (170 реда)
+- Deploy в `/var/www/runmystore/services/` (за verify check #5 baseline).
+- Sacred SHA непроменена.
