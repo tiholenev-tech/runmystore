@@ -584,6 +584,46 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="light"] .rms-picker-btn.sec:active,:root:not([data-theme]) .rms-picker-btn.sec:active{box-shadow:var(--shadow-pressed)}
 .rms-picker-cancel{width:100%;margin-top:10px;padding:11px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text-muted);background:transparent;border:none}
 [data-theme="light"] .rms-picker-cancel:active,:root:not([data-theme]) .rms-picker-cancel:active{box-shadow:var(--shadow-pressed)}
+
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2g — Цена (cost + retail) + AI markup + live margin    ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+
+/* .req-star — required field asterisk (canon) */
+.req-star{color:var(--danger,var(--accent));font-weight:900;font-size:13px;margin-left:2px}
+[data-theme="light"] .req-star,:root:not([data-theme]) .req-star{color:oklch(0.65 0.22 25)}
+
+/* .fl .hint — secondary label hint (mockup ред 162) */
+.fl .hint{font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-faint);font-size:11px;margin-left:4px}
+
+/* Live margin display (под retail price) */
+.wz-margin-display{margin-top:8px;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:700;font-family:var(--font-mono,monospace);letter-spacing:0.03em;display:flex;align-items:center;gap:6px}
+.wz-margin-display b{font-weight:800;font-size:14px}
+[data-theme="light"] .wz-margin-display,:root:not([data-theme]) .wz-margin-display{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .wz-margin-display{background:hsl(220 25% 6%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.wz-margin-display.gain b{color:var(--success)}
+.wz-margin-display.warn b{color:var(--warning,hsl(38 70% 50%))}
+.wz-margin-display.loss b{color:var(--danger,hsl(0 75% 55%))}
+[data-theme="light"] .wz-margin-display.gain b,:root:not([data-theme]) .wz-margin-display.gain b{color:hsl(145 55% 35%)}
+[data-theme="light"] .wz-margin-display.warn b,:root:not([data-theme]) .wz-margin-display.warn b{color:hsl(38 70% 40%)}
+[data-theme="light"] .wz-margin-display.loss b,:root:not([data-theme]) .wz-margin-display.loss b{color:hsl(0 60% 45%)}
+
+/* AI markup row — appears under cost field when cost > 0 */
+.ai-markup-row{margin-top:10px;border-radius:14px;overflow:hidden}
+.ai-markup-info{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;font-family:inherit}
+[data-theme="light"] .ai-markup-row,:root:not([data-theme]) .ai-markup-row{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.6),oklch(0.94 0.05 310 / 0.5));box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="dark"] .ai-markup-row{background:linear-gradient(135deg,hsl(280 30% 12% / 0.6),hsl(255 30% 12% / 0.5));border:1px solid hsl(280 50% 28% / 0.4)}
+.ai-markup-icon{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.4);position:relative;overflow:hidden}
+.ai-markup-icon::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.ai-markup-icon svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;position:relative;z-index:1}
+.ai-markup-text{flex:1;font-size:12.5px;color:var(--text);line-height:1.4;font-weight:600}
+.ai-markup-value{font-size:14px;font-weight:800;color:var(--magic,var(--accent));font-family:var(--font-mono,monospace);margin:0 2px}
+.ai-markup-meta{font-size:10.5px;color:var(--text-muted);font-weight:600;margin-left:6px;font-family:var(--font-mono,monospace)}
+.ai-markup-apply{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 4px 12px hsl(255 80% 50% / 0.4);letter-spacing:0.02em;transition:transform 150ms,box-shadow 200ms;flex-shrink:0}
+.ai-markup-apply:active{transform:scale(0.96);box-shadow:0 2px 6px hsl(255 80% 50% / 0.3)}
+.ai-markup-loading{font-size:12px;color:var(--text-muted);font-weight:600;padding:10px;display:flex;align-items:center;gap:8px}
+.ai-markup-loading::before{content:'';width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:conicSpin 0.8s linear infinite}
   </style>
 </head>
 <body>
@@ -1321,9 +1361,125 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   // STUBS — не са в 2f scope (изискват api(), wizGo, wizStep state machine):
   function wizDupeCheckName(name){ /* deferred: full match-check изисква api() + AJAX endpoint */ }
   function wizMaybeAdvancePhotoStep(){ /* deferred: wizGo + wizStep state machine */ }
-  // _wizPriceCloudFallback (за prices): stub за 2f, ще се копира в 2g sub-step.
-  function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
-    showToast(label+': разпознаването е offline; въведи ръчно','info');
+  /* ═══ S148 ФАЗА 2g — _wizPriceCloudFallback 1:1 sacred (но routed през bridge) ═══
+     Sacred reference: p.php 14499-14523. Промяна спрямо source:
+     `fetch('/services/price-ai.php', ...)` → `fetch('/services/wizard-bridge.php?action=price_parse', ...)`.
+     Sacred endpoint (price-ai.php) непроменен.
+  */
+  async function _wizPriceCloudFallback(field, text, inputId, dataKey, label) {
+    var el = document.getElementById(inputId);
+    if (!el) return;
+    el.value = '…';
+    el.style.color = 'var(--text-faint)';
+    showToast('AI парсва "'+text+'"…', 'info');
+    var lang = (window.CFG && CFG.lang) || 'bg';
+    try {
+      var r = await fetch('/services/wizard-bridge.php?action=price_parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ text: text, lang: lang })
+      });
+      if (!r.ok) { throw new Error('HTTP '+r.status); }
+      var j = await r.json();
+      if (j && j.ok && j.data && j.data.price !== null && j.data.price !== undefined && !isNaN(j.data.price)) {
+        el.value = j.data.price;
+        S.wizData[dataKey] = j.data.price;
+        el.style.color = '';
+        showToast(label + ' (AI): ' + el.value, 'success');
+        if (navigator.vibrate) navigator.vibrate(15);
+        if (typeof wizMarkDone === 'function') wizMarkDone(field);
+        if (typeof wizHighlightNext === 'function') wizHighlightNext();
+      } else {
+        el.value = '';
+        el.style.color = '';
+        showToast('Не разбрах "' + text + '" — кажи отново', 'error');
+      }
+    } catch(e) {
+      el.value = '';
+      el.style.color = '';
+      showToast('AI грешка — кажи отново', 'error');
+    }
+  }
+
+  /* ═══ S148 ФАЗА 2g — Margin formula (1:1 sacred от p.php 9100-9105) ═══ */
+  function _wizMarginPct(cost, retail) {
+    cost = parseFloat(cost) || 0;
+    retail = parseFloat(retail) || 0;
+    if (cost <= 0 || retail <= 0) return null;
+    return ((retail - cost) / retail) * 100;
+  }
+
+  /* wizUpdateMarkup — live margin display под retail. Прости версия (sacred wizUpdateMarkup
+     p.php 12179-12204 използва wMarkupPct editable field; тук имаме само display).
+  */
+  function wizUpdateMarkup(){
+    var disp = document.getElementById('wMarginDisplay');
+    if (!disp) return;
+    var cost = parseFloat(S.wizData.cost_price) || 0;
+    var retail = parseFloat(S.wizData.retail_price) || 0;
+    if (cost <= 0 || retail <= 0) { disp.style.display = 'none'; return; }
+    var pct = _wizMarginPct(cost, retail);
+    if (pct === null) { disp.style.display = 'none'; return; }
+    var cls = pct > 30 ? 'gain' : (pct > 15 ? 'warn' : 'loss');
+    disp.className = 'wz-margin-display ' + cls;
+    disp.innerHTML = 'Печалба: <b>' + pct.toFixed(1) + '%</b>';
+    disp.style.display = '';
+  }
+
+  /* wizMaybeFetchAIMarkup — debounced AI markup fetch при cost change */
+  var _wizMarkupFetchTO = null;
+  function wizMaybeFetchAIMarkup(){
+    clearTimeout(_wizMarkupFetchTO);
+    var cost = parseFloat(S.wizData.cost_price) || 0;
+    var row = document.getElementById('wAIMarkupRow');
+    if (cost <= 0) { if (row) row.style.display = 'none'; return; }
+    _wizMarkupFetchTO = setTimeout(function(){ wizFetchAIMarkup(cost); }, 600);
+  }
+
+  /* wizFetchAIMarkup — POST bridge?action=ai_markup → suggested retail */
+  async function wizFetchAIMarkup(cost){
+    var row = document.getElementById('wAIMarkupRow');
+    if (!row) return;
+    row.style.display = '';
+    row.innerHTML = '<span class="ai-markup-loading">AI изчислява...</span>';
+    try {
+      var r = await fetch('/services/wizard-bridge.php?action=ai_markup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ cost_price: cost, category_id: S.wizData.category_id || null })
+      });
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      var j = await r.json();
+      if (j && j.ok && j.data && (j.data.retail_price || j.data.suggested_retail)) {
+        var suggested = parseFloat(j.data.retail_price || j.data.suggested_retail);
+        var markupPct = j.data.markup_pct || (((suggested / cost) - 1) * 100);
+        row.innerHTML =
+          '<div class="ai-markup-info">'+
+            '<div class="ai-markup-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>'+
+            '<div class="ai-markup-text">AI предлага: <span class="ai-markup-value">'+suggested.toFixed(2)+' €</span><span class="ai-markup-meta">markup '+Math.round(markupPct)+'%</span></div>'+
+            '<button type="button" class="ai-markup-apply" onclick="wizApplyAIMarkup('+suggested+')">Приеми</button>'+
+          '</div>';
+      } else {
+        row.style.display = 'none';
+      }
+    } catch(e) {
+      row.style.display = 'none';
+      console.warn('[2g] AI markup error:', e);
+    }
+  }
+
+  function wizApplyAIMarkup(value){
+    var el = document.getElementById('wPrice');
+    if (!el) return;
+    el.value = value;
+    S.wizData.retail_price = parseFloat(value);
+    wizUpdateMarkup();
+    showToast('Цена приета: '+value+' €', 'success');
+    if (navigator.vibrate) navigator.vibrate(15);
+    if (typeof wizMarkDone === 'function') wizMarkDone('retail_price');
+    if (typeof wizHighlightNext === 'function') wizHighlightNext();
   }
 
   /* ═══ S148 ФАЗА 2e++a — type toggle (state-only за Phase 3 scaffold) ═══
@@ -1354,6 +1510,35 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         ? ''
         : '<div class="wz-type-hint">Избери тип артикул</div>';
     return typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
+  }
+
+  /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
+     Source: p.php 8174 (retail), 8176 / 9269 (cost). Sacred markup adapted to
+     wizard-v6 design canon: .wiz-mic + .copy-btn (mockup canonical buttons).
+     wMarkupPct field (sacred has editable) тук не се рендерира — само live margin display.
+  */
+  function renderWizSection1Cost(){
+    return '<div class="fg" style="margin:0 0 10px">'+
+        '<label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+            '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup();wizMaybeFetchAIMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1">'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'cost_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'cost_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
+        '</div>'+
+        '<div id="wAIMarkupRow" class="ai-markup-row" style="display:none"></div>'+
+    '</div>';
+  }
+
+  function renderWizSection1Retail(){
+    return '<div class="fg" style="margin:0 0 10px">'+
+        '<label class="fl">Цена дребно<span class="req-star">*</span></label>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+            '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+(S.wizData.retail_price||'')+'" placeholder="Кажи: 1 евро и 35 цента" style="flex:1">'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
+        '</div>'+
+        '<div id="wMarginDisplay" class="wz-margin-display" style="display:none"></div>'+
+    '</div>';
   }
 
   // ═══ renderWizSection1Name — 1:1 nameH от products.php 12491-12499 ═══
@@ -1442,9 +1627,17 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   function renderWizard(){
     var host=document.getElementById('wizSection1Inner');
     if(!host)return;
-    host.innerHTML=renderWizSection1Type()+renderWizSection1Photo()+renderWizSection1Name();
+    host.innerHTML=
+      renderWizSection1Type()+
+      renderWizSection1Photo()+
+      renderWizSection1Name()+
+      renderWizSection1Cost()+
+      renderWizSection1Retail();
     // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
     wizHighlightNext();
+    // S148 ФАЗА 2g: live margin + AI markup ако вече има стойности.
+    if (typeof wizUpdateMarkup === 'function') wizUpdateMarkup();
+    if (typeof wizMaybeFetchAIMarkup === 'function') wizMaybeFetchAIMarkup();
   }
 
   // ═══ Sacred file change handlers 1:1 от products.php 12744-12781 ═══
