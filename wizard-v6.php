@@ -217,6 +217,49 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 [data-theme="light"] .photo-multi-info,:root:not([data-theme]) .photo-multi-info{background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3);color:var(--accent)}
 [data-theme="light"] .photo-multi-info b,:root:not([data-theme]) .photo-multi-info b{color:var(--text)}
 [data-theme="light"] .ai-inline-row,:root:not([data-theme]) .ai-inline-row{background:linear-gradient(180deg,rgba(139,92,246,0.08),rgba(99,102,241,0.04));border-color:rgba(139,92,246,0.3);color:var(--text);box-shadow:var(--shadow-card-sm)}
+
+/* ═══ S148 ФАЗА 2f — sacred form-control + mic CSS (1:1 от products.php) ═══
+   .fg / .fl / .fc / .fc:focus / .fc::placeholder    ← p.php 2159-2169
+   .fg input.fc, .fg select.fc                       ← p.php 2177-2179
+   .form-row                                         ← p.php 2186
+   .wiz-mic / :active                                ← p.php 2201-2202
+   .fg.wiz-next / .fg.wiz-next .wiz-mic / @kf        ← p.php 2203-2205
+   .fg.wiz-done .fl::after                           ← p.php 2206
+   .wiz-mic.recording (+ ::after, ::before) + @kf    ← p.php 2207-2211
+   .fg.wiz-active / .fg.wiz-active .wiz-mic          ← p.php 2212-2213
+*/
+.fg{margin-bottom:10px}
+.fl{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl .hint{color:rgba(107,114,128,0.7);font-weight:400;text-transform:none;letter-spacing:0}
+.fl .fl-add{float:right;color:var(--indigo-300);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3)}
+.fc{width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border-subtle);background:rgba(30,35,50,0.9);color:var(--text-primary);font-size:14px;outline:none;font-family:inherit;transition:border-color 0.2s}
+.fc:focus{border-color:var(--border-glow);box-shadow:0 0 12px rgba(99,102,241,0.1)}
+.fc::placeholder{color:var(--text-secondary)}
+.fg input.fc,.fg select.fc{min-height:42px;padding:10px 14px;border-radius:12px;font-size:14px;box-sizing:border-box}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.wiz-mic{width:42px;min-width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.wiz-mic:active{background:rgba(239,68,68,.2);transform:scale(.95)}
+.fg.wiz-next{background:rgba(99,102,241,.08);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35)}
+.fg.wiz-next .wiz-mic{background:rgba(99,102,241,.25);border-color:#6366f1;animation:wizNextPulse 1.5s infinite}
+@keyframes wizNextPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.2)}50%{box-shadow:0 0 14px 4px rgba(99,102,241,.2)}}
+.fg.wiz-done .fl::after{content:' \2713';color:#4ade80;font-weight:700}
+.wiz-mic.recording{background:rgba(239,68,68,.3)!important;border-color:#ef4444!important;color:#fff!important;animation:micRecPulse .8s infinite!important;position:relative}
+.wiz-mic.recording::after{content:'REC';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#ef4444;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 8px rgba(239,68,68,.6)}
+.wiz-mic.recording::before{content:'';position:absolute;top:-8px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.5);animation:micRecDot .6s infinite}
+@keyframes micRecPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 16px 4px rgba(239,68,68,.3)}}
+@keyframes micRecDot{0%,100%{opacity:1}50%{opacity:.3}}
+.fg.wiz-active{background:rgba(99,102,241,.06);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.25);transition:all .2s}
+.fg.wiz-active .wiz-mic{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.12)}
+
+/* ═══ S148 ФАЗА 2f — light mode overrides за form-control + mic ═══ */
+[data-theme="light"] .fl,:root:not([data-theme]) .fl{color:var(--text-muted)}
+[data-theme="light"] .fc,:root:not([data-theme]) .fc{background:var(--surface);color:var(--text);border-color:rgba(0,0,0,0.08);box-shadow:var(--shadow-pressed)}
+[data-theme="light"] .fc::placeholder,:root:not([data-theme]) .fc::placeholder{color:var(--text-faint)}
+[data-theme="light"] .fc:focus,:root:not([data-theme]) .fc:focus{border-color:var(--accent);box-shadow:var(--shadow-pressed),0 0 0 2px rgba(99,102,241,0.15)}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:var(--surface);box-shadow:var(--shadow-card-sm);border-color:rgba(239,68,68,0.3);color:oklch(0.58 0.22 25)}
+[data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)}
+[data-theme="light"] .fg.wiz-active .wiz-mic,:root:not([data-theme]) .fg.wiz-active .wiz-mic{background:var(--surface);border-color:rgba(99,102,241,0.4);color:var(--accent)}
   </style>
 </head>
 <body>
@@ -242,7 +285,9 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     </header>
 
     <!-- ═══ MAIN: 4 акордеона ═══ -->
-    <main class="wz-main">
+    <!-- id="wizBody" е изискване за sacred _wizClearHighlights / wizMarkDone / wizHighlightNext
+         (querySelectorAll('#wizBody .fg ...') ще резолват тук). -->
+    <main class="wz-main" id="wizBody">
 
       <!-- Секция 1 — Снимка + Основно (qm = magic purple) -->
       <section data-section="photo" class="glass qm">
@@ -295,6 +340,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     <button class="save-btn" aria-label="Запази"><!-- TODO Фаза 2 -->Запази</button>
   </footer>
 
+  <!-- S148 ФАЗА 2a deliverable — sacred JS parser (audio recorder shell + BG price parser). -->
+  <script src="js/wizard-parser.js"></script>
   <script src="js/capacitor-printer.js"></script>
   <script>
   /* ═══ S148 ФАЗА 2e — sacred wizard state + photo block (1:1 от products.php) ═══
@@ -385,6 +432,168 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
   function wizAIInlineSeoDesc(){showToast('SEO описание: следваща sub-step','info')}
   function wizAIInlineMagic(){showToast('AI магия: следваща sub-step','info')}
 
+  /* ═══ S148 ФАЗА 2f — поле Име + микрофон (1:1 sacred от products.php) ═══
+
+     1:1 копия:
+       14303      var _wizMicRec
+       14306      var WIZ_PRICE_FIELDS
+       14308-14317 wizMic(field) — dispatch към Whisper (price) или Web Speech (other)
+       14318-14340 _wizMicWebSpeech(field, lang)
+       14395-14399 _wizMicInterim(field, text)
+       14400-14416 _wizMicApply(field, text) — name/code/price/qty/etc. branches
+       7539-7544   wizClearAIMark(key) — guards вече handle нашия минимален S
+       12246-12262 wizCopyFieldFromPrev(field) — read от localStorage
+       15046-15050 wizMarkDone(field)
+       15051-15054 _wizClearHighlights()
+       15055-15078 wizHighlightNext()
+
+     STUB (поведения извън 2f scope):
+       wizDupeCheckName — изисква /products.php?ajax=name_dupe_check + api()
+       wizMaybeAdvancePhotoStep — изисква wizGo/wizStep machinery
+
+     CFG: минимум stub за wizHighlightNext (skipWholesale) и wizMic (lang).
+     _wizMicWhisper — идва от js/wizard-parser.js (FAZA 2a) → bridge?action=mic_whisper.
+  */
+
+  var _wizMicRec = null;
+  var WIZ_PRICE_FIELDS = ['retail_price','cost_price','wholesale_price'];
+  if (typeof window.CFG === 'undefined') {
+    window.CFG = { lang: 'bg', skipWholesale: false, suppliers: [], categories: [] };
+  }
+
+  function wizMic(field){
+    var lang=(window.CFG&&CFG.lang)||'bg';
+    if(lang!=="bg" && WIZ_PRICE_FIELDS.indexOf(field)>=0 && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        _wizMicWhisper(field,lang);
+        return;
+    }
+    _wizMicWebSpeech(field,lang);
+  }
+
+  function _wizMicWebSpeech(field,lang){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){showToast('Гласът не се поддържа','error');return}
+    if(_wizMicRec){try{_wizMicRec.abort()}catch(e){}_wizMicRec=null}
+    _wizClearHighlights();
+    var fieldMap={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat',quantity:'wSingleQty',min_quantity:'wMinQty'};
+    var targetEl=document.getElementById(fieldMap[field]);
+    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    if(targetFg)targetFg.classList.add('wiz-active');
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    if(micBtn)micBtn.classList.add('recording');
+    var srLangMap={bg:'bg-BG',ro:'ro-RO',el:'el-GR',sr:'sr-RS',hr:'hr-HR',en:'en-US',mk:'mk-MK',sq:'sq-AL',tr:'tr-TR',sl:'sl-SI',de:'de-DE'};
+    _wizMicRec=new SR();_wizMicRec.lang=srLangMap[lang||'bg']||'bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
+    _wizMicRec.onresult=function(e){
+        var final='',interim='';
+        for(var i=0;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}
+        if(interim)_wizMicInterim(field,interim);
+        if(final){if(micBtn)micBtn.classList.remove('recording');_wizMicApply(field,final.trim())}
+    };
+    _wizMicRec.onend=function(){if(micBtn)micBtn.classList.remove('recording')};
+    _wizMicRec.onerror=function(){if(micBtn)micBtn.classList.remove('recording');var msg=(['retail_price','cost_price','wholesale_price'].indexOf(field)>=0)?'Кажи в евро и центове 🎤':'Грешка с микрофона';showToast(msg,'warn')};
+    _wizMicRec.start();
+  }
+
+  function _wizMicInterim(field,text){
+    var map={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',origin:'wOrigin',composition:'wComposition'};
+    var el=document.getElementById(map[field]);
+    if(el){el.value=text;el.style.color='#64748b'}
+  }
+
+  function _wizMicApply(field,text){
+    if(field==='name'){var el=document.getElementById('wName');el.value=text;el.style.color='';S.wizData.name=text;wizMarkDone('name');wizHighlightNext()}
+    else if(field==='code'){var el=document.getElementById('wCode');if(el){el.value=text;el.style.color='';S.wizData.code=text;showToast('Записано ✓','success');wizMarkDone('code');wizHighlightNext()}}
+    else if(field==='retail_price'){var el=document.getElementById('wPrice');if(el){var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.retail_price=n;el.style.color='';showToast('Цена: '+el.value,'success');if(navigator.vibrate)navigator.vibrate(15);wizMarkDone('retail_price');wizHighlightNext()}else{_wizPriceCloudFallback('retail_price',text,'wPrice','retail_price','Цена')}}}
+    else if(field==='wholesale_price'){var el=document.getElementById('wWprice');if(el){var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.wholesale_price=n;el.style.color='';showToast('Едро: '+el.value,'success');if(navigator.vibrate)navigator.vibrate(15);wizMarkDone('wholesale_price');wizHighlightNext()}else{_wizPriceCloudFallback('wholesale_price',text,'wWprice','wholesale_price','Едро')}}}
+    else if(field==='cost_price'){var el=document.getElementById('wCostPrice');if(el){var n=_wizPriceParse(text);if(n!==null){el.value=n;S.wizData.cost_price=n;el.style.color='';showToast('Доставна: '+el.value,'success');if(navigator.vibrate)navigator.vibrate(15);wizMarkDone('cost_price');wizHighlightNext()}else{_wizPriceCloudFallback('cost_price',text,'wCostPrice','cost_price','Доставна')}}}
+    else if(field==='barcode'){var el=document.getElementById('wBarcode');if(el){el.value=text.replace(/\s/g,'');el.style.color='';S.wizData.barcode=el.value;showToast('Баркод: '+el.value,'success');wizMarkDone('barcode');wizHighlightNext()}}
+    else if(field==='quantity'){var el=document.getElementById('wSingleQty');if(el){var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;S.wizData.quantity=v;showToast('Брой: '+v,'success');wizMarkDone&&wizMarkDone('quantity');wizHighlightNext()}}
+    else if(field==='min_quantity'){var el=document.getElementById('wMinQty');if(el){var n=_bgPrice(text);var v=(n!==null&&n>=0)?Math.max(0,Math.round(n)):(parseInt(text.replace(/[^\d]/g,''),10)||0);el.value=v;el.dataset.userEdited='true';S.wizData.min_quantity=v;showToast('Мин: '+v,'success');wizMarkDone&&wizMarkDone('min_quantity');wizHighlightNext()}}
+    // supplier/category/subcategory/origin/composition/location branches изискват CFG.suppliers / wizLoadSubcats / wizAddInline — 2f focus е само name. Тези branches остават undefined-safe.
+  }
+
+  function _wizClearHighlights(){
+    document.querySelectorAll('#wizBody .fg').forEach(function(f){f.classList.remove('wiz-next','wiz-active')});
+    document.querySelectorAll('#wizBody .wiz-mic.recording').forEach(function(m){m.classList.remove('recording')});
+  }
+
+  function wizMarkDone(field){
+    var map={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat'};
+    var el=document.getElementById(map[field]);
+    if(el){var fg=el.closest('.fg');if(fg){fg.classList.remove('wiz-next');fg.classList.add('wiz-done')}}
+  }
+
+  function wizHighlightNext(){
+    _wizClearHighlights();
+    var fields=[
+        {id:'wName',key:'name',check:function(){return !!S.wizData.name}},
+        {id:'wCode',key:'code',check:function(){return !!S.wizData.code}},
+        {id:'wPrice',key:'retail_price',check:function(){return S.wizData.retail_price>0}},
+        {id:'wWprice',key:'wholesale_price',check:function(){return S.wizData.wholesale_price>0||CFG.skipWholesale}},
+        {id:'wBarcode',key:'barcode',check:function(){return !!S.wizData.barcode}},
+        {id:'wSupDD',key:'supplier',check:function(){return S.wizData.supplier_id>0}},
+        {id:'wCatDD',key:'category',check:function(){return S.wizData.category_id>0}},
+        {id:'wOrigin',key:'origin',check:function(){return !!S.wizData.origin_country||S.wizData.is_domestic}},
+        {id:'wComposition',key:'composition',check:function(){return !!S.wizData.composition}},
+        {id:'wSubcat',key:'subcategory',check:function(){return true}}
+    ];
+    for(var i=0;i<fields.length;i++){
+        var el=document.getElementById(fields[i].id);
+        if(!el)continue;
+        if(!fields[i].check()){
+            var fg=el.closest('.fg');
+            if(fg){fg.classList.add('wiz-next')}
+            return;
+        }
+    }
+  }
+
+  // wizClearAIMark — 1:1 от p.php 7539-7544. Guards handle minimal S.
+  function wizClearAIMark(key){
+    if(!S.wizData||!S.wizData._aiFilled||!S.wizData._aiFilled[key])return;
+    delete S.wizData._aiFilled[key];
+    var el=document.querySelector('.wiz-ai-hint[data-aikey="'+key+'"]');
+    if(el)el.style.display='none';
+  }
+
+  // wizCopyFieldFromPrev — 1:1 от p.php 12246-12262. Чете localStorage; safe на missing DOMs.
+  function wizCopyFieldFromPrev(field){
+    var prev=null;try{prev=JSON.parse(localStorage.getItem('_rms_lastWizProductFields'))}catch(e){}
+    if(!prev){showToast('Няма предишен артикул','error');return}
+    var v=prev[field];
+    if(v===undefined||v===null||v===''){showToast('Това поле е празно в последния','info');return}
+    S.wizData[field]=v;
+    var fieldToInput={retail_price:'wPrice',cost_price:'wCostPrice',markup_pct:'wMarkupPct',min_quantity:'wMinQty',composition:'wComposition',origin_country:'wOrigin',color:'wColor',size:'wSize'};
+    var inpId=fieldToInput[field];
+    if(inpId){var el=document.getElementById(inpId);if(el)el.value=v;}
+    // Текстовите полета (name, code, barcode) — refresh DOM:
+    var directMap={name:'wName',code:'wCode',barcode:'wBarcode'};
+    if(directMap[field]){var de=document.getElementById(directMap[field]);if(de)de.value=v}
+    showToast('Копирано от последния','success');
+    if(navigator.vibrate)navigator.vibrate(5);
+  }
+
+  // STUBS — не са в 2f scope (изискват api(), wizGo, wizStep state machine):
+  function wizDupeCheckName(name){ /* deferred: full match-check изисква api() + AJAX endpoint */ }
+  function wizMaybeAdvancePhotoStep(){ /* deferred: wizGo + wizStep state machine */ }
+  // _wizPriceCloudFallback (за prices): stub за 2f, ще се копира в 2g sub-step.
+  function _wizPriceCloudFallback(field,text,inputId,dataKey,label){
+    showToast(label+': разпознаването е offline; въведи ръчно','info');
+  }
+
+  // ═══ renderWizSection1Name — 1:1 nameH от products.php 12491-12499 ═══
+  function renderWizSection1Name(){
+    return '<div class="fg" style="margin:0 0 10px">'+
+        '<label class="fl">Име&nbsp;<span style="color:#ef4444">*</span></label>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+            '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+        '</div>'+
+        '<div id="wDupeBanner" style="display:none"></div>'+
+    '</div>';
+  }
+
   // ═══ renderWizSection1Photo — 1:1 photoBlock construction от products.php 12391-12457 ═══
   function renderWizSection1Photo(){
     var _photoMode=S.wizData._photoMode;
@@ -457,7 +666,10 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
   function renderWizard(){
     var host=document.getElementById('wizSection1Inner');
-    if(host)host.innerHTML=renderWizSection1Photo();
+    if(!host)return;
+    host.innerHTML=renderWizSection1Photo()+renderWizSection1Name();
+    // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
+    wizHighlightNext();
   }
 
   // ═══ Sacred file change handlers 1:1 от products.php 12744-12781 ═══
