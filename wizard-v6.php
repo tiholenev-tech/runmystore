@@ -807,6 +807,148 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 #wzQfBody .form-row .fg{margin-bottom:0}
 #wzQfBody .fc{height:44px;padding:0 14px;border-radius:10px}
 
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2o — P13_bulk_entry.html 1:1 design canon                ║
+   ║ User: "виж мокъп P13_bulk_entry.html, копирай 1:1 без да слагаш    ║
+   ║  нищо от теб". Voice логиката (mic/parsePrice) НЕ СЕ ПИПА.         ║
+   ║ Source: mockups/P13_bulk_entry.html ред 46-232, 413-440             ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+
+/* find-pill (collapsed search bar) + find-panel (expanded) */
+.find-pill{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius-pill);margin-bottom:14px;cursor:pointer;font-family:inherit;border:none;width:100%}
+[data-theme="light"] .find-pill,:root:not([data-theme]) .find-pill{background:var(--surface);box-shadow:var(--shadow-card)}
+[data-theme="dark"] .find-pill{background:hsl(220 25% 6% / 0.7);border:1px solid hsl(var(--hue2) 12% 22%)}
+.find-pill-ic{width:30px;height:30px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 12px hsl(var(--hue1) 80% 50% / 0.4)}
+.find-pill-ic svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:2.5}
+.find-pill-text{flex:1;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:-0.01em;text-align:left}
+.find-pill-mic{width:30px;height:30px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 2px 8px hsl(280 70% 50% / 0.4);border:none;cursor:pointer}
+.find-pill-mic svg{width:12px;height:12px;stroke:white;fill:none;stroke-width:2}
+.find-panel{display:none;margin-bottom:14px}
+.find-panel.show{display:block}
+.find-input-wrap{display:flex;align-items:center;gap:5px;padding:6px 6px 6px 12px;border-radius:var(--radius-pill);margin-bottom:10px}
+[data-theme="light"] .find-input-wrap,:root:not([data-theme]) .find-input-wrap{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .find-input-wrap{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.find-input-wrap svg.search-ic{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;flex-shrink:0}
+[data-theme="dark"] .find-input-wrap svg.search-ic{stroke:hsl(var(--hue1) 80% 75%)}
+.find-input{flex:1;min-width:0;height:36px;background:transparent;border:none;outline:none;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text)}
+.find-input::placeholder{color:var(--text-faint);font-weight:600}
+.find-close{width:30px;height:30px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;cursor:pointer;border:none;background:transparent}
+[data-theme="light"] .find-close,:root:not([data-theme]) .find-close{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .find-close{background:hsl(220 25% 8%)}
+.find-close svg{width:12px;height:12px;stroke:var(--text-muted);fill:none;stroke-width:2.5}
+.find-filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;scrollbar-width:none}
+.find-filters::-webkit-scrollbar{display:none}
+.find-filter{height:32px;padding:0 12px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;flex-shrink:0;border:none;cursor:pointer;font-family:inherit;color:var(--text-muted)}
+[data-theme="light"] .find-filter,:root:not([data-theme]) .find-filter{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .find-filter{background:hsl(220 25% 8%)}
+.find-filter svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+.find-filter.active{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;box-shadow:0 4px 12px hsl(var(--hue1) 80% 50% / 0.4)!important}
+.find-results{display:flex;flex-direction:column;gap:5px}
+.find-result{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);cursor:pointer;border:none;font-family:inherit;text-align:left;width:100%}
+[data-theme="light"] .find-result,:root:not([data-theme]) .find-result{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .find-result{background:hsl(220 25% 8%)}
+.find-result-thumb{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#cbd5e1,#94a3b8);flex-shrink:0;overflow:hidden}
+[data-theme="dark"] .find-result-thumb{background:linear-gradient(135deg,hsl(220 25% 14%),hsl(220 25% 10%));border:1px solid hsl(var(--hue2) 12% 18%)}
+.find-result-thumb svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:1.5;opacity:0.7}
+.find-result-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.find-result-text{flex:1;min-width:0}
+.find-result-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.find-result-meta{font-family:var(--font-mono);font-size:9.5px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.find-result-arrow{color:var(--text-muted)}
+.find-result-arrow svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* voice-bar (P13 ред 46-54) */
+.voice-bar{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 8px;border-radius:var(--radius-pill);margin-bottom:14px;cursor:pointer;border:none;font-family:inherit;width:100%;text-align:left}
+[data-theme="light"] .voice-bar,:root:not([data-theme]) .voice-bar{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.7),oklch(0.94 0.05 310 / 0.6));box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .voice-bar{background:linear-gradient(135deg,hsl(280 30% 12% / 0.6),hsl(var(--hue1) 30% 12% / 0.5));border:1px solid hsl(280 50% 28% / 0.4)}
+.voice-bar-mic{width:38px;height:38px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.5);position:relative;overflow:hidden}
+.voice-bar-mic::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.voice-bar-mic svg{width:15px;height:15px;stroke:white;fill:none;stroke-width:2;position:relative;z-index:1}
+.voice-bar-text{flex:1;min-width:0}
+.voice-bar-title{font-size:12px;font-weight:800;color:var(--text);letter-spacing:-0.01em}
+.voice-bar-sub{font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;margin-top:1px}
+
+/* mode-toggle (P13 ред 57-62) — pill style */
+.mode-toggle{display:flex;gap:4px;padding:4px;border-radius:var(--radius-pill);margin-bottom:14px}
+[data-theme="light"] .mode-toggle,:root:not([data-theme]) .mode-toggle{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .mode-toggle{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.mode-tab{flex:1;height:42px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted);background:transparent;border:none;cursor:pointer;font-family:inherit;transition:all 200ms}
+.mode-tab svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.mode-tab.active{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.4)}
+
+/* field / field-label / input-row / input-shell / input-text (P13 ред 94-126) */
+.field{margin-bottom:12px}
+.field-label{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.field-label .req{color:hsl(0 70% 50%)}
+[data-theme="dark"] .field-label .req{color:hsl(0 80% 70%)}
+.field-label .opt-pill{font-family:var(--font-mono);font-size:8px;font-weight:800;letter-spacing:0.08em;padding:2px 7px;border-radius:var(--radius-pill);color:var(--text-faint);margin-left:2px}
+[data-theme="light"] .field-label .opt-pill,:root:not([data-theme]) .field-label .opt-pill{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .field-label .opt-pill{background:hsl(220 25% 4%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.field-hint{font-size:10px;font-weight:600;color:var(--text-faint);margin-top:5px;line-height:1.35}
+.input-row{display:flex;gap:5px;align-items:center}
+.input-shell{flex:1;min-width:0;display:flex;align-items:center}
+.input-text{width:100%;height:42px;padding:0 12px;border-radius:var(--radius-sm);background:transparent;font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text);outline:none;border:1px solid transparent}
+[data-theme="light"] .input-text,:root:not([data-theme]) .input-text{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .input-text{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.input-text:focus{box-shadow:0 0 0 2px hsl(var(--hue1) 80% 55% / 0.4),var(--shadow-pressed)}
+[data-theme="dark"] .input-text:focus{border-color:hsl(var(--hue1) 80% 55%);background:hsl(var(--hue1) 30% 12% / 0.5)}
+.input-text::placeholder{color:var(--text-faint);font-weight:600}
+
+/* fbtn (cpy/voice/scan) — P13 ред 115-126 */
+.fbtn{width:38px;height:42px;border-radius:var(--radius-sm);display:grid;place-items:center;flex-shrink:0;border:none;cursor:pointer;font-family:inherit;padding:0;transition:transform 150ms,box-shadow 200ms}
+[data-theme="light"] .fbtn,:root:not([data-theme]) .fbtn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .fbtn:active,:root:not([data-theme]) .fbtn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .fbtn{background:hsl(220 25% 8%)}
+.fbtn:active{transform:scale(0.95)}
+.fbtn svg{width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2}
+.fbtn.cpy svg{stroke:var(--accent)}
+[data-theme="dark"] .fbtn.cpy svg{stroke:hsl(var(--hue1) 80% 75%)}
+.fbtn.voice{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;box-shadow:0 4px 12px hsl(280 70% 50% / 0.5)!important;border:none!important}
+.fbtn.voice svg{stroke:white!important}
+.fbtn.voice.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;box-shadow:0 4px 12px hsl(0 80% 50% / 0.5)!important;position:relative}
+.fbtn.voice.recording::before{content:'';position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.55);animation:micRecDot .6s infinite}
+.fbtn.scan{background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;box-shadow:0 4px 12px hsl(var(--hue1) 80% 50% / 0.4)!important}
+.fbtn.scan svg{stroke:white!important}
+
+/* price-input-shell / price-input / price-bgn (P13 ред 129-134) */
+.price-input-shell{display:flex;gap:4px;align-items:center}
+.price-input{flex:1;min-width:0;height:42px;padding:0 10px;border-radius:var(--radius-sm);background:transparent;font-family:var(--font-mono);font-size:15px;font-weight:800;color:var(--text);outline:none;border:1px solid transparent;text-align:right}
+[data-theme="light"] .price-input,:root:not([data-theme]) .price-input{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .price-input{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%);color:hsl(var(--hue1) 70% 80%)}
+.price-input::-webkit-outer-spin-button,.price-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.price-cur{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-muted)}
+.price-bgn{font-family:var(--font-mono);font-size:9.5px;font-weight:600;color:var(--text-faint);text-align:right;margin-top:4px}
+
+/* qty-row / qty-stepper / qty-step / qty-input (P13 ред 145-158) */
+.qty-row{display:flex;align-items:center;gap:6px}
+.qty-stepper{flex:1;display:flex;height:48px;border-radius:var(--radius-pill);overflow:hidden;font-family:inherit}
+[data-theme="light"] .qty-stepper,:root:not([data-theme]) .qty-stepper{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .qty-stepper{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.qty-step{width:48px;font-size:20px;font-weight:800;color:var(--accent);display:grid;place-items:center;background:transparent;border:none;cursor:pointer;font-family:inherit;line-height:1}
+[data-theme="dark"] .qty-step{color:hsl(var(--hue1) 80% 75%)}
+.qty-step:active{background:hsl(var(--hue1) 80% 50% / 0.1);transform:scale(0.95)}
+.qty-input{flex:1;min-width:0;background:transparent;border:none;outline:none;text-align:center;font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--text);-moz-appearance:textfield}
+.qty-input::placeholder{color:var(--text-faint);font-weight:500}
+.qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-stepper.warn .qty-step{color:hsl(38 80% 50%)}
+[data-theme="dark"] .qty-stepper.warn .qty-step{color:hsl(38 90% 65%)}
+.qty-stepper.warn .qty-input{color:hsl(38 80% 50%)}
+[data-theme="dark"] .qty-stepper.warn .qty-input{color:hsl(38 90% 65%)}
+
+/* save-row + buttons (P13 ред 222-232) */
+.save-row{margin-top:14px;display:flex;gap:6px}
+.save-section-btn{flex:1;height:46px;padding:0 12px;border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:800;color:white;position:relative;overflow:hidden;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 4px 14px hsl(145 70% 45% / 0.4);border:none;cursor:pointer;font-family:inherit}
+.save-section-btn::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.35) 85%,transparent 100%);animation:conicSpin 3s linear infinite}
+.save-section-btn>*{position:relative;z-index:1}
+.save-section-btn svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:2.5}
+.save-section-btn:active{transform:scale(0.97)}
+.save-aux-btn{width:46px;height:46px;border-radius:var(--radius-sm);display:grid;place-items:center;flex-shrink:0;border:none;cursor:pointer;font-family:inherit}
+[data-theme="light"] .save-aux-btn,:root:not([data-theme]) .save-aux-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .save-aux-btn:active,:root:not([data-theme]) .save-aux-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .save-aux-btn{background:hsl(220 25% 8%)}
+.save-aux-btn svg{width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2}
+
 /* "Като предния" bulk copy button — neumorphic + accent text */
 .wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
 .wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
@@ -2220,36 +2362,71 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     }
     // Single (или type не избран): sacred compact inline stepper (1:1 от p.php 12575-12604).
     if (S.wizType !== 'single') return '';
+    // P13 .qty-row + .qty-stepper (ред 603-628). Sacred id-та wSingleQty/wMinQty preserved.
     var _qVal = (S.wizData.quantity === undefined || S.wizData.quantity === null) ? '' : S.wizData.quantity;
     var _mqVal = (S.wizData.min_quantity === undefined || S.wizData.min_quantity === null || S.wizData.min_quantity === '') ? '' : S.wizData.min_quantity;
-    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>';
-    var copySvg = '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>';
-    return '<div class="fg" style="margin:0 0 10px">'+
-        '<label class="fl">Брой<span class="req-star">*</span></label>'+
-        '<div class="wz-qty-row">'+
-            '<div class="wz-qty-stepper">'+
-                '<button type="button" class="wz-qty-btn" onclick="s95QtyAdjust(\'wSingleQty\',-1)" aria-label="Намали">−</button>'+
-                '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="wz-qty-input" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
-                '<button type="button" class="wz-qty-btn" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    return '<div class="field">'+
+        '<div class="field-label"><span>Количество</span><span class="req">*</span></div>'+
+        '<div class="qty-row">'+
+            '<div class="qty-stepper">'+
+                '<button type="button" class="qty-step" onclick="s95QtyAdjust(\'wSingleQty\',-1)" aria-label="Намали">−</button>'+
+                '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="qty-input" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
+                '<button type="button" class="qty-step" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
             '</div>'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
-            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
     '</div>'+
-    '<div class="fg" style="margin:0 0 10px">'+
-        '<label class="fl">Минимално количество <span class="hint">(авто от брой)</span></label>'+
-        '<div class="wz-qty-row">'+
-            '<div class="wz-qty-stepper is-min">'+
-                '<button type="button" class="wz-qty-btn" onclick="s95MinAdjust(-1)" aria-label="Намали">−</button>'+
-                '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="wz-qty-input" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
-                '<button type="button" class="wz-qty-btn" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
+    '<div class="field">'+
+        '<div class="field-label"><span>Минимално кол-во</span><span class="req">*</span></div>'+
+        '<div class="qty-row">'+
+            '<div class="qty-stepper warn">'+
+                '<button type="button" class="qty-step" onclick="s95MinAdjust(-1)" aria-label="Намали">−</button>'+
+                '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="qty-input" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
+                '<button type="button" class="qty-step" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
             '</div>'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
-            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'min_quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'min_quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
-        '<div class="wz-min-hint">Под този брой системата ще препоръча да поръчаш</div>'+
+        '<div class="field-hint">AI auto-set от количеството (qty/2.5).</div>'+
     '</div>';
   }
+
+  // P13 find-pill expand/collapse + voice-bar helpers
+  function wizFindExpand(){
+    var pill = document.getElementById('wzFindPill');
+    var panel = document.getElementById('wzFindPanel');
+    if (pill) pill.style.display = 'none';
+    if (panel) panel.classList.add('show');
+    setTimeout(function(){ var inp = document.getElementById('wzSearchInp'); if (inp) inp.focus(); }, 50);
+  }
+  function wizFindCollapse(){
+    var pill = document.getElementById('wzFindPill');
+    var panel = document.getElementById('wzFindPanel');
+    if (panel) panel.classList.remove('show');
+    if (pill) pill.style.display = '';
+    var inp = document.getElementById('wzSearchInp');
+    if (inp) inp.value = '';
+    var results = document.getElementById('wzSearchResults');
+    if (results) results.innerHTML = '';
+  }
+  function wizFindMic(){
+    wizFindExpand();
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Гласовото търсене не се поддържа','error'); return; }
+    var inp = document.getElementById('wzSearchInp');
+    if (!inp) return;
+    var rec = new SR();
+    rec.lang = 'bg-BG'; rec.continuous = false; rec.interimResults = true;
+    rec.onresult = function(e){
+      var t = '';
+      for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      inp.value = t;
+      wizSearchProductInput(t);
+    };
+    rec.start();
+  }
+  function wizFindLastCopy(){ wizFindCollapse(); wizCopyPrevProductFull(); }
+  function wizVoiceBarStart(){ wizFindMic(); }
 
   /* ═══ S148 ФАЗА 2e++a — type toggle (state-only за Phase 3 scaffold) ═══
      wizSwitchType сетва S.wizType ('single'|'variant'); НЕ отваря
@@ -2264,41 +2441,48 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function renderWizSection1Type(){
-    var typeChosen=(S.wizType==='single'||S.wizType==='variant');
+    // P13_bulk_entry.html canon (ред 499-570): find-pill + find-panel + voice-bar + mode-toggle
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
-    // Sacred search-wrap 1:1 от products-v2.php Simple (line 3203-3213).
-    // Search icon + input + filter s-btn (отваря drawer) + mic s-btn.
-    // Filter "has-active" dot indicator ако _wizQfState има filters.
-    var hasActiveFilters = Object.keys(_wizQfState || {}).length > 0;
-    var searchBar =
-      '<div class="search-wrap" id="wzSearchWrap" style="margin-bottom:10px">'+
-        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
-        '<input type="text" id="wzSearchInp" placeholder="Търси по име, код или баркод..." oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
-        '<button class="s-btn'+(hasActiveFilters?' has-active':'')+'" type="button" id="wzFilterBtn" aria-label="Филтри" onclick="wizOpenFilterDrawer()">'+
-          '<svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'+
+    var findPill =
+      '<button type="button" class="find-pill" id="wzFindPill" onclick="wizFindExpand()">'+
+        '<span class="find-pill-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>'+
+        '<span class="find-pill-text">Намери артикул да копираме</span>'+
+        '<span class="find-pill-mic" onclick="event.stopPropagation();wizFindMic()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></span>'+
+      '</button>';
+    var findPanel =
+      '<div class="find-panel" id="wzFindPanel">'+
+        '<div class="find-input-wrap">'+
+          '<svg class="search-ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+          '<input type="text" class="find-input" id="wzSearchInp" placeholder="Търси име · баркод · код" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+          '<button class="find-close" type="button" onclick="wizFindCollapse()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+        '</div>'+
+        '<div class="find-filters" id="wzFindFilters">'+
+          '<button type="button" class="find-filter active" onclick="wizFindLastCopy()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>Като последния</button>'+
+          '<button type="button" class="find-filter" onclick="wizOpenFilterDrawer()"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Филтри</button>'+
+        '</div>'+
+        '<div class="find-results" id="wzSearchResults"></div>'+
+      '</div>';
+    var voiceBar =
+      '<button type="button" class="voice-bar" onclick="wizVoiceBarStart()">'+
+        '<span class="voice-bar-mic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></span>'+
+        '<div class="voice-bar-text">'+
+          '<div class="voice-bar-title">Кажи на AI</div>'+
+          '<div class="voice-bar-sub">"Тениска 28лв · S M L"</div>'+
+        '</div>'+
+      '</button>';
+    var modeToggle =
+      '<div class="mode-toggle">'+
+        '<button type="button" class="mode-tab'+(sActive?' active':'')+'" onclick="wizSwitchType(\'single\')">'+
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>'+
+          '<span>Единичен</span>'+
         '</button>'+
-      '</div>'+
-      '<div id="wzSearchResults" class="search-dd"></div>'+
-      '<div class="active-chips" id="wzActiveChips" style="margin-bottom:10px"></div>';
-    // "Като предния" bulk copy bar (sacred p.php 12483-12488).
-    var hasLast = false;
-    try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
-    var copyPrevBtn = hasLast
-      ? '<button type="button" class="wz-copy-prev-btn" onclick="wizCopyPrevProductFull()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул</button>'
-      : '<button type="button" class="wz-copy-prev-btn" disabled onclick="showToast(\'Налично след първия записан артикул\',\'info\')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул</button>';
-    var typeBtnSingle='<button type="button" onclick="wizSwitchType(\'single\')" class="s95-type-btn'+(sActive?' active':'')+'">'+
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
-        '<span class="s95-type-btn-lbl">Единичен</span>'+
-    '</button>';
-    var typeBtnVariant='<button type="button" onclick="wizSwitchType(\'variant\')" class="s95-type-btn variant'+(vActive?' active':'')+'">'+
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg>'+
-        '<span class="s95-type-btn-lbl">С Вариации</span>'+
-    '</button>';
-    var typeHint=typeChosen
-        ? ''
-        : '<div class="wz-type-hint">Избери тип артикул</div>';
-    return searchBar+copyPrevBtn+typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
+        '<button type="button" class="mode-tab'+(vActive?' active':'')+'" onclick="wizSwitchType(\'variant\')">'+
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>'+
+          '<span>С вариации</span>'+
+        '</button>'+
+      '</div>';
+    return findPill + findPanel + voiceBar + modeToggle;
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
@@ -2318,32 +2502,95 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     '</div>';
   }
 
+  // ═══ P13 .field + .price-input-shell (ред 591-601) ═══
   function renderWizSection1Retail(){
-    return '<div class="fg" style="margin:0 0 10px">'+
-        '<label class="fl">Цена дребно<span class="req-star">*</span></label>'+
-        '<div style="display:flex;gap:6px;align-items:center">'+
-            '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+(S.wizData.retail_price||'')+'" placeholder="Кажи: 1 евро и 35 цента" style="flex:1">'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
-            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
+    var price = S.wizData.retail_price || '';
+    var bgnTxt = '';
+    if (price && !isNaN(parseFloat(price))) {
+      var bgn = parseFloat(price) * 1.95583;
+      bgnTxt = bgn.toFixed(2).replace('.',',') + ' лв';
+    }
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    var cpySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>';
+    return '<div class="field">'+
+        '<div class="field-label"><span>Цена</span><span class="req">*</span></div>'+
+        '<div class="price-input-shell">'+
+            '<input type="number" step="0.01" inputmode="decimal" class="price-input" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup();wizUpdatePriceBgn()" value="'+price+'" placeholder="0.00">'+
+            '<span class="price-cur">€</span>'+
+            '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай" aria-label="Копирай">'+cpySvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'retail_price\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
+        '<div class="price-bgn" id="wPriceBgn">'+bgnTxt+'</div>'+
         wizAIHint('retail_price')+
-        '<div id="wMarginDisplay" class="wz-margin-display" style="display:none"></div>'+
     '</div>';
   }
 
-  // ═══ renderWizSection1Name — 1:1 nameH от products.php 12491-12499 ═══
+  // ═══ P13 .field (ред 582-589) — Име ═══
   function renderWizSection1Name(){
-    return '<div class="fg" style="margin:0 0 10px">'+
-        '<label class="fl">Име<span class="req-star">*</span></label>'+
-        '<div style="display:flex;gap:6px;align-items:center">'+
-            '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
-            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    var cpySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>';
+    return '<div class="field">'+
+        '<div class="field-label"><span>Име</span><span class="req">*</span></div>'+
+        '<div class="input-row">'+
+            '<div class="input-shell"><input type="text" class="input-text" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дамска тениска Tommy Jeans"></div>'+
+            '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай">'+cpySvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'name\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         wizAIHint('name')+
         '<div id="wDupeBanner" style="display:none"></div>'+
     '</div>';
   }
+
+  // wizUpdatePriceBgn — синхронизира €→лв display под price input (oninput)
+  function wizUpdatePriceBgn(){
+    var inp = document.getElementById('wPrice');
+    var disp = document.getElementById('wPriceBgn');
+    if (!inp || !disp) return;
+    var v = parseFloat(inp.value);
+    if (isNaN(v) || v <= 0) { disp.textContent = ''; return; }
+    disp.textContent = (v * 1.95583).toFixed(2).replace('.',',') + ' лв';
+  }
+
+  // ═══ P13 — Артикулен номер (ред 630-639) + Баркод (ред 641-650) ═══
+  function renderWizSection1Code(){
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    var cpySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>';
+    return '<div class="field">'+
+        '<div class="field-label"><span>Артикулен номер</span><span class="opt-pill">ПО ЖЕЛАНИЕ</span></div>'+
+        '<div class="input-row">'+
+            '<div class="input-shell"><input type="text" class="input-text" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЖ-T-RED-42" oninput="S.wizData.code=this.value.trim()"></div>'+
+            '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'code\')" title="Копирай" aria-label="Копирай">'+cpySvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'code\')" aria-label="Гласово">'+micSvg+'</button>'+
+        '</div>'+
+        '<div class="field-hint">Празно → AI ще генерира уникален код автоматично.</div>'+
+    '</div>';
+  }
+
+  function renderWizSection1Barcode(){
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    var scanSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2"/><path d="M17 3h2a2 2 0 012 2v2"/><path d="M21 17v2a2 2 0 01-2 2h-2"/><path d="M7 21H5a2 2 0 01-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>';
+    return '<div class="field">'+
+        '<div class="field-label"><span>Баркод</span><span class="opt-pill">ПО ЖЕЛАНИЕ</span></div>'+
+        '<div class="input-row">'+
+            '<div class="input-shell"><input type="text" class="input-text" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="Скенирай или въведи" inputmode="numeric" oninput="S.wizData.barcode=this.value.trim()"></div>'+
+            '<button type="button" class="fbtn scan" onclick="wizScanBarcodeStub()" title="Сканирай" aria-label="Сканирай">'+scanSvg+'</button>'+
+            '<button type="button" class="fbtn voice" onclick="wizMic(\'barcode\')" aria-label="Гласово">'+micSvg+'</button>'+
+        '</div>'+
+        '<div class="field-hint">Празно → AI ще генерира EAN-13 при отпечатване.</div>'+
+    '</div>';
+  }
+
+  function wizScanBarcodeStub(){ showToast('Сканиране на баркод — следваща sub-step','info'); }
+
+  // P13 save-row (ред 652-656) — Запази primary + Print + CSV aux
+  function renderWizSection1SaveRow(){
+    return '<div class="save-row">'+
+        '<button type="button" class="save-section-btn" onclick="wizStep1SaveStub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Запази</span></button>'+
+        '<button type="button" class="save-aux-btn" title="Печат" onclick="showToast(\'Печат — следваща sub-step\',\'info\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>'+
+        '<button type="button" class="save-aux-btn" title="CSV експорт" onclick="showToast(\'CSV експорт — следваща sub-step\',\'info\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>'+
+    '</div>';
+  }
+  function wizStep1SaveStub(){ showToast('Save flow — Phase 4','info'); }
 
   // ═══ renderWizSection1Photo — 1:1 photoBlock construction от products.php 12391-12457 ═══
   function renderWizSection1Photo(){
@@ -2423,7 +2670,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       renderWizSection1Photo()+
       renderWizSection1Name()+
       renderWizSection1Retail()+
-      renderWizSection1Qty();
+      renderWizSection1Qty()+
+      renderWizSection1Code()+
+      renderWizSection1Barcode()+
+      renderWizSection1SaveRow();
     // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
     wizHighlightNext();
     // S148 ФАЗА 2h.2: cost field премахнат от Section 1 (Тих 2026-05-17 — "доставна цена в следващите").
