@@ -1,7 +1,7 @@
 # 📊 STATS + FINANCE MODULE BIBLE — RunMyStore.AI
 
-**Версия:** v1.1 (ETAP 1+2 от 4)
-**Дата:** 17.05.2026 (S148)
+**Версия:** v1.5 (i18n-ready)
+**Дата:** 17.05.2026 (S149)
 **Статус:** Living document
 **Обхват:** Модул "Справки" (Stats + Finance)
 
@@ -12128,3 +12128,500 @@ mockups/P25_runmywallet_goals.html          ← New
 mockups/P26_runmywallet_settings.html       ← New
 ```
 
+
+---
+
+# §49. INTERNATIONAL-READY ARCHITECTURE
+
+**Версия добавена:** v1.5 (S149, 17.05.2026)  
+**Статус:** Foundation готов от ден 1. BG launch активен. Phase rollout за други държави без code rewrites.
+
+## 49.1 Фундаментални правила (НИКОГА НЕ СЕ НАРУШАВАТ)
+
+```
+ПРАВИЛО 1: НИКАКВИ HARDCODED ТЕКСТОВЕ.
+  Грешно: echo "Добро утро";
+  Правилно: echo t('home.greeting_morning');
+
+ПРАВИЛО 2: НИКАКВИ HARDCODED ВАЛУТНИ ЗНАЦИ.
+  Грешно: echo "$amount €";
+  Правилно: echo Locale::priceFormat($amount, $tenant);
+
+ПРАВИЛО 3: НИКАКВИ HARDCODED ДАТИ/ЧАСОВЕ.
+  Грешно: echo date("d M Y", $ts);
+  Правилно: echo Locale::dateFormat($ts, $tenant);
+
+ПРАВИЛО 4: НИКАКВИ HARDCODED TAX LOGIC.
+  Грешно: if ($country === 'BG') { /* НПР 25% */ }
+  Правилно: taxEngine($tenant, $pdo)->estimateAnnualTax();
+
+ПРАВИЛО 5: DB stored в UTC + базова валута (EUR).
+  Conversion to user locale/currency ONLY at display time.
+
+ПРАВИЛО 6: AI prompts с locale parameter.
+  Винаги: PromptBuilder::build($topic, $context, $tenant['locale'])
+  AI отговор и БГ user → bg. EN user → en. RO user → ro.
+```
+
+## 49.2 DB Schema additions (Migration 001_i18n_schema.sql)
+
+### tenants table:
+- `locale VARCHAR(5)` — например `bg-BG`, `en-US`, `ro-RO`
+- `country_code CHAR(2)` — ISO 3166-1
+- `currency CHAR(3)` — ISO 4217 (EUR, USD, RON)
+- `timezone VARCHAR(50)` — IANA TZ (Europe/Sofia)
+- `tax_jurisdiction CHAR(2)` — за tax engine routing
+- `product ENUM('store','wallet')` — RMS or Wallet
+
+### Нова country_config:
+- Per-country конфигурация: VAT threshold, rates, social security, deadlines
+- Поле `active BOOLEAN` контролира кои държави са live
+- Поле `tax_engine_class` маршрутизира към съответния engine
+- 9 държави seeded ден 1: BG (active), RO/GR/DE/US/GB/ES/IT/FR (prepared, не active)
+
+### Нова ui_translations:
+- Override translation strings per tenant (без redeploy)
+- (key_name, locale) primary key
+
+### profession_templates + ai_topics:
+- `name_translations JSON` — `{"bg":"Търговец","en":"Merchant"}`
+- `prompt_translations JSON` — per-locale AI prompts
+
+## 49.3 File structure
+
+```
+/lib/i18n.php           — Translation engine
+/lib/locale.php         — Formatters (currency/date/number/relative time)
+/lib/bootstrap.php      — bootstrapTenant() helper
+/lang/bg.json           — MASTER (български текстове)
+/lang/en.json           — English (draft, изисква professional review)
+/lang/ro.json           — Phase 2
+/lang/el.json           — Phase 2 (Greek)
+/lang/de.json           — Phase 3
+/tax/TaxEngine.php      — Interface + BGTaxEngine + GenericTaxEngine
+/tax/ROTaxEngine.php    — Phase 2
+/tax/GRTaxEngine.php    — Phase 2
+/tax/DETaxEngine.php    — Phase 3
+/lib/ai/prompts/*.json  — AI prompts per topic с locale variants
+```
+
+## 49.4 Translation engine API
+
+```php
+// Initialization (once per request)
+$tenant = bootstrapTenant($pdo, $tenant_id);
+// I18n auto-initialized with $tenant['locale']
+
+// Simple translation
+echo t('home.profit');
+// → bg: "Печалба"
+// → en: "Profit"
+
+// With variables
+echo t('home.greeting_morning', ['name' => 'Стефан']);
+// → bg: "Добро утро, Стефан"
+// → en: "Good morning, Стефан"
+
+// Plurals
+echo tp('records.count', $count, ['count' => $count]);
+// → bg/0: "Няма записи"
+// → bg/1: "1 запис"
+// → bg/5: "5 записа"
+
+// Missing key → returned verbatim + logged
+// Visible в UI като "home.missing_key" → виж /tmp/i18n_missing.log
+```
+
+### Fallback chain:
+1. DB `ui_translations` override (tenant or global)
+2. `/lang/{locale_lang}.json`
+3. `/lang/en.json`
+4. Key verbatim (visible for debugging)
+
+## 49.5 Locale formatters API
+
+```php
+// Currency
+Locale::priceFormat(1437.50, $tenant);
+// → bg-BG: "1437,50 €"
+// → en-US: "$1,437.50"
+// → ro-RO: "1.437,50 RON"
+
+// Number (без currency)
+Locale::numFormat(1437.5, $tenant, 2);
+// → bg-BG: "1 437,50"
+// → en-US: "1,437.50"
+
+// Date
+Locale::dateFormat('2026-05-17', $tenant, 'long');
+// → bg-BG: "17 май 2026 г."
+// → en-US: "May 17, 2026"
+// → de-DE: "17. Mai 2026"
+
+// Time
+Locale::timeFormat('2026-05-17 14:32', $tenant, 'short');
+// → bg-BG: "14:32"
+// → en-US: "2:32 PM"
+
+// Day name
+Locale::dayName('2026-05-17', $tenant);
+// → bg-BG: "събота"
+// → en-US: "Saturday"
+
+// Relative time
+Locale::relativeTime('2026-05-17 13:00', $tenant);
+// → bg-BG: "преди 1 час"
+// → en-US: "1 hour ago"
+
+// HTTP header detection (signup flow)
+$detected = Locale::detectFromHeader($pdo);
+// → ['locale' => 'bg-BG', 'country_code' => 'BG', 'currency' => 'EUR', 'timezone' => 'Europe/Sofia']
+```
+
+## 49.6 Tax engine Strategy pattern
+
+```php
+// Factory routes to right engine based on $tenant['tax_jurisdiction']
+$tax = taxEngine($tenant, $pdo);
+// BG tenant → BGTaxEngine
+// US tenant → GenericTaxEngine (no tax features)
+// RO tenant (phase 2) → ROTaxEngine
+
+if ($tax->isAvailable()) {
+    $estimate = $tax->estimateAnnualTax();
+    // ['gross_income' => 24000, 'npr_pct' => 25, 'npr_amount' => 6000,
+    //  'taxable_after_ss' => 11600, 'tax_amount' => 1160, 'effective_rate' => 4.83]
+    
+    $vat = $tax->checkVATThreshold();
+    // ['status' => 'approaching', 'pct_of_threshold' => 78,
+    //  'remaining' => 11248, 'projected_cross_month' => 11]
+    
+    $reminders = $tax->getReminders();
+    // [['type' => 'monthly_ss', 'days_left' => 6, ...]]
+} else {
+    echo t('tax.not_supported_country');
+}
+```
+
+### BG implementation (ден 1):
+- НПР percentages: 25% (free practice, health, teachers), 40% (craftsman, beauty), 60% (agriculture)
+- ДДС праг: €51 130 (=100 000 BGN при курс 1.95583)
+- Социални осигуровки: min €551, max €1 918, rate 27.8% (2026)
+- Tax rate: 10% flat
+- Calendar: годишна декларация 30 април, тримесечни аванси 15-то на месеца след тримесечието
+
+### GenericTaxEngine:
+- isAvailable() = false
+- estimateAnnualTax() връща `['available' => false, 'message_key' => 'tax.not_supported_country']`
+- UI показва: "Данъчните функции скоро ще бъдат налични за твоята държава."
+
+## 49.7 AI prompts с locale
+
+```php
+// /lib/ai/prompts/cfo_001.json
+{
+  "bg": "Опиши какво се промени в месечния резултат: {data}. Отговори на български, максимум 70 знака.",
+  "en": "Describe what changed in monthly result: {data}. Reply in English, max 70 chars.",
+  "ro": "Descrie schimbarea în rezultatul lunar: {data}. Răspunde în română, maxim 70 caractere."
+}
+
+// Builder
+$prompt = PromptBuilder::build('cfo_001', $context, $tenant['locale']);
+$response = Gemini::call($prompt);
+// Винаги отговор на user-овия език.
+```
+
+## 49.8 Voice STT (multi-language)
+
+```php
+// OpenAI Whisper API auto-detects 50+ езика
+$result = Whisper::transcribe($audio_blob, [
+    'language' => substr($tenant['locale'], 0, 2),  // hint, не forces
+    'response_format' => 'verbose_json',
+]);
+// $result['language'] = 'bg' / 'en' / 'ro' / 'de' / ...
+
+// Запис в money_movements
+$record = [
+    'transcript' => $result['text'],
+    'detected_language' => $result['language'],
+    'tenant_id' => $tenant['id'],
+];
+```
+
+**ВАЖНО:** Web Speech API НЕ се ползва за STT в production (locale-зависим, accuracy варира).  
+Whisper API е единен solution за всички езици. Cost: $0.006/минута.
+
+## 49.9 Photo receipts (multi-language)
+
+```php
+// Gemini 2.5 Flash Vision разпознава 100+ езика automatic
+$prompt = "Extract from this receipt: vendor, amount, currency, date, items.
+           Receipt language hint: {$tenant['locale']}.
+           Return JSON: {vendor, amount, currency, date_iso, items:[]}";
+
+$result = GeminiVision::call($prompt, $image_base64);
+// Парсва БГ, US, JP, DE касови бележки еднакво.
+```
+
+## 49.10 Phase rollout timeline
+
+```
+═══════════════════════════════════════════════════
+ФАЗА 1: BG Launch (June 2026 — start)
+═══════════════════════════════════════════════════
+country_config:
+  BG.active = TRUE
+  Всички други = FALSE
+
+Translation files:
+  bg.json (MASTER)
+  en.json (draft, fallback only)
+
+Tax engines:
+  BGTaxEngine fully implemented
+
+Pricing:
+  €4.99 / месец (universal для BG)
+
+Marketing:
+  Само БГ канали (Facebook BG, влогове, TikTok BG)
+
+Target:
+  100 paying users by month 3
+
+═══════════════════════════════════════════════════
+ФАЗА 2: EU EXPAND (Oct 2026)
+═══════════════════════════════════════════════════
+country_config:
+  RO.active = TRUE (с ROTaxEngine)
+  GR.active = TRUE (с GRTaxEngine)
+
+Translation files:
+  ro.json professional translation
+  el.json (Greek) professional translation
+
+Tax engines:
+  ROTaxEngine build (RO: micro-enterprise 1%, VAT 60K RON)
+  GRTaxEngine build (GR: VAT 10K€, special tax for self-employed)
+
+Pricing:
+  €4.99 / месец EUR (RO uses RON conversion)
+
+Target:
+  500 paying users total
+
+═══════════════════════════════════════════════════
+ФАЗА 3: EN-SPEAKING (Jan 2027)
+═══════════════════════════════════════════════════
+country_config:
+  US.active = TRUE (GenericTaxEngine — no tax features)
+  GB.active = TRUE (GenericTaxEngine)
+
+Translation files:
+  en.json professional review + ASO localization
+
+Pricing:
+  $5.99 / month (USD)
+  £4.99 / month (GBP)
+
+Positioning:
+  "Voice-first finance tracker" (без tax positioning)
+  Compete with PocketGuard / YNAB on UX
+
+Target:
+  2 000 paying users total
+
+═══════════════════════════════════════════════════
+ФАЗА 4: GERMAN-SPEAKING + LATIN EUROPE (Apr 2027)
+═══════════════════════════════════════════════════
+country_config:
+  DE.active = TRUE (с DETaxEngine — Kleinunternehmer, 19% VAT)
+  ES.active = TRUE
+  IT.active = TRUE
+  FR.active = TRUE
+
+Translation files:
+  de.json, es.json, it.json, fr.json
+
+Tax engines:
+  DETaxEngine (Kleinunternehmer €22K threshold, Umsatzsteuer)
+  Others = GenericTaxEngine first, native later
+
+Target:
+  5 000 paying users total
+
+═══════════════════════════════════════════════════
+ФАЗА 5: GLOBAL LITE (2028+)
+═══════════════════════════════════════════════════
+country_config:
+  Всички world states.active = TRUE (default GenericTaxEngine)
+
+Translation files:
+  20+ езика (machine translation + community review)
+
+Positioning:
+  Lite version: voice tracking + AI insights only
+  Pro version (BG/EU/DE): full tax features
+```
+
+## 49.11 Per-country pricing strategy
+
+```
+       Country  |  Currency  |  Price/month  |  PPP-adjusted  |  Tier
+       ────────────────────────────────────────────────────────────────
+       BG       |  EUR       |  €4.99        |  base          |  STANDARD
+       RO       |  RON       |  ~25 RON      |  €4.99 PPP     |  STANDARD
+       GR       |  EUR       |  €4.99        |  base          |  STANDARD
+       US       |  USD       |  $7.99        |  premium       |  PREMIUM
+       GB       |  GBP       |  £6.99        |  premium       |  PREMIUM
+       DE       |  EUR       |  €6.99        |  premium       |  PREMIUM
+       FR/IT/ES |  EUR       |  €5.99        |  standard      |  STANDARD
+       
+       (Future markets)
+       IN       |  INR       |  ₹199         |  PPP-adjusted  |  EMERGING
+       BR       |  BRL       |  R$14.90      |  PPP-adjusted  |  EMERGING
+       MX       |  MXN       |  $59          |  PPP-adjusted  |  EMERGING
+```
+
+Implementation:
+- Stripe Adaptive Pricing OR
+- Google Play / Apple in-app per-country pricing
+- Backend: `country_config.price_tier ENUM('emerging','standard','premium')`
+
+## 49.12 Cultural adaptation principles
+
+```
+1. ИМЕНА: auto-detect from device locale → не hardcode "Стефан"
+   - bg-BG: Стефан, Петър, Иван
+   - en-US: John, Sarah, Mike
+   - ja-JP: 太郎, さくら
+
+2. ПОЗДРАВИ: контекстни, ne literal translation
+   - bg: "Добро утро" / "Здравей"
+   - en: "Good morning" / "Hi"
+   - ja: "おはようございます" (формално сутрин)
+   - de: "Guten Morgen" / "Hallo"
+
+3. ИКОНКИ: културно-неутрални (geometric, abstract)
+   - Не: специфични храни (пица US, sushi JP, banitsa BG)
+   - Да: общи символи (плик, монета, дом)
+
+4. ЦВЕТОВЕ: червено = опасност в EU/US, късмет в Китай
+   - НЕ променяме семантика (loss=red остава)
+   - Документирано в DESIGN_SYSTEM v4
+
+5. AI ТОН:
+   - DE: formal, prezicen
+   - US: casual, encouraging
+   - JP: politeness markers (です/ます forms)
+   - BG: тон близък, помощник, не корпоративен
+```
+
+## 49.13 Customer support strategy (solo founder)
+
+```
+Founder может purvi 6+ ezika sam:
+  ✗ Email tickets at 3:00am in Japanese = NOT possible
+
+Решение:
+  1. AI chatbot (Gemini) 24/7 на всеки активен език
+  2. Human escalation само на EN
+  3. Auto-translate всички input tickets → EN → human reply → translate back
+  4. Knowledge base в bg.md + en.md
+```
+
+## 49.14 Legal compliance per market
+
+```
+Day 1 launch (BG):
+  ✓ GDPR (EU) — вече покрит
+  ✓ Cookie consent banner
+  ✓ Privacy policy в bg + en
+
+Phase 2 (EU expand):
+  ✓ GDPR continues
+  + RO/GR specific data residency (EU центрове ✓)
+
+Phase 3 (US/UK):
+  + CCPA (California): DSAR endpoints + opt-out flow
+  + UK GDPR
+  + Updated privacy policy
+
+Phase 4+ (mass markets):
+  + LGPD (Brazil)
+  + PIPEDA (Canada)
+  + APP (Australia)
+  + PIPL (China — отделен проект, не launch без legal review)
+
+Tax compliance:
+  - НЕ предоставяме данъчни съвети, само estimate
+  - Disclaimer: "Това е прогноза. Говори със счетоводител."
+  - Disclaimer present в всеки tax screen
+```
+
+## 49.15 Mockup/HTML hydration (data-i18n)
+
+```html
+<!-- Преди (hardcoded): -->
+<h1>Добро утро, Стефан</h1>
+
+<!-- След: -->
+<h1 data-i18n="home.greeting_morning" data-i18n-vars='{"name":"Стефан"}'>
+  Добро утро, Стефан
+</h1>
+
+<!-- JS hydration: -->
+<script>
+const T = window.__i18n || {};
+document.querySelectorAll('[data-i18n]').forEach(el => {
+  const key = el.dataset.i18n;
+  const vars = el.dataset.i18nVars ? JSON.parse(el.dataset.i18nVars) : {};
+  let value = T[key] || el.textContent;
+  for (const [k, v] of Object.entries(vars)) {
+    value = value.replace(`{${k}}`, v);
+  }
+  el.textContent = value;
+});
+</script>
+```
+
+PHP serializes само ключовете използвани в страницата:
+
+```php
+$keys = ['home.greeting_morning', 'home.profit', /* ... */];
+$translations = [];
+foreach ($keys as $k) $translations[$k] = t($k);
+echo '<script>window.__i18n = ' . json_encode($translations) . ';</script>';
+```
+
+## 49.16 Day 1 Checklist (BG launch ready)
+
+- [ ] DB migration 001_i18n_schema.sql изпълнена
+- [ ] PHP intl extension инсталирано (`php -m | grep intl`)
+- [ ] `/lib/i18n.php`, `/lib/locale.php`, `/lib/bootstrap.php` качени
+- [ ] `/lang/bg.json` MASTER в production
+- [ ] `/lang/en.json` draft (fallback)
+- [ ] `/tax/TaxEngine.php` с BGTaxEngine + GenericTaxEngine
+- [ ] Existing tenants updated: `UPDATE tenants SET locale='bg-BG', country_code='BG', ...`
+- [ ] Поне един page (home.php) пренаписан с t() и Locale::*
+- [ ] tax-related страница (analysis.php) използва taxEngine()
+- [ ] AI prompts започват с locale-instruction
+
+## 49.17 Файлове и code references
+
+```
+Foundation files (S149 deploy):
+  i18n-foundation/migrations/001_i18n_schema.sql    — 226 lines
+  i18n-foundation/lib/i18n.php                      — 197 lines
+  i18n-foundation/lib/locale.php                    — 195 lines
+  i18n-foundation/lib/bootstrap.php                 — 97 lines
+  i18n-foundation/lang/bg.json                      — 248 lines (~200 keys)
+  i18n-foundation/lang/en.json                      — 249 lines (draft)
+  i18n-foundation/tax/TaxEngine.php                 — 320 lines
+  i18n-foundation/README.md                         — 255 lines (deployment guide)
+  
+  Total: 1 787 lines code + docs
+```
+
+---
