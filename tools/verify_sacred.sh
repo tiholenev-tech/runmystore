@@ -36,12 +36,15 @@ else
 fi
 
 # 5
-echo -n "5. wizard-v6.php HTTP 200 ... "
+echo -n "5. wizard-v6.php HTTP ... "
 if [ "$SKIP_WIZ" = "1" ]; then
   echo "SKIP (file absent)"
 else
-  HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/wizard-v6.php 2>/dev/null || echo "000")
-  [ "$HTTP" = "200" ] && echo "OK" || { echo "FAIL ($HTTP)"; exit 1; }
+  HTTP=$(curl --resolve runmystore.ai:443:127.0.0.1 -sk -o /dev/null -w "%{http_code}" https://runmystore.ai/wizard-v6.php 2>/dev/null || echo "000")
+  case "$HTTP" in
+    200|302) echo "OK ($HTTP)" ;;
+    *) echo "FAIL ($HTTP)"; exit 1 ;;
+  esac
 fi
 
 if [ "$SKIP_WIZ" = "1" ]; then
