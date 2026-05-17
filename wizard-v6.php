@@ -624,6 +624,38 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .ai-markup-apply:active{transform:scale(0.96);box-shadow:0 2px 6px hsl(255 80% 50% / 0.3)}
 .ai-markup-loading{font-size:12px;color:var(--text-muted);font-weight:600;padding:10px;display:flex;align-items:center;gap:8px}
 .ai-markup-loading::before{content:'';width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:conicSpin 0.8s linear infinite}
+
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2h — Количество (qty + min_qty) — neumorphic stepper    ║
+   ║ Canonical stepper от mockups/wizard_v6_INTERACTIVE.html ред 208-220║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+.stepper{display:flex;align-items:center;gap:10px}
+.step-btn{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:22px;color:var(--accent);transition:transform 150ms,box-shadow 200ms;position:relative;cursor:pointer;border:none;font-family:inherit;flex-shrink:0}
+[data-theme="light"] .step-btn,:root:not([data-theme]) .step-btn{background:linear-gradient(145deg,#f0f3f9,#cdd5e1);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,0.7)}
+[data-theme="dark"] .step-btn{background:linear-gradient(145deg,hsl(220 25% 11%),hsl(220 30% 6%));box-shadow:0 5px 14px hsl(220 35% 2% / 0.7),inset 0 1px 0 hsl(255 30% 30% / 0.4),inset 0 -1px 0 hsl(220 30% 2%);border:1px solid hsl(222 12% 22%);color:hsl(255 80% 75%);text-shadow:0 0 12px hsl(255 70% 55% / 0.5)}
+.step-btn:active{transform:scale(0.95)}
+[data-theme="light"] .step-btn:active,:root:not([data-theme]) .step-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .step-btn:active{box-shadow:inset 0 2px 6px hsl(220 35% 2% / 0.8)}
+
+.step-num{flex:1;height:50px;text-align:center;font-size:22px;font-weight:900;display:grid;place-items:center;border-radius:14px;font-family:var(--font-mono,monospace);border:none;outline:none;width:100%;color:var(--text);padding:0 8px;-moz-appearance:textfield}
+.step-num::-webkit-outer-spin-button,.step-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+[data-theme="light"] .step-num,:root:not([data-theme]) .step-num{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .step-num{background:linear-gradient(180deg,hsl(220 30% 2.5%),hsl(220 25% 5%));border:1px solid hsl(222 12% 22%);color:hsl(255 80% 75%);box-shadow:inset 0 2px 6px hsl(220 35% 1% / 0.6);text-shadow:0 0 14px hsl(255 70% 55% / 0.4)}
+
+.step-min .step-num{color:var(--warning,oklch(0.65 0.18 70))}
+[data-theme="dark"] .step-min .step-num{color:hsl(38 90% 65%);text-shadow:0 0 12px hsl(38 80% 50% / 0.4)}
+.step-min .step-btn{color:var(--warning,oklch(0.65 0.18 70))}
+[data-theme="dark"] .step-min .step-btn{color:hsl(38 90% 65%)}
+.step-min-hint{font-size:11px;font-weight:700;letter-spacing:0.03em;margin-top:6px;font-family:var(--font-mono,monospace);color:var(--warning,oklch(0.65 0.18 70))}
+[data-theme="dark"] .step-min-hint{color:hsl(38 90% 65%)}
+
+/* Variant qty placeholder */
+.wz-variant-qty-note{margin:0;padding:14px 16px;border-radius:14px;font-size:12.5px;line-height:1.5;font-weight:600;display:flex;align-items:flex-start;gap:10px}
+[data-theme="light"] .wz-variant-qty-note,:root:not([data-theme]) .wz-variant-qty-note{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.5),oklch(0.94 0.05 195 / 0.4));box-shadow:var(--shadow-pressed);color:var(--text)}
+[data-theme="dark"] .wz-variant-qty-note{background:linear-gradient(135deg,hsl(280 30% 12% / 0.5),hsl(180 30% 12% / 0.4));border:1px solid hsl(222 12% 20%);color:var(--text-muted)}
+.wz-variant-qty-note svg{width:18px;height:18px;flex-shrink:0;stroke:var(--accent);fill:none;stroke-width:2;margin-top:1px}
+.wz-variant-qty-note b{color:var(--text);font-weight:800}
   </style>
 </head>
 <body>
@@ -1482,6 +1514,79 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     if (typeof wizHighlightNext === 'function') wizHighlightNext();
   }
 
+  /* ═══ S148 ФАЗА 2h — Количество (1:1 sacred от p.php 12283-12313) ═══
+     Stepper helpers; voice route → _wizMicApply quantity/min_quantity branches
+     (вече налични от 2f) → _bgPrice local parse.
+     Variant case: показва info note — matrix UI изисква Phase 3 OK от Тих.
+  */
+  function s95QtyAdjust(inputId, delta){
+    var inp = document.getElementById(inputId);
+    if (!inp) return;
+    var cur = parseInt(inp.value) || 0;
+    var next = Math.max(1, cur + delta);
+    inp.value = next;
+    S.wizData.quantity = next;
+    s95AutoMinQty();
+  }
+
+  function s95AutoMinQty(){
+    var q = parseInt(document.getElementById('wSingleQty')?.value) || 0;
+    var mInp = document.getElementById('wMinQty');
+    if (!mInp) return;
+    if (mInp.dataset.userEdited === 'true') return;
+    if (q <= 0) { mInp.value = ''; S.wizData.min_quantity = 0; return; }
+    var m = Math.max(1, Math.round(q / 2.5));
+    mInp.value = m;
+    S.wizData.min_quantity = m;
+  }
+
+  function s95MinAdjust(delta){
+    var inp = document.getElementById('wMinQty');
+    if (!inp) return;
+    var cur = parseInt(inp.value) || 0;
+    var next = Math.max(0, cur + delta);
+    inp.value = next;
+    inp.dataset.userEdited = 'true';
+    S.wizData.min_quantity = next;
+  }
+
+  function renderWizSection1Qty(){
+    // Variant: matrix UI изисква Phase 3 (renderWizPagePart2) STOP. Показваме info note.
+    if (S.wizType === 'variant') {
+      return '<div class="wz-variant-qty-note">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
+        '<div><b>Количество per вариация</b> — попълва се в "Вариации" секцията (matrix UI).</div>'+
+      '</div>';
+    }
+    // Single (или type не избран): стандартен qty + min_qty stepper.
+    if (S.wizType !== 'single') return '';
+    var _qVal = (S.wizData.quantity === undefined || S.wizData.quantity === null) ? '' : S.wizData.quantity;
+    var _mqVal = (S.wizData.min_quantity === undefined || S.wizData.min_quantity === null || S.wizData.min_quantity === '') ? '' : S.wizData.min_quantity;
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>';
+    var copySvg = '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>';
+    return '<div class="fg" style="margin:0 0 10px">'+
+        '<label class="fl">Брой<span class="req-star">*</span></label>'+
+        '<div class="stepper">'+
+            '<button type="button" class="step-btn" onclick="s95QtyAdjust(\'wSingleQty\',-1)" aria-label="Намали">−</button>'+
+            '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="step-num" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
+            '<button type="button" class="step-btn" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
+            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
+        '</div>'+
+    '</div>'+
+    '<div class="fg step-min" style="margin:0 0 10px">'+
+        '<label class="fl">Минимално количество <span class="hint">(авто от брой)</span></label>'+
+        '<div class="stepper">'+
+            '<button type="button" class="step-btn" onclick="s95MinAdjust(-1)" aria-label="Намали">−</button>'+
+            '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="step-num" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
+            '<button type="button" class="step-btn" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'min_quantity\')" aria-label="Гласово въвеждане">'+micSvg+'</button>'+
+            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'min_quantity\')" title="Копирай от последния" aria-label="Копирай от последния">'+copySvg+'</button>'+
+        '</div>'+
+        '<div class="step-min-hint">Под този брой системата ще препоръча да поръчаш</div>'+
+    '</div>';
+  }
+
   /* ═══ S148 ФАЗА 2e++a — type toggle (state-only за Phase 3 scaffold) ═══
      wizSwitchType сетва S.wizType ('single'|'variant'); НЕ отваря
      renderWizPagePart2 variations (sacred Phase 3 STOP остава).
@@ -1632,7 +1737,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       renderWizSection1Photo()+
       renderWizSection1Name()+
       renderWizSection1Cost()+
-      renderWizSection1Retail();
+      renderWizSection1Retail()+
+      renderWizSection1Qty();
     // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
     wizHighlightNext();
     // S148 ФАЗА 2g: live margin + AI markup ако вече има стойности.
