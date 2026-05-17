@@ -1068,6 +1068,49 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .varsec-empty{padding:20px;text-align:center;font-size:13px;color:var(--text-muted);font-weight:600;font-family:inherit}
 .varsec-empty b{color:var(--text);font-weight:800}
 
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 3c.2d — P13 Matrix CSS 1:1 (ред 177-211)                  ║
+   ║ matrix-head-row + matrix-action + mx-grid + cells.                  ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+.matrix-head-row{display:flex;align-items:center;gap:6px;margin:10px 0 8px}
+.matrix-head-label{flex:1;font-family:var(--font-mono);font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)}
+.matrix-action{height:26px;padding:0 9px;border-radius:var(--radius-pill);font-family:var(--font-mono);font-size:9.5px;font-weight:800;color:var(--text);letter-spacing:0.04em;display:inline-flex;align-items:center;gap:4px;border:none;cursor:pointer}
+[data-theme="light"] .matrix-action,:root:not([data-theme]) .matrix-action{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .matrix-action{background:hsl(220 25% 8%)}
+.matrix-action:active{transform:scale(0.95)}
+.matrix-action svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+.matrix-action.expand{color:var(--accent)}
+[data-theme="dark"] .matrix-action.expand{color:hsl(var(--hue1) 80% 75%)}
+
+.mx-grid{display:grid;grid-template-columns:50px repeat(2,1fr);gap:5px;width:100%;padding:10px;border-radius:var(--radius-sm)}
+[data-theme="light"] .mx-grid,:root:not([data-theme]) .mx-grid{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .mx-grid{background:hsl(220 25% 3.5% / 0.6);border:1px solid hsl(var(--hue2) 12% 14%)}
+.mx-corner{display:grid;place-items:center;height:42px;border-radius:10px;font-family:var(--font-mono);font-size:8px;font-weight:800;letter-spacing:0.06em;color:var(--text-faint);text-align:center;line-height:1.1}
+.mx-head{height:42px;padding:4px 6px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+[data-theme="light"] .mx-head,:root:not([data-theme]) .mx-head{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .mx-head{background:hsl(220 25% 6%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.mx-head-dot{width:14px;height:14px;border-radius:var(--radius-icon);border:1px solid rgba(0,0,0,0.15);box-shadow:inset 0 1px 2px rgba(0,0,0,0.15);flex-shrink:0}
+[data-theme="dark"] .mx-head-dot{border-color:rgba(255,255,255,0.25);box-shadow:inset 0 1px 2px rgba(0,0,0,0.2)}
+.mx-head-name{font-size:9px;font-weight:700;color:var(--text)}
+.mx-rowh{display:grid;place-items:center;border-radius:10px;font-size:14px;font-weight:800;color:var(--text);min-height:62px}
+[data-theme="light"] .mx-rowh,:root:not([data-theme]) .mx-rowh{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .mx-rowh{background:hsl(220 25% 6%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.mx-cell{padding:5px;border-radius:10px;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-height:62px}
+[data-theme="light"] .mx-cell,:root:not([data-theme]) .mx-cell{background:var(--surface-2);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .mx-cell{background:hsl(220 25% 4.5% / 0.7);border:1px solid hsl(var(--hue2) 12% 14%)}
+.mx-cell.has-qty{background:oklch(0.94 0.04 285 / 0.6)}
+[data-theme="dark"] .mx-cell.has-qty{background:hsl(var(--hue1) 40% 8% / 0.5);border:1px solid hsl(var(--hue1) 50% 25% / 0.4)}
+.mx-input-qty{width:90%;max-width:48px;height:26px;padding:0 4px;border-radius:7px;background:transparent;font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--text);text-align:center;outline:none;border:1px solid transparent;-moz-appearance:textfield}
+[data-theme="light"] .mx-input-qty,:root:not([data-theme]) .mx-input-qty{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .mx-input-qty{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%);color:hsl(var(--hue1) 70% 80%)}
+.mx-input-qty::-webkit-outer-spin-button,.mx-input-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mx-input-min{width:34px;height:18px;padding:0 3px;border-radius:5px;background:transparent;font-family:var(--font-mono);font-size:9px;font-weight:700;color:hsl(38 80% 50%);text-align:center;outline:none;border:1px solid transparent;-moz-appearance:textfield}
+[data-theme="light"] .mx-input-min,:root:not([data-theme]) .mx-input-min{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .mx-input-min{background:hsl(220 25% 3%);border:1px solid hsl(38 30% 18%);color:hsl(38 80% 70%)}
+.mx-input-min::-webkit-outer-spin-button,.mx-input-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mx-min-row{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-faint);letter-spacing:0.04em}
+
 /* "Като предния" bulk copy button — neumorphic + accent text */
 .wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
 .wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
@@ -2851,22 +2894,95 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       return;
     }
 
-    // Sacred init + AI color autofill (от 3c.1)
+    // Sacred init + AI color autofill — silent (data only, не визуално)
     if (typeof wizInitVariantsAxes === 'function') wizInitVariantsAxes();
     if (typeof wizAIColorAutofill === 'function') wizAIColorAutofill();
 
-    var html = '';
-    (S.wizData.axes || []).forEach(function(ax, idx){
-      html += renderAxisField(ax, idx);
-    });
-    // "+ Добави ос" full-width бутон (Q1=B sacred parity)
-    html += '<button type="button" class="axis-add" onclick="wizAxisAddNew()">'+
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
-      'Добави друга вариация (Материя, Дължина, Стил...)'+
-    '</button>';
-    // SKU summary (recalc на render)
-    html += renderSKUSummary();
-    host.innerHTML = html;
+    /* ═══ P13 SKELETON 1:1 от mockups/P13_bulk_entry.html ред 580-640 ═══
+       Static markup verbatim — функционалност ще се wireн 1 по 1 в следваща
+       sub-фаза. Сега фокус: визуална вярност 1:1 с mockup-а.
+    */
+    host.innerHTML =
+      '<div class="field">'+
+        '<div class="field-label"><span>Размери</span></div>'+
+        '<div class="chips-row">'+
+          '<button class="chip-sz">XS</button>'+
+          '<button class="chip-sz active">S</button>'+
+          '<button class="chip-sz active">M</button>'+
+          '<button class="chip-sz active">L</button>'+
+          '<button class="chip-sz">XL</button>'+
+          '<button class="chip-sz">XXL</button>'+
+        '</div>'+
+        '<div class="extra-row">'+
+          '<button class="chip-add" onclick="showToast(\'Добави размер inline (3XL, 44, W34) — следваща sub-step\',\'info\')">'+
+            '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави размер'+
+          '</button>'+
+          '<button class="groups-btn" onclick="showToast(\'Sheet с размер групи — следваща sub-step\',\'info\')">'+
+            '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>'+
+            'други групи'+
+            '<svg class="arr" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>'+
+          '</button>'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="field">'+
+        '<div class="field-label"><span>Цветове</span></div>'+
+        '<div class="chips-row">'+
+          '<button class="chip-col"><span class="chip-col-dot" style="background:#1a1a1a"></span>Черен</button>'+
+          '<button class="chip-col active"><span class="chip-col-dot" style="background:#ffffff;border:1px solid #d1d5db"></span>Бял</button>'+
+          '<button class="chip-col active"><span class="chip-col-dot" style="background:#ec4899"></span>Розов</button>'+
+          '<button class="chip-col"><span class="chip-col-dot" style="background:#dc2626"></span>Червен</button>'+
+          '<button class="chip-col"><span class="chip-col-dot" style="background:#1e40af"></span>Син</button>'+
+          '<button class="chip-add" onclick="showToast(\'HEX picker — следваща sub-step\',\'info\')">'+
+            '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави'+
+          '</button>'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="matrix-head-row">'+
+        '<span class="matrix-head-label">Брой по комбинация · мин.</span>'+
+        '<button class="matrix-action" onclick="showToast(\'Всички = 2 — следваща sub-step\',\'info\')">'+
+          '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Всички = 2'+
+        '</button>'+
+        '<button class="matrix-action expand" onclick="showToast(\'P12 fullscreen — следваща sub-step\',\'info\')">'+
+          '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Цял екран'+
+        '</button>'+
+      '</div>'+
+
+      '<div class="mx-grid">'+
+        '<div class="mx-corner">РАЗ.<br>×<br>ЦВ.</div>'+
+        '<div class="mx-head"><span class="mx-head-dot" style="background:#ffffff;border:1px solid #d1d5db"></span><span class="mx-head-name">Бял</span></div>'+
+        '<div class="mx-head"><span class="mx-head-dot" style="background:#ec4899"></span><span class="mx-head-name">Розов</span></div>'+
+
+        '<div class="mx-rowh">S</div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="2" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="1" min="0"></div></div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="3" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="1" min="0"></div></div>'+
+
+        '<div class="mx-rowh">M</div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="3" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="1" min="0"></div></div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="4" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="2" min="0"></div></div>'+
+
+        '<div class="mx-rowh">L</div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="1" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="1" min="0"></div></div>'+
+        '<div class="mx-cell has-qty"><input type="number" class="mx-input-qty" value="1" min="0"><div class="mx-min-row"><span>мин</span><input type="number" class="mx-input-min" value="1" min="0"></div></div>'+
+      '</div>'+
+
+      '<div class="sku-summary">'+
+        '<span class="sku-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>'+
+        '<div class="sku-text">3 размера × 2 цвята = <b>6 SKU</b> · Σ <b>14 бр.</b></div>'+
+      '</div>'+
+
+      '<div class="save-row">'+
+        '<button class="save-section-btn" onclick="showToast(\'Запис — следваща sub-step\',\'info\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Запази</span>'+
+        '</button>'+
+        '<button class="save-aux-btn" title="Печат" onclick="showToast(\'Печат — следваща sub-step\',\'info\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'+
+        '</button>'+
+        '<button class="save-aux-btn" title="CSV" onclick="showToast(\'CSV — следваща sub-step\',\'info\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'+
+        '</button>'+
+      '</div>';
   }
 
   function renderAxisField(ax, idx){
