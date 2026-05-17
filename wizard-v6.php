@@ -1111,38 +1111,19 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .mx-input-min::-webkit-outer-spin-button,.mx-input-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-min-row{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-faint);letter-spacing:0.04em}
 
-/* ═══ S148 ФАЗА 3c.3c — chip × icon (click to remove single) ═══ */
-.chip-sz{position:relative;overflow:visible}
+/* ═══ S148 ФАЗА 3c.3d — chip × inline hint (sacred 1:1, products.php 1339) ═══ */
 .chip-x{
-  position:absolute;
-  top:-6px;
-  right:-6px;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  display:grid;
-  place-items:center;
-  font-size:13px;
+  display:inline-block;
+  opacity:0.65;
+  font-size:10px;
+  font-weight:400;
+  margin-left:5px;
   line-height:1;
-  font-weight:700;
-  cursor:pointer;
-  background:hsl(0 70% 52%);
-  color:#fff;
-  border:1.5px solid var(--bg);
-  box-shadow:0 1px 3px rgba(0,0,0,0.25);
-  z-index:2;
-  transition:transform 0.12s ease, background 0.12s ease;
   user-select:none;
   -webkit-user-select:none;
+  pointer-events:none;
 }
-.chip-x::before{
-  /* invisible tap-target extension for mobile (24x24 minimum) */
-  content:'';
-  position:absolute;
-  inset:-4px;
-}
-.chip-x:hover,.chip-x:active{transform:scale(1.15);background:hsl(0 75% 58%)}
-[data-theme="dark"] .chip-x{background:hsl(0 65% 55%);border-color:hsl(var(--hue1) 30% 12%)}
+.chip-sz.active .chip-x{color:inherit}
 
 /* ═══ S148 ФАЗА 3c.3b — Size axis grouped display + long-press remove ═══ */
 .size-quick-strip{margin-bottom:10px}
@@ -2979,15 +2960,15 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var activeSet = {};
     (ax.values || []).forEach(function(v){ activeSet[v] = true; });
 
-    // Quick-strip HTML
+    // Quick-strip HTML — sacred toggle (click=toggle add/remove)
     var quickHtml = '';
     defaultChips.forEach(function(v){
       var isActive = !!activeSet[v];
       var escVal = v.replace(/'/g, "\\'");
-      var xBtn = isActive ? '<span class="chip-x" onclick="event.stopPropagation();wizSizeRemove(\'' + escVal + '\')" aria-label="Премахни">&times;</span>' : '';
+      var xHint = isActive ? '<span class="chip-x">&#x2715;</span>' : '';
       quickHtml += '<button type="button" class="chip-sz' + (isActive?' active':'') + '"'+
-        ' onclick="wizSizeChipTap(\'' + escVal + '\')"'+
-        '>' + esc(v) + xBtn + '</button>';
+        ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
+        '>' + esc(v) + xHint + '</button>';
     });
 
     // Group values by _sources (skip 'letters' values that are in defaultChips — shown in strip)
@@ -3019,10 +3000,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       bySource[src].forEach(function(v){
         var escVal = v.replace(/'/g, "\\'");
         groupsHtml += '<button type="button" class="chip-sz active"'+
-          ' onclick="wizSizeChipTap(\'' + escVal + '\')"'+
-          '>' + esc(v) +
-          '<span class="chip-x" onclick="event.stopPropagation();wizSizeRemove(\'' + escVal + '\')" aria-label="Премахни">&times;</span>'+
-          '</button>';
+          ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
+          '>' + esc(v) + '<span class="chip-x">&#x2715;</span></button>';
       });
       groupsHtml += '</div></div>';
     });
@@ -3121,32 +3100,23 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     } catch(e){}
   }
 
-  // Idempotent add — tap on chip only ADDS (does not remove).
-  // Removal exclusively via × icons (single chip × or group header ×).
-  function wizSizeChipTap(val, sourceTag){
+  // Sacred 1:1 toggle (продукти.php 11404): click чип = toggle add/remove
+  function wizSizeToggle(val, sourceTag){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!ax || !Array.isArray(ax.values)) ax.values = [];
     _wizEnsureSources(ax);
-    if (ax.values.indexOf(val) !== -1) return; // already active, no-op
-    ax.values.push(val);
-    var defaultChips = ['XS','S','M','L','XL','XXL'];
-    ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
-    if (navigator.vibrate) navigator.vibrate(5);
-    _wizSaveAxesCache();
-    renderWizSection2();
-  }
-
-  // Direct single-chip remove (NO confirm — click × on chip)
-  function wizSizeRemove(val){
-    var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
-    var ax = S.wizData.axes[idx];
-    if (!ax || !Array.isArray(ax.values)) return;
     var i = ax.values.indexOf(val);
-    if (i < 0) return;
-    ax.values.splice(i, 1);
-    if (ax._sources) delete ax._sources[val];
-    if (navigator.vibrate) navigator.vibrate(8);
+    if (i >= 0) {
+      // Sacred splice — click active chip removes
+      ax.values.splice(i, 1);
+      delete ax._sources[val];
+    } else {
+      ax.values.push(val);
+      var defaultChips = ['XS','S','M','L','XL','XXL'];
+      ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
+    }
+    if (navigator.vibrate) navigator.vibrate(5);
     _wizSaveAxesCache();
     renderWizSection2();
   }
