@@ -673,6 +673,34 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="dark"] .wiz-ai-hint{background:linear-gradient(135deg,hsl(280 50% 18% / 0.6),hsl(255 50% 18% / 0.5));color:hsl(280 70% 75%);border:1px solid hsl(280 50% 30% / 0.4)}
 .wiz-ai-hint svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
 
+/* "Търсачка за съществуващ артикул" — 1:1 sacred .search-wrap (p.php 3924-3927) */
+.wz-search-wrap{position:relative;margin-bottom:10px}
+.wz-search-input-row{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:14px;font-family:inherit}
+[data-theme="light"] .wz-search-input-row,:root:not([data-theme]) .wz-search-input-row{background:var(--surface);box-shadow:var(--shadow-pressed);border:none}
+[data-theme="dark"] .wz-search-input-row{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05)}
+.wz-search-input-row > svg{width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0}
+.wz-search-input-row input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12.5px;font-weight:600;min-width:0;font-family:inherit}
+.wz-search-input-row input::placeholder{color:var(--text-muted)}
+.wz-search-input-row .wz-search-clear{background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:18px;line-height:1;display:none}
+.wz-search-input-row.has-q .wz-search-clear{display:block}
+
+.wz-search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:280px;overflow-y:auto;border-radius:12px;display:none;font-family:inherit}
+.wz-search-results.show{display:block}
+[data-theme="light"] .wz-search-results,:root:not([data-theme]) .wz-search-results{background:var(--surface);box-shadow:var(--shadow-card)}
+[data-theme="dark"] .wz-search-results{background:hsl(220 25% 5%);border:1px solid hsl(var(--hue2) 12% 18%);box-shadow:0 8px 24px hsl(220 50% 4% / 0.5)}
+.wz-search-result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 150ms;border-bottom:1px solid transparent}
+[data-theme="light"] .wz-search-result-item:hover,:root:not([data-theme]) .wz-search-result-item:hover{background:rgba(99,102,241,0.08)}
+[data-theme="dark"] .wz-search-result-item:hover{background:hsl(255 25% 10%)}
+.wz-search-result-item:last-child{border-bottom:none}
+.wz-search-result-thumb{width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.08);object-fit:cover;flex-shrink:0;display:grid;place-items:center;overflow:hidden}
+.wz-search-result-thumb svg{width:16px;height:16px;stroke:var(--text-muted);fill:none;stroke-width:1.5}
+.wz-search-result-thumb img{width:100%;height:100%;object-fit:cover}
+.wz-search-result-info{flex:1;min-width:0}
+.wz-search-result-name{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wz-search-result-meta{font-size:10.5px;color:var(--text-muted);font-weight:600;margin-top:2px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wz-search-result-price{font-size:12px;font-weight:800;color:var(--accent);flex-shrink:0;letter-spacing:-0.01em}
+.wz-search-empty{padding:14px;text-align:center;font-size:12px;color:var(--text-muted);font-weight:600}
+
 /* "Като предния" bulk copy button — neumorphic + accent text */
 .wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
 .wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
@@ -1519,6 +1547,100 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     for (var i = 0; i < arguments.length; i++) S.wizData._aiFilled[arguments[i]] = true;
   }
 
+  /* ═══ S148 ФАЗА 2n — Search "Копирай от съществуващ артикул" ═══
+     Sacred search endpoint products.php?ajax=search (p.php 273-311) → JSON [products].
+     Debounced 250ms; dropdown с thumb + name + supplier/category + price; tap →
+     fill всички полета на S.wizData → renderWizard.
+  */
+  var _wizSearchTO = null;
+  function wizSearchProductInput(q){
+    q = (q || '').trim();
+    var wrap = document.getElementById('wzSearchWrap');
+    if (wrap) wrap.classList.toggle('has-q', q.length > 0);
+    clearTimeout(_wizSearchTO);
+    var results = document.getElementById('wzSearchResults');
+    if (!results) return;
+    if (q.length < 2) { results.classList.remove('show'); results.innerHTML = ''; return; }
+    _wizSearchTO = setTimeout(function(){ wizSearchProductFetch(q); }, 250);
+  }
+
+  async function wizSearchProductFetch(q){
+    var results = document.getElementById('wzSearchResults');
+    if (!results) return;
+    var storeId = (window.CFG && CFG.storeId) || 0;
+    try {
+      var r = await fetch('products.php?ajax=search&q=' + encodeURIComponent(q) + '&store_id=' + storeId, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var rows = await r.json();
+      wizSearchProductRender(rows, q);
+    } catch(e) {
+      results.classList.add('show');
+      results.innerHTML = '<div class="wz-search-empty">Грешка при търсене</div>';
+    }
+  }
+
+  function wizSearchProductRender(rows, q){
+    var results = document.getElementById('wzSearchResults');
+    if (!results) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      results.classList.add('show');
+      results.innerHTML = '<div class="wz-search-empty">Няма резултати за "' + esc(q) + '"</div>';
+      return;
+    }
+    results.classList.add('show');
+    results.innerHTML = rows.slice(0, 8).map(function(p){
+      var price = p.retail_price ? parseFloat(p.retail_price).toFixed(2) + ' €' : '';
+      var meta = [p.supplier_name, p.category_name].filter(Boolean).join(' · ');
+      var thumb = p.image_url
+        ? '<img src="' + esc(p.image_url) + '" alt="">'
+        : '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+      // JSON encoded for onclick — escape quotes properly
+      var rowJson = encodeURIComponent(JSON.stringify(p));
+      return '<div class="wz-search-result-item" onclick="wizPickExistingProduct(\'' + rowJson + '\')">'+
+        '<div class="wz-search-result-thumb">' + thumb + '</div>'+
+        '<div class="wz-search-result-info">'+
+          '<div class="wz-search-result-name">' + esc(p.name || '') + '</div>'+
+          (meta ? '<div class="wz-search-result-meta">' + esc(meta) + '</div>' : '')+
+        '</div>'+
+        (price ? '<div class="wz-search-result-price">' + price + '</div>' : '')+
+      '</div>';
+    }).join('');
+  }
+
+  function wizPickExistingProduct(rowJson){
+    var p;
+    try { p = JSON.parse(decodeURIComponent(rowJson)); } catch(e) { return; }
+    if (!p || !p.id) return;
+    // Fill availability fields (от това което search endpoint върна)
+    if (p.name) S.wizData.name = p.name;
+    if (p.code) S.wizData.code = p.code;
+    if (p.retail_price) S.wizData.retail_price = parseFloat(p.retail_price);
+    if (p.cost_price) S.wizData.cost_price = parseFloat(p.cost_price);
+    if (p.supplier_id) S.wizData.supplier_id = parseInt(p.supplier_id);
+    if (p.supplier_name) S.wizData.supplier_name = p.supplier_name;
+    if (p.category_name) S.wizData.category_name = p.category_name;
+    if (p.image_url) S.wizData._photoDataUrl = p.image_url;
+    // Closes dropdown + clear input
+    var inp = document.getElementById('wzSearchInp');
+    if (inp) inp.value = '';
+    var results = document.getElementById('wzSearchResults');
+    if (results) { results.classList.remove('show'); results.innerHTML = ''; }
+    var wrap = document.getElementById('wzSearchWrap');
+    if (wrap) wrap.classList.remove('has-q');
+    renderWizard();
+    showToast('Копиран от: ' + (p.name || 'избран артикул'), 'success');
+    if (navigator.vibrate) navigator.vibrate([8, 30, 8]);
+  }
+
+  function wizSearchClear(){
+    var inp = document.getElementById('wzSearchInp');
+    if (inp) inp.value = '';
+    var results = document.getElementById('wzSearchResults');
+    if (results) { results.classList.remove('show'); results.innerHTML = ''; }
+    var wrap = document.getElementById('wzSearchWrap');
+    if (wrap) wrap.classList.remove('has-q');
+  }
+
   /* ═══ S148 ФАЗА 2i — wizCopyPrevProductFull 1:1 от p.php 12231-12244 ═══
      "Като предния" bulk copy — всички полета от localStorage._rms_lastWizProductFields
      с изключение на name/barcode/code/photos (variant: + color/size).
@@ -1753,7 +1875,17 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
-    // "Като предния" bulk copy bar (sacred p.php 12483-12488 — поставен ABOVE type toggle).
+    // Sacred search bar (1:1 от products.php 6076-6081 .search-wrap) — за "Копирай от съществуващ".
+    var searchBar =
+      '<div class="wz-search-wrap" id="wzSearchWrap">'+
+        '<div class="wz-search-input-row">'+
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+          '<input type="text" id="wzSearchInp" placeholder="Търси артикул за копиране (име, код, баркод)" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+          '<button type="button" class="wz-search-clear" onclick="wizSearchClear()" aria-label="Изчисти">×</button>'+
+        '</div>'+
+        '<div class="wz-search-results" id="wzSearchResults"></div>'+
+      '</div>';
+    // "Като предния" bulk copy bar (sacred p.php 12483-12488).
     var hasLast = false;
     try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
     var copyPrevBtn = hasLast
@@ -1770,7 +1902,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var typeHint=typeChosen
         ? ''
         : '<div class="wz-type-hint">Избери тип артикул</div>';
-    return copyPrevBtn+typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
+    return searchBar+copyPrevBtn+typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
