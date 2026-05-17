@@ -956,6 +956,30 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ inline groups-panel, sku-summary tweaks.                            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
+/* ═══ P13 chips CSS (ред 161-175) — chips-row, chip-sz, chip-col, chip-add ═══ */
+.chips-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip-sz{height:34px;padding:0 14px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:0.02em}
+[data-theme="light"] .chip-sz,:root:not([data-theme]) .chip-sz{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .chip-sz{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.chip-sz:active{transform:scale(0.96)}
+.chip-sz.active{color:white!important;background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;box-shadow:0 4px 12px hsl(var(--hue1) 80% 50% / 0.4)!important;border:none!important}
+
+.chip-col{height:34px;padding:0 12px 0 8px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;transition:all .15s}
+[data-theme="light"] .chip-col,:root:not([data-theme]) .chip-col{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .chip-col{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.chip-col:active{transform:scale(0.96)}
+.chip-col.active{color:var(--text)!important}
+[data-theme="light"] .chip-col.active,:root:not([data-theme]) .chip-col.active{background:linear-gradient(135deg,oklch(0.92 0.08 285 / 0.6),oklch(0.92 0.08 310 / 0.5))!important;box-shadow:var(--shadow-card)!important}
+[data-theme="dark"] .chip-col.active{background:hsl(var(--hue1) 30% 12% / 0.5)!important;border:1px solid hsl(var(--hue1) 50% 30% / 0.5)!important;box-shadow:0 0 12px hsl(var(--hue1) 50% 30% / 0.3)!important}
+.chip-col-dot{width:14px;height:14px;border-radius:var(--radius-icon);border:1px solid rgba(0,0,0,0.15);box-shadow:inset 0 1px 2px rgba(0,0,0,0.15),0 1px 2px rgba(0,0,0,0.08);flex-shrink:0}
+[data-theme="dark"] .chip-col-dot{border-color:rgba(255,255,255,0.25);box-shadow:inset 0 1px 2px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.2)}
+
+.chip-add{padding:0 14px;height:34px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;color:var(--accent);border:1.5px dashed currentColor;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:0.03em;transition:transform 150ms,background 200ms}
+.chip-add:active{transform:scale(0.96)}
+[data-theme="light"] .chip-add:hover,:root:not([data-theme]) .chip-add:hover{background:rgba(99,102,241,0.06)}
+[data-theme="dark"] .chip-add:hover{background:hsl(var(--hue1) 30% 14% / 0.4)}
+.chip-add svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+
 /* extra-row под chips (за добави + други групи бутони) */
 .extra-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .groups-btn{height:34px;padding:0 12px 0 10px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:0.03em;color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;transition:transform 150ms,box-shadow 200ms}
