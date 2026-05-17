@@ -243,8 +243,8 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 .fg input.fc,.fg select.fc{min-height:42px;padding:10px 14px;border-radius:12px;font-size:14px;box-sizing:border-box}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
-.wiz-mic{width:42px;min-width:42px;height:42px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
-.wiz-mic:active{background:rgba(239,68,68,.2);transform:scale(.95)}
+/* sacred .wiz-mic 42px — overridden by latest 28px rule below; държа само за legacy reference */
+.wiz-mic:active{transform:scale(.92)}
 .fg.wiz-next{background:rgba(99,102,241,.08);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.35)}
 .fg.wiz-next .wiz-mic{background:rgba(99,102,241,.25);border-color:#6366f1;animation:wizNextPulse 1.5s infinite}
 @keyframes wizNextPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.2)}50%{box-shadow:0 0 14px 4px rgba(99,102,241,.2)}}
@@ -446,18 +446,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="light"] .icon-btn:active,:root:not([data-theme]) .icon-btn:active{box-shadow:var(--shadow-pressed);transform:scale(0.97)}
 [data-theme="light"] .icon-btn svg,:root:not([data-theme]) .icon-btn svg{stroke:var(--text);width:18px;height:18px}
 
-/* === .wiz-mic CANON: chat-mic purple gradient + chatMicRing dual pulse === */
-.wiz-mic{width:44px!important;min-width:44px;height:44px!important;border-radius:50%!important;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 4px 14px hsl(280 70% 50% / 0.5)!important;color:#fff!important;position:relative;overflow:visible!important;transition:transform 250ms,box-shadow 250ms;cursor:pointer}
-.wiz-mic::before,.wiz-mic::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid hsl(280 70% 55%);pointer-events:none;animation:chatMicRing 2s ease-out infinite}
-.wiz-mic::after{animation-delay:1s}
-.wiz-mic:active{transform:scale(0.94)}
-.wiz-mic svg{width:14px;height:14px;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 4px 14px hsl(280 70% 50% / 0.45),var(--shadow-card-sm)!important}
-
-/* Recording state — switch to red but keep rings */
-.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 80% 50%))!important;animation:none!important}
-.wiz-mic.recording::before,.wiz-mic.recording::after{border-color:hsl(0 80% 55%)!important;animation:chatMicRing 0.8s ease-out infinite!important}
-.wiz-mic.recording::after{animation-delay:0.4s!important}
+/* === legacy 44px wiz-mic block — neutralized; финален rule в края на CSS === */
 
 /* === .copy-btn CANON: neumorphic raised (mockup ред 201-206) === */
 .copy-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;position:relative;transition:transform 150ms,box-shadow 200ms;cursor:pointer;border:none;font-family:inherit;font-size:14px}
@@ -698,10 +687,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:30px!important;min-width:30px;height:30px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 6px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0}
+.wiz-mic{width:28px!important;min-width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 1px 4px hsl(280 70% 50% / 0.35)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
 .wiz-mic:active{transform:scale(0.92)}
-.wiz-mic svg{width:11px!important;height:11px!important;stroke:#fff!important;fill:none;stroke-width:2.4;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+.wiz-mic svg{width:11px!important;height:11px!important;stroke:#fff!important;fill:none;stroke-width:2.4;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));display:block}
 [data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 6px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
 
 /* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
@@ -1716,7 +1705,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     if (S.wizType !== 'single') return '';
     var _qVal = (S.wizData.quantity === undefined || S.wizData.quantity === null) ? '' : S.wizData.quantity;
     var _mqVal = (S.wizData.min_quantity === undefined || S.wizData.min_quantity === null || S.wizData.min_quantity === '') ? '' : S.wizData.min_quantity;
-    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>';
+    var micSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>';
     var copySvg = '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>';
     return '<div class="fg" style="margin:0 0 10px">'+
         '<label class="fl">Брой<span class="req-star">*</span></label>'+
@@ -1791,7 +1780,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<label class="fl">Доставна цена <span class="hint">(на доставчик)</span></label>'+
         '<div style="display:flex;gap:6px;align-items:center">'+
             '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wCostPrice" oninput="S.wizData.cost_price=parseFloat(this.value)||0;wizClearAIMark(\'cost_price\');wizUpdateMarkup();wizMaybeFetchAIMarkup()" value="'+(S.wizData.cost_price||'')+'" placeholder="0.00" style="flex:1">'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'cost_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'cost_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'cost_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
         '<div id="wAIMarkupRow" class="ai-markup-row" style="display:none"></div>'+
@@ -1803,7 +1792,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<label class="fl">Цена дребно<span class="req-star">*</span></label>'+
         '<div style="display:flex;gap:6px;align-items:center">'+
             '<input type="number" step="0.01" inputmode="decimal" class="fc" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup()" value="'+(S.wizData.retail_price||'')+'" placeholder="Кажи: 1 евро и 35 цента" style="flex:1">'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
         wizAIHint('retail_price')+
@@ -1817,7 +1806,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<label class="fl">Име<span class="req-star">*</span></label>'+
         '<div style="display:flex;gap:6px;align-items:center">'+
             '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
-            '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
+            '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
         wizAIHint('name')+
