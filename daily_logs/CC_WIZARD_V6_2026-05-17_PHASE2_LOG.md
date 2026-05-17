@@ -120,3 +120,23 @@ Iron rule (повтаряно преди всеки sub-step):
 - New file: `services/ai-markup.php` (155 реда)
 - Deploy в `/var/www/runmystore/services/`.
 - Sacred SHA непроменена.
+
+═══════════════════════════════════════════════════════════════
+## ⏸ CHECKPOINT — 2a-2d DONE, 2e-2h PENDING
+
+**Backend phase готов:** 4 нови файла, 0 sacred edits, 5/5 verify постоянен.
+
+| Sub-step | File | Lines | Commit |
+|---|---|---|---|
+| 2a | `js/wizard-parser.js` | 138 | `618b366` |
+| 2b | `services/wizard-bridge.php` | 56 | `e9acfe3` |
+| 2c | `services/ai-vision.php` | 170 | `09d4f90` |
+| 2d | `services/ai-markup.php` | 155 | `2f52d84` |
+
+**Frontend phase (2e-2h) изисква:**
+- 2e: четене на renderWizPhotoStep (272 реда body + референции към helpers); extract в `wizard-v6.php` photo section.
+- 2f, 2g, 2h: name/price/qty полета + bridge интеграция (по-малки).
+
+**Препоръка моя:** Restart fresh session за 2e-2h. Текущата сесия натрупа recon + 4 sub-step deliverables; нова сесия може да чете renderWizPhotoStep clean и да focus-не върху wizard-v6.php integration без накопен context.
+
+**Алтернатива:** Продължавам сега с 2e, но риск-ът от mid-task context exhaustion е реален; може да налагам STOP по средата на renderWizPhotoStep extract.
