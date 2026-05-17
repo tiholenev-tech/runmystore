@@ -1111,6 +1111,39 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .mx-input-min::-webkit-outer-spin-button,.mx-input-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-min-row{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-faint);letter-spacing:0.04em}
 
+/* ═══ S148 ФАЗА 3c.3c — chip × icon (click to remove single) ═══ */
+.chip-sz{position:relative;overflow:visible}
+.chip-x{
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  line-height:1;
+  font-weight:700;
+  cursor:pointer;
+  background:hsl(0 70% 52%);
+  color:#fff;
+  border:1.5px solid var(--bg);
+  box-shadow:0 1px 3px rgba(0,0,0,0.25);
+  z-index:2;
+  transition:transform 0.12s ease, background 0.12s ease;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.chip-x::before{
+  /* invisible tap-target extension for mobile (24x24 minimum) */
+  content:'';
+  position:absolute;
+  inset:-4px;
+}
+.chip-x:hover,.chip-x:active{transform:scale(1.15);background:hsl(0 75% 58%)}
+[data-theme="dark"] .chip-x{background:hsl(0 65% 55%);border-color:hsl(var(--hue1) 30% 12%)}
+
 /* ═══ S148 ФАЗА 3c.3b — Size axis grouped display + long-press remove ═══ */
 .size-quick-strip{margin-bottom:10px}
 .size-strip-label{font-family:var(--font-mono);font-size:8px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px}
@@ -2951,11 +2984,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     defaultChips.forEach(function(v){
       var isActive = !!activeSet[v];
       var escVal = v.replace(/'/g, "\\'");
+      var xBtn = isActive ? '<span class="chip-x" onclick="event.stopPropagation();wizSizeRemove(\'' + escVal + '\')" aria-label="Премахни">&times;</span>' : '';
       quickHtml += '<button type="button" class="chip-sz' + (isActive?' active':'') + '"'+
-        ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
-        ' oncontextmenu="event.preventDefault();wizSizeAskRemove(\'' + escVal + '\');return false"'+
-        ' ondblclick="wizSizeAskRemove(\'' + escVal + '\')"'+
-        '>' + esc(v) + '</button>';
+        ' onclick="wizSizeChipTap(\'' + escVal + '\')"'+
+        '>' + esc(v) + xBtn + '</button>';
     });
 
     // Group values by _sources (skip 'letters' values that are in defaultChips — shown in strip)
@@ -2987,10 +3019,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       bySource[src].forEach(function(v){
         var escVal = v.replace(/'/g, "\\'");
         groupsHtml += '<button type="button" class="chip-sz active"'+
-          ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
-          ' oncontextmenu="event.preventDefault();wizSizeAskRemove(\'' + escVal + '\');return false"'+
-          ' ondblclick="wizSizeAskRemove(\'' + escVal + '\')"'+
-          '>' + esc(v) + '</button>';
+          ' onclick="wizSizeChipTap(\'' + escVal + '\')"'+
+          '>' + esc(v) +
+          '<span class="chip-x" onclick="event.stopPropagation();wizSizeRemove(\'' + escVal + '\')" aria-label="Премахни">&times;</span>'+
+          '</button>';
       });
       groupsHtml += '</div></div>';
     });
@@ -3057,40 +3089,69 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 
   // ═══ Size axis interactions (sacred logic ported 1:1) ═══
 
-  function wizSizeToggle(val, sourceTag){
+  // ═══ Size axis cache (localStorage) ═══
+  // Persists last-used size axis state across wizard sessions
+  function _wizSaveAxesCache(){
+    try {
+      var idx = wizFindSizeAxisIdx();
+      if (idx === -1) return;
+      var ax = S.wizData.axes[idx];
+      var data = {
+        values: Array.isArray(ax.values) ? ax.values.slice() : [],
+        _sources: ax._sources || {},
+        ts: Date.now()
+      };
+      localStorage.setItem('wizSizeAxisLast_v1', JSON.stringify(data));
+    } catch(e){}
+  }
+
+  function _wizRestoreAxesCacheIfEmpty(){
+    try {
+      var idx = wizFindSizeAxisIdx();
+      if (idx === -1) return;
+      var ax = S.wizData.axes[idx];
+      if (Array.isArray(ax.values) && ax.values.length > 0) return; // already populated
+      var raw = localStorage.getItem('wizSizeAxisLast_v1');
+      if (!raw) return;
+      var cached = JSON.parse(raw);
+      if (!cached || !Array.isArray(cached.values) || !cached.values.length) return;
+      ax.values = cached.values.slice();
+      _wizEnsureSources(ax);
+      Object.keys(cached._sources || {}).forEach(function(k){ ax._sources[k] = cached._sources[k]; });
+    } catch(e){}
+  }
+
+  // Idempotent add — tap on chip only ADDS (does not remove).
+  // Removal exclusively via × icons (single chip × or group header ×).
+  function wizSizeChipTap(val, sourceTag){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!ax || !Array.isArray(ax.values)) ax.values = [];
     _wizEnsureSources(ax);
-    var i = ax.values.indexOf(val);
-    if (i >= 0) {
-      ax.values.splice(i, 1);
-      delete ax._sources[val];
-    } else {
-      ax.values.push(val);
-      // Default chips XS-XXL → tag as 'letters'; otherwise use provided source (fallback '_custom')
-      var defaultChips = ['XS','S','M','L','XL','XXL'];
-      ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
-    }
+    if (ax.values.indexOf(val) !== -1) return; // already active, no-op
+    ax.values.push(val);
+    var defaultChips = ['XS','S','M','L','XL','XXL'];
+    ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
     if (navigator.vibrate) navigator.vibrate(5);
+    _wizSaveAxesCache();
     renderWizSection2();
   }
 
-  // Ask + remove single value (long-press / right-click / double-click)
-  function wizSizeAskRemove(val){
+  // Direct single-chip remove (NO confirm — click × on chip)
+  function wizSizeRemove(val){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!ax || !Array.isArray(ax.values)) return;
-    if (ax.values.indexOf(val) === -1) return; // not active, nothing to remove
-    if (!confirm('Премахни размер "' + val + '"?')) return;
     var i = ax.values.indexOf(val);
-    if (i >= 0) ax.values.splice(i, 1);
+    if (i < 0) return;
+    ax.values.splice(i, 1);
     if (ax._sources) delete ax._sources[val];
-    if (navigator.vibrate) navigator.vibrate([8, 40, 8]);
+    if (navigator.vibrate) navigator.vibrate(8);
+    _wizSaveAxesCache();
     renderWizSection2();
   }
 
-  // Ask + remove ALL values belonging to a source group
+  // Confirm + remove ALL values belonging to a source group (× on group header)
   function wizSizeAskRemoveGroup(groupId){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
@@ -3104,6 +3165,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     toRemove.forEach(function(v){ delete ax._sources[v]; });
     showToast('Премахната група "' + label + '"', 'success');
     if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+    _wizSaveAxesCache();
     renderWizSection2();
   }
 
@@ -3159,6 +3221,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       ax.values.push(val);
       ax._sources[val] = groupId || '_custom';
     }
+    _wizSaveAxesCache();
     wizSizeAddCancel();
     renderWizSection2();
   }
@@ -3179,11 +3242,13 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
           ax.values.push(name);
           ax._sources[name] = '_custom';
         }
+        _wizSaveAxesCache();
         wizSizeAddCancel();
         renderWizSection2();
       }, function(){
         ax.values.push(val);
         ax._sources[val] = '_custom';
+        _wizSaveAxesCache();
         wizSizeAddCancel();
         renderWizSection2();
       });
@@ -3192,6 +3257,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         ax.values.push(val);
         ax._sources[val] = '_custom';
       }
+      _wizSaveAxesCache();
       wizSizeAddCancel();
       renderWizSection2();
     }
@@ -3233,6 +3299,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     });
     showToast('Добавени ' + added + ' стойности от "' + g.label + '"', 'success');
     if (navigator.vibrate) navigator.vibrate(8);
+    _wizSaveAxesCache();
     // Close panel after pick
     var panel = document.getElementById('szGroupsPanel');
     if (panel) panel.classList.remove('show');
@@ -3253,6 +3320,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     // Sacred init + AI color autofill — silent (data only, не визуално)
     if (typeof wizInitVariantsAxes === 'function') wizInitVariantsAxes();
     if (typeof wizAIColorAutofill === 'function') wizAIColorAutofill();
+    // Restore size axis from localStorage cache if currently empty (3c.3c)
+    _wizRestoreAxesCacheIfEmpty();
 
     /* ═══ Размер AXIS — DYNAMIC wired (3c.3) ═══
        Цветове + matrix + save-row остават STATIC за момента (per Тих "1 по 1").
