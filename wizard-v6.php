@@ -964,8 +964,9 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ╚═══════════════════════════════════════════════════════════════════╝
 */
 .wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:50%!important;border:none!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms,box-shadow 200ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0;font-family:inherit}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:linear-gradient(145deg,#f0f3f9,#cdd5e1)!important;box-shadow:var(--shadow-card-sm),inset 0 1px 0 rgba(255,255,255,0.7)!important;color:var(--accent)!important}
-[data-theme="dark"] .wiz-mic{background:linear-gradient(145deg,hsl(220 25% 11%),hsl(220 30% 6%))!important;box-shadow:0 3px 10px hsl(220 35% 2% / 0.6),inset 0 1px 0 hsl(255 30% 30% / 0.4)!important;border:1px solid hsl(255 12% 22%)!important;color:hsl(255 80% 75%)!important}
+/* 2p revert: neumorphic .wiz-mic backgrounds премахнати → .fbtn.voice purple gradient
+   (line 907) сега работи 1:1 (user 2026-05-17 "защо смени цвета, беше си ОК предният
+   син/лилав"). За .wiz-mic БЕЗ .fbtn.voice — наследява .fbtn (neutral) от P13 CSS. */
 .wiz-mic:active{transform:scale(.94)}
 [data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)!important}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
@@ -2568,27 +2569,23 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     // auto-progress dictation: Име → Цена → Артикулен номер → запазваме?
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
+    // 1:1 products-v2.php Simple search-wrap (ред 3203-3213).
+    // Input винаги видим; dropdown auto-show при 2+ chars. Filter s-btn вътре в search-wrap.
+    // Voice-bar премахнат (per Тих 2026-05-17 "щом няма да има функция с 2 сек мъчание,
+    // махни съвета изцяло").
     var searchBlock =
-      '<div class="find-panel show" id="wzFindPanel" style="margin-bottom:14px">'+
-        '<div class="find-input-wrap">'+
-          '<svg class="search-ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
-          '<input type="text" class="find-input" id="wzSearchInp" placeholder="Намери артикул за копиране (име · код · баркод)" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
-          '<button class="fbtn voice wiz-mic" type="button" onclick="wizFindMic()" aria-label="Гласово търсене" style="height:36px;width:36px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>'+
-        '</div>'+
-        '<div class="find-filters" id="wzFindFilters">'+
-          '<button type="button" class="find-filter active" onclick="wizFindLastCopy()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>Като последния</button>'+
-          '<button type="button" class="find-filter" onclick="wizOpenFilterDrawer()"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Филтри</button>'+
-        '</div>'+
-        '<div class="find-results" id="wzSearchResults"></div>'+
-      '</div>';
-    var voiceBar =
-      '<button type="button" class="voice-bar" onclick="wizVoiceFlowStart()">'+
-        '<span class="voice-bar-mic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></span>'+
-        '<div class="voice-bar-text">'+
-          '<div class="voice-bar-title">Кажи на AI</div>'+
-          '<div class="voice-bar-sub">Тап → Име · 2 сек пауза · Цена · 2 сек · Артикулен номер...</div>'+
-        '</div>'+
-      '</button>';
+      '<div class="search-wrap" id="wzSearchWrap" style="margin-bottom:10px">'+
+        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+        '<input type="text" id="wzSearchInp" placeholder="Търси по име, код или баркод..." oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+        '<button class="s-btn" type="button" id="wzFilterBtn" aria-label="Филтри" onclick="wizOpenFilterDrawer()">'+
+          '<svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'+
+        '</button>'+
+        '<button class="s-btn mic fbtn voice wiz-mic" type="button" aria-label="Гласово търсене" onclick="wizFindMic()">'+
+          '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>'+
+        '</button>'+
+      '</div>'+
+      '<div id="wzSearchResults" class="search-dd"></div>'+
+      '<div class="active-chips" id="wzActiveChips" style="margin-bottom:10px"></div>';
     var modeToggle =
       '<div class="mode-toggle">'+
         '<button type="button" class="mode-tab'+(sActive?' active':'')+'" onclick="wizSwitchType(\'single\')">'+
@@ -2600,7 +2597,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
           '<span>С вариации</span>'+
         '</button>'+
       '</div>';
-    return searchBlock + voiceBar + modeToggle;
+    return searchBlock + modeToggle;
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
