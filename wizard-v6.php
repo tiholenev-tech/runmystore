@@ -1111,19 +1111,31 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .mx-input-min::-webkit-outer-spin-button,.mx-input-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-min-row{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-faint);letter-spacing:0.04em}
 
-/* ═══ S148 ФАЗА 3c.3d — chip × inline hint (sacred 1:1, products.php 1339) ═══ */
-.chip-x{
-  display:inline-block;
-  opacity:0.65;
-  font-size:10px;
-  font-weight:400;
-  margin-left:5px;
-  line-height:1;
+/* ═══ S148 ФАЗА 3c.3e — group chips са НЕУТРАЛНИ ═══
+   Триене САМО през × на group header (с confirm).
+   Чиповете в група = display-only, без click action, без × икона. */
+.chip-grp{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 10px;
+  border-radius:8px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  font-weight:700;
+  color:var(--text-secondary);
+  background:transparent;
+  border:1px solid var(--border-soft, rgba(120,120,140,0.18));
+  cursor:default;
   user-select:none;
   -webkit-user-select:none;
-  pointer-events:none;
+  letter-spacing:0.02em;
 }
-.chip-sz.active .chip-x{color:inherit}
+[data-theme="dark"] .chip-grp{
+  color:hsl(var(--hue1) 20% 78%);
+  border-color:hsl(var(--hue1) 25% 30% / 0.5);
+  background:hsl(var(--hue1) 25% 15% / 0.3);
+}
 
 /* ═══ S148 ФАЗА 3c.3b — Size axis grouped display + long-press remove ═══ */
 .size-quick-strip{margin-bottom:10px}
@@ -2960,16 +2972,18 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var activeSet = {};
     (ax.values || []).forEach(function(v){ activeSet[v] = true; });
 
-    // Quick-strip HTML — sacred toggle (click=toggle add/remove)
+    // Quick-strip HTML — click = toggle (add when inactive / remove when active)
+    // NO × icon on chips. Header has × for "clear all defaults" bulk action.
     var quickHtml = '';
     defaultChips.forEach(function(v){
       var isActive = !!activeSet[v];
       var escVal = v.replace(/'/g, "\\'");
-      var xHint = isActive ? '<span class="chip-x">&#x2715;</span>' : '';
       quickHtml += '<button type="button" class="chip-sz' + (isActive?' active':'') + '"'+
         ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
-        '>' + esc(v) + xHint + '</button>';
+        '>' + esc(v) + '</button>';
     });
+    // Header × visible only when at least one default is active
+    var hasActiveDefaults = defaultChips.some(function(v){ return !!activeSet[v]; });
 
     // Group values by _sources (skip 'letters' values that are in defaultChips — shown in strip)
     var bySource = {};
@@ -2998,10 +3012,9 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '</div>'+
         '<div class="chips-row">';
       bySource[src].forEach(function(v){
-        var escVal = v.replace(/'/g, "\\'");
-        groupsHtml += '<button type="button" class="chip-sz active"'+
-          ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
-          '>' + esc(v) + '<span class="chip-x">&#x2715;</span></button>';
+        // Group chips: NEUTRAL display, NO × icon, NO click action.
+        // Removal of group chips is exclusively via × on group header.
+        groupsHtml += '<span class="chip-sz chip-grp">' + esc(v) + '</span>';
       });
       groupsHtml += '</div></div>';
     });
@@ -3009,7 +3022,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     return '<div class="field" data-axis="size" data-axis-idx="' + idx + '">'+
       '<div class="field-label"><span>Размери</span></div>'+
       '<div class="size-quick-strip">'+
-        '<div class="size-strip-label">Бързо избиране</div>'+
+        '<div class="size-group-header">'+
+          '<span class="size-strip-label">Бързо избиране</span>'+
+          (hasActiveDefaults ? '<button type="button" class="size-group-remove" onclick="wizSizeClearDefaults()" title="Изчисти всички избрани">&times;</button>' : '')+
+        '</div>'+
         '<div class="chips-row" id="szChipsRow">' + quickHtml + '</div>'+
       '</div>'+
       groupsHtml +
@@ -3117,6 +3133,22 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
     }
     if (navigator.vibrate) navigator.vibrate(5);
+    _wizSaveAxesCache();
+    renderWizSection2();
+  }
+
+  // Clear all active default chips (× on "Бързо избиране" header)
+  function wizSizeClearDefaults(){
+    var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
+    var ax = S.wizData.axes[idx];
+    if (!ax || !Array.isArray(ax.values)) return;
+    var defaultChips = ['XS','S','M','L','XL','XXL'];
+    var toRemove = ax.values.filter(function(v){ return defaultChips.indexOf(v) !== -1; });
+    if (!toRemove.length) return;
+    if (!confirm('Изчисти всички избрани от "Бързо избиране" (' + toRemove.length + ')?')) return;
+    ax.values = ax.values.filter(function(v){ return defaultChips.indexOf(v) === -1; });
+    if (ax._sources) toRemove.forEach(function(v){ delete ax._sources[v]; });
+    if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
     _wizSaveAxesCache();
     renderWizSection2();
   }
