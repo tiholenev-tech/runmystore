@@ -185,11 +185,15 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 .v4-pz-tip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.55)}
 .v4-pz-tip svg{width:10px;height:10px;color:#86efac;flex-shrink:0}
 
+/* ═══ S148 ФАЗА 2e++e — AI inline rows (1:1 sacred p.php 2899-2907) ═══ */
 .ai-inline-rows{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
 .ai-inline-row{position:relative;display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:44px;border-radius:12px;background:linear-gradient(180deg,rgba(139,92,246,0.10),rgba(99,102,241,0.04));border:1px solid rgba(139,92,246,0.32);color:#e2e8f0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .2s ease,border-color .2s ease;box-shadow:0 0 14px rgba(139,92,246,0.10),inset 0 1px 0 rgba(255,255,255,0.04)}
-.ai-inline-row .air-ic{font-size:16px}
-.ai-inline-row .air-lbl{flex:1}
-.ai-inline-row .air-price{font-size:11px;color:var(--indigo-300);font-weight:700}
+.ai-inline-row.busy{opacity:0.65;pointer-events:none}
+.ai-inline-row.busy::after{content:'';position:absolute;right:14px;top:50%;width:14px;height:14px;border:2px solid rgba(196,181,253,0.3);border-top-color:#c4b5fd;border-radius:50%;transform:translateY(-50%);animation:airSpin .8s linear infinite}
+@keyframes airSpin{to{transform:translateY(-50%) rotate(360deg)}}
+.ai-inline-row .air-ic{flex-shrink:0;font-size:16px;width:22px;text-align:center}
+.ai-inline-row .air-lbl{flex:1;line-height:1.2}
+.ai-inline-row .air-price{flex-shrink:0;font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:.02em}
 
 /* ═══ S148 ФАЗА 2e+ — light mode overrides (нов CSS, products.php няма такива) ═══
    Проверено: products.php дефинира [data-theme="light"] overrides за други класове
@@ -217,6 +221,7 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 [data-theme="light"] .photo-multi-info,:root:not([data-theme]) .photo-multi-info{background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3);color:var(--accent)}
 [data-theme="light"] .photo-multi-info b,:root:not([data-theme]) .photo-multi-info b{color:var(--text)}
 [data-theme="light"] .ai-inline-row,:root:not([data-theme]) .ai-inline-row{background:linear-gradient(180deg,rgba(139,92,246,0.08),rgba(99,102,241,0.04));border-color:rgba(139,92,246,0.3);color:var(--text);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .ai-inline-row .air-price,:root:not([data-theme]) .ai-inline-row .air-price{color:var(--accent)}
 
 /* ═══ S148 ФАЗА 2f — sacred form-control + mic CSS (1:1 от products.php) ═══
    .fg / .fl / .fc / .fc:focus / .fc::placeholder    ← p.php 2159-2169
@@ -884,10 +889,102 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     renderWizard();
   }
 
-  // STUBS — AI inline buttons получават 1:1 в 2e++e.
-  function wizAIInlineBgRemove(){showToast('AI махни фон: следваща sub-step','info')}
-  function wizAIInlineSeoDesc(){showToast('SEO описание: следваща sub-step','info')}
-  function wizAIInlineMagic(){showToast('AI магия: следваща sub-step','info')}
+  /* ═══ S148 ФАЗА 2e++e — AI inline buttons (1:1 sacred от p.php) ═══
+       9007       _wizAIInlineToBlob(src)            — helper: fetch → blob
+       9009-9032  wizAIInlineBgRemove                 — POST /ai-image-processor.php
+       9034-9064  wizAIInlineSeoDesc                  — POST products.php?ajax=ai_description
+       9066-9092  wizAIInlineMagic                    — POST /ai-studio-action.php (type=tryon)
+     Всичките sacred endpoints директни (прецедент от ai-color-detect.php).
+     S.wizData.composition / wComposition input / S.wizData.axes се DOM-guard-ват
+     (Phase 4 ще ги донесе; сега silent no-op).
+  */
+
+  async function _wizAIInlineToBlob(src) { var r = await fetch(src); return await r.blob(); }
+
+  async function wizAIInlineBgRemove() {
+    if (!S.wizData._photoDataUrl) { showToast('Първо добави снимка', 'error'); return; }
+    var btn = document.getElementById('aiInlBg');
+    if (btn) btn.classList.add('busy');
+    try {
+        var blob = await _wizAIInlineToBlob(S.wizData._photoDataUrl);
+        var fd = new FormData();
+        fd.append('image', new File([blob], 'wiz.' + (blob.type === 'image/png' ? 'png' : 'jpg'), { type: blob.type || 'image/jpeg' }));
+        var r = await fetch('/ai-image-processor.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        var j = await r.json();
+        if (j && j.ok && j.url) {
+            S.wizData._photoBgRemoved = j.url;
+            S.wizData._photoDataUrl = j.url;
+            showToast('Готово ✓', 'success');
+            renderWizard();
+        } else {
+            showToast((j && j.reason) || 'Грешка, опитай пак', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
+  }
+
+  async function wizAIInlineSeoDesc() {
+    var name = S.wizData.name || '';
+    if (!name) { showToast('Първо въведи име на артикула', 'error'); return; }
+    var btn = document.getElementById('aiInlSeo');
+    if (btn) btn.classList.add('busy');
+    try {
+        var cats = (typeof CFG !== 'undefined' && CFG.categories) ? CFG.categories.find(function(c){return c.id == S.wizData.category_id;}) : null;
+        var sups = (typeof CFG !== 'undefined' && CFG.suppliers) ? CFG.suppliers.find(function(s){return s.id == S.wizData.supplier_id;}) : null;
+        var axes = '';
+        if (S.wizData.axes) S.wizData.axes.forEach(function(a){ if (a.values && a.values.length) axes += a.name + ': ' + a.values.join(', ') + '. '; });
+        var r = await fetch('products.php?ajax=ai_description', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ name: name, category: cats ? cats.name : '', supplier: sups ? sups.name : '', axes: axes, composition: S.wizData.composition || '' })
+        });
+        var j = await r.json();
+        if (j && j.description) {
+            var existing = (S.wizData.composition || '').trim();
+            S.wizData.composition = existing ? (existing + '\n\n' + j.description) : j.description;
+            S.wizData.description = j.description;
+            var compEl = document.getElementById('wComposition');
+            if (compEl) compEl.value = S.wizData.composition;
+            showToast('Описание готово ✓', 'success');
+        } else {
+            showToast('Грешка при генериране', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
+  }
+
+  async function wizAIInlineMagic() {
+    if (!S.wizData._photoDataUrl) { showToast('Първо добави снимка', 'error'); return; }
+    var btn = document.getElementById('aiInlMagic');
+    if (btn) btn.classList.add('busy');
+    try {
+        var blob = await _wizAIInlineToBlob(S.wizData._photoDataUrl);
+        var fd = new FormData();
+        fd.append('type', 'tryon');
+        fd.append('image', new File([blob], 'wiz.' + (blob.type === 'image/png' ? 'png' : 'jpg'), { type: blob.type || 'image/jpeg' }));
+        if (S.wizEditId) fd.append('product_id', String(S.wizEditId));
+        var cats = (typeof CFG !== 'undefined' && CFG.categories) ? CFG.categories.find(function(c){return c.id == S.wizData.category_id;}) : null;
+        if (cats && cats.name) fd.append('category', cats.name);
+        var r = await fetch('/ai-studio-action.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        var j = await r.json();
+        if (j && j.ok && j.url) {
+            S.wizData._photoDataUrl = j.url;
+            showToast('AI магия готова ✓', 'success');
+            renderWizard();
+        } else {
+            showToast((j && j.reason) || 'Грешка, опитай пак', 'error');
+        }
+    } catch (e) {
+        showToast('Мрежова грешка', 'error');
+    } finally {
+        if (btn) btn.classList.remove('busy');
+    }
+  }
 
   /* ═══ S148 ФАЗА 2f — поле Име + микрофон (1:1 sacred от products.php) ═══
 
