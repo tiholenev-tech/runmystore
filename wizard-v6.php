@@ -252,6 +252,22 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 .fg.wiz-active{background:rgba(99,102,241,.06);border-radius:10px;padding:8px;margin-left:-8px;margin-right:-8px;border:1.5px solid rgba(99,102,241,.25);transition:all .2s}
 .fg.wiz-active .wiz-mic{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.12)}
 
+/* ═══ S148 ФАЗА 2e++a — type toggle (Единичен / С Вариации) — sacred 1:1 от p.php 2947-2961 ═══
+   Логика: state-only — wizSwitchType сетва S.wizType, БЕЗ да отваря Phase 3 (renderWizPagePart2
+   sacred undisturbed). photo-mode toggle (multi) става достъпен при wizType==='variant'.
+*/
+.s95-type-btn{flex:1;min-height:64px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(99,102,241,0.22);color:rgba(255,255,255,0.62);transition:transform .12s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
+.s95-type-btn svg{opacity:0.75}
+.s95-type-btn:active{transform:scale(.97)}
+.s95-type-btn.active{background:linear-gradient(180deg,rgba(59,130,246,0.20),rgba(37,99,235,0.08));border-color:rgba(59,130,246,0.65);color:#dbeafe;box-shadow:0 0 18px rgba(59,130,246,0.32),inset 0 1px 0 rgba(255,255,255,0.06)}
+.s95-type-btn.active svg{opacity:1;color:#bfdbfe}
+.s95-type-btn.variant.active{background:linear-gradient(180deg,rgba(217,70,239,0.18),rgba(168,85,247,0.07));border-color:rgba(217,70,239,0.6);color:#fbcfe8;box-shadow:0 0 18px rgba(217,70,239,0.32),inset 0 1px 0 rgba(255,255,255,0.06)}
+.s95-type-btn.variant.active svg{opacity:1;color:#f0abfc}
+.s95-type-btn-lbl{font-size:12px;font-weight:700;letter-spacing:0.02em}
+
+/* Light overrides — inactive state. Active gradients остават такива (контраст на цветни active states е достатъчен в двата режима). */
+[data-theme="light"] .s95-type-btn,:root:not([data-theme]) .s95-type-btn{background:var(--surface);border-color:rgba(99,102,241,0.22);color:var(--text-muted);box-shadow:var(--shadow-card-sm)}
+
 /* ═══ S148 ФАЗА 2f — light mode overrides за form-control + mic ═══ */
 [data-theme="light"] .fl,:root:not([data-theme]) .fl{color:var(--text-muted)}
 [data-theme="light"] .fc,:root:not([data-theme]) .fc{background:var(--surface);color:var(--text);border-color:rgba(0,0,0,0.08);box-shadow:var(--shadow-pressed)}
@@ -581,6 +597,36 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     showToast(label+': разпознаването е offline; въведи ръчно','info');
   }
 
+  /* ═══ S148 ФАЗА 2e++a — type toggle (state-only за Phase 3 scaffold) ═══
+     wizSwitchType сетва S.wizType ('single'|'variant'); НЕ отваря
+     renderWizPagePart2 variations (sacred Phase 3 STOP остава).
+     Markup 1:1 от p.php 12468-12488 (без copyPrevBtn — deferred за Phase 4 save flow).
+  */
+  function wizSwitchType(type){
+    if(type!=='single'&&type!=='variant')return;
+    S.wizType=type;
+    if(navigator.vibrate)navigator.vibrate(10);
+    renderWizard();
+  }
+
+  function renderWizSection1Type(){
+    var typeChosen=(S.wizType==='single'||S.wizType==='variant');
+    var sActive=(S.wizType==='single');
+    var vActive=(S.wizType==='variant');
+    var typeBtnSingle='<button type="button" onclick="wizSwitchType(\'single\')" class="s95-type-btn'+(sActive?' active':'')+'">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
+        '<span class="s95-type-btn-lbl">📦 Единичен</span>'+
+    '</button>';
+    var typeBtnVariant='<button type="button" onclick="wizSwitchType(\'variant\')" class="s95-type-btn variant'+(vActive?' active':'')+'">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg>'+
+        '<span class="s95-type-btn-lbl">📊 С Вариации</span>'+
+    '</button>';
+    var typeHint=typeChosen
+        ? ''
+        : '<div style="text-align:center;font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">▼ Избери тип артикул</div>';
+    return typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
+  }
+
   // ═══ renderWizSection1Name — 1:1 nameH от products.php 12491-12499 ═══
   function renderWizSection1Name(){
     return '<div class="fg" style="margin:0 0 10px">'+
@@ -667,7 +713,7 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
   function renderWizard(){
     var host=document.getElementById('wizSection1Inner');
     if(!host)return;
-    host.innerHTML=renderWizSection1Photo()+renderWizSection1Name();
+    host.innerHTML=renderWizSection1Type()+renderWizSection1Photo()+renderWizSection1Name();
     // S148 ФАЗА 2f: после ре-рендера highlight-ваме следващото незавършено поле.
     wizHighlightNext();
   }
