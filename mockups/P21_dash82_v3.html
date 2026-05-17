@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P21 · DASH82 v3 · Финансова карта (Приходи + Разходи + Печалба)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   1. CSS VARIABLES — copy 1:1 from wizard_v6_INTERACTIVE
+   ═══════════════════════════════════════════════════ */
+:root{
+  --hue1:255;--hue2:222;--hue3:180;
+  --radius:22px;--radius-sm:14px;--radius-pill:999px;--radius-icon:50%;
+  --ease:cubic-bezier(0.5,1,0.89,1);
+  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+  --dur:250ms;
+  --font-main:'Montserrat',system-ui,-apple-system,sans-serif;
+  --font-mono:'DM Mono',ui-monospace,monospace;
+  --border:1px;
+  --z-aurora:0;--z-shine:1;--z-glow:3;--z-content:5;
+}
+:root:not([data-theme]),:root[data-theme="light"]{
+  --bg-main:#e0e5ec;--surface:#e0e5ec;--surface-2:#d1d9e6;
+  --text:#2d3748;--text-muted:#64748b;--text-faint:#94a3b8;
+  --shadow-light:#ffffff;--shadow-dark:#a3b1c6;
+  --shadow-card:8px 8px 16px var(--shadow-dark),-8px -8px 16px var(--shadow-light);
+  --shadow-card-sm:4px 4px 8px var(--shadow-dark),-4px -4px 8px var(--shadow-light);
+  --shadow-pressed:inset 4px 4px 8px var(--shadow-dark),inset -4px -4px 8px var(--shadow-light);
+  --accent:oklch(0.62 0.22 285);--accent-2:oklch(0.65 0.25 305);
+  --magic:oklch(0.65 0.25 310);
+  --gain:oklch(0.6 0.18 145);--loss:oklch(0.6 0.22 25);--amber:oklch(0.7 0.18 60);
+  --border-color:rgba(163,177,198,0.25);
+}
+:root[data-theme="dark"]{
+  --bg-main:#08090d;--surface:hsl(220,25%,4.8%);--surface-2:hsl(220,25%,8%);
+  --text:#f1f5f9;--text-muted:rgba(255,255,255,0.7);--text-faint:rgba(255,255,255,0.4);
+  --shadow-card:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px;
+  --shadow-card-sm:hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;
+  --shadow-pressed:inset 0 2px 4px hsl(var(--hue2) 50% 2%);
+  --accent:hsl(var(--hue1),80%,68%);--accent-2:hsl(var(--hue2),80%,68%);
+  --magic:hsl(280,75%,68%);
+  --gain:hsl(145,65%,55%);--loss:hsl(0,75%,65%);--amber:hsl(38,90%,60%);
+  --border-color:hsl(var(--hue2) 12% 18%);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font-main);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+:root:not([data-theme]) body,[data-theme="light"] body{background:var(--bg-main);color:var(--text)}
+[data-theme="dark"] body{
+  background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),
+             radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),
+             linear-gradient(180deg,#0a0b14 0%,#050609 100%);
+  background-attachment:fixed;color:var(--text)
+}
+body{min-height:100vh;overflow-x:hidden;padding-bottom:40px}
+
+@keyframes conicSpin{to{transform:rotate(360deg)}}
+@keyframes auroraDrift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(40px,-20px) scale(1.08)}
+  66%{transform:translate(-30px,30px) scale(0.95)}
+}
+
+/* AURORA */
+.aurora{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.45;mix-blend-mode:plus-lighter;animation:auroraDrift 22s ease-in-out infinite}
+.aurora-blob:nth-child(1){width:340px;height:340px;background:hsl(var(--hue1),80%,60%);top:-90px;left:-110px}
+.aurora-blob:nth-child(2){width:300px;height:300px;background:hsl(280,75%,62%);top:30%;right:-130px;animation-delay:5s}
+.aurora-blob:nth-child(3){width:320px;height:320px;background:hsl(var(--hue2),70%,55%);bottom:-120px;left:15%;animation-delay:10s}
+.aurora-blob:nth-child(4){width:260px;height:260px;background:hsl(195,75%,58%);top:55%;left:-80px;animation-delay:15s;opacity:0.32}
+[data-theme="light"] .aurora-blob{opacity:0.22;mix-blend-mode:multiply}
+
+/* SACRED NEON GLASS — 1:1 wizard_v6 §5.4 */
+.glass{position:relative;border-radius:var(--radius);border:var(--border) solid transparent;isolation:isolate}
+.glass.sm{border-radius:var(--radius-sm)}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+[data-theme="light"] .glass,:root:not([data-theme]) .glass{background:var(--surface);box-shadow:var(--shadow-card)}
+[data-theme="light"] .glass .shine,[data-theme="light"] .glass .glow,:root:not([data-theme]) .glass .shine,:root:not([data-theme]) .glass .glow{display:none}
+[data-theme="dark"] .glass{
+  background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),
+             linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),
+             linear-gradient(hsl(220 25% 4.8% / .78));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:var(--shadow-card)
+}
+[data-theme="dark"] .glass .shine{
+  pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;
+  border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;
+  right:calc(var(--border) * -1);top:calc(var(--border) * -1);z-index:var(--z-shine);
+  background:conic-gradient(from var(--conic,-45deg) at center in oklch, transparent 12%, hsl(var(--hue),80%,60%), transparent 50%) border-box;
+  mask:linear-gradient(transparent),linear-gradient(black);
+  mask-clip:padding-box,border-box;mask-composite:subtract
+}
+[data-theme="dark"] .glass .shine.shine-bottom{right:auto;top:auto;left:calc(var(--border) * -1);bottom:calc(var(--border) * -1)}
+[data-theme="dark"] .glass .glow{
+  pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);
+  border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);
+  width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;
+  background:conic-gradient(from var(--conic,-45deg) at center in oklch, hsl(var(--hue),80%,60% / .5) 12%, transparent 50%);
+  filter:blur(12px) saturate(1.25);mix-blend-mode:plus-lighter;z-index:var(--z-glow);opacity:0.6
+}
+[data-theme="dark"] .glass .glow.glow-bottom{inset:auto;left:calc(var(--radius) * -2);bottom:calc(var(--radius) * -2)}
+[data-theme="dark"] .glass.qd .shine,[data-theme="dark"] .glass.qd .glow{--hue:255}
+[data-theme="dark"] .glass.qd .shine-bottom,[data-theme="dark"] .glass.qd .glow-bottom{--hue:222}
+[data-theme="dark"] .glass.q1 .shine,[data-theme="dark"] .glass.q1 .glow{--hue:0}
+[data-theme="dark"] .glass.q1 .shine-bottom,[data-theme="dark"] .glass.q1 .glow-bottom{--hue:15}
+[data-theme="dark"] .glass.q3 .shine,[data-theme="dark"] .glass.q3 .glow{--hue:145}
+[data-theme="dark"] .glass.q3 .shine-bottom,[data-theme="dark"] .glass.q3 .glow-bottom{--hue:165}
+
+/* DEMO BAR */
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:100;padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+[data-theme="dark"] .demo-bar{background:hsl(220 25% 4.8% / 0.92);border-bottom:1px solid hsl(var(--hue2) 12% 14%)}
+[data-theme="light"] .demo-bar,:root:not([data-theme]) .demo-bar{background:rgba(224,229,236,0.92);box-shadow:0 4px 12px rgba(163,177,198,0.15)}
+.demo-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.demo-label{font-size:9.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;margin-right:4px;font-family:var(--font-mono)}
+.demo-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 11px;border-radius:var(--radius-pill);
+  font-size:11px;font-weight:600;font-family:var(--font-main);
+  cursor:pointer;transition:all var(--dur) var(--ease);
+  border:none;color:var(--text-muted)
+}
+[data-theme="dark"] .demo-pill{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+[data-theme="light"] .demo-pill,:root:not([data-theme]) .demo-pill{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+.demo-pill:hover{color:var(--text);transform:translateY(-1px)}
+.demo-pill.active{background:linear-gradient(135deg,hsl(280 60% 35% / 0.5),hsl(var(--hue1) 60% 35% / 0.5));color:#fff;border-color:hsl(280 50% 45%)}
+[data-theme="light"] .demo-pill.active,:root:not([data-theme]) .demo-pill.active{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.9),oklch(0.94 0.05 310 / 0.85));color:#2d3748;box-shadow:var(--shadow-pressed)}
+
+/* PAGE */
+.page{padding:110px 12px 24px;max-width:420px;margin:0 auto;position:relative;z-index:var(--z-content)}
+.page-title{font-size:9.5px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-faint);font-weight:700;margin-bottom:10px;text-align:center;font-family:var(--font-mono)}
+
+/* ═══════════════════════════════════════════════════
+   DASH82 v3 — компактна финансова карта
+   ═══════════════════════════════════════════════════ */
+.dash82{padding:14px 16px 14px}
+
+/* HEAD */
+.dash82-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--border-color);
+}
+.dash82-head-label{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:800;
+  letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);
+}
+.dash82-head-hint{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--font-mono);font-size:9px;font-weight:700;
+  letter-spacing:0.06em;text-transform:uppercase;color:var(--text-faint);
+}
+.dash82-head-hint svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* HERO — главно число Печалба (TAPPABLE) */
+.dash82-hero{padding:14px 0 12px;cursor:pointer;transition:opacity var(--dur)}
+.dash82-hero:active{opacity:0.7}
+.dash82-numrow{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.dash82-num{
+  font-family:var(--font-mono);font-size:38px;font-weight:900;
+  letter-spacing:-0.03em;line-height:1;color:var(--text);
+  text-shadow:0 0 14px hsl(var(--hue1) 70% 55% / 0.15);
+}
+.dash82-cur{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text-muted)}
+.dash82-pct{
+  margin-left:auto;
+  font-family:var(--font-mono);font-size:12px;font-weight:800;
+  padding:4px 10px;border-radius:var(--radius-pill);
+  display:inline-flex;align-items:center;gap:3px;
+}
+.dash82-pct.pos{background:hsl(145 50% 12%);color:hsl(145 70% 65%);border:1px solid hsl(145 40% 25%)}
+.dash82-pct.neg{background:hsl(0 50% 12%);color:hsl(0 80% 70%);border:1px solid hsl(0 40% 30%)}
+.dash82-pct.zero{background:rgba(148,163,184,0.18);color:var(--text-muted);border:1px solid rgba(148,163,184,0.25)}
+[data-theme="light"] .dash82-pct.pos,:root:not([data-theme]) .dash82-pct.pos{background:oklch(0.92 0.08 145 / 0.5);color:hsl(145 60% 35%);border-color:oklch(0.78 0.13 145)}
+[data-theme="light"] .dash82-pct.neg,:root:not([data-theme]) .dash82-pct.neg{background:oklch(0.92 0.08 25 / 0.5);color:hsl(0 60% 45%);border-color:oklch(0.78 0.15 25)}
+.dash82-pct svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:3}
+.dash82-hero-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;text-transform:uppercase;font-family:var(--font-mono)}
+
+/* SPLIT — Приходи / Разходи (1:1 P15 .top-row .cell pattern) */
+.dash82-split{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-bottom:12px;
+}
+.dash82-cell{
+  position:relative;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border-color);
+  cursor:pointer;
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur);
+}
+[data-theme="light"] .dash82-cell,:root:not([data-theme]) .dash82-cell{
+  background:var(--surface);box-shadow:var(--shadow-card-sm);border-color:transparent;
+}
+[data-theme="dark"] .dash82-cell{
+  background:linear-gradient(180deg,hsl(220 25% 6.5% / 0.7),hsl(220 28% 4.5% / 0.7));
+  box-shadow:0 2px 8px hsl(220 30% 1% / 0.5),inset 0 1px 0 hsl(var(--hue2) 15% 12%);
+}
+.dash82-cell:hover{transform:translateY(-1px)}
+.dash82-cell:active{transform:scale(0.98)}
+[data-theme="dark"] .dash82-cell.gain{
+  background:linear-gradient(180deg,hsl(145 25% 7% / 0.75),hsl(145 22% 4.5% / 0.7));
+  border-color:hsl(145 35% 18% / 0.6);
+  box-shadow:0 2px 10px hsl(145 50% 3% / 0.6),inset 0 1px 0 hsl(145 30% 18%);
+}
+[data-theme="dark"] .dash82-cell.loss{
+  background:linear-gradient(180deg,hsl(0 25% 7% / 0.75),hsl(0 22% 4.5% / 0.7));
+  border-color:hsl(0 35% 18% / 0.6);
+  box-shadow:0 2px 10px hsl(0 50% 3% / 0.6),inset 0 1px 0 hsl(0 30% 18%);
+}
+.dash82-cell-head{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.dash82-cell-ic{
+  width:18px;height:18px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.dash82-cell-ic svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.dash82-cell.gain .dash82-cell-ic{background:linear-gradient(145deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 2px 6px hsl(145 70% 35% / 0.5),inset 0 1px 0 rgba(255,255,255,0.3);color:#fff}
+.dash82-cell.loss .dash82-cell-ic{background:linear-gradient(145deg,hsl(0 75% 60%),hsl(15 70% 50%));box-shadow:0 2px 6px hsl(0 70% 35% / 0.5),inset 0 1px 0 rgba(255,255,255,0.3);color:#fff}
+.dash82-cell-label{
+  font-family:var(--font-mono);font-size:9px;font-weight:800;
+  letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);
+}
+.dash82-cell-num{
+  font-family:var(--font-mono);font-size:19px;font-weight:900;
+  letter-spacing:-0.02em;line-height:1;color:var(--text);
+  text-shadow:0 0 10px hsl(var(--hue1) 70% 55% / 0.1);
+}
+.dash82-cell.gain .dash82-cell-num{text-shadow:0 0 10px hsl(145 70% 50% / 0.25)}
+.dash82-cell.loss .dash82-cell-num{text-shadow:0 0 10px hsl(0 70% 55% / 0.25)}
+.dash82-cell-cur{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-muted);margin-left:2px}
+.dash82-cell-meta{
+  display:flex;align-items:baseline;gap:4px;
+  margin-top:3px;
+  font-family:var(--font-mono);font-size:10px;font-weight:700;
+  color:var(--text-faint);
+}
+.dash82-cell-meta.pos{color:hsl(145 65% 55%)}
+.dash82-cell-meta.neg{color:hsl(0 70% 60%)}
+[data-theme="light"] .dash82-cell-meta.pos,:root:not([data-theme]) .dash82-cell-meta.pos{color:hsl(145 60% 35%)}
+[data-theme="light"] .dash82-cell-meta.neg,:root:not([data-theme]) .dash82-cell-meta.neg{color:hsl(0 60% 45%)}
+
+/* AI INSIGHT — q-magic row (rotating) — 1:1 voice-bar pattern */
+.dash82-ai{
+  position:relative;overflow:hidden;
+  padding:11px 14px;
+  border-radius:var(--radius-pill);
+  display:flex;align-items:flex-start;gap:10px;
+  cursor:pointer;
+  transition:transform var(--dur) var(--ease);
+  min-height:54px;
+  margin-bottom:14px;
+}
+[data-theme="light"] .dash82-ai,:root:not([data-theme]) .dash82-ai{
+  background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.7),oklch(0.94 0.05 310 / 0.6));
+  box-shadow:var(--shadow-card-sm);
+}
+[data-theme="dark"] .dash82-ai{
+  background:linear-gradient(135deg,hsl(280 30% 12% / 0.6),hsl(var(--hue1) 30% 12% / 0.5));
+  border:1px solid hsl(280 50% 28% / 0.4);
+}
+.dash82-ai:active{transform:scale(0.99)}
+.dash82-ai-spark{
+  width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;flex-shrink:0;
+  background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));
+  box-shadow:0 4px 12px hsl(280 70% 50% / 0.45);
+  position:relative;overflow:hidden;
+}
+.dash82-ai-spark::before{
+  content:'';position:absolute;inset:0;
+  background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.45) 85%,transparent 100%);
+  animation:conicSpin 4s linear infinite;
+}
+.dash82-ai-spark svg{width:13px;height:13px;stroke:white;fill:none;stroke-width:2.2;position:relative;z-index:1}
+.dash82-ai-body{flex:1;min-width:0;padding-top:1px}
+.dash82-ai-text{
+  font-size:12.5px;font-weight:600;color:var(--text);
+  line-height:1.4;
+  transition:opacity .25s ease;
+}
+.dash82-ai-text.fading{opacity:0}
+.dash82-ai-text b{color:var(--magic);font-weight:800}
+.dash82-ai-dots{display:flex;gap:4px;align-items:center;margin-top:5px}
+.dash82-ai-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:hsl(280 30% 28%);
+  transition:all var(--dur);
+}
+.dash82-ai-dot.on{background:var(--magic);box-shadow:0 0 5px var(--magic);width:14px;border-radius:3px}
+[data-theme="light"] .dash82-ai-dot,:root:not([data-theme]) .dash82-ai-dot{background:oklch(0.82 0.05 295)}
+
+/* ═══════════════════════════════════════════════════
+   QUICK ACTIONS — 1:1 .mic-btn pattern (wizard_v6 line 195)
+   conic ::before + gloss ::after + multi-layer shadow
+   ═══════════════════════════════════════════════════ */
+.dash82-actions{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+}
+.dash82-act-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.dash82-act-btn{
+  width:54px;height:54px;border-radius:50%;
+  display:grid;place-items:center;
+  position:relative;overflow:hidden;
+  cursor:pointer;border:none;
+  transition:transform 150ms,box-shadow 200ms;
+}
+.dash82-act-btn::before{
+  content:'';position:absolute;inset:0;
+  background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.55) 85%,transparent 100%);
+  animation:conicSpin 4s linear infinite;
+}
+.dash82-act-btn::after{
+  content:'';position:absolute;
+  top:4px;left:7px;right:7px;height:40%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.35),transparent);
+  border-radius:50% 50% 30% 30% / 60% 60% 40% 40%;
+  pointer-events:none;
+}
+.dash82-act-btn svg{
+  width:18px;height:18px;stroke:white;fill:none;
+  stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+  position:relative;z-index:2;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+.dash82-act-btn:active{transform:scale(0.94)}
+
+/* Mic — violet (mic-btn 1:1) */
+.dash82-act-mic .dash82-act-btn{
+  background:linear-gradient(145deg,hsl(282 75% 60%),hsl(295 70% 50%) 50%,hsl(305 70% 42%));
+  box-shadow:
+    0 6px 18px hsl(280 70% 40% / 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 4px hsl(280 70% 25% / 0.6);
+  border:1px solid hsl(280 70% 45%);
+}
+.dash82-act-mic .dash82-act-btn:active{
+  box-shadow:
+    0 3px 10px hsl(280 70% 40% / 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    inset 0 -1px 3px hsl(280 70% 25% / 0.5);
+}
+
+/* Camera — indigo (accent default) */
+.dash82-act-cam .dash82-act-btn{
+  background:linear-gradient(145deg,hsl(var(--hue1) 75% 62%),hsl(var(--hue1) 70% 52%) 50%,hsl(var(--hue2) 70% 44%));
+  box-shadow:
+    0 6px 18px hsl(var(--hue1) 70% 40% / 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 4px hsl(var(--hue1) 70% 22% / 0.6);
+  border:1px solid hsl(var(--hue1) 70% 48%);
+}
+.dash82-act-cam .dash82-act-btn:active{
+  box-shadow:
+    0 3px 10px hsl(var(--hue1) 70% 40% / 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    inset 0 -1px 3px hsl(var(--hue1) 70% 22% / 0.5);
+}
+
+/* View — green gain */
+.dash82-act-view .dash82-act-btn{
+  background:linear-gradient(145deg,hsl(145 70% 52%),hsl(150 68% 42%) 50%,hsl(160 70% 34%));
+  box-shadow:
+    0 6px 18px hsl(145 70% 32% / 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 4px hsl(150 70% 18% / 0.6);
+  border:1px solid hsl(145 70% 40%);
+}
+.dash82-act-view .dash82-act-btn:active{
+  box-shadow:
+    0 3px 10px hsl(145 70% 32% / 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    inset 0 -1px 3px hsl(150 70% 18% / 0.5);
+}
+
+.dash82-act-label{
+  font-size:10.5px;font-weight:800;color:var(--text-muted);
+  letter-spacing:0.04em;text-transform:uppercase;
+  font-family:var(--font-mono);
+  text-align:center;
+}
+
+/* EMPTY STATE */
+.dash82-empty .dash82-num{color:var(--text-faint)}
+.dash82-empty .dash82-pct{display:none}
+.dash82-empty .dash82-cell-num{color:var(--text-faint)}
+.dash82-empty .dash82-cell-meta{display:none}
+
+[data-hidden="true"]{display:none !important}
+
+.page-note{
+  margin-top:14px;padding:8px 12px;text-align:center;
+  font-size:9.5px;color:var(--text-faint);line-height:1.6;
+  font-family:var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;
+}
+.page-note strong{color:var(--text-muted);font-weight:800}
+</style>
+</head>
+<body>
+
+<!-- DEMO BAR -->
+<div class="demo-bar">
+  <div class="demo-row">
+    <span class="demo-label">Данни</span>
+    <button class="demo-pill active" data-state="normal" onclick="applyState('normal')">Нормално</button>
+    <button class="demo-pill" data-state="loss" onclick="applyState('loss')">На загуба</button>
+    <button class="demo-pill" data-state="empty" onclick="applyState('empty')">Празно</button>
+  </div>
+  <div class="demo-row">
+    <button class="demo-pill active" data-rot="play" onclick="toggleRotation()" id="rotBtn">⏸ Спри ротация</button>
+    <button class="demo-pill" onclick="nextInsight()">→ Следващ</button>
+    <button class="demo-pill active" data-theme-pill="dark" onclick="applyTheme('dark')">🌙 Тъмен</button>
+    <button class="demo-pill" data-theme-pill="light" onclick="applyTheme('light')">☀ Светъл</button>
+  </div>
+</div>
+
+<!-- AURORA -->
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     DASH82 v3 — финансова карта
+     ═══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-title">P21 · DASH82 v3 · Финанси + Приходи + Разходи</div>
+
+  <article class="glass qd dash82" id="dash82">
+    <span class="shine"></span>
+    <span class="shine shine-bottom"></span>
+    <span class="glow"></span>
+    <span class="glow glow-bottom"></span>
+
+    <!-- HEAD -->
+    <div class="dash82-head">
+      <span class="dash82-head-label">Финанси · Този месец</span>
+      <span class="dash82-head-hint">
+        <span>Виж</span>
+        <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+      </span>
+    </div>
+
+    <!-- HERO — Печалба -->
+    <div class="dash82-hero" onclick="onHeroTap()">
+      <div class="dash82-numrow">
+        <span class="dash82-num" id="hero-num">1 437</span>
+        <span class="dash82-cur" id="hero-cur">€</span>
+        <span class="dash82-pct pos" id="hero-pct">
+          <svg id="hero-pct-svg" viewBox="0 0 24 24"><polyline points="17 6 23 6 23 12"/><path d="M22 7L13.5 15.5 8.5 10.5 1 18"/></svg>
+          <span id="hero-pct-text">+18%</span>
+        </span>
+      </div>
+      <div class="dash82-hero-label" id="hero-label">Печалба</div>
+    </div>
+
+    <!-- SPLIT — Приходи / Разходи -->
+    <div class="dash82-split">
+      <button class="dash82-cell gain" onclick="onCellTap('income')">
+        <div class="dash82-cell-head">
+          <span class="dash82-cell-ic">
+            <svg viewBox="0 0 24 24"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
+          </span>
+          <span class="dash82-cell-label">Приходи</span>
+        </div>
+        <div>
+          <span class="dash82-cell-num" id="income-num">4 237</span>
+          <span class="dash82-cell-cur">€</span>
+        </div>
+        <div class="dash82-cell-meta pos" id="income-meta">+12% vs минал</div>
+      </button>
+
+      <button class="dash82-cell loss" onclick="onCellTap('expense')">
+        <div class="dash82-cell-head">
+          <span class="dash82-cell-ic">
+            <svg viewBox="0 0 24 24"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+          </span>
+          <span class="dash82-cell-label">Разходи</span>
+        </div>
+        <div>
+          <span class="dash82-cell-num" id="expense-num">2 800</span>
+          <span class="dash82-cell-cur">€</span>
+        </div>
+        <div class="dash82-cell-meta neg" id="expense-meta">+5% vs минал</div>
+      </button>
+    </div>
+
+    <!-- AI INSIGHT (rotating, voice-bar pattern) -->
+    <div class="dash82-ai" onclick="onAiTap()">
+      <span class="dash82-ai-spark">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>
+      </span>
+      <div class="dash82-ai-body">
+        <div class="dash82-ai-text" id="ai-text">Тази седмица харчиш €70 повече отколкото изкарваш.</div>
+        <div class="dash82-ai-dots" id="ai-dots"></div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS — 1:1 mic-btn pattern -->
+    <div class="dash82-actions">
+      <div class="dash82-act-wrap dash82-act-mic">
+        <button class="dash82-act-btn" onclick="onAction('mic')" aria-label="Запиши с глас">
+          <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        </button>
+        <span class="dash82-act-label">Запиши</span>
+      </div>
+      <div class="dash82-act-wrap dash82-act-cam">
+        <button class="dash82-act-btn" onclick="onAction('cam')" aria-label="Снимай касова бележка">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <span class="dash82-act-label">Снимка</span>
+      </div>
+      <div class="dash82-act-wrap dash82-act-view">
+        <button class="dash82-act-btn" onclick="onAction('view')" aria-label="Виж пълно табло">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </button>
+        <span class="dash82-act-label">Виж</span>
+      </div>
+    </div>
+  </article>
+
+  <div class="page-note">
+    <strong>DASH82 v3</strong> · Компактна финансова карта · Wizard_v6 canon
+  </div>
+</div>
+
+<script>
+const state = { data: 'normal', theme: 'dark', rotation: true, insightIdx: 0 };
+
+const ICO_UP   = '<svg viewBox="0 0 24 24"><polyline points="17 6 23 6 23 12"/><path d="M22 7L13.5 15.5 8.5 10.5 1 18"/></svg>';
+const ICO_DOWN = '<svg viewBox="0 0 24 24"><polyline points="17 18 23 18 23 12"/><path d="M22 17L13.5 8.5 8.5 13.5 1 6"/></svg>';
+
+const DATA = {
+  normal: {
+    heroNum: '1 437', heroCur: '€', heroLabel: 'Печалба',
+    pctCls: 'pos', pctText: '+18%', pctDir: 'up',
+    incomeNum: '4 237', incomeMeta: '+12% vs минал', incomeMetaCls: 'pos',
+    expenseNum: '2 800', expenseMeta: '+5% vs минал',  expenseMetaCls: 'neg',
+    insights: [
+      'Тази седмица харчиш <b>€70 повече</b> отколкото изкарваш.',
+      'Топ харч: <b>Материали</b> — €420 (28% от месеца).',
+      'Резервът ти: <b>1.2 месеца</b>. Препоръка: 3+ месеца.',
+      '<b>+18% печалба</b> спрямо миналия месец.',
+      'Винетка изтича в края на януари — <b>€97</b>.'
+    ]
+  },
+  loss: {
+    heroNum: '−312', heroCur: '€', heroLabel: 'Загуба',
+    pctCls: 'neg', pctText: '−42%', pctDir: 'down',
+    incomeNum: '1 852', incomeMeta: '−38% vs минал', incomeMetaCls: 'neg',
+    expenseNum: '2 164', expenseMeta: '+8% vs минал', expenseMetaCls: 'neg',
+    insights: [
+      'Този месец си <b>на загуба €312</b> — разходите изпревариха прихода.',
+      'Топ харч: <b>Наем</b> — €650 (35% от месеца).',
+      'Резервът ти: <b>0.4 месеца</b>. Критично.',
+      '<b>−42% спрямо</b> миналия месец.',
+      'Последен положителен месец: <b>преди 2 месеца</b>.'
+    ]
+  },
+  empty: {
+    heroNum: '0', heroCur: '€', heroLabel: 'Все още няма данни',
+    pctCls: 'zero', pctText: '—', pctDir: 'up',
+    incomeNum: '0', incomeMeta: '', incomeMetaCls: 'pos',
+    expenseNum: '0', expenseMeta: '', expenseMetaCls: 'neg',
+    insights: [
+      'Започни първи запис — натисни <b>🎤 Запиши</b>.',
+      'Снимай касова бележка с <b>📷 Снимка</b> — AI чете автоматично.',
+      'След 3+ записа AI ще показва инсайти.'
+    ]
+  }
+};
+
+let rotationTimer = null;
+
+function applyState(s){
+  state.data = s;
+  state.insightIdx = 0;
+  document.querySelectorAll('[data-state]').forEach(b => b.classList.toggle('active', b.dataset.state === s));
+  document.getElementById('dash82').classList.toggle('dash82-empty', s === 'empty');
+  renderAll();
+  restartRotation();
+}
+
+function applyTheme(t){
+  state.theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('[data-theme-pill]').forEach(b => b.classList.toggle('active', b.dataset.themePill === t));
+  try { localStorage.setItem('rms_theme', t); } catch(e){}
+}
+
+function renderAll(){
+  const d = DATA[state.data];
+
+  // Hero
+  document.getElementById('hero-num').textContent = d.heroNum;
+  document.getElementById('hero-cur').textContent = d.heroCur;
+  document.getElementById('hero-label').textContent = d.heroLabel;
+  const pctEl = document.getElementById('hero-pct');
+  pctEl.classList.remove('pos','neg','zero');
+  pctEl.classList.add(d.pctCls);
+  if (d.pctCls === 'zero') {
+    pctEl.style.display = 'none';
+  } else {
+    pctEl.style.display = '';
+    document.getElementById('hero-pct-text').textContent = d.pctText;
+    const svg = (d.pctDir === 'up' ? ICO_UP : ICO_DOWN).replace('<svg ','<svg id="hero-pct-svg" ');
+    document.getElementById('hero-pct-svg').outerHTML = svg;
+  }
+
+  // Income / Expense
+  document.getElementById('income-num').textContent = d.incomeNum;
+  document.getElementById('expense-num').textContent = d.expenseNum;
+  const im = document.getElementById('income-meta');
+  im.classList.remove('pos','neg');
+  if (d.incomeMeta) { im.classList.add(d.incomeMetaCls); im.textContent = d.incomeMeta; im.style.display=''; }
+  else { im.style.display='none'; }
+  const em = document.getElementById('expense-meta');
+  em.classList.remove('pos','neg');
+  if (d.expenseMeta) { em.classList.add(d.expenseMetaCls); em.textContent = d.expenseMeta; em.style.display=''; }
+  else { em.style.display='none'; }
+
+  // AI
+  renderInsight();
+  renderDots();
+}
+
+function renderInsight(){
+  const d = DATA[state.data];
+  const html = d.insights[state.insightIdx];
+  const el = document.getElementById('ai-text');
+  el.classList.add('fading');
+  setTimeout(() => { el.innerHTML = html; el.classList.remove('fading'); }, 250);
+}
+
+function renderDots(){
+  const d = DATA[state.data];
+  const wrap = document.getElementById('ai-dots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < d.insights.length; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'dash82-ai-dot' + (i === state.insightIdx ? ' on' : '');
+    wrap.appendChild(dot);
+  }
+}
+
+function nextInsight(){
+  const d = DATA[state.data];
+  state.insightIdx = (state.insightIdx + 1) % d.insights.length;
+  renderInsight();
+  renderDots();
+}
+
+function restartRotation(){
+  if (rotationTimer) clearInterval(rotationTimer);
+  if (state.rotation) rotationTimer = setInterval(nextInsight, 8000);
+}
+
+function toggleRotation(){
+  state.rotation = !state.rotation;
+  document.getElementById('rotBtn').textContent = state.rotation ? '⏸ Спри ротация' : '▶ Пусни ротация';
+  restartRotation();
+}
+
+function onHeroTap(){ console.log('→ cfo/analysis.php'); alert('→ cfo/analysis.php (пълно финансово табло)'); }
+function onCellTap(c){
+  if (c === 'income')  { console.log('→ cfo/analysis.php?tab=income'); alert('→ Приходи detail'); }
+  else if (c === 'expense'){ console.log('→ cfo/analysis.php?tab=expense'); alert('→ Разходи detail'); }
+}
+function onAiTap(){ console.log('Open Защо drawer'); nextInsight(); }
+function onAction(a){
+  if (a === 'mic')      { console.log('🎤 Voice overlay'); alert('🎤 Запиши приход/разход с глас'); }
+  else if (a === 'cam') { console.log('📷 Camera receipt'); alert('📷 Снимай касова бележка'); }
+  else if (a === 'view'){ console.log('→ cfo/analysis.php'); alert('→ Пълно финансово табло'); }
+}
+
+(function init(){
+  try {
+    const saved = localStorage.getItem('rms_theme');
+    if (saved === 'light' || saved === 'dark') {
+      state.theme = saved;
+      document.documentElement.setAttribute('data-theme', saved);
+      document.querySelectorAll('[data-theme-pill]').forEach(b => b.classList.toggle('active', b.dataset.themePill === saved));
+    }
+  } catch(e){}
+  renderAll();
+  restartRotation();
+})();
+</script>
+</body>
+</html>

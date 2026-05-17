@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>RunMyStore · Справки · Продажби</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>(function(){try{var s=localStorage.getItem('rms_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{font-family:'Montserrat',sans-serif;overflow-x:hidden;font-variant-numeric:tabular-nums}
+button,input,a,select{font-family:inherit;color:inherit}
+button{background:none;border:none;cursor:pointer}
+a{text-decoration:none}
+
+:root{--hue1:255;--hue2:222;--hue3:180;--radius:22px;--radius-sm:14px;--radius-pill:999px;--radius-icon:50%;--border:1px;--ease:cubic-bezier(0.5,1,0.89,1);--ease-spring:cubic-bezier(0.34,1.56,0.64,1);--dur:250ms;--press:0.97;--font-mono:'Montserrat',sans-serif;--z-aurora:0;--z-content:5;--z-shine:1;--z-glow:3}
+:root:not([data-theme]),:root[data-theme="light"]{--bg-main:#e0e5ec;--surface:#e0e5ec;--surface-2:#d1d9e6;--border-color:transparent;--text:#2d3748;--text-muted:#64748b;--text-faint:#94a3b8;--shadow-light:#ffffff;--shadow-dark:#a3b1c6;--neu-d:8px;--neu-b:16px;--neu-d-s:4px;--neu-b-s:8px;--shadow-card:var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);--shadow-card-sm:var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--shadow-pressed:inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--accent:oklch(0.62 0.22 285);--accent-2:oklch(0.65 0.25 305);--magic:oklch(0.65 0.25 305);--gain:oklch(0.6 0.18 145);--loss:oklch(0.6 0.22 25);--amber:oklch(0.7 0.18 60);--aurora-blend:multiply;--aurora-opacity:0.32}
+:root[data-theme="dark"]{--bg-main:#08090d;--surface:hsl(220,25%,4.8%);--surface-2:hsl(220,25%,8%);--border-color:hsl(var(--hue2),12%,20%);--text:#f1f5f9;--text-muted:rgba(255,255,255,0.6);--text-faint:rgba(255,255,255,0.4);--shadow-card:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;--shadow-card-sm:hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;--shadow-pressed:inset 0 2px 4px hsl(var(--hue2) 50% 2%);--accent:hsl(var(--hue1),80%,65%);--accent-2:hsl(var(--hue2),80%,65%);--magic:hsl(280,70%,65%);--gain:hsl(145,65%,55%);--loss:hsl(0,75%,65%);--amber:hsl(38,90%,60%);--aurora-blend:plus-lighter;--aurora-opacity:0.35}
+
+:root:not([data-theme]) body,[data-theme="light"] body{background:var(--bg-main);color:var(--text)}
+[data-theme="dark"] body{background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);background-attachment:fixed;color:var(--text)}
+
+@keyframes auroraDrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.05)}66%{transform:translate(-20px,30px) scale(0.95)}}
+@keyframes conicSpin{to{transform:rotate(360deg)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rmsBrandShimmer{0%{background-position:0% center}100%{background-position:200% center}}
+@keyframes drawLine{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes growBar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* DEMO */
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:200;background:hsl(280 60% 15% / .96);backdrop-filter:blur(20px);border-bottom:1px solid hsl(280 60% 25%);padding:8px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px}
+.demo-bar-label{color:#fff;font-weight:800;font-size:10px;opacity:0.7}
+.demo-btn{padding:6px 10px;border-radius:8px;border:1px solid hsl(280 50% 35%);background:hsl(280 50% 20%);color:#fff;font-weight:700;cursor:pointer;font-size:11px}
+.demo-btn.active{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));border-color:transparent;box-shadow:0 4px 12px hsl(280 70% 50% / 0.5)}
+
+/* AURORA */
+.aurora{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:var(--z-aurora)}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:var(--aurora-opacity);mix-blend-mode:var(--aurora-blend);animation:auroraDrift 20s ease-in-out infinite}
+.aurora-blob:nth-child(1){width:280px;height:280px;background:hsl(var(--hue1),80%,60%);top:-60px;left:-80px}
+.aurora-blob:nth-child(2){width:240px;height:240px;background:hsl(var(--hue3),70%,60%);top:35%;right:-100px;animation-delay:4s}
+.aurora-blob:nth-child(3){width:200px;height:200px;background:hsl(var(--hue2),80%,60%);bottom:80px;left:-50px;animation-delay:8s}
+
+/* HEADER */
+.rms-header{position:sticky;top:38px;z-index:50;height:56px;padding:0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-color)}
+[data-theme="light"] .rms-header,:root:not([data-theme]) .rms-header{background:var(--bg-main);box-shadow:0 4px 12px rgba(163,177,198,0.15)}
+[data-theme="dark"] .rms-header{background:hsl(220 25% 4.8% / 0.85);backdrop-filter:blur(16px)}
+
+.rms-brand-wrap{display:flex;flex-direction:column;line-height:1}
+.rms-brand{position:relative;font-size:17px;font-weight:900;letter-spacing:-0.01em;background:linear-gradient(90deg,hsl(var(--hue1) 80% 60%),hsl(var(--hue2) 80% 60%),hsl(var(--hue3) 70% 55%),hsl(var(--hue2) 80% 60%),hsl(var(--hue1) 80% 60%));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:rmsBrandShimmer 4s linear infinite;filter:drop-shadow(0 0 12px hsl(var(--hue1) 70% 50% / 0.4))}
+.rms-brand-by{font-size:8px;font-weight:700;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;opacity:0.75}
+
+.rms-plan-badge{position:relative;padding:5px 12px;border-radius:var(--radius-pill);font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text);border:1px solid var(--border-color);overflow:hidden}
+[data-theme="light"] .rms-plan-badge,:root:not([data-theme]) .rms-plan-badge{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="dark"] .rms-plan-badge{background:hsl(220 25% 8% / 0.7);backdrop-filter:blur(8px)}
+.rms-plan-badge::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;background:conic-gradient(from 0deg,hsl(var(--hue1) 80% 60%),hsl(var(--hue2) 80% 60%),hsl(var(--hue3) 70% 60%),hsl(var(--hue1) 80% 60%));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:conicSpin 3s linear infinite;opacity:0.6;pointer-events:none}
+.rms-header-spacer{flex:1}
+
+.rms-icon-btn{width:40px;height:40px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;border:1px solid var(--border-color);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease)}
+[data-theme="light"] .rms-icon-btn,:root:not([data-theme]) .rms-icon-btn{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="light"] .rms-icon-btn:active,:root:not([data-theme]) .rms-icon-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .rms-icon-btn{background:hsl(220 25% 8% / 0.7);backdrop-filter:blur(8px)}
+.rms-icon-btn:active{transform:scale(var(--press))}
+.rms-icon-btn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.app{position:relative;z-index:var(--z-content);max-width:480px;margin:0 auto;padding:14px 12px calc(160px + env(safe-area-inset-bottom,0))}
+
+/* PAGE TITLE */
+.page-title{padding:6px 6px 14px;animation:fadeInUp 0.4s var(--ease)}
+.page-title h1{font-size:22px;font-weight:900;letter-spacing:-0.025em;line-height:1.1;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.page-meta{font-size:11px;font-weight:600;color:var(--text-muted)}
+
+/* SACRED GLASS */
+.glass{position:relative;border-radius:var(--radius);border:var(--border) solid var(--border-color);isolation:isolate}
+.glass.sm{border-radius:var(--radius-sm)}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+[data-theme="light"] .glass,:root:not([data-theme]) .glass{background:var(--surface);box-shadow:var(--shadow-card);border:none}
+[data-theme="light"] .glass .shine,[data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine,:root:not([data-theme]) .glass .glow{display:none}
+[data-theme="dark"] .glass{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220 25% 4.8% / .78));backdrop-filter:blur(12px);box-shadow:var(--shadow-card)}
+[data-theme="dark"] .glass .shine{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:calc(var(--border) * -1);top:calc(var(--border) * -1);z-index:1;background:conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-clip:padding-box,border-box;mask-composite:subtract}
+[data-theme="dark"] .glass .shine.shine-bottom{right:auto;top:auto;left:calc(var(--border) * -1);bottom:calc(var(--border) * -1)}
+[data-theme="dark"] .glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;background:conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);filter:blur(12px) saturate(1.25);mix-blend-mode:plus-lighter;z-index:3;opacity:0.6}
+[data-theme="dark"] .glass .glow.glow-bottom{inset:auto;left:calc(var(--radius) * -2);bottom:calc(var(--radius) * -2)}
+[data-theme="dark"] .glass.q1 .shine,[data-theme="dark"] .glass.q1 .glow{--hue:0}
+[data-theme="dark"] .glass.q1 .shine-bottom,[data-theme="dark"] .glass.q1 .glow-bottom{--hue:15}
+[data-theme="dark"] .glass.q3 .shine,[data-theme="dark"] .glass.q3 .glow{--hue:145}
+[data-theme="dark"] .glass.q3 .shine-bottom,[data-theme="dark"] .glass.q3 .glow-bottom{--hue:165}
+[data-theme="dark"] .glass.q5 .shine,[data-theme="dark"] .glass.q5 .glow{--hue:38}
+[data-theme="dark"] .glass.q5 .shine-bottom,[data-theme="dark"] .glass.q5 .glow-bottom{--hue:28}
+[data-theme="dark"] .glass.qd .shine,[data-theme="dark"] .glass.qd .glow{--hue:var(--hue1)}
+[data-theme="dark"] .glass.qd .shine-bottom,[data-theme="dark"] .glass.qd .glow-bottom{--hue:var(--hue2)}
+[data-theme="dark"] .glass.qm .shine,[data-theme="dark"] .glass.qm .glow{--hue:280}
+[data-theme="dark"] .glass.qm .shine-bottom,[data-theme="dark"] .glass.qm .glow-bottom{--hue:310}
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
+
+/* PERIOD PILLS */
+.period-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;border-radius:var(--radius-pill);margin-bottom:12px}
+[data-theme="light"] .period-row,:root:not([data-theme]) .period-row{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .period-row{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.period-tab{padding:10px 4px;border-radius:var(--radius-pill);font-size:10px;font-weight:800;letter-spacing:0.04em;color:var(--text-muted);text-align:center;cursor:pointer;transition:all 200ms}
+.period-tab.active{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.4)}
+
+/* SUB-TABS (Преглед / Категории / Тенденции / Данък) */
+.subtab-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;border-radius:var(--radius);margin-bottom:14px}
+[data-theme="light"] .subtab-row,:root:not([data-theme]) .subtab-row{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .subtab-row{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.subtab{padding:10px 4px;border-radius:var(--radius-sm);font-size:11px;font-weight:800;letter-spacing:-0.01em;color:var(--text-muted);text-align:center;cursor:pointer;transition:all 200ms;display:flex;flex-direction:column;align-items:center;gap:4px}
+.subtab svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.subtab.active{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.4)}
+
+/* TAB CONTENT */
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fadeInUp 0.4s var(--ease)}
+
+/* ════ TAB 1: ПРЕГЛЕД ════ */
+.hero-stat{padding:18px 18px 16px;margin-bottom:12px}
+.hero-stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hero-stat-label{font-size:9px;font-weight:800;letter-spacing:0.1em;color:var(--text-muted);text-transform:uppercase}
+.hero-stat-num{font-size:36px;font-weight:900;letter-spacing:-0.025em;line-height:1;display:flex;align-items:baseline;gap:6px}
+.hero-stat-num .cur{font-size:18px;color:var(--text-muted);font-weight:700}
+[data-theme="dark"] .hero-stat-num{text-shadow:0 0 18px hsl(var(--hue1) 70% 55% / 0.3)}
+.hero-stat-meta{margin-top:8px;font-size:11.5px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:8px;line-height:1.4}
+.delta-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:var(--radius-pill);font-size:10px;font-weight:800}
+.delta-pill svg{width:9px;height:9px;fill:currentColor;stroke:none}
+.delta-pill.up{background:oklch(0.92 0.08 145 / 0.5);color:hsl(145 60% 35%)}
+[data-theme="dark"] .delta-pill.up{background:hsl(145 50% 12%);color:hsl(145 70% 65%)}
+.delta-pill.down{background:oklch(0.92 0.08 25 / 0.5);color:hsl(0 60% 45%)}
+[data-theme="dark"] .delta-pill.down{background:hsl(0 50% 12%);color:hsl(0 80% 70%)}
+
+/* CHART CARD */
+.chart-card{padding:14px 14px 18px;margin-bottom:12px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.chart-title{font-size:13px;font-weight:800;letter-spacing:-0.01em}
+.chart-legend{display:flex;gap:10px;font-size:10px;font-weight:700;color:var(--text-muted)}
+.legend-dot{display:inline-flex;align-items:center;gap:4px}
+.legend-dot::before{content:'';width:8px;height:8px;border-radius:50%}
+.legend-dot.income::before{background:hsl(145 70% 50%);box-shadow:0 0 6px hsl(145 70% 50% / 0.6)}
+.legend-dot.expense::before{background:hsl(0 75% 55%);box-shadow:0 0 6px hsl(0 75% 50% / 0.6)}
+.chart-svg{width:100%;height:170px;display:block}
+.chart-labels{display:flex;justify-content:space-between;font-size:9px;font-weight:700;color:var(--text-faint);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase}
+
+/* SUMMARY GRID 2x2 */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mini-stat{padding:12px 14px}
+.mini-label{font-size:9px;font-weight:800;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
+.mini-num{font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1}
+.mini-meta{font-size:10px;font-weight:600;color:var(--text-muted);margin-top:3px}
+.mini-stat.q3 .mini-num{color:hsl(145 60% 40%)}
+[data-theme="dark"] .mini-stat.q3 .mini-num{color:hsl(145 70% 65%);text-shadow:0 0 10px hsl(145 70% 50% / 0.3)}
+.mini-stat.q1 .mini-num{color:hsl(0 60% 50%)}
+[data-theme="dark"] .mini-stat.q1 .mini-num{color:hsl(0 80% 70%);text-shadow:0 0 10px hsl(0 75% 50% / 0.3)}
+.mini-stat.q5 .mini-num{color:hsl(38 70% 45%)}
+[data-theme="dark"] .mini-stat.q5 .mini-num{color:hsl(38 90% 65%)}
+
+/* AI INSIGHT */
+.help-card{padding:14px;margin-bottom:14px}
+.help-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.help-head-ic{width:36px;height:36px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 4px 12px hsl(280 70% 50% / 0.5);position:relative;overflow:hidden}
+.help-head-ic::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 3s linear infinite}
+.help-head-ic svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2.2;position:relative;z-index:1}
+.help-head-text{flex:1}
+.help-title{font-size:14px;font-weight:800;background:linear-gradient(135deg,var(--text),var(--magic));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.help-sub{font-size:11px;font-weight:600;color:var(--text-muted);margin-top:2px}
+.help-body{font-size:12.5px;font-weight:600;color:var(--text-muted);line-height:1.5}
+.help-body b{color:var(--text);font-weight:800}
+
+/* ════ TAB 2: КАТЕГОРИИ ════ */
+.donut-card{padding:18px 14px;margin-bottom:12px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.donut-wrap{position:relative;width:180px;height:180px}
+.donut-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-num{font-size:22px;font-weight:900;letter-spacing:-0.02em;line-height:1}
+.donut-lbl{font-size:9px;font-weight:800;letter-spacing:0.1em;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+
+.cat-breakdown{display:flex;flex-direction:column;gap:8px;width:100%}
+.cat-bar-row{display:flex;align-items:center;gap:10px}
+.cat-bar-orb{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.cat-bar-name{flex:1;font-size:12px;font-weight:700}
+.cat-bar-amt{font-size:12px;font-weight:800;letter-spacing:-0.01em}
+.cat-bar-pct{font-size:10px;font-weight:700;color:var(--text-muted);min-width:34px;text-align:right}
+.cat-bar-track{height:6px;border-radius:100px;flex:1;overflow:hidden}
+[data-theme="light"] .cat-bar-track,:root:not([data-theme]) .cat-bar-track{background:var(--surface-2);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .cat-bar-track{background:hsl(220 25% 3.5%)}
+.cat-bar-fill{height:100%;border-radius:100px;transition:width 0.8s var(--ease-spring)}
+
+/* ════ TAB 3: ТЕНДЕНЦИИ ════ */
+.trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.trend-card{padding:12px 14px}
+.trend-label{font-size:9px;font-weight:800;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
+.trend-num{font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1;margin-bottom:8px}
+.trend-spark{width:100%;height:36px}
+.trend-meta{font-size:10px;font-weight:700;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;gap:4px}
+
+.forecast-card{padding:14px;margin-bottom:12px}
+.forecast-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.forecast-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(var(--hue3) 70% 50%),hsl(var(--hue3) 75% 55%));box-shadow:0 4px 12px hsl(var(--hue3) 70% 50% / 0.4)}
+.forecast-ic svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2.2}
+.forecast-title{font-size:14px;font-weight:800}
+.forecast-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.forecast-num{font-size:24px;font-weight:900;letter-spacing:-0.025em;margin:10px 0 4px}
+.forecast-meta{font-size:11px;color:var(--text-muted);line-height:1.4}
+
+/* ════ TAB 4: ДАНЪК ════ */
+.tax-hero{padding:18px 16px;margin-bottom:12px}
+.tax-hero-label{font-size:9px;font-weight:800;letter-spacing:0.1em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
+.tax-hero-num{font-size:38px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:hsl(38 70% 45%)}
+[data-theme="dark"] .tax-hero-num{color:hsl(38 90% 65%);text-shadow:0 0 18px hsl(38 80% 50% / 0.4)}
+.tax-hero-meta{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4}
+
+.tax-breakdown{padding:14px 16px;margin-bottom:12px}
+.tax-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed hsl(var(--hue2) 12% 16%);font-size:12px}
+[data-theme="light"] .tax-row,:root:not([data-theme]) .tax-row{border-bottom:1px dashed rgba(163,177,198,0.35)}
+.tax-row:last-child{border-bottom:none;margin-top:6px;padding-top:12px;border-top:1px solid hsl(var(--hue2) 12% 14%);font-weight:900;font-size:14px}
+[data-theme="light"] .tax-row:last-child,:root:not([data-theme]) .tax-row:last-child{border-top:1px solid rgba(163,177,198,0.4)}
+.tax-row-label{color:var(--text-muted);font-weight:700}
+.tax-row-val{font-weight:800;letter-spacing:-0.01em}
+.tax-row.minus .tax-row-val{color:hsl(0 60% 50%)}
+[data-theme="dark"] .tax-row.minus .tax-row-val{color:hsl(0 80% 70%)}
+
+/* VAT THRESHOLD */
+.vat-card{padding:14px 16px;margin-bottom:12px}
+.vat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.vat-title{font-size:13px;font-weight:800}
+.vat-status-pill{padding:3px 9px;border-radius:var(--radius-pill);font-size:9px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
+.vat-status-pill.approaching{background:hsl(38 80% 92%);color:hsl(38 80% 35%)}
+[data-theme="dark"] .vat-status-pill.approaching{background:hsl(38 50% 12%);color:hsl(38 90% 65%)}
+.vat-status-pill.safe{background:hsl(145 50% 92%);color:hsl(145 60% 35%)}
+[data-theme="dark"] .vat-status-pill.safe{background:hsl(145 50% 12%);color:hsl(145 70% 65%)}
+.vat-bar-track{height:14px;border-radius:100px;overflow:hidden;position:relative}
+[data-theme="light"] .vat-bar-track,:root:not([data-theme]) .vat-bar-track{background:var(--surface-2);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .vat-bar-track{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.vat-bar-fill{height:100%;background:linear-gradient(90deg,hsl(38 80% 55%),hsl(28 85% 50%));box-shadow:0 0 12px hsl(38 80% 50% / 0.5);transition:width 0.8s var(--ease-spring);position:relative}
+.vat-bar-mark{position:absolute;top:-4px;width:2px;height:22px;background:var(--text);opacity:0.5}
+.vat-mark-100{right:0}
+.vat-stats{display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--text-muted);margin-top:8px}
+.vat-stat-val{font-weight:800;color:var(--text)}
+
+/* REMINDERS */
+.reminders-card{padding:14px;margin-bottom:12px}
+.reminders-title{font-size:11px;font-weight:800;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px}
+.reminder-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed hsl(var(--hue2) 12% 16%)}
+[data-theme="light"] .reminder-row,:root:not([data-theme]) .reminder-row{border-bottom:1px dashed rgba(163,177,198,0.35)}
+.reminder-row:last-child{border-bottom:none}
+.reminder-date{width:42px;height:42px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 10px hsl(var(--hue1) 80% 50% / 0.4);color:white}
+.reminder-date-d{font-size:14px;font-weight:900;line-height:1}
+.reminder-date-m{font-size:8px;font-weight:700;letter-spacing:0.06em;margin-top:1px}
+.reminder-info{flex:1;min-width:0}
+.reminder-title{font-size:12.5px;font-weight:800;line-height:1.3}
+.reminder-sub{font-size:10.5px;font-weight:600;color:var(--text-muted);margin-top:2px}
+.reminder-days{font-size:10px;font-weight:800;color:var(--accent)}
+[data-theme="dark"] .reminder-days{color:hsl(var(--hue1) 80% 75%)}
+
+.disclaimer{font-size:10px;font-weight:600;color:var(--text-faint);text-align:center;line-height:1.4;padding:8px 14px;margin-top:6px}
+
+/* VOICE BAR + MIC */
+.voice-bar{position:fixed;left:12px;right:12px;bottom:calc(82px + env(safe-area-inset-bottom,0));z-index:49;max-width:456px;margin:0 auto;height:60px;padding:0 8px 0 18px;border-radius:var(--radius-pill);display:flex;align-items:center;gap:10px;border:1px solid var(--border-color)}
+[data-theme="light"] .voice-bar,:root:not([data-theme]) .voice-bar{background:var(--surface);box-shadow:var(--shadow-card);border:none}
+[data-theme="dark"] .voice-bar{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .85),hsl(var(--hue2) 50% 8% / .8));backdrop-filter:blur(16px);box-shadow:0 8px 24px hsl(220 50% 4% / 0.5)}
+.voice-sparkle{width:22px;height:22px;flex-shrink:0;display:grid;place-items:center}
+.voice-sparkle svg{width:16px;height:16px;stroke:var(--magic);fill:none;stroke-width:2.2;filter:drop-shadow(0 0 6px var(--magic))}
+.voice-text{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mic-btn{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(145deg,hsl(282 75% 60%),hsl(295 70% 50%) 50%,hsl(305 70% 42%));box-shadow:0 6px 18px hsl(280 70% 40% / 0.55),inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -2px 4px hsl(280 70% 25% / 0.6);position:relative;overflow:hidden;border:1px solid hsl(280 70% 45%);transition:transform 150ms}
+.mic-btn::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.55) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.mic-btn::after{content:'';position:absolute;top:3px;left:6px;right:6px;height:40%;background:linear-gradient(180deg,rgba(255,255,255,0.35),transparent);border-radius:50% 50% 30% 30% / 60% 60% 40% 40%;pointer-events:none}
+.mic-btn:active{transform:scale(0.94)}
+.mic-btn svg{width:20px;height:20px;stroke:white;fill:none;stroke-width:2.4;position:relative;z-index:2}
+
+/* BOTTOM NAV */
+.bot-nav{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;height:64px;display:grid;grid-template-columns:repeat(4,1fr);border-radius:var(--radius);padding-bottom:env(safe-area-inset-bottom,0);max-width:456px;margin:0 auto;border:1px solid var(--border-color)}
+[data-theme="light"] .bot-nav,:root:not([data-theme]) .bot-nav{background:var(--surface);box-shadow:var(--shadow-card);border:none}
+[data-theme="dark"] .bot-nav{background:linear-gradient(hsl(220 25% 4.8% / .9));backdrop-filter:blur(12px)}
+.nav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-muted);font-size:10px;font-weight:700;cursor:pointer;position:relative;transition:color 200ms}
+.nav-tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
+.nav-tab.active{color:var(--accent)}
+[data-theme="dark"] .nav-tab.active{color:hsl(var(--hue1) 80% 75%)}
+.nav-tab.active::before{content:'';position:absolute;top:8px;width:26px;height:3px;border-radius:100px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 0 8px hsl(var(--hue1) 80% 50% / 0.6)}
+
+
+/* SALE PILL — 1:1 от products-v2.php */
+.sale-pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:var(--radius-pill);font-size:12px;font-weight:800;letter-spacing:0.02em;color:#fff;text-decoration:none;background:linear-gradient(135deg,hsl(38 88% 55%),hsl(28 90% 50%));box-shadow:0 4px 14px hsl(38 88% 50% / 0.35);transition:transform var(--dur) var(--ease);flex-shrink:0}
+.sale-pill:active{transform:scale(var(--press))}
+.sale-pill svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* HOURLY BARS — §10.2.5 BIBLE */
+.hourly-bars{display:flex;align-items:flex-end;gap:4px;height:120px;padding:4px 0 22px}
+.hourly-bar{flex:1;height:var(--h);min-height:4px;background:linear-gradient(to top,hsl(var(--hue1) 60% 45%),hsl(var(--hue1) 60% 65%));border-radius:3px 3px 0 0;position:relative;transform-origin:bottom;animation:growBar 0.6s var(--ease-spring) backwards}
+.hourly-bar:nth-child(1){animation-delay:0.05s}.hourly-bar:nth-child(2){animation-delay:0.1s}.hourly-bar:nth-child(3){animation-delay:0.15s}.hourly-bar:nth-child(4){animation-delay:0.2s}.hourly-bar:nth-child(5){animation-delay:0.25s}.hourly-bar:nth-child(6){animation-delay:0.3s}.hourly-bar:nth-child(7){animation-delay:0.35s}.hourly-bar:nth-child(8){animation-delay:0.4s}.hourly-bar:nth-child(9){animation-delay:0.45s}.hourly-bar:nth-child(10){animation-delay:0.5s}.hourly-bar:nth-child(11){animation-delay:0.55s}.hourly-bar:nth-child(12){animation-delay:0.6s}
+.hourly-bar.active{background:linear-gradient(to top,hsl(145 70% 40%),hsl(145 70% 60%));box-shadow:0 0 12px hsl(145 70% 50% / 0.6)}
+.hourly-bar .hb-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--text-faint);white-space:nowrap}
+.hourly-bar.active .hb-label{color:hsl(145 70% 50%);font-weight:800}
+.hourly-bar .hb-amt{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:900;color:hsl(145 70% 50%);white-space:nowrap}
+.hourly-meta{font-size:11px;font-weight:600;color:var(--text-muted);margin-top:14px;text-align:center}
+.hourly-meta b{color:var(--text);font-weight:800}
+
+/* SELLER LIST (§8.4) */
+.seller-list{display:flex;flex-direction:column;gap:10px}
+.seller-row{display:grid;grid-template-columns:32px 1fr 70px;gap:10px;align-items:center;padding:8px 0}
+.seller-rank{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:900;color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 8px hsl(var(--hue1) 80% 50% / 0.4)}
+.seller-rank.rank-1{background:linear-gradient(135deg,hsl(38 90% 55%),hsl(28 90% 50%));box-shadow:0 3px 10px hsl(38 80% 50% / 0.5)}
+.seller-rank.rank-2{background:linear-gradient(135deg,hsl(220 10% 65%),hsl(220 10% 50%))}
+.seller-rank.rank-3{background:linear-gradient(135deg,hsl(28 60% 50%),hsl(20 65% 40%))}
+.seller-info{min-width:0}
+.seller-name{font-size:13px;font-weight:800;letter-spacing:-0.01em;color:var(--text);line-height:1.2}
+.seller-meta{font-size:10.5px;font-weight:600;color:var(--text-muted);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+.seller-bar-wrap{height:5px;border-radius:100px;margin-top:6px;overflow:hidden;grid-column:1 / span 2}
+[data-theme="light"] .seller-bar-wrap,:root:not([data-theme]) .seller-bar-wrap{background:var(--surface-2);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .seller-bar-wrap{background:hsl(220 25% 3.5%)}
+.seller-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,hsl(145 70% 50%),hsl(160 70% 55%));box-shadow:0 0 8px hsl(145 70% 50% / 0.4);transition:width 0.8s var(--ease-spring)}
+.seller-amt{font-size:13px;font-weight:800;text-align:right;letter-spacing:-0.01em;color:var(--text)}
+
+</style>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<div class="demo-bar">
+  <span class="demo-bar-label">TAB</span>
+  <button class="demo-btn active" onclick="setTab('overview',this)">Преглед</button>
+  <button class="demo-btn" onclick="setTab('cats',this)">Категории</button>
+  <button class="demo-btn" onclick="setTab('trends',this)">Часове</button>
+  <button class="demo-btn" onclick="setTab('tax',this)">Продавачи</button>
+  <span class="demo-bar-label" style="margin-left:6px">THEME</span>
+  <button class="demo-btn" onclick="toggleTheme()">Свети/Тъмно</button>
+</div>
+
+<header class="rms-header">
+  <a href="#" class="rms-brand-wrap">
+    <span class="rms-brand">RunMyStore.ai</span>
+  </a>
+  <span class="rms-header-spacer"></span>
+  <button class="rms-icon-btn" onclick="toggleTheme()" aria-label="Тема">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+  </button>
+  <a class="sale-pill" href="#" title="Продажба">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h21l-2 9H4L2 6z"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+    <span>Продажба</span>
+  </a>
+</header>
+
+<div class="app">
+
+  <div class="page-title">
+    <h1>Продажби</h1>
+    <div class="page-meta">Цариградско · 7 дни · Tier 2</div>
+  </div>
+
+  <!-- PERIOD -->
+  <div class="period-row">
+    <div class="period-tab" onclick="setPeriod(this)">Днес</div>
+    <div class="period-tab active" onclick="setPeriod(this)">7 дни</div>
+    <div class="period-tab" onclick="setPeriod(this)">30 дни</div>
+    <div class="period-tab" onclick="setPeriod(this)">90 дни</div>
+  </div>
+
+  <!-- SUB-TABS -->
+  <div class="subtab-row" id="subtabRow">
+    <div class="subtab active" data-tab="overview" onclick="setTab('overview',null,this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+      Преглед
+    </div>
+    <div class="subtab" data-tab="cats" onclick="setTab('cats',null,this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Категории
+    </div>
+    <div class="subtab" data-tab="trends" onclick="setTab('trends',null,this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Часове
+    </div>
+    <div class="subtab" data-tab="tax" onclick="setTab('tax',null,this)">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+      Продавачи
+    </div>
+  </div>
+
+
+  <!-- ════════ TAB: ПРЕГЛЕД ════════ -->
+  <div class="tab-content active" data-tab="overview">
+
+    <div class="glass qd hero-stat">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="hero-stat-top">
+        <span class="hero-stat-label">Продажби · 7 дни · Цариградско</span>
+        <span class="delta-pill up">
+          <svg viewBox="0 0 24 24"><polygon points="12 5 5 19 19 19"/></svg>
+          +9%
+        </span>
+      </div>
+      <div class="hero-stat-num">4 237<span class="cur">€</span></div>
+      <div class="hero-stat-meta">
+        35 продажби · WoW +9% vs миналата седмица · среден чек €121
+      </div>
+    </div>
+
+    <!-- LINE CHART -->
+    <div class="glass chart-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="chart-head">
+        <div class="chart-title">Продажби по дни</div>
+        <div class="chart-legend">
+          <span class="legend-dot income">Тази седмица</span>
+          <span class="legend-dot expense">Миналата</span>
+        </div>
+      </div>
+      <svg class="chart-svg" viewBox="0 0 320 170" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        <line x1="0" y1="40" x2="320" y2="40" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+        <line x1="0" y1="80" x2="320" y2="80" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+        <line x1="0" y1="120" x2="320" y2="120" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+        
+        <!-- Income line (gain) -->
+        <path d="M 10 130 Q 50 100 80 110 T 150 70 T 220 50 T 310 30"
+              fill="none" stroke="hsl(145 70% 50%)" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round"
+              style="filter:drop-shadow(0 0 6px hsl(145 70% 50% / 0.5));stroke-dasharray:1000;animation:drawLine 1.5s ease-out forwards"/>
+        <!-- Income area -->
+        <path d="M 10 130 Q 50 100 80 110 T 150 70 T 220 50 T 310 30 L 310 170 L 10 170 Z"
+              fill="url(#gainGrad)" opacity="0.2"/>
+        
+        <!-- Expense line (loss) -->
+        <path d="M 10 110 Q 50 120 80 100 T 150 105 T 220 90 T 310 95"
+              fill="none" stroke="hsl(0 75% 55%)" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round"
+              style="filter:drop-shadow(0 0 6px hsl(0 75% 50% / 0.5));stroke-dasharray:1000;animation:drawLine 1.5s ease-out 0.3s forwards"/>
+        <path d="M 10 110 Q 50 120 80 100 T 150 105 T 220 90 T 310 95 L 310 170 L 10 170 Z"
+              fill="url(#lossGrad)" opacity="0.12"/>
+        
+        <!-- Today marker -->
+        <circle cx="310" cy="30" r="4" fill="hsl(145 70% 50%)" style="filter:drop-shadow(0 0 8px hsl(145 70% 50% / 0.8))"/>
+        <circle cx="310" cy="95" r="4" fill="hsl(0 75% 55%)" style="filter:drop-shadow(0 0 8px hsl(0 75% 50% / 0.8))"/>
+        
+        <defs>
+          <linearGradient id="gainGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="hsl(145 70% 50%)" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="hsl(145 70% 50%)" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="hsl(0 75% 55%)" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="hsl(0 75% 50%)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="chart-labels">
+        <span>Пон</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт ★</span>
+      </div>
+    </div>
+
+    <!-- SUMMARY GRID -->
+    <div class="summary-grid">
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Среден чек (AOV)</div>
+        <div class="mini-num">121 €</div>
+        <div class="mini-meta">↑ 8% · §7.3 BIBLE</div>
+      </div>
+      <div class="glass sm mini-stat q5">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Discount rate</div>
+        <div class="mini-num">8.4%</div>
+        <div class="mini-meta">норма 8% · ⚠ §8.1</div>
+      </div>
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Кошница (basket)</div>
+        <div class="mini-num">2.3</div>
+        <div class="mini-meta">артикула/чек · §8.6</div>
+      </div>
+      <div class="glass sm mini-stat q5">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Returns rate</div>
+        <div class="mini-num">2.1%</div>
+        <div class="mini-meta">норма 1.5% · §8.7</div>
+      </div>
+    </div>
+
+    <div class="glass qm sm help-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="help-head">
+        <div class="help-head-ic">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="help-head-text">
+          <div class="help-title">AI наблюдение</div>
+          <div class="help-sub">Tier 2 patterns · 7 дни
+        </div>
+      </div>
+      <div class="help-body">
+        Продажбите растат <b>+9% WoW</b>, но Discount Rate скочи на <b>8.4%</b> (норма 8%). Returns rate <b>2.1%</b> (норма 1.5%) — провери Обувки категория. §8.1, §8.7
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ════════ TAB: КАТЕГОРИИ ════════ -->
+  <div class="tab-content" data-tab="cats">
+
+    <div class="glass qd donut-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      
+      <div class="donut-wrap">
+        <svg class="donut-svg" viewBox="0 0 100 100">
+          <!-- Background ring -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="14" opacity="0.08"/>
+          <!-- Materials 28% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(0 75% 55%)" stroke-width="14"
+                  stroke-dasharray="88 251.3" stroke-dashoffset="0"
+                  style="filter:drop-shadow(0 0 6px hsl(0 75% 50% / 0.5))"/>
+          <!-- Fuel 19% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(280 70% 55%)" stroke-width="14"
+                  stroke-dasharray="70.4 251.3" stroke-dashoffset="-88"
+                  style="filter:drop-shadow(0 0 6px hsl(280 70% 50% / 0.5))"/>
+          <!-- Restaurants 14% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(38 90% 55%)" stroke-width="14"
+                  stroke-dasharray="45.2 251.3" stroke-dashoffset="-158.4"
+                  style="filter:drop-shadow(0 0 6px hsl(38 80% 50% / 0.5))"/>
+          <!-- Health 11% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(145 70% 50%)" stroke-width="14"
+                  stroke-dasharray="25.1 251.3" stroke-dashoffset="-203.6"
+                  style="filter:drop-shadow(0 0 6px hsl(145 70% 50% / 0.5))"/>
+          <!-- Subs 8% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--hue3) 70% 55%)" stroke-width="14"
+                  stroke-dasharray="15.1 251.3" stroke-dashoffset="-228.7"/>
+          <!-- Other 20% -->
+          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="14" opacity="0.3"
+                  stroke-dasharray="7.5 251.3" stroke-dashoffset="-243.8"/>
+        </svg>
+        <div class="donut-center">
+          <div class="donut-num">4 237 €</div>
+          <div class="donut-lbl">оборот · 7 дни</div>
+        </div>
+      </div>
+
+      <div class="cat-breakdown">
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:hsl(0 75% 55%);box-shadow:0 0 6px hsl(0 75% 50% / 0.5)"></span>
+          <span class="cat-bar-name">Обувки</span>
+          <span class="cat-bar-amt">1 483 €</span>
+          <span class="cat-bar-pct">35%</span>
+        </div>
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:hsl(280 70% 55%);box-shadow:0 0 6px hsl(280 70% 50% / 0.5)"></span>
+          <span class="cat-bar-name">Тениски</span>
+          <span class="cat-bar-amt">1 186 €</span>
+          <span class="cat-bar-pct">28%</span>
+        </div>
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:hsl(38 90% 55%);box-shadow:0 0 6px hsl(38 80% 50% / 0.5)"></span>
+          <span class="cat-bar-name">Дънки</span>
+          <span class="cat-bar-amt">763 €</span>
+          <span class="cat-bar-pct">18%</span>
+        </div>
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:hsl(145 70% 50%);box-shadow:0 0 6px hsl(145 70% 50% / 0.5)"></span>
+          <span class="cat-bar-name">Аксесоари</span>
+          <span class="cat-bar-amt">424 €</span>
+          <span class="cat-bar-pct">10%</span>
+        </div>
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:hsl(var(--hue3) 70% 55%)"></span>
+          <span class="cat-bar-name">Бижута</span>
+          <span class="cat-bar-amt">254 €</span>
+          <span class="cat-bar-pct">6%</span>
+        </div>
+        <div class="cat-bar-row">
+          <span class="cat-bar-orb" style="background:var(--text-faint);opacity:0.5"></span>
+          <span class="cat-bar-name">Други</span>
+          <span class="cat-bar-amt">127 €</span>
+          <span class="cat-bar-pct">3%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass qm sm help-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="help-head">
+        <div class="help-head-ic">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="help-head-text">
+          <div class="help-title">Възможност за спестяване</div>
+          <div class="help-sub">Скрити разходи</div>
+        </div>
+      </div>
+      <div class="help-body">
+        Обувки = <b>35%</b> от оборота (1 483 €). Nike 42 е №1. Petite/Тениски близо с <b>28%</b> — растящ тренд WoW.
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ════════ TAB: ТЕНДЕНЦИИ ════════ -->
+  <div class="tab-content" data-tab="trends">
+
+    <!-- Hero — Peak hour -->
+    <div class="glass qd hero-stat">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="hero-stat-top">
+        <span class="hero-stat-label">Пиков час · 7 дни</span>
+        <span class="delta-pill up">
+          <svg viewBox="0 0 24 24"><polygon points="12 5 5 19 19 19"/></svg>
+          17:00
+        </span>
+      </div>
+      <div class="hero-stat-num">€180<span class="cur">/час</span></div>
+      <div class="hero-stat-meta">Стабилен 4 петъка подред · §8.2 BIBLE</div>
+    </div>
+
+    <!-- HOURLY BARS — 12 stълба 9-20ч -->
+    <div class="glass chart-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="chart-head">
+        <div class="chart-title">Продажби по часове</div>
+        <div class="chart-legend">
+          <span class="legend-dot income">Пик 17:00</span>
+        </div>
+      </div>
+      <div class="hourly-bars">
+        <div class="hourly-bar" style="--h:10%"><span class="hb-label">9</span></div>
+        <div class="hourly-bar" style="--h:18%"><span class="hb-label">10</span></div>
+        <div class="hourly-bar" style="--h:25%"><span class="hb-label">11</span></div>
+        <div class="hourly-bar" style="--h:35%"><span class="hb-label">12</span></div>
+        <div class="hourly-bar" style="--h:45%"><span class="hb-label">13</span></div>
+        <div class="hourly-bar" style="--h:55%"><span class="hb-label">14</span></div>
+        <div class="hourly-bar" style="--h:68%"><span class="hb-label">15</span></div>
+        <div class="hourly-bar" style="--h:82%"><span class="hb-label">16</span></div>
+        <div class="hourly-bar active" style="--h:100%"><span class="hb-label">17</span><span class="hb-amt">€180</span></div>
+        <div class="hourly-bar" style="--h:85%"><span class="hb-label">18</span></div>
+        <div class="hourly-bar" style="--h:55%"><span class="hb-label">19</span></div>
+        <div class="hourly-bar" style="--h:28%"><span class="hb-label">20</span></div>
+      </div>
+      <div class="hourly-meta">Топ часове: <b>16-18ч</b> · ~46% от дневен оборот</div>
+    </div>
+
+    <!-- Summary mini-stat -->
+    <div class="summary-grid">
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Сутрин (9-12)</div>
+        <div class="mini-num">14%</div>
+        <div class="mini-meta">€593 · слаб период</div>
+      </div>
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Обед (12-15)</div>
+        <div class="mini-num">28%</div>
+        <div class="mini-meta">€1 186 · стабилно</div>
+      </div>
+      <div class="glass sm mini-stat q5">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">След обяд (15-18)</div>
+        <div class="mini-num">46%</div>
+        <div class="mini-meta">€1 949 · пик</div>
+      </div>
+      <div class="glass sm mini-stat q1">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Вечер (18-20)</div>
+        <div class="mini-num">12%</div>
+        <div class="mini-meta">€508 · затваряне</div>
+      </div>
+    </div>
+
+    <!-- AI наблюдение -->
+    <div class="glass qm sm help-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="help-head">
+        <div class="help-head-ic">
+          <svg viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="help-head-text">
+          <div class="help-title">Pattern наблюдение</div>
+          <div class="help-sub">claude_016 "Hour of day peak"</div>
+        </div>
+      </div>
+      <div class="help-body">
+        Петък 17:00 е стабилен пик <b>4 седмици подред</b>. Препоръка: подсигури <b>2 продавача</b> между 15-18ч. Сутрин (9-12) = 14% — обмисли <b>отложен start</b>.
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="tab-content" data-tab="tax">
+
+    <!-- Hero — Top seller -->
+    <div class="glass qd hero-stat">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="hero-stat-top">
+        <span class="hero-stat-label">Топ продавач · 7 дни</span>
+        <span class="delta-pill up">
+          <svg viewBox="0 0 24 24"><polygon points="12 5 5 19 19 19"/></svg>
+          29%
+        </span>
+      </div>
+      <div class="hero-stat-num">Мария<span class="cur"> · €1 247</span></div>
+      <div class="hero-stat-meta">10 продажби · AOV €125 · 29% от общия · §8.4 BIBLE</div>
+    </div>
+
+    <!-- Seller list -->
+    <div class="glass chart-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="chart-head">
+        <div class="chart-title">Класация · оборот</div>
+        <div class="chart-legend"><span class="legend-dot income">5 продавача</span></div>
+      </div>
+      <div class="seller-list">
+        <div class="seller-row">
+          <span class="seller-rank rank-1">1</span>
+          <div class="seller-info">
+            <div class="seller-name">Мария Иванова</div>
+            <div class="seller-meta">10 продажби · AOV €125 · Disc 5.2%</div>
+          </div>
+          <span class="seller-amt">1 247 €</span>
+          <div class="seller-bar-wrap"><div class="seller-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="seller-row">
+          <span class="seller-rank rank-2">2</span>
+          <div class="seller-info">
+            <div class="seller-name">Петър Стоянов</div>
+            <div class="seller-meta">8 продажби · AOV €123 · Disc 8.4%</div>
+          </div>
+          <span class="seller-amt">985 €</span>
+          <div class="seller-bar-wrap"><div class="seller-bar-fill" style="width:79%"></div></div>
+        </div>
+        <div class="seller-row">
+          <span class="seller-rank rank-3">3</span>
+          <div class="seller-info">
+            <div class="seller-name">Иван Георгиев</div>
+            <div class="seller-meta">6 продажби · AOV €120 · Disc <b style="color:hsl(38 80% 55%)">14.1%</b> ⚠</div>
+          </div>
+          <span class="seller-amt">720 €</span>
+          <div class="seller-bar-wrap"><div class="seller-bar-fill" style="width:58%"></div></div>
+        </div>
+        <div class="seller-row">
+          <span class="seller-rank">4</span>
+          <div class="seller-info">
+            <div class="seller-name">Емилия Димитрова</div>
+            <div class="seller-meta">5 продажби · AOV €108 · Disc 6.8%</div>
+          </div>
+          <span class="seller-amt">540 €</span>
+          <div class="seller-bar-wrap"><div class="seller-bar-fill" style="width:43%"></div></div>
+        </div>
+        <div class="seller-row">
+          <span class="seller-rank">5</span>
+          <div class="seller-info">
+            <div class="seller-name">Стефан Петров</div>
+            <div class="seller-meta">3 продажби · AOV €104 · Disc 7.1%</div>
+          </div>
+          <span class="seller-amt">312 €</span>
+          <div class="seller-bar-wrap"><div class="seller-bar-fill" style="width:25%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Общо продажби</div>
+        <div class="mini-num">32</div>
+        <div class="mini-meta">5 продавача · 7 дни</div>
+      </div>
+      <div class="glass sm mini-stat q3">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Среден AOV</div>
+        <div class="mini-num">118 €</div>
+        <div class="mini-meta">vs €121 общо</div>
+      </div>
+      <div class="glass sm mini-stat q5">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Avg Disc rate</div>
+        <div class="mini-num">8.3%</div>
+        <div class="mini-meta">норма 8% · §8.1</div>
+      </div>
+      <div class="glass sm mini-stat q1">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="mini-label">Returns</div>
+        <div class="mini-num">2.1%</div>
+        <div class="mini-meta">7 от 32 · §8.7</div>
+      </div>
+    </div>
+
+    <!-- AI наблюдение -->
+    <div class="glass qm sm help-card">
+      <span class="shine"></span><span class="shine shine-bottom"></span>
+      <span class="glow"></span><span class="glow glow-bottom"></span>
+      <div class="help-head">
+        <div class="help-head-ic">
+          <svg viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="help-head-text">
+          <div class="help-title">Discount alert · Иван</div>
+          <div class="help-sub">price_032 "One seller most discounts"</div>
+        </div>
+      </div>
+      <div class="help-body">
+        Иван дава отстъпки на <b>14.1%</b> (норма 8%) — <b>176% над средното</b>. Загуба ~<b>€42</b> за 7 дни. Препоръка: разговор за политика на отстъпки.
+      </div>
+    </div>
+
+  </div>
+
+
+  </div>
+
+</div>
+
+<!-- VOICE BAR -->
+<div class="voice-bar">
+  <span class="voice-sparkle">
+    <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+  </span>
+  <span class="voice-text">Питай AI: "Какво ме изненада?", "Защо?"…</span>
+  <button class="mic-btn">
+    <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+</div>
+
+<!-- BOTTOM NAV (Анализ active) -->
+<nav class="bot-nav">
+  <a href="#" class="nav-tab">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Начало
+  </a>
+  <a href="#" class="nav-tab">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Записи
+  </a>
+  <a href="#" class="nav-tab active">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+    Анализ
+  </a>
+  <a href="#" class="nav-tab">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    Цели
+  </a>
+</nav>
+
+<script>
+function setTab(tab, demoBtn, subtab){
+  // Reset всички demo-bar бутони
+  document.querySelectorAll('.demo-bar .demo-btn').forEach(b=>{
+    var onclickAttr = b.getAttribute('onclick') || '';
+    if(onclickAttr.indexOf("setTab(") !== -1) b.classList.remove('active');
+  });
+  if(demoBtn) demoBtn.classList.add('active');
+
+  // Reset sub-tabs
+  document.querySelectorAll('.subtab').forEach(t=>t.classList.remove('active'));
+  if(subtab){
+    subtab.classList.add('active');
+  } else {
+    var target = document.querySelector('.subtab[data-tab="' + tab + '"]');
+    if(target) target.classList.add('active');
+  }
+
+  // Switch tab content
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  var content = document.querySelector('.tab-content[data-tab="' + tab + '"]');
+  if(content) content.classList.add('active');
+
+  // Sync demo-bar active state по onclick attribute
+  if(!demoBtn){
+    document.querySelectorAll('.demo-bar .demo-btn').forEach(b=>{
+      var onclickAttr = b.getAttribute('onclick') || '';
+      if(onclickAttr.indexOf("'" + tab + "'") !== -1) b.classList.add('active');
+    });
+  }
+}
+
+function setPeriod(el){
+  document.querySelectorAll('.period-tab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try{localStorage.setItem('rms_theme', next);}catch(_){}
+}
+
+// Init: гарантирано показва active tab при load (overview default)
+window.addEventListener('DOMContentLoaded', function(){
+  console.log('[P26 tabs init] tab-content count:', document.querySelectorAll('.tab-content').length);
+  console.log('[P26 tabs init] subtab count:', document.querySelectorAll('.subtab').length);
+  // Force tabs да са в правилно начално състояние
+  setTab('overview', null, document.querySelector('.subtab[data-tab="overview"]'));
+});
+</script>
+
+</body>
+</html>
