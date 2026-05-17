@@ -597,8 +597,198 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     if (ov) ov.remove();
   }
 
-  // STUBS (deferred — multi-photo drawer/camera + AI inline + color detect идват в 2e++c/d/e).
-  function wizPhotoMultiPick(){showToast('Multi-photo flow: следваща sub-step','info')}
+  /* ═══ S148 ФАЗА 2e++c — multi-photo add/remove + camera loop (1:1 sacred от p.php) ═══
+       9467           var _camPending
+       9418-9442      wizPhotoMultiPick — picker drawer (Снимай / Галерия + tip)
+       9444-9456      wizPhotoMultiGalleryPick — multi <input type="file"> избор
+       9469-9484      wizPhotoCameraLoop — full-screen camera UX init
+       9486-9506      wizCamRenderEmpty — empty state UI
+       9508-9512      wizCamShoot — trigger native camera
+       9514-9540      wizCamLoopOnFile — receive captured photo + downscale
+       9542-9545      wizCamRetake
+       9547-9561      wizCamAccept — push в S.wizData._photos + continue/finish
+       9563-9566      wizCamLoopFinish — close + detect colors
+       9568-9573      wizCamLoopClose
+       9613-9638      wizPhotoMultiAdd — batch add от galleries
+     wizPhotoDetectColors / _markPhotosFailed остават stubs до 2e++d.
+  */
+
+  var _camPending = null;
+
+  function wizPhotoMultiPick() {
+    if (document.getElementById('rmsPickerDrawer')) {
+        document.getElementById('rmsPickerDrawer').remove();
+    }
+    var dr = document.createElement('div');
+    dr.id = 'rmsPickerDrawer';
+    dr.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:9998;display:flex;align-items:flex-end;justify-content:center';
+    dr.onclick = function(e) { if (e.target === dr) dr.remove(); };
+    dr.innerHTML = '<div style="background:var(--bg-card,#0a0b14);border:1px solid var(--border-subtle);border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom,0));width:100%;max-width:480px">' +
+        '<div style="font-size:13px;font-weight:800;color:var(--text-primary);text-align:center;margin-bottom:12px">Добави снимка</div>' +
+        '<div class="cam-drawer-tip">' +
+            '<div class="cam-drawer-tip-icon">💡</div>' +
+            '<div class="cam-drawer-tip-text">' +
+                '<b>Ако се отвори селфи камерата:</b> излез, обърни я веднъж в нормалната <span class="cam-drawer-tip-app">📷 Camera</span> и Самсунг ще запомни задната завинаги. ' +
+                '<span class="cam-drawer-tip-or">Иначе — обръщай я с <span class="cam-drawer-tip-flip">🔄</span> в Camera всеки път.</span>' +
+            '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px">' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoCameraLoop()" style="flex:1;padding:14px 8px;border-radius:14px;background:linear-gradient(135deg,var(--indigo-500,#6366f1),var(--indigo-600,#4f46e5));border:1px solid var(--indigo-400,#818cf8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Снимай</button>' +
+            '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove();wizPhotoMultiGalleryPick()" style="flex:1;padding:14px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Галерия</button>' +
+        '</div>' +
+        '<button type="button" onclick="document.getElementById(\'rmsPickerDrawer\').remove()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Откажи</button>' +
+    '</div>';
+    document.body.appendChild(dr);
+  }
+
+  function wizPhotoMultiGalleryPick() {
+    if (document.getElementById('_rmsGalPicker')) document.getElementById('_rmsGalPicker').remove();
+    var inp = document.createElement('input');
+    inp.type = 'file'; inp.id = '_rmsGalPicker'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.style.display = 'none';
+    inp.onchange = async function(e) {
+        var files = Array.from(e.target.files || []);
+        await wizPhotoMultiAdd(files);
+        inp.remove();
+    };
+    document.body.appendChild(inp);
+    inp.click();
+  }
+
+  function wizPhotoCameraLoop() {
+    if (document.getElementById('rmsCamLoop')) document.getElementById('rmsCamLoop').remove();
+    _camPending = null;
+    var ov = document.createElement('div');
+    ov.id = 'rmsCamLoop'; ov.className = 'cam-loop-ov show';
+    var photoCount = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0) + 1;
+    ov.innerHTML =
+        '<div class="cam-loop-counter" id="rmsCamCounter">Снимай цвят ' + photoCount + '</div>' +
+        '<div id="rmsCamStage" class="cam-loop-stage"></div>' +
+        '<input type="file" id="rmsCamInput" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
+        '<div class="cam-loop-controls" id="rmsCamControls"></div>';
+    document.body.appendChild(ov);
+    document.getElementById('rmsCamInput').addEventListener('change', wizCamLoopOnFile);
+    wizCamRenderEmpty();
+    wizCamShoot();
+  }
+
+  function wizCamRenderEmpty() {
+    var stage = document.getElementById('rmsCamStage');
+    var taken = (Array.isArray(S.wizData._photos) ? S.wizData._photos.length : 0);
+    var hint = taken
+        ? 'Снимка ' + taken + ' добавена. Tap кръглия бутон за следващата.'
+        : 'Tap кръглия бутон, за да отвориш камерата на телефона.';
+    if (stage) {
+        stage.innerHTML =
+            '<div class="cam-loop-empty">' +
+                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+                '<div class="cam-loop-empty-msg">' + hint + '</div>' +
+            '</div>';
+    }
+    var ctl = document.getElementById('rmsCamControls');
+    if (ctl) {
+        ctl.innerHTML =
+            '<button type="button" class="cam-loop-btn cancel" onclick="wizCamLoopClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+            '<button type="button" class="cam-loop-btn shoot" onclick="wizCamShoot()"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></button>' +
+            (taken ? '<button type="button" class="cam-loop-btn done" onclick="wizCamLoopFinish()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>' : '');
+    }
+  }
+
+  function wizCamShoot() {
+    var inp = document.getElementById('rmsCamInput');
+    if (inp) inp.click();
+  }
+
+  function wizCamLoopOnFile(e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) {
+        wizCamRenderEmpty();
+        return;
+    }
+    var fr = new FileReader();
+    fr.onload = async function() {
+        var dataUrl = fr.result;
+        try { dataUrl = await _downscaleDataUrl(dataUrl, 1000, 0.80); } catch(err) { console.warn('downscale err:', err); }
+        _camPending = dataUrl;
+        var stage = document.getElementById('rmsCamStage');
+        if (stage) stage.innerHTML = '<img class="cam-loop-preview" src="' + dataUrl + '" alt="">';
+        var ctl = document.getElementById('rmsCamControls');
+        if (ctl) {
+            ctl.innerHTML =
+                '<button type="button" class="cam-loop-btn retake" onclick="wizCamRetake()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>Нова снимка</button>' +
+                '<button type="button" class="cam-loop-btn next" onclick="wizCamAccept(true)">Следваща запис<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+                '<button type="button" class="cam-loop-btn done" onclick="wizCamAccept(false)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Готово</button>';
+        }
+        if (navigator.vibrate) navigator.vibrate(6);
+    };
+    fr.readAsDataURL(f);
+  }
+
+  function wizCamRetake() {
+    _camPending = null;
+    wizCamShoot();
+  }
+
+  async function wizCamAccept(continueShooting) {
+    if (!_camPending) return;
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    S.wizData._photos.push({ dataUrl: _camPending, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
+    _camPending = null;
+    S.wizData._aiColorsApplied = false;
+    if (continueShooting && S.wizData._photos.length < 30) {
+        var ctr = document.getElementById('rmsCamCounter');
+        if (ctr) ctr.textContent = 'Снимай цвят ' + (S.wizData._photos.length + 1);
+        wizCamShoot();
+    } else {
+        wizCamLoopClose();
+        wizPhotoDetectColors();
+    }
+  }
+
+  function wizCamLoopFinish() {
+    wizCamLoopClose();
+    wizPhotoDetectColors();
+  }
+
+  function wizCamLoopClose() {
+    _camPending = null;
+    var ov = document.getElementById('rmsCamLoop');
+    if (ov) ov.remove();
+    if (typeof renderWizard === 'function') renderWizard();
+  }
+
+  async function wizPhotoMultiAdd(files) {
+    if (!Array.isArray(S.wizData._photos)) S.wizData._photos = [];
+    var room = 30 - S.wizData._photos.length;
+    if (room <= 0) {
+        if (typeof showToast === 'function') showToast('Максимум 30 снимки', 'error');
+        return;
+    }
+    var accepted = files.slice(0, room);
+    for (var i = 0; i < accepted.length; i++) {
+        var file = accepted[i];
+        try {
+            var dataUrl = await new Promise(function(res, rej) {
+                var fr = new FileReader();
+                fr.onload = function() { res(fr.result); };
+                fr.onerror = rej;
+                fr.readAsDataURL(file);
+            });
+            dataUrl = await _downscaleDataUrl(dataUrl, 1000, 0.80);
+            S.wizData._photos.push({ dataUrl: dataUrl, file: null, ai_color: null, ai_hex: null, ai_confidence: null });
+        } catch (err) { console.warn('[S82.COLOR.7] Read err:', err); }
+    }
+    S.wizData._aiColorsApplied = false;
+    renderWizard();
+    wizPhotoDetectColors();
+  }
+
+  // STUB — wizPhotoDetectColors / _markPhotosFailed получават full 1:1 в 2e++d.
+  function wizPhotoDetectColors(){ /* deferred → 2e++d ще извика ai-color-detect.php?multi=1 */ }
+  function _markPhotosFailed(indices){ /* deferred → 2e++d */ }
+
+  // STUBS — AI inline buttons получават 1:1 в 2e++e.
   function wizAIInlineBgRemove(){showToast('AI махни фон: следваща sub-step','info')}
   function wizAIInlineSeoDesc(){showToast('SEO описание: следваща sub-step','info')}
   function wizAIInlineMagic(){showToast('AI магия: следваща sub-step','info')}
