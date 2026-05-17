@@ -687,19 +687,22 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 8px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.18)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms,box-shadow 200ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0}
+.wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:8px!important;background:rgba(239,68,68,.08)!important;border:1px solid rgba(239,68,68,.22)!important;color:#fca5a5!important;position:relative;overflow:visible!important;animation:none!important;transition:all .15s;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0;box-shadow:none!important}
+.wiz-mic:active{background:rgba(239,68,68,.18)!important;transform:scale(.95)}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
 .wiz-mic:active{transform:scale(0.92)}
-.wiz-mic svg{width:13px!important;height:13px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));display:block}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 6px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
+.wiz-mic svg{width:13px!important;height:13px!important;stroke:currentColor!important;fill:none;stroke-width:2.2;position:relative;z-index:1;display:block}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:var(--surface)!important;border:none!important;box-shadow:var(--shadow-card-sm)!important;color:oklch(0.58 0.22 25)!important}
+[data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)!important;background:var(--surface)!important}
 
-/* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
-.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 2px 6px hsl(0 80% 50% / 0.45)!important;border:none!important}
+/* Recording state — sacred 1:1: червен fill + пулсираща червена точка (БЕЗ rings, БЕЗ REC label) */
+.wiz-mic.recording{background:rgba(239,68,68,.28)!important;border-color:#ef4444!important;color:#fff!important;animation:none!important;box-shadow:none!important}
 .wiz-mic.recording::before{content:''!important;position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 5px #ef4444,0 0 10px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
 .wiz-mic.recording::after{content:none!important;animation:none!important}
+[data-theme="light"] .wiz-mic.recording,:root:not([data-theme]) .wiz-mic.recording{background:rgba(239,68,68,.18)!important;color:#dc2626!important;border:1px solid rgba(239,68,68,.5)!important;box-shadow:var(--shadow-pressed)!important}
 
-/* Active-field highlight (mic вътре в .fg.wiz-active) — purple variant без animation */
-.fg.wiz-active .wiz-mic{background:linear-gradient(135deg,hsl(255 75% 60%),hsl(280 65% 55%))!important;animation:none!important}
+/* Active-field highlight — sacred subtle purple-tint (без gradient) */
+.fg.wiz-active .wiz-mic{background:rgba(99,102,241,.12)!important;border-color:rgba(99,102,241,.4)!important;color:var(--accent)!important;animation:none!important}
 
 /* Copy button — same size as mic (30×30) */
 .copy-btn{width:30px!important;height:30px!important;font-size:11px;padding:0}
