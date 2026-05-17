@@ -2570,13 +2570,11 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
     // 1:1 products-v2.php Simple search-wrap (ред 3203-3213).
-    // Input винаги видим; dropdown auto-show при 2+ chars. Filter s-btn вътре в search-wrap.
-    // Voice-bar премахнат (per Тих 2026-05-17 "щом няма да има функция с 2 сек мъчание,
-    // махни съвета изцяло").
+    // Placeholder per Тих: "Търси подобен за копиране".
     var searchBlock =
       '<div class="search-wrap" id="wzSearchWrap" style="margin-bottom:10px">'+
         '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
-        '<input type="text" id="wzSearchInp" placeholder="Търси по име, код или баркод..." oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+        '<input type="text" id="wzSearchInp" placeholder="Търси подобен за копиране" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
         '<button class="s-btn" type="button" id="wzFilterBtn" aria-label="Филтри" onclick="wizOpenFilterDrawer()">'+
           '<svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'+
         '</button>'+
@@ -2586,6 +2584,12 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
       '</div>'+
       '<div id="wzSearchResults" class="search-dd"></div>'+
       '<div class="active-chips" id="wzActiveChips" style="margin-bottom:10px"></div>';
+    // "Копирай предния артикул" — върнат след 2q (моя грешка че го махнах при products-v2 revert)
+    var hasLast = false;
+    try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
+    var copyPrevBtn = hasLast
+      ? '<button type="button" class="wz-copy-prev-btn" onclick="wizCopyPrevProductFull()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул</button>'
+      : '<button type="button" class="wz-copy-prev-btn" disabled onclick="showToast(\'Налично след първия записан артикул\',\'info\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Копирай предния артикул (след първи запис)</button>';
     var modeToggle =
       '<div class="mode-toggle">'+
         '<button type="button" class="mode-tab'+(sActive?' active':'')+'" onclick="wizSwitchType(\'single\')">'+
@@ -2597,7 +2601,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
           '<span>С вариации</span>'+
         '</button>'+
       '</div>';
-    return searchBlock + modeToggle;
+    return searchBlock + copyPrevBtn + modeToggle;
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
