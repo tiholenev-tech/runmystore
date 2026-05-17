@@ -190,6 +190,33 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 .ai-inline-row .air-ic{font-size:16px}
 .ai-inline-row .air-lbl{flex:1}
 .ai-inline-row .air-price{font-size:11px;color:var(--indigo-300);font-weight:700}
+
+/* ═══ S148 ФАЗА 2e+ — light mode overrides (нов CSS, products.php няма такива) ═══
+   Проверено: products.php дефинира [data-theme="light"] overrides за други класове
+   (.rms-header, .glass, .lb-*, .chat-*, etc.) НО НЕ за .v4-pz/.toast/.photo-* —
+   sacred wizard работи само в dark. Тук добавяме светъл вариант за wizard-v6.php
+   (новаторски CSS, не sacred copy). Dark стиловете по-горе остават непроменени.
+*/
+[data-theme="light"] .v4-pz,:root:not([data-theme]) .v4-pz{background:linear-gradient(180deg,rgba(99,102,241,0.06),var(--surface));border-color:rgba(99,102,241,0.35)}
+[data-theme="light"] .v4-pz-title,:root:not([data-theme]) .v4-pz-title{background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="light"] .v4-pz-sub,:root:not([data-theme]) .v4-pz-sub{color:var(--text-muted)}
+[data-theme="light"] .v4-pz-btn.primary,:root:not([data-theme]) .v4-pz-btn.primary{background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(99,102,241,0.08));color:var(--accent);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .v4-pz-btn.sec,:root:not([data-theme]) .v4-pz-btn.sec{background:var(--surface);border-color:rgba(0,0,0,0.06);color:var(--text);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .v4-pz-tips,:root:not([data-theme]) .v4-pz-tips{border-top-color:rgba(99,102,241,0.25)}
+[data-theme="light"] .v4-pz-tip,:root:not([data-theme]) .v4-pz-tip{color:var(--text-muted)}
+[data-theme="light"] .v4-pz-tip svg,:root:not([data-theme]) .v4-pz-tip svg{color:oklch(0.55 0.18 145)}
+[data-theme="light"] .toast,:root:not([data-theme]) .toast{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card-sm);border-color:rgba(0,0,0,0.08)}
+[data-theme="light"] .photo-mode-toggle,:root:not([data-theme]) .photo-mode-toggle{background:var(--surface);box-shadow:var(--shadow-pressed);border-color:rgba(0,0,0,0.06)}
+[data-theme="light"] .pmt-opt,:root:not([data-theme]) .pmt-opt{color:var(--text-muted)}
+[data-theme="light"] .pmt-opt.active,:root:not([data-theme]) .pmt-opt.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .photo-multi-thumb,:root:not([data-theme]) .photo-multi-thumb{background:var(--surface);border-color:rgba(99,102,241,0.28)}
+[data-theme="light"] .photo-color-input,:root:not([data-theme]) .photo-color-input{background:var(--surface);box-shadow:var(--shadow-pressed);border-color:rgba(0,0,0,0.06)}
+[data-theme="light"] .photo-color-input input,:root:not([data-theme]) .photo-color-input input{color:var(--text)}
+[data-theme="light"] .photo-empty-add,:root:not([data-theme]) .photo-empty-add{background:var(--surface);box-shadow:var(--shadow-pressed);border-color:rgba(99,102,241,0.4);color:var(--accent)}
+[data-theme="light"] .photo-empty-add:hover,:root:not([data-theme]) .photo-empty-add:hover{background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.6)}
+[data-theme="light"] .photo-multi-info,:root:not([data-theme]) .photo-multi-info{background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3);color:var(--accent)}
+[data-theme="light"] .photo-multi-info b,:root:not([data-theme]) .photo-multi-info b{color:var(--text)}
+[data-theme="light"] .ai-inline-row,:root:not([data-theme]) .ai-inline-row{background:linear-gradient(180deg,rgba(139,92,246,0.08),rgba(99,102,241,0.04));border-color:rgba(139,92,246,0.3);color:var(--text);box-shadow:var(--shadow-card-sm)}
   </style>
 </head>
 <body>
