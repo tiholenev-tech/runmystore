@@ -93,3 +93,30 @@ Iron rule (повтаряно преди всеки sub-step):
 - New file: `services/ai-vision.php` (170 реда)
 - Deploy в `/var/www/runmystore/services/` (за verify check #5 baseline).
 - Sacred SHA непроменена.
+
+═══════════════════════════════════════════════════════════════
+## SUB-STEP 2d: `services/ai-markup.php`
+
+### Protocol checklist
+
+- ✓ Прочетох handoff §5.3 (логика) + §14.2 (JSON schema)
+- ✓ Прочетох `services/price-ai.php` като auth/JSON request pattern (същия модел)
+- ✓ Логиката която копирам: НЯМА copy от products.php (markup endpoint е НОВ). Логика 1:1 от handoff §5.3 (find pattern → fallback to category-only → fallback to global default 2.0×.90).
+- ✓ Sacred check: НЕ пипам voice-tier2 / price-ai / ai-color-detect / products.php / capacitor-printer / ai-helper (само include).
+- ✓ Bridge call: N/A — този endpoint е target на бриджа.
+
+### Q4 graceful degrade (одобрено)
+- Ако `pricing_patterns` таблицата НЕ съществува (SQLSTATE 42S02) → fallback на global default 2.0 × .90, confidence 0.5
+- Ако таблицата съществува но няма pattern за този tenant/category → също global default
+- Ако `cost_price` ≤ 0 → 400 INVALID_INPUT
+- Routing: confidence > 0.85 → 'auto', 0.5-0.85 → 'confirm', <0.5 → 'manual'
+
+### Verification
+- `php -l services/ai-markup.php` → no syntax errors
+- Bridge smoke test no-session → `{"ok":false,"error":"unauthorized"}` (proper JSON 401)
+- `bash tools/verify_sacred.sh` → 5/5 PASS
+
+### Commit
+- New file: `services/ai-markup.php` (155 реда)
+- Deploy в `/var/www/runmystore/services/`.
+- Sacred SHA непроменена.
