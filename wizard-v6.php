@@ -28,7 +28,7 @@ $user_role  = $_SESSION['role'] ?? 'seller';
 $csrf_token = csrfToken();
 ?>
 <!DOCTYPE html>
-<html lang="bg" data-theme="dark">
+<html lang="bg">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
@@ -64,6 +64,13 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 
 /* ───── SHELL / LAYOUT ───── */
 .shell{position:relative;z-index:5;max-width:480px;margin:0 auto;padding-bottom:calc(86px + env(safe-area-inset-bottom,0))}
+
+/* ───── ICON BUTTONS (header buttons) — m.46-53 ───── */
+.icon-btn{width:38px;height:38px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;transition:transform 150ms}
+.icon-btn:active{transform:scale(0.94)}
+[data-theme="light"] .icon-btn,:root:not([data-theme]) .icon-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .icon-btn{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.icon-btn svg{width:16px;height:16px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ───── HEADER (wz-header) — m.42-44 ───── */
 .wz-header{position:sticky;top:0;z-index:50;height:56px;padding:0 12px;display:flex;align-items:center;gap:8px}
@@ -131,7 +138,10 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
       <button class="icon-btn" aria-label="Назад"><!-- TODO Фаза 2: back nav --></button>
       <span class="wz-title">Добави артикул</span>
       <button class="kp-pill" aria-label="Като предния"><!-- TODO Фаза 2: bulk mode --></button>
-      <button class="icon-btn" aria-label="Тема"><!-- TODO Фаза 2: theme toggle --></button>
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Тема">
+        <svg id="themeIconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="themeIconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+      </button>
     </header>
 
     <!-- ═══ MAIN: 4 акордеона ═══ -->
@@ -182,6 +192,35 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
   </footer>
 
   <script src="js/capacitor-printer.js"></script>
-  <script>/* TODO Фаза 2-4 — wizard JS + sacred bridge calls */</script>
+  <script>
+  /* Theme toggle (ФАЗА 1.5) — light по default, persist в localStorage rms_theme */
+  (function(){
+    const saved = localStorage.getItem('rms_theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme','dark');
+
+    window.toggleTheme = function(){
+      const cur = document.documentElement.getAttribute('data-theme');
+      if (cur === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('rms_theme','light');
+      } else {
+        document.documentElement.setAttribute('data-theme','dark');
+        localStorage.setItem('rms_theme','dark');
+      }
+      updateThemeIcon();
+    };
+
+    function updateThemeIcon(){
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const moon = document.getElementById('themeIconMoon');
+      const sun  = document.getElementById('themeIconSun');
+      if (moon) moon.style.display = isDark ? 'none'  : 'block';
+      if (sun)  sun.style.display  = isDark ? 'block' : 'none';
+    }
+
+    updateThemeIcon();
+  })();
+  /* TODO Фаза 2-4 — wizard JS + sacred bridge calls */
+  </script>
 </body>
 </html>
