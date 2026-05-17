@@ -687,10 +687,10 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:28px!important;min-width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 1px 4px hsl(280 70% 50% / 0.35)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0}
+.wiz-mic{width:30px!important;min-width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 8px hsl(280 70% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.18)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms,box-shadow 200ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0;padding:0;line-height:0}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
 .wiz-mic:active{transform:scale(0.92)}
-.wiz-mic svg{width:11px!important;height:11px!important;stroke:#fff!important;fill:none;stroke-width:2.4;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));display:block}
+.wiz-mic svg{width:13px!important;height:13px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));display:block}
 [data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 6px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
 
 /* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
