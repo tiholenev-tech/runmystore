@@ -394,12 +394,137 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
 [data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{background:var(--surface);box-shadow:var(--shadow-card-sm);border-color:rgba(239,68,68,0.3);color:oklch(0.58 0.22 25)}
 [data-theme="light"] .wiz-mic:active,:root:not([data-theme]) .wiz-mic:active{box-shadow:var(--shadow-pressed)}
 [data-theme="light"] .fg.wiz-active .wiz-mic,:root:not([data-theme]) .fg.wiz-active .wiz-mic{background:var(--surface);border-color:rgba(99,102,241,0.4);color:var(--accent)}
+
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2e++REDESIGN — canon alignment с chat.php Light Mode    ║
+   ║ References:                                                        ║
+   ║   DESIGN_SYSTEM_v4.0_BICHROMATIC.md §2.2/§4.3/§5.3-5.4              ║
+   ║   chat.php редове 540-605 (vars + aurora + glass)                  ║
+   ║   mockups/wizard_v6_INTERACTIVE.html ред 15-218                    ║
+   ║   mockups/P15_simple_FINAL.html ред 79-86 (keyframes), 188 (cascade)║
+   ║ Правила: Light = soft neumorphic, NO BORDERS (border-color:        ║
+   ║   transparent), depth ONLY via --shadow-card/-sm/-pressed.         ║
+   ║   Mic = purple gradient + chatMicRing rings.                       ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+
+/* --- P15 keyframes library (1:1 от P15 ред 79-86 + 673-674) --- */
+@keyframes conicSpin{to{transform:rotate(360deg)}}
+@keyframes orbSpin{to{transform:rotate(360deg)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popUp{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+@keyframes wzPulse{0%,100%{box-shadow:0 0 0 0 hsl(0 70% 50% / 0.5)}50%{box-shadow:0 0 0 6px hsl(0 70% 50% / 0)}}
+@keyframes rmsBrandShimmer{0%{background-position:0% center}100%{background-position:200% center}}
+@keyframes chatMicRing{0%{transform:scale(1);opacity:0.6}100%{transform:scale(2.2);opacity:0}}
+@keyframes chatSendDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* --- Missing canon vars --- */
+:root{--ease-spring:cubic-bezier(0.34,1.56,0.64,1)}
+:root[data-theme="dark"]{--text-faint:rgba(255,255,255,0.4)}
+
+/* --- Aurora 4th blob (canon mockup ред 35) --- */
+.aurora-blob:nth-child(4){width:260px;height:260px;background:hsl(195,75%,58%);top:55%;left:-80px;animation-delay:15s;opacity:0.32}
+[data-theme="light"] .aurora-blob:nth-child(4){opacity:0.18}
+
+/* --- LIGHT MODE neumorphic canon: NO BORDERS, soft shadows ONLY --- */
+[data-theme="light"], :root:not([data-theme]){--border-color:transparent}
+
+/* Header brand shimmer (mockup ред 112-119) */
+[data-theme="light"] .wz-title,:root:not([data-theme]) .wz-title{background:linear-gradient(90deg,hsl(255 80% 60%),hsl(222 80% 60%),hsl(180 70% 55%),hsl(222 80% 60%),hsl(255 80% 60%));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:rmsBrandShimmer 4s linear infinite;filter:drop-shadow(0 0 12px hsl(255 70% 50% / 0.4));font-size:17px;font-weight:900;letter-spacing:-0.01em}
+[data-theme="dark"] .wz-title{background:linear-gradient(90deg,hsl(255 80% 65%),hsl(222 80% 65%),hsl(180 70% 60%),hsl(222 80% 65%),hsl(255 80% 65%));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:rmsBrandShimmer 4s linear infinite}
+
+/* Section cascade entrance (P15 pattern: 0/0.05/0.10/0.15s staggered) */
+section[data-section="photo"]{animation:fadeInUp 0.6s var(--ease-spring) both}
+section[data-section="variations"]{animation:fadeInUp 0.5s var(--ease-spring) 0.05s both}
+section[data-section="extra"]{animation:fadeInUp 0.6s var(--ease-spring) 0.10s both}
+section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s both}
+
+/* Icon buttons (header) — neumorphic light, chat.php canon */
+[data-theme="light"] .icon-btn,:root:not([data-theme]) .icon-btn{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:box-shadow 250ms,transform 250ms}
+[data-theme="light"] .icon-btn:active,:root:not([data-theme]) .icon-btn:active{box-shadow:var(--shadow-pressed);transform:scale(0.97)}
+[data-theme="light"] .icon-btn svg,:root:not([data-theme]) .icon-btn svg{stroke:var(--text);width:18px;height:18px}
+
+/* === .wiz-mic CANON: chat-mic purple gradient + chatMicRing dual pulse === */
+.wiz-mic{width:44px!important;min-width:44px;height:44px!important;border-radius:50%!important;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 4px 14px hsl(280 70% 50% / 0.5)!important;color:#fff!important;position:relative;overflow:visible!important;transition:transform 250ms,box-shadow 250ms;cursor:pointer}
+.wiz-mic::before,.wiz-mic::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid hsl(280 70% 55%);pointer-events:none;animation:chatMicRing 2s ease-out infinite}
+.wiz-mic::after{animation-delay:1s}
+.wiz-mic:active{transform:scale(0.94)}
+.wiz-mic svg{width:14px;height:14px;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 4px 14px hsl(280 70% 50% / 0.45),var(--shadow-card-sm)!important}
+
+/* Recording state — switch to red but keep rings */
+.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 80% 50%))!important;animation:none!important}
+.wiz-mic.recording::before,.wiz-mic.recording::after{border-color:hsl(0 80% 55%)!important;animation:chatMicRing 0.8s ease-out infinite!important}
+.wiz-mic.recording::after{animation-delay:0.4s!important}
+
+/* === .copy-btn CANON: neumorphic raised (mockup ред 201-206) === */
+.copy-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;position:relative;transition:transform 150ms,box-shadow 200ms;cursor:pointer;border:none;font-family:inherit;font-size:14px}
+[data-theme="light"] .copy-btn,:root:not([data-theme]) .copy-btn{background:linear-gradient(145deg,#f0f3f9,#cdd5e1);box-shadow:var(--shadow-card-sm),inset 0 1px 0 rgba(255,255,255,0.7);color:var(--accent)}
+[data-theme="dark"] .copy-btn{background:linear-gradient(145deg,hsl(220 25% 11%),hsl(220 30% 6%));box-shadow:0 4px 12px hsl(220 35% 2% / 0.7),inset 0 1px 0 hsl(255 30% 30% / 0.4);border:1px solid hsl(222 12% 22%);color:hsl(255 80% 75%)}
+.copy-btn:active{transform:scale(0.94)}
+[data-theme="light"] .copy-btn:active,:root:not([data-theme]) .copy-btn:active{box-shadow:var(--shadow-pressed)}
+.copy-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2}
+
+/* === Type buttons (.s95-type-btn) CANON: neumorphic + conic active === */
+[data-theme="light"] .s95-type-btn,:root:not([data-theme]) .s95-type-btn{background:var(--surface)!important;box-shadow:var(--shadow-card-sm)!important;border:none!important;color:var(--text-muted)!important;position:relative;overflow:hidden}
+[data-theme="light"] .s95-type-btn:active,:root:not([data-theme]) .s95-type-btn:active{box-shadow:var(--shadow-pressed)!important}
+[data-theme="light"] .s95-type-btn.active,:root:not([data-theme]) .s95-type-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;color:#fff!important;box-shadow:0 4px 18px hsl(255 80% 50% / 0.45),inset 0 1px 0 rgba(255,255,255,0.4)!important}
+[data-theme="light"] .s95-type-btn.variant.active,:root:not([data-theme]) .s95-type-btn.variant.active{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;box-shadow:0 4px 18px hsl(280 70% 50% / 0.5),inset 0 1px 0 rgba(255,255,255,0.4)!important}
+.s95-type-btn.active::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.45) 85%,transparent 100%);animation:conicSpin 3.5s linear infinite;pointer-events:none;border-radius:inherit}
+.s95-type-btn.active svg,.s95-type-btn.active .s95-type-btn-lbl{position:relative;z-index:1}
+
+/* === .fc input CANON: light = inset pressed (mockup .inp-field ред 187-189) === */
+[data-theme="light"] .fc,:root:not([data-theme]) .fc{background:var(--bg-main)!important;box-shadow:var(--shadow-pressed)!important;border:none!important;color:var(--text)!important;border-radius:14px!important;font-size:15px!important;font-weight:700!important;min-height:48px!important;padding:10px 16px!important}
+[data-theme="light"] .fc::placeholder,:root:not([data-theme]) .fc::placeholder{color:var(--text-faint)!important;font-weight:500}
+[data-theme="light"] .fc:focus,:root:not([data-theme]) .fc:focus{box-shadow:var(--shadow-pressed),0 0 0 2px hsl(255 70% 55% / 0.4)!important}
+
+/* === .fl label CANON: uppercase letterspaced (mockup ред 178) === */
+[data-theme="light"] .fl,:root:not([data-theme]) .fl{font-size:10.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)!important}
+
+/* === Toast CANON: neumorphic surface === */
+[data-theme="light"] .toast,:root:not([data-theme]) .toast{background:var(--surface)!important;color:var(--text)!important;box-shadow:var(--shadow-card)!important;border:none!important;font-weight:700}
+
+/* === .v4-pz photo zone CANON: light = neumorphic surface, NO BORDERS === */
+[data-theme="light"] .v4-pz,:root:not([data-theme]) .v4-pz{background:var(--surface)!important;box-shadow:var(--shadow-card)!important;border:none!important;border-radius:18px}
+[data-theme="light"] .v4-pz-title,:root:not([data-theme]) .v4-pz-title{background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="light"] .v4-pz-sub,:root:not([data-theme]) .v4-pz-sub{color:var(--text-muted)!important}
+[data-theme="light"] .v4-pz-ic,:root:not([data-theme]) .v4-pz-ic{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 4px 14px hsl(280 70% 50% / 0.4),inset 0 1px 0 rgba(255,255,255,0.3)!important;position:relative;overflow:hidden}
+[data-theme="light"] .v4-pz-ic::before,:root:not([data-theme]) .v4-pz-ic::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+[data-theme="light"] .v4-pz-ic svg,:root:not([data-theme]) .v4-pz-ic svg{stroke:#fff!important;position:relative;z-index:1}
+[data-theme="light"] .v4-pz-btn.primary,:root:not([data-theme]) .v4-pz-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;color:#fff!important;border:none!important;box-shadow:0 4px 12px hsl(255 80% 50% / 0.4)!important}
+[data-theme="light"] .v4-pz-btn.sec,:root:not([data-theme]) .v4-pz-btn.sec{background:var(--surface)!important;color:var(--text)!important;border:none!important;box-shadow:var(--shadow-card-sm)!important}
+[data-theme="light"] .v4-pz-tips,:root:not([data-theme]) .v4-pz-tips{border-top:1px dashed rgba(99,102,241,0.18)!important}
+[data-theme="light"] .v4-pz-tip,:root:not([data-theme]) .v4-pz-tip{color:var(--text-muted)!important;font-weight:600}
+[data-theme="light"] .v4-pz-tip svg,:root:not([data-theme]) .v4-pz-tip svg{color:hsl(145 60% 45%)!important}
+
+/* === Photo mode toggle CANON: pill pressed container === */
+.photo-mode-toggle{border-radius:999px!important}
+[data-theme="light"] .photo-mode-toggle,:root:not([data-theme]) .photo-mode-toggle{background:var(--surface-2)!important;box-shadow:var(--shadow-pressed)!important;border:none!important}
+.pmt-opt{border-radius:999px!important}
+[data-theme="light"] .pmt-opt,:root:not([data-theme]) .pmt-opt{color:var(--text-muted)!important;background:transparent!important;border:none!important}
+[data-theme="light"] .pmt-opt.active,:root:not([data-theme]) .pmt-opt.active{background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;color:#fff!important;box-shadow:0 4px 14px hsl(255 80% 50% / 0.4)!important}
+
+/* === AI inline rows light canon === */
+[data-theme="light"] .ai-inline-row,:root:not([data-theme]) .ai-inline-row{background:var(--surface)!important;color:var(--text)!important;border:none!important;box-shadow:var(--shadow-card-sm)!important;font-weight:700}
+[data-theme="light"] .ai-inline-row:active,:root:not([data-theme]) .ai-inline-row:active{box-shadow:var(--shadow-pressed)!important}
+[data-theme="light"] .ai-inline-row .air-price,:root:not([data-theme]) .ai-inline-row .air-price{color:var(--magic,var(--accent))!important}
+[data-theme="dark"] .ai-inline-row .air-price{color:hsl(280 70% 75%)}
+
+/* === Type-toggle hint amber → richer === */
+[data-theme="light"] section[data-section="photo"] > h2,:root:not([data-theme]) section[data-section="photo"] > h2{background:linear-gradient(135deg,var(--text),hsl(280 70% 55%));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="light"] section > h2,:root:not([data-theme]) section > h2{background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+/* === Glass cards (acc-sections) — ensure light neumorphic + dark sacred === */
+[data-theme="light"] section.glass,:root:not([data-theme]) section.glass{background:var(--surface)!important;box-shadow:var(--shadow-card)!important;border:none!important}
   </style>
 </head>
 <body>
 
-  <!-- AURORA (3 blobs) -->
+  <!-- AURORA 4 blobs — canon DESIGN_SYSTEM_v4.0_BICHROMATIC §4.3 + mockup ред 30-36 -->
   <div class="aurora">
+    <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
@@ -1172,7 +1297,7 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
         '<div style="display:flex;gap:6px;align-items:center">'+
             '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
             '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
-            '<button type="button" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" style="width:34px;height:42px;border-radius:9px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;font-size:14px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px">↻</button>'+
+            '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
         '<div id="wDupeBanner" style="display:none"></div>'+
     '</div>';
