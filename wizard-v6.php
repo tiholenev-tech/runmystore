@@ -949,6 +949,78 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="dark"] .save-aux-btn{background:hsl(220 25% 8%)}
 .save-aux-btn svg{width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2}
 
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 3c.2 — Section 2 variations P13 canon                    ║
+   ║ chip-sz / chip-col / chip-col-dot / chip-add (вече в P13 CSS).      ║
+   ║ Тук: extra-row, groups-btn, axis-add, inline add-color-panel,       ║
+   ║ inline groups-panel, sku-summary tweaks.                            ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+/* extra-row под chips (за добави + други групи бутони) */
+.extra-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.groups-btn{height:34px;padding:0 12px 0 10px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:0.03em;color:var(--text-muted);border:none;cursor:pointer;font-family:inherit;transition:transform 150ms,box-shadow 200ms}
+[data-theme="light"] .groups-btn,:root:not([data-theme]) .groups-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .groups-btn{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.groups-btn:active{transform:scale(0.97)}
+[data-theme="light"] .groups-btn:active,:root:not([data-theme]) .groups-btn:active{box-shadow:var(--shadow-pressed)}
+.groups-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+.groups-btn svg.arr{margin-left:2px;transition:transform .2s}
+.groups-btn.open svg.arr{transform:rotate(90deg)}
+
+/* "+ Добави ос" full-width бутон под всички axes (Q1=B) */
+.axis-add{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:42px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;letter-spacing:0.02em;color:var(--accent);cursor:pointer;border:none;font-family:inherit;margin-top:10px;margin-bottom:14px}
+[data-theme="light"] .axis-add,:root:not([data-theme]) .axis-add{background:var(--surface);box-shadow:var(--shadow-card-sm);border:1px dashed transparent}
+[data-theme="dark"] .axis-add{background:hsl(255 30% 12% / 0.4);border:1px dashed hsl(255 50% 28% / 0.5)}
+.axis-add:active{transform:scale(0.97)}
+.axis-add svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* inline panels (groups + add-color) — slide-down under axis chips */
+.inline-panel{margin-top:8px;padding:10px 12px;border-radius:var(--radius-sm);display:none}
+.inline-panel.show{display:block;animation:fadeInUp 0.2s var(--ease)}
+[data-theme="light"] .inline-panel,:root:not([data-theme]) .inline-panel{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .inline-panel{background:hsl(220 25% 4% / 0.6);border:1px solid hsl(var(--hue2) 12% 18%)}
+
+/* inline groups list */
+.inline-panel-groups{display:flex;flex-direction:column;gap:5px}
+.group-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;cursor:pointer;font-size:11.5px;font-weight:700;color:var(--text);border:none;font-family:inherit;text-align:left;width:100%}
+[data-theme="light"] .group-row,:root:not([data-theme]) .group-row{background:transparent}
+[data-theme="light"] .group-row:hover,:root:not([data-theme]) .group-row:hover{background:rgba(99,102,241,0.06)}
+[data-theme="dark"] .group-row:hover{background:hsl(255 25% 10%)}
+.group-row .group-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group-row .group-vals{font-family:var(--font-mono);font-size:9.5px;font-weight:600;color:var(--text-muted);letter-spacing:0.03em}
+
+/* inline add color panel — native picker + name + confirm */
+.add-color-row{display:flex;align-items:center;gap:6px}
+.add-color-row input[type="color"]{width:42px;height:42px;border:none;border-radius:10px;padding:0;cursor:pointer;background:transparent}
+[data-theme="light"] .add-color-row input[type="color"],:root:not([data-theme]) .add-color-row input[type="color"]{box-shadow:var(--shadow-card-sm)}
+.add-color-row .add-color-name{flex:1;height:42px;padding:0 12px;border-radius:var(--radius-sm);border:none;outline:none;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text);background:transparent}
+[data-theme="light"] .add-color-row .add-color-name,:root:not([data-theme]) .add-color-row .add-color-name{background:var(--bg-main);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .add-color-row .add-color-name{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.add-color-row .add-color-name::placeholder{color:var(--text-faint);font-weight:600}
+.add-color-confirm-row{display:flex;gap:6px;margin-top:8px}
+.add-color-confirm{flex:1;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 12px hsl(255 80% 50% / 0.4);border:none;cursor:pointer;font-family:inherit}
+.add-color-confirm:active{transform:scale(0.97)}
+.add-color-cancel{height:38px;padding:0 14px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-muted);background:transparent;border:none;cursor:pointer;font-family:inherit}
+
+/* axis-remove (X на header) */
+.axis-head-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.axis-remove-btn{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;border:none;cursor:pointer;background:transparent;color:var(--text-faint)}
+.axis-remove-btn:hover{color:var(--danger,hsl(0 70% 55%))}
+.axis-remove-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* sku-summary — light/dark canon (mockup ред 213-220) */
+.sku-summary{margin-top:10px;padding:10px 12px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;font-family:inherit}
+[data-theme="light"] .sku-summary,:root:not([data-theme]) .sku-summary{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.6),oklch(0.94 0.05 310 / 0.5));box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .sku-summary{background:hsl(var(--hue1) 30% 8% / 0.4);border:1px solid hsl(var(--hue1) 50% 25% / 0.3)}
+.sku-ic{width:24px;height:24px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.sku-ic svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:2.5}
+.sku-text{flex:1;font-family:var(--font-mono);font-size:10.5px;font-weight:700;color:var(--text)}
+.sku-text b{font-weight:900;color:var(--accent)}
+
+/* Empty section state */
+.varsec-empty{padding:20px;text-align:center;font-size:13px;color:var(--text-muted);font-weight:600;font-family:inherit}
+.varsec-empty b{color:var(--text);font-weight:800}
+
 /* "Като предния" bulk copy button — neumorphic + accent text */
 .wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
 .wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
@@ -1025,12 +1097,12 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         <div id="wizSection1Inner" style="padding:0 14px 14px"></div>
       </section>
 
-      <!-- Секция 2 — Вариации (q3 = green) — STOP, питай Тих преди ФАЗА 3 -->
+      <!-- Секция 2 — Вариации (q3 = green) -->
       <section data-section="variations" class="glass q3">
         <span class="shine"></span><span class="shine shine-bottom"></span>
         <span class="glow"></span><span class="glow glow-bottom"></span>
         <h2>Вариации</h2>
-        <div class="ph">TODO ФАЗА 3 — STOP, чакам решение от Тих (A iframe / B copy / C нов matrix)</div>
+        <div id="wizSection2Inner" style="padding:0 14px 14px"></div>
       </section>
 
       <!-- Секция 3 — Допълнителни (qd = default bi-chromatic) -->
@@ -2713,6 +2785,303 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
   function wizStep1SaveStub(){ showToast('Save flow — Phase 4','info'); }
 
+  /* ╔═══════════════════════════════════════════════════════════════════╗
+     ║ S148 ФАЗА 3c.2 — Section 2 "Вариации" rendering                    ║
+     ║ Used:                                                              ║
+     ║   wizInitVariantsAxes() / wizAIColorAutofill() / _getSizePresets   ║
+     ║   _SIZE_GROUPS / wizColorPalette / wizHexForName                    ║
+     ║   (all from js/wizard-variations.js)                               ║
+     ║ Q1=B (N axes), Q2=A+B (native picker), Q3=B (inline groups),       ║
+     ║ Q4 P12 matrix — 3c.3, Q5 Phase 4.                                  ║
+     ╚═══════════════════════════════════════════════════════════════════╝
+  */
+  function renderWizSection2(){
+    var host = document.getElementById('wizSection2Inner');
+    if (!host) return;
+
+    if (S.wizType !== 'variant') {
+      host.innerHTML = '<div class="varsec-empty">Избери <b>"С вариации"</b> в първа секция за да активираш вариациите.</div>';
+      return;
+    }
+
+    // Sacred init + AI color autofill (от 3c.1)
+    if (typeof wizInitVariantsAxes === 'function') wizInitVariantsAxes();
+    if (typeof wizAIColorAutofill === 'function') wizAIColorAutofill();
+
+    var html = '';
+    (S.wizData.axes || []).forEach(function(ax, idx){
+      html += renderAxisField(ax, idx);
+    });
+    // "+ Добави ос" full-width бутон (Q1=B sacred parity)
+    html += '<button type="button" class="axis-add" onclick="wizAxisAddNew()">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+      'Добави още една ос (Материя, Дължина, ...)'+
+    '</button>';
+    // SKU summary (recalc на render)
+    html += renderSKUSummary();
+    host.innerHTML = html;
+  }
+
+  function renderAxisField(ax, idx){
+    var nm = (ax.name || '').toLowerCase();
+    var isColor = nm.indexOf('цвят') !== -1 || nm.indexOf('color') !== -1;
+    var isSize = nm.indexOf('размер') !== -1 || nm.indexOf('size') !== -1;
+    var labelText = ax.name || ('Вариация ' + (idx + 1));
+    var head =
+      '<div class="axis-head-row">'+
+        '<div class="field-label"><span>' + esc(labelText) + '</span></div>'+
+        ((S.wizData.axes && S.wizData.axes.length > 1)
+          ? '<button type="button" class="axis-remove-btn" onclick="wizAxisRemove(' + idx + ')" aria-label="Премахни ос"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+          : '')+
+      '</div>';
+
+    var chips = '<div class="chips-row" id="chips-' + idx + '">';
+    // Selected chips first (active)
+    (ax.values || []).forEach(function(val){
+      var hex = isColor ? wizHexForName(val) : '';
+      if (isColor) {
+        var dotStyle = 'background:' + hex + (hex.toLowerCase() === '#ffffff' ? ';border:1px solid #d1d5db' : '');
+        chips += '<button type="button" class="chip-col active" onclick="wizAxisToggle(' + idx + ', \'' + esc(val) + '\')">'+
+          '<span class="chip-col-dot" style="' + dotStyle + '"></span>' + esc(val) +
+        '</button>';
+      } else {
+        chips += '<button type="button" class="chip-sz active" onclick="wizAxisToggle(' + idx + ', \'' + esc(val) + '\')">' + esc(val) + '</button>';
+      }
+    });
+    // "+ добави" inline expand
+    chips += '<button type="button" class="chip-add" onclick="wizAxisAddInline(' + idx + ')">'+
+      '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави'+
+    '</button>';
+    // Voice mic за тази ос (sacred wizMicAxis equivalent)
+    chips += '<button type="button" class="fbtn voice wiz-mic" onclick="wizMicAxis(' + idx + ')" style="height:34px;width:34px;border-radius:50%" aria-label="Гласово">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>'+
+    '</button>';
+    chips += '</div>';
+
+    // extra-row: "други групи →" toggle (Q3=B inline expand)
+    var extra = '';
+    if (isSize || (!isColor && !isSize)) {
+      extra = '<div class="extra-row">'+
+        '<button type="button" class="groups-btn" id="groupsBtn-' + idx + '" onclick="wizGroupsToggle(' + idx + ')">'+
+          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>'+
+          'други групи'+
+          '<svg class="arr" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>'+
+        '</button>'+
+      '</div>';
+    }
+
+    // Inline groups panel (size only) — list of presets
+    var groupsPanel = '';
+    if (isSize || (!isColor && !isSize)) {
+      groupsPanel = '<div class="inline-panel" id="groupsPanel-' + idx + '"><div class="inline-panel-groups">';
+      var presets = (typeof _getSizePresetsOrdered === 'function') ? _getSizePresetsOrdered() : [];
+      presets.forEach(function(g){
+        groupsPanel += '<button type="button" class="group-row" onclick="wizGroupPick(' + idx + ', \'' + esc(g.id) + '\')">'+
+          '<span class="group-label">' + esc(g.label) + '</span>'+
+          '<span class="group-vals">' + esc((g.vals || []).slice(0, 5).join(' · ')) + (g.vals && g.vals.length > 5 ? '...' : '') + '</span>'+
+        '</button>';
+      });
+      groupsPanel += '</div></div>';
+    }
+
+    // Inline add-color panel (color only) — native picker + name
+    var addColorPanel = '';
+    if (isColor) {
+      addColorPanel = '<div class="inline-panel" id="addColorPanel-' + idx + '">'+
+        '<div class="add-color-row">'+
+          '<input type="color" id="hexPick-' + idx + '" value="#7c3aed" onchange="wizColorPickFromHex(' + idx + ', this.value)">'+
+          '<input type="text" class="add-color-name" id="colorName-' + idx + '" placeholder="Име на цвят (напр. Лилав)">'+
+        '</div>'+
+        '<div class="add-color-confirm-row">'+
+          '<button type="button" class="add-color-confirm" onclick="wizAxisAddInlineConfirm(' + idx + ')">Добави</button>'+
+          '<button type="button" class="add-color-cancel" onclick="wizAxisAddInlineCancel(' + idx + ')">Откажи</button>'+
+        '</div>'+
+      '</div>';
+    } else {
+      // Generic/Size: inline text input (chip-add expand)
+      addColorPanel = '<div class="inline-panel" id="addColorPanel-' + idx + '">'+
+        '<div class="add-color-row">'+
+          '<input type="text" class="add-color-name" id="addValName-' + idx + '" placeholder="' + (isSize ? 'напр. 3XL, 44, W34' : 'нова стойност') + '">'+
+        '</div>'+
+        '<div class="add-color-confirm-row">'+
+          '<button type="button" class="add-color-confirm" onclick="wizAxisAddInlineConfirm(' + idx + ')">Добави</button>'+
+          '<button type="button" class="add-color-cancel" onclick="wizAxisAddInlineCancel(' + idx + ')">Откажи</button>'+
+        '</div>'+
+      '</div>';
+    }
+
+    return '<div class="field" data-axis-idx="' + idx + '">' + head + chips + extra + groupsPanel + addColorPanel + '</div>';
+  }
+
+  function renderSKUSummary(){
+    var totals = wizSKUCount();
+    if (totals.skus === 0) return '';
+    return '<div class="sku-summary">'+
+      '<span class="sku-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>'+
+      '<div class="sku-text">' + esc(totals.label) + ' = <b>' + totals.skus + ' SKU</b></div>'+
+    '</div>';
+  }
+
+  function wizSKUCount(){
+    var active = (S.wizData.axes || []).filter(function(a){ return a.values && a.values.length > 0; });
+    if (!active.length) return {skus: 0, label: ''};
+    var skus = 1;
+    var parts = [];
+    active.forEach(function(a){
+      skus *= a.values.length;
+      var n = (a.name || '').toLowerCase();
+      var lbl = (n.indexOf('размер') !== -1 || n.indexOf('size') !== -1) ? 'размера'
+              : (n.indexOf('цвят') !== -1 || n.indexOf('color') !== -1) ? 'цвята'
+              : (a.name || '').toLowerCase();
+      parts.push(a.values.length + ' ' + lbl);
+    });
+    return {skus: skus, label: parts.join(' × ')};
+  }
+
+  // ═══ Section 2 interactions ═══
+  function wizAxisToggle(idx, val){
+    var ax = S.wizData.axes[idx];
+    if (!ax) return;
+    if (!Array.isArray(ax.values)) ax.values = [];
+    var i = ax.values.indexOf(val);
+    if (i >= 0) ax.values.splice(i, 1);
+    else ax.values.push(val);
+    renderWizSection2();
+  }
+
+  function wizAxisAddInline(idx){
+    // Close other axes' panels first
+    document.querySelectorAll('.inline-panel.show').forEach(function(p){ p.classList.remove('show'); });
+    var panel = document.getElementById('addColorPanel-' + idx);
+    if (panel) {
+      panel.classList.add('show');
+      setTimeout(function(){
+        var input = document.getElementById('colorName-' + idx) || document.getElementById('addValName-' + idx);
+        if (input) input.focus();
+      }, 100);
+    }
+  }
+
+  function wizAxisAddInlineCancel(idx){
+    var panel = document.getElementById('addColorPanel-' + idx);
+    if (panel) panel.classList.remove('show');
+  }
+
+  function wizAxisAddInlineConfirm(idx){
+    var ax = S.wizData.axes[idx];
+    if (!ax) return;
+    var nm = (ax.name || '').toLowerCase();
+    var isColor = nm.indexOf('цвят') !== -1 || nm.indexOf('color') !== -1;
+    var nameInput = document.getElementById(isColor ? 'colorName-' + idx : 'addValName-' + idx);
+    var val = (nameInput && nameInput.value || '').trim();
+    if (!val) { showToast('Въведи стойност', 'error'); return; }
+    if (!Array.isArray(ax.values)) ax.values = [];
+    if (ax.values.indexOf(val) === -1) {
+      ax.values.push(val);
+      if (isColor) {
+        var hexInput = document.getElementById('hexPick-' + idx);
+        if (hexInput) {
+          // Persist hex в CFG.colors (or local extension)
+          if (!window.CFG) window.CFG = {};
+          if (!Array.isArray(CFG.colors)) CFG.colors = WIZ_BASE_COLORS.slice();
+          if (!CFG.colors.find(function(c){ return c.name.toLowerCase() === val.toLowerCase(); })) {
+            CFG.colors.push({name: val, hex: hexInput.value});
+          }
+        }
+      }
+    }
+    renderWizSection2();
+  }
+
+  function wizColorPickFromHex(idx, hex){
+    // Optional: auto-suggest name based on hex (placeholder за 3c.4)
+    var input = document.getElementById('colorName-' + idx);
+    if (input && !input.value) {
+      // Simple: leave empty so user types name
+    }
+  }
+
+  function wizGroupsToggle(idx){
+    var panel = document.getElementById('groupsPanel-' + idx);
+    var btn = document.getElementById('groupsBtn-' + idx);
+    if (!panel) return;
+    var isOpen = panel.classList.contains('show');
+    document.querySelectorAll('.inline-panel.show').forEach(function(p){ p.classList.remove('show'); });
+    document.querySelectorAll('.groups-btn.open').forEach(function(b){ b.classList.remove('open'); });
+    if (!isOpen) {
+      panel.classList.add('show');
+      if (btn) btn.classList.add('open');
+    }
+  }
+
+  function wizGroupPick(idx, groupId){
+    var presets = (typeof _getSizePresetsOrdered === 'function') ? _getSizePresetsOrdered() : [];
+    var g = presets.find(function(p){ return p.id === groupId; });
+    if (!g) return;
+    var ax = S.wizData.axes[idx];
+    if (!ax) return;
+    if (!Array.isArray(ax.values)) ax.values = [];
+    var added = 0;
+    g.vals.forEach(function(v){
+      if (ax.values.indexOf(v) === -1) { ax.values.push(v); added++; }
+    });
+    showToast('Добавени ' + added + ' стойности от "' + g.label + '"', 'success');
+    renderWizSection2();
+  }
+
+  function wizAxisAddNew(){
+    var n = prompt('Име на нова ос (напр. Материя, Дължина, Стил):');
+    if (!n || !n.trim()) return;
+    if (!Array.isArray(S.wizData.axes)) S.wizData.axes = [];
+    S.wizData.axes.push({name: n.trim(), values: []});
+    renderWizSection2();
+  }
+
+  function wizAxisRemove(idx){
+    if (!Array.isArray(S.wizData.axes) || S.wizData.axes.length <= 1) {
+      showToast('Поне една ос е нужна', 'error');
+      return;
+    }
+    var ax = S.wizData.axes[idx];
+    if (ax && ax.values && ax.values.length) {
+      if (!confirm('Премахни ос "' + ax.name + '" с ' + ax.values.length + ' стойности?')) return;
+    }
+    S.wizData.axes.splice(idx, 1);
+    // Reset AI color autofill flag ако премахваме цвят ос
+    if (ax && (ax.name || '').toLowerCase().indexOf('цвят') !== -1) {
+      S.wizData._aiColorsApplied = false;
+    }
+    renderWizSection2();
+  }
+
+  // Sacred wizMicAxis stub — voice flow за axis values (Phase 4 ще порт-не _voiceProcessAxis)
+  function wizMicAxis(idx){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Гласовото не се поддържа', 'error'); return; }
+    var ax = S.wizData.axes[idx];
+    if (!ax) return;
+    var btn = document.querySelector('#chips-' + idx + ' .fbtn.voice');
+    if (btn) btn.classList.add('recording');
+    var rec = new SR();
+    rec.lang = 'bg-BG'; rec.continuous = false; rec.interimResults = false;
+    rec.onresult = function(e){
+      if (btn) btn.classList.remove('recording');
+      var text = '';
+      for (var i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+      // Simple parse: split by spaces/commas/AND → push values
+      var vals = text.trim().split(/[\s,;]+/).filter(Boolean);
+      if (!Array.isArray(ax.values)) ax.values = [];
+      var added = 0;
+      vals.forEach(function(v){
+        if (v && ax.values.indexOf(v) === -1) { ax.values.push(v); added++; }
+      });
+      showToast('Добавени ' + added + ' стойности', 'success');
+      renderWizSection2();
+    };
+    rec.onerror = rec.onend = function(){ if (btn) btn.classList.remove('recording'); };
+    rec.start();
+  }
+
   // ═══ renderWizSection1Photo — 1:1 photoBlock construction от products.php 12391-12457 ═══
   function renderWizSection1Photo(){
     var _photoMode=S.wizData._photoMode;
@@ -2804,6 +3173,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     // S148 ФАЗА 2n.3: пое-render restore на filter pill active state + chips
     if (typeof wizUpdateFilterPillsActive === 'function') wizUpdateFilterPillsActive();
     if (typeof wizRenderActiveChips === 'function') wizRenderActiveChips();
+    // S148 ФАЗА 3c.2: Section 2 render (само ако variant mode; иначе показва placeholder)
+    if (typeof renderWizSection2 === 'function') renderWizSection2();
   }
 
   // ═══ Sacred file change handlers 1:1 от products.php 12744-12781 ═══
