@@ -23,9 +23,9 @@ function _wizMicWhisper(field,lang){
     _wizClearHighlights();
     var fieldMap={retail_price:'wPrice',cost_price:'wCostPrice',wholesale_price:'wWprice',quantity:'wSingleQty',min_quantity:'wMinQty',barcode:'wBarcode',code:'wCode'};
     var targetEl=document.getElementById(fieldMap[field]);
-    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    var targetFg=targetEl?targetEl.closest('.fg, .field'):null;
     if(targetFg)targetFg.classList.add('wiz-active');
-    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic, .fbtn.voice'):null;
     if(micBtn)micBtn.classList.add('recording');
     var clearUI=function(){if(micBtn)micBtn.classList.remove('recording')};
     var fallback=function(){clearUI();_wizMicWebSpeech(field)};

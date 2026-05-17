@@ -1633,9 +1633,9 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     _wizClearHighlights();
     var fieldMap={name:'wName',code:'wCode',retail_price:'wPrice',wholesale_price:'wWprice',cost_price:'wCostPrice',barcode:'wBarcode',supplier:'wSupDD',category:'wCatDD',origin:'wOrigin',composition:'wComposition',subcategory:'wSubcat',quantity:'wSingleQty',min_quantity:'wMinQty'};
     var targetEl=document.getElementById(fieldMap[field]);
-    var targetFg=targetEl?targetEl.closest('.fg'):null;
+    var targetFg=targetEl?targetEl.closest('.fg, .field'):null;
     if(targetFg)targetFg.classList.add('wiz-active');
-    var micBtn=targetFg?targetFg.querySelector('.wiz-mic'):null;
+    var micBtn=targetFg?targetFg.querySelector('.wiz-mic, .fbtn.voice'):null;
     if(micBtn)micBtn.classList.add('recording');
     var srLangMap={bg:'bg-BG',ro:'ro-RO',el:'el-GR',sr:'sr-RS',hr:'hr-HR',en:'en-US',mk:'mk-MK',sq:'sq-AL',tr:'tr-TR',sl:'sl-SI',de:'de-DE'};
     _wizMicRec=new SR();_wizMicRec.lang=srLangMap[lang||'bg']||'bg-BG';_wizMicRec.continuous=false;_wizMicRec.interimResults=true;
@@ -1669,8 +1669,8 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function _wizClearHighlights(){
-    document.querySelectorAll('#wizBody .fg').forEach(function(f){f.classList.remove('wiz-next','wiz-active')});
-    document.querySelectorAll('#wizBody .wiz-mic.recording').forEach(function(m){m.classList.remove('recording')});
+    document.querySelectorAll('#wizBody .fg, #wizBody .field').forEach(function(f){f.classList.remove('wiz-next','wiz-active')});
+    document.querySelectorAll('#wizBody .wiz-mic.recording, #wizBody .fbtn.voice.recording').forEach(function(m){m.classList.remove('recording')});
   }
 
   function wizMarkDone(field){
@@ -2353,14 +2353,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function renderWizSection1Qty(){
-    // Variant: matrix UI изисква Phase 3 (renderWizPagePart2) STOP. Показваме info note.
-    if (S.wizType === 'variant') {
-      return '<div class="wz-variant-qty-note">'+
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
-        '<div><b>Количество per вариация</b> — попълва се в "Вариации" секцията (matrix UI).</div>'+
-      '</div>';
-    }
-    // Single (или type не избран): sacred compact inline stepper (1:1 от p.php 12575-12604).
+    // Variant: matrix UI в Section 2 (Phase 3). Variant qty info note ПРЕМАХНАТА (Тих "излишна").
     if (S.wizType !== 'single') return '';
     // P13 .qty-row + .qty-stepper (ред 603-628). Sacred id-та wSingleQty/wMinQty preserved.
     var _qVal = (S.wizData.quantity === undefined || S.wizData.quantity === null) ? '' : S.wizData.quantity;
@@ -2374,7 +2367,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
                 '<input type="number" inputmode="numeric" min="0" id="wSingleQty" class="qty-input" value="'+esc(String(_qVal))+'" placeholder="0" oninput="S.wizData.quantity=parseInt(this.value)||0;s95AutoMinQty()">'+
                 '<button type="button" class="qty-step" onclick="s95QtyAdjust(\'wSingleQty\',1)" aria-label="Увеличи">+</button>'+
             '</div>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
     '</div>'+
     '<div class="field">'+
@@ -2385,7 +2378,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
                 '<input type="number" inputmode="numeric" min="0" id="wMinQty" class="qty-input" value="'+esc(String(_mqVal))+'" placeholder="auto" oninput="S.wizData.min_quantity=parseInt(this.value)||0;this.dataset.userEdited=\'true\'">'+
                 '<button type="button" class="qty-step" onclick="s95MinAdjust(1)" aria-label="Увеличи">+</button>'+
             '</div>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'min_quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'min_quantity\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         '<div class="field-hint">AI auto-set от количеството (qty/2.5).</div>'+
     '</div>';
@@ -2425,8 +2418,137 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     };
     rec.start();
   }
-  function wizFindLastCopy(){ wizFindCollapse(); wizCopyPrevProductFull(); }
-  function wizVoiceBarStart(){ wizFindMic(); }
+  function wizFindLastCopy(){
+    var inp = document.getElementById('wzSearchInp');
+    if (inp) inp.value = '';
+    var results = document.getElementById('wzSearchResults');
+    if (results) results.innerHTML = '';
+    wizCopyPrevProductFull();
+  }
+
+  /* ═══ S148 ФАЗА 2p — Voice Flow auto-progress (Тих 2026-05-17) ═══
+     Tap voice-bar → TTS казва име на поле → STT listen → apply via
+     _wizMicApply → 2 sec pause → next field → ... → end ask "запазя ли?"
+
+     Fields order:
+       name → retail_price → (single: quantity → min_quantity) → code → barcode
+     Use sacred wizMic logic — only ORCHESTRATES it sequentially.
+  */
+  var _wizVoiceFlow = { active: false, idx: 0, fields: [], rec: null };
+
+  function wizVoiceFlowStart(){
+    if (_wizVoiceFlow.active) { wizVoiceFlowAbort(); return; }
+    // Sequence по тип
+    var fields = ['name','retail_price'];
+    if (S.wizType === 'single') { fields.push('quantity','min_quantity'); }
+    fields.push('code','barcode');
+    _wizVoiceFlow = { active: true, idx: 0, fields: fields, rec: null };
+    showToast('Гласово въвеждане започва — диктувай след подканване','info');
+    setTimeout(wizVoiceFlowNext, 600);
+  }
+
+  function wizVoiceFlowAbort(){
+    if (_wizVoiceFlow.rec) { try { _wizVoiceFlow.rec.abort(); } catch(e){} }
+    if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch(e){} }
+    _wizVoiceFlow.active = false;
+    _wizClearHighlights();
+  }
+
+  function wizVoiceFlowNext(){
+    if (!_wizVoiceFlow.active) return;
+    if (_wizVoiceFlow.idx >= _wizVoiceFlow.fields.length) { wizVoiceFlowEnd(); return; }
+    var field = _wizVoiceFlow.fields[_wizVoiceFlow.idx];
+    var promptMap = {
+      name: 'Име', retail_price: 'Цена',
+      quantity: 'Количество', min_quantity: 'Минимално количество',
+      code: 'Артикулен номер', barcode: 'Баркод'
+    };
+    var prompt = promptMap[field] || field;
+    wizSpeak(prompt, function(){
+      // Активирай visual highlight на полето + recording state
+      _wizClearHighlights();
+      var fieldMap = {name:'wName',retail_price:'wPrice',quantity:'wSingleQty',min_quantity:'wMinQty',code:'wCode',barcode:'wBarcode'};
+      var el = document.getElementById(fieldMap[field]);
+      var fg = el ? el.closest('.fg, .field') : null;
+      if (fg) fg.classList.add('wiz-active');
+      var btn = fg ? fg.querySelector('.fbtn.voice, .wiz-mic') : null;
+      if (btn) btn.classList.add('recording');
+      wizVoiceListenForField(field, function(success){
+        if (btn) btn.classList.remove('recording');
+        _wizVoiceFlow.idx++;
+        // 2 sec pause между полета
+        setTimeout(wizVoiceFlowNext, 2000);
+      });
+    });
+  }
+
+  function wizVoiceListenForField(field, onDone){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { onDone && onDone(false); return; }
+    var rec = new SR();
+    rec.lang = 'bg-BG';
+    rec.continuous = false;
+    rec.interimResults = false;
+    var gotResult = false;
+    var timeoutId = setTimeout(function(){
+      if (!gotResult) { try { rec.abort(); } catch(e){} onDone && onDone(false); }
+    }, 6000);
+    rec.onresult = function(e){
+      gotResult = true;
+      clearTimeout(timeoutId);
+      var text = '';
+      for (var i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+      text = text.trim();
+      if (text && typeof _wizMicApply === 'function') {
+        try { _wizMicApply(field, text); } catch(err) { console.warn('apply err',err); }
+      }
+      onDone && onDone(!!text);
+    };
+    rec.onerror = function(){ clearTimeout(timeoutId); onDone && onDone(false); };
+    rec.onend = function(){ if (!gotResult) { clearTimeout(timeoutId); onDone && onDone(false); } };
+    _wizVoiceFlow.rec = rec;
+    rec.start();
+  }
+
+  function wizVoiceFlowEnd(){
+    _wizClearHighlights();
+    wizSpeak('Да запазя ли или продължаваш?', function(){
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { _wizVoiceFlow.active = false; return; }
+      var rec = new SR();
+      rec.lang = 'bg-BG'; rec.continuous = false; rec.interimResults = false;
+      var timeoutId = setTimeout(function(){ try{rec.abort()}catch(e){} _wizVoiceFlow.active = false; }, 6000);
+      rec.onresult = function(e){
+        clearTimeout(timeoutId);
+        var cmd = '';
+        for (var i = 0; i < e.results.length; i++) cmd += e.results[i][0].transcript;
+        cmd = cmd.trim().toLowerCase();
+        _wizVoiceFlow.active = false;
+        if (cmd.indexOf('запаз') !== -1 || cmd.indexOf('запиш') !== -1) {
+          wizStep1SaveStub();
+        } else if (cmd.indexOf('продълж') !== -1) {
+          showToast('Допълнителни полета — Phase 4','info');
+        } else {
+          showToast('Не разпознах: "' + cmd + '"','warn');
+        }
+      };
+      rec.onerror = rec.onend = function(){ clearTimeout(timeoutId); _wizVoiceFlow.active = false; };
+      _wizVoiceFlow.rec = rec;
+      rec.start();
+    });
+  }
+
+  function wizSpeak(text, onEnd){
+    if (!window.speechSynthesis) { onEnd && onEnd(); return; }
+    try { speechSynthesis.cancel(); } catch(e){}
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'bg-BG';
+    u.rate = 1.05;
+    u.pitch = 1.0;
+    u.onend = function(){ if (onEnd) onEnd(); };
+    u.onerror = function(){ if (onEnd) onEnd(); };
+    try { speechSynthesis.speak(u); } catch(e) { if (onEnd) onEnd(); }
+  }
 
   /* ═══ S148 ФАЗА 2e++a — type toggle (state-only за Phase 3 scaffold) ═══
      wizSwitchType сетва S.wizType ('single'|'variant'); НЕ отваря
@@ -2441,21 +2563,17 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function renderWizSection1Type(){
-    // P13_bulk_entry.html canon (ред 499-570): find-pill + find-panel + voice-bar + mode-toggle
+    // P13 canon + always-visible search (както products-v2.php): input винаги показан;
+    // dropdown auto-show при 2+ chars. Voice-bar текстът ОПИСВА flow-а + при tap пуска
+    // auto-progress dictation: Име → Цена → Артикулен номер → запазваме?
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
-    var findPill =
-      '<button type="button" class="find-pill" id="wzFindPill" onclick="wizFindExpand()">'+
-        '<span class="find-pill-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>'+
-        '<span class="find-pill-text">Намери артикул да копираме</span>'+
-        '<span class="find-pill-mic" onclick="event.stopPropagation();wizFindMic()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></span>'+
-      '</button>';
-    var findPanel =
-      '<div class="find-panel" id="wzFindPanel">'+
+    var searchBlock =
+      '<div class="find-panel show" id="wzFindPanel" style="margin-bottom:14px">'+
         '<div class="find-input-wrap">'+
           '<svg class="search-ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
-          '<input type="text" class="find-input" id="wzSearchInp" placeholder="Търси име · баркод · код" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
-          '<button class="find-close" type="button" onclick="wizFindCollapse()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+          '<input type="text" class="find-input" id="wzSearchInp" placeholder="Намери артикул за копиране (име · код · баркод)" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+          '<button class="fbtn voice wiz-mic" type="button" onclick="wizFindMic()" aria-label="Гласово търсене" style="height:36px;width:36px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>'+
         '</div>'+
         '<div class="find-filters" id="wzFindFilters">'+
           '<button type="button" class="find-filter active" onclick="wizFindLastCopy()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6h6V2M5 4v16a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 2H7a2 2 0 00-2 2z"/></svg>Като последния</button>'+
@@ -2464,11 +2582,11 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<div class="find-results" id="wzSearchResults"></div>'+
       '</div>';
     var voiceBar =
-      '<button type="button" class="voice-bar" onclick="wizVoiceBarStart()">'+
+      '<button type="button" class="voice-bar" onclick="wizVoiceFlowStart()">'+
         '<span class="voice-bar-mic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2"/></svg></span>'+
         '<div class="voice-bar-text">'+
           '<div class="voice-bar-title">Кажи на AI</div>'+
-          '<div class="voice-bar-sub">"Тениска 28лв · S M L"</div>'+
+          '<div class="voice-bar-sub">Тап → Име · 2 сек пауза · Цена · 2 сек · Артикулен номер...</div>'+
         '</div>'+
       '</button>';
     var modeToggle =
@@ -2482,7 +2600,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
           '<span>С вариации</span>'+
         '</button>'+
       '</div>';
-    return findPill + findPanel + voiceBar + modeToggle;
+    return searchBlock + voiceBar + modeToggle;
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
@@ -2518,7 +2636,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
             '<input type="number" step="0.01" inputmode="decimal" class="price-input" id="wPrice" oninput="S.wizData.retail_price=parseFloat(this.value)||0;wizClearAIMark(\'retail_price\');wizUpdateMarkup();wizUpdatePriceBgn()" value="'+price+'" placeholder="0.00">'+
             '<span class="price-cur">€</span>'+
             '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай" aria-label="Копирай">'+cpySvg+'</button>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'retail_price\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         '<div class="price-bgn" id="wPriceBgn">'+bgnTxt+'</div>'+
         wizAIHint('retail_price')+
@@ -2534,7 +2652,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<div class="input-row">'+
             '<div class="input-shell"><input type="text" class="input-text" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дамска тениска Tommy Jeans"></div>'+
             '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай">'+cpySvg+'</button>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'name\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'name\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         wizAIHint('name')+
         '<div id="wDupeBanner" style="display:none"></div>'+
@@ -2560,7 +2678,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<div class="input-row">'+
             '<div class="input-shell"><input type="text" class="input-text" id="wCode" value="'+esc(S.wizData.code||'')+'" placeholder="напр. ДЖ-T-RED-42" oninput="S.wizData.code=this.value.trim()"></div>'+
             '<button type="button" class="fbtn cpy" onclick="wizCopyFieldFromPrev(\'code\')" title="Копирай" aria-label="Копирай">'+cpySvg+'</button>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'code\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'code\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         '<div class="field-hint">Празно → AI ще генерира уникален код автоматично.</div>'+
     '</div>';
@@ -2574,7 +2692,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
         '<div class="input-row">'+
             '<div class="input-shell"><input type="text" class="input-text" id="wBarcode" value="'+esc(S.wizData.barcode||'')+'" placeholder="Скенирай или въведи" inputmode="numeric" oninput="S.wizData.barcode=this.value.trim()"></div>'+
             '<button type="button" class="fbtn scan" onclick="wizScanBarcodeStub()" title="Сканирай" aria-label="Сканирай">'+scanSvg+'</button>'+
-            '<button type="button" class="fbtn voice" onclick="wizMic(\'barcode\')" aria-label="Гласово">'+micSvg+'</button>'+
+            '<button type="button" class="fbtn voice wiz-mic" onclick="wizMic(\'barcode\')" aria-label="Гласово">'+micSvg+'</button>'+
         '</div>'+
         '<div class="field-hint">Празно → AI ще генерира EAN-13 при отпечатване.</div>'+
     '</div>';
