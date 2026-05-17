@@ -655,7 +655,42 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .wz-variant-qty-note b{color:var(--text);font-weight:800}
 
 /* ╔═══════════════════════════════════════════════════════════════════╗
-   ║ S148 ФАЗА 2h.3 — MIC + COPY size/animation FINAL per Тих           ║
+   ║ S148 ФАЗА 2i — sacred behaviour port (dupe check + AI hint + bulk) ║
+   ║ User: "Виж абсолютно всички логики ... ПРЕНЕСЕМ ВСИЧКИТЕ"          ║
+   ║ Source: products.php 7530-7592, 12231-12244                        ║
+   ║ Canon override: amber/yellow в sacred banner → accent (Тих rule).  ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+
+/* Duplicate name banner (sacred logic, canon visuals) */
+.wiz-dupe-banner{margin-top:8px;padding:10px 12px;border-radius:12px;font-family:inherit}
+[data-theme="light"] .wiz-dupe-banner,:root:not([data-theme]) .wiz-dupe-banner{background:linear-gradient(135deg,oklch(0.94 0.05 285 / 0.6),oklch(0.94 0.05 310 / 0.45));box-shadow:var(--shadow-card-sm);color:var(--text)}
+[data-theme="dark"] .wiz-dupe-banner{background:linear-gradient(135deg,hsl(280 30% 12% / 0.6),hsl(255 30% 12% / 0.5));border:1px solid hsl(255 12% 22%);color:var(--text)}
+.wiz-dupe-banner-row{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;line-height:1.45}
+.wiz-dupe-banner svg.dupe-ic{width:16px;height:16px;flex-shrink:0;margin-top:2px;stroke:var(--accent);fill:none;stroke-width:2}
+.wiz-dupe-banner b{color:var(--text);font-weight:800}
+.wiz-dupe-pct{color:var(--accent);font-weight:700;font-family:inherit}
+.wiz-dupe-actions{display:flex;gap:6px;margin-top:8px}
+.wiz-dupe-actions button{flex:1;padding:8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:transform 150ms,box-shadow 200ms}
+.wiz-dupe-actions button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 3px 10px hsl(255 80% 50% / 0.35)}
+.wiz-dupe-actions button.sec{color:var(--text-muted)}
+[data-theme="light"] .wiz-dupe-actions button.sec,:root:not([data-theme]) .wiz-dupe-actions button.sec{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .wiz-dupe-actions button.sec{background:hsl(220 25% 8%);border:1px solid hsl(255 12% 22%)}
+.wiz-dupe-actions button:active{transform:scale(0.97)}
+
+/* AI auto-fill hint badge (под поле когато AI попълни стойност) */
+.wiz-ai-hint{margin-top:6px;padding:5px 10px;border-radius:8px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px;letter-spacing:0.02em;cursor:pointer;font-family:inherit}
+[data-theme="light"] .wiz-ai-hint,:root:not([data-theme]) .wiz-ai-hint{background:linear-gradient(135deg,oklch(0.93 0.06 285 / 0.7),oklch(0.93 0.06 310 / 0.6));color:var(--accent);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .wiz-ai-hint{background:linear-gradient(135deg,hsl(280 50% 18% / 0.6),hsl(255 50% 18% / 0.5));color:hsl(280 70% 75%);border:1px solid hsl(280 50% 30% / 0.4)}
+.wiz-ai-hint svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* "Като предния" bulk copy button — neumorphic + accent text */
+.wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
+.wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
+[data-theme="light"] .wz-copy-prev-btn,:root:not([data-theme]) .wz-copy-prev-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .wz-copy-prev-btn:active,:root:not([data-theme]) .wz-copy-prev-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .wz-copy-prev-btn{background:linear-gradient(180deg,hsl(255 30% 12%),hsl(255 30% 8%));border:1px solid hsl(255 50% 28% / 0.4)}
+.wz-copy-prev-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
    ║ "Намали размера, махни анимациите, при натиск само пулсираща       ║
    ║  червена точка (както е в сегашния)."                              ║
    ║ Mic: 44→38px, без chatMicRing dual rings, без micRecPulse halo,    ║
@@ -663,23 +698,23 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
    ║ Copy: 44→38px (същия размер като mic — балансиран ред).            ║
    ╚═══════════════════════════════════════════════════════════════════╝
 */
-.wiz-mic{width:38px!important;min-width:38px;height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 3px 10px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.wiz-mic{width:34px!important;min-width:34px;height:34px!important;border-radius:50%!important;background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%))!important;border:none!important;box-shadow:0 2px 8px hsl(280 70% 50% / 0.4)!important;color:#fff!important;position:relative;overflow:visible!important;animation:none!important;transition:transform 150ms;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
 .wiz-mic::before,.wiz-mic::after{content:none!important;animation:none!important;border:none!important;background:none!important}
 .wiz-mic:active{transform:scale(0.94)}
-.wiz-mic svg{width:13px!important;height:13px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
-[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 3px 10px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
+.wiz-mic svg{width:12px!important;height:12px!important;stroke:#fff!important;fill:none;stroke-width:2.2;position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3))}
+[data-theme="light"] .wiz-mic,:root:not([data-theme]) .wiz-mic{box-shadow:0 2px 8px hsl(280 70% 50% / 0.4),var(--shadow-card-sm)!important}
 
 /* Recording state — red gradient + ONLY pulsing red dot (БЕЗ rings, БЕЗ REC label, БЕЗ halo) */
-.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 3px 10px hsl(0 80% 50% / 0.45)!important;border:none!important}
-.wiz-mic.recording::before{content:''!important;position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
+.wiz-mic.recording{background:linear-gradient(135deg,hsl(0 80% 55%),hsl(15 75% 50%))!important;animation:none!important;box-shadow:0 2px 8px hsl(0 80% 50% / 0.45)!important;border:none!important}
+.wiz-mic.recording::before{content:''!important;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ef4444!important;box-shadow:0 0 6px #ef4444,0 0 12px rgba(239,68,68,.55)!important;animation:micRecDot .6s infinite!important;border:none!important}
 .wiz-mic.recording::after{content:none!important;animation:none!important}
 
 /* Active-field highlight (mic вътре в .fg.wiz-active) — purple variant без animation */
 .fg.wiz-active .wiz-mic{background:linear-gradient(135deg,hsl(255 75% 60%),hsl(280 65% 55%))!important;animation:none!important}
 
-/* Copy button — same size as mic (38×38) */
-.copy-btn{width:38px!important;height:38px!important;font-size:13px}
-.copy-btn svg{width:13px!important;height:13px!important}
+/* Copy button — same size as mic (34×34) */
+.copy-btn{width:34px!important;height:34px!important;font-size:12px}
+.copy-btn svg{width:12px!important;height:12px!important}
   </style>
 </head>
 <body>
@@ -1414,9 +1449,104 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     if(navigator.vibrate)navigator.vibrate(5);
   }
 
-  // STUBS — не са в 2f scope (изискват api(), wizGo, wizStep state machine):
-  function wizDupeCheckName(name){ /* deferred: full match-check изисква api() + AJAX endpoint */ }
-  function wizMaybeAdvancePhotoStep(){ /* deferred: wizGo + wizStep state machine */ }
+  /* ═══ S148 ФАЗА 2i — sacred wizDupeCheckName + helpers (1:1 от p.php 7549-7592) ═══
+     Live duplicate detection дебаунс 350ms, AJAX → products.php?ajax=name_dupe_check.
+     При ≥85% similarity → banner с 2 опции: "Да, отвори същото" / "Не, продължи".
+     Sacred endpoint exists (line 606). Visual: canon accent (БЕЗ yellow/amber per Тих).
+  */
+  var _wizDupeTimer = null;
+  function _escDupe(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function wizDupeCheckName(name){
+    name = (name || '').trim();
+    var banner = document.getElementById('wDupeBanner');
+    if (!banner) return;
+    if (_wizDupeTimer) { clearTimeout(_wizDupeTimer); _wizDupeTimer = null; }
+    if (name.length < 3) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+    if (S._wizDupeDismissed && S._wizDupeDismissed === name.toLowerCase()) { banner.style.display = 'none'; return; }
+    _wizDupeTimer = setTimeout(function(){
+      var url = 'products.php?ajax=name_dupe_check&q=' + encodeURIComponent(name);
+      if (S.wizEditId) url += '&exclude_id=' + S.wizEditId;
+      fetch(url, { credentials: 'same-origin' })
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(matches){
+          if (!Array.isArray(matches) || !matches.length) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+          var top = matches[0];
+          if (!top || top.score < 0.85) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+          var cur = (document.getElementById('wName') || {}).value || '';
+          if (cur.trim().toLowerCase() !== name.toLowerCase()) return;
+          var currency = (window.CFG && CFG.currency) || '€';
+          var priceTxt = (top.price > 0) ? (' (' + parseFloat(top.price).toFixed(2) + ' ' + currency + ')') : '';
+          var pct = Math.round(top.score * 100);
+          banner.style.display = 'block';
+          banner.innerHTML =
+            '<div class="wiz-dupe-banner">'+
+              '<div class="wiz-dupe-banner-row">'+
+                '<svg class="dupe-ic" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>'+
+                '<div style="flex:1;min-width:0">Близко до съществуващ артикул: <b>' + _escDupe(top.name) + '</b>' + _escDupe(priceTxt) + ' · <span class="wiz-dupe-pct">' + pct + '% близко</span>. Същото ли е?</div>'+
+              '</div>'+
+              '<div class="wiz-dupe-actions">'+
+                '<button type="button" class="primary" onclick="wizDupeOpenExisting(' + top.id + ')">Да, отвори същото</button>'+
+                '<button type="button" class="sec" onclick="wizDupeDismiss()">Не, продължи</button>'+
+              '</div>'+
+            '</div>';
+        })
+        .catch(function(){ /* silent: endpoint unavailable → no banner */ });
+    }, 350);
+  }
+  function wizDupeDismiss(){
+    var nm = (document.getElementById('wName') || {}).value || '';
+    S._wizDupeDismissed = nm.trim().toLowerCase();
+    var banner = document.getElementById('wDupeBanner');
+    if (banner) { banner.style.display = 'none'; banner.innerHTML = ''; }
+  }
+  function wizDupeOpenExisting(id){
+    if (!id) return;
+    // wizard-v6 няма продуктов detail page; пренасочваме към products.php
+    if (typeof closeWizard === 'function') closeWizard();
+    window.location.href = '/products.php#product=' + id;
+  }
+
+  /* ═══ S148 ФАЗА 2i — AI hint badges (1:1 sacred p.php 7530-7544) ═══
+     Показват "AI попълни — натисни за промяна" под полета които AI photo
+     analysis е автопопълнил. _aiFilled state се чисти при user oninput.
+  */
+  function wizAIHint(key){
+    if (!S.wizData || !S.wizData._aiFilled || !S.wizData._aiFilled[key]) return '';
+    return '<div class="wiz-ai-hint" data-aikey="' + key + '">'+
+      '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>'+
+      'AI попълни — натисни за промяна'+
+    '</div>';
+  }
+  function wizMarkAIFilled(){
+    if (!S.wizData) return;
+    if (!S.wizData._aiFilled) S.wizData._aiFilled = {};
+    for (var i = 0; i < arguments.length; i++) S.wizData._aiFilled[arguments[i]] = true;
+  }
+
+  /* ═══ S148 ФАЗА 2i — wizCopyPrevProductFull 1:1 от p.php 12231-12244 ═══
+     "Като предния" bulk copy — всички полета от localStorage._rms_lastWizProductFields
+     с изключение на name/barcode/code/photos (variant: + color/size).
+  */
+  function wizCopyPrevProductFull(){
+    var prev = null;
+    try { prev = JSON.parse(localStorage.getItem('_rms_lastWizProductFields')); } catch(e) {}
+    if (!prev || typeof prev !== 'object') { showToast('Няма предишен артикул', 'error'); return; }
+    var skip = ['name', 'barcode', 'code', '_photoDataUrl', '_photos'];
+    if (S.wizType === 'variant') { skip.push('color'); skip.push('size'); }
+    Object.keys(prev).forEach(function(k){
+      if (skip.indexOf(k) !== -1) return;
+      S.wizData[k] = prev[k];
+    });
+    renderWizard();
+    showToast('Копиран целия профил', 'success');
+    if (navigator.vibrate) navigator.vibrate([8, 30, 8]);
+  }
+
+  function wizMaybeAdvancePhotoStep(){ /* deferred: wizGo + wizStep state machine — Phase 4 */ }
   /* ═══ S148 ФАЗА 2g — _wizPriceCloudFallback 1:1 sacred (но routed през bridge) ═══
      Sacred reference: p.php 14499-14523. Промяна спрямо source:
      `fetch('/services/price-ai.php', ...)` → `fetch('/services/wizard-bridge.php?action=price_parse', ...)`.
@@ -1631,6 +1761,12 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
+    // "Като предния" bulk copy bar (sacred p.php 12483-12488 — поставен ABOVE type toggle).
+    var hasLast = false;
+    try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
+    var copyPrevBtn = hasLast
+      ? '<button type="button" class="wz-copy-prev-btn" onclick="wizCopyPrevProductFull()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Като предния</button>'
+      : '<button type="button" class="wz-copy-prev-btn" disabled onclick="showToast(\'Налично след първия записан артикул\',\'info\')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>Като предния (след първи запис)</button>';
     var typeBtnSingle='<button type="button" onclick="wizSwitchType(\'single\')" class="s95-type-btn'+(sActive?' active':'')+'">'+
         '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>'+
         '<span class="s95-type-btn-lbl">Единичен</span>'+
@@ -1642,7 +1778,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var typeHint=typeChosen
         ? ''
         : '<div class="wz-type-hint">Избери тип артикул</div>';
-    return typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
+    return copyPrevBtn+typeHint+'<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px">'+typeBtnSingle+typeBtnVariant+'</div>';
   }
 
   /* ═══ S148 ФАЗА 2g — renderWizSection1Cost + Retail (1:1 sacred от p.php) ═══
@@ -1670,6 +1806,7 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
             '<button type="button" class="wiz-mic" onclick="wizMic(\'retail_price\')" aria-label="Гласово въвеждане"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'retail_price\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
+        wizAIHint('retail_price')+
         '<div id="wMarginDisplay" class="wz-margin-display" style="display:none"></div>'+
     '</div>';
   }
@@ -1677,12 +1814,13 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   // ═══ renderWizSection1Name — 1:1 nameH от products.php 12491-12499 ═══
   function renderWizSection1Name(){
     return '<div class="fg" style="margin:0 0 10px">'+
-        '<label class="fl">Име&nbsp;<span style="color:#ef4444">*</span></label>'+
+        '<label class="fl">Име<span class="req-star">*</span></label>'+
         '<div style="display:flex;gap:6px;align-items:center">'+
             '<input type="text" class="fc" id="wName" oninput="S.wizData.name=this.value.trim();wizClearAIMark(\'name\');wizDupeCheckName(this.value);wizMaybeAdvancePhotoStep()" value="'+esc(S.wizData.name||'')+'" placeholder="напр. Дънки Mustang син деним" style="flex:1">'+
             '<button type="button" class="wiz-mic" onclick="wizMic(\'name\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>'+
             '<button type="button" class="copy-btn" onclick="wizCopyFieldFromPrev(\'name\')" title="Копирай от последния" aria-label="Копирай от последния"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><polyline points="1 20 1 14 7 14"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></button>'+
         '</div>'+
+        wizAIHint('name')+
         '<div id="wDupeBanner" style="display:none"></div>'+
     '</div>';
   }
