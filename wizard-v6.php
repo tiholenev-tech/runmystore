@@ -673,32 +673,65 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 [data-theme="dark"] .wiz-ai-hint{background:linear-gradient(135deg,hsl(280 50% 18% / 0.6),hsl(255 50% 18% / 0.5));color:hsl(280 70% 75%);border:1px solid hsl(280 50% 30% / 0.4)}
 .wiz-ai-hint svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
 
-/* "Търсачка за съществуващ артикул" — 1:1 sacred .search-wrap (p.php 3924-3927) */
-.wz-search-wrap{position:relative;margin-bottom:10px}
-.wz-search-input-row{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:14px;font-family:inherit}
-[data-theme="light"] .wz-search-input-row,:root:not([data-theme]) .wz-search-input-row{background:var(--surface);box-shadow:var(--shadow-pressed);border:none}
-[data-theme="dark"] .wz-search-input-row{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05)}
-.wz-search-input-row > svg{width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0}
-.wz-search-input-row input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12.5px;font-weight:600;min-width:0;font-family:inherit}
-.wz-search-input-row input::placeholder{color:var(--text-muted)}
-.wz-search-input-row .wz-search-clear{background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:18px;line-height:1;display:none}
-.wz-search-input-row.has-q .wz-search-clear{display:block}
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║ S148 ФАЗА 2n.4 — 1:1 products-v2.php Simple search-wrap + dd       ║
+   ║ Source: products-v2.php редове 1839-1863, 2400-2472                ║
+   ║ Search input + filter button + mic button — всички в един ред      ║
+   ╚═══════════════════════════════════════════════════════════════════╝
+*/
+.wz-search-wrap,.search-wrap{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:10px;border-radius:var(--radius-sm,14px);border:1px solid var(--border-color,transparent);position:relative;font-family:inherit}
+[data-theme="light"] .wz-search-wrap,:root:not([data-theme]) .wz-search-wrap,[data-theme="light"] .search-wrap,:root:not([data-theme]) .search-wrap{background:var(--surface);box-shadow:var(--shadow-pressed);border:none}
+[data-theme="dark"] .wz-search-wrap,[data-theme="dark"] .search-wrap{background:hsl(220 25% 5% / .6)}
+.wz-search-wrap > svg,.search-wrap > svg{width:16px;height:16px;stroke:var(--text-muted);fill:none;stroke-width:2;flex-shrink:0}
+.wz-search-wrap input,.search-wrap input{flex:1;background:transparent;border:none;outline:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--text);min-width:0}
+.wz-search-wrap input::placeholder,.search-wrap input::placeholder{color:var(--text-muted)}
 
-.wz-search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:280px;overflow-y:auto;border-radius:12px;display:none;font-family:inherit}
-.wz-search-results.show{display:block}
-[data-theme="light"] .wz-search-results,:root:not([data-theme]) .wz-search-results{background:var(--surface);box-shadow:var(--shadow-card)}
-[data-theme="dark"] .wz-search-results{background:hsl(220 25% 5%);border:1px solid hsl(var(--hue2) 12% 18%);box-shadow:0 8px 24px hsl(220 50% 4% / 0.5)}
-.wz-search-result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 150ms;border-bottom:1px solid transparent}
-[data-theme="light"] .wz-search-result-item:hover,:root:not([data-theme]) .wz-search-result-item:hover{background:rgba(99,102,241,0.08)}
-[data-theme="dark"] .wz-search-result-item:hover{background:hsl(255 25% 10%)}
-.wz-search-result-item:last-child{border-bottom:none}
-.wz-search-result-thumb{width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.08);object-fit:cover;flex-shrink:0;display:grid;place-items:center;overflow:hidden}
-.wz-search-result-thumb svg{width:16px;height:16px;stroke:var(--text-muted);fill:none;stroke-width:1.5}
+/* Sacred .s-btn (products-v2.php 1856-1863) — neumorphic circle 32×32 */
+.s-btn{width:32px;height:32px;flex-shrink:0;border-radius:50%;border:none;display:grid;place-items:center;cursor:pointer;position:relative;transition:transform 150ms,box-shadow 200ms;font-family:inherit;padding:0}
+[data-theme="light"] .s-btn,:root:not([data-theme]) .s-btn{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .s-btn:active,:root:not([data-theme]) .s-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .s-btn{background:hsl(220 25% 11%);border:1px solid hsl(255 12% 22%)}
+.s-btn:active{transform:scale(0.94)}
+.s-btn svg{width:13px;height:13px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.s-btn.has-active::after{content:'';position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px hsl(255 80% 50% / 0.6)}
+
+/* Sacred .search-dd dropdown (products-v2.php 2404-2472) */
+.search-dd,.wz-search-results{margin:0;border-radius:14px;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;font-family:inherit;margin-top:-2px;margin-bottom:10px}
+[data-theme="light"] .search-dd,:root:not([data-theme]) .search-dd,[data-theme="light"] .wz-search-results,:root:not([data-theme]) .wz-search-results{background:var(--surface);box-shadow:var(--shadow-card);border:1px solid rgba(0,0,0,0.04)}
+[data-theme="dark"] .search-dd,[data-theme="dark"] .wz-search-results{background:hsl(220 25% 8%);border:1px solid rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.search-dd.open,.wz-search-results.show{display:block;animation:fadeInUp 0.2s var(--ease)}
+.search-dd-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;position:sticky;top:0;z-index:1;border-bottom:1px solid rgba(0,0,0,0.06)}
+[data-theme="light"] .search-dd-header,:root:not([data-theme]) .search-dd-header{background:var(--surface)}
+[data-theme="dark"] .search-dd-header{background:hsl(220 25% 8%);border-bottom-color:rgba(99,102,241,0.12)}
+.search-dd-count{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em}
+.search-dd-close{width:24px;height:24px;border-radius:8px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+.search-dd-close svg{width:10px;height:10px;stroke:var(--accent);stroke-width:3;fill:none}
+.search-dd-section-label{padding:6px 14px 2px;font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em}
+.search-dd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,0.04);transition:background 0.12s}
+.search-dd-item:hover,.search-dd-item:active{background:rgba(99,102,241,0.06)}
+.search-dd-thumb{width:34px;height:34px;border-radius:8px;background:rgba(99,102,241,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.search-dd-thumb img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.search-dd-thumb svg{width:14px;height:14px;stroke:rgba(99,102,241,0.5);fill:none;stroke-width:1.5}
+.search-dd-info{flex:1;min-width:0}
+.search-dd-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.search-dd-meta{font-size:9px;color:var(--text-muted)}
+.search-dd-price-col{text-align:right;flex-shrink:0}
+.search-dd-price{font-size:11px;font-weight:700;color:var(--accent)}
+.search-dd-stock{font-size:9px}
+.search-dd-stock.ok{color:var(--accent)}
+.search-dd-stock.out{color:var(--text-muted)}
+.search-dd-empty{padding:14px;text-align:center;font-size:12px;color:var(--text-muted)}
+
+/* Legacy wz-search-* classes (used от моя render) → mapped to sacred */
+.wz-search-result-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background 0.12s;border-bottom:1px solid rgba(0,0,0,0.04)}
+.wz-search-result-item:hover{background:rgba(99,102,241,0.06)}
+.wz-search-result-thumb{width:34px;height:34px;border-radius:8px;background:rgba(99,102,241,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .wz-search-result-thumb img{width:100%;height:100%;object-fit:cover}
+.wz-search-result-thumb svg{width:14px;height:14px;stroke:rgba(99,102,241,0.5);fill:none;stroke-width:1.5}
 .wz-search-result-info{flex:1;min-width:0}
-.wz-search-result-name{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wz-search-result-meta{font-size:10.5px;color:var(--text-muted);font-weight:600;margin-top:2px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wz-search-result-price{font-size:12px;font-weight:800;color:var(--accent);flex-shrink:0;letter-spacing:-0.01em}
+.wz-search-result-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-search-result-meta{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-search-result-price{font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
 .wz-search-empty{padding:14px;text-align:center;font-size:12px;color:var(--text-muted);font-weight:600}
 
 /* ╔═══════════════════════════════════════════════════════════════════╗
@@ -1671,29 +1704,42 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   function wizSearchProductRender(rows, q){
     var results = document.getElementById('wzSearchResults');
     if (!results) return;
+    results.classList.add('show','open');
     if (!Array.isArray(rows) || rows.length === 0) {
-      results.classList.add('show');
-      results.innerHTML = '<div class="wz-search-empty">Няма резултати за "' + esc(q) + '"</div>';
+      results.innerHTML = '<div class="search-dd-empty">Няма резултати за "' + esc(q) + '"</div>';
       return;
     }
-    results.classList.add('show');
-    results.innerHTML = rows.slice(0, 8).map(function(p){
+    // Sacred 1:1 .search-dd structure (products-v2.php 2421-2472):
+    // header (count + close) + items (.search-dd-item с thumb/info/price/stock)
+    var hdr = '<div class="search-dd-header">'+
+        '<div class="search-dd-count">' + rows.length + ' резултата</div>'+
+        '<button class="search-dd-close" type="button" onclick="wizSearchClear()" aria-label="Затвори"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+      '</div>';
+    var items = rows.slice(0, 12).map(function(p){
       var price = p.retail_price ? parseFloat(p.retail_price).toFixed(2) + ' €' : '';
+      var stock = p.total_stock != null ? parseInt(p.total_stock) : null;
+      var stockCls = stock > 0 ? 'ok' : (stock === 0 ? 'out' : '');
+      var stockTxt = stock != null ? (stock + ' бр.') : '';
       var meta = [p.supplier_name, p.category_name].filter(Boolean).join(' · ');
       var thumb = p.image_url
         ? '<img src="' + esc(p.image_url) + '" alt="">'
         : '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
-      // JSON encoded for onclick — escape quotes properly
       var rowJson = encodeURIComponent(JSON.stringify(p));
-      return '<div class="wz-search-result-item" onclick="wizPickExistingProduct(\'' + rowJson + '\')">'+
-        '<div class="wz-search-result-thumb">' + thumb + '</div>'+
-        '<div class="wz-search-result-info">'+
-          '<div class="wz-search-result-name">' + esc(p.name || '') + '</div>'+
-          (meta ? '<div class="wz-search-result-meta">' + esc(meta) + '</div>' : '')+
+      return '<div class="search-dd-item" onclick="wizPickExistingProduct(\'' + rowJson + '\')">'+
+        '<div class="search-dd-thumb">' + thumb + '</div>'+
+        '<div class="search-dd-info">'+
+          '<div class="search-dd-name">' + esc(p.name || '') + '</div>'+
+          (meta ? '<div class="search-dd-meta">' + esc(meta) + '</div>' : '')+
         '</div>'+
-        (price ? '<div class="wz-search-result-price">' + price + '</div>' : '')+
+        (price || stockTxt
+          ? '<div class="search-dd-price-col">'+
+              (price ? '<div class="search-dd-price">' + price + '</div>' : '')+
+              (stockTxt ? '<div class="search-dd-stock ' + stockCls + '">' + stockTxt + '</div>' : '')+
+            '</div>'
+          : '')+
       '</div>';
     }).join('');
+    results.innerHTML = hdr + items;
   }
 
   function wizPickExistingProduct(rowJson){
@@ -1725,10 +1771,112 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var inp = document.getElementById('wzSearchInp');
     if (inp) inp.value = '';
     var results = document.getElementById('wzSearchResults');
-    if (results) { results.classList.remove('show'); results.innerHTML = ''; }
+    if (results) { results.classList.remove('show','open'); results.innerHTML = ''; }
     var wrap = document.getElementById('wzSearchWrap');
     if (wrap) wrap.classList.remove('has-q');
   }
+
+  /* ═══ S148 ФАЗА 2n.4 — Unified filter drawer (1:1 products-v2.php pattern) ═══
+     Single drawer с няколко секции (Цена / Брой / Марж) вместо 4 отделни.
+     Pattern adapted от products-v2.php loadFilterOptions / renderFilterDrawer.
+  */
+  function wizOpenFilterDrawer(){
+    wizOpenDrawer('wzQf');
+    document.getElementById('wzQfTitle').textContent = 'Филтри';
+    var currency = (window.CFG && CFG.currency) || '€';
+    var canSeeMargin = (window.CFG && CFG.canSeeMargin !== false);
+    var s = _wizQfState || {};
+
+    var h = '<div style="padding:0 0 12px">';
+
+    // Цена секция
+    h += '<div class="filter-section">'+
+      '<div class="filter-section-label">Цена ('+currency+')</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+    [{l:'до 20',min:0,max:20},{l:'20-50',min:20,max:50},{l:'50-100',min:50,max:100},{l:'100-200',min:100,max:200},{l:'над 200',min:200,max:''}].forEach(function(p){
+      var sel = (parseFloat(s.price_min) === p.min && (p.max === '' ? !s.price_max || s.price_max == 99999 : parseFloat(s.price_max) === p.max));
+      h += '<div class="f-chip'+(sel?' sel':'')+'" onclick="wizQfApply({price_min:' + p.min + ',price_max:' + (p.max || 99999) + '})">' + p.l + '</div>';
+    });
+    h += '</div>'+
+      '<div class="form-row">'+
+        '<div class="fg"><label class="fl">От</label><input type="number" class="fc" id="wzQfPriceMin" placeholder="0" value="' + esc(s.price_min || '') + '"></div>'+
+        '<div class="fg"><label class="fl">До</label><input type="number" class="fc" id="wzQfPriceMax" placeholder="∞" value="' + esc(s.price_max && s.price_max != 99999 ? s.price_max : '') + '"></div>'+
+      '</div>'+
+    '</div>';
+
+    // Брой секция
+    h += '<div class="filter-section">'+
+      '<div class="filter-section-label">Брой</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+    [{l:'На нула',min:0,max:0},{l:'1-5',min:1,max:5},{l:'6-20',min:6,max:20},{l:'21-50',min:21,max:50},{l:'над 50',min:51,max:''}].forEach(function(p){
+      var sel = (parseFloat(s.stock_min) === p.min && (p.max === '' ? !s.stock_max || s.stock_max == 99999 : parseFloat(s.stock_max) === p.max));
+      h += '<div class="f-chip'+(sel?' sel':'')+'" onclick="wizQfApply({stock_min:' + p.min + ',stock_max:' + (p.max || 99999) + '})">' + p.l + '</div>';
+    });
+    h += '</div>'+
+      '<div class="form-row">'+
+        '<div class="fg"><label class="fl">От</label><input type="number" class="fc" id="wzQfStockMin" placeholder="0" value="' + esc(s.stock_min || '') + '"></div>'+
+        '<div class="fg"><label class="fl">До</label><input type="number" class="fc" id="wzQfStockMax" placeholder="∞" value="' + esc(s.stock_max && s.stock_max != 99999 ? s.stock_max : '') + '"></div>'+
+      '</div>'+
+    '</div>';
+
+    // Марж секция (само ако canSeeMargin)
+    if (canSeeMargin) {
+      h += '<div class="filter-section">'+
+        '<div class="filter-section-label">Марж %</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+      [{l:'под 10%',min:0,max:10},{l:'10-20%',min:10,max:20},{l:'20-40%',min:20,max:40},{l:'над 40%',min:40,max:''}].forEach(function(p){
+        var sel = (parseFloat(s.margin_min) === p.min && (p.max === '' ? !s.margin_max || s.margin_max == 999 : parseFloat(s.margin_max) === p.max));
+        h += '<div class="f-chip'+(sel?' sel':'')+'" onclick="wizQfApply({margin_min:' + p.min + ',margin_max:' + (p.max || 999) + '})">' + p.l + '</div>';
+      });
+      h += '</div>'+
+        '<div class="form-row">'+
+          '<div class="fg"><label class="fl">От %</label><input type="number" class="fc" id="wzQfMarginMin" placeholder="0" value="' + esc(s.margin_min || '') + '"></div>'+
+          '<div class="fg"><label class="fl">До %</label><input type="number" class="fc" id="wzQfMarginMax" placeholder="∞" value="' + esc(s.margin_max && s.margin_max != 999 ? s.margin_max : '') + '"></div>'+
+        '</div>'+
+      '</div>';
+    }
+
+    // Apply / Reset buttons
+    h += '<div style="display:flex;gap:8px;margin-top:14px">'+
+      '<button class="abtn" onclick="wizResetFilters()" style="flex:0.6">Изчисти всичко</button>'+
+      '<button class="abtn primary" onclick="wizApplyFilterInputs()" style="flex:1">Приложи</button>'+
+    '</div>';
+
+    h += '</div>';
+    document.getElementById('wzQfBody').innerHTML = h;
+  }
+
+  function wizApplyFilterInputs(){
+    // Read from-to inputs and apply
+    var params = {};
+    var pmin = document.getElementById('wzQfPriceMin')?.value;
+    var pmax = document.getElementById('wzQfPriceMax')?.value;
+    var smin = document.getElementById('wzQfStockMin')?.value;
+    var smax = document.getElementById('wzQfStockMax')?.value;
+    var mmin = document.getElementById('wzQfMarginMin')?.value;
+    var mmax = document.getElementById('wzQfMarginMax')?.value;
+    if (pmin !== undefined) params.price_min = pmin;
+    if (pmax !== undefined) params.price_max = pmax;
+    if (smin !== undefined) params.stock_min = smin;
+    if (smax !== undefined) params.stock_max = smax;
+    if (mmin !== undefined) params.margin_min = mmin;
+    if (mmax !== undefined) params.margin_max = mmax;
+    wizQfApply(params);
+  }
+
+  function wizResetFilters(){
+    _wizQfState = {};
+    wizCloseDrawer('wzQf');
+    wizUpdateFilterPillsActive();
+    wizRenderActiveChips();
+    wizApplyFiltersAndRender();
+    // Update filter button has-active dot
+    var btn = document.getElementById('wzFilterBtn');
+    if (btn) btn.classList.remove('has-active');
+  }
+
+  // Backward compat alias (replaced 2n.3 4-drawer approach с unified)
+  function wizOpenQuickFilter(type){ wizOpenFilterDrawer(); }
 
   /* ═══ S148 ФАЗА 2n.3 — Quick Filter system (1:1 sacred от p.php 7402-7446) ═══
      _wizQfState — filter param state; mutates after _qfApply.
@@ -1826,16 +1974,12 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
   }
 
   function wizUpdateFilterPillsActive(){
-    var checks = {
-      wzQfPillPrice: ('price_min' in _wizQfState) || ('price_max' in _wizQfState),
-      wzQfPillStock: ('stock_min' in _wizQfState) || ('stock_max' in _wizQfState),
-      wzQfPillMargin: ('margin_min' in _wizQfState) || ('margin_max' in _wizQfState),
-      wzQfPillDate: ('date_from' in _wizQfState) || ('date_to' in _wizQfState)
-    };
-    Object.keys(checks).forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.classList.toggle('active', !!checks[id]);
-    });
+    // S148 ФАЗА 2n.4: pills заменени с единен filter button → toggle has-active dot
+    var btn = document.getElementById('wzFilterBtn');
+    if (btn) {
+      var hasAny = Object.keys(_wizQfState || {}).length > 0;
+      btn.classList.toggle('has-active', hasAny);
+    }
   }
 
   function wizRenderActiveChips(){
@@ -2123,29 +2267,20 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var typeChosen=(S.wizType==='single'||S.wizType==='variant');
     var sActive=(S.wizType==='single');
     var vActive=(S.wizType==='variant');
-    // Sacred search bar (1:1 от products.php 6076-6081 .search-wrap) — за "Копирай от съществуващ".
-    // Plus 2n.3 sacred quick filter pills (1:1 p.php 6088-6094) с active chips.
-    var canSeeMargin = (window.CFG && CFG.canSeeMargin !== false); // default visible
-    var marginPill = canSeeMargin
-      ? '<div class="qfltr-pill" id="wzQfPillMargin" onclick="wizOpenQuickFilter(\'margin\')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>Марж</div>'
-      : '';
+    // Sacred search-wrap 1:1 от products-v2.php Simple (line 3203-3213).
+    // Search icon + input + filter s-btn (отваря drawer) + mic s-btn.
+    // Filter "has-active" dot indicator ако _wizQfState има filters.
+    var hasActiveFilters = Object.keys(_wizQfState || {}).length > 0;
     var searchBar =
-      '<div class="wz-search-wrap" id="wzSearchWrap">'+
-        '<div class="wz-search-input-row">'+
-          '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
-          '<input type="text" id="wzSearchInp" placeholder="Търси артикул за копиране (име, код, баркод)" oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
-          '<button type="button" class="wz-search-clear" onclick="wizSearchClear()" aria-label="Изчисти">×</button>'+
-        '</div>'+
-        '<div class="fltr-label"><span>Филтри</span></div>'+
-        '<div class="qfltr-row">'+
-          '<div class="qfltr-pill" id="wzQfPillPrice" onclick="wizOpenQuickFilter(\'price\')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>Цена</div>'+
-          '<div class="qfltr-pill" id="wzQfPillStock" onclick="wizOpenQuickFilter(\'stock\')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Наличност</div>'+
-          marginPill+
-          '<div class="qfltr-pill" id="wzQfPillDate" onclick="wizOpenQuickFilter(\'date\')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Дата</div>'+
-        '</div>'+
-        '<div class="active-chips" id="wzActiveChips"></div>'+
-        '<div class="wz-search-results" id="wzSearchResults"></div>'+
-      '</div>';
+      '<div class="search-wrap" id="wzSearchWrap" style="margin-bottom:10px">'+
+        '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+        '<input type="text" id="wzSearchInp" placeholder="Търси по име, код или баркод..." oninput="wizSearchProductInput(this.value)" autocomplete="off">'+
+        '<button class="s-btn'+(hasActiveFilters?' has-active':'')+'" type="button" id="wzFilterBtn" aria-label="Филтри" onclick="wizOpenFilterDrawer()">'+
+          '<svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'+
+        '</button>'+
+      '</div>'+
+      '<div id="wzSearchResults" class="search-dd"></div>'+
+      '<div class="active-chips" id="wzActiveChips" style="margin-bottom:10px"></div>';
     // "Като предния" bulk copy bar (sacred p.php 12483-12488).
     var hasLast = false;
     try { hasLast = !!localStorage.getItem('_rms_lastWizProductFields'); } catch(e) {}
