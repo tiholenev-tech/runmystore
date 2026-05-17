@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>RunMyWallet · Известия</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>(function(){try{var s=localStorage.getItem('rmw_theme')||'light';document.documentElement.setAttribute('data-theme',s);}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}body{font-family:'Montserrat',sans-serif;overflow-x:hidden;font-variant-numeric:tabular-nums}
+button,input,a{font-family:inherit;color:inherit}button{background:none;border:none;cursor:pointer}a{text-decoration:none}
+
+:root{--hue1:255;--hue2:222;--hue3:180;--radius:22px;--radius-sm:14px;--radius-pill:999px;--radius-icon:50%;--border:1px;--ease:cubic-bezier(0.5,1,0.89,1);--ease-spring:cubic-bezier(0.34,1.56,0.64,1);--dur:250ms;--press:0.97;--font-mono:'Montserrat',sans-serif;--z-aurora:0;--z-content:5}
+:root:not([data-theme]),:root[data-theme="light"]{--bg-main:#e0e5ec;--surface:#e0e5ec;--surface-2:#d1d9e6;--border-color:transparent;--text:#2d3748;--text-muted:#64748b;--text-faint:#94a3b8;--shadow-light:#ffffff;--shadow-dark:#a3b1c6;--neu-d:8px;--neu-b:16px;--neu-d-s:4px;--neu-b-s:8px;--shadow-card:var(--neu-d) var(--neu-d) var(--neu-b) var(--shadow-dark),calc(var(--neu-d) * -1) calc(var(--neu-d) * -1) var(--neu-b) var(--shadow-light);--shadow-card-sm:var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--shadow-pressed:inset var(--neu-d-s) var(--neu-d-s) var(--neu-b-s) var(--shadow-dark),inset calc(var(--neu-d-s) * -1) calc(var(--neu-d-s) * -1) var(--neu-b-s) var(--shadow-light);--accent:oklch(0.62 0.22 285);--accent-2:oklch(0.65 0.25 305);--magic:oklch(0.65 0.25 305);--gain:oklch(0.6 0.18 145);--loss:oklch(0.6 0.22 25);--amber:oklch(0.7 0.18 60);--aurora-blend:multiply;--aurora-opacity:0.32}
+:root[data-theme="dark"]{--bg-main:#08090d;--surface:hsl(220,25%,4.8%);--surface-2:hsl(220,25%,8%);--border-color:hsl(var(--hue2),12%,20%);--text:#f1f5f9;--text-muted:rgba(255,255,255,0.6);--text-faint:rgba(255,255,255,0.4);--shadow-card:hsl(var(--hue2) 50% 2%) 0 10px 16px -8px,hsl(var(--hue2) 50% 4%) 0 20px 36px -14px;--shadow-card-sm:hsl(var(--hue2) 50% 2%) 0 4px 8px -2px;--shadow-pressed:inset 0 2px 4px hsl(var(--hue2) 50% 2%);--accent:hsl(var(--hue1),80%,65%);--accent-2:hsl(var(--hue2),80%,65%);--magic:hsl(280,70%,65%);--gain:hsl(145,65%,55%);--loss:hsl(0,75%,65%);--amber:hsl(38,90%,60%);--aurora-blend:plus-lighter;--aurora-opacity:0.35}
+
+:root:not([data-theme]) body,[data-theme="light"] body{background:var(--bg-main);color:var(--text)}
+[data-theme="dark"] body{background:radial-gradient(ellipse 800px 500px at 20% 10%,hsl(var(--hue1) 60% 35% / .22) 0%,transparent 60%),radial-gradient(ellipse 700px 500px at 85% 85%,hsl(var(--hue2) 60% 35% / .22) 0%,transparent 60%),linear-gradient(180deg,#0a0b14 0%,#050609 100%);background-attachment:fixed;color:var(--text)}
+
+@keyframes auroraDrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.05)}66%{transform:translate(-20px,30px) scale(0.95)}}
+@keyframes conicSpin{to{transform:rotate(360deg)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:200;background:hsl(280 60% 15% / .96);backdrop-filter:blur(20px);border-bottom:1px solid hsl(280 60% 25%);padding:8px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px}
+.demo-bar-label{color:#fff;font-weight:800;font-size:10px;opacity:0.7}
+.demo-btn{padding:6px 10px;border-radius:8px;border:1px solid hsl(280 50% 35%);background:hsl(280 50% 20%);color:#fff;font-weight:700;cursor:pointer;font-size:11px}
+.demo-btn.active{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));border-color:transparent;box-shadow:0 4px 12px hsl(280 70% 50% / 0.5)}
+
+.aurora{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:var(--aurora-opacity);mix-blend-mode:var(--aurora-blend);animation:auroraDrift 20s ease-in-out infinite}
+.aurora-blob:nth-child(1){width:280px;height:280px;background:hsl(var(--hue1),80%,60%);top:-60px;left:-80px}
+.aurora-blob:nth-child(2){width:240px;height:240px;background:hsl(var(--hue3),70%,60%);top:35%;right:-100px;animation-delay:4s}
+.aurora-blob:nth-child(3){width:200px;height:200px;background:hsl(var(--hue2),80%,60%);bottom:80px;left:-50px;animation-delay:8s}
+
+.rms-header{position:sticky;top:38px;z-index:50;height:56px;padding:0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-color)}
+[data-theme="light"] .rms-header,:root:not([data-theme]) .rms-header{background:var(--bg-main);box-shadow:0 4px 12px rgba(163,177,198,0.15)}
+[data-theme="dark"] .rms-header{background:hsl(220 25% 4.8% / 0.85);backdrop-filter:blur(16px)}
+
+.back-btn{width:40px;height:40px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;border:1px solid var(--border-color);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease)}
+[data-theme="light"] .back-btn,:root:not([data-theme]) .back-btn{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="light"] .back-btn:active,:root:not([data-theme]) .back-btn:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .back-btn{background:hsl(220 25% 8% / 0.7);backdrop-filter:blur(8px)}
+.back-btn:active{transform:scale(var(--press))}
+.back-btn svg{width:16px;height:16px;stroke:var(--text);fill:none;stroke-width:2.5}
+
+.head-title{flex:1;text-align:center;font-size:15px;font-weight:900;letter-spacing:-0.015em;display:flex;align-items:center;justify-content:center;gap:8px}
+.head-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:linear-gradient(135deg,hsl(0 75% 55%),hsl(15 70% 50%));color:white;font-size:10px;font-weight:900;box-shadow:0 2px 8px hsl(0 75% 45% / 0.45)}
+
+.rms-icon-btn{width:40px;height:40px;border-radius:var(--radius-icon);display:grid;place-items:center;flex-shrink:0;border:1px solid var(--border-color);transition:box-shadow var(--dur) var(--ease)}
+[data-theme="light"] .rms-icon-btn,:root:not([data-theme]) .rms-icon-btn{background:var(--surface);box-shadow:var(--shadow-card-sm);border:none}
+[data-theme="dark"] .rms-icon-btn{background:hsl(220 25% 8% / 0.7);backdrop-filter:blur(8px)}
+.rms-icon-btn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round}
+
+.app{position:relative;z-index:var(--z-content);max-width:480px;margin:0 auto;padding:14px 12px calc(40px + env(safe-area-inset-bottom,0))}
+
+.glass{position:relative;border-radius:var(--radius);border:var(--border) solid var(--border-color);isolation:isolate}
+.glass.sm{border-radius:var(--radius-sm)}
+.glass .shine,.glass .glow{--hue:var(--hue1)}
+.glass .shine-bottom,.glass .glow-bottom{--hue:var(--hue2);--conic:135deg}
+[data-theme="light"] .glass,:root:not([data-theme]) .glass{background:var(--surface);box-shadow:var(--shadow-card);border:none}
+[data-theme="light"] .glass .shine,[data-theme="light"] .glass .glow,
+:root:not([data-theme]) .glass .shine,:root:not([data-theme]) .glass .glow{display:none}
+[data-theme="dark"] .glass{background:linear-gradient(235deg,hsl(var(--hue1) 50% 10% / .8),hsl(var(--hue1) 50% 10% / 0) 33%),linear-gradient(45deg,hsl(var(--hue2) 50% 10% / .8),hsl(var(--hue2) 50% 10% / 0) 33%),linear-gradient(hsl(220 25% 4.8% / .78));backdrop-filter:blur(12px);box-shadow:var(--shadow-card)}
+[data-theme="dark"] .glass .shine{pointer-events:none;border-radius:0;border-top-right-radius:inherit;border-bottom-left-radius:inherit;border:1px solid transparent;width:75%;aspect-ratio:1;display:block;position:absolute;right:-1px;top:-1px;z-index:1;background:conic-gradient(from var(--conic, -45deg) at center in oklch, transparent 12%, hsl(var(--hue), 80%, 60%), transparent 50%) border-box;mask:linear-gradient(transparent),linear-gradient(black);mask-clip:padding-box,border-box;mask-composite:subtract}
+[data-theme="dark"] .glass .shine.shine-bottom{right:auto;top:auto;left:-1px;bottom:-1px}
+[data-theme="dark"] .glass .glow{pointer-events:none;border-top-right-radius:calc(var(--radius) * 2.5);border-bottom-left-radius:calc(var(--radius) * 2.5);border:calc(var(--radius) * 1.25) solid transparent;inset:calc(var(--radius) * -2);width:75%;aspect-ratio:1;display:block;position:absolute;left:auto;bottom:auto;background:conic-gradient(from var(--conic, -45deg) at center in oklch, hsl(var(--hue), 80%, 60% / .5) 12%, transparent 50%);filter:blur(12px) saturate(1.25);mix-blend-mode:plus-lighter;z-index:3;opacity:0.6}
+[data-theme="dark"] .glass .glow.glow-bottom{inset:auto;left:calc(var(--radius) * -2);bottom:calc(var(--radius) * -2)}
+[data-theme="dark"] .glass.qm .shine,[data-theme="dark"] .glass.qm .glow{--hue:280}
+[data-theme="dark"] .glass.qm .shine-bottom,[data-theme="dark"] .glass.qm .glow-bottom{--hue:310}
+.glass > *:not(.shine):not(.glow){position:relative;z-index:5}
+
+/* FILTER PILLS */
+.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px;border-radius:var(--radius-pill);margin-bottom:14px;animation:fadeInUp 0.4s var(--ease)}
+[data-theme="light"] .filter-row,:root:not([data-theme]) .filter-row{background:var(--surface);box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .filter-row{background:hsl(220 25% 3.5%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.filter-tab{padding:9px 4px;border-radius:var(--radius-pill);font-size:11px;font-weight:800;letter-spacing:-0.01em;color:var(--text-muted);text-align:center;cursor:pointer;transition:all 200ms;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.filter-tab .f-count{font-size:9px;padding:1px 6px;border-radius:var(--radius-pill);background:rgba(0,0,0,0.1);font-weight:800;min-width:18px}
+[data-theme="dark"] .filter-tab .f-count{background:rgba(255,255,255,0.1)}
+.filter-tab.active{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px hsl(var(--hue1) 80% 50% / 0.4)}
+.filter-tab.active .f-count{background:rgba(255,255,255,0.25)}
+
+/* MARK ALL READ */
+.mark-all-row{display:flex;justify-content:flex-end;margin-bottom:10px;padding:0 6px}
+.mark-all{font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:var(--accent);cursor:pointer;padding:6px 12px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:5px}
+[data-theme="dark"] .mark-all{color:hsl(var(--hue1) 80% 75%)}
+.mark-all svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* DAY GROUP */
+.day-group{margin-bottom:14px;animation:fadeInUp 0.5s var(--ease) both}
+.day-header{display:flex;align-items:center;gap:10px;padding:4px 6px 8px}
+.day-date{font-size:12px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
+.day-sub{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;text-transform:uppercase}
+.day-spacer{flex:1;height:1px;background:rgba(163,177,198,0.3);opacity:0.5}
+[data-theme="dark"] .day-spacer{background:hsl(var(--hue2) 12% 14%)}
+.day-count{font-size:10px;font-weight:800;color:var(--text-muted)}
+
+/* NOTIFICATION CARD */
+.notif-list{display:flex;flex-direction:column;gap:8px}
+.notif-card{padding:12px 14px;cursor:pointer;transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);display:flex;align-items:flex-start;gap:12px;position:relative}
+[data-theme="light"] .notif-card:active,:root:not([data-theme]) .notif-card:active{box-shadow:var(--shadow-pressed)}
+.notif-card:active{transform:scale(0.99)}
+
+.notif-card.unread::before{content:'';position:absolute;left:5px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 0 8px hsl(var(--hue1) 80% 50%);animation:pulse 1.8s infinite}
+
+.notif-orb{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
+.notif-orb svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2))}
+
+/* Type variants */
+.notif-card.tax .notif-orb{background:linear-gradient(135deg,hsl(38 90% 55%),hsl(28 85% 50%));box-shadow:0 3px 10px hsl(38 90% 50% / 0.4)}
+.notif-card.ai .notif-orb{background:linear-gradient(135deg,hsl(280 70% 55%),hsl(305 65% 55%));box-shadow:0 3px 10px hsl(280 70% 50% / 0.4);position:relative;overflow:hidden}
+.notif-card.ai .notif-orb::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 70%,rgba(255,255,255,0.4) 85%,transparent 100%);animation:conicSpin 4s linear infinite}
+.notif-card.ai .notif-orb svg{position:relative;z-index:2}
+.notif-card.alert .notif-orb{background:linear-gradient(135deg,hsl(0 75% 55%),hsl(15 70% 50%));box-shadow:0 3px 10px hsl(0 75% 45% / 0.4)}
+.notif-card.reminder .notif-orb{background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 3px 10px hsl(var(--hue1) 80% 50% / 0.4)}
+.notif-card.success .notif-orb{background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 3px 10px hsl(145 70% 45% / 0.4)}
+.notif-card.system .notif-orb{background:linear-gradient(135deg,hsl(var(--hue3) 70% 50%),hsl(var(--hue3) 75% 55%));box-shadow:0 3px 10px hsl(var(--hue3) 70% 50% / 0.4)}
+
+.notif-body{flex:1;min-width:0}
+.notif-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px}
+.notif-title{font-size:13px;font-weight:900;letter-spacing:-0.01em;line-height:1.25}
+.notif-time{font-size:10px;font-weight:700;color:var(--text-faint);white-space:nowrap;flex-shrink:0;letter-spacing:0.02em}
+.notif-msg{font-size:11.5px;font-weight:600;color:var(--text-muted);line-height:1.45}
+.notif-msg b{color:var(--text);font-weight:800}
+
+.notif-actions{display:flex;gap:6px;margin-top:8px}
+.notif-act{padding:6px 12px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:800;letter-spacing:0.02em;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.notif-act svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5}
+.notif-act.primary{color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 2px 8px hsl(var(--hue1) 80% 50% / 0.4)}
+.notif-act.ghost{color:var(--text-muted)}
+[data-theme="light"] .notif-act.ghost,:root:not([data-theme]) .notif-act.ghost{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="dark"] .notif-act.ghost{background:hsl(220 25% 8%)}
+
+/* Read state */
+.notif-card.read{opacity:0.65}
+.notif-card.read .notif-title{font-weight:700}
+
+/* EMPTY STATE */
+.empty-state{padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.empty-orb{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,hsl(145 70% 50%),hsl(155 70% 40%));box-shadow:0 6px 24px hsl(145 70% 40% / 0.45)}
+.empty-orb svg{width:36px;height:36px;stroke:white;fill:none;stroke-width:2}
+.empty-h{font-size:17px;font-weight:900;letter-spacing:-0.015em}
+.empty-sub{font-size:12.5px;color:var(--text-muted);font-weight:600;line-height:1.5;max-width:280px}
+
+/* Settings link */
+.settings-link{margin-top:14px;padding:12px 16px;border-radius:var(--radius);display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow var(--dur) var(--ease)}
+[data-theme="light"] .settings-link,:root:not([data-theme]) .settings-link{background:var(--surface);box-shadow:var(--shadow-card-sm)}
+[data-theme="light"] .settings-link:active,:root:not([data-theme]) .settings-link:active{box-shadow:var(--shadow-pressed)}
+[data-theme="dark"] .settings-link{background:hsl(220 25% 8%);border:1px solid hsl(var(--hue2) 12% 18%)}
+.settings-link-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,hsl(var(--hue3) 70% 50%),hsl(var(--hue3) 75% 55%));box-shadow:0 3px 8px hsl(var(--hue3) 70% 50% / 0.35)}
+.settings-link-ic svg{width:14px;height:14px;stroke:white;fill:none;stroke-width:2}
+.settings-link-text{flex:1;font-size:12.5px;font-weight:700}
+.settings-link-arrow{color:var(--text-faint)}
+.settings-link-arrow svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+</style>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<div class="demo-bar">
+  <span class="demo-bar-label">FILTER</span>
+  <button class="demo-btn active" onclick="setFilter('all',this)">Всички</button>
+  <button class="demo-btn" onclick="setFilter('unread',this)">Непрочетени</button>
+  <button class="demo-btn" onclick="setFilter('archive',this)">Архив</button>
+  <span class="demo-bar-label" style="margin-left:6px">THEME</span>
+  <button class="demo-btn" onclick="toggleTheme()">Свети/Тъмно</button>
+</div>
+
+<header class="rms-header">
+  <button class="back-btn">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="head-title">Известия <span class="head-count">4</span></span>
+  <button class="rms-icon-btn" aria-label="Настройки">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<div class="app">
+
+  <!-- FILTER -->
+  <div class="filter-row">
+    <div class="filter-tab active" onclick="setFilter('all',null,this)">
+      Всички
+      <span class="f-count">7</span>
+    </div>
+    <div class="filter-tab" onclick="setFilter('unread',null,this)">
+      Непрочетени
+      <span class="f-count">4</span>
+    </div>
+    <div class="filter-tab" onclick="setFilter('archive',null,this)">
+      Архив
+      <span class="f-count">23</span>
+    </div>
+  </div>
+
+  <!-- MARK ALL READ -->
+  <div class="mark-all-row">
+    <button class="mark-all">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Маркирай всички като прочетени
+    </button>
+  </div>
+
+  <!-- ДНЕС -->
+  <div class="day-group">
+    <div class="day-header">
+      <span class="day-date">Днес</span>
+      <span class="day-sub">17 май</span>
+      <span class="day-spacer"></span>
+      <span class="day-count">3 нови</span>
+    </div>
+    <div class="notif-list">
+
+      <div class="glass sm notif-card alert unread">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">ДДС праг — внимание</div>
+            <div class="notif-time">14:32</div>
+          </div>
+          <div class="notif-msg">Достигна <b>72%</b> от ДДС прага (€36 813 от €51 130). Остават около <b>4 месеца</b> при сегашен темп.</div>
+          <div class="notif-actions">
+            <button class="notif-act primary">
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              Виж детайли
+            </button>
+            <button class="notif-act ghost">Скрий</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass sm notif-card ai unread">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">AI забеляза нещо</div>
+            <div class="notif-time">10:15</div>
+          </div>
+          <div class="notif-msg">Абонаментите растат с <b>+€34/мес</b> от март. Преглеждай редовно — потенциал <b>€200/година</b> спестяване.</div>
+          <div class="notif-actions">
+            <button class="notif-act primary">
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              Прегледай
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass sm notif-card reminder unread">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">Месечни осигуровки</div>
+            <div class="notif-time">09:00</div>
+          </div>
+          <div class="notif-msg">Срок за плащане до <b>25 май</b>. Прогнозна сума <b>~872 €</b>. Остават 8 дни.</div>
+          <div class="notif-actions">
+            <button class="notif-act primary">
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              Виж сметка
+            </button>
+            <button class="notif-act ghost">Напомни ми по-късно</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ВЧЕРА -->
+  <div class="day-group">
+    <div class="day-header">
+      <span class="day-date">Вчера</span>
+      <span class="day-sub">16 май</span>
+      <span class="day-spacer"></span>
+      <span class="day-count">1 ново</span>
+    </div>
+    <div class="notif-list">
+
+      <div class="glass sm notif-card success unread">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">Цел "Отпуска лято" — 80%</div>
+            <div class="notif-time">16:48</div>
+          </div>
+          <div class="notif-msg">Близо си! Имаш <b>1 200 / 1 500 €</b>. Остават само <b>300 €</b> до целта.</div>
+          <div class="notif-actions">
+            <button class="notif-act primary">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Прибави сега
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ПО-РАНО -->
+  <div class="day-group">
+    <div class="day-header">
+      <span class="day-date">По-рано</span>
+      <span class="day-sub">тази седмица</span>
+      <span class="day-spacer"></span>
+      <span class="day-count">3 прочетени</span>
+    </div>
+    <div class="notif-list">
+
+      <div class="glass sm notif-card tax read">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">Тримесечен аванс Q2</div>
+            <div class="notif-time">пн 13 май</div>
+          </div>
+          <div class="notif-msg">Напомняне за плащане до <b>15 юли 2026</b>. Прогнозна сума <b>~290 €</b>.</div>
+        </div>
+      </div>
+
+      <div class="glass sm notif-card system read">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">Месечен отчет за април</div>
+            <div class="notif-time">пет 10 май</div>
+          </div>
+          <div class="notif-msg">Готов е твоят отчет: <b>+1 218 € печалба</b>, <b>34 транзакции</b>. PDF готов за изтегляне.</div>
+        </div>
+      </div>
+
+      <div class="glass sm notif-card ai read">
+        <span class="shine"></span><span class="shine shine-bottom"></span>
+        <div class="notif-orb">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>
+        </div>
+        <div class="notif-body">
+          <div class="notif-head-row">
+            <div class="notif-title">Сезонност открита</div>
+            <div class="notif-time">сря 8 май</div>
+          </div>
+          <div class="notif-msg">Юли и Август обикновено са <b>-15%</b> в твоите приходи. Подгответе резерв.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SETTINGS LINK -->
+  <button class="settings-link">
+    <div class="settings-link-ic">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div class="settings-link-text">Управление на известия</div>
+    <div class="settings-link-arrow">
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </button>
+
+</div>
+
+<script>
+function setFilter(type, demoBtn, filterTab){
+  document.querySelectorAll('.demo-bar .demo-btn').forEach(b=>{
+    if(['Всички','Непрочетени','Архив'].includes(b.textContent.trim())) b.classList.remove('active');
+  });
+  if(demoBtn) demoBtn.classList.add('active');
+
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  if(filterTab){
+    filterTab.classList.add('active');
+  } else {
+    const map = {all:0,unread:1,archive:2};
+    document.querySelectorAll('.filter-tab')[map[type]]?.classList.add('active');
+  }
+
+  if(!demoBtn){
+    const m = {all:'Всички',unread:'Непрочетени',archive:'Архив'};
+    document.querySelectorAll('.demo-bar .demo-btn').forEach(b=>{
+      if(b.textContent.trim()===m[type]) b.classList.add('active');
+    });
+  }
+
+  // Filter cards
+  if(type === 'unread'){
+    document.querySelectorAll('.notif-card').forEach(c=>{
+      c.style.display = c.classList.contains('unread') ? '' : 'none';
+    });
+  } else if(type === 'archive'){
+    document.querySelectorAll('.notif-card').forEach(c=>{
+      c.style.display = c.classList.contains('read') ? '' : 'none';
+    });
+  } else {
+    document.querySelectorAll('.notif-card').forEach(c=>{
+      c.style.display = '';
+    });
+  }
+
+  document.querySelectorAll('.day-group').forEach(g=>{
+    const visible = Array.from(g.querySelectorAll('.notif-card')).filter(r=>r.style.display !== 'none');
+    g.style.display = visible.length ? '' : 'none';
+  });
+}
+
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try{localStorage.setItem('rmw_theme', next);}catch(_){}
+}
+</script>
+
+</body>
+</html>
