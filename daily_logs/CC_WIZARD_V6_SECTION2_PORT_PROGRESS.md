@@ -145,9 +145,59 @@ P13_bulk_entry.html visual design + ВСЯКА sacred логика от products
 
 ## 🛤 NEXT STEPS
 
-- **3c.2c** (now): Pre-load chips + 2 searches (size + color) + 1 search inside groups panel + rename labels
-- **3c.3**: P12 matrix port (P12_matrix.html canon)
-- **3c.4**: Sacred HEX picker (wizColorAddPrompt 1:1 + RGB sliders Q2=B)
-- **3c.5**: Sacred voice processing (_voiceProcessAxis i18n)
-- **3c.6**: Pinned groups + sacred wizColorEdit + custom colors localStorage
-- **3d**: Manual test scenarios + refinement
+- ✅ **3c.2d** (done): P13 static skeleton 1:1 verbatim
+- ✅ **3c.3** (now): Size axis dynamic — chip toggle + search + manual add + groups expand
+- ⏭ **3c.4**: Color axis dynamic — chip toggle + HEX picker + AI photo autofill activates
+- ⏭ **3c.5**: Matrix dynamic — qty cells wire + recalc SKU + "Всички = N" + import
+- ⏭ **3c.6**: P12_matrix.html fullscreen modal
+- ⏭ **3c.7**: Voice per axis (_voiceProcessAxis i18n)
+- ⏭ **3c.8**: Pinned groups + custom colors localStorage
+- ⏭ **3d**: Manual test scenarios + refinement
+
+═══════════════════════════════════════════════════════════════
+
+## ✅ 3c.3 — SIZE AXIS DYNAMIC (ported sacred logic 1:1)
+
+### Sacred functions ported:
+
+| Sacred | Source line | Where в port | Status |
+|---|---|---|---|
+| `_levenshtein(a,b)` | 12787 | `js/wizard-variations.js wizLevenshtein` | ✅ 1:1 |
+| `fuzzyMatch80(input,cands)` | 12808 | `wizFuzzyMatch80` | ✅ 1:1 |
+| `fuzzyConfirmAdd(label,input,...)` | 12830 | `wizFuzzyConfirmAdd` | ✅ 1:1 |
+| `wizTogglePresetInline(axIdx,val,chip)` | 11278 | `wizSizeToggle(val)` (re-render based) | ✅ funcequivalent |
+| `wizPickAxisVal(axIdx,val)` | 11546 | `wizSizeAddPickSuggestion(val)` | ✅ 1:1 |
+| `wizAddAxisValue(axIdx)` | 11553 | `wizSizeAddConfirm()` (fuzzy 1:1) | ✅ 1:1 |
+| `wizAxisSuggest(axIdx,q)` search | 11509 | `wizSizeAddInputChange(q)` + `wizSizeSearchAll(q)` | ✅ 1:1 logic |
+| `_SIZE_GROUPS` (27 presets) | 10369-10395 | `js/wizard-variations.js` (3c.1) | ✅ 1:1 |
+
+### NEW size axis UI flows:
+
+1. **Default chips XS-XXL** pre-loaded → tap toggles active state (sacred wizTogglePresetInline pattern)
+2. **"+ добави размер"** → inline expand panel с:
+   - Search input (live suggest от ALL 27 _SIZE_GROUPS чрез `wizSizeSearchAll`)
+   - Tap suggestion → add без fuzzy check
+   - Tap "Добави" → manual add с **fuzzy 80% match** (1:1 sacred fuzzyConfirmAdd)
+3. **"други групи →"** → inline expand panel с:
+   - Search input filter by group.label или group.values
+   - Click group → bulk add ALL values от групата (dedup)
+   - vibrate + close panel + re-render
+
+### Какво НЕ е портнато (TODO следваща sub-step):
+
+- Voice mic за axis — wired stub-овано в текущ Section 2 markup, но НЕ функционално. _voiceProcessAxis (i18n) трябва порт за full voice flow.
+- AI color autofill — backend logic работи (wizAIColorAutofill silent), но Цветове axis e STATIC P13 markup, не показва AI цветовете. Ще активира с 3c.4.
+- Pinned groups (S._wizPinnedGroups + localStorage `_rms_pinnedGroups_<storeId>`) — sacred 8390-8396 не портнат.
+- _v4UpdateAfterToggle inner DOM patching (вместо full re-render) — за performance.
+
+═══════════════════════════════════════════════════════════════
+
+## SECTION 2 — статус след 3c.3
+
+| Sub-section | Visual | Functional | Notes |
+|---|---|---|---|
+| Размери (axis) | ✅ P13 | ✅ Wired (chip toggle, add inline, groups expand, search) | Sacred logic 1:1 |
+| Цветове (axis) | ✅ P13 (static) | ❌ Не wired | 3c.4 next |
+| Matrix grid | ✅ P13 (static) | ❌ Не wired | 3c.5 next |
+| SKU summary | ✅ P13 (static) | ❌ Не recalculates | 3c.5 |
+| Save row | ✅ P13 (static) | ❌ Stubs | Phase 4 |

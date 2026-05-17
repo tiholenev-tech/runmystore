@@ -190,6 +190,82 @@ function wizAIColorAutofill(){
     }
 }
 
+// ═══ S148 ФАЗА 3c.3 — Size axis logic (1:1 sacred ported) ═══
+
+// _levenshtein (1:1 p.php 12787-12806)
+function _wizLevenshtein(a, b){
+    a = (a||'').toLowerCase().trim(); b = (b||'').toLowerCase().trim();
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    var m = a.length, n = b.length;
+    var dp = new Array(n + 1);
+    for (var j = 0; j <= n; j++) dp[j] = j;
+    for (var i = 1; i <= m; i++) {
+        var prev = dp[0]; dp[0] = i;
+        for (var j2 = 1; j2 <= n; j2++) {
+            var tmp = dp[j2];
+            dp[j2] = (a.charCodeAt(i-1) === b.charCodeAt(j2-1)) ? prev : Math.min(prev, dp[j2], dp[j2-1]) + 1;
+            prev = tmp;
+        }
+    }
+    return dp[n];
+}
+
+// fuzzyMatch80 (1:1 p.php 12808-12828)
+function wizFuzzyMatch80(input, candidates){
+    if (!input || !candidates || !candidates.length) return null;
+    var inp = String(input).toLowerCase().trim();
+    if (!inp) return null;
+    var best = null, bestScore = 0;
+    for (var i = 0; i < candidates.length; i++) {
+        var c = candidates[i];
+        if (c == null) continue;
+        var name = (typeof c === 'string') ? c : (c.name || '');
+        var cand = String(name).toLowerCase().trim();
+        if (!cand) continue;
+        var sim;
+        if (cand === inp) sim = 1;
+        else {
+            var dist = _wizLevenshtein(inp, cand);
+            var maxLen = Math.max(inp.length, cand.length);
+            sim = maxLen ? 1 - (dist / maxLen) : 0;
+        }
+        if (sim > bestScore) { bestScore = sim; best = {match: c, name: name, score: Math.round(sim * 100)}; }
+    }
+    return (best && best.score >= 80) ? best : null;
+}
+
+// fuzzyConfirmAdd (1:1 p.php 12830-12838)
+function wizFuzzyConfirmAdd(label, input, candidates, onUseExisting, onAddNew){
+    var m = wizFuzzyMatch80(input, candidates);
+    if (!m) { onAddNew(); return; }
+    var msg = 'Вече има "' + m.name + '" (' + m.score + '% близко до "' + input + '").\n\n'
+            + 'OK = използвай съществуващото "' + m.name + '"\n'
+            + 'Откажи = добави "' + input + '" като ново';
+    if (confirm(msg)) onUseExisting(m.match);
+    else onAddNew();
+}
+
+// Search across ALL _SIZE_GROUPS — returns matching values (dedup)
+function wizSizeSearchAll(query){
+    var ql = (query || '').toLowerCase().trim();
+    if (!ql) return [];
+    var seen = {};
+    var results = [];
+    if (typeof _SIZE_GROUPS === 'undefined') return results;
+    _SIZE_GROUPS.forEach(function(g){
+        (g.values || []).forEach(function(v){
+            var vl = String(v).toLowerCase();
+            if (vl.indexOf(ql) !== -1 && !seen[vl]) {
+                seen[vl] = true;
+                results.push({val: v, group: g.label, groupId: g.id});
+            }
+        });
+    });
+    return results;
+}
+
 // ═══ wizInitVariantsAxes — 1:1 sacred (p.php 8329-8350) ═══
 // Init axes ако още няма. Auto-rename generic "Вариация N" → "Размер"/"Цвят"
 // ако всички values match size pattern или color names.
