@@ -10728,3 +10728,241 @@ Bible v1.2 е **финалeн blueprint** за code-имплементация.
 - TECHNICAL_ARCHITECTURE_v1.md (RunMyStore brain reference)
 
 Следваща задача: **POCKET_CFO_TRACKER.md** + **POCKET_CFO_BRIEF_CC-A.md** + **POCKET_CFO_BRIEF_CC-B.md** за start на work.
+
+# §42. ФУНДАМЕНТАЛeН ЗАКОН — ОБЩ CODEBASE
+
+## 42.1 Главният принцип
+
+**Един код се пише веднъж. Работи и за RunMyStore, и за Pocket CFO.**
+
+Никога **НЕ дублираме** функционалност. Файловата структура диктува за кой продукт е кодът:
+
+```
+═══════════════════════════════════════════════════
+3 ТИПА КОД В REPO-ТО
+═══════════════════════════════════════════════════
+
+TYPE 1: SHARED ENGINE (един път писан, ползва се от двата)
+─────────────────────────────────────────────────────
+Папка: /lib/
+Примери:
+  - lib/money-engine.php
+  - lib/voice-parser.php
+  - lib/photo-receipt-parser.php
+  - lib/ai-engine.php
+  - lib/ner-anonymizer.php
+  - lib/cohort-benchmarks.php
+  - lib/auth.php
+  - lib/db.php
+  - lib/currency.php
+  - lib/i18n.php
+  - lib/stripe-connect.php
+  - lib/cross-validation.php
+  - lib/profession-templates.php
+  - lib/gdpr-compliance.php
+
+Семантика: Когато подобряваме voice parsing → ОБА продукта получават
+           подобрението. Един commit, два upgrade-а.
+
+TYPE 2: SAMO ZA RUNMYSTORE
+─────────────────────────────────────────────────────
+Папки: /partials/ (retail-specific) + root retail файлове
+Примери:
+  - partials/products-grid.php
+  - partials/inventory-walk.php
+  - partials/sales-pos.php
+  - partials/deliveries.php
+  - partials/suppliers.php
+  - partials/stats-overview.php
+  - partials/stats-products.php
+  - partials/stats-finance-*.php (retail context)
+  - life-board.php
+  - products.php
+  - orders.php
+  - sale.php
+
+Семантика: Pocket CFO НЕ ги изпълнява. Plan='cfo' user не вижда тези страници.
+
+TYPE 3: SAMO ZA POCKET CFO
+─────────────────────────────────────────────────────
+Папка: /cfo/
+Примери:
+  - cfo/home.php
+  - cfo/records.php
+  - cfo/analysis.php
+  - cfo/goals.php
+  - cfo/onboarding.php (CFO version)
+  - cfo/settings.php
+  - cfo/api/voice-parse.php
+  - cfo/api/photo-parse.php
+  - cfo/partials/home-voice-bar.php
+  - cfo/partials/analysis-charts.php
+
+Семантика: RunMyStore НЕ ги изпълнява. Plan IN ('start','pro','business')
+           не вижда тези страници.
+```
+
+## 42.2 Routing — едно entry, две UI shell-а
+
+```php
+// index.php (entry point)
+session_start();
+$tenant = getTenant($_SESSION['tenant_id']);
+
+if ($tenant->plan === 'cfo') {
+    header('Location: cfo/home.php');     // → Pocket CFO UI
+} else {
+    header('Location: life-board.php');   // → RunMyStore UI
+}
+exit;
+```
+
+**Един routing layer → правилно UI shell според plan.**
+
+## 42.3 Plan-aware shared functions
+
+Когато една и съща функция трябва да работи различно за двата продукта, дискриминираме чрез `$tenant->plan`:
+
+```php
+// lib/dashboard-data.php
+
+function getDashboardData(int $tenant_id): array {
+    $tenant = getTenant($tenant_id);
+    
+    // Common data
+    $common = [
+        'balance' => getBalance($tenant_id),
+        'recent_movements' => getRecentMovements($tenant_id, 5),
+    ];
+    
+    // Product-specific data
+    if ($tenant->plan === 'cfo') {
+        return array_merge($common, [
+            'operating_profit' => calcOperatingProfit($tenant_id),
+            'net_cash_position' => calcNetCashPosition($tenant_id),
+            'top_categories' => getTopCategories($tenant_id),
+            'goal_progress' => getGoalProgress($tenant_id),
+        ]);
+    } else {
+        return array_merge($common, [
+            'today_revenue' => getTodayRevenue($tenant_id),
+            'top_products' => getTopProducts($tenant_id),
+            'low_stock' => getLowStock($tenant_id),
+            'dead_capital' => getDeadCapital($tenant_id),
+        ]);
+    }
+}
+```
+
+**ЕДНА функция → различно поведение според plan.**
+
+## 42.4 ЗАБРАНЕНО
+
+```
+❌ ГРЕШНО:
+   lib/money-engine.php           (за RMS)
+   lib/money-engine-cfo.php       (за CFO)
+   → Дублирана логика. Bug fix трябва да се прави на 2 места.
+
+❌ ГРЕШНО:
+   cfo/voice-parser.php           (за CFO)
+   partials/voice-parser.php      (за RMS)
+   → Същата функционалност, два файла.
+
+✅ ПРАВИЛНО:
+   lib/voice-parser.php           (един файл, ползва се от двата)
+   → Един bug fix → и двата продукта на момента са fixed.
+```
+
+## 42.5 Когато добавяме нова feature
+
+```
+Сценарий 1: Voice parsing подобрение
+═══════════════════════════════════
+  → Edit lib/voice-parser.php веднъж
+  → И RunMyStore, и Pocket CFO получават подобрението
+  → Един commit, два продукта upgrade-нати
+
+Сценарий 2: Нов UI компонент САМО за CFO
+═══════════════════════════════════════
+  → Edit cfo/home.php (или нов cfo/partials/*.php)
+  → RunMyStore не се пипа
+  → Commit prefix: "S15X CFO:"
+
+Сценарий 3: Нов UI компонент САМО за RMS
+═══════════════════════════════════════
+  → Edit partials/stats-finance-*.php или life-board.php
+  → Pocket CFO не се пипа
+  → Commit prefix: "S15X RMS:"
+
+Сценарий 4: Нов engine helper за двата
+═══════════════════════════════════════
+  → Edit lib/* (нов файл или existing)
+  → Commit prefix: "S15X ENGINE:"
+```
+
+## 42.6 Commit message convention
+
+Винаги използваме prefix който показва за кой продукт е промяната:
+
+```
+git commit -m "S150 ENGINE: vendor aliases self-learning logic"
+git commit -m "S151 RMS:    stats-finance-controller UI"  
+git commit -m "S152 CFO:    onboarding wizard flow"
+git commit -m "S153 ENGINE: cross-product vendor validation"
+git commit -m "S154 RMS:    products-v2 wizard улучшения"
+git commit -m "S155 CFO:    goals.php progress bar"
+```
+
+Тагове `ENGINE`/`RMS`/`CFO` казват веднага какво е засегнато.
+
+## 42.7 Тестване — два tenant profiles
+
+```
+tenant_id=7  →  plan='start'   →  RunMyStore test profile (existing)
+tenant_id=8  →  plan='cfo'     →  Pocket CFO test profile (new)
+```
+
+**Една DB → два test contexts → пълно покритие.**
+
+## 42.8 Deploy — един git push
+
+```
+git add -A
+git commit -m "..."
+git push origin main
+   ↓
+DigitalOcean droplet pulls
+   ↓
+И двата продукта се update-ват едновременно
+   ↓
+Никога частичен deploy
+```
+
+## 42.9 Резултат от тази архитектура
+
+```
+Реална икономия (от §28.6 + §34.4):
+
+Ако строим Pocket CFO като отделен product:    ~120 000 редa нов код
+С shared codebase:                              ~22 000 редa нов код
+                                                ────────────────────
+                                                ~82% икономия
+
+Bug fix workflow:
+  Стандартен dual-product:  Fix в product A → паралелен fix в product B
+  Shared codebase:           Fix в lib/* → автоматично fixed в двата
+
+Time-to-market:
+  Стандартен dual-product:  5-6 месеца за CFO от scratch
+  Shared codebase:           5-6 СЕДМИЦИ за CFO
+```
+
+---
+
+## 🎯 ФИНАЛЕН ЗАКОН
+
+**Един codebase. Един git push. Два продукта.**
+
+Това е архитектурният фундамент на цялата стратегия. Никога не нарушаваме.
+
