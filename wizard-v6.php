@@ -1111,6 +1111,17 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 .mx-input-min::-webkit-outer-spin-button,.mx-input-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .mx-min-row{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-faint);letter-spacing:0.04em}
 
+/* ═══ S148 ФАЗА 3c.3b — Size axis grouped display + long-press remove ═══ */
+.size-quick-strip{margin-bottom:10px}
+.size-strip-label{font-family:var(--font-mono);font-size:8px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px}
+.size-group-section{margin-top:12px}
+.size-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
+.size-group-label{flex:1;font-family:var(--font-mono);font-size:9px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-theme="dark"] .size-group-label{color:hsl(var(--hue1) 80% 75%)}
+.size-group-remove{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;cursor:pointer;flex-shrink:0;font-family:inherit;font-size:14px;font-weight:700;color:var(--text-muted);background:transparent;border:none;line-height:1}
+[data-theme="light"] .size-group-remove:hover,:root:not([data-theme]) .size-group-remove:hover{background:rgba(239,68,68,0.08);color:hsl(0 70% 45%)}
+[data-theme="dark"] .size-group-remove:hover{background:hsl(0 50% 18% / 0.4);color:hsl(0 80% 65%)}
+
 /* "Като предния" bulk copy button — neumorphic + accent text */
 .wz-copy-prev-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;border-radius:14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em;color:var(--accent);border:none;margin-bottom:12px;transition:transform 150ms,box-shadow 200ms}
 .wz-copy-prev-btn[disabled]{cursor:not-allowed;color:var(--text-faint)}
@@ -2905,6 +2916,20 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     return -1;
   }
 
+  // Ensure _sources tracking map exists on axis
+  function _wizEnsureSources(ax){
+    if (!ax._sources || typeof ax._sources !== 'object') ax._sources = {};
+    return ax._sources;
+  }
+
+  // Find group label by id (fallback to id if not found)
+  function _wizGroupLabelById(groupId){
+    if (groupId === '_custom') return 'Ръчно добавени';
+    if (typeof _SIZE_GROUPS === 'undefined') return groupId;
+    var g = _SIZE_GROUPS.find(function(x){ return x.id === groupId; });
+    return g ? g.label : groupId;
+  }
+
   function renderSizeAxis(){
     var idx = wizFindSizeAxisIdx();
     if (idx === -1) {
@@ -2915,25 +2940,68 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     }
     var ax = S.wizData.axes[idx];
     if (!ax) return '';
-    // Default chips от Дрехи букви preset
+    _wizEnsureSources(ax);
+    // Default chips strip (XS-XXL) — always visible quick-pick
     var defaultChips = ['XS','S','M','L','XL','XXL'];
-    // Union: defaults + user-added (in values но not in defaults)
-    var allChips = defaultChips.slice();
-    (ax.values || []).forEach(function(v){
-      if (allChips.indexOf(v) === -1) allChips.push(v);
-    });
     var activeSet = {};
     (ax.values || []).forEach(function(v){ activeSet[v] = true; });
 
-    var chipsHtml = '';
-    allChips.forEach(function(v){
+    // Quick-strip HTML
+    var quickHtml = '';
+    defaultChips.forEach(function(v){
       var isActive = !!activeSet[v];
-      chipsHtml += '<button type="button" class="chip-sz' + (isActive?' active':'') + '" onclick="wizSizeToggle(\'' + v.replace(/'/g, "\\'") + '\')">' + esc(v) + '</button>';
+      var escVal = v.replace(/'/g, "\\'");
+      quickHtml += '<button type="button" class="chip-sz' + (isActive?' active':'') + '"'+
+        ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
+        ' oncontextmenu="event.preventDefault();wizSizeAskRemove(\'' + escVal + '\');return false"'+
+        ' ondblclick="wizSizeAskRemove(\'' + escVal + '\')"'+
+        '>' + esc(v) + '</button>';
+    });
+
+    // Group values by _sources (skip 'letters' values that are in defaultChips — shown in strip)
+    var bySource = {};
+    var orderedSrcs = [];
+    (ax.values || []).forEach(function(v){
+      var src = ax._sources[v];
+      if (!src) {
+        // Untagged — infer: defaultChips → 'letters', else → '_unknown'
+        src = defaultChips.indexOf(v) !== -1 ? 'letters' : '_unknown';
+        ax._sources[v] = src;
+      }
+      // Skip 'letters' values that are already in quick strip
+      if (src === 'letters' && defaultChips.indexOf(v) !== -1) return;
+      if (!bySource[src]) { bySource[src] = []; orderedSrcs.push(src); }
+      bySource[src].push(v);
+    });
+
+    var groupsHtml = '';
+    orderedSrcs.forEach(function(src){
+      var label = _wizGroupLabelById(src);
+      var canBulkRemove = (src !== '_unknown'); // both _custom and real groups bulk-removable
+      groupsHtml += '<div class="size-group-section" data-source="' + esc(src) + '">'+
+        '<div class="size-group-header">'+
+          '<span class="size-group-label">' + esc(label) + '</span>'+
+          (canBulkRemove ? '<button type="button" class="size-group-remove" onclick="wizSizeAskRemoveGroup(\'' + esc(src).replace(/'/g, "\\'") + '\')" title="Премахни цяла група">&times;</button>' : '')+
+        '</div>'+
+        '<div class="chips-row">';
+      bySource[src].forEach(function(v){
+        var escVal = v.replace(/'/g, "\\'");
+        groupsHtml += '<button type="button" class="chip-sz active"'+
+          ' onclick="wizSizeToggle(\'' + escVal + '\')"'+
+          ' oncontextmenu="event.preventDefault();wizSizeAskRemove(\'' + escVal + '\');return false"'+
+          ' ondblclick="wizSizeAskRemove(\'' + escVal + '\')"'+
+          '>' + esc(v) + '</button>';
+      });
+      groupsHtml += '</div></div>';
     });
 
     return '<div class="field" data-axis="size" data-axis-idx="' + idx + '">'+
       '<div class="field-label"><span>Размери</span></div>'+
-      '<div class="chips-row" id="szChipsRow">' + chipsHtml + '</div>'+
+      '<div class="size-quick-strip">'+
+        '<div class="size-strip-label">Бързо избиране</div>'+
+        '<div class="chips-row" id="szChipsRow">' + quickHtml + '</div>'+
+      '</div>'+
+      groupsHtml +
       '<div class="extra-row">'+
         '<button class="chip-add" onclick="wizSizeAddInline()">'+
           '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>добави размер'+
@@ -2989,14 +3057,53 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
 
   // ═══ Size axis interactions (sacred logic ported 1:1) ═══
 
-  function wizSizeToggle(val){
+  function wizSizeToggle(val, sourceTag){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!ax || !Array.isArray(ax.values)) ax.values = [];
+    _wizEnsureSources(ax);
+    var i = ax.values.indexOf(val);
+    if (i >= 0) {
+      ax.values.splice(i, 1);
+      delete ax._sources[val];
+    } else {
+      ax.values.push(val);
+      // Default chips XS-XXL → tag as 'letters'; otherwise use provided source (fallback '_custom')
+      var defaultChips = ['XS','S','M','L','XL','XXL'];
+      ax._sources[val] = sourceTag || (defaultChips.indexOf(val) !== -1 ? 'letters' : '_custom');
+    }
+    if (navigator.vibrate) navigator.vibrate(5);
+    renderWizSection2();
+  }
+
+  // Ask + remove single value (long-press / right-click / double-click)
+  function wizSizeAskRemove(val){
+    var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
+    var ax = S.wizData.axes[idx];
+    if (!ax || !Array.isArray(ax.values)) return;
+    if (ax.values.indexOf(val) === -1) return; // not active, nothing to remove
+    if (!confirm('Премахни размер "' + val + '"?')) return;
     var i = ax.values.indexOf(val);
     if (i >= 0) ax.values.splice(i, 1);
-    else ax.values.push(val);
-    if (navigator.vibrate) navigator.vibrate(5);
+    if (ax._sources) delete ax._sources[val];
+    if (navigator.vibrate) navigator.vibrate([8, 40, 8]);
+    renderWizSection2();
+  }
+
+  // Ask + remove ALL values belonging to a source group
+  function wizSizeAskRemoveGroup(groupId){
+    var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
+    var ax = S.wizData.axes[idx];
+    if (!ax || !Array.isArray(ax.values)) return;
+    _wizEnsureSources(ax);
+    var label = _wizGroupLabelById(groupId);
+    var toRemove = ax.values.filter(function(v){ return ax._sources[v] === groupId; });
+    if (!toRemove.length) return;
+    if (!confirm('Премахни цяла група "' + label + '" (' + toRemove.length + ' размерa)?')) return;
+    ax.values = ax.values.filter(function(v){ return ax._sources[v] !== groupId; });
+    toRemove.forEach(function(v){ delete ax._sources[v]; });
+    showToast('Премахната група "' + label + '"', 'success');
+    if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
     renderWizSection2();
   }
 
@@ -3036,18 +3143,22 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     matches = matches.filter(function(m){ return !existing[m.val.toLowerCase()]; });
     if (!matches.length) { list.innerHTML = '<div style="padding:8px 10px;font-size:10.5px;color:var(--text-muted)">Няма съвпадения — натисни <b>Добави</b> за ръчно добавяне</div>'; return; }
     list.innerHTML = matches.slice(0, 12).map(function(m){
-      return '<div class="group-row" onclick="wizSizeAddPickSuggestion(\'' + esc(m.val).replace(/'/g, "\\'") + '\')">'+
+      return '<div class="group-row" onclick="wizSizeAddPickSuggestion(\'' + esc(m.val).replace(/'/g, "\\'") + '\',\'' + esc(m.groupId || '').replace(/'/g, "\\'") + '\')">'+
         '<span class="group-label">' + esc(m.val) + '</span>'+
         '<span class="group-vals">' + esc(m.group) + '</span>'+
       '</div>';
     }).join('');
   }
 
-  function wizSizeAddPickSuggestion(val){
+  function wizSizeAddPickSuggestion(val, groupId){
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!Array.isArray(ax.values)) ax.values = [];
-    if (ax.values.indexOf(val) === -1) ax.values.push(val);
+    _wizEnsureSources(ax);
+    if (ax.values.indexOf(val) === -1) {
+      ax.values.push(val);
+      ax._sources[val] = groupId || '_custom';
+    }
     wizSizeAddCancel();
     renderWizSection2();
   }
@@ -3059,20 +3170,28 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var val = (inp && inp.value || '').trim();
     if (!val) { showToast('Въведи стойност', 'error'); return; }
     if (!Array.isArray(ax.values)) ax.values = [];
+    _wizEnsureSources(ax);
     // Sacred 1:1: fuzzy match against existing values (80% threshold)
     if (typeof wizFuzzyConfirmAdd === 'function') {
       wizFuzzyConfirmAdd('размер', val, ax.values, function(existing){
         var name = (typeof existing === 'string') ? existing : (existing.name || existing);
-        if (ax.values.indexOf(name) === -1) ax.values.push(name);
+        if (ax.values.indexOf(name) === -1) {
+          ax.values.push(name);
+          ax._sources[name] = '_custom';
+        }
         wizSizeAddCancel();
         renderWizSection2();
       }, function(){
         ax.values.push(val);
+        ax._sources[val] = '_custom';
         wizSizeAddCancel();
         renderWizSection2();
       });
     } else {
-      if (ax.values.indexOf(val) === -1) ax.values.push(val);
+      if (ax.values.indexOf(val) === -1) {
+        ax.values.push(val);
+        ax._sources[val] = '_custom';
+      }
       wizSizeAddCancel();
       renderWizSection2();
     }
@@ -3105,9 +3224,12 @@ section[data-section="studio"]{animation:fadeInUp 0.7s var(--ease-spring) 0.15s 
     var idx = wizFindSizeAxisIdx(); if (idx === -1) return;
     var ax = S.wizData.axes[idx];
     if (!Array.isArray(ax.values)) ax.values = [];
+    _wizEnsureSources(ax);
     var added = 0;
     g.values.forEach(function(v){
       if (ax.values.indexOf(v) === -1) { ax.values.push(v); added++; }
+      // Tag (overwrite) source — user explicitly chose this group
+      ax._sources[v] = groupId;
     });
     showToast('Добавени ' + added + ' стойности от "' + g.label + '"', 'success');
     if (navigator.vibrate) navigator.vibrate(8);
