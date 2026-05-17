@@ -784,9 +784,105 @@ button,input,a,select,textarea{font-family:inherit;color:inherit;font-size:inher
     wizPhotoDetectColors();
   }
 
-  // STUB — wizPhotoDetectColors / _markPhotosFailed получават full 1:1 в 2e++d.
-  function wizPhotoDetectColors(){ /* deferred → 2e++d ще извика ai-color-detect.php?multi=1 */ }
-  function _markPhotosFailed(indices){ /* deferred → 2e++d */ }
+  /* ═══ S148 ФАЗА 2e++d — color detect (1:1 sacred от p.php 9657-9749) ═══
+     Auto-triggers след wizPhotoMultiAdd и wizCamLoopFinish.
+     POST към `/ai-color-detect.php?multi=1` (sacred endpoint, direct call).
+     Multi-part body: image_0, image_1, ... + count. Response: results[] с
+     { idx, color/color_bg/name, hex, confidence } per photo.
+     На грешка → _markPhotosFailed (confidence=0 stops AI spinner per photo).
+  */
+
+  function _markPhotosFailed(indices) {
+    indices.forEach(function(idx){
+        if (!S.wizData._photos[idx]) return;
+        S.wizData._photos[idx].ai_color = '';
+        S.wizData._photos[idx].ai_hex = '#666';
+        S.wizData._photos[idx].ai_confidence = 0;
+    });
+  }
+
+  async function wizPhotoDetectColors() {
+    if (!Array.isArray(S.wizData._photos) || !S.wizData._photos.length) return;
+    var todo = [];
+    var todoIndices = [];
+    S.wizData._photos.forEach(function(p, i) {
+        if (p.ai_confidence === null || p.ai_confidence === undefined) {
+            todo.push(p);
+            todoIndices.push(i);
+        }
+    });
+    if (!todo.length) return;
+    if (typeof wizShowAIWorking === 'function') wizShowAIWorking(todo.length);
+    var fd = new FormData();
+    var totalKB = 0;
+    todo.forEach(function(p, i) {
+        var arr = p.dataUrl.split(',');
+        var mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+        var bstr = atob(arr[1]);
+        var n = bstr.length;
+        totalKB += n / 1024;
+        var u8 = new Uint8Array(n);
+        while (n--) u8[n] = bstr.charCodeAt(n);
+        fd.append('image_' + i, new Blob([u8], { type: mime }), 'photo_' + i + '.jpg');
+    });
+    fd.append('count', String(todo.length));
+    console.log('[S82.COLOR.7] AI detect: posting', todo.length, 'photos, total ~' + Math.round(totalKB) + ' KB');
+    var r, j;
+    try {
+        r = await fetch('ai-color-detect.php?multi=1', { method: 'POST', body: fd, credentials: 'same-origin' });
+    } catch (err) {
+        console.error('[S82.COLOR.7] AI fetch err:', err);
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
+        if (typeof showToast === 'function') showToast('AI: мрежова грешка', 'error');
+        _markPhotosFailed(todoIndices);
+        renderWizard();
+        return;
+    }
+    try { j = await r.json(); } catch(e) { j = null; }
+    console.log('[S82.COLOR.7] AI response status=' + r.status, j);
+    if (!r.ok) {
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
+        var reason = (j && j.reason) || ('HTTP ' + r.status + (r.status === 413 || r.status === 400 ? ' — снимките са твърде големи' : ''));
+        if (typeof showToast === 'function') showToast('AI: ' + reason, 'error');
+        _markPhotosFailed(todoIndices);
+        renderWizard();
+        return;
+    }
+    var results = (j && (j.results || j.colors)) || null;
+    if (!Array.isArray(results) || !results.length) {
+        if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
+        if (typeof showToast === 'function') showToast('AI не разпозна цветове', 'error');
+        _markPhotosFailed(todoIndices);
+        renderWizard();
+        return;
+    }
+    var applied = 0;
+    results.forEach(function(res, i) {
+        var targetIdx;
+        if (typeof res.idx === 'number' && res.idx >= 0 && res.idx < todoIndices.length) {
+            targetIdx = todoIndices[res.idx];
+        } else {
+            targetIdx = todoIndices[i];
+        }
+        if (targetIdx === undefined || !S.wizData._photos[targetIdx]) return;
+        S.wizData._photos[targetIdx].ai_color = (res.color_bg || res.name || res.color || '').toString().trim();
+        S.wizData._photos[targetIdx].ai_hex = res.hex || '#666';
+        S.wizData._photos[targetIdx].ai_confidence = (typeof res.confidence === 'number') ? res.confidence : 0.5;
+        applied++;
+    });
+    todoIndices.forEach(function(idx){
+        if (!S.wizData._photos[idx]) return;
+        if (S.wizData._photos[idx].ai_confidence === null || S.wizData._photos[idx].ai_confidence === undefined) {
+            S.wizData._photos[idx].ai_color = '';
+            S.wizData._photos[idx].ai_hex = '#666';
+            S.wizData._photos[idx].ai_confidence = 0;
+        }
+    });
+    S.wizData._aiColorsApplied = false;
+    if (typeof wizHideAIWorking === 'function') wizHideAIWorking();
+    if (typeof showToast === 'function') showToast('AI разпозна ' + applied + '/' + todoIndices.length + ' цвята', applied ? 'success' : 'error');
+    renderWizard();
+  }
 
   // STUBS — AI inline buttons получават 1:1 в 2e++e.
   function wizAIInlineBgRemove(){showToast('AI махни фон: следваща sub-step','info')}
