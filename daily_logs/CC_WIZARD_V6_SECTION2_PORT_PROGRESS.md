@@ -192,12 +192,38 @@ P13_bulk_entry.html visual design + ВСЯКА sacred логика от products
 
 ═══════════════════════════════════════════════════════════════
 
-## SECTION 2 — статус след 3c.3
+## SECTION 2 — статус след 3c.3b
 
 | Sub-section | Visual | Functional | Notes |
 |---|---|---|---|
-| Размери (axis) | ✅ P13 | ✅ Wired (chip toggle, add inline, groups expand, search) | Sacred logic 1:1 |
+| Размери (axis) | ✅ P13 + групирани секции | ✅ Wired + long-press remove + bulk group remove | Sacred logic 1:1; UX ext 3c.3b |
 | Цветове (axis) | ✅ P13 (static) | ❌ Не wired | 3c.4 next |
 | Matrix grid | ✅ P13 (static) | ❌ Не wired | 3c.5 next |
 | SKU summary | ✅ P13 (static) | ❌ Не recalculates | 3c.5 |
 | Save row | ✅ P13 (static) | ❌ Stubs | Phase 4 |
+
+## ✅ 3c.3b — UX EXTENSIONS (user feedback)
+
+Data model addition:
+- `S.wizData.axes[i]._sources` map: val → groupId ('letters' | 'belts' | 'underwear' | ... | '_custom')
+
+Render layout:
+1. **Бързо избиране strip** (XS-XXL винаги видими — quick-pick)
+2. **Per-source group sections** — всяка с label header ("Колани", "Бельо", "Ръчно добавени"...) + × bulk remove
+
+Interactions:
+- **Click chip** → toggle (add/remove с source tag по контекст)
+- **Long-press / right-click chip** (`oncontextmenu`) → confirm "Премахни X?" → remove single
+- **Double-click chip** (desktop fallback) → същото
+- **× на group header** → confirm "Премахни цяла група X (N размера)?" → remove all values with that source
+
+New funcs:
+- `_wizEnsureSources(ax)`, `_wizGroupLabelById(groupId)`
+- `wizSizeAskRemove(val)`, `wizSizeAskRemoveGroup(groupId)`
+
+Updated funcs:
+- `wizSizeToggle(val, sourceTag)` — sets/clears source on toggle
+- `wizSizeGroupPick(groupId)` — overwrites source for all bulk-picked values
+- `wizSizeAddPickSuggestion(val, groupId)` — tags from matched group
+- `wizSizeAddConfirm()` — tags '_custom'
+- `wizSizeSearchAll` (variations.js) — already returned groupId; dropdown сега го предава
