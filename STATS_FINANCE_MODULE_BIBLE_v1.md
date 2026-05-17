@@ -4620,358 +4620,373 @@ DELETE FROM ai_insights WHERE shown_at < NOW() - INTERVAL 90 DAY;
 
 ---
 
-# §24. S82-DASH ИНТЕГРАЦИЯ — МИНИ СПРАВКИ
+# §24. S82-DASH — КОМПАКТНО ФИНАНСОВО ТАБЛО (REVISED v1.3)
 
-## 24.1 Концепция (Тих, S148)
+## 24.1 Концепция (Тих, S148 → S149 corrected)
 
-> *"s82 е мини справки със същото което прави AI чата на Simple режим за сигналите, само че има някакви бутони."*
+**КРИТИЧНА КОРЕКЦИЯ:** Старата концепция от v1.0-v1.2 е остаряла. Премахваме всичко свързано с top product, low stock, dead capital от s82-dash.
 
-Превод:
-- **s82-dash** в life-board.php = миниатюрна версия на Detailed Stats модула
-- Показва **същите AI сигнали** като AI chat card (от ai_brain_queue)
-- ПЛЮС: action бутони за **директна интеракция** със сигнала (не само passive view)
-
-## 24.2 Архитектурно положение
+> *"s82-dash е малко копие на Pocket CFO home — само финансова карта в life-board.php."*
 
 ```
-LIFE-BOARD.PHP (Simple Mode home)
-│
-├── s82-dash (мини Stats)
-│   ├── Главно число (Оборот днес)
-│   ├── 3 ротиращи слота (AI сигнали + action бутони)
-│   └── Period pills [Днес][7д][30д][365д]
-│
-├── 4 op-buttons (Продай/Стоката/Доставка/Поръчка)
-├── AI Studio entry
-├── Weather card
-└── AI chat card (signals stream)
-
-       ↓ tap на цялата s82 карта → отваря stats.php
-       ↓ tap на конкретен слот → отваря relevant sub-section в stats.php
+СТАРАТА КОНЦЕПЦИЯ (DEPRECATED):           НОВАТА КОНЦЕПЦИЯ (v1.3):
+─────────────────────────────             ─────────────────────────────
+❌ Top продукт: Nike 42 · 3 бр            ✅ 1 голямо число (Op. Profit / Касов баланс)
+❌ Свършва: Levi's 32 · ~2 дни            ✅ AI rotating insight slot
+❌ Dead capital €340                      ✅ 3 quick action бутона
+❌ Поръчай бутон [📋]                     ✅ Tap → cfo/analysis.php
+❌ 4 ротиращи слота                       ✅ Sacred Glass еди карта
 ```
 
-## 24.3 Текущо състояние (за reference)
+## 24.2 Защо корекцията
+
+s82-dash е **финансовият огледален двойник** на cfo/home.php:
+- Един codebase, една логика
+- Различен само shell контекст (живее **вътре в** life-board.php)
+- Retail-specific неща (продукти, склад, low stock) → **в други карти** на life-board.php
+
+**Разделение на отговорностите:**
 
 ```
-┌──────────────────────────────────┐
-│ Днес · Цариградско          +12%│
-│ 847 EUR                          │
-│ 7 продажби · vs 4 вчера         │
-│ [Днес][7д][30д][365д] | [Об][Пе]│
-└──────────────────────────────────┘
+LIFE-BOARD.PHP (RunMyStore home) — multiple карти:
+├── s82-dash card           ← ФИНАНСИ (нашата нова карта)
+├── sales-today card        ← Продажби днес
+├── top-products card       ← Top продукти
+├── low-stock card          ← Свършваща стока
+├── dead-capital card       ← Замразен капитал
+├── deliveries card         ← Очаквани доставки
+├── ai-help card            ← AI асистент
+└── shortcuts row           ← Бързи действия
 ```
 
-= Само едно число + период pills + mode toggle (Оборот/Печалба). **Нула AI.**
+s82-dash **НЕ дублира** retail сигналите. Всяка карта има отговорност.
 
-## 24.4 Новата визия (s82 v2)
+## 24.3 Архитектурно положение
+
+```
+ПОДЕЛЕН ENGINE (един codebase, §42):
+─────────────────────────────────────
+   lib/money-engine.php
+   lib/ai-engine.php
+   ai_insights table (module='cfo')
+   money_movements table
+              │
+   ┌──────────┴───────────┐
+   │                      │
+   ▼                      ▼
+cfo/home.php          life-board.php
+(Pocket CFO full)     (RunMyStore home)
+   │                      │
+   │                  ┌───┴────┐
+   │                  │ s82-   │  ← КОМПАКТНА финансова карта
+   │                  │ dash   │     (1 от много карти)
+   │                  │ card   │
+   │                  └────────┘
+   │                      
+Full page              One card сред много
+```
+
+**Един и същ data source. Различен UI обхват.**
+
+## 24.4 UI спецификация (375px)
 
 ```
 ┌──────────────────────────────────────┐
-│ Днес · Цариградско  ●●○  [👑]      │  rotation indicator + role badge
+│ ФИНАНСИ · Този месец         [тап →] │  малък header
 ├──────────────────────────────────────┤
-│ 847 €  / 1 656.46 лв         +12%   │  главно число
-│ 7 продажби · vs 4 вчера              │  meta
+│                                       │
+│  1 437 €              ▲ +18%         │  38px main + delta pill
+│  Печалба                              │  11px label
+│                                       │
 ├──────────────────────────────────────┤
-│ ✨ 4-тият петък над €700 — стабилно │  SLOT 1 (AI context)
-│                                      │
-│ Топ: Nike 42 · 3 бр · 360€    →     │  SLOT 2 (top product)
-│                                      │
-│ ⚠ Свършва: Levi's 32 · ~2 дни  [📋]│  SLOT 3 (low stock + action)
+│  ✨ Тази седмица харчиш €70 повече   │  AI rotating slot (q-magic)
+│     отколкото изкарваш                │
 ├──────────────────────────────────────┤
-│ [Днес][7д][30д][365д] | [Об][Пе]   │  period pills
+│   [🎤]      [📷]      [📊]           │  3 кръгли quick action бутона
+│  Запиши    Снимка    Виж             │  9px label под всеки
 └──────────────────────────────────────┘
 ```
 
-## 24.5 3 ротиращи слота — приоритет
+**Размер на картата:**
+- Width: 100% (със 12px gutter от life-board.php)
+- Height: ~280-310px
+- Border-radius: 22px (var(--radius))
+- Padding: 16px 18px
 
-AI engine избира **3 от 5 възможни типа** според приоритет:
-
-| Slot type | Trigger | Priority |
-|---|---|---|
-| **A. AI context** | Винаги (1 patern detection insight) | 1 (винаги показва) |
-| **B. Top product** | Винаги при > 1 sale today | 2 |
-| **C. Reorder signal** | Low stock + sales velocity > 0 | 3 (ако има) |
-| **D. Dead capital alert** | dead_value > €200 | 4 (rotated) |
-| **E. WoW context** | period != 'today' | 5 (rotated) |
-
-**Винаги показва:** A + B + (C OR D OR E според relevance).
-
-## 24.6 Slot rendering
+## 24.5 Sacred Glass canon (задължително)
 
 ```html
-<div class="glass sm s82-dash qd">
-  <span class="shine"></span><span class="shine shine-bottom"></span>
-  <span class="glow"></span><span class="glow glow-bottom"></span>
+<div class="glass s82-card qd" onclick="openCFOAnalysis(event)">
+  <span class="shine"></span>
+  <span class="shine shine-bottom"></span>
+  <span class="glow"></span>
+  <span class="glow glow-bottom"></span>
   
-  <!-- HEADER ROW -->
-  <div class="s82-dash-top">
-    <span class="s82-dash-period-label">Днес · Цариградско</span>
-    <span class="s82-rotation-dots">●●○</span>
-  </div>
-  
-  <!-- MAIN NUMBER ROW -->
-  <div class="s82-dash-numrow">
-    <span class="s82-dash-num">847</span>
-    <span class="s82-dash-cur">€ / 1 656.46 лв</span>
-    <span class="s82-dash-pct positive">+12%</span>
-  </div>
-  <div class="s82-dash-meta">7 продажби · vs 4 вчера</div>
-  
-  <!-- SLOT 1: AI CONTEXT -->
-  <div class="s82-slot s82-slot-ai" data-slot="ai_context">
-    <svg class="s82-spark"><!-- ✨ --></svg>
-    <span class="s82-slot-text">4-тият петък над €700 — стабилно</span>
-  </div>
-  
-  <!-- SLOT 2: TOP PRODUCT (tappable) -->
-  <button class="s82-slot s82-slot-product" data-slot="top_product"
-          onclick="navigateToProduct(12345)">
-    <span class="s82-slot-label">Топ:</span>
-    <span class="s82-slot-text">Nike 42 · 3 бр · 360€</span>
-    <svg class="s82-slot-arrow"><!-- → --></svg>
-  </button>
-  
-  <!-- SLOT 3: ACTION (low stock) -->
-  <div class="s82-slot s82-slot-action q5" data-slot="low_stock">
-    <svg class="s82-slot-icon"><!-- warning --></svg>
-    <span class="s82-slot-text">Свършва: Levi's 32 · ~2 дни</span>
-    <button class="s82-slot-action-btn"
-            onclick="quickOrder(67890)">
-      <svg><!-- 📋 --></svg>
-    </button>
-  </div>
-  
-  <!-- PERIOD PILLS (existing) -->
-  <div class="s82-dash-pills">
-    <button class="s82-dash-pill rev-pill active" data-period="today">Днес</button>
-    <button class="s82-dash-pill rev-pill" data-period="7d">7 дни</button>
-    <!-- ... -->
+  <div class="s82-content" style="position:relative;z-index:5">
+    <!-- header, hero, ai insight, buttons -->
   </div>
 </div>
 ```
 
-## 24.7 CSS на новите слотове
+4 spans задължителни. Никога overflow:hidden.
 
-```css
-.s82-slot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  margin: 6px -2px;
-  border-radius: var(--radius-sm);
-  background: hsl(var(--hue1) 20% 12% / 0.3);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  text-align: left;
-  border: none;
-  width: calc(100% + 4px);
-  cursor: pointer;
-  transition: all 0.2s;
-}
+## 24.6 Какво показва главното число
 
-.s82-slot:hover {
-  background: hsl(var(--hue1) 20% 15% / 0.4);
-}
+**Default (за owner/manager):** Operating Profit за периода
+**Алтернативи (rotating слот ако data ниска):**
+- Касов баланс
+- Месечен оборот
 
-.s82-slot-ai {
-  background: linear-gradient(135deg,
-    hsl(280 50% 25% / 0.3),
-    hsl(305 50% 25% / 0.3));
-}
-
-.s82-slot-action.q5 {
-  background: hsl(38 50% 20% / 0.3);
-  border: 1px solid hsl(38 60% 40% / 0.3);
-}
-
-.s82-spark {
-  width: 14px; height: 14px;
-  flex-shrink: 0;
-  fill: hsl(280 70% 70%);
-}
-
-.s82-slot-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.s82-slot-arrow {
-  width: 12px; height: 12px;
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.s82-slot-action-btn {
-  background: hsl(38 70% 50%);
-  border-radius: 50%;
-  width: 26px; height: 26px;
-  display: grid;
-  place-items: center;
-  border: none;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.s82-slot-action-btn svg { width: 14px; height: 14px; fill: white; }
-
-.s82-rotation-dots {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--text-faint);
+```php
+function s82MainNumber(int $tenant_id, int $store_id, string $period): array {
+    $op = calcOperatingProfit($tenant_id, $store_id, $period);
+    
+    if ($op['operating_profit'] > 0) {
+        return [
+            'label' => 'Печалба',
+            'value' => $op['operating_profit'],
+            'delta_pct' => calcPeriodComparison($tenant_id, $period),
+        ];
+    }
+    
+    // Fallback: cash balance
+    return [
+        'label' => 'Касов баланс',
+        'value' => getBalance($tenant_id, 'cash'),
+        'delta_pct' => null,
+    ];
 }
 ```
 
-## 24.8 Slot rotation logic
+## 24.7 AI rotating insight slot
 
-3 слота × 5 возможни types = AI engine избира top 3:
+AI ротира между insights които иначе биха били отделни карти. **Една по една.** Без overwhelm.
+
+**Ротация на всеки 8 секунди (или при tap на слота).**
+
+**Pool на insights за s82-dash:**
 
 ```php
-// life-board.php :: getS82Slots
-function getS82Slots($context) {
-    $candidates = [];
+$rotation_pool = [
+    // От existing CFO теми (cfo_001-045)
+    'cfo_001_burn_rate',          // "Тази седмица харчиш €70 повече"
+    'cfo_003_category_leak',      // "Материали 28% от месеца"
+    'cfo_004_spending_accel',     // "+20% разходи спрямо normal"
+    'cfo_011_income_drop',        // "Приходите спадат с 15%"
+    'cfo_015_top_category',       // "Топ приход: Услуги €1 240"
+    'cfo_017_reserve',            // "Резерв 1.2 мес. Препоръка: 3+"
+    'cfo_020_surplus',            // "Излишък €720 — реинвестиция?"
+    'cfo_028_inflation',          // "Гориво +14% за 6 месеца"
+    'cfo_035_wow',                // "+18% спрямо мин. седмица"
     
-    // A. AI context (always present)
-    $candidates[] = [
-        'type' => 'ai_context',
-        'priority' => 1,
-        'render' => generateAIContext($context),
-        'action' => null
-    ];
-    
-    // B. Top product (always if sales > 0)
-    if ($context['sales_today'] > 0) {
-        $top = getTopProductToday($context);
-        $candidates[] = [
-            'type' => 'top_product',
-            'priority' => 2,
-            'render' => "Топ: {$top['name']} · {$top['qty']} бр · {$top['rev']}€",
-            'action' => "navigateToProduct({$top['id']})"
-        ];
-    }
-    
-    // C. Reorder signal (if low stock with velocity)
-    $low = getLowStockTop($context);
-    if ($low && $low['days_until_zero'] < 7) {
-        $candidates[] = [
-            'type' => 'low_stock',
-            'priority' => 3,
-            'render' => "Свършва: {$low['name']} · ~{$low['days_until_zero']} дни",
-            'action' => "quickOrder({$low['id']})"
-        ];
-    }
-    
-    // D. Dead capital (if > €200)
-    if ($context['dead_capital'] > 200) {
-        $candidates[] = [
-            'type' => 'dead_capital',
-            'priority' => 4,
-            'render' => "Замразени: €{$context['dead_capital']} в {$context['dead_count']} артикула",
-            'action' => "openStats('products', 'dead')"
-        ];
-    }
-    
-    // E. WoW context (passive)
-    if ($context['period'] !== 'today') {
-        $candidates[] = [
-            'type' => 'wow',
-            'priority' => 5,
-            'render' => $context['wow_pct'] > 0
-                ? "+{$context['wow_pct']}% спрямо миналата седмица"
-                : "{$context['wow_pct']}% спрямо миналата седмица",
-            'action' => null
-        ];
-    }
-    
-    // Sort by priority and take top 3
-    usort($candidates, fn($a, $b) => $a['priority'] - $b['priority']);
-    return array_slice($candidates, 0, 3);
+    // БГ Calendar reminders
+    'bg_winetka_alert',           // "Винетка - 5 дни"
+    'bg_vat_threshold',           // "ДДС праг наближава"
+    'bg_nra_quarterly',           // "Тримесечен аванс НАП - 3 дни"
+];
+```
+
+**Algorithm:**
+1. PHP cron всеки час пресмята eligible insights (същата logic като ai_insights table)
+2. Селектира по: confidence ≥ 0.85, не показани в последните 7 дни, plan compatible
+3. Ротира top 3-5 в s82-dash slot
+4. Tap → отваря details drawer (Защо? + retrieved_facts)
+
+## 24.8 Quick action бутони (3 бутона)
+
+```
+[🎤 Запиши]   [📷 Снимка]   [📊 Виж]
+```
+
+### Бутон 1: Voice Record (🎤)
+
+```javascript
+function s82VoiceRecord() {
+    // Отваря voice overlay (same component като cfo/home.php)
+    openVoiceOverlay({
+        callback: (parsed) => {
+            insertMoneyMovement(parsed);
+            refreshS82Card();
+        }
+    });
+}
+```
+
+### Бутон 2: Photo Receipt (📷)
+
+```javascript
+function s82PhotoReceipt() {
+    // Отваря camera (Capacitor native API)
+    openCamera({
+        callback: (image_blob) => {
+            parsePhotoReceipt(image_blob).then(parsed => {
+                showConfirmCard(parsed);
+            });
+        }
+    });
+}
+```
+
+### Бутон 3: Analysis (📊)
+
+```javascript
+function s82OpenAnalysis() {
+    // Tap → пълно analysis табло (като cfo/analysis.php)
+    // За RMS user отваря: stats.php?tab=finance
+    // За CFO user отваря: cfo/analysis.php
+    window.location.href = TENANT_PLAN === 'cfo' 
+        ? 'cfo/analysis.php' 
+        : 'stats.php?tab=finance';
 }
 ```
 
 ## 24.9 Tap behaviors
 
-| Slot | Tap → |
+| Action | Result |
 |---|---|
-| AI context | nothing (passive) OR drawer "Защо?" (виж §23.4) |
-| Top product | `products.php?id={product_id}` |
-| Low stock | `orders.php?new&product_id={pid}&qty_suggested={n}` |
-| Dead capital | `stats.php?tab=products&filter=dead` |
-| WoW context | `stats.php?tab=overview` |
-| Action бутон (📋) | Direct create draft order |
+| Tap главно число | → stats.php?tab=finance (full analysis) |
+| Tap AI insight | → Details drawer "Защо?" + retrieved_facts |
+| Tap "тап →" header | → stats.php?tab=finance |
+| Tap 🎤 button | → Voice overlay |
+| Tap 📷 button | → Camera |
+| Tap 📊 button | → Full analysis |
+| Long-press AI insight | → Forced rotation (next insight) |
 
-## 24.10 Period pills behavior
-
-При смяна на period — main number се обновява, **но слотовете остават**:
-
-```javascript
-function s82SetPeriod(period) {
-    fetch(`/life-board-api.php?action=s82&period=${period}`)
-        .then(r => r.json())
-        .then(data => {
-            // Update main number
-            $('.s82-dash-num').text(data.revenue);
-            $('.s82-dash-pct').text(`${data.pct > 0 ? '+' : ''}${data.pct}%`);
-            $('.s82-dash-meta').text(data.meta);
-            
-            // Slots остават same (AI rotation independent от period)
-            // OR ако period != 'today' → re-generate slots с different context
-        });
-}
-```
-
-## 24.11 ENTIRE s82 card tap (на празно място)
-
-Tap на самата карта (не на слот) → отваря `stats.php?tab=overview`:
-
-```html
-<div class="glass sm s82-dash qd" onclick="openStatsFromS82(event)">
-  <!-- ... -->
-</div>
-
-<script>
-function openStatsFromS82(event) {
-    // Не отваря ако клик на слот (има свой handler) или на period pill
-    if (event.target.closest('.s82-slot, .s82-dash-pills, button')) return;
-    location.href = 'stats.php?tab=overview';
-}
-</script>
-```
-
-## 24.12 Бутоните в s82 vs AI chat card
-
-> Тих: *"същото което прави AI чата, само че има някакви бутони"*
-
-Разлика:
-
-| Aspect | AI chat card | s82-dash |
-|---|---|---|
-| **Главна задача** | Conversation (signals stream) | Headline number + 3 quick signals |
-| **Размер** | ~140-220px (expanded) | ~280-340px (fixed) |
-| **Слотове** | 1 active signal | 3 signals (rotation) |
-| **Бутоните** | "Да, кажи" / "После" | Direct actions (Поръчай / Виж артикул) |
-| **Position** | Long-form, scrollable | Above the fold, always visible |
-| **Voice** | Yes (chat bar internal) | No (only display) |
-
-## 24.13 ROLE-BASED rendering в s82
-
-Пешо (seller) → НЕ вижда:
-- Margin/profit числа (никога)
-- Dead capital в €
-- "Колко печелим" insights
-
-Owner/manager → виждат всичко.
+## 24.10 PHP renderer
 
 ```php
-if ($role === 'seller') {
-    // Hide profit-related slots
-    $candidates = array_filter($candidates, fn($c) => !in_array($c['type'], ['margin', 'profit', 'dead_capital_value']));
+// partials/s82-dash.php
+// Used in life-board.php
+
+function renderS82Dash(int $tenant_id, int $store_id, string $period = 'month'): string {
+    $main = s82MainNumber($tenant_id, $store_id, $period);
+    $insight = getCurrentS82Insight($tenant_id);  // rotating
+    
+    ob_start();
+    ?>
+    <div class="glass s82-card qd" onclick="s82OpenAnalysis()">
+        <span class="shine"></span>
+        <span class="shine shine-bottom"></span>
+        <span class="glow"></span>
+        <span class="glow glow-bottom"></span>
+        
+        <div class="s82-content" style="position:relative;z-index:5">
+            <!-- Header -->
+            <div class="s82-header">
+                <span class="s82-label">ФИНАНСИ · Този месец</span>
+                <span class="s82-tap-hint">тап →</span>
+            </div>
+            
+            <!-- Hero number -->
+            <div class="s82-hero">
+                <div class="s82-num"><?= priceFormat($main['value'], getTenant($tenant_id)) ?></div>
+                <?php if ($main['delta_pct']): ?>
+                    <span class="s82-delta <?= $main['delta_pct'] > 0 ? 'up' : 'down' ?>">
+                        <?= ($main['delta_pct'] > 0 ? '▲' : '▼') ?> <?= abs($main['delta_pct']) ?>%
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div class="s82-meta"><?= htmlspecialchars($main['label']) ?></div>
+            
+            <!-- AI rotating insight -->
+            <?php if ($insight): ?>
+                <div class="s82-insight" onclick="event.stopPropagation(); openInsightDrawer('<?= $insight['id'] ?>')">
+                    <svg class="s82-sparkle" viewBox="0 0 24 24"><!-- sparkle icon --></svg>
+                    <span><?= htmlspecialchars($insight['rendered_text']) ?></span>
+                </div>
+            <?php endif; ?>
+            
+            <!-- 3 quick actions -->
+            <div class="s82-actions">
+                <button class="s82-btn" onclick="event.stopPropagation(); s82VoiceRecord()">
+                    <div class="s82-btn-icon mic"><!-- mic svg --></div>
+                    <span class="s82-btn-label">Запиши</span>
+                </button>
+                <button class="s82-btn" onclick="event.stopPropagation(); s82PhotoReceipt()">
+                    <div class="s82-btn-icon cam"><!-- camera svg --></div>
+                    <span class="s82-btn-label">Снимка</span>
+                </button>
+                <button class="s82-btn" onclick="event.stopPropagation(); s82OpenAnalysis()">
+                    <div class="s82-btn-icon chart"><!-- chart svg --></div>
+                    <span class="s82-btn-label">Виж</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 ```
 
----
+## 24.11 RBAC + Mode visibility
+
+| Role + Mode | s82-dash видим |
+|---|---|
+| Owner — Simple Mode (Пешо view) | ❌ Не (Пешо не вижда финанси) |
+| Owner — Detailed Mode | ✅ Да |
+| Manager — Detailed Mode | ✅ Да |
+| Seller — Simple Mode | ❌ Не |
+| CFO user (plan=cfo) | N/A (има cfo/home.php) |
+
+s82-dash е **owner/manager only** в RunMyStore. Симетричен на CFO home за CFO users.
+
+## 24.12 Plan gating
+
+| Plan | s82-dash |
+|---|---|
+| FREE €0 | ❌ |
+| START €19 | ✅ (basic — Operating Profit + 1 AI insight) |
+| PRO €49 | ✅ (full — pool of 12+ insights, cross-store comparison) |
+| BUSINESS €109 | ✅ (full + B2B insights) |
+| CFO €4.99 | N/A (cfo/home.php е equivalent) |
+
+## 24.13 Performance
+
+```
+Cache TTL для s82-dash:
+- Hero number: 5 min (live)
+- AI insight: 60 min (refresh всеки час cron)
+- Period comparison: 1 hour
+- Delta calculation: 5 min
+
+Average render time:
+- Cold: ~120ms (3 SQL queries)
+- Cached: ~15ms (3 cache hits)
+```
+
+## 24.14 Файл организация
+
+```
+partials/s82-dash.php          ← Главен renderer
+partials/css/s82-dash.css      ← Sacred Glass styles
+js/s82-dash.js                  ← Rotation + tap handlers
+api/s82/rotate-insight.php      ← Force rotation endpoint
+```
+
+## 24.15 Mockup reference
+
+```
+mockups/P21_dash82_v2.html      ← Sacred Glass canon, 500-600 реда
+```
+
+Базиран 1:1 на:
+- DESIGN_SYSTEM_v4.0_BICHROMATIC.md §5.4
+- mockups/wizard_v6_INTERACTIVE.html (pattern)
+- mockups/P11_chat_v7_orbs2.html (chat input concept)
+
+## 24.16 Testing scenarios
+
+- TC-S82-01: Owner отваря life-board → s82-dash се показва
+- TC-S82-02: Seller отваря life-board → s82-dash скрит
+- TC-S82-03: Tap главно число → отваря stats.php?tab=finance
+- TC-S82-04: AI insight ротира на всеки 8 сек
+- TC-S82-05: Voice button → отваря voice overlay
+- TC-S82-06: Photo button → отваря camera
+- TC-S82-07: Plan START → basic content; PRO → full
+- TC-S82-08: Cold cache → render < 200ms
+- TC-S82-09: AI silent (timeout) → PHP fallback text
+- TC-S82-10: Без data (empty state) → "Запиши първи запис" CTA
+
 
 # §25. TESTING СЦЕНАРИИ
 
@@ -10965,4 +10980,949 @@ Time-to-market:
 **Един codebase. Един git push. Два продукта.**
 
 Това е архитектурният фундамент на цялата стратегия. Никога не нарушаваме.
+
+
+
+═══════════════════════════════════════════════════════════════
+# ETAP 7 — БГ TAX ENGINE + 14 PROFESSIONAL TEMPLATES
+# Версия v1.3 (S148 → S149)
+# Дата: 17.05.2026
+═══════════════════════════════════════════════════════════════
+
+# §43. 14 PROFESSIONAL TEMPLATES — ПЪЛНА СПЕЦИФИКАЦИЯ
+
+## 43.1 Защо 14 templates (не 9, не 30)
+
+Преди (v1.2): 9 templates. **Грешно** — пропускахме адвокати, фотографи, Airbnb, инфлуенсъри, ветеринари.
+
+След (v1.3): **14 родителски templates** със 50-60 под-категории. Покрива ~95% от БГ target market (~340K от 350K самонаети).
+
+## 43.2 Финална структура
+
+Базирано на deep research анализ (Google AI Studio, май 2026):
+
+```
+1.  it_digital            IT, Дизайн и Маркетинг
+2.  health_therapy        Здраве и Терапия
+3.  beauty_care           Красота и Грижа
+4.  craftsman_tech        Ремонти и Техници
+5.  teachers_trainers     Преподаватели и Треньори
+6.  photo_video           Фото и Видео
+7.  couriers_gig          Куриери и Доставки
+8.  drivers_transport     Шофьори и Транспорт
+9.  online_commerce       Онлайн Търговия
+10. consultants_legal     Консултанти и Право
+11. agriculture           Земеделие и Агро
+12. tourism_property      Имоти и Туризъм
+13. creators_influencers  Креатори и Инфлуенсъри
+14. personal              Личен Бюджет / Друго
+```
+
+## 43.3 Template DNA
+
+Всеки template има финансово ДНК — данъчен режим, типични разходи, сезонност:
+
+```sql
+CREATE TABLE profession_templates (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name_bg VARCHAR(150) NOT NULL,
+    name_en VARCHAR(150),
+    
+    -- Sub-categories
+    sub_categories JSON,  -- ["програмист","дизайнер","маркетолог"]
+    
+    -- Данъчен режим (БГ)
+    tax_mode ENUM(
+      'npr_25',          -- свободни професии (25% НПР)
+      'npr_40',          -- занаятчии/майстори (40% НПР)
+      'npr_60',          -- земеделски производители (60% НПР!)
+      'patent',          -- патентен данък (фризьори, такси)
+      'eood_regular',    -- ЕООД корпоративен (10%)
+      'personal_only'    -- личен бюджет (не самонает)
+    ) NOT NULL,
+    
+    -- ДДС
+    likely_vat_registered BOOLEAN DEFAULT FALSE,
+    vat_chapter_97a_relevant BOOLEAN DEFAULT FALSE,
+    -- (важно за фрийлансъри ползващи EU services)
+    
+    -- Плащания pattern
+    typical_payment_mix VARCHAR(100),  -- "70% bank / 30% cash"
+    avg_transaction_size_eur DECIMAL(10,2),
+    
+    -- Sеzонност
+    seasonal_peak_months JSON,  -- [5,6,7,8,9,10]
+    seasonal_low_months JSON,
+    
+    -- Очакван доход
+    income_range_min DECIMAL(10,2),
+    income_range_max DECIMAL(10,2),
+    
+    -- Voice keywords (за PHP-first parsing)
+    voice_keywords JSON,
+    
+    -- Default категории
+    default_income_categories JSON,
+    default_expense_categories JSON,
+    
+    -- Hidden costs (БГ-специфични)
+    typical_hidden_costs JSON,
+    
+    -- AI hints
+    ai_hints JSON,
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0
+);
+```
+
+## 43.4 Пълен seed данни — 14 templates
+
+```sql
+-- ═══ 1. IT, Дизайн и Маркетинг ═══
+INSERT INTO profession_templates VALUES (
+  1, 'it_digital', 'IT, Дизайн и Маркетинг', 'IT, Design & Marketing',
+  '["Програмист","Дизайнер","Маркетолог","SEO специалист","PPC","SMM","Копирайтър","Преводач","Виртуален асистент"]',
+  'npr_25',
+  TRUE,   -- often VAT registered
+  TRUE,   -- VAT chapter 97a relevant
+  '100% bank',
+  2200.00,
+  '[]', -- no strong seasonality
+  '[8,12]', -- aug+dec слаби
+  2300.00, 5620.00,
+  '["програм","код","кодя","софтуер","сайт","уеб","дизайн","лого","банер","маркет","реклам","фейсбук","гугъл","сео","seo","social","media","програмист","разработка"]',
+  '[{"name":"Клиентски проекти","is_business":true},{"name":"Месечни абонаменти","is_business":true},{"name":"Бонуси","is_business":true}]',
+  '[{"name":"Софтуер абонаменти","is_business":true},{"name":"Хостинг/Cloud","is_business":true},{"name":"Реклама","is_business":true},{"name":"Коуъркинг","is_business":true},{"name":"Хардуер","is_business":true},{"name":"Курсове","is_business":true},{"name":"Транспорт лично","is_business":false},{"name":"Хранителни","is_business":false}]',
+  '["VAT chapter 97a за Adobe/AWS/FB ads","Coworking €300-500/мес","NAP осигуровки €165-200/мес"]',
+  '{"income_variance_warning":"IT доходи варират значително","recommend_reserve_months":6,"likely_dds_chapter_97a":true}',
+  TRUE, 1
+);
+
+-- ═══ 2. Здраве и Терапия ═══
+INSERT INTO profession_templates VALUES (
+  2, 'health_therapy', 'Здраве и Терапия', 'Health & Therapy',
+  '["Психолог","Терапевт","Физиотерапевт","Логопед","Лекар","Дентален лекар","Ветеринар","Диетолог","Рехабилитатор"]',
+  'npr_25',
+  FALSE,  -- usually under threshold
+  FALSE,
+  '70% bank / 30% cash',
+  60.00,
+  '[]',
+  '[7,8]', -- лятото спад
+  1020.00, 4000.00,
+  '["психолог","терапи","сеси","консултаци","клиент терапия","логопед","рехабилита","зъб","ветеринар","физио","масаж","преглед","пациент"]',
+  '[{"name":"Сесии частни клиенти","is_business":true},{"name":"Корпоративни клиенти","is_business":true},{"name":"НЗОК плащания","is_business":true}]',
+  '[{"name":"Наем кабинет","is_business":true},{"name":"Супервизия","is_business":true},{"name":"Книги/курсове","is_business":true},{"name":"Медицински консумативи","is_business":true},{"name":"Сертификации","is_business":true},{"name":"Хранителни","is_business":false}]',
+  '["БЛС/БДЕС членски такси","Професионална застраховка","Медицински отпадъци договор (за зъболекари)"]',
+  '{"fixed_clients_track":true,"summer_slowdown_alert":true,"reserve_recommendation_months":3}',
+  TRUE, 2
+);
+
+-- ═══ 3. Красота и Грижа ═══
+INSERT INTO profession_templates VALUES (
+  3, 'beauty_care', 'Красота и Грижа', 'Beauty & Care',
+  '["Фризьор","Маникюрист","Козметик","Масажист","Естетичен терапевт","Лазерна епилация","Гримьор","Грумър"]',
+  'patent',
+  FALSE,
+  FALSE,
+  '85% cash / 15% Revolut',
+  50.00,
+  '[5,12]', -- май+декември peak
+  '[1,8]',
+  1020.00, 3000.00,
+  '["кос","подстриг","прическ","боядисвам коса","маникюр","педикюр","нокти","мигли","вежди","козметик","епилац","лазер","филър","масаж","грим","лице"]',
+  '[{"name":"Клиенти кеш","is_business":true},{"name":"Клиенти карта","is_business":true},{"name":"Promo packages","is_business":true}]',
+  '[{"name":"Козметика/материали","is_business":true},{"name":"Инструменти","is_business":true},{"name":"Наем стол/салон","is_business":true},{"name":"Ток/вода салон","is_business":true},{"name":"Реклама","is_business":true},{"name":"Транспорт лично","is_business":false},{"name":"Хранителни","is_business":false}]',
+  '["Патентен данък (общинско ниво)","Касов апарат + СИМ €120/год","РЗИ разрешителни","Медицински отпадъци (за естетици)"]',
+  '{"cash_heavy_warning":true,"recommend_daily_tracking":true,"materials_pct_warning":40,"no_show_risk_track":true}',
+  TRUE, 3
+);
+
+-- ═══ 4. Ремонти и Техници (Майстори) ═══
+INSERT INTO profession_templates VALUES (
+  4, 'craftsman_tech', 'Ремонти и Техници', 'Craftsmen & Technicians',
+  '["Електротехник","ВиК","Климатици","Бяла техника","Строител","Дърводелец","Шлосер","Шпакловчик","Плочкаджия","Боядисвач","Дограмаджия","Мебелист"]',
+  'npr_40',  -- 40% НПР занаятчии!
+  FALSE,
+  FALSE,
+  '90% cash',
+  150.00,
+  '[4,5,6,7,8,9,10]', -- пролет-есен пик
+  '[12,1,2]',
+  1790.00, 4500.00,
+  '["ремонт","монтаж","инсталира","поправя","сменям","плочки","шпакловка","шпаклов","вик","тръб","ток","кабел","климатик","ламинат","боядис","покрив","дограм","електро","шлосер","мебели"]',
+  '[{"name":"Услуги клиенти","is_business":true},{"name":"Спешни поправки","is_business":true},{"name":"Капаро","is_business":true},{"name":"Доплащане","is_business":true}]',
+  '[{"name":"Материали/части","is_business":true},{"name":"Гориво/транспорт","is_business":true},{"name":"Инструменти","is_business":true},{"name":"Реклама OLX/FB","is_business":true},{"name":"Хранителни","is_business":false},{"name":"Личен транспорт","is_business":false}]',
+  '["Винетка €97/год","ГО €200-400/год","Гражданска отговорност работодател","Гориво до 25% от приходи","Паркинг синя/зелена зона София"]',
+  '{"materials_pct_track":true,"recommend_materials_pct":30,"cash_heavy":true,"fuel_pct_alert":25,"npr_40_calculator_show":true}',
+  TRUE, 4
+);
+
+-- ═══ 5. Преподаватели и Треньори ═══
+INSERT INTO profession_templates VALUES (
+  5, 'teachers_trainers', 'Преподаватели и Треньори', 'Teachers & Trainers',
+  '["Частен учител","Математика","БЕЛ","Английски","Друг език","Музика","Шах","Йога","Фитнес","Танци","Плуване","Тенис","Ски/Сноуборд"]',
+  'npr_25',
+  FALSE,
+  FALSE,
+  '60% cash / 40% bank',
+  35.00,
+  '[9,10,11,1,2,3,4,5,6]', -- учебна година
+  '[7,8]',
+  770.00, 2000.00,
+  '["урок","уроци","преподав","уча","школ","курс","математик","английски","език","фитнес","трениров","треньор","йога","танц","шах","музика","инструмент"]',
+  '[{"name":"Уроци","is_business":true},{"name":"Курсове","is_business":true},{"name":"Workshops","is_business":true}]',
+  '[{"name":"Учебни материали","is_business":true},{"name":"Софтуер (Zoom/Office)","is_business":true},{"name":"Транспорт до учебни места","is_business":true},{"name":"Наем зала","is_business":true},{"name":"Сертификати","is_business":true},{"name":"Хранителни","is_business":false}]',
+  '["Лятна пауза (юли-август)","Учебен материали август-септември","НАП осигуровки €165+/мес"]',
+  '{"seasonal_pattern":"school_year","summer_reserve_alert":true,"jan_resolutions_peak":true}',
+  TRUE, 5
+);
+
+-- ═══ 6. Фото и Видео ═══
+INSERT INTO profession_templates VALUES (
+  6, 'photo_video', 'Фото и Видео', 'Photo & Video',
+  '["Сватбен фотограф","Видеограф","Дрон оператор","Студио","Event фотограф","Продуктова фотография"]',
+  'npr_25',
+  TRUE,   -- often VAT registered
+  TRUE,   -- equipment imports (97a)
+  '60% bank / 40% cash',
+  1500.00,
+  '[5,6,7,8,9,10]', -- сватби
+  '[12,1,2,3]',
+  1500.00, 4500.00,
+  '["снима","фото","видео","кадър","сватб","събити","дрон","монтаж","photoshop","camera","обектив"]',
+  '[{"name":"Сватби","is_business":true},{"name":"Корпоративни","is_business":true},{"name":"Studio sessions","is_business":true},{"name":"Stock фотография","is_business":true}]',
+  '[{"name":"Техника амортизация","is_business":true},{"name":"Adobe CC","is_business":true},{"name":"Транспорт","is_business":true},{"name":"Backup storage","is_business":true},{"name":"Реклама Instagram","is_business":true},{"name":"Личен бюджет","is_business":false}]',
+  '["Застраховка техника €200-500/год","Музикаутор лицензи (за DJ)","Wedding insurance","Adobe €30+/мес"]',
+  '{"strict_seasonality":true,"booking_lead_time_track":true,"equipment_depreciation_aware":true}',
+  TRUE, 6
+);
+
+-- ═══ 7. Куриери и Доставки (Gig) ═══
+INSERT INTO profession_templates VALUES (
+  7, 'couriers_gig', 'Куриери и Доставки', 'Couriers & Gig',
+  '["Glovo","Takeaway","Foodpanda","Speedy подизпълнител","Еконт","Wolt","Bolt Food"]',
+  'eood_regular',  -- through flotilla
+  FALSE,
+  FALSE,
+  '100% bank (от платформа)',
+  10.00,
+  '[12,1,2,11]', -- зима + дъжд peak
+  '[6,7,8]', -- лято спад
+  920.00, 1630.00,
+  '["глово","glovo","тейкуей","takeaway","еконт","спиди","speedy","wolt","достав","куриер","пратк","поръчка"]',
+  '[{"name":"Поръчки Glovo","is_business":true},{"name":"Поръчки Takeaway","is_business":true},{"name":"Бонуси","is_business":true},{"name":"Tips","is_business":true}]',
+  '[{"name":"Гориво","is_business":true},{"name":"Поддръжка кола/мотор","is_business":true},{"name":"Амортизация","is_business":true},{"name":"Телефон/Data","is_business":true},{"name":"Комисионна флотилия","is_business":true},{"name":"Хранителни","is_business":false}]',
+  '["Гориво 15-25% от приходи","Комисионна флотилия 5-10%","Винетка/ГО/KASKO","Поддръжка скутер/кола"]',
+  '{"fuel_ratio_track":true,"recommend_fuel_pct":18,"weather_aware":true,"platform_commission_track":true}',
+  TRUE, 7
+);
+
+-- ═══ 8. Шофьори и Транспорт ═══
+INSERT INTO profession_templates VALUES (
+  8, 'drivers_transport', 'Шофьори и Транспорт', 'Drivers & Transport',
+  '["Такси","Uber","Bolt","Maxim","Личен шофьор","Автошкола","Товарен превоз","Курсове извън града"]',
+  'patent',  -- patent for taxi
+  FALSE,
+  FALSE,
+  '70% cash / 30% POS',
+  10.00,
+  '[]',
+  '[]',
+  1280.00, 2300.00,
+  '["шофир","кара","такси","превоз","uber","bolt","автошкола","транспорт","пътуван"]',
+  '[{"name":"Пътувания Uber","is_business":true},{"name":"Пътувания Bolt","is_business":true},{"name":"Бонуси платформа","is_business":true},{"name":"Tips","is_business":true}]',
+  '[{"name":"Гориво","is_business":true},{"name":"Сервиз кола","is_business":true},{"name":"Гуми/масло","is_business":true},{"name":"KASKO/ГО","is_business":true},{"name":"Leasing вноска","is_business":true},{"name":"Личен бюджет","is_business":false}]',
+  '["Патент такси €300-1000/год","Винетка","KASKO задължително","Технически преглед годишно"]',
+  '{"fuel_critical_track":true,"recommend_fuel_pct":25,"depreciation_aware":true,"patent_tax_active":true}',
+  TRUE, 8
+);
+
+-- ═══ 9. Онлайн Търговия ═══
+INSERT INTO profession_templates VALUES (
+  9, 'online_commerce', 'Онлайн Търговия', 'Online Commerce',
+  '["Dropshipping","Instagram магазин","TikTok магазин","Etsy","eBay","Shopify магазин","Sklad стока","Антики"]',
+  'eood_regular',
+  TRUE,   -- often above VAT threshold
+  TRUE,   -- imports
+  'ППП Еконт/Спиди + bank',
+  35.00,
+  '[10,11,12]', -- Q4 peak
+  '[1,2,7]',
+  1500.00, 5000.00,
+  '["продава","магаз","онлайн","пратк","еконт","спиди","сток","внася","китай","ali","dropshipp","etsy","ebay","shopify"]',
+  '[{"name":"Продажби online","is_business":true},{"name":"ППП Наложен платеж","is_business":true},{"name":"Wholesale","is_business":true}]',
+  '[{"name":"Стока (COGS)","is_business":true},{"name":"Опаковки","is_business":true},{"name":"Куриерски такси","is_business":true},{"name":"Реклама FB/TikTok","is_business":true},{"name":"Наем склад","is_business":true},{"name":"Митница/ДДС внос","is_business":true},{"name":"Личен бюджет","is_business":false}]',
+  '["ДДС праг 100K лв","ППП без касов апарат","Върнати пратки 15-20%","Митничен ДДС за внос"]',
+  '{"vat_threshold_alert":true,"return_rate_track":true,"q4_peak_aware":true,"recommend_upgrade_to_runmystore":true}',
+  TRUE, 9
+);
+
+-- ═══ 10. Консултанти и Право ═══
+INSERT INTO profession_templates VALUES (
+  10, 'consultants_legal', 'Консултанти и Право', 'Consultants & Legal',
+  '["Адвокат","Нотариус","Счетоводител","Данъчен консултант","Финансов съветник","Бизнес консултант","Брокер недвижими имоти","HR консултант"]',
+  'npr_25',
+  TRUE,   -- often VAT registered
+  FALSE,
+  '80% bank',
+  500.00,
+  '[]',
+  '[8]', -- август спад
+  1500.00, 5000.00,
+  '["адвокат","нотариус","счетовод","данък","юрист","консулт","брокер","имот","право","договор","недвижими"]',
+  '[{"name":"Хонорари","is_business":true},{"name":"Месечни абонаменти","is_business":true},{"name":"Комисионни","is_business":true}]',
+  '[{"name":"Членски такси","is_business":true},{"name":"Софтуер","is_business":true},{"name":"Книги/обучение","is_business":true},{"name":"Офис разходи","is_business":true},{"name":"Транспорт","is_business":true},{"name":"Личен бюджет","is_business":false}]',
+  '["Адвокатска колегия €20-30/мес","Камара счетоводители членство","Професионална застраховка","Continuing education"]',
+  '{"high_avg_transaction":true,"low_volume_high_value":true,"august_slowdown":true}',
+  TRUE, 10
+);
+
+-- ═══ 11. Земеделие и Агро ═══
+INSERT INTO profession_templates VALUES (
+  11, 'agriculture', 'Земеделие и Агро', 'Agriculture',
+  '["Земеделски производител","Пчелар","Животновъд","Овошкар","Зеленчукопроизводител","Гъбар","Рибовъд"]',
+  'npr_60',  -- 60% НПР за земеделци!
+  FALSE,
+  FALSE,
+  '50% cash / 50% bank',
+  100.00,
+  '[4,5,6,7,8,9,10]', -- пролет-есен
+  '[12,1,2]',
+  770.00, 5000.00,
+  '["земедел","пчелар","ферма","зеленчук","овошк","реколт","сеитба","сеит","субсиди","ДФ Земеделие","гъб","риб"]',
+  '[{"name":"Продажби пазар","is_business":true},{"name":"Директни продажби","is_business":true},{"name":"Субсидии ДФ","is_business":true},{"name":"Wholesale","is_business":true}]',
+  '[{"name":"Семена/разсад","is_business":true},{"name":"Тор/препарати","is_business":true},{"name":"Гориво техника","is_business":true},{"name":"Сезонна работна ръка","is_business":true},{"name":"Транспорт стока","is_business":true},{"name":"Хранителни","is_business":false}]',
+  '["Субсидии СЕПП","60% НПР!","Преференциални осигуровки","Сезонност екстремна","БАБХ задължения"]',
+  '{"seasonal_extreme":true,"subsidy_track":true,"weather_critical":true,"npr_60_calculator":true}',
+  TRUE, 11
+);
+
+-- ═══ 12. Имоти и Туризъм ═══
+INSERT INTO profession_templates VALUES (
+  12, 'tourism_property', 'Имоти и Туризъм', 'Tourism & Property',
+  '["Airbnb хост","Booking хост","Къща за гости","Малък хотел","Екскурзовод","Планински водач","Сватбен организатор"]',
+  'personal_only',  -- 10% person tax
+  TRUE,   -- often above threshold
+  FALSE,
+  '100% bank (платформи)',
+  100.00,
+  '[6,7,8,9,12]', -- лято+зима peak
+  '[1,2,3]',
+  770.00, 3000.00,
+  '["airbnb","booking","хост","къщата","имот","туриз","екскурз","планин","ваканц","нощувк"]',
+  '[{"name":"Нощувки Airbnb","is_business":true},{"name":"Нощувки Booking","is_business":true},{"name":"Direct booking","is_business":true},{"name":"Допълнителни услуги","is_business":true}]',
+  '[{"name":"Почистване","is_business":true},{"name":"Пране","is_business":true},{"name":"Консумативи","is_business":true},{"name":"Ток/вода имот","is_business":true},{"name":"Platform fee","is_business":true},{"name":"Поддръжка имот","is_business":true}]',
+  '["Туристически данък","Категоризация","Декларация всяко тримесечие","ДДС chap 97a (Booking commission)"]',
+  '{"seasonal_pattern":"summer_winter","revpar_track":true,"platform_fee_track":true,"touristic_tax_track":true}',
+  TRUE, 12
+);
+
+-- ═══ 13. Креатори и Инфлуенсъри ═══
+INSERT INTO profession_templates VALUES (
+  13, 'creators_influencers', 'Креатори и Инфлуенсъри', 'Creators & Influencers',
+  '["Influencer","YouTuber","Подкастър","Streamer","OnlyFans","Patreon","Blogger","TikTok creator","Twitch streamer"]',
+  'eood_regular',
+  TRUE,   -- ДДС chap 97a задължително
+  TRUE,
+  '100% bank (Stripe/PayPal)',
+  500.00,
+  '[10,11,12]', -- Q4 peak
+  '[6,7,8]',
+  800.00, 5000.00,
+  '["инфлуенс","ютуб","youtube","tiktok","instagram","patreon","onlyfans","stream","подкаст","блог","content","creator"]',
+  '[{"name":"Brand sponsorships","is_business":true},{"name":"AdSense YouTube","is_business":true},{"name":"Patreon/OnlyFans","is_business":true},{"name":"Affiliate","is_business":true},{"name":"Merch","is_business":true}]',
+  '[{"name":"Camera/Equipment","is_business":true},{"name":"Software/Editing","is_business":true},{"name":"Локации snimk","is_business":true},{"name":"Облекло/Make-up","is_business":true},{"name":"Реклама own profile","is_business":true},{"name":"Личен бюджет","is_business":false}]',
+  '["ДДС chap 97a задължително (Meta/TikTok/YouTube)","Foreign income (USD/EUR)","Stripe/PayPal такси 3-5%","Counterintuitive разходи"]',
+  '{"foreign_currency_alert":true,"vat_chap_97a_mandatory":true,"q4_peak":true,"high_growth_potential":true}',
+  TRUE, 13
+);
+
+-- ═══ 14. Личен бюджет / Друго ═══
+INSERT INTO profession_templates VALUES (
+  14, 'personal', 'Личен Бюджет / Друго', 'Personal / Other',
+  '["Просто следя харчовете","Не работя на свободна практика","Друго"]',
+  'personal_only',
+  FALSE,
+  FALSE,
+  '50% card / 30% bank / 20% cash',
+  30.00,
+  '[]',
+  '[]',
+  500.00, 5000.00,
+  '["лично","себе си","за мен","заплата"]',
+  '[{"name":"Заплата","is_business":false},{"name":"Бонуси","is_business":false},{"name":"Подаръци получени","is_business":false},{"name":"Други доходи","is_business":false}]',
+  '[{"name":"Хранителни","is_business":false},{"name":"Транспорт","is_business":false},{"name":"Сметки","is_business":false},{"name":"Наем","is_business":false},{"name":"Развлечения","is_business":false},{"name":"Ресторанти","is_business":false},{"name":"Здраве","is_business":false},{"name":"Облекло","is_business":false},{"name":"Подаръци","is_business":false}]',
+  '["Стандартни 50/30/20 правило","Сезонни покупки"]',
+  '{"recommend_50_30_20":true,"no_tax_complexity":true}',
+  TRUE, 14
+);
+```
+
+## 43.5 Voice-first onboarding (revised)
+
+```
+🎤 "Кажи какво работиш" (single voice prompt)
+   ↓
+User: "Правя ремонти на климатици"
+   ↓
+PHP-first matching срещу voice_keywords:
+   - "ремонт" matches profession_templates.code='craftsman_tech'
+   - "климатик" също matches craftsman_tech
+   - Confidence: 0.95 ✓
+   ↓
+"Разбрах — Ремонти и Техници (специалност: Климатици).
+ Правилно ли е?" [Да] [Не]
+   ↓
+Ако НЕ → show top 3 alternative matches + "Друго"
+Ако НИЩО match → fallback към "Личен бюджет/Друго" с custom AI categories
+```
+
+## 43.6 Coverage assessment
+
+```
+БГ пазар: ~350K самонаети + микропредприятия
+
+Покрити с 14 templates:
+✅ IT/Дизайн          ~30K   (8%)
+✅ Здраве/Терапия     ~35K   (10%)
+✅ Красота            ~40K   (11%)
+✅ Майстори           ~35K   (10%)
+✅ Учители            ~25K   (7%)
+✅ Фото/Видео         ~5K    (1.5%)
+✅ Куриери            ~12K   (3.5%)
+✅ Шофьори            ~25K   (7%)
+✅ Онлайн търговия    ~15K   (4%)
+✅ Консултанти/Право  ~30K   (8.5%)
+✅ Земеделие          ~77K   (22%)  ← най-голяма група!
+✅ Имоти/Туризъм      ~12K   (3.5%)
+✅ Креатори           ~3K    (1%)
+✅ Личен бюджет       ~5%
+
+ОБЩО: ~340K покрити (95-97%)
+```
+
+---
+
+# §44. БГ TAX ENGINE — НПР + ДДС + ПАТЕНТ
+
+## 44.1 Концепция
+
+**Pocket CFO killer feature: НАП-anxiety reduction.**
+
+Самонаетите в БГ имат хроничен страх от НАП — кога да подадат декларация, колко да платят, какво е НПР, кога преминаваш ДДС прага. Pocket CFO решава това.
+
+## 44.2 НПР калкулатор (Нормативно Признати Разходи)
+
+```php
+// lib/bg-tax-engine.php
+
+class BGTaxEngine {
+    
+    /**
+     * НПР проценти според template
+     */
+    const NPR_RATES = [
+        'npr_25' => 25,  // свободни професии (адвокати, психолози, IT)
+        'npr_40' => 40,  // занаятчии (майстори, шивачи, фризьори)
+        'npr_60' => 60,  // земеделски производители (huge!)
+        'patent' => null,        // patent — fixed amount
+        'eood_regular' => null,  // ЕООД — actual expenses
+        'personal_only' => null, // лични — 10% върху доход
+    ];
+    
+    /**
+     * Estimate annual tax based on template
+     */
+    public function estimateAnnualTax(int $tenant_id): array {
+        $tenant = getTenant($tenant_id);
+        $template = getTemplate($tenant->profession_template);
+        $year = date('Y');
+        
+        // Annual income YTD
+        $income = DB::query("
+            SELECT SUM(amount) FROM money_movements
+            WHERE tenant_id = ? AND direction = 'in' AND is_business = TRUE
+              AND YEAR(occurred_at) = ?
+        ", [$tenant_id, $year])->fetchColumn() ?: 0;
+        
+        // Project to full year ако са минали < 12 месеца
+        $months_elapsed = (int) date('n');
+        $projected_annual = $income * (12 / max($months_elapsed, 1));
+        
+        $tax_mode = $template->tax_mode;
+        
+        switch ($tax_mode) {
+            case 'npr_25':
+            case 'npr_40':
+            case 'npr_60':
+                return $this->calcNPRTax($projected_annual, $tax_mode);
+            
+            case 'patent':
+                return $this->calcPatentTax($tenant);
+            
+            case 'eood_regular':
+                return $this->calcEOODTax($tenant_id, $projected_annual);
+            
+            case 'personal_only':
+                return $this->calcPersonalTax($projected_annual);
+        }
+    }
+    
+    /**
+     * НПР calculation
+     */
+    private function calcNPRTax(float $income, string $mode): array {
+        $npr_pct = self::NPR_RATES[$mode];
+        $npr_amount = $income * ($npr_pct / 100);
+        $taxable = $income - $npr_amount;
+        
+        // Subtract осигуровки (annual)
+        $social_security = $this->calcAnnualSocialSecurity($income);
+        $taxable_after_ss = max(0, $taxable - $social_security);
+        
+        // 10% data
+        $tax = $taxable_after_ss * 0.10;
+        
+        return [
+            'mode' => $mode,
+            'gross_income' => $income,
+            'npr_pct' => $npr_pct,
+            'npr_amount' => $npr_amount,
+            'taxable_before_ss' => $taxable,
+            'social_security' => $social_security,
+            'taxable_after_ss' => $taxable_after_ss,
+            'tax_amount' => $tax,
+            'effective_rate' => $income > 0 ? ($tax / $income) * 100 : 0,
+        ];
+    }
+    
+    /**
+     * Социални осигуровки (2026 estimates)
+     */
+    private function calcAnnualSocialSecurity(float $annual_income): float {
+        // Минимум 2026: ~1077 лв = ~€551 EUR месечно база
+        // Максимум 2026: 3750 лв = ~€1918 EUR месечно база
+        // Процент общо: ~27.8% (за самонает)
+        
+        $monthly_income = $annual_income / 12;
+        
+        // Cap между min и max
+        $monthly_base = max(551, min(1918, $monthly_income));
+        
+        $monthly_ss = $monthly_base * 0.278;
+        return $monthly_ss * 12;
+    }
+}
+```
+
+## 44.3 ДДС праг detector
+
+```php
+class VATThresholdMonitor {
+    
+    const THRESHOLD_BGN = 100000;     // 100 000 лв
+    const THRESHOLD_EUR = 51130;      // ~€51 130
+    const ALERT_BUFFER_PCT = 70;       // alert at 70% of threshold
+    
+    /**
+     * Check status за всеки tenant
+     */
+    public function checkStatus(int $tenant_id): array {
+        $tenant = getTenant($tenant_id);
+        $year = date('Y');
+        
+        $revenue_ytd = DB::query("
+            SELECT SUM(amount) FROM money_movements
+            WHERE tenant_id = ? AND direction = 'in' AND is_business = TRUE
+              AND YEAR(occurred_at) = ?
+        ", [$tenant_id, $year])->fetchColumn() ?: 0;
+        
+        $pct_of_threshold = ($revenue_ytd / self::THRESHOLD_EUR) * 100;
+        
+        // Project to year-end
+        $months_elapsed = (int) date('n');
+        $projected_annual = $revenue_ytd * (12 / max($months_elapsed, 1));
+        $projected_pct = ($projected_annual / self::THRESHOLD_EUR) * 100;
+        
+        $status = 'safe';
+        if ($pct_of_threshold >= 100) {
+            $status = 'crossed';
+        } elseif ($projected_pct >= 100) {
+            $status = 'projected_cross';
+        } elseif ($pct_of_threshold >= self::ALERT_BUFFER_PCT) {
+            $status = 'approaching';
+        }
+        
+        return [
+            'tenant_id' => $tenant_id,
+            'revenue_ytd' => $revenue_ytd,
+            'threshold' => self::THRESHOLD_EUR,
+            'pct_of_threshold' => round($pct_of_threshold, 1),
+            'projected_annual' => $projected_annual,
+            'projected_pct' => round($projected_pct, 1),
+            'status' => $status,
+            'months_elapsed' => $months_elapsed,
+            'remaining_to_threshold' => max(0, self::THRESHOLD_EUR - $revenue_ytd),
+        ];
+    }
+    
+    /**
+     * Generate appropriate AI insight
+     */
+    public function generateInsight(int $tenant_id): ?string {
+        $status = $this->checkStatus($tenant_id);
+        
+        if ($status['status'] === 'safe') return null;
+        
+        $tenant = getTenant($tenant_id);
+        
+        switch ($status['status']) {
+            case 'approaching':
+                return "Достигаш {$status['pct_of_threshold']}% от ДДС прага (€51 130). " .
+                       "Остават €" . round($status['remaining_to_threshold'], 0) . ".";
+            
+            case 'projected_cross':
+                return "При тази тенденция ще преминеш ДДС прага през " . 
+                       $this->estimateCrossingMonth($status) . 
+                       ". Говори със счетоводител.";
+            
+            case 'crossed':
+                return "Преминал си ДДС прага (€51 130 / 100K лв). " .
+                       "Задължителна ДДС регистрация в 7 дни.";
+        }
+    }
+}
+```
+
+## 44.4 ДДС чл. 97а (за фрийлансъри)
+
+```php
+/**
+ * ДДС chapter 97a — задължителен ДДС за услуги от/към ЕС
+ * 
+ * Засяга:
+ * - Фрийлансъри ползващи Adobe, AWS, FB Ads, Google Ads
+ * - Креатори получаващи от YouTube, Meta, TikTok, Stripe
+ * - Психолози консултиращи EU клиенти
+ * - Програмисти работещи за EU companies
+ */
+
+class VATChapter97AMonitor {
+    
+    public function isRequired(int $tenant_id): bool {
+        $tenant = getTenant($tenant_id);
+        $template = getTemplate($tenant->profession_template);
+        
+        return $template->vat_chapter_97a_relevant;
+    }
+    
+    public function detectEUTransactions(int $tenant_id): array {
+        // Auto-detect транзакции с EU vendors
+        $eu_indicators = [
+            'Adobe', 'AWS', 'Google', 'Facebook', 'Meta', 'YouTube',
+            'Stripe', 'PayPal', 'TikTok', 'Patreon', 'Upwork',
+            'Microsoft', 'Apple', 'LinkedIn'
+        ];
+        
+        $movements = DB::query("
+            SELECT id, vendor_name, amount, direction, occurred_at
+            FROM money_movements
+            WHERE tenant_id = ?
+              AND (
+                " . implode(' OR ', array_map(fn($v) => "vendor_name LIKE '%{$v}%'", $eu_indicators)) . "
+              )
+              AND occurred_at >= NOW() - INTERVAL 90 DAY
+        ", [$tenant_id])->fetchAll();
+        
+        return $movements;
+    }
+}
+```
+
+## 44.5 Patent tax mode
+
+```php
+/**
+ * Patent tax — за такси, фризьори, маникюристи и др.
+ * Фиксирана годишна сума, определена от общината
+ */
+
+class PatentTaxCalculator {
+    
+    const PATENT_RATES_2026 = [
+        'taxi' => ['min' => 300, 'max' => 1000],
+        'hairdresser' => ['min' => 250, 'max' => 800],
+        'beautician' => ['min' => 250, 'max' => 800],
+        'craftsman' => ['min' => 150, 'max' => 600],
+    ];
+    
+    public function getEstimatedPatent(string $occupation, string $city): float {
+        // City multipliers
+        $city_multiplier = match(strtolower($city)) {
+            'софия' => 1.5,
+            'пловдив' => 1.2,
+            'варна' => 1.2,
+            default => 1.0,
+        };
+        
+        $rates = self::PATENT_RATES_2026[$occupation] ?? null;
+        if (!$rates) return 0;
+        
+        $base = ($rates['min'] + $rates['max']) / 2;
+        return $base * $city_multiplier;
+    }
+}
+```
+
+## 44.6 ППП (Наложен платеж) detection
+
+```php
+/**
+ * Наложен платеж (ППП) — Еконт/Спиди cash on delivery
+ * 
+ * ВАЖНО: При ППП НЕ е нужен касов апарат (НАП третира като banking)
+ */
+
+function detectPPPRevenue(int $tenant_id): array {
+    return DB::query("
+        SELECT id, amount, vendor_name, occurred_at, note
+        FROM money_movements
+        WHERE tenant_id = ?
+          AND direction = 'in'
+          AND (
+            note LIKE '%ППП%' OR note LIKE '%наложен%'
+            OR vendor_name LIKE '%Еконт%' OR vendor_name LIKE '%Спиди%'
+          )
+          AND occurred_at >= NOW() - INTERVAL 30 DAY
+    ", [$tenant_id])->fetchAll();
+}
+```
+
+---
+
+# §45. НАП ANXIETY REDUCTION TOOLS
+
+## 45.1 Концепция
+
+Самонаетите в БГ имат **четири постоянни страха** от НАП:
+
+1. "Колко ще плащам данък в края на годината?"
+2. "Преминах ли ДДС прага?"
+3. "Подадох ли си тримесечния аванс?"
+4. "Колко осигуровки трябва да плащам?"
+
+Pocket CFO ги решава всичките четири.
+
+## 45.2 НАП Dashboard widget
+
+Нова секция в Pocket CFO settings → "НАП Контрол":
+
+```
+┌─────────────────────────────────────────┐
+│ 📊 НАП КОНТРОЛ                          │
+├─────────────────────────────────────────┤
+│                                          │
+│ ОЦЕНКА ЗА 2026                          │
+│ ━━━━━━━━━━━━━━                          │
+│                                          │
+│ Прогнозен годишен оборот: €27 400       │
+│ НПР (25%):                  -€6 850     │
+│ Облагаема основа:           €20 550     │
+│ Минус осигуровки:           -€6 580     │
+│ ──────────────────                       │
+│ Данъчна основа:             €13 970     │
+│ Данък 10%:                  €1 397      │
+│                                          │
+│ ✓ Под ДДС прага (54% от €51 130)        │
+│                                          │
+├─────────────────────────────────────────┤
+│ ПРЕДСТОЯЩИ ПЛАЩАНИЯ                     │
+│                                          │
+│ 25 май  • Осигуровки май         €549   │
+│ 15 юли  • Q2 аванс НАП          €350   │
+│ 30 апр '27 • Годишна декларация        │
+│                                          │
+└─────────────────────────────────────────┘
+```
+
+## 45.3 Smart reminders
+
+```php
+// cron/cfo-nra-reminders.php
+
+// Ежемесечни осигуровки (до 25-то число)
+if ((int)date('j') === 23) {
+    // 2 дни преди deadline
+    foreach (getEligibleTenants('self_employed') as $tenant) {
+        sendReminder($tenant, "Осигуровки за " . date('F') . " — до 25-то число.");
+    }
+}
+
+// Тримесечни аванси
+$quarterly_deadlines = [
+    '04-15' => 'Q1',
+    '07-15' => 'Q2', 
+    '10-15' => 'Q3',
+    '01-15' => 'Q4 (за миналата година)',
+];
+
+if (in_array(date('m-d'), array_keys($quarterly_deadlines))) {
+    $quarter = $quarterly_deadlines[date('m-d')];
+    notifyAll("Тримесечен аванс НАП — {$quarter}. До днес.");
+}
+
+// Годишна декларация
+if (date('m-d') === '04-15') {
+    notifyAll("⚠ 15 дни до годишна декларация (30 април)!");
+}
+```
+
+## 45.4 Annual declaration helper
+
+В януари-март, Pocket CFO предлага:
+
+```
+"Време е за годишна декларация по чл. 50.
+
+Според записите в Pocket CFO за 2025:
+✓ Оборот: €27 400
+✓ Признати разходи (НПР 25%): €6 850
+✓ Платени осигуровки: €6 580
+
+Експортирай PDF за счетоводителя [📄]
+Или въведи реалните числа от него за калибрация [🎤]"
+```
+
+---
+
+# §46. НОВИ AI ТЕМИ (cfo_046-060)
+
+## 46.1 Tax-related AI topics (10 нови)
+
+### cfo_046 — ДДС праг приближаване
+
+```php
+[
+    'id' => 'cfo_046',
+    'cat' => 'tax',
+    'trigger' => fn($ctx) => $ctx['vat_status'] === 'approaching',
+    'sql' => "SELECT SUM(amount) AS revenue_ytd FROM money_movements 
+              WHERE tenant_id=:t AND direction='in' AND is_business=TRUE 
+                AND YEAR(occurred_at)=YEAR(NOW())",
+    'prompt_template' => 'Опиши факт БГ (max 70 chars): User е достигнал {pct}% от ДДС прага €51 130. Препоръчай разговор със счетоводител.',
+    'urgency' => 'warning',
+    'cooldown_hours' => 168,
+]
+```
+
+### cfo_047 — ДДС праг преминат
+
+```php
+[
+    'id' => 'cfo_047',
+    'cat' => 'tax',
+    'trigger' => fn($ctx) => $ctx['vat_status'] === 'crossed',
+    'urgency' => 'critical',
+    'output' => 'Преминал си ДДС прага! Задължителна регистрация в 7 дни.',
+]
+```
+
+### cfo_048 — Прогнозен годишен данък
+
+Generates monthly: "Прогнозен данък за 2026: €1 397. Спести €117/мес."
+
+### cfo_049 — НПР калкулация (auto)
+
+При template с НПР: "С 25% НПР спестяваш €6 850 от облагаемата основа."
+
+### cfo_050 — Тримесечен аванс reminder
+
+3 дни преди deadline: "Тримесечен аванс НАП — Q2 идва на 15 юли."
+
+### cfo_051 — Месечни осигуровки tracker
+
+"Този месец още не са платени осигуровките. Срок: 25-то число."
+
+### cfo_052 — Patent tax preview (за такси/фризьори/маникюр)
+
+"Патентен данък за София: ~€450/год = €37.5/мес."
+
+### cfo_053 — ДДС chap 97a alert (за IT/креатори)
+
+"Adobe €19.99 = EU service. Задължителен ДДС chap 97a месечно."
+
+### cfo_054 — ППП vs Cash detection (за онлайн търговци)
+
+"60% от продажбите чрез ППП — не нужен касов апарат."
+
+### cfo_055 — Counterintuitive разходи (за креатори)
+
+"Stripe вземане 3.5% = €128/мес. Patreon също."
+
+## 46.2 Sеzонност AI topics (per template, 5 нови)
+
+### cfo_056 — Seasonal slowdown warning
+
+За sезонни templates (учители, фотографи, земеделци): "След 2 седмици започва тихият период. Резерв готов?"
+
+### cfo_057 — Peak season prep
+
+За craftsman/farmer: "Април-октомври е пиковият ти сезон. Покажа подготовка."
+
+### cfo_058 — Q4 preparation (за креатори/онлайн търговия)
+
+В септември: "Q4 идва. Black Friday + Коледа = +40% оборот typically."
+
+### cfo_059 — Lean season cash management
+
+"Лятото е тихо за теб. Препоръчителен резерв: €1 200."
+
+### cfo_060 — Year-end tax optimization
+
+В ноември: "В края на годината — обмисли купуване на оборудване за намаляване на данъчната основа."
+
+---
+
+# §47. SUMMARY OF v1.3 CHANGES
+
+## 47.1 Какво се промени
+
+| Промяна | Описание |
+|---|---|
+| §24 коригиран | s82-dash от "top product card" → "компактно финансово табло" |
+| §43 нова | 14 professional templates с full DNA |
+| §44 нова | БГ Tax Engine (НПР, ДДС, патент, ППП) |
+| §45 нова | НАП Anxiety Reduction tools |
+| §46 нова | 15 нови AI теми (cfo_046-060) |
+
+## 47.2 Total размер на Bible v1.3
+
+```
+v1.0:           5 371 редa
+v1.1:           8 552 реда (+3 181)
+v1.2:          10 730 реда (+2 178)
+v1.2 +§42:     10 968 реда (+238)
+v1.3:         ~12 500 реда (+~1 500) ← този update
+```
+
+## 47.3 Финален scope на Pocket CFO
+
+```
+✅ 14 professional templates (95-97% БГ coverage)
+✅ Voice-first onboarding с PHP keyword matching
+✅ БГ Tax Engine (НПР 25/40/60, ДДС, патент, ППП)
+✅ НАП anxiety reduction (4 големи страха решени)
+✅ 60 AI теми total (cfo_001-060)
+✅ Self-learning engine (PHP-first, AI fallback)
+✅ Data flywheel (RMS ↔ CFO)
+✅ Anti-halucination framework
+✅ Hidden costs lifestyle interview
+✅ БГ calendar 60+ events
+✅ Actual values from accounting software
+✅ Compact s82-dash card в RunMyStore
+✅ One codebase, two products (Закон §42)
+```
 
